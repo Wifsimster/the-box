@@ -74,18 +74,12 @@ export default function GamePage() {
             className="relative w-full h-full"
           >
             {/* Progress Bar at Top */}
-            <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-background/90 to-transparent pb-8 pt-4 px-4">
-              <div className="container mx-auto flex items-center justify-between">
-                <ProgressBar
-                  current={currentPosition}
-                  total={totalScreenshots}
-                />
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-bold text-foreground">{currentPosition}/{totalScreenshots}</span>
-                  </div>
-                  <ScoreDisplay score={totalScore} />
+            <div className="absolute top-0 left-0 right-0 z-40 bg-gradient-to-b from-background/90 to-transparent pb-8 pt-4 px-4">
+              <div className="container mx-auto flex items-center justify-end gap-4">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-bold text-foreground">{currentPosition}/{totalScreenshots}</span>
                 </div>
+                <ScoreDisplay score={totalScore} />
               </div>
             </div>
 
@@ -96,7 +90,7 @@ export default function GamePage() {
             />
 
             {/* Timer (Top Center) */}
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30">
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30">
               <Timer />
             </div>
 

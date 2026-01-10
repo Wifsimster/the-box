@@ -21,18 +21,8 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neon-purple to-neon-pink flex items-center justify-center">
-            <span className="text-xl font-bold text-white">B</span>
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
-            The Box
-          </span>
-        </Link>
-
         {/* Navigation */}
         <nav className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>

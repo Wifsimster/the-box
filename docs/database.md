@@ -4,44 +4,169 @@ The Box uses PostgreSQL with Knex.js for database access and migrations.
 
 ## Entity Relationship Diagram
 
-```text
-┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
-│    users    │     │ daily_challenges │     │    games    │
-├─────────────┤     ├──────────────────┤     ├─────────────┤
-│ id (uuid)   │     │ id               │     │ id          │
-│ username    │     │ challenge_date   │     │ name        │
-│ email       │     │ is_active        │     │ slug        │
-│ is_guest    │     └────────┬─────────┘     │ aliases     │
-│ is_admin    │              │               │ release_year│
-│ total_score │              │               └──────┬──────┘
-└──────┬──────┘              │                      │
-       │               ┌─────┴─────┐                │
-       │               │   tiers   │                │
-       │               ├───────────┤                │
-       │               │ id        │                │
-       │               │ tier_num  │     ┌──────────┴──────────┐
-       │               │ name      │     │    screenshots      │
-       │               │ time_limit│     ├─────────────────────┤
-       │               └─────┬─────┘     │ id                  │
-       │                     │           │ game_id ────────────┘
-       │          ┌──────────┴──────────┐│ image_url           │
-       │          │  tier_screenshots   ││ difficulty          │
-       │          ├─────────────────────┤└──────────┬──────────┘
-       │          │ tier_id             │           │
-       │          │ screenshot_id ──────┼───────────┘
-       │          │ position            │
-       │          └─────────────────────┘
-       │
-┌──────┴──────────┐     ┌─────────────────┐     ┌─────────────┐
-│  game_sessions  │     │  tier_sessions  │     │   guesses   │
-├─────────────────┤     ├─────────────────┤     ├─────────────┤
-│ id (uuid)       │◄────│ game_session_id │◄────│tier_session │
-│ user_id ────────┼┘    │ tier_id         │     │screenshot_id│
-│ challenge_id    │     │ score           │     │ is_correct  │
-│ current_tier    │     │ correct_answers │     │ time_taken  │
-│ total_score     │     └─────────────────┘     │ score_earned│
-│ is_completed    │                             └─────────────┘
-└─────────────────┘
+```mermaid
+erDiagram
+    users ||--o{ game_sessions : creates
+    users ||--o{ live_event_participants : joins
+    
+    games ||--o{ screenshots : has
+    games ||--o{ guesses : "guessed as"
+    
+    daily_challenges ||--o{ tiers : contains
+    daily_challenges ||--o{ game_sessions : "played in"
+    daily_challenges ||--o{ live_events : hosts
+    
+    tiers ||--o{ tier_screenshots : includes
+    tiers ||--o{ tier_sessions : "progresses through"
+    
+    screenshots ||--o{ tier_screenshots : "assigned to"
+    screenshots ||--o{ guesses : "shown in"
+    
+    game_sessions ||--o{ tier_sessions : tracks
+    game_sessions ||--o{ live_event_participants : participates
+    
+    tier_sessions ||--o{ guesses : records
+    tier_sessions ||--o{ power_ups : earns
+    tier_sessions ||--o{ bonus_rounds : triggers
+    
+    live_events ||--o{ live_event_participants : includes
+    
+    users {
+        uuid id PK
+        varchar username UK
+        varchar email UK
+        varchar password_hash
+        varchar display_name
+        varchar avatar_url
+        boolean is_guest
+        boolean is_admin
+        integer total_score
+        integer current_streak
+        integer longest_streak
+        timestamp last_played_at
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    games {
+        serial id PK
+        varchar name
+        varchar slug UK
+        text_array aliases
+        integer release_year
+        varchar developer
+        varchar publisher
+        text_array genres
+        text_array platforms
+        varchar cover_image_url
+    }
+    
+    screenshots {
+        serial id PK
+        integer game_id FK
+        varchar image_url
+        varchar thumbnail_url
+        integer haov
+        integer vaov
+        integer difficulty
+        varchar location_hint
+        boolean is_active
+        integer times_used
+        integer correct_guesses
+    }
+    
+    daily_challenges {
+        serial id PK
+        date challenge_date UK
+        boolean is_active
+        timestamp created_at
+    }
+    
+    tiers {
+        serial id PK
+        integer daily_challenge_id FK
+        integer tier_number
+        varchar name
+        integer time_limit_seconds
+    }
+    
+    tier_screenshots {
+        serial id PK
+        integer tier_id FK
+        integer screenshot_id FK
+        integer position
+        decimal bonus_multiplier
+    }
+    
+    game_sessions {
+        uuid id PK
+        uuid user_id FK
+        integer daily_challenge_id FK
+        integer current_tier
+        integer current_position
+        integer total_score
+        boolean is_completed
+        timestamp started_at
+        timestamp completed_at
+    }
+    
+    tier_sessions {
+        uuid id PK
+        uuid game_session_id FK
+        integer tier_id FK
+        integer score
+        integer correct_answers
+        boolean is_completed
+        timestamp started_at
+        timestamp completed_at
+    }
+    
+    guesses {
+        serial id PK
+        uuid tier_session_id FK
+        integer screenshot_id FK
+        integer position
+        integer guessed_game_id FK
+        varchar guessed_text
+        boolean is_correct
+        integer time_taken_ms
+        integer score_earned
+        varchar power_up_used
+    }
+    
+    power_ups {
+        serial id PK
+        uuid tier_session_id FK
+        varchar power_up_type
+        boolean is_used
+        integer earned_at_round
+        integer used_at_round
+    }
+    
+    bonus_rounds {
+        serial id PK
+        uuid tier_session_id FK
+        integer after_position
+        varchar power_up_won
+        integer time_taken_ms
+    }
+    
+    live_events {
+        serial id PK
+        integer daily_challenge_id FK
+        varchar name
+        timestamp scheduled_at
+        integer duration_minutes
+        boolean is_active
+    }
+    
+    live_event_participants {
+        serial id PK
+        integer live_event_id FK
+        uuid user_id FK
+        uuid game_session_id FK
+        timestamp joined_at
+    }
 ```
 
 ## Tables
@@ -63,7 +188,9 @@ Player accounts and statistics.
 | total_score | INTEGER | Lifetime score |
 | current_streak | INTEGER | Current daily streak |
 | longest_streak | INTEGER | Best streak |
+| last_played_at | TIMESTAMP | Last game played |
 | created_at | TIMESTAMP | Account creation |
+| updated_at | TIMESTAMP | Last update |
 
 ### games
 
@@ -163,6 +290,8 @@ Per-tier progress tracking.
 | score | INTEGER | Tier score |
 | correct_answers | INTEGER | Correct count |
 | is_completed | BOOLEAN | Finished flag |
+| started_at | TIMESTAMP | Start time |
+| completed_at | TIMESTAMP | Completion time |
 
 ### guesses
 
@@ -194,6 +323,43 @@ Available power-ups for players.
 | earned_at_round | INTEGER | Round earned |
 | used_at_round | INTEGER | Round used |
 
+### bonus_rounds
+
+Bonus rounds completed during tier sessions.
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| id | SERIAL | Primary key |
+| tier_session_id | UUID | FK to tier_sessions |
+| after_position | INTEGER | Position after which bonus triggered |
+| power_up_won | VARCHAR(50) | Power-up earned |
+| time_taken_ms | INTEGER | Time to complete bonus |
+
+### live_events
+
+Scheduled competitive events.
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| id | SERIAL | Primary key |
+| daily_challenge_id | INTEGER | FK to daily_challenges |
+| name | VARCHAR(255) | Event name |
+| scheduled_at | TIMESTAMP | Event start time |
+| duration_minutes | INTEGER | Event duration |
+| is_active | BOOLEAN | Active flag |
+
+### live_event_participants
+
+Players participating in live events.
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| id | SERIAL | Primary key |
+| live_event_id | INTEGER | FK to live_events |
+| user_id | UUID | FK to users |
+| game_session_id | UUID | FK to game_sessions (nullable) |
+| joined_at | TIMESTAMP | Join time |
+
 ## Migrations
 
 ```bash
@@ -219,3 +385,4 @@ Key indexes for performance:
 - `tiers(daily_challenge_id, tier_number)` - Unique
 - `tier_screenshots(tier_id, position)` - Unique
 - `game_sessions(user_id, daily_challenge_id)` - Unique
+- `live_event_participants(live_event_id, user_id)` - Unique

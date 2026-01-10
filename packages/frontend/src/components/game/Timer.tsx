@@ -33,33 +33,32 @@ export function Timer() {
 
   // Calculate progress for circular indicator
   const progress = timeRemaining / 30 // Assuming 30s default
-  const circumference = 2 * Math.PI * 36 // radius = 36
+  const radius = 42
+  const strokeWidth = 6
+  const normalizedRadius = radius - strokeWidth / 2
+  const circumference = 2 * Math.PI * normalizedRadius
 
   return (
     <motion.div
-      className={cn(
-        "relative flex items-center justify-center",
-        "w-24 h-24 rounded-full",
-        "bg-card/80 backdrop-blur-sm border-4",
-        isWarning && !isCritical && "border-warning",
-        isCritical && "border-error",
-        !isWarning && !isCritical && "border-primary"
-      )}
+      className="relative flex items-center justify-center w-24 h-24"
       animate={isCritical ? { scale: [1, 1.05, 1] } : {}}
       transition={{ repeat: Infinity, duration: 0.5 }}
     >
       {/* Circular progress */}
-      <svg className="absolute inset-0 w-full h-full -rotate-90">
+      <svg
+        className="absolute inset-0 w-full h-full -rotate-90"
+        viewBox="0 0 96 96"
+      >
         {/* Background circle */}
         <circle
           cx="48"
           cy="48"
-          r="36"
+          r={normalizedRadius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="4"
+          strokeWidth={strokeWidth}
           className={cn(
-            "opacity-20",
+            "opacity-10",
             isCritical ? "text-error" : "text-primary"
           )}
         />
@@ -67,10 +66,10 @@ export function Timer() {
         <motion.circle
           cx="48"
           cy="48"
-          r="36"
+          r={normalizedRadius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="4"
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           className={cn(
             isCritical ? "text-error" : isWarning ? "text-warning" : "text-primary"
@@ -86,12 +85,16 @@ export function Timer() {
         />
       </svg>
 
+      {/* Background circle for number */}
+      <div className="absolute inset-2 rounded-full bg-card/90 backdrop-blur-sm border border-border/50" />
+
       {/* Time display */}
       <span
         className={cn(
-          "text-3xl font-bold tabular-nums z-10",
+          "text-3xl font-bold tabular-nums z-10 relative",
           isCritical && "text-error",
-          isWarning && !isCritical && "text-warning"
+          isWarning && !isCritical && "text-warning",
+          !isWarning && !isCritical && "text-foreground"
         )}
       >
         {timeRemaining}
