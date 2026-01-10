@@ -1,0 +1,85 @@
+{
+  "common": {
+    "start": "Start",
+    "next": "Next",
+    "skip": "Skip",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "home": "Home",
+    "leaderboard": "Leaderboard",
+    "settings": "Settings",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "guest": "Play as Guest"
+  },
+  "game": {
+    "tier": "Tier",
+    "palier": "Tier",
+    "round": "Round",
+    "score": "Score",
+    "time": "Time",
+    "guessPlaceholder": "Game name...",
+    "nextRound": "Next Round",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "timeUp": "Time's up!",
+    "startTier": "Start",
+    "tierComplete": "Tier Complete!",
+    "totalScore": "Total Score",
+    "correctAnswers": "Correct Answers",
+    "accuracy": "Accuracy",
+    "continueToNextTier": "Continue to Next Tier",
+    "viewResults": "View Results",
+    "bonusRound": "Bonus Round",
+    "powerUps": {
+      "x2Timer": "Double Time",
+      "hint": "Hint"
+    }
+  },
+  "home": {
+    "title": "The Box",
+    "subtitle": "Daily Gaming Screenshot Challenge",
+    "playToday": "Play Today's Challenge",
+    "todayCompleted": "Today's Challenge Completed",
+    "comeBackTomorrow": "Come back tomorrow for a new challenge!",
+    "yourScore": "Your Score",
+    "rank": "Rank"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "today": "Today",
+    "allTime": "All Time",
+    "rank": "Rank",
+    "player": "Player",
+    "score": "Score",
+    "time": "Time",
+    "noResults": "No results yet"
+  },
+  "auth": {
+    "loginTitle": "Login",
+    "registerTitle": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "orContinueWith": "Or continue with"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "games": "Games",
+    "screenshots": "Screenshots",
+    "challenges": "Challenges",
+    "addGame": "Add Game",
+    "addScreenshot": "Add Screenshot",
+    "createChallenge": "Create Challenge"
+  }
+}

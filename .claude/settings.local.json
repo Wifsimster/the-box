@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(git -C /c/git/the-box log --oneline -10)",
+      "Bash(git -C /c/git/the-box show --stat)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker ps:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(npm run dev:*)",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(npm uninstall:*)"
+    ]
+  }
+}
