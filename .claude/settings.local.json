@@ -13,7 +13,14 @@
       "Bash(npm run db:push:*)",
       "Bash(npm run dev:*)",
       "mcp__plugin_context7_context7__query-docs",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm run db:migrate:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(dir /B /AD \"c:\\\\git\\\\the-box\")",
+      "Bash(wc:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(npm run build:backend:*)"
     ]
   }
 }

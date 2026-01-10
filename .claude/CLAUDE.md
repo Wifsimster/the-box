@@ -4,49 +4,113 @@
 "The Box" is a gaming screenshot guessing application where players identify games from panoramic screenshots. Features include tiered difficulty, power-ups, live leaderboards, and multiplayer modes.
 
 ## Tech Stack
-- **Frontend**: React 18 + Vite + TypeScript + TailwindCSS + Zustand + i18next
-- **Backend**: Node.js + Express + Knex.js + Socket.io
+- **Frontend**: React 19 + Vite + TypeScript + TailwindCSS + Zustand + i18next
+- **Backend**: Node.js + Express + Knex.js + Socket.io (Clean Architecture)
 - **Database**: PostgreSQL (via Docker)
 - **Viewer**: Pannellum for 360° panorama display
+- **Monorepo**: npm workspaces
 
-## Project Structure
+## Project Structure (Monorepo)
 ```
 the-box/
-├── frontend/          # React SPA
-├── backend/           # Express API server
-├── database/          # Knex migrations and seeds
-├── uploads/           # Game screenshot storage
-└── docker-compose.yml # PostgreSQL container
+├── package.json              # Root workspace config
+├── packages/
+│   ├── types/                # @the-box/types - Shared TypeScript types
+│   │   └── src/index.ts
+│   ├── backend/              # @the-box/backend - Express API (Clean Architecture)
+│   │   ├── src/
+│   │   │   ├── config/       # Environment configuration
+│   │   │   ├── domain/       # Business logic layer
+│   │   │   │   └── services/ # Domain services
+│   │   │   ├── infrastructure/
+│   │   │   │   ├── database/ # Database connection
+│   │   │   │   ├── repositories/ # Data access layer
+│   │   │   │   └── socket/   # Socket.io setup
+│   │   │   └── presentation/ # HTTP layer
+│   │   │       ├── routes/   # Route definitions
+│   │   │       └── middleware/
+│   │   └── migrations/       # Knex database migrations
+│   └── frontend/             # @the-box/frontend - React SPA
+│       └── src/
+│           ├── components/   # UI components
+│           ├── pages/        # Route pages
+│           ├── stores/       # Zustand stores
+│           └── types/        # Re-exports from @the-box/types
+├── docker-compose.yml        # PostgreSQL container
+└── uploads/                  # Game screenshot storage
 ```
 
 ## Development Commands
+
 ```bash
+# Install all dependencies (from root)
+npm install
+
 # Start PostgreSQL
 docker-compose up -d
 
-# Backend (from /backend)
+# Development (from root)
+npm run dev:backend   # Start backend server
+npm run dev:frontend  # Start frontend dev server
+
+# Or run both together
 npm run dev
 
-# Frontend (from /frontend)
-npm run dev
+# Build all packages
+npm run build
+
+# Build specific package
+npm run build:types
+npm run build:backend
+npm run build:frontend
 ```
 
+## Database Commands
+
+```bash
+npm run db:migrate    # Run migrations
+npm run db:rollback   # Rollback migrations
+npm run db:seed       # Run seeds
+```
+
+## Clean Architecture (Backend)
+
+The backend follows a 3-layer clean architecture:
+
+1. **Domain Layer** (`src/domain/services/`)
+   - Business logic, scoring algorithms, validation
+   - No external dependencies (pure functions)
+
+2. **Infrastructure Layer** (`src/infrastructure/`)
+   - Database repositories (data access)
+   - External services (Socket.io)
+
+3. **Presentation Layer** (`src/presentation/`)
+   - Express routes (thin controllers)
+   - Middleware (auth, validation)
+   - HTTP request/response handling
+
 ## Key Conventions
+
 - **Language**: French is the primary language (UI defaults to French)
 - **Styling**: Dark gaming theme with neon accents (purple/pink gradients)
 - **State**: Zustand stores with persist middleware for client state
 - **API**: RESTful endpoints under `/api/` prefix
 - **Real-time**: Socket.io for live leaderboard and multiplayer
+- **Types**: All shared types in `@the-box/types` package
 
 ## Code Style
+
 - TypeScript strict mode
 - Functional React components with hooks
 - Path aliases: `@/` maps to `src/`
 - Use `cn()` utility for conditional Tailwind classes
 
 ## Testing
+
 - Run `npm test` before committing
 - Ensure TypeScript compiles: `npm run build`
+
 
 <claude-mem-context>
 # Recent Activity

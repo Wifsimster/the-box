@@ -1,0 +1,6 @@
+export { userRepository } from './user.repository.js'
+export { gameRepository } from './game.repository.js'
+export { challengeRepository } from './challenge.repository.js'
+export { sessionRepository } from './session.repository.js'
+export { leaderboardRepository } from './leaderboard.repository.js'
+export { screenshotRepository } from './screenshot.repository.js'
