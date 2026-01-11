@@ -66,6 +66,7 @@
       "screenshots": "{{count}} captures à deviner en temps limité",
       "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
+      "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
       "time": "Plus vous répondez vite, plus vous gagnez de points"
     },
     "scoring": {
@@ -82,7 +83,15 @@
       "finish": "Terminer",
       "reviewSkipped": "Voir les Passées"
     },
-    "adminHint": "Réponse (Admin)"
+    "adminHint": "Réponse (Admin)",
+    "resetSession": "Réinitialiser & Rejouer",
+    "errorResetting": "Échec de la réinitialisation",
+    "endGame": {
+      "button": "Terminer",
+      "confirmTitle": "Terminer la partie ?",
+      "confirmMessage": "Vous avez {{unfound}} capture(s) non trouvée(s). Cela appliquera une pénalité de -{{penalty}} points.",
+      "confirm": "Terminer"
+    }
   },
   "home": {
     "title": "The Box",

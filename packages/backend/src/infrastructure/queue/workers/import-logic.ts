@@ -60,6 +60,7 @@ interface RAWGGame {
   genres: RAWGGenre[]
   platforms: RAWGPlatform[]
   screenshots_count?: number
+  metacritic?: number
 }
 
 interface RAWGScreenshot {
@@ -88,6 +89,7 @@ export interface GameData {
   genres: string[]
   platforms: string[]
   cover_image_url: string | null
+  metacritic: number | null
   screenshots: ScreenshotData[]
 }
 
@@ -276,6 +278,7 @@ export async function fetchGamesFromRAWG(
         genres: rawGame.genres.map((g) => g.name),
         platforms: rawGame.platforms.map((p) => p.platform.name),
         cover_image_url: rawGame.background_image,
+        metacritic: details.metacritic ?? null,
         screenshots: [],
       }
 
@@ -332,6 +335,7 @@ export async function saveData(games: GameData[], screenshots: ScreenshotData[])
     genres: g.genres,
     platforms: g.platforms,
     cover_image_url: g.cover_image_url,
+    metacritic: g.metacritic,
   }))
 
   await fs.writeFile(path.join(DATA_DIR, 'games.json'), JSON.stringify(gamesForSeed, null, 2))

@@ -10,8 +10,10 @@ import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { ProgressDots } from '@/components/game/ProgressDots'
+import { EndGameButton } from '@/components/game/EndGameButton'
 import { Button } from '@/components/ui/button'
-import { Globe, Home, Loader2, Trophy } from 'lucide-react'
+import { Globe, Home, Loader2, Trophy, RotateCcw } from 'lucide-react'
+import { adminApi } from '@/lib/api/admin'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useWorldScore } from '@/hooks/useWorldScore'
 import { createLeaderboardService } from '@/services'
@@ -23,6 +25,8 @@ export default function GamePage() {
   const { localizedPath } = useLocalizedPath()
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
+  const [isResetting, setIsResetting] = useState(false)
+  const isAdmin = session?.user.role === 'admin'
   const {
     _hasHydrated,
     gamePhase,
@@ -190,6 +194,24 @@ export default function GamePage() {
     }
   }, [gamePhase, sessionId, currentPosition, currentScreenshotData?.position, fetchScreenshot])
 
+  // Handle resetting the daily session (admin only)
+  const handleResetSession = useCallback(async () => {
+    if (!isAdmin) return
+
+    try {
+      setIsResetting(true)
+      await adminApi.resetMyDailySession()
+      // Reset local game state
+      useGameStore.getState().resetGame()
+      // Reload the page to start fresh
+      window.location.reload()
+    } catch (err) {
+      console.error('Failed to reset session:', err)
+      setError(t('game.errorResetting'))
+      setIsResetting(false)
+    }
+  }, [isAdmin, t])
+
   // Get the current image URL from screenshot data
   const currentImageUrl = currentScreenshotData?.imageUrl || null
 
@@ -291,8 +313,9 @@ export default function GamePage() {
             <div className="absolute bottom-0 left-0 right-0 z-20 bg-linear-to-t from-background/90 to-transparent pt-8 pb-4 px-4">
               <div className="container mx-auto max-w-2xl space-y-4">
                 {/* Progress Dots (Above Input) */}
-                <div className="flex justify-center">
+                <div className="flex justify-center items-center gap-4">
                   <ProgressDots />
+                  <EndGameButton />
                 </div>
                 <GuessInput />
               </div>
@@ -333,7 +356,7 @@ export default function GamePage() {
                 </motion.div>
               )}
 
-              <div className="flex gap-4 justify-center">
+              <div className="flex gap-4 justify-center flex-wrap">
                 <Button variant="gaming" size="lg" asChild>
                   <Link to={localizedPath('/leaderboard')}>
                     <Trophy className="w-4 h-4 mr-2" />
@@ -346,6 +369,17 @@ export default function GamePage() {
                     {t('common.home')}
                   </Link>
                 </Button>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleResetSession}
+                    disabled={isResetting}
+                  >
+                    <RotateCcw className={`w-4 h-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                    {t('game.resetSession')}
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>

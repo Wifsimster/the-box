@@ -66,6 +66,7 @@
       "screenshots": "{{count}} screenshots to guess in limited time",
       "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
+      "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
       "time": "The faster you answer, the more points you earn"
     },
     "scoring": {
@@ -82,7 +83,15 @@
       "finish": "Finish",
       "reviewSkipped": "Review Skipped"
     },
-    "adminHint": "Answer (Admin)"
+    "adminHint": "Answer (Admin)",
+    "resetSession": "Reset & Replay",
+    "errorResetting": "Failed to reset session",
+    "endGame": {
+      "button": "End Game",
+      "confirmTitle": "End Game?",
+      "confirmMessage": "You have {{unfound}} unfound screenshot(s). Ending now will apply a -{{penalty}} point penalty.",
+      "confirm": "End Game"
+    }
   },
   "home": {
     "title": "The Box",

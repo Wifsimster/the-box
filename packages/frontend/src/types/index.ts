@@ -34,6 +34,7 @@ export type {
   ScreenshotResponse,
   GuessRequest,
   GuessResponse,
+  EndGameResponse,
   GameSearchResult,
   LeaderboardResponse,
 
@@ -44,6 +45,24 @@ export type {
   PlayerFinishedEvent,
   PlayerJoinedEvent,
   PlayerLeftEvent,
+
+  // Party System
+  PartyMember,
+  Party,
+  CreatePartyEvent,
+  JoinPartyEvent,
+  LeavePartyEvent,
+  StartPartyGameEvent,
+  PartyResetGameEvent,
+  PartyScoreUpdateEvent,
+  PartyPlayerFinishedEvent,
+  PartyCreatedEvent,
+  PartyJoinedEvent,
+  PartyUpdatedEvent,
+  PartyGameStartedEvent,
+  PartyGameResetEvent,
+  PartyErrorEvent,
+  PartyDisbandedEvent,
 
   // Job Management (Admin)
   JobType,

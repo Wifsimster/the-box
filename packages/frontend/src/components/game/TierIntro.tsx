@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar, Home, AlertTriangle, Move, Gamepad2, Zap, Images } from 'lucide-react'
+import { Play, Calendar, Home, AlertTriangle, Move, Gamepad2, Zap, Images, Lightbulb } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -110,6 +110,10 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
             <li className="flex items-center gap-2">
               <Gamepad2 className="w-4 h-4 text-neon-purple" />
               <span>{t('game.rules.guess')}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Lightbulb className="w-4 h-4 text-neon-purple shrink-0 mt-0.5" />
+              <span>{t('game.rules.matchingTips')}</span>
             </li>
             <li className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-neon-purple" />

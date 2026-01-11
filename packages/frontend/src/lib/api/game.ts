@@ -3,6 +3,7 @@ import type {
   StartChallengeResponse,
   ScreenshotResponse,
   GuessResponse,
+  EndGameResponse,
   GameSearchResult,
 } from '@/types'
 
@@ -108,6 +109,21 @@ export const gameApi = {
     })
     const data = await handleResponse<{ games: GameSearchResult[] }>(response)
     return data.games
+  },
+
+  /**
+   * End game early (forfeit)
+   */
+  async endGame(sessionId: string): Promise<EndGameResponse> {
+    const response = await fetch('/api/game/end', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sessionId }),
+    })
+    return handleResponse<EndGameResponse>(response)
   },
 }
 

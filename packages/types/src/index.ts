@@ -284,7 +284,17 @@ export interface GuessResponse {
   screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
-  completionReason?: 'all_found'
+  completionReason?: 'all_found' | 'forfeit'
+}
+
+// End game (forfeit) API
+export interface EndGameResponse {
+  totalScore: number
+  screenshotsFound: number
+  unfoundCount: number
+  penaltyApplied: number
+  isCompleted: boolean
+  completionReason: 'forfeit'
 }
 
 // Search API
@@ -334,6 +344,90 @@ export interface PlayerJoinedEvent {
 export interface PlayerLeftEvent {
   username: string
   totalPlayers: number
+}
+
+// ============================================
+// Party System (Multiplayer Rooms)
+// ============================================
+
+export interface PartyMember {
+  socketId: string
+  username: string
+  score: number
+  isHost: boolean
+  isReady: boolean
+}
+
+export interface Party {
+  code: string
+  hostSocketId: string
+  challengeId: number | null
+  members: PartyMember[]
+  isGameStarted: boolean
+  createdAt: string
+}
+
+// Party Socket Events (Client -> Server)
+export interface CreatePartyEvent {
+  username: string
+}
+
+export interface JoinPartyEvent {
+  partyCode: string
+  username: string
+}
+
+export interface LeavePartyEvent {
+  partyCode: string
+}
+
+export interface StartPartyGameEvent {
+  partyCode: string
+  challengeId: number
+}
+
+export interface PartyResetGameEvent {
+  partyCode: string
+}
+
+export interface PartyScoreUpdateEvent {
+  partyCode: string
+  score: number
+}
+
+export interface PartyPlayerFinishedEvent {
+  partyCode: string
+  score: number
+}
+
+// Party Socket Events (Server -> Client)
+export interface PartyCreatedEvent {
+  partyCode: string
+  party: Party
+}
+
+export interface PartyJoinedEvent {
+  party: Party
+}
+
+export interface PartyUpdatedEvent {
+  party: Party
+}
+
+export interface PartyGameStartedEvent {
+  challengeId: number
+}
+
+export interface PartyGameResetEvent {
+  message: string
+}
+
+export interface PartyErrorEvent {
+  message: string
+}
+
+export interface PartyDisbandedEvent {
+  reason: string
 }
 
 // ============================================

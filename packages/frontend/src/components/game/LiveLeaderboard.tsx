@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
+import { RotateCcw } from 'lucide-react'
 import { useGameStore } from '@/stores/gameStore'
 import { useAuthStore } from '@/stores/authStore'
+import { usePartyStore } from '@/stores/partyStore'
 import { cn } from '@/lib/utils'
 
 /**
@@ -21,9 +23,15 @@ interface LeaderboardPlayer {
 export function LiveLeaderboardView({
   players,
   currentUsername,
+  isHost = false,
+  isInParty = false,
+  onResetGame,
 }: {
   players: Array<{ username: string; score: number }>
   currentUsername: string | null
+  isHost?: boolean
+  isInParty?: boolean
+  onResetGame?: () => void
 }) {
   // Only show if there are players
   if (players.length === 0) {
@@ -48,6 +56,17 @@ export function LiveLeaderboardView({
       animate={{ x: 0, opacity: 1 }}
       className="w-48 bg-card/60 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg"
     >
+      {/* Party host reset button */}
+      {isInParty && isHost && onResetGame && (
+        <button
+          onClick={onResetGame}
+          className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-md transition-colors"
+        >
+          <RotateCcw className="w-3 h-3" />
+          Recommencer
+        </button>
+      )}
+
       <div className="space-y-2">
         {sortedPlayers.slice(0, 5).map((player, index) => (
           <motion.div
@@ -107,11 +126,18 @@ export function LiveLeaderboardView({
 export function LiveLeaderboard() {
   const { liveLeaderboard } = useGameStore()
   const { user } = useAuthStore()
+  const { isHost, isInParty, leaderboard: partyLeaderboard, resetGame } = usePartyStore()
+
+  // Use party leaderboard if in party, otherwise use game store leaderboard
+  const players = isInParty ? partyLeaderboard : liveLeaderboard
 
   return (
     <LiveLeaderboardView
-      players={liveLeaderboard}
-      currentUsername={user?.username || null}
+      players={players}
+      currentUsername={user?.username || user?.name || null}
+      isHost={isHost}
+      isInParty={isInParty}
+      onResetGame={resetGame}
     />
   )
 }

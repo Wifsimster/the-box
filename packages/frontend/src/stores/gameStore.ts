@@ -12,6 +12,7 @@ import type {
   PositionStatus,
   PositionState
 } from '@/types'
+import { gameApi } from '@/lib/api/game'
 
 interface GameState {
   // Hydration tracking
@@ -111,6 +112,10 @@ interface GameState {
   nextRound: () => void
   resetGame: () => void
   setHasHydrated: (hydrated: boolean) => void
+
+  // End game actions
+  hasVisitedAllPositions: () => boolean
+  endGameAction: () => Promise<void>
 }
 
 const initialState = {
@@ -466,6 +471,34 @@ export const useGameStore = create<GameState>()(
         resetGame: () => set({ ...initialState, _hasHydrated: true }),
 
         setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
+
+        // End game actions
+        hasVisitedAllPositions: () => {
+          const { positionStates, totalScreenshots } = get()
+          for (let i = 1; i <= totalScreenshots; i++) {
+            const state = positionStates[i]
+            if (!state || state.status === 'not_visited') {
+              return false
+            }
+          }
+          return true
+        },
+
+        endGameAction: async () => {
+          const { sessionId, stopScoreCountdown, updateScore, setScreenshotsFound, setGamePhase } = get()
+          if (!sessionId) return
+
+          try {
+            const result = await gameApi.endGame(sessionId)
+            updateScore(result.totalScore)
+            setScreenshotsFound(result.screenshotsFound)
+            stopScoreCountdown()
+            setGamePhase('challenge_complete')
+          } catch (err) {
+            console.error('Failed to end game:', err)
+            throw err
+          }
+        },
       }),
       {
         name: 'game-session',

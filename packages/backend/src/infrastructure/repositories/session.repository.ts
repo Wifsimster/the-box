@@ -225,4 +225,39 @@ export const sessionRepository = {
     log.debug({ gameSessionId, correctPositions: positions }, 'getCorrectPositions result')
     return positions
   },
+
+  async deleteGameSession(userId: string, challengeId: number): Promise<boolean> {
+    log.info({ userId, challengeId }, 'deleteGameSession')
+
+    // First find the game session
+    const session = await db('game_sessions')
+      .where('user_id', userId)
+      .andWhere('daily_challenge_id', challengeId)
+      .first<GameSessionRow>()
+
+    if (!session) {
+      log.debug({ userId, challengeId }, 'No game session found to delete')
+      return false
+    }
+
+    // Delete guesses from all tier sessions for this game session
+    await db('guesses')
+      .whereIn('tier_session_id', function() {
+        this.select('id').from('tier_sessions').where('game_session_id', session.id)
+      })
+      .delete()
+
+    // Delete tier sessions
+    await db('tier_sessions')
+      .where('game_session_id', session.id)
+      .delete()
+
+    // Delete game session
+    await db('game_sessions')
+      .where('id', session.id)
+      .delete()
+
+    log.info({ userId, challengeId, sessionId: session.id }, 'Game session deleted successfully')
+    return true
+  },
 }

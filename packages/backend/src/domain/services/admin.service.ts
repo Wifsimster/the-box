@@ -2,6 +2,7 @@ import {
   gameRepository,
   screenshotRepository,
   challengeRepository,
+  sessionRepository,
 } from '../../infrastructure/repositories/index.js'
 import type { Game, Screenshot } from '@the-box/types'
 import { env } from '../../config/env.js'
@@ -222,6 +223,30 @@ export const adminService = {
       challengeId: challenge.id,
       date: challenge.challenge_date,
       newScreenshotCount: newScreenshotIds.length,
+    }
+  },
+
+  async resetMyDailySession(userId: string, date?: string): Promise<{
+    challengeId: number
+    date: string
+    deleted: boolean
+  }> {
+    // Default to today's date in YYYY-MM-DD format
+    const targetDate = date ?? new Date().toISOString().split('T')[0]!
+
+    // Find the challenge for the date
+    const challenge = await challengeRepository.findByDate(targetDate)
+    if (!challenge) {
+      throw new Error(`No challenge found for date: ${targetDate}`)
+    }
+
+    // Delete the user's session for this challenge
+    const deleted = await sessionRepository.deleteGameSession(userId, challenge.id)
+
+    return {
+      challengeId: challenge.id,
+      date: challenge.challenge_date,
+      deleted,
     }
   },
 }

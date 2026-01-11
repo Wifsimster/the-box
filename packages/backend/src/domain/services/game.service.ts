@@ -8,6 +8,7 @@ import type {
   StartChallengeResponse,
   ScreenshotResponse,
   GuessResponse,
+  EndGameResponse,
   Game,
 } from '@the-box/types'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
@@ -31,6 +32,7 @@ const TOTAL_SCREENSHOTS = 10
 // Default scoring config (actual values come from database)
 // INITIAL_SCORE = 1000, DECAY_RATE = 2 pts/sec
 const WRONG_GUESS_PENALTY = 50
+const UNFOUND_PENALTY = 100
 
 export const gameService = {
   async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
@@ -310,5 +312,59 @@ export const gameService = {
     const elapsedMs = Date.now() - sessionStartedAt.getTime()
     const elapsedSeconds = Math.floor(elapsedMs / 1000)
     return Math.max(0, initialScore - (elapsedSeconds * decayRate))
+  },
+
+  async endGame(sessionId: string, userId: string): Promise<EndGameResponse> {
+    log.info({ sessionId, userId }, 'endGame')
+
+    // Find and validate game session
+    const session = await sessionRepository.findGameSessionById(sessionId, userId)
+    if (!session) {
+      throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
+    }
+
+    if (session.is_completed) {
+      throw new GameError('SESSION_ALREADY_COMPLETED', 'Session already completed', 400)
+    }
+
+    // Get correct positions to calculate unfound count
+    const correctPositions = await sessionRepository.getCorrectPositions(sessionId)
+    const screenshotsFound = correctPositions.length
+    const unfoundCount = TOTAL_SCREENSHOTS - screenshotsFound
+
+    // Calculate penalty
+    const penaltyApplied = unfoundCount * UNFOUND_PENALTY
+
+    // Calculate final score (clamp at 0)
+    const finalScore = Math.max(0, session.total_score - penaltyApplied)
+
+    // Mark session as completed
+    await sessionRepository.updateGameSession(sessionId, {
+      totalScore: finalScore,
+      currentPosition: session.current_position,
+      isCompleted: true,
+    })
+
+    log.info(
+      {
+        userId,
+        sessionId,
+        finalScore,
+        screenshotsFound,
+        unfoundCount,
+        penaltyApplied,
+        completionReason: 'forfeit'
+      },
+      'game ended by user (forfeit)'
+    )
+
+    return {
+      totalScore: finalScore,
+      screenshotsFound,
+      unfoundCount,
+      penaltyApplied,
+      isCompleted: true,
+      completionReason: 'forfeit',
+    }
   },
 }

@@ -108,6 +108,37 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
   }
 })
 
+// End game early (forfeit)
+router.post('/end', authMiddleware, async (req, res, next) => {
+  try {
+    const { sessionId } = req.body
+
+    if (!sessionId) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_PARAMS', message: 'sessionId required' },
+      })
+      return
+    }
+
+    const data = await gameService.endGame(sessionId, req.userId!)
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    if (error instanceof GameError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: { code: error.code, message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
 // Search games (autocomplete)
 router.get('/games/search', async (req, res, next) => {
   try {

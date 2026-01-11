@@ -26,6 +26,7 @@ const CookiesPage = lazy(() => import('@/pages/CookiesPage'))
 const FaqPage = lazy(() => import('@/pages/FaqPage'))
 const ContactPage = lazy(() => import('@/pages/ContactPage'))
 const AdminPage = lazy(() => import('@/pages/AdminPage'))
+const PartyPage = lazy(() => import('@/pages/PartyPage'))
 
 function LoadingSpinner() {
   return (
@@ -45,18 +46,18 @@ function LanguageLayout() {
   const { i18n } = useTranslation()
   const location = useLocation()
 
+  // Sync i18n language with URL (must be before any early returns)
+  useEffect(() => {
+    if (lang && SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage) && i18n.language !== lang) {
+      i18n.changeLanguage(lang)
+    }
+  }, [lang, i18n])
+
   // Validate language parameter
   if (!lang || !SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
     const browserLang = getBrowserLanguage()
     return <Navigate to={`/${browserLang}`} replace />
   }
-
-  // Sync i18n language with URL
-  useEffect(() => {
-    if (lang && i18n.language !== lang) {
-      i18n.changeLanguage(lang)
-    }
-  }, [lang, i18n])
 
   // Check if current route is fullscreen (play page)
   const isFullscreen = location.pathname.endsWith('/play')
@@ -99,6 +100,7 @@ function App() {
           <Route path="faq" element={<FaqPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="multiplayer" element={<PartyPage />} />
         </Route>
 
         {/* Catch-all redirect to browser language */}

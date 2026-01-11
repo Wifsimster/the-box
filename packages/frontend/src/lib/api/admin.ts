@@ -321,6 +321,29 @@ export const adminApi = {
     }>(response)
   },
 
+  /**
+   * Reset admin's own daily session (allows replaying the challenge)
+   */
+  async resetMyDailySession(date?: string): Promise<{
+    challengeId: number
+    date: string
+    deleted: boolean
+  }> {
+    const response = await fetch('/api/admin/challenges/reset-session', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ date }),
+    })
+    return handleResponse<{
+      challengeId: number
+      date: string
+      deleted: boolean
+    }>(response)
+  },
+
   // ============================================
   // Full Import (Batch Processing)
   // ============================================

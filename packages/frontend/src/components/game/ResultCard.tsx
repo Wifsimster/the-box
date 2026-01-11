@@ -20,42 +20,11 @@ export function ResultCard() {
     positionStates,
   } = useGameStore()
 
-  if (!lastResult) return null
-
-  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess } = lastResult
-  const maxScore = 200
-  const scorePercentage = (scoreEarned / maxScore) * 100
-  const timeTakenSeconds = Math.round(timeTakenMs / 1000)
-
-  // Check if there are any unfinished positions (for button text)
-  const nextPosition = findNextUnfinished(currentPosition)
-  const hasSkippedPositions = Object.values(positionStates).some(
-    (state) => state.status === 'skipped'
-  )
-
-  // Auto-close countdown state
+  // Auto-close countdown state (must be before early return)
   const [countdown, setCountdown] = useState(AUTO_CLOSE_SECONDS)
 
-  // Format time display (e.g., "5s", "1:23", "10:05")
-  const formatTime = (seconds: number): string => {
-    if (seconds < 60) {
-      return `${seconds}s`
-    }
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-  const timeDisplay = formatTime(timeTakenSeconds)
-
-  // Determine speed feedback
-  const getSpeedFeedback = () => {
-    if (!isCorrect) return null
-    if (timeTakenSeconds <= 5) return { key: 'lightning', icon: Zap, color: 'text-yellow-400' }
-    if (timeTakenSeconds <= 15) return { key: 'fast', icon: Clock, color: 'text-green-400' }
-    return { key: 'good', icon: Target, color: 'text-blue-400' }
-  }
-
-  const speedFeedback = getSpeedFeedback()
+  // Memoize nextPosition calculation
+  const nextPosition = lastResult ? findNextUnfinished(currentPosition) : null
 
   const handleNext = useCallback(() => {
     if (nextPosition) {
@@ -82,15 +51,14 @@ export function ResultCard() {
     }
   }, [nextPosition, navigateToPosition, positionStates, setGamePhase])
 
-  // Auto-close timer - only runs when there's a next position
+  // Auto-close timer - only runs when there's a next position (must be before early return)
   useEffect(() => {
-    if (!nextPosition) return
+    if (!lastResult || !nextPosition) return
 
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          handleNext()
           return 0
         }
         return prev - 1
@@ -98,7 +66,48 @@ export function ResultCard() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [nextPosition, handleNext])
+  }, [lastResult, nextPosition])
+
+  // Separate effect to handle auto-navigation when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && lastResult && nextPosition) {
+      handleNext()
+    }
+  }, [countdown, lastResult, nextPosition, handleNext])
+
+  // Early return after all hooks
+  if (!lastResult) return null
+
+  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess } = lastResult
+  const maxScore = 200
+  const scorePercentage = (scoreEarned / maxScore) * 100
+  const timeTakenSeconds = Math.round(timeTakenMs / 1000)
+
+  // Check if there are any unfinished positions (for button text)
+  const hasSkippedPositions = Object.values(positionStates).some(
+    (state) => state.status === 'skipped'
+  )
+
+  // Format time display (e.g., "5s", "1:23", "10:05")
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds}s`
+    }
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+  const timeDisplay = formatTime(timeTakenSeconds)
+
+  // Determine speed feedback
+  const getSpeedFeedback = () => {
+    if (!isCorrect) return null
+    if (timeTakenSeconds <= 5) return { key: 'lightning', icon: Zap, color: 'text-yellow-400' }
+    if (timeTakenSeconds <= 15) return { key: 'fast', icon: Clock, color: 'text-green-400' }
+    return { key: 'good', icon: Target, color: 'text-blue-400' }
+  }
+
+  const speedFeedback = getSpeedFeedback()
 
   // Determine button text
   const getButtonText = () => {

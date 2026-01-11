@@ -302,6 +302,40 @@ router.post('/challenges/reroll', async (req, res, next) => {
   }
 })
 
+// Reset admin's own daily session (allows replaying the challenge)
+const resetSessionSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+})
+
+router.post('/challenges/reset-session', async (req, res, next) => {
+  try {
+    const { date } = resetSessionSchema.parse(req.body)
+    const userId = req.user!.id
+    const result = await adminService.resetMyDailySession(userId, date)
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
+      })
+      return
+    }
+    if (error instanceof Error && error.message.includes('No challenge found')) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
 // === Jobs ===
 
 // List all jobs
