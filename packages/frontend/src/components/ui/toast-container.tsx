@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
  */
 export function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([])
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const recentMessagesRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {

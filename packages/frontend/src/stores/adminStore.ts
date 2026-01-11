@@ -1,7 +1,18 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Job, JobProgressEvent } from '@/types'
+import type { Job, JobProgressEvent, Game } from '@/types'
 import { adminApi } from '@/lib/api'
+
+interface GamesPagination {
+  page: number
+  limit: number
+  total: number
+}
+
+interface GamesSort {
+  field: string
+  order: 'asc' | 'desc'
+}
 
 interface AdminState {
   // Jobs data
@@ -17,7 +28,15 @@ interface AdminState {
     failed: number
   } | null
 
-  // Actions
+  // Games data
+  games: Game[]
+  gamesLoading: boolean
+  gamesError: string | null
+  gamesPagination: GamesPagination
+  gamesSearch: string
+  gamesSort: GamesSort
+
+  // Jobs Actions
   fetchJobs: () => Promise<void>
   fetchStats: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number) => Promise<Job>
@@ -29,15 +48,33 @@ interface AdminState {
   updateJobProgress: (event: JobProgressEvent) => void
   updateJobCompleted: (jobId: string, result: unknown) => void
   updateJobFailed: (jobId: string, error: string) => void
+
+  // Games Actions
+  fetchGames: (params?: { page?: number; search?: string }) => Promise<void>
+  createGame: (data: Omit<Game, 'id'>) => Promise<Game>
+  updateGame: (id: number, data: Partial<Omit<Game, 'id'>>) => Promise<Game>
+  deleteGame: (id: number) => Promise<void>
+  setGamesSearch: (search: string) => void
+  setGamesSort: (field: string, order: 'asc' | 'desc') => void
+  setGamesPage: (page: number) => void
 }
 
 export const useAdminStore = create<AdminState>()(
   devtools(
     (set, get) => ({
+      // Jobs initial state
       jobs: [],
       isLoading: false,
       error: null,
       stats: null,
+
+      // Games initial state
+      games: [],
+      gamesLoading: false,
+      gamesError: null,
+      gamesPagination: { page: 1, limit: 10, total: 0 },
+      gamesSearch: '',
+      gamesSort: { field: 'name', order: 'asc' },
 
       fetchJobs: async () => {
         set({ isLoading: true, error: null })
@@ -141,6 +178,86 @@ export const useAdminStore = create<AdminState>()(
               : j
           ),
         })
+      },
+
+      // Games Actions
+      fetchGames: async (params) => {
+        const { gamesPagination, gamesSearch, gamesSort } = get()
+        set({ gamesLoading: true, gamesError: null })
+        try {
+          const result = await adminApi.listGames({
+            page: params?.page ?? gamesPagination.page,
+            limit: gamesPagination.limit,
+            search: params?.search ?? gamesSearch,
+            sortBy: gamesSort.field,
+            sortOrder: gamesSort.order,
+          })
+          set({
+            games: result.games,
+            gamesPagination: {
+              page: result.page,
+              limit: result.limit,
+              total: result.total,
+            },
+            gamesLoading: false,
+          })
+        } catch (err) {
+          set({ gamesError: (err as Error).message, gamesLoading: false })
+        }
+      },
+
+      createGame: async (data) => {
+        set({ gamesError: null })
+        try {
+          const { game } = await adminApi.createGame(data)
+          // Refresh the list
+          get().fetchGames()
+          return game
+        } catch (err) {
+          set({ gamesError: (err as Error).message })
+          throw err
+        }
+      },
+
+      updateGame: async (id, data) => {
+        set({ gamesError: null })
+        try {
+          const { game } = await adminApi.updateGame(id, data)
+          // Refresh the list
+          get().fetchGames()
+          return game
+        } catch (err) {
+          set({ gamesError: (err as Error).message })
+          throw err
+        }
+      },
+
+      deleteGame: async (id) => {
+        set({ gamesError: null })
+        try {
+          await adminApi.deleteGame(id)
+          // Refresh the list
+          get().fetchGames()
+        } catch (err) {
+          set({ gamesError: (err as Error).message })
+          throw err
+        }
+      },
+
+      setGamesSearch: (search) => {
+        set({ gamesSearch: search })
+      },
+
+      setGamesSort: (field, order) => {
+        set({ gamesSort: { field, order } })
+        // Fetch with new sort
+        get().fetchGames()
+      },
+
+      setGamesPage: (page) => {
+        set({ gamesPagination: { ...get().gamesPagination, page } })
+        // Fetch the new page
+        get().fetchGames({ page })
       },
     }),
     { name: 'AdminStore' }

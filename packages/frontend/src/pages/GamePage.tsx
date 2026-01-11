@@ -202,9 +202,9 @@ export default function GamePage() {
                     {t('common.home')}
                   </Link>
                 </Button>
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-bold text-foreground">{currentPosition}/{totalScreenshots}</span>
+                <div className="flex items-center gap-6 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                  <div className="text-lg font-bold text-white drop-shadow-lg">
+                    {currentPosition}/{totalScreenshots}
                   </div>
                   <ScoreDisplay score={totalScore} />
                 </div>

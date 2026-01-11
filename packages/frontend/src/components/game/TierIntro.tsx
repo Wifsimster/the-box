@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar, Home } from 'lucide-react'
+import { Play, Calendar, Home, AlertTriangle, Move, Gamepad2, Zap, Images } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useAuth } from '@/hooks/useAuth'
 
 interface DailyIntroProps {
   date: string
@@ -14,6 +15,7 @@ interface DailyIntroProps {
 export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps) {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
+  const { isAuthenticated } = useAuth()
 
   // Format date for display
   const formattedDate = new Date(date).toLocaleDateString(undefined, {
@@ -86,15 +88,48 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
           <span className="text-lg">{formattedDate}</span>
         </motion.div>
 
-        {/* Screenshot count */}
-        <motion.p
+        {/* Game rules */}
+        <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-xl text-muted-foreground mb-8"
+          className="mb-8 p-4 rounded-lg bg-card/50 border border-border/50 max-w-md mx-auto"
         >
-          {totalScreenshots} {t('game.screenshots')}
-        </motion.p>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            {t('game.rules.title')}
+          </h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-center gap-2">
+              <Images className="w-4 h-4 text-neon-purple" />
+              <span>{t('game.rules.screenshots', { count: totalScreenshots })}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Move className="w-4 h-4 text-neon-purple" />
+              <span>{t('game.rules.explore')}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Gamepad2 className="w-4 h-4 text-neon-purple" />
+              <span>{t('game.rules.guess')}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-neon-purple" />
+              <span>{t('game.rules.time')}</span>
+            </li>
+          </ul>
+        </motion.div>
+
+        {/* Guest warning */}
+        {!isAuthenticated && (
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="flex items-center justify-center gap-2 text-amber-500 mb-8"
+          >
+            <AlertTriangle className="w-5 h-5" />
+            <span className="text-sm">{t('game.guestWarning')}</span>
+          </motion.div>
+        )}
 
         {/* Start Button */}
         <motion.div

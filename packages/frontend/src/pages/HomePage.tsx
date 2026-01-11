@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -122,38 +122,6 @@ export default function HomePage() {
         </Card>
       </motion.div>
       </div>
-
-      {/* Legal Links - Fixed at bottom of screen */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
-        className="fixed bottom-0 left-0 right-0 z-20 py-4 text-center"
-      >
-        <nav className="flex items-center justify-center gap-6 text-sm">
-          <Link
-            to={localizedPath('/terms')}
-            className="text-muted-foreground hover:text-neon-purple transition-colors"
-          >
-            {t('footer.terms')}
-          </Link>
-          <Link
-            to={localizedPath('/privacy')}
-            className="text-muted-foreground hover:text-neon-purple transition-colors"
-          >
-            {t('footer.privacy')}
-          </Link>
-          <Link
-            to={localizedPath('/contact')}
-            className="text-muted-foreground hover:text-neon-purple transition-colors"
-          >
-            {t('footer.contact')}
-          </Link>
-        </nav>
-        <p className="mt-2 text-xs text-muted-foreground/60">
-          &copy; {new Date().getFullYear()} The Box. {t('footer.allRightsReserved')}
-        </p>
-      </motion.div>
     </>
   )
 }

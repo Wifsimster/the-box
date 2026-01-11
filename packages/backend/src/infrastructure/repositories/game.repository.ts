@@ -48,6 +48,69 @@ export const gameRepository = {
     return rows.map(mapRowToGame)
   },
 
+  async findPaginated(options: {
+    page?: number
+    limit?: number
+    search?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+  }): Promise<{ games: Game[]; total: number; page: number; limit: number }> {
+    const page = options.page ?? 1
+    const limit = options.limit ?? 10
+    const sortBy = options.sortBy ?? 'name'
+    const sortOrder = options.sortOrder ?? 'asc'
+    const offset = (page - 1) * limit
+
+    log.debug({ page, limit, search: options.search, sortBy, sortOrder }, 'findPaginated')
+
+    // Map frontend field names to database column names
+    const columnMap: Record<string, string> = {
+      name: 'name',
+      releaseYear: 'release_year',
+      createdAt: 'created_at',
+      developer: 'developer',
+      slug: 'slug',
+    }
+    const sortColumn = columnMap[sortBy] || 'name'
+
+    let query = db('games')
+    let countQuery = db('games')
+
+    // Apply search filter if provided
+    if (options.search && options.search.trim()) {
+      const searchTerm = `%${options.search.trim()}%`
+      query = query.where(function() {
+        this.whereILike('name', searchTerm)
+          .orWhereILike('slug', searchTerm)
+          .orWhereILike('developer', searchTerm)
+      })
+      countQuery = countQuery.where(function() {
+        this.whereILike('name', searchTerm)
+          .orWhereILike('slug', searchTerm)
+          .orWhereILike('developer', searchTerm)
+      })
+    }
+
+    // Get total count
+    const countResult = await countQuery.count('* as count')
+    const total = Number(countResult[0]?.count ?? 0)
+
+    // Get paginated results
+    const rows = await query
+      .orderBy(sortColumn, sortOrder)
+      .offset(offset)
+      .limit(limit)
+      .select<GameRow[]>('*')
+
+    log.debug({ total, returned: rows.length, page, limit }, 'findPaginated result')
+    return {
+      games: rows.map(mapRowToGame),
+      total,
+      page,
+      limit,
+    }
+  },
+
   async search(query: string, limit = 10): Promise<GameSearchResult[]> {
     log.debug({ query, limit }, 'search')
     const rows = await db('games')

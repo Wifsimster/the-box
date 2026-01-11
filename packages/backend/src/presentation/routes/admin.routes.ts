@@ -11,14 +11,26 @@ router.use(adminMiddleware)
 
 // === Games ===
 
-// List all games
-router.get('/games', async (_req, res, next) => {
+// List all games with pagination and search
+router.get('/games', async (req, res, next) => {
   try {
-    const games = await adminService.getAllGames()
+    const page = parseInt(req.query['page'] as string) || 1
+    const limit = parseInt(req.query['limit'] as string) || 10
+    const search = req.query['search'] as string | undefined
+    const sortBy = (req.query['sortBy'] as string) || 'name'
+    const sortOrder = (req.query['sortOrder'] as 'asc' | 'desc') || 'asc'
+
+    const result = await adminService.getGamesPaginated({
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
+    })
 
     res.json({
       success: true,
-      data: { games },
+      data: result,
     })
   } catch (error) {
     next(error)

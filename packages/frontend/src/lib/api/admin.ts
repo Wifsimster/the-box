@@ -1,4 +1,20 @@
-import type { Job, JobType, JobData, JobListResponse } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game } from '@/types'
+
+// Games API types
+export interface GamesListParams {
+  page?: number
+  limit?: number
+  search?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+export interface GamesListResponse {
+  games: Game[]
+  total: number
+  page: number
+  limit: number
+}
 
 interface ApiResponse<T> {
   success: boolean
@@ -128,5 +144,80 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<{ cleared: number }>(response)
+  },
+
+  // ============================================
+  // Games Management
+  // ============================================
+
+  /**
+   * List all games with pagination and search
+   */
+  async listGames(params?: GamesListParams): Promise<GamesListResponse> {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.set('page', String(params.page))
+    if (params?.limit) queryParams.set('limit', String(params.limit))
+    if (params?.search) queryParams.set('search', params.search)
+    if (params?.sortBy) queryParams.set('sortBy', params.sortBy)
+    if (params?.sortOrder) queryParams.set('sortOrder', params.sortOrder)
+
+    const queryString = queryParams.toString()
+    const url = `/api/admin/games${queryString ? `?${queryString}` : ''}`
+
+    const response = await fetch(url, {
+      credentials: 'include',
+    })
+    return handleResponse<GamesListResponse>(response)
+  },
+
+  /**
+   * Get a specific game by ID
+   */
+  async getGame(id: number): Promise<{ game: Game }> {
+    const response = await fetch(`/api/admin/games/${id}`, {
+      credentials: 'include',
+    })
+    return handleResponse<{ game: Game }>(response)
+  },
+
+  /**
+   * Create a new game
+   */
+  async createGame(data: Omit<Game, 'id'>): Promise<{ game: Game }> {
+    const response = await fetch('/api/admin/games', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ game: Game }>(response)
+  },
+
+  /**
+   * Update an existing game
+   */
+  async updateGame(id: number, data: Partial<Omit<Game, 'id'>>): Promise<{ game: Game }> {
+    const response = await fetch(`/api/admin/games/${id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ game: Game }>(response)
+  },
+
+  /**
+   * Delete a game
+   */
+  async deleteGame(id: number): Promise<{ deleted: boolean }> {
+    const response = await fetch(`/api/admin/games/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    return handleResponse<{ deleted: boolean }>(response)
   },
 }

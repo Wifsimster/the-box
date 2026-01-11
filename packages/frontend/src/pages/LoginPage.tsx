@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { signIn, authClient } from '@/lib/auth-client'
-import { Lock, User, Loader2, Gamepad2, Sparkles } from 'lucide-react'
+import { Lock, User, Loader2, Sparkles } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
@@ -86,43 +86,28 @@ export default function LoginPage() {
   return (
     <>
       <CubeBackground />
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md -mt-20"
         >
-          {/* Logo & Title */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-center mb-8"
-          >
-            <motion.div
-              initial={{ scale: 0.8, rotate: -10 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-              className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-2xl bg-linear-to-br from-neon-purple to-neon-pink shadow-2xl shadow-neon-purple/40"
-            >
-              <Gamepad2 className="w-10 h-10 text-white" />
-            </motion.div>
-            <h1 className="text-3xl font-bold bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
-              {t('auth.login')}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              {t('auth.loginSubtitle')}
-            </p>
-          </motion.div>
-
-          {/* Login Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
             className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl"
           >
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                {t('auth.loginTitle')}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {t('auth.loginSubtitle')}
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground/80">

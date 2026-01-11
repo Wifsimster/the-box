@@ -62,7 +62,13 @@ export function Header() {
           )}
           {session && !isPending && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
+              <span
+                className={`text-sm ${
+                  session.user.role === 'admin'
+                    ? 'border border-red-500 rounded px-2 py-0.5 text-red-400'
+                    : 'text-muted-foreground'
+                }`}
+              >
                 {session.user.name || session.user.email?.split('@')[0]}
               </span>
               <Button variant="ghost" size="sm" onClick={signOut}>

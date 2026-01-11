@@ -38,9 +38,9 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground uppercase tracking-wide">Score</span>
+      <span className="text-base font-semibold text-white/80 uppercase tracking-wider drop-shadow-lg">Score</span>
       <motion.div
-        className="text-2xl font-bold text-primary tabular-nums"
+        className="text-3xl font-black text-primary tabular-nums drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
         animate={isAnimating ? { scale: [1, 1.2, 1] } : {}}
         transition={{ duration: 0.3 }}
       >

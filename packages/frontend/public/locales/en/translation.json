@@ -19,7 +19,10 @@
     "guest": "Play as Guest",
     "share": "Share",
     "retry": "Retry",
-    "admin": "Admin"
+    "admin": "Admin",
+    "delete": "Delete",
+    "save": "Save",
+    "create": "Create"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -56,7 +59,15 @@
     "errorLoadingChallenge": "Failed to load challenge",
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",
-    "noChallenge": "No challenge available"
+    "noChallenge": "No challenge available",
+    "guestWarning": "You are not logged in. Your score will not be saved.",
+    "rules": {
+      "title": "How to play",
+      "screenshots": "{{count}} screenshots to guess in limited time",
+      "explore": "Explore the 360° panorama by dragging your mouse",
+      "guess": "Guess the video game name",
+      "time": "The faster you answer, the more points you earn"
+    }
   },
   "home": {
     "title": "The Box",
@@ -133,10 +144,13 @@
   },
   "admin": {
     "title": "Admin Panel",
-    "games": "Games",
+    "tabs": {
+      "import": "Import",
+      "jobs": "Jobs",
+      "games": "Games"
+    },
     "screenshots": "Screenshots",
     "challenges": "Challenges",
-    "addGame": "Add Game",
     "addScreenshot": "Add Screenshot",
     "createChallenge": "Create Challenge",
     "jobs": {
@@ -158,12 +172,55 @@
         "failed": "Failed",
         "delayed": "Delayed"
       }
+    },
+    "games": {
+      "title": "Games",
+      "addGame": "Add Game",
+      "editGame": "Edit Game",
+      "deleteGame": "Delete Game",
+      "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "noGames": "No games found",
+      "searchPlaceholder": "Search games...",
+      "table": {
+        "name": "Name",
+        "slug": "Slug",
+        "releaseYear": "Year",
+        "developer": "Developer",
+        "genres": "Genres",
+        "actions": "Actions"
+      },
+      "form": {
+        "name": "Name",
+        "namePlaceholder": "Game name",
+        "slug": "Slug",
+        "slugPlaceholder": "game-slug",
+        "aliases": "Aliases",
+        "aliasesPlaceholder": "Alias 1, Alias 2, ...",
+        "releaseYear": "Release Year",
+        "developer": "Developer",
+        "publisher": "Publisher",
+        "genres": "Genres",
+        "genresPlaceholder": "Action, RPG, ...",
+        "platforms": "Platforms",
+        "platformsPlaceholder": "PC, PlayStation, ...",
+        "coverImageUrl": "Cover Image URL"
+      },
+      "messages": {
+        "created": "Game created successfully",
+        "updated": "Game updated successfully",
+        "deleted": "Game deleted successfully",
+        "createError": "Failed to create game",
+        "updateError": "Failed to update game",
+        "deleteError": "Failed to delete game"
+      }
     }
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
     "terms": "Terms of Use",
     "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "faq": "FAQ",
     "contact": "Contact"
   },
   "legal": {
@@ -205,6 +262,33 @@
     "contactSocial": "Follow us for the latest news and updates.",
     "contactBugTitle": "Report a Bug",
     "contactBug": "If you encounter a technical issue, please provide as much detail as possible to help us resolve it.",
-    "contactResponseTime": "We aim to respond within 48 hours."
+    "contactResponseTime": "We aim to respond within 48 hours.",
+    "cookiesTitle": "Cookie Policy",
+    "cookiesLastUpdated": "Last updated",
+    "cookiesIntro": "This policy explains how The Box uses cookies and similar technologies.",
+    "cookiesWhatTitle": "1. What Are Cookies?",
+    "cookiesWhat": "Cookies are small text files stored on your device when you visit a website. They help the site remember your preferences and improve your experience.",
+    "cookiesTypesTitle": "2. Types of Cookies We Use",
+    "cookiesTypes": "We use only essential cookies required for the site to function properly. These include session cookies for authentication and preference cookies for language settings.",
+    "cookiesEssentialTitle": "3. Essential Cookies",
+    "cookiesEssential": "These cookies are necessary for the website to work and cannot be disabled. They include: session tokens for login, language preferences, and game progress tracking.",
+    "cookiesManageTitle": "4. Managing Cookies",
+    "cookiesManage": "You can manage cookies through your browser settings. Note that disabling essential cookies may affect site functionality. We do not use advertising or tracking cookies.",
+    "cookiesChangesTitle": "5. Changes to This Policy",
+    "cookiesChanges": "We may update this cookie policy from time to time. Changes will be posted on this page with an updated revision date.",
+    "faqTitle": "Frequently Asked Questions",
+    "faqIntro": "Find answers to common questions about The Box.",
+    "faqQuestion1": "What is The Box?",
+    "faqAnswer1": "The Box is a game where you guess video games from immersive 360° panoramic screenshots. Challenge yourself with daily puzzles or compete with friends in multiplayer mode.",
+    "faqQuestion2": "How do I play?",
+    "faqAnswer2": "Simply explore the 360° panorama by dragging your mouse, then type your guess for the game name. The faster you answer correctly, the more points you earn!",
+    "faqQuestion3": "Do I need an account to play?",
+    "faqAnswer3": "You can play as a guest, but creating an account allows you to save your scores, appear on leaderboards, and track your progress over time.",
+    "faqQuestion4": "How is my score calculated?",
+    "faqAnswer4": "Your score is based on accuracy and speed. Correct answers earn points, with bonus points for faster responses. Each round has a time limit.",
+    "faqQuestion5": "When do daily challenges reset?",
+    "faqAnswer5": "Daily challenges reset at midnight UTC. Everyone gets the same challenge each day, so you can compete fairly on the global leaderboard.",
+    "faqQuestion6": "How can I report a bug or suggest a feature?",
+    "faqAnswer6": "Visit our Contact page to reach out. We appreciate all feedback and work to improve the game based on player suggestions."
   }
 }

@@ -11,6 +11,16 @@ export const adminService = {
     return await gameRepository.findAll()
   },
 
+  async getGamesPaginated(options: {
+    page?: number
+    limit?: number
+    search?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+  }): Promise<{ games: Game[]; total: number; page: number; limit: number }> {
+    return await gameRepository.findPaginated(options)
+  },
+
   async createGame(data: Partial<Game>): Promise<Game> {
     return await gameRepository.create(data)
   },

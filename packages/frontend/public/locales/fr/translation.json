@@ -19,7 +19,10 @@
     "guest": "Jouer en invité",
     "share": "Partager",
     "retry": "Réessayer",
-    "admin": "Admin"
+    "admin": "Admin",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "create": "Créer"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",
@@ -56,7 +59,15 @@
     "errorLoadingChallenge": "Impossible de charger le défi",
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",
-    "noChallenge": "Aucun défi disponible"
+    "noChallenge": "Aucun défi disponible",
+    "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",
+    "rules": {
+      "title": "Comment jouer",
+      "screenshots": "{{count}} captures à deviner en temps limité",
+      "explore": "Explorez le panorama 360° en glissant la souris",
+      "guess": "Devinez le nom du jeu vidéo",
+      "time": "Plus vous répondez vite, plus vous gagnez de points"
+    }
   },
   "home": {
     "title": "The Box",
@@ -133,10 +144,13 @@
   },
   "admin": {
     "title": "Administration",
-    "games": "Jeux",
+    "tabs": {
+      "import": "Import",
+      "jobs": "Tâches",
+      "games": "Jeux"
+    },
     "screenshots": "Captures d'écran",
     "challenges": "Défis",
-    "addGame": "Ajouter un Jeu",
     "addScreenshot": "Ajouter une Capture",
     "createChallenge": "Créer un Défi",
     "jobs": {
@@ -158,12 +172,55 @@
         "failed": "Échoué",
         "delayed": "Retardé"
       }
+    },
+    "games": {
+      "title": "Jeux",
+      "addGame": "Ajouter un jeu",
+      "editGame": "Modifier le jeu",
+      "deleteGame": "Supprimer le jeu",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+      "noGames": "Aucun jeu trouvé",
+      "searchPlaceholder": "Rechercher un jeu...",
+      "table": {
+        "name": "Nom",
+        "slug": "Slug",
+        "releaseYear": "Année",
+        "developer": "Développeur",
+        "genres": "Genres",
+        "actions": "Actions"
+      },
+      "form": {
+        "name": "Nom",
+        "namePlaceholder": "Nom du jeu",
+        "slug": "Slug",
+        "slugPlaceholder": "slug-du-jeu",
+        "aliases": "Alias",
+        "aliasesPlaceholder": "Alias 1, Alias 2, ...",
+        "releaseYear": "Année de sortie",
+        "developer": "Développeur",
+        "publisher": "Éditeur",
+        "genres": "Genres",
+        "genresPlaceholder": "Action, RPG, ...",
+        "platforms": "Plateformes",
+        "platformsPlaceholder": "PC, PlayStation, ...",
+        "coverImageUrl": "URL de l'image de couverture"
+      },
+      "messages": {
+        "created": "Jeu créé avec succès",
+        "updated": "Jeu modifié avec succès",
+        "deleted": "Jeu supprimé avec succès",
+        "createError": "Erreur lors de la création du jeu",
+        "updateError": "Erreur lors de la modification du jeu",
+        "deleteError": "Erreur lors de la suppression du jeu"
+      }
     }
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",
     "terms": "Conditions d'utilisation",
     "privacy": "Politique de confidentialité",
+    "cookies": "Politique des cookies",
+    "faq": "FAQ",
     "contact": "Contact"
   },
   "legal": {
@@ -205,6 +262,33 @@
     "contactSocial": "Suivez-nous pour les dernières actualités et mises à jour.",
     "contactBugTitle": "Signaler un bug",
     "contactBug": "Si vous rencontrez un problème technique, merci de nous fournir le maximum de détails pour nous aider à le résoudre.",
-    "contactResponseTime": "Nous nous efforçons de répondre sous 48 heures."
+    "contactResponseTime": "Nous nous efforçons de répondre sous 48 heures.",
+    "cookiesTitle": "Politique des Cookies",
+    "cookiesLastUpdated": "Dernière mise à jour",
+    "cookiesIntro": "Cette politique explique comment The Box utilise les cookies et technologies similaires.",
+    "cookiesWhatTitle": "1. Qu'est-ce qu'un Cookie ?",
+    "cookiesWhat": "Les cookies sont de petits fichiers texte stockés sur votre appareil lorsque vous visitez un site web. Ils aident le site à mémoriser vos préférences et améliorer votre expérience.",
+    "cookiesTypesTitle": "2. Types de Cookies Utilisés",
+    "cookiesTypes": "Nous utilisons uniquement des cookies essentiels nécessaires au bon fonctionnement du site. Ceux-ci incluent les cookies de session pour l'authentification et les cookies de préférence pour les paramètres de langue.",
+    "cookiesEssentialTitle": "3. Cookies Essentiels",
+    "cookiesEssential": "Ces cookies sont nécessaires au fonctionnement du site et ne peuvent pas être désactivés. Ils incluent : les jetons de session pour la connexion, les préférences de langue et le suivi de progression de jeu.",
+    "cookiesManageTitle": "4. Gestion des Cookies",
+    "cookiesManage": "Vous pouvez gérer les cookies via les paramètres de votre navigateur. Notez que la désactivation des cookies essentiels peut affecter le fonctionnement du site. Nous n'utilisons pas de cookies publicitaires ou de suivi.",
+    "cookiesChangesTitle": "5. Modifications de cette Politique",
+    "cookiesChanges": "Nous pouvons mettre à jour cette politique de cookies de temps en temps. Les modifications seront publiées sur cette page avec une date de révision mise à jour.",
+    "faqTitle": "Questions Fréquentes",
+    "faqIntro": "Trouvez les réponses aux questions courantes sur The Box.",
+    "faqQuestion1": "Qu'est-ce que The Box ?",
+    "faqAnswer1": "The Box est un jeu où vous devinez des jeux vidéo à partir de captures d'écran panoramiques 360° immersives. Relevez le défi quotidien ou affrontez vos amis en mode multijoueur.",
+    "faqQuestion2": "Comment jouer ?",
+    "faqAnswer2": "Explorez simplement le panorama 360° en glissant votre souris, puis tapez votre réponse pour le nom du jeu. Plus vous répondez vite et correctement, plus vous gagnez de points !",
+    "faqQuestion3": "Dois-je créer un compte pour jouer ?",
+    "faqAnswer3": "Vous pouvez jouer en tant qu'invité, mais créer un compte vous permet de sauvegarder vos scores, d'apparaître dans les classements et de suivre votre progression.",
+    "faqQuestion4": "Comment mon score est-il calculé ?",
+    "faqAnswer4": "Votre score est basé sur la précision et la rapidité. Les bonnes réponses rapportent des points, avec des bonus pour les réponses rapides. Chaque round a une limite de temps.",
+    "faqQuestion5": "Quand les défis quotidiens sont-ils réinitialisés ?",
+    "faqAnswer5": "Les défis quotidiens sont réinitialisés à minuit UTC. Tout le monde a le même défi chaque jour, vous pouvez donc concourir équitablement dans le classement mondial.",
+    "faqQuestion6": "Comment signaler un bug ou suggérer une fonctionnalité ?",
+    "faqAnswer6": "Visitez notre page Contact pour nous joindre. Nous apprécions tous les retours et travaillons à améliorer le jeu en fonction des suggestions des joueurs."
   }
 }

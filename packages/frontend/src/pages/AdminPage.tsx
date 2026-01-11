@@ -5,6 +5,8 @@ import { useSession } from '@/lib/auth-client'
 import { useAdminStore } from '@/stores/adminStore'
 import { JobTriggerCard } from '@/components/admin/JobTriggerCard'
 import { JobList } from '@/components/admin/JobList'
+import { GameList } from '@/components/admin/GameList'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   joinAdminRoom,
   leaveAdminRoom,
@@ -13,7 +15,7 @@ import {
   onJobFailed,
   removeJobListeners,
 } from '@/lib/socket'
-import { Loader2, Settings } from 'lucide-react'
+import { Loader2, Settings, Download, ListTodo, Gamepad2 } from 'lucide-react'
 
 export default function AdminPage() {
   const { t } = useTranslation()
@@ -88,12 +90,37 @@ export default function AdminPage() {
         <h1 className="text-3xl font-bold">{t('admin.title')}</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 mb-8">
-        <JobTriggerCard type="import-games" />
-        <JobTriggerCard type="import-screenshots" />
-      </div>
+      <Tabs defaultValue="import" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="import" className="gap-2">
+            <Download className="h-4 w-4" />
+            {t('admin.tabs.import')}
+          </TabsTrigger>
+          <TabsTrigger value="jobs" className="gap-2">
+            <ListTodo className="h-4 w-4" />
+            {t('admin.tabs.jobs')}
+          </TabsTrigger>
+          <TabsTrigger value="games" className="gap-2">
+            <Gamepad2 className="h-4 w-4" />
+            {t('admin.tabs.games')}
+          </TabsTrigger>
+        </TabsList>
 
-      <JobList />
+        <TabsContent value="import">
+          <div className="grid gap-6 md:grid-cols-2">
+            <JobTriggerCard type="import-games" />
+            <JobTriggerCard type="import-screenshots" />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="jobs">
+          <JobList />
+        </TabsContent>
+
+        <TabsContent value="games">
+          <GameList />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
