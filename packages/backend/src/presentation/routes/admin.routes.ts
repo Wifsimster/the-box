@@ -117,6 +117,21 @@ router.delete('/games/:id', async (req, res, next) => {
   }
 })
 
+// Get screenshots for a game
+router.get('/games/:id/screenshots', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const screenshots = await adminService.getScreenshotsByGameId(id)
+
+    res.json({
+      success: true,
+      data: { screenshots },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // === Screenshots ===
 
 // List all screenshots

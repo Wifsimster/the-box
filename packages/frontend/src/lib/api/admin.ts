@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot } from '@/types'
 
 // Games API types
 export interface GamesListParams {
@@ -229,5 +229,15 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<{ deleted: boolean }>(response)
+  },
+
+  /**
+   * Get screenshots for a specific game
+   */
+  async getGameScreenshots(gameId: number): Promise<{ screenshots: Screenshot[] }> {
+    const response = await fetch(`/api/admin/games/${gameId}/screenshots`, {
+      credentials: 'include',
+    })
+    return handleResponse<{ screenshots: Screenshot[] }>(response)
   },
 }

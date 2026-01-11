@@ -34,6 +34,14 @@ export const screenshotRepository = {
     return row ? mapRowToScreenshot(row) : null
   },
 
+  async findByGameId(gameId: number): Promise<Screenshot[]> {
+    const rows = await db('screenshots')
+      .where('game_id', gameId)
+      .orderBy('created_at', 'desc')
+      .select<ScreenshotRow[]>('*')
+    return rows.map(mapRowToScreenshot)
+  },
+
   async findWithGame(id: number): Promise<{ screenshot: Screenshot; gameName: string; coverImageUrl?: string } | null> {
     const row = await db('screenshots')
       .join('games', 'screenshots.game_id', 'games.id')

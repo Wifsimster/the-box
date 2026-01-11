@@ -22,6 +22,17 @@ export function ResultCard() {
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
 
+  // Format time display (e.g., "5s", "1:23", "10:05")
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds}s`
+    }
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+  const timeDisplay = formatTime(timeTakenSeconds)
+
   // Determine speed feedback
   const getSpeedFeedback = () => {
     if (!isCorrect) return null
@@ -185,7 +196,7 @@ export function ResultCard() {
             >
               <speedFeedback.icon className="w-4 h-4" />
               <span>{t(`game.speed.${speedFeedback.key}`)}</span>
-              <span className="text-muted-foreground">• {timeTakenSeconds}s</span>
+              <span className="text-muted-foreground">• {timeDisplay}</span>
             </motion.div>
           )}
         </motion.div>

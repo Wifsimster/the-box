@@ -22,7 +22,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
   const submitGuess = useCallback(
     async (game: Game | null, userInput: string) => {
-      if (!store.tierSessionId || !store.currentScreenshot) {
+      if (!store.tierSessionId || !store.currentScreenshotData) {
         console.error('Missing session or screenshot data')
         return {
           success: false,
@@ -32,16 +32,24 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
 
-      // Calculate session elapsed time (from session start, not per-screenshot)
+      // Calculate session elapsed time (for scoring - from session start)
       const sessionElapsedMs = store.sessionStartedAt
         ? Date.now() - store.sessionStartedAt
         : 0
+
+      // Calculate round time (for display - from current screenshot start)
+      const roundTimeTakenMs = store.roundStartedAt
+        ? Date.now() - store.roundStartedAt
+        : 0
+
+      // Capture the current countdown score for display (what the user sees)
+      const currentCountdownScore = store.currentScore
 
       try {
         // Submit guess to service (handles validation + scoring)
         const result = await submissionService.submitGuess({
           tierSessionId: store.tierSessionId,
-          screenshotId: store.currentScreenshot.id,
+          screenshotId: store.currentScreenshotData.screenshotId,
           position: store.currentPosition,
           gameId: game?.id || null,
           guessText: userInput,
@@ -57,13 +65,17 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Record result only when advancing (to show in result screen)
         if (shouldAdvance) {
+          // Use the captured countdown score for correct guesses (what user was seeing)
+          // For incorrect guesses, scoreEarned is 0
+          const displayScore = result.isCorrect ? currentCountdownScore : 0
+
           store.addGuessResult({
             position: store.currentPosition,
             isCorrect: result.isCorrect,
             correctGame: result.correctGame,
             userGuess: game?.name || userInput,
-            timeTakenMs: sessionElapsedMs,
-            scoreEarned: result.scoreEarned,
+            timeTakenMs: roundTimeTakenMs,
+            scoreEarned: displayScore,
           })
         }
 

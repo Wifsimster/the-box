@@ -9,12 +9,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Image } from 'lucide-react'
 
 interface GameTableProps {
   games: Game[]
   onEdit: (game: Game) => void
   onDelete: (game: Game) => void
+  onViewScreenshots: (game: Game) => void
   sortField: string
   sortOrder: 'asc' | 'desc'
   onSort: (field: string) => void
@@ -24,6 +25,7 @@ export function GameTable({
   games,
   onEdit,
   onDelete,
+  onViewScreenshots,
   sortField,
   sortOrder,
   onSort,
@@ -90,6 +92,14 @@ export function GameTable({
             </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onViewScreenshots(game)}
+                  title={t('admin.games.viewScreenshots')}
+                >
+                  <Image className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

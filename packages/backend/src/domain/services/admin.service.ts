@@ -38,6 +38,10 @@ export const adminService = {
     return await screenshotRepository.findAll()
   },
 
+  async getScreenshotsByGameId(gameId: number) {
+    return await screenshotRepository.findByGameId(gameId)
+  },
+
   async createScreenshot(data: {
     gameId: number
     imageUrl: string

@@ -224,6 +224,13 @@
         "createError": "Erreur lors de la création du jeu",
         "updateError": "Erreur lors de la modification du jeu",
         "deleteError": "Erreur lors de la suppression du jeu"
+      },
+      "viewScreenshots": "Voir les captures",
+      "screenshotsDialog": {
+        "title": "Captures de {{name}}",
+        "noScreenshots": "Aucune capture pour ce jeu",
+        "difficulty": "Difficulté",
+        "close": "Fermer"
       }
     }
   },

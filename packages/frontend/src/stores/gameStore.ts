@@ -36,6 +36,9 @@ interface GameState {
   maxTriesPerScreenshot: number
   screenshotsFound: number
 
+  // Round timing (for per-screenshot time tracking)
+  roundStartedAt: number | null
+
   // Score tracking (legacy - totalScore now represents locked-in score)
   totalScore: number
   correctAnswers: number
@@ -66,6 +69,7 @@ interface GameState {
   decrementScore: () => void
   setTriesRemaining: (tries: number) => void
   setScreenshotsFound: (count: number) => void
+  setRoundStartedAt: (timestamp: number) => void
 
   setGamePhase: (phase: GamePhase) => void
   setLoading: (loading: boolean) => void
@@ -104,6 +108,8 @@ const initialState = {
   triesRemaining: 3,
   maxTriesPerScreenshot: 3,
   screenshotsFound: 0,
+  // Round timing
+  roundStartedAt: null,
   // Score tracking
   totalScore: 0,
   correctAnswers: 0,
@@ -138,6 +144,7 @@ export const useGameStore = create<GameState>()(
         setScreenshotData: (data) => set({
           currentScreenshotData: data,
           currentPosition: data.position,
+          roundStartedAt: Date.now(),
         }),
 
         // Countdown scoring actions
@@ -150,6 +157,7 @@ export const useGameStore = create<GameState>()(
             triesRemaining: config.maxTriesPerScreenshot,
             sessionStartedAt: startedAtTimestamp,
             currentScore: config.initialScore,
+            roundStartedAt: Date.now(),
           })
         },
 
@@ -167,6 +175,8 @@ export const useGameStore = create<GameState>()(
         setTriesRemaining: (tries) => set({ triesRemaining: tries }),
 
         setScreenshotsFound: (count) => set({ screenshotsFound: count }),
+
+        setRoundStartedAt: (timestamp) => set({ roundStartedAt: timestamp }),
 
         setGamePhase: (phase) => set({ gamePhase: phase }),
 

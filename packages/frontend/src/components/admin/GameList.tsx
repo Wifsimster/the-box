@@ -10,6 +10,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { GameTable } from './GameTable'
 import { GameForm } from './GameForm'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
+import { ScreenshotsDialog } from './ScreenshotsDialog'
 import { Plus, Search, Loader2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 
@@ -45,6 +46,7 @@ export function GameList() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingGame, setEditingGame] = useState<Game | null>(null)
   const [deletingGame, setDeletingGame] = useState<Game | null>(null)
+  const [screenshotsGame, setScreenshotsGame] = useState<Game | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchInput, setSearchInput] = useState(gamesSearch)
 
@@ -200,6 +202,7 @@ export function GameList() {
                 games={games}
                 onEdit={setEditingGame}
                 onDelete={setDeletingGame}
+                onViewScreenshots={setScreenshotsGame}
                 sortField={gamesSort.field}
                 sortOrder={gamesSort.order}
                 onSort={handleSort}
@@ -244,6 +247,13 @@ export function GameList() {
             : ''
         }
         isLoading={isSubmitting}
+      />
+
+      {/* Screenshots Dialog */}
+      <ScreenshotsDialog
+        game={screenshotsGame}
+        open={!!screenshotsGame}
+        onOpenChange={(open) => !open && setScreenshotsGame(null)}
       />
     </Card>
   )

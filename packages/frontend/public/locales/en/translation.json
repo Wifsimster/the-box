@@ -224,6 +224,13 @@
         "createError": "Failed to create game",
         "updateError": "Failed to update game",
         "deleteError": "Failed to delete game"
+      },
+      "viewScreenshots": "View screenshots",
+      "screenshotsDialog": {
+        "title": "Screenshots for {{name}}",
+        "noScreenshots": "No screenshots for this game",
+        "difficulty": "Difficulty",
+        "close": "Close"
       }
     }
   },
