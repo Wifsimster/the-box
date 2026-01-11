@@ -24,10 +24,10 @@ export default function PrivacyPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple shadow-lg shadow-neon-cyan/30">
+            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-cyan to-neon-purple shadow-lg shadow-neon-cyan/30">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
               {t('legal.privacyTitle')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2">

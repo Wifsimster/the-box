@@ -19,6 +19,8 @@
   --color-success: #22c55e;
   --color-warning: #eab308;
   --color-error: #ef4444;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
 
   /* Custom gaming colors */
   --color-neon-purple: #a855f7;

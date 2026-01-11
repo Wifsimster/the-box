@@ -30,12 +30,12 @@ export default function ResultsPage() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-          className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-full bg-gradient-to-br from-neon-purple to-neon-pink"
+          className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
         >
           <Trophy className="w-10 h-10 text-white" />
         </motion.div>
 
-        <h1 className="text-3xl font-bold mb-2">{t('game.tierComplete')}</h1>
+        <h1 className="text-3xl font-bold mb-2 bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">{t('game.tierComplete')}</h1>
 
         <motion.div
           initial={{ opacity: 0 }}
@@ -67,14 +67,14 @@ export default function ResultsPage() {
         </Button>
         <Button variant="gaming" size="lg">
           <Share2 className="w-4 h-4 mr-2" />
-          Share
+          {t('common.share')}
         </Button>
       </div>
 
       {/* Results Summary */}
-      <Card>
+      <Card className="bg-card/50 border-border">
         <CardContent className="pt-6">
-          <h3 className="font-semibold mb-4">Results Summary</h3>
+          <h3 className="font-semibold mb-4">{t('game.resultsSummary')}</h3>
           <div className="space-y-2">
             {guessResults.map((result, index) => (
               <motion.div
@@ -108,7 +108,7 @@ export default function ResultsPage() {
 
             {guessResults.length === 0 && (
               <p className="text-center text-muted-foreground py-8">
-                No results yet. Play the game first!
+                {t('game.noResults')}
               </p>
             )}
           </div>

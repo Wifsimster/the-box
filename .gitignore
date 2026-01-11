@@ -38,3 +38,6 @@ uploads/*
 
 # Misc
 .cache/
+
+# Playwright
+.playwright-mcp/

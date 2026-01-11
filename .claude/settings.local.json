@@ -24,7 +24,14 @@
       "Bash(npm run build:frontend:*)",
       "Bash(npm run db:seed:*)",
       "Bash(dir:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(npx tsc:*)",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "Bash(npm run dev:frontend:*)"
     ]
   }
 }

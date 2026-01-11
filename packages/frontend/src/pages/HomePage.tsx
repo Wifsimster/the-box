@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Gamepad2, Users } from 'lucide-react'
+import { Play, Trophy, Rotate3D, Users, Gamepad2 } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 
@@ -47,12 +47,12 @@ export default function HomePage() {
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-2xl bg-gradient-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
+          className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-2xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
         >
           <Gamepad2 className="w-12 h-12 text-white" />
         </motion.div>
 
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
+        <h1 className="text-5xl font-bold mb-4 bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
           {t('home.title')}
         </h1>
 
@@ -98,11 +98,11 @@ export default function HomePage() {
         <Card className="bg-card/50 border-border hover:border-neon-purple/50 transition-colors">
           <CardContent className="pt-6 text-center">
             <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-neon-purple/20 flex items-center justify-center">
-              <Gamepad2 className="w-6 h-6 text-neon-purple" />
+              <Rotate3D className="w-6 h-6 text-neon-purple" />
             </div>
-            <h3 className="font-semibold mb-2">18 Screenshots</h3>
+            <h3 className="font-semibold mb-2">{t('home.features.panorama')}</h3>
             <p className="text-sm text-muted-foreground">
-              Test your gaming knowledge with 18 screenshots per tier
+              {t('home.features.panoramaDesc')}
             </p>
           </CardContent>
         </Card>
@@ -112,9 +112,9 @@ export default function HomePage() {
             <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-neon-pink/20 flex items-center justify-center">
               <Trophy className="w-6 h-6 text-neon-pink" />
             </div>
-            <h3 className="font-semibold mb-2">Daily Challenge</h3>
+            <h3 className="font-semibold mb-2">{t('home.features.daily')}</h3>
             <p className="text-sm text-muted-foreground">
-              Same challenge for everyone. Compare your scores!
+              {t('home.features.dailyDesc')}
             </p>
           </CardContent>
         </Card>
@@ -122,11 +122,11 @@ export default function HomePage() {
         <Card className="bg-card/50 border-border hover:border-neon-cyan/50 transition-colors">
           <CardContent className="pt-6 text-center">
             <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-neon-cyan/20 flex items-center justify-center">
-              <Play className="w-6 h-6 text-neon-cyan" />
+              <Users className="w-6 h-6 text-neon-cyan" />
             </div>
-            <h3 className="font-semibold mb-2">360° View</h3>
+            <h3 className="font-semibold mb-2">{t('home.features.multiplayer')}</h3>
             <p className="text-sm text-muted-foreground">
-              Explore panoramic screenshots with mouse panning
+              {t('home.features.multiplayerDesc')}
             </p>
           </CardContent>
         </Card>

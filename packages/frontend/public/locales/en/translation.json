@@ -16,7 +16,8 @@
     "login": "Login",
     "register": "Register",
     "logout": "Logout",
-    "guest": "Play as Guest"
+    "guest": "Play as Guest",
+    "share": "Share"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -40,7 +41,10 @@
     "powerUps": {
       "x2Timer": "Double Time",
       "hint": "Hint"
-    }
+    },
+    "tierComplete": "Challenge Complete!",
+    "resultsSummary": "Results Summary",
+    "noResults": "No results yet. Play the game first!"
   },
   "home": {
     "title": "The Box",

@@ -38,7 +38,7 @@ export default function LeaderboardPage() {
       case 1:
         return <Trophy className="w-5 h-5 text-yellow-500" />
       case 2:
-        return <Medal className="w-5 h-5 text-gray-400" />
+        return <Medal className="w-5 h-5 text-zinc-400" />
       case 3:
         return <Award className="w-5 h-5 text-amber-600" />
       default:
@@ -53,10 +53,15 @@ export default function LeaderboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
-          <Trophy className="w-8 h-8 text-primary" />
-          {t('leaderboard.title')}
-        </h1>
+        {/* Page Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+            <Trophy className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+            {t('leaderboard.title')}
+          </h1>
+        </div>
 
         {/* Loading State */}
         {loading && (
@@ -78,7 +83,7 @@ export default function LeaderboardPage() {
             {leaderboard.slice(0, 3).map((entry, index) => {
               const order = [1, 0, 2][index] // Silver, Gold, Bronze order
               const heights = ['h-24', 'h-32', 'h-20']
-              const colors = ['from-gray-400 to-gray-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+              const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
 
               return (
                 <motion.div
@@ -88,12 +93,12 @@ export default function LeaderboardPage() {
                   transition={{ duration: 0.5, delay: order! * 0.1 }}
                   className={`flex flex-col items-center ${index === 1 ? 'order-first' : ''}`}
                 >
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
+                  <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
                     {entry.displayName[0]}
                   </div>
                   <span className="font-semibold mb-1">{entry.displayName}</span>
                   <span className="text-primary font-bold">{entry.totalScore}</span>
-                  <div className={`w-20 ${heights[index]} bg-gradient-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
+                  <div className={`w-20 ${heights[index]} bg-linear-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
                     <span className="text-2xl font-bold text-white">{entry.rank}</span>
                   </div>
                 </motion.div>
@@ -104,7 +109,7 @@ export default function LeaderboardPage() {
 
         {/* Full Leaderboard Table */}
         {!loading && leaderboard.length > 0 && (
-          <Card>
+          <Card className="bg-card/50 border-border">
             <CardHeader>
               <CardTitle>{t('leaderboard.today')}</CardTitle>
             </CardHeader>
@@ -121,7 +126,7 @@ export default function LeaderboardPage() {
                     <div className="w-8 flex justify-center">
                       {getRankIcon(entry.rank)}
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
                       {entry.displayName[0]}
                     </div>
                     <div className="flex-1">

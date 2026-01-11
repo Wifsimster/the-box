@@ -16,7 +16,8 @@
     "login": "Connexion",
     "register": "Inscription",
     "logout": "Déconnexion",
-    "guest": "Jouer en invité"
+    "guest": "Jouer en invité",
+    "share": "Partager"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",
@@ -40,18 +41,29 @@
     "powerUps": {
       "x2Timer": "Temps Double",
       "hint": "Indice"
-    }
+    },
+    "tierComplete": "Défi Terminé !",
+    "resultsSummary": "Résumé des Résultats",
+    "noResults": "Aucun résultat. Jouez d'abord !"
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Défi Quotidien de Screenshots Gaming",
+    "subtitle": "Devinez les jeux à partir de screenshots 360° immersifs. Défis quotidiens, batailles multijoueur et classements en direct !",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
     "multiplayerGame": "Mode Multijoueur",
     "todayCompleted": "Défi du Jour Terminé",
     "comeBackTomorrow": "Revenez demain pour un nouveau défi !",
     "yourScore": "Votre Score",
-    "rank": "Classement"
+    "rank": "Classement",
+    "features": {
+      "panorama": "Panoramas 360°",
+      "panoramaDesc": "Explorez des captures panoramiques immersives avec navigation à la souris",
+      "daily": "Défi Quotidien",
+      "dailyDesc": "Même défi pour tous. Affrontez le monde entier et grimpez au classement !",
+      "multiplayer": "Mode Multijoueur",
+      "multiplayerDesc": "Défiez vos amis en temps réel avec scoring en direct"
+    }
   },
   "leaderboard": {
     "title": "Classement",

@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
         >
           <Card className="bg-card/50 border-border">
             <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/30">
+              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/30">
                 <XCircle className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
@@ -129,7 +129,7 @@ export default function ResetPasswordPage() {
         >
           <Card className="bg-card/50 border-border">
             <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30">
+              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30">
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
@@ -165,10 +165,10 @@ export default function ResetPasswordPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
               <KeyRound className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
               {t('auth.resetPassword')}
             </h1>
             <p className="text-muted-foreground">

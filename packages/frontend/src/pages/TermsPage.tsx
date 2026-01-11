@@ -24,10 +24,10 @@ export default function TermsPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
               <FileText className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
               {t('legal.termsTitle')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2">
