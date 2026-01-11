@@ -12,6 +12,7 @@ import {
   createGuessSubmissionService,
 } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
+import { toast } from '@/lib/toast'
 
 /**
  * Game guess input component with autocomplete
@@ -77,7 +78,12 @@ export function GuessInput() {
   const handleSubmit = async (game?: Game) => {
     const selectedGame = game || suggestions[selectedIndex]
 
-    await submitGuess(selectedGame || null, query)
+    const result = await submitGuess(selectedGame || null, query)
+
+    // Show error toast if submission failed
+    if (!result.success && result.error) {
+      toast.error(result.error)
+    }
 
     setQuery('')
     setShowSuggestions(false)

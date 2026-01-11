@@ -1,4 +1,5 @@
 import type { LeaderboardService, LeaderboardEntry } from './types'
+import { fetchWithRetry, parseApiError, logError } from '@/lib/errors'
 
 /**
  * API-based leaderboard service
@@ -12,22 +13,27 @@ export class ApiLeaderboardService implements LeaderboardService {
 
   async getTodayLeaderboard(): Promise<LeaderboardEntry[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/leaderboard/today`)
+      // Use fetchWithRetry for automatic retry
+      const response = await fetchWithRetry(
+        `${this.baseUrl}/leaderboard/today`,
+        undefined,
+        { maxRetries: 3, delayMs: 1000 }
+      )
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch leaderboard: ${response.statusText}`)
+        throw await parseApiError(response)
       }
 
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch leaderboard')
+        throw new Error(data.error?.message || 'Failed to fetch leaderboard')
       }
 
       return data.data.entries || []
     } catch (error) {
-      console.error('Leaderboard fetch error:', error)
-      // Return empty array on error
+      logError(error, 'LeaderboardService')
+      // Return empty array on error so UI doesn't break
       return []
     }
   }

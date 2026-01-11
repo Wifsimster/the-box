@@ -1,5 +1,6 @@
 import type { Game } from '@the-box/types'
 import type { GameSearchService } from './types'
+import { fetchWithRetry, parseApiError, logError } from '@/lib/errors'
 
 /**
  * Mock game search service for development and demo purposes
@@ -75,12 +76,15 @@ export class ApiGameSearchService implements GameSearchService {
     }
 
     try {
-      const response = await fetch(
-        `${this.baseUrl}/game/games/search?q=${encodeURIComponent(query)}`
+      // Use fetchWithRetry for automatic retry on network errors
+      const response = await fetchWithRetry(
+        `${this.baseUrl}/game/games/search?q=${encodeURIComponent(query)}`,
+        undefined,
+        { maxRetries: 2, delayMs: 500 } // Quick retry for search
       )
 
       if (!response.ok) {
-        throw new Error(`Search failed: ${response.statusText}`)
+        throw await parseApiError(response)
       }
 
       const data = await response.json()
@@ -92,8 +96,9 @@ export class ApiGameSearchService implements GameSearchService {
       // Backend returns { success: true, data: { games: Game[] } }
       return data.data?.games || []
     } catch (error) {
-      console.error('Game search error:', error)
+      logError(error, 'GameSearchService')
       // Return empty array on error rather than throwing
+      // This allows the user to keep typing even if API is down
       return []
     }
   }

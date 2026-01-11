@@ -1,4 +1,11 @@
 import type { Game } from '@the-box/types'
+import {
+  fetchWithRetry,
+  parseApiError,
+  logError,
+  AuthenticationError,
+  NotFoundError,
+} from '@/lib/errors'
 
 /**
  * Guess submission request
@@ -93,35 +100,42 @@ export class ApiGuessSubmissionService implements GuessSubmissionService {
     request: GuessSubmissionRequest
   ): Promise<GuessSubmissionResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/game/guess`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Use fetchWithRetry for guess submission
+      // Only retry on network errors and 5xx, not on client errors
+      const response = await fetchWithRetry(
+        `${this.baseUrl}/game/guess`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
         },
-        body: JSON.stringify(request),
-      })
+        {
+          maxRetries: 2,
+          delayMs: 1000,
+          // Only retry on server errors, not client errors
+          retryableStatuses: [500, 502, 503, 504],
+        }
+      )
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Session or screenshot not found')
-        }
-        if (response.status === 401) {
-          throw new Error('Authentication required')
-        }
-        throw new Error(`Guess submission failed: ${response.statusText}`)
+        // Parse and throw appropriate error type
+        throw await parseApiError(response)
       }
 
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(
-          data.error?.message || 'Guess submission failed'
-        )
+        throw new Error(data.error?.message || 'Guess submission failed')
       }
 
       return data.data
     } catch (error) {
-      console.error('Guess submission error:', error)
+      // Log error with context
+      logError(error, 'GuessSubmissionService')
+
+      // Re-throw for upstream handling
       throw error
     }
   }

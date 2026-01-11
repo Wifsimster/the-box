@@ -2,6 +2,12 @@ import { useCallback } from 'react'
 import type { Game } from '@the-box/types'
 import { useGameStore } from '@/stores/gameStore'
 import type { GuessSubmissionService } from '@/services/guessSubmissionService'
+import {
+  getUserFriendlyErrorMessage,
+  AuthenticationError,
+  NotFoundError,
+  logError,
+} from '@/lib/errors'
 
 /**
  * Custom hook for handling game guess submission logic
@@ -75,12 +81,29 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           isCompleted: result.isCompleted,
         }
       } catch (error) {
-        console.error('Failed to submit guess:', error)
+        // Log error with context
+        logError(error, 'useGameGuess')
+
+        // Get user-friendly error message
+        const userMessage = getUserFriendlyErrorMessage(error)
+
+        // Handle specific error types
+        if (error instanceof AuthenticationError) {
+          // Could redirect to login or show auth modal
+          console.warn('Authentication required for guess submission')
+        } else if (error instanceof NotFoundError) {
+          // Session might have expired
+          console.warn('Session or screenshot not found')
+        }
+
+        // Pause timer even on error
+        store.pauseTimer()
+
         return {
           success: false,
           isCorrect: false,
           scoreEarned: 0,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: userMessage,
         }
       }
     },
