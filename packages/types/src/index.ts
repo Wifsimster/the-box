@@ -228,6 +228,14 @@ export interface TodayChallengeResponse {
     currentPosition: number
     isCompleted: boolean
     totalScore: number
+    /** Positions where user has guessed correctly */
+    correctPositions: number[]
+    /** Count of screenshots found (correct answers) */
+    screenshotsFound: number
+    /** Session start time for score countdown */
+    sessionStartedAt: string
+    /** Scoring configuration for countdown */
+    scoringConfig: ScoringConfig
   } | null
 }
 

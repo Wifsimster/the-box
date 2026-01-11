@@ -24,6 +24,7 @@ export default function GamePage() {
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
   const {
+    _hasHydrated,
     gamePhase,
     challengeId,
     challengeDate,
@@ -40,6 +41,7 @@ export default function GamePage() {
     setSessionScoring,
     setLoading,
     initializePositionStates,
+    restoreSessionState,
   } = useGameStore()
 
   // Service for leaderboard operations
@@ -51,8 +53,12 @@ export default function GamePage() {
     gamePhase === 'challenge_complete'
   )
 
-  // Fetch today's challenge on mount
+  // Fetch today's challenge on mount (after hydration completes)
   useEffect(() => {
+    // Wait for Zustand to hydrate from localStorage before fetching
+    // This ensures persisted state (positionStates, currentPosition) is available
+    if (!_hasHydrated) return
+
     const fetchChallenge = async () => {
       try {
         setLoading(true)
@@ -64,13 +70,33 @@ export default function GamePage() {
           // Store total screenshots from challenge
           useGameStore.setState({ totalScreenshots: data.totalScreenshots })
 
-          // If user has an existing session, restore it
+          // If user has an existing incomplete session, restore and resume
           if (data.userSession && !data.userSession.isCompleted) {
             setSessionId(data.userSession.sessionId, data.userSession.tierSessionId)
-            useGameStore.setState({
+
+            // Restore full session state from backend (merges with persisted local state)
+            restoreSessionState({
+              correctPositions: data.userSession.correctPositions,
               currentPosition: data.userSession.currentPosition,
+              totalScreenshots: data.totalScreenshots,
+              screenshotsFound: data.userSession.screenshotsFound,
               totalScore: data.userSession.totalScore,
+              sessionStartedAt: data.userSession.sessionStartedAt,
+              scoringConfig: data.userSession.scoringConfig,
             })
+
+            // Get the restored position (may be from localStorage, not backend)
+            const restoredPosition = useGameStore.getState().currentPosition
+
+            // Fetch screenshot for restored position and go directly to playing
+            const screenshotData = await gameApi.getScreenshot(
+              data.userSession.sessionId,
+              restoredPosition
+            )
+            setScreenshotData(screenshotData)
+            setGamePhase('playing')
+            setLoading(false)
+            return
           }
         }
 
@@ -86,7 +112,7 @@ export default function GamePage() {
     if (gamePhase === 'idle') {
       fetchChallenge()
     }
-  }, [gamePhase, setGamePhase, setChallengeId, setSessionId, setLoading, t])
+  }, [_hasHydrated, gamePhase, setGamePhase, setChallengeId, setSessionId, setScreenshotData, setLoading, restoreSessionState, t])
 
   // Fetch screenshot when position changes or game starts
   const fetchScreenshot = useCallback(async (sid: string, position: number) => {
@@ -157,8 +183,8 @@ export default function GamePage() {
   return (
     <div className="fixed inset-0 bg-background overflow-hidden">
       <AnimatePresence mode="wait">
-        {/* Loading State */}
-        {isLoading && gamePhase === 'idle' && (
+        {/* Loading State - also show while waiting for hydration */}
+        {(isLoading || !_hasHydrated) && gamePhase === 'idle' && (
           <motion.div
             key="loading"
             initial={{ opacity: 0 }}

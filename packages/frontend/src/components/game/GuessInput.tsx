@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -19,6 +20,7 @@ export function GuessInput() {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isShaking, setIsShaking] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auth hook for admin check
@@ -63,6 +65,12 @@ export function GuessInput() {
       // Show error toast if submission failed
       if (!result.success && result.error) {
         toast.error(result.error)
+      }
+
+      // Trigger shake animation on wrong guess
+      if (result.success && !result.isCorrect) {
+        setIsShaking(true)
+        setTimeout(() => setIsShaking(false), 500)
       }
 
       setQuery('')
@@ -133,14 +141,20 @@ export function GuessInput() {
           </Tooltip>
         )}
 
-        <div className="relative flex-1">
+        <motion.div
+          className="relative flex-1"
+          animate={isShaking ? { x: [-10, 10, -10, 10, 0] } : {}}
+          transition={{ duration: 0.4 }}
+        >
           <Input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
-            className="h-14 text-lg bg-card/80 backdrop-blur-sm border-2 border-border focus:border-primary pl-4 pr-14"
+            className={`h-14 text-lg bg-card/80 backdrop-blur-sm border-2 focus:border-primary pl-4 pr-14 ${
+              isShaking ? 'border-red-500' : 'border-border'
+            }`}
             disabled={gamePhase !== 'playing'}
           />
 
@@ -158,7 +172,7 @@ export function GuessInput() {
               <Send className="w-5 h-5" />
             )}
           </Button>
-        </div>
+        </motion.div>
 
         {/* Skip/Next button - hidden on last screenshot */}
         {!isLastPosition && (

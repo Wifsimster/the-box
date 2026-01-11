@@ -14,6 +14,9 @@ import type {
 } from '@/types'
 
 interface GameState {
+  // Hydration tracking
+  _hasHydrated: boolean
+
   // Session data
   sessionId: string | null
   tierSessionId: string | null
@@ -94,11 +97,24 @@ interface GameState {
   findNextUnfinished: (fromPosition: number) => number | null
   canNavigateTo: (position: number) => boolean
 
+  // Session restore action
+  restoreSessionState: (data: {
+    correctPositions: number[]
+    currentPosition: number
+    totalScreenshots: number
+    screenshotsFound: number
+    totalScore: number
+    sessionStartedAt: string
+    scoringConfig: ScoringConfig
+  }) => void
+
   nextRound: () => void
   resetGame: () => void
+  setHasHydrated: (hydrated: boolean) => void
 }
 
 const initialState = {
+  _hasHydrated: false,
   sessionId: null,
   tierSessionId: null,
   challengeId: null,
@@ -222,6 +238,73 @@ export const useGameStore = create<GameState>()(
         })),
 
         updateLiveLeaderboard: (entries) => set({ liveLeaderboard: entries }),
+
+        // Session restore action - restores full game state from backend data
+        // Merges persisted local state with authoritative backend data
+        restoreSessionState: (data) => {
+          const { correctPositions, currentPosition: backendPosition, totalScreenshots, screenshotsFound, totalScore, sessionStartedAt, scoringConfig } = data
+
+          // Get existing persisted state (from localStorage hydration)
+          const existingStates = get().positionStates
+          const persistedPosition = get().currentPosition
+
+          // Build position states by merging backend + persisted data
+          const states: Record<number, PositionState> = {}
+          for (let i = 1; i <= totalScreenshots; i++) {
+            const isCorrect = correctPositions.includes(i)
+            const existingState = existingStates[i]
+
+            // Determine status with priority:
+            // 1. Backend says correct → always correct (authoritative)
+            // 2. Persisted state exists and not stale → use it (preserves skipped)
+            // 3. Calculate from backend currentPosition
+            let status: PositionStatus
+            if (isCorrect) {
+              status = 'correct'
+            } else if (existingState && existingState.status !== 'correct') {
+              // Keep persisted status (skipped, in_progress, not_visited)
+              status = existingState.status
+            } else if (i === backendPosition) {
+              status = 'in_progress'
+            } else if (i < backendPosition) {
+              // Positions before current that aren't correct were skipped
+              status = 'skipped'
+            } else {
+              status = 'not_visited'
+            }
+            states[i] = { position: i, status, isCorrect }
+          }
+
+          // Use persisted position if available and valid, otherwise use backend position
+          const restoredPosition = persistedPosition > 0 && persistedPosition <= totalScreenshots
+            ? persistedPosition
+            : backendPosition
+
+          // Ensure restored position is marked as in_progress
+          if (states[restoredPosition] && states[restoredPosition].status !== 'correct') {
+            states[restoredPosition] = { ...states[restoredPosition], status: 'in_progress' }
+          }
+
+          // Calculate current countdown score based on elapsed time
+          const startedAtTimestamp = new Date(sessionStartedAt).getTime()
+          const elapsedMs = Date.now() - startedAtTimestamp
+          const elapsedSeconds = Math.floor(elapsedMs / 1000)
+          const currentScore = Math.max(0, scoringConfig.initialScore - (elapsedSeconds * scoringConfig.decayRate))
+
+          set({
+            positionStates: states,
+            currentPosition: restoredPosition,
+            totalScreenshots,
+            screenshotsFound,
+            correctAnswers: screenshotsFound,
+            totalScore,
+            sessionStartedAt: startedAtTimestamp,
+            initialScore: scoringConfig.initialScore,
+            decayRate: scoringConfig.decayRate,
+            currentScore,
+            scoreRunning: true,
+          })
+        },
 
         // Position navigation actions
         initializePositionStates: (total) => {
@@ -377,7 +460,9 @@ export const useGameStore = create<GameState>()(
           }
         },
 
-        resetGame: () => set(initialState),
+        resetGame: () => set({ ...initialState, _hasHydrated: true }),
+
+        setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
       }),
       {
         name: 'game-session',
@@ -390,7 +475,14 @@ export const useGameStore = create<GameState>()(
           sessionStartedAt: state.sessionStartedAt,
           initialScore: state.initialScore,
           decayRate: state.decayRate,
+          // Persist position states for navigation on refresh
+          positionStates: state.positionStates,
+          currentPosition: state.currentPosition,
+          screenshotsFound: state.screenshotsFound,
         }),
+        onRehydrateStorage: () => (state) => {
+          state?.setHasHydrated(true)
+        },
       }
     ),
     { name: 'GameStore' }

@@ -210,4 +210,19 @@ export const sessionRepository = {
     log.debug({ tierSessionId, exhaustedCount: result.length }, 'getExhaustedPositionsCount result')
     return result.length
   },
+
+  async getCorrectPositions(gameSessionId: string): Promise<number[]> {
+    log.debug({ gameSessionId }, 'getCorrectPositions')
+    // Get all positions with correct guesses across all tier sessions for this game
+    const result = await db('guesses')
+      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+      .where('tier_sessions.game_session_id', gameSessionId)
+      .andWhere('guesses.is_correct', true)
+      .distinct('guesses.position')
+      .orderBy('guesses.position')
+      .select<{ position: number }[]>('guesses.position')
+    const positions = result.map(r => r.position)
+    log.debug({ gameSessionId, correctPositions: positions }, 'getCorrectPositions result')
+    return positions
+  },
 }

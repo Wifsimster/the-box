@@ -50,7 +50,10 @@
       "Bash(npm run db:migrate:status:*)",
       "Bash(npx knex:*)",
       "Bash(npm ls:*)",
-      "Bash(PGPASSWORD=thebox psql:*)"
+      "Bash(PGPASSWORD=thebox psql:*)",
+      "Bash(docker network create:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)"
     ]
   }
 }

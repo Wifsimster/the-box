@@ -1,9 +1,12 @@
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { CheckCircle, XCircle, ChevronRight, Clock, Zap, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+const AUTO_CLOSE_SECONDS = 5
 
 export function ResultCard() {
   const { t } = useTranslation()
@@ -30,6 +33,9 @@ export function ResultCard() {
     (state) => state.status === 'skipped'
   )
 
+  // Auto-close countdown state
+  const [countdown, setCountdown] = useState(AUTO_CLOSE_SECONDS)
+
   // Format time display (e.g., "5s", "1:23", "10:05")
   const formatTime = (seconds: number): string => {
     if (seconds < 60) {
@@ -51,7 +57,7 @@ export function ResultCard() {
 
   const speedFeedback = getSpeedFeedback()
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (nextPosition) {
       // Navigate to next unfinished position
       navigateToPosition(nextPosition)
@@ -74,7 +80,25 @@ export function ResultCard() {
       // All positions finished - show completion
       setGamePhase('challenge_complete')
     }
-  }
+  }, [nextPosition, navigateToPosition, positionStates, setGamePhase])
+
+  // Auto-close timer - only runs when there's a next position
+  useEffect(() => {
+    if (!nextPosition) return
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          handleNext()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [nextPosition, handleNext])
 
   // Determine button text
   const getButtonText = () => {
@@ -248,7 +272,7 @@ export function ResultCard() {
             onClick={handleNext}
             className="w-full gap-2 font-bold"
           >
-            {getButtonText()}
+            {nextPosition ? `${getButtonText()} (${countdown}s)` : getButtonText()}
             <ChevronRight className="w-5 h-5" />
           </Button>
         </motion.div>

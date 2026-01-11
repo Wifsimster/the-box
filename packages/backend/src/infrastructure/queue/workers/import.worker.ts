@@ -37,9 +37,9 @@ function emitFailed(jobId: string, error: string): void {
   }
 }
 
-function emitBatchProgress(jobId: string, event: BatchImportProgressEvent): void {
+function emitBatchProgress(event: BatchImportProgressEvent): void {
   if (ioInstance) {
-    ioInstance.to('admin').emit('batch_import_progress', { jobId, ...event })
+    ioInstance.to('admin').emit('batch_import_progress', event)
   }
 }
 
@@ -123,10 +123,16 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'batch-import-games') {
-        const { importStateId } = data
+        const { importStateId, isResume } = data
         if (!importStateId) {
           throw new Error('importStateId is required for batch-import-games job')
         }
+
+        log.info({
+          jobId: id,
+          importStateId,
+          isResume: !!isResume,
+        }, `Processing batch-import-games job (${isResume ? 'RESUME' : 'NEW'})`)
 
         const result = await processBatch(importStateId, (current, total, message, state) => {
           const progress = total > 0 ? Math.round((current / total) * 100) : 0
@@ -136,7 +142,7 @@ export const importWorker = new Worker<JobData, JobResult>(
           emitProgress(id!, progress, current, total, message)
 
           // Emit batch-specific progress
-          emitBatchProgress(id!, {
+          emitBatchProgress({
             jobId: id!,
             progress,
             current,
@@ -179,7 +185,13 @@ export const importWorker = new Worker<JobData, JobResult>(
               : `Batch ${result.currentBatch} complete: ${result.gamesImported} imported, ${result.gamesSkipped} skipped`,
         }
 
-        log.info({ jobId: id, result: jobResult }, 'batch-import-games job completed')
+        if (result.isPaused) {
+          log.info({ jobId: id }, 'Batch job stopped (import paused by user)')
+        } else if (result.isComplete) {
+          log.info({ jobId: id, totalImported: result.gamesImported }, 'Full import completed successfully!')
+        } else {
+          log.info({ jobId: id, nextBatch: result.currentBatch + 1 }, 'Batch completed, next batch scheduled')
+        }
         return jobResult
       }
 

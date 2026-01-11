@@ -30,7 +30,7 @@ export class GameError extends Error {
 const TOTAL_SCREENSHOTS = 10
 // Default scoring config (actual values come from database)
 // INITIAL_SCORE = 1000, DECAY_RATE = 2 pts/sec
-const WRONG_GUESS_PENALTY = 100
+const WRONG_GUESS_PENALTY = 50
 
 export const gameService = {
   async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
@@ -57,14 +57,23 @@ export const gameService = {
         // Find the latest tier session for this game session
         const tierSession = await sessionRepository.findLatestTierSession(session.id)
         if (tierSession) {
+          // Get correct positions for session restore
+          const correctPositions = await sessionRepository.getCorrectPositions(session.id)
           userSession = {
             sessionId: session.id,
             tierSessionId: tierSession.id,
             currentPosition: session.current_position,
             isCompleted: session.is_completed,
             totalScore: session.total_score,
+            correctPositions,
+            screenshotsFound: correctPositions.length,
+            sessionStartedAt: session.started_at.toISOString(),
+            scoringConfig: {
+              initialScore: session.initial_score,
+              decayRate: session.decay_rate,
+            },
           }
-          log.debug({ userId, challengeId: challenge.id, tierSessionId: tierSession.id, hasPlayed: true }, 'user has existing session')
+          log.debug({ userId, challengeId: challenge.id, tierSessionId: tierSession.id, hasPlayed: true, correctPositions }, 'user has existing session')
         }
       }
     }
