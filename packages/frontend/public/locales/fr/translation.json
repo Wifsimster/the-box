@@ -83,6 +83,8 @@
     "registerTitle": "Créer un Compte",
     "registerSubtitle": "Créez un compte pour suivre vos scores",
     "email": "Email",
+    "emailOrUsername": "Email ou nom d'utilisateur",
+    "emailOrUsernamePlaceholder": "email@exemple.com ou pseudo",
     "password": "Mot de passe",
     "username": "Nom d'utilisateur",
     "usernamePlaceholder": "votre_pseudo",

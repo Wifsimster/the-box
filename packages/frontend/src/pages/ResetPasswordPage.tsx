@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { resetPassword } from '@/lib/auth-client'
 import { Lock, Loader2, KeyRound, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { localizedPath } = useLocalizedPath()
   const [searchParams] = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,12 +102,12 @@ export default function ResetPasswordPage() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <Link to="/forgot-password">
+              <Link to={localizedPath('/forgot-password')}>
                 <Button variant="gaming" className="w-full">
                   {t('auth.requestNewLink')}
                 </Button>
               </Link>
-              <Link to="/login">
+              <Link to={localizedPath('/login')}>
                 <Button variant="outline" className="w-full">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   {t('auth.backToLogin')}
@@ -144,7 +146,7 @@ export default function ResetPasswordPage() {
               <Button
                 variant="gaming"
                 className="w-full"
-                onClick={() => navigate('/login')}
+                onClick={() => navigate(localizedPath('/login'))}
               >
                 {t('auth.login')}
               </Button>

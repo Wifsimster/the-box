@@ -2,6 +2,9 @@ import { Server as HttpServer } from 'http'
 import { Server, Socket } from 'socket.io'
 import { env } from '../../config/env.js'
 import type { LiveScore, JoinChallengeEvent, ScoreUpdateEvent, PlayerFinishedEvent } from '@the-box/types'
+import { socketLogger } from '../logger/logger.js'
+
+const log = socketLogger
 
 // Store active rooms and their participants
 const challengeRooms = new Map<string, Map<string, LiveScore>>()
@@ -15,7 +18,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
   })
 
   io.on('connection', (socket: Socket) => {
-    console.log(`Client connected: ${socket.id}`)
+    log.debug({ socketId: socket.id }, 'client connected')
 
     // Join a challenge room
     socket.on('join_challenge', (data: JoinChallengeEvent) => {
@@ -40,7 +43,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
       // Send current leaderboard
       socket.emit('leaderboard_update', getLeaderboard(roomId))
 
-      console.log(`${data.username} joined challenge ${data.challengeId}`)
+      log.info({ username: data.username, challengeId: data.challengeId, roomSize: room.size }, 'player joined challenge')
     })
 
     // Update score
@@ -76,6 +79,8 @@ export function initializeSocket(httpServer: HttpServer): Server {
           const player = room.get(socket.id)
           room.delete(socket.id)
 
+          log.info({ socketId: socket.id, username: player?.username, roomId }, 'player left')
+
           // Notify room
           io.to(roomId).emit('player_left', {
             username: player?.username,
@@ -88,11 +93,12 @@ export function initializeSocket(httpServer: HttpServer): Server {
           // Clean up empty rooms
           if (room.size === 0) {
             challengeRooms.delete(roomId)
+            log.debug({ roomId }, 'room cleaned up')
           }
         }
       }
 
-      console.log(`Client disconnected: ${socket.id}`)
+      log.debug({ socketId: socket.id }, 'client disconnected')
     })
   })
 

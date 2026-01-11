@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export function Footer() {
   const { t } = useTranslation()
+  const { localizedPath } = useLocalizedPath()
   const currentYear = new Date().getFullYear()
 
   return (
@@ -15,19 +17,19 @@ export function Footer() {
 
           <nav className="flex items-center gap-6 text-sm">
             <Link
-              to="/terms"
+              to={localizedPath('/terms')}
               className="text-muted-foreground hover:text-neon-purple transition-colors"
             >
               {t('footer.terms')}
             </Link>
             <Link
-              to="/privacy"
+              to={localizedPath('/privacy')}
               className="text-muted-foreground hover:text-neon-purple transition-colors"
             >
               {t('footer.privacy')}
             </Link>
             <Link
-              to="/contact"
+              to={localizedPath('/contact')}
               className="text-muted-foreground hover:text-neon-purple transition-colors"
             >
               {t('footer.contact')}

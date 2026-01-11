@@ -6,17 +6,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Play, Trophy, Rotate3D, Users, Gamepad2 } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function HomePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { data: session } = useSession()
+  const { localizedPath } = useLocalizedPath()
 
   const handleMultiplayerClick = () => {
     if (session) {
-      navigate('/multiplayer')
+      navigate(localizedPath('/multiplayer'))
     } else {
-      navigate('/login?redirect=/multiplayer')
+      navigate(localizedPath('/login') + '?redirect=' + encodeURIComponent(localizedPath('/multiplayer')))
     }
   }
 
@@ -59,7 +61,7 @@ export default function HomePage() {
         <Button
           variant="gaming"
           size="xl"
-          onClick={() => navigate('/play')}
+          onClick={() => navigate(localizedPath('/play'))}
           className="gap-3 text-lg px-12"
         >
           <Play className="w-6 h-6" />
@@ -130,19 +132,19 @@ export default function HomePage() {
       >
         <nav className="flex items-center justify-center gap-6 text-sm">
           <Link
-            to="/terms"
+            to={localizedPath('/terms')}
             className="text-muted-foreground hover:text-neon-purple transition-colors"
           >
             {t('footer.terms')}
           </Link>
           <Link
-            to="/privacy"
+            to={localizedPath('/privacy')}
             className="text-muted-foreground hover:text-neon-purple transition-colors"
           >
             {t('footer.privacy')}
           </Link>
           <Link
-            to="/contact"
+            to={localizedPath('/contact')}
             className="text-muted-foreground hover:text-neon-purple transition-colors"
           >
             {t('footer.contact')}

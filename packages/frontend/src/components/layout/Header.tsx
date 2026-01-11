@@ -1,20 +1,22 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { LanguageSwitcher } from './LanguageSwitcher'
 import { Trophy, Home, LogOut } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth-client'
 
 export function Header() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { lang } = useParams<{ lang: string }>()
   const { data: session, isPending } = useSession()
+
+  const currentLang = lang || i18n.language
 
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          navigate('/')
+          navigate(`/${currentLang}`)
         },
       },
     })
@@ -26,20 +28,18 @@ export function Header() {
         {/* Navigation */}
         <nav className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/">
+            <Link to={`/${currentLang}`}>
               <Home className="w-4 h-4 mr-1" />
               {t('common.home')}
             </Link>
           </Button>
 
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/leaderboard">
+            <Link to={`/${currentLang}/leaderboard`}>
               <Trophy className="w-4 h-4 mr-1" />
               {t('common.leaderboard')}
             </Link>
           </Button>
-
-          <LanguageSwitcher />
         </nav>
 
         {/* Auth Buttons */}
@@ -47,10 +47,10 @@ export function Header() {
           {!session && !isPending && (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/login">{t('common.login')}</Link>
+                <Link to={`/${currentLang}/login`}>{t('common.login')}</Link>
               </Button>
               <Button variant="gaming" size="sm" asChild>
-                <Link to="/register">{t('common.register')}</Link>
+                <Link to={`/${currentLang}/register`}>{t('common.register')}</Link>
               </Button>
             </>
           )}

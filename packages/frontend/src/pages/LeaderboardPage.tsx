@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Medal, Award, Loader2 } from 'lucide-react'
+import { PageHero } from '@/components/layout/PageHero'
 
 interface LeaderboardEntry {
   rank: number
@@ -47,22 +48,8 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Page Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-            <Trophy className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
-            {t('leaderboard.title')}
-          </h1>
-        </div>
-
+    <PageHero icon={Trophy} title={t('leaderboard.title')}>
+      <div className="max-w-4xl mx-auto">
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
@@ -142,7 +129,7 @@ export default function LeaderboardPage() {
             </CardContent>
           </Card>
         )}
-      </motion.div>
-    </div>
+      </div>
+    </PageHero>
   )
 }

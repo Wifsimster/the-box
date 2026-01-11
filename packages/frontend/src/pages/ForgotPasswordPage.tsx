@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { requestPasswordReset } from '@/lib/auth-client'
 import { Mail, Loader2, KeyRound, ArrowLeft, CheckCircle } from 'lucide-react'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
+  const { localizedPath, currentLang } = useLocalizedPath()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -23,7 +25,7 @@ export default function ForgotPasswordPage() {
     try {
       await requestPasswordReset({
         email,
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/${currentLang}/reset-password`,
       }, {
         onSuccess: () => {
           setSuccess(true)
@@ -66,7 +68,7 @@ export default function ForgotPasswordPage() {
                 {t('auth.resetEmailInstructions', { email })}
               </p>
 
-              <Link to="/login">
+              <Link to={localizedPath('/login')}>
                 <Button variant="outline" className="w-full">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   {t('auth.backToLogin')}
@@ -143,7 +145,7 @@ export default function ForgotPasswordPage() {
             <p className="text-center text-sm text-muted-foreground mt-6">
               {t('auth.rememberPassword')}{' '}
               <Link
-                to="/login"
+                to={localizedPath('/login')}
                 className="text-neon-purple hover:text-neon-pink transition-colors"
               >
                 {t('auth.login')}

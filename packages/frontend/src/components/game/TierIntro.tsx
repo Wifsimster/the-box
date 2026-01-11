@@ -1,7 +1,9 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar } from 'lucide-react'
+import { Play, Calendar, Home } from 'lucide-react'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 interface DailyIntroProps {
   date: string
@@ -11,6 +13,7 @@ interface DailyIntroProps {
 
 export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps) {
   const { t } = useTranslation()
+  const { localizedPath } = useLocalizedPath()
 
   // Format date for display
   const formattedDate = new Date(date).toLocaleDateString(undefined, {
@@ -27,6 +30,16 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
       exit={{ opacity: 0 }}
       className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-background via-card to-background"
     >
+      {/* Home Button */}
+      <div className="absolute top-4 left-4 z-20">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={localizedPath('/')}>
+            <Home className="w-4 h-4 mr-1" />
+            {t('common.home')}
+          </Link>
+        </Button>
+      </div>
+
       {/* Background grid effect */}
       <div className="absolute inset-0 opacity-20">
         <div

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
@@ -10,10 +11,13 @@ import { ProgressBar } from '@/components/game/ProgressBar'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
-import { Globe } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Globe, Home } from 'lucide-react'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function GamePage() {
   const { t } = useTranslation()
+  const { localizedPath } = useLocalizedPath()
   const [worldTotalScore, setWorldTotalScore] = useState<number | null>(null)
   const {
     gamePhase,
@@ -73,13 +77,21 @@ export default function GamePage() {
             exit={{ opacity: 0 }}
             className="relative w-full h-full"
           >
-            {/* Progress Bar at Top */}
+            {/* Top Bar */}
             <div className="absolute top-0 left-0 right-0 z-40 bg-gradient-to-b from-background/90 to-transparent pb-8 pt-4 px-4">
-              <div className="container mx-auto flex items-center justify-end gap-4">
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-bold text-foreground">{currentPosition}/{totalScreenshots}</span>
+              <div className="container mx-auto flex items-center justify-between gap-4">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to={localizedPath('/')}>
+                    <Home className="w-4 h-4 mr-1" />
+                    {t('common.home')}
+                  </Link>
+                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-bold text-foreground">{currentPosition}/{totalScreenshots}</span>
+                  </div>
+                  <ScoreDisplay score={totalScore} />
                 </div>
-                <ScoreDisplay score={totalScore} />
               </div>
             </div>
 
@@ -132,7 +144,7 @@ export default function GamePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="flex items-center justify-center gap-3 text-muted-foreground"
+                  className="flex items-center justify-center gap-3 text-muted-foreground mb-8"
                 >
                   <Globe className="w-5 h-5" />
                   <span className="text-lg">
@@ -140,6 +152,13 @@ export default function GamePage() {
                   </span>
                 </motion.div>
               )}
+
+              <Button variant="gaming" size="lg" asChild>
+                <Link to={localizedPath('/')}>
+                  <Home className="w-4 h-4 mr-2" />
+                  {t('common.home')}
+                </Link>
+              </Button>
             </div>
           </motion.div>
         )}

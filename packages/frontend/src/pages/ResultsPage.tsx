@@ -5,17 +5,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
 import { Trophy, Home, Share2, CheckCircle, XCircle } from 'lucide-react'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function ResultsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { localizedPath } = useLocalizedPath()
   const { totalScore, correctAnswers, totalScreenshots, guessResults, resetGame } = useGameStore()
 
   const accuracy = Math.round((correctAnswers / totalScreenshots) * 100)
 
   const handlePlayAgain = () => {
     resetGame()
-    navigate('/play')
+    navigate(localizedPath('/play'))
   }
 
   return (
@@ -61,7 +63,7 @@ export default function ResultsPage() {
 
       {/* Action Buttons */}
       <div className="flex justify-center gap-4 mb-8">
-        <Button variant="outline" size="lg" onClick={() => navigate('/')}>
+        <Button variant="outline" size="lg" onClick={() => navigate(localizedPath('/'))}>
           <Home className="w-4 h-4 mr-2" />
           {t('common.home')}
         </Button>
