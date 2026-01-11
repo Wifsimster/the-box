@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ import { LogIn, Mail, Lock, User, Loader2 } from 'lucide-react'
 export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/'
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loginMethod, setLoginMethod] = useState<'email' | 'username'>('email')
@@ -33,7 +35,7 @@ export default function LoginPage() {
           password: formData.password,
         }, {
           onSuccess: () => {
-            navigate('/')
+            navigate(redirectTo)
           },
           onError: (ctx) => {
             setError(ctx.error.message || t('auth.invalidCredentials'))
@@ -45,7 +47,7 @@ export default function LoginPage() {
           password: formData.password,
         }, {
           onSuccess: () => {
-            navigate('/')
+            navigate(redirectTo)
           },
           onError: (ctx) => {
             setError(ctx.error.message || t('auth.invalidCredentials'))
@@ -66,7 +68,7 @@ export default function LoginPage() {
     try {
       await authClient.signIn.anonymous({}, {
         onSuccess: () => {
-          navigate('/')
+          navigate(redirectTo)
         },
         onError: (ctx) => {
           setError(ctx.error.message || t('auth.guestError'))

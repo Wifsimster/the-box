@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
 
 // Lazy load pages for better performance
 const HomePage = lazy(() => import('@/pages/HomePage'))
@@ -11,6 +12,9 @@ const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
+const TermsPage = lazy(() => import('@/pages/TermsPage'))
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'))
+const ContactPage = lazy(() => import('@/pages/ContactPage'))
 
 function LoadingSpinner() {
   return (
@@ -22,9 +26,9 @@ function LoadingSpinner() {
 
 function App() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main>
+      <main className="flex-1">
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -35,9 +39,13 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
           </Routes>
         </Suspense>
       </main>
+      <Footer />
     </div>
   )
 }

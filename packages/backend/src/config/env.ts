@@ -15,6 +15,9 @@ export const env = {
   // Resend (Email)
   RESEND_API_KEY: process.env['RESEND_API_KEY'] || '',
   EMAIL_FROM: process.env['EMAIL_FROM'] || 'noreply@thebox.local',
+
+  // RAWG API (for fetching game screenshots)
+  RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
 }
 
 export function validateEnv(): void {

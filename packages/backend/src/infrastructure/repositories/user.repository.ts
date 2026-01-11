@@ -1,81 +1,86 @@
 import { db } from '../database/connection.js'
 import type { User } from '@the-box/types'
 
-export interface CreateUserData {
-  username: string
-  email: string
-  passwordHash: string
-  displayName: string
-  isGuest: boolean
-}
+/**
+ * User repository for better-auth's 'user' table.
+ * Note: Password operations are handled by better-auth via the 'account' table.
+ */
 
+// Better-auth user table row structure
 export interface UserRow {
   id: string
-  username: string
+  name: string
   email: string
-  password_hash: string
-  display_name: string
-  avatar_url: string | null
-  is_guest: boolean
-  is_admin: boolean
-  total_score: number
-  current_streak: number
-  longest_streak: number
-  created_at: Date
+  emailVerified: boolean
+  image: string | null
+  role: string | null
+  createdAt: Date
+  updatedAt: Date
+  // Custom fields from additionalFields config
+  username: string | null
+  displayName: string | null
+  avatarUrl: string | null
+  totalScore: number
+  currentStreak: number
+  longestStreak: number
+  lastPlayedAt: Date | null
 }
+
+const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
 function mapRowToUser(row: UserRow): User {
   return {
     id: row.id,
-    username: row.username,
+    username: row.username ?? row.name,
     email: row.email,
-    displayName: row.display_name,
-    avatarUrl: row.avatar_url ?? undefined,
-    isGuest: row.is_guest,
-    isAdmin: row.is_admin,
-    totalScore: row.total_score,
-    currentStreak: row.current_streak,
-    longestStreak: row.longest_streak,
-    createdAt: row.created_at.toISOString(),
+    displayName: row.displayName ?? row.name,
+    avatarUrl: row.avatarUrl ?? row.image ?? undefined,
+    isGuest: row.email.endsWith(`@${GUEST_EMAIL_DOMAIN}`),
+    isAdmin: row.role === 'admin',
+    totalScore: row.totalScore ?? 0,
+    currentStreak: row.currentStreak ?? 0,
+    longestStreak: row.longestStreak ?? 0,
+    createdAt: row.createdAt.toISOString(),
   }
 }
 
 export const userRepository = {
   async findById(id: string): Promise<User | null> {
-    const row = await db('users').where('id', id).first<UserRow>()
+    const row = await db('user').where('id', id).first<UserRow>()
     return row ? mapRowToUser(row) : null
   },
 
-  async findByEmail(email: string): Promise<(User & { passwordHash: string }) | null> {
-    const row = await db('users').where('email', email).first<UserRow>()
-    if (!row) return null
-    return { ...mapRowToUser(row), passwordHash: row.password_hash }
+  async findByEmail(email: string): Promise<User | null> {
+    const row = await db('user').where('email', email).first<UserRow>()
+    return row ? mapRowToUser(row) : null
+  },
+
+  async findByUsername(username: string): Promise<User | null> {
+    const row = await db('user').where('username', username).first<UserRow>()
+    return row ? mapRowToUser(row) : null
   },
 
   async findByUsernameOrEmail(username: string, email: string): Promise<User | null> {
-    const row = await db('users')
+    const row = await db('user')
       .where('username', username)
       .orWhere('email', email)
       .first<UserRow>()
     return row ? mapRowToUser(row) : null
   },
 
-  async create(data: CreateUserData): Promise<User> {
-    const [row] = await db('users')
-      .insert({
-        username: data.username,
-        email: data.email,
-        password_hash: data.passwordHash,
-        display_name: data.displayName,
-        is_guest: data.isGuest,
-      })
-      .returning<UserRow[]>('*')
-    return mapRowToUser(row!)
+  async updateScore(userId: string, additionalScore: number): Promise<void> {
+    await db('user')
+      .where('id', userId)
+      .increment('totalScore', additionalScore)
   },
 
-  async updateScore(userId: string, additionalScore: number): Promise<void> {
-    await db('users')
+  async updateStreak(userId: string, currentStreak: number, longestStreak: number): Promise<void> {
+    await db('user')
       .where('id', userId)
-      .increment('total_score', additionalScore)
+      .update({
+        currentStreak,
+        longestStreak,
+        lastPlayedAt: new Date(),
+      })
   },
 }

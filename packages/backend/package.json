@@ -12,7 +12,10 @@
     "db:migrate": "knex migrate:latest --knexfile knexfile.ts",
     "db:rollback": "knex migrate:rollback --knexfile knexfile.ts",
     "db:seed": "knex seed:run --knexfile knexfile.ts",
-    "db:make-migration": "knex migrate:make --knexfile knexfile.ts -x ts"
+    "db:make-migration": "knex migrate:make --knexfile knexfile.ts -x ts",
+    "fetch:games": "tsx src/tools/screenshot-fetcher.ts fetch --games 200 --screenshots-per-game 3",
+    "fetch:download": "tsx src/tools/screenshot-fetcher.ts download",
+    "fetch:all": "tsx src/tools/screenshot-fetcher.ts all --games 200 --screenshots-per-game 3"
   },
   "dependencies": {
     "@the-box/types": "*",

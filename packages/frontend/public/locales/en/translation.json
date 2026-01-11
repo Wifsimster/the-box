@@ -44,12 +44,22 @@
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Daily Gaming Screenshot Challenge",
+    "subtitle": "Guess games from immersive 360° screenshots. Daily challenges, multiplayer battles, and live leaderboards await!",
     "playToday": "Play Today's Challenge",
+    "dailyGuess": "Daily Guess",
+    "multiplayerGame": "Multiplayer Game",
     "todayCompleted": "Today's Challenge Completed",
     "comeBackTomorrow": "Come back tomorrow for a new challenge!",
     "yourScore": "Your Score",
-    "rank": "Rank"
+    "rank": "Rank",
+    "features": {
+      "panorama": "360° Panoramas",
+      "panoramaDesc": "Explore immersive panoramic screenshots with full mouse panning",
+      "daily": "Daily Challenge",
+      "dailyDesc": "Same challenge for everyone. Compete globally and climb the leaderboard!",
+      "multiplayer": "Multiplayer Mode",
+      "multiplayerDesc": "Challenge friends in real-time battles with live scoring"
+    }
   },
   "leaderboard": {
     "title": "Leaderboard",
@@ -111,5 +121,52 @@
     "addGame": "Add Game",
     "addScreenshot": "Add Screenshot",
     "createChallenge": "Create Challenge"
+  },
+  "footer": {
+    "allRightsReserved": "All rights reserved.",
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "contact": "Contact"
+  },
+  "legal": {
+    "termsTitle": "Terms of Use",
+    "termsLastUpdated": "Last updated",
+    "termsIntro": "Welcome to The Box. By using our service, you agree to these terms.",
+    "termsAcceptanceTitle": "1. Acceptance of Terms",
+    "termsAcceptance": "By accessing The Box, you agree to be bound by these terms of use. If you do not accept these terms, please do not use our service.",
+    "termsServiceTitle": "2. Service Description",
+    "termsService": "The Box is a guessing game based on video game screenshots. The service offers daily challenges and multiplayer modes.",
+    "termsAccountTitle": "3. User Account",
+    "termsAccount": "You are responsible for maintaining the confidentiality of your account and password. You agree to notify us immediately of any unauthorized use of your account.",
+    "termsContentTitle": "4. Intellectual Property",
+    "termsContent": "Screenshots used in the game are the property of their respective publishers. The Box does not claim any rights to this content and uses it for educational and entertainment purposes.",
+    "termsConductTitle": "5. Code of Conduct",
+    "termsConduct": "You agree not to cheat, exploit bugs, or engage in behavior that harms other players' experience.",
+    "termsModificationTitle": "6. Modifications",
+    "termsModification": "We reserve the right to modify these terms at any time. Changes take effect upon publication on the site.",
+    "privacyTitle": "Privacy Policy",
+    "privacyLastUpdated": "Last updated",
+    "privacyIntro": "Your privacy is important to us. This policy explains how we collect and use your data.",
+    "privacyCollectionTitle": "1. Data Collected",
+    "privacyCollection": "We collect information you provide during registration (email, username) as well as your game scores and statistics.",
+    "privacyUsageTitle": "2. Data Usage",
+    "privacyUsage": "Your data is used to manage your account, display leaderboards, and improve our services. We never sell your personal data.",
+    "privacyCookiesTitle": "3. Cookies",
+    "privacyCookies": "We use essential cookies for site functionality (session, language preferences). No advertising cookies are used.",
+    "privacySecurityTitle": "4. Security",
+    "privacySecurity": "We implement security measures to protect your data, including password encryption and secure HTTPS connections.",
+    "privacyRightsTitle": "5. Your Rights",
+    "privacyRights": "In accordance with GDPR, you can request access, modification, or deletion of your personal data by contacting us.",
+    "privacyContactTitle": "6. Contact",
+    "privacyContact": "For any questions regarding this policy, contact us via our contact page.",
+    "contactTitle": "Contact Us",
+    "contactIntro": "Have a question, suggestion, or problem? We're here to help.",
+    "contactEmailTitle": "By Email",
+    "contactEmail": "contact@thebox.game",
+    "contactSocialTitle": "Social Media",
+    "contactSocial": "Follow us for the latest news and updates.",
+    "contactBugTitle": "Report a Bug",
+    "contactBug": "If you encounter a technical issue, please provide as much detail as possible to help us resolve it.",
+    "contactResponseTime": "We aim to respond within 48 hours."
   }
 }

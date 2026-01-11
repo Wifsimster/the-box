@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from './LanguageSwitcher'
-import { Trophy, Home, User, LogOut, Loader2 } from 'lucide-react'
+import { Trophy, Home, LogOut } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth-client'
 
 export function Header() {
@@ -41,28 +41,15 @@ export function Header() {
 
           <LanguageSwitcher />
 
-          {isPending ? (
-            <Button variant="outline" size="sm" disabled>
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </Button>
-          ) : session ? (
+          {session && !isPending && (
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/profile">
-                  <User className="w-4 h-4 mr-1" />
-                  {session.user.name || session.user.email?.split('@')[0]}
-                </Link>
-              </Button>
+              <span className="text-sm text-muted-foreground">
+                {session.user.name || session.user.email?.split('@')[0]}
+              </span>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
-          ) : (
-            <Button variant="gaming" size="sm" asChild>
-              <Link to="/login">
-                {t('common.login')}
-              </Link>
-            </Button>
           )}
         </nav>
       </div>

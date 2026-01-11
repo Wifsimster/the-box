@@ -1,16 +1,41 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Gamepad2 } from 'lucide-react'
+import { Play, Trophy, Gamepad2, Users } from 'lucide-react'
+import { useSession } from '@/lib/auth-client'
+import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 
 export default function HomePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { data: session } = useSession()
+
+  const handleMultiplayerClick = () => {
+    if (session) {
+      navigate('/multiplayer')
+    } else {
+      navigate('/login?redirect=/multiplayer')
+    }
+  }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <>
+      <CubeBackground />
+      <div className="container mx-auto px-4 py-12 relative z-10">
+      {/* Auth Buttons - Top Right */}
+      {!session && (
+        <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/login">{t('common.login')}</Link>
+          </Button>
+          <Button variant="gaming" size="sm" asChild>
+            <Link to="/register">{t('common.register')}</Link>
+          </Button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -36,12 +61,12 @@ export default function HomePage() {
         </p>
       </motion.div>
 
-      {/* Play Button */}
+      {/* CTA Buttons */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="flex justify-center mb-12"
+        className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
       >
         <Button
           variant="gaming"
@@ -50,7 +75,16 @@ export default function HomePage() {
           className="gap-3 text-lg px-12"
         >
           <Play className="w-6 h-6" />
-          {t('home.playToday')}
+          {t('home.dailyGuess')}
+        </Button>
+        <Button
+          variant="outline"
+          size="xl"
+          onClick={handleMultiplayerClick}
+          className="gap-3 text-lg px-12"
+        >
+          <Users className="w-6 h-6" />
+          {t('home.multiplayerGame')}
         </Button>
       </motion.div>
 
@@ -97,6 +131,7 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+      </div>
+    </>
   )
 }

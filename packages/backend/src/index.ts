@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { createServer } from 'http'
 import { toNodeHandler } from 'better-auth/node'
 import { env, validateEnv } from './config/env.js'
@@ -32,6 +34,11 @@ app.all('/api/auth/*splat', toNodeHandler(auth))
 // JSON parsing middleware (after better-auth)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+// Static file serving for uploads (screenshots)
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const uploadsPath = path.resolve(__dirname, '..', '..', '..', 'uploads')
+app.use('/uploads', express.static(uploadsPath))
 
 // Health check
 app.get('/health', (_req, res) => {

@@ -6,17 +6,20 @@ import { env } from "../../config/env.js";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
+// Shared pool for database hooks
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+});
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createAuth() {
   return betterAuth({
   baseURL: env.API_URL,
   secret: env.BETTER_AUTH_SECRET,
-  database: new Pool({
-    connectionString: env.DATABASE_URL,
-  }),
+  database: pool,
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 6,
+    minPasswordLength: 4, // Allow short passwords like "root" for dev
     sendResetPassword: async ({ user, url }) => {
       if (resend) {
         await resend.emails.send({
@@ -63,7 +66,9 @@ function createAuth() {
     anonymous({
       emailDomainName: "guest.thebox.local",
     }),
-    admin(),
+    admin({
+      defaultRole: "user",
+    }),
   ],
   user: {
     additionalFields: {
@@ -98,6 +103,25 @@ function createAuth() {
     updateAge: 60 * 60 * 24, // 1 day
   },
   trustedOrigins: [env.CORS_ORIGIN],
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          // First user to register becomes admin
+          const result = await pool.query('SELECT COUNT(*) as count FROM "user"');
+          const userCount = parseInt(result.rows[0].count, 10);
+
+          if (userCount === 0) {
+            console.log("[AUTH] First user registration - assigning admin role");
+            return {
+              data: { ...user, role: "admin" },
+            };
+          }
+          return { data: user };
+        },
+      },
+    },
+  },
   });
 }
 
