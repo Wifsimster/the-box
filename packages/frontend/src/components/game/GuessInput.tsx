@@ -9,8 +9,7 @@ import { cn } from '@/lib/utils'
 import type { Game } from '@/types'
 import {
   createGameSearchService,
-  createGameValidationService,
-  createScoringService,
+  createGuessSubmissionService,
 } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 
@@ -18,7 +17,7 @@ import { useGameGuess } from '@/hooks/useGameGuess'
  * Game guess input component with autocomplete
  *
  * Refactored to follow SOLID principles:
- * - Services injected for game search, validation, and scoring
+ * - Services injected for game search and guess submission
  * - Business logic extracted to useGameGuess hook
  * - Component focuses only on UI rendering
  */
@@ -32,14 +31,13 @@ export function GuessInput() {
 
   // Services (dependency injection via factory functions)
   const gameSearchService = useMemo(() => createGameSearchService(), [])
-  const validationService = useMemo(() => createGameValidationService(), [])
-  const scoringService = useMemo(() => createScoringService(), [])
+  const guessSubmissionService = useMemo(
+    () => createGuessSubmissionService(),
+    []
+  )
 
   // Custom hook for guess submission logic
-  const { submitGuess, skipRound } = useGameGuess(
-    validationService,
-    scoringService
-  )
+  const { submitGuess, skipRound } = useGameGuess(guessSubmissionService)
 
   const { gamePhase, startTimer, setTimeLimit } = useGameStore()
 

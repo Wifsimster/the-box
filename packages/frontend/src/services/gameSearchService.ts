@@ -59,6 +59,7 @@ export class MockGameSearchService implements GameSearchService {
 
 /**
  * API-based game search service
+ * Uses backend endpoint: GET /api/game/games/search?q=query
  */
 export class ApiGameSearchService implements GameSearchService {
   private readonly baseUrl: string
@@ -68,9 +69,14 @@ export class ApiGameSearchService implements GameSearchService {
   }
 
   async search(query: string): Promise<Game[]> {
+    // API requires minimum 2 characters
+    if (query.length < 2) {
+      return []
+    }
+
     try {
       const response = await fetch(
-        `${this.baseUrl}/games/search?q=${encodeURIComponent(query)}`
+        `${this.baseUrl}/game/games/search?q=${encodeURIComponent(query)}`
       )
 
       if (!response.ok) {
@@ -80,10 +86,11 @@ export class ApiGameSearchService implements GameSearchService {
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.message || 'Search failed')
+        throw new Error(data.error?.message || 'Search failed')
       }
 
-      return data.data || []
+      // Backend returns { success: true, data: { games: Game[] } }
+      return data.data?.games || []
     } catch (error) {
       console.error('Game search error:', error)
       // Return empty array on error rather than throwing
@@ -94,10 +101,15 @@ export class ApiGameSearchService implements GameSearchService {
 
 /**
  * Factory function to create the game search service
- * Uses mock service for now, can be switched to API when ready
+ * Uses API service by default, falls back to mock if VITE_USE_MOCK_API is true
  */
 export function createGameSearchService(): GameSearchService {
-  // TODO: Switch to ApiGameSearchService when API is ready
-  // return new ApiGameSearchService()
-  return new MockGameSearchService()
+  const useMock = import.meta.env.VITE_USE_MOCK_API === 'true'
+
+  if (useMock) {
+    console.log('[GameSearch] Using mock service')
+    return new MockGameSearchService()
+  }
+
+  return new ApiGameSearchService()
 }

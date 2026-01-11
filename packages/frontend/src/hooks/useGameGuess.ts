@@ -1,38 +1,41 @@
 import { useCallback } from 'react'
 import type { Game } from '@the-box/types'
 import { useGameStore } from '@/stores/gameStore'
-import type {
-  GameValidationService,
-  ScoringService,
-} from '@/services/types'
+import type { GuessSubmissionService } from '@/services/guessSubmissionService'
 
 /**
  * Custom hook for handling game guess submission logic
  *
- * Separates business logic from UI components following SOLID principles
+ * Refactored to use unified guessSubmissionService that handles
+ * validation and scoring in a single API call
  */
-export function useGameGuess(
-  validationService: GameValidationService,
-  scoringService: ScoringService
-) {
+export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
 
   const submitGuess = useCallback(
     async (game: Game | null, userInput: string) => {
+      if (!store.tierSessionId || !store.currentScreenshot) {
+        console.error('Missing session or screenshot data')
+        return {
+          success: false,
+          isCorrect: false,
+          scoreEarned: 0,
+          error: 'Session not initialized',
+        }
+      }
+
       const timeTakenMs = Date.now() - (store.timerStartedAt || Date.now())
 
       try {
-        // Validate guess via service
-        const validation = await validationService.validateGuess(
-          game,
-          store.currentScreenshot
-        )
-
-        // Calculate score via service
-        const scoreEarned = scoringService.calculateScore(
+        // Submit guess to service (handles validation + scoring)
+        const result = await submissionService.submitGuess({
+          tierSessionId: store.tierSessionId,
+          screenshotId: store.currentScreenshot.id,
+          position: store.currentPosition,
+          gameId: game?.id || null,
+          guessText: userInput,
           timeTakenMs,
-          validation.isCorrect
-        )
+        })
 
         // Pause timer
         store.pauseTimer()
@@ -40,27 +43,36 @@ export function useGameGuess(
         // Record result
         store.addGuessResult({
           position: store.currentPosition,
-          isCorrect: validation.isCorrect,
-          correctGame: validation.correctGame,
+          isCorrect: result.isCorrect,
+          correctGame: result.correctGame,
           userGuess: game?.name || userInput,
           timeTakenMs,
-          scoreEarned,
+          scoreEarned: result.scoreEarned,
         })
 
         // Update stats
-        if (validation.isCorrect) {
+        if (result.isCorrect) {
           store.incrementCorrectAnswers()
         }
 
-        store.updateScore(store.totalScore + scoreEarned)
+        // Update total score from server
+        store.updateScore(result.totalScore)
 
         // Transition to result phase
         store.setGamePhase('result')
 
+        // Check if challenge is completed
+        if (result.isCompleted) {
+          store.setGamePhase('challenge_complete')
+        }
+
         return {
           success: true,
-          isCorrect: validation.isCorrect,
-          scoreEarned,
+          isCorrect: result.isCorrect,
+          scoreEarned: result.scoreEarned,
+          totalScore: result.totalScore,
+          nextPosition: result.nextPosition,
+          isCompleted: result.isCompleted,
         }
       } catch (error) {
         console.error('Failed to submit guess:', error)
@@ -72,34 +84,16 @@ export function useGameGuess(
         }
       }
     },
-    [validationService, scoringService, store]
+    [submissionService, store]
   )
 
-  const skipRound = useCallback(() => {
-    const timeTakenMs = Date.now() - (store.timerStartedAt || Date.now())
-
-    store.pauseTimer()
-
-    // Use the first mock game as correct answer for skip
-    const mockCorrectGame: Game = {
-      id: 1,
-      name: 'The Witcher 3: Wild Hunt',
-      slug: 'witcher-3',
-      aliases: ['Witcher 3', 'TW3'],
-      releaseYear: 2015,
-    }
-
-    store.addGuessResult({
-      position: store.currentPosition,
-      isCorrect: false,
-      correctGame: mockCorrectGame,
-      userGuess: null,
-      timeTakenMs,
-      scoreEarned: 0,
-    })
-
-    store.setGamePhase('result')
-  }, [store])
+  const skipRound = useCallback(
+    async () => {
+      // Skip is just submitting with null game
+      return submitGuess(null, '')
+    },
+    [submitGuess]
+  )
 
   return {
     submitGuess,
