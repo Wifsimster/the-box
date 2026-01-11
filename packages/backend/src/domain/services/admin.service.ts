@@ -43,6 +43,7 @@ interface RAWGGame {
   publishers?: RAWGPublisher[]
   genres: RAWGGenre[]
   platforms: RAWGPlatform[]
+  metacritic?: number
 }
 
 // Simple RAWG API client for single game fetch
@@ -116,6 +117,7 @@ export const adminService = {
       platforms: rawgGame.platforms?.map((p) => p.platform.name) ?? game.platforms,
       coverImageUrl: rawgGame.background_image ?? game.coverImageUrl,
       releaseYear: rawgGame.released ? parseInt(rawgGame.released.slice(0, 4)) : game.releaseYear,
+      metacritic: rawgGame.metacritic ?? game.metacritic,
     })
 
     return updatedGame

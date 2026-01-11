@@ -240,6 +240,7 @@
         "aliases": "Alias",
         "aliasesPlaceholder": "Alias 1, Alias 2, ...",
         "releaseYear": "Année de sortie",
+        "metacritic": "Metascore",
         "developer": "Développeur",
         "publisher": "Éditeur",
         "genres": "Genres",

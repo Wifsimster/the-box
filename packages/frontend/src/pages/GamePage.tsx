@@ -11,7 +11,7 @@ import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { Button } from '@/components/ui/button'
-import { Globe, Home, Loader2 } from 'lucide-react'
+import { Globe, Home, Loader2, Trophy } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useWorldScore } from '@/hooks/useWorldScore'
 import { createLeaderboardService } from '@/services'
@@ -333,12 +333,20 @@ export default function GamePage() {
                 </motion.div>
               )}
 
-              <Button variant="gaming" size="lg" asChild>
-                <Link to={localizedPath('/')}>
-                  <Home className="w-4 h-4 mr-2" />
-                  {t('common.home')}
-                </Link>
-              </Button>
+              <div className="flex gap-4 justify-center">
+                <Button variant="gaming" size="lg" asChild>
+                  <Link to={localizedPath('/leaderboard')}>
+                    <Trophy className="w-4 h-4 mr-2" />
+                    {t('common.leaderboard')}
+                  </Link>
+                </Button>
+                <Button variant="gaming" size="lg" asChild>
+                  <Link to={localizedPath('/')}>
+                    <Home className="w-4 h-4 mr-2" />
+                    {t('common.home')}
+                  </Link>
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}

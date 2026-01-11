@@ -63,6 +63,7 @@ interface RAWGGame {
   genres: RAWGGenre[]
   platforms: RAWGPlatform[]
   screenshots_count?: number
+  metacritic?: number
 }
 
 interface RAWGScreenshot {
@@ -283,6 +284,7 @@ export async function syncNewGamesFromRAWG(
           genres: rawGame.genres.map((g) => g.name),
           platforms: rawGame.platforms.map((p) => p.platform.name),
           coverImageUrl: rawGame.background_image ?? undefined,
+          metacritic: details.metacritic,
         })
 
         log.info({ gameId: game.id, name: game.name }, 'game inserted to database')

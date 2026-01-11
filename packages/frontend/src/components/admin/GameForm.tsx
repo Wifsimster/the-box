@@ -159,7 +159,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('admin.games.form.releaseYear')}</label>
               <Input
@@ -172,6 +172,16 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
                 min={1970}
                 max={2100}
                 disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('admin.games.form.metacritic')}</label>
+              <Input
+                type="number"
+                value={game?.metacritic ?? ''}
+                placeholder="—"
+                disabled
+                className="bg-muted"
               />
             </div>
             <div className="space-y-2">
