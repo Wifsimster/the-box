@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { DailyIntro } from '@/components/game/TierIntro'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
-import { Timer } from '@/components/game/Timer'
 import { GuessInput } from '@/components/game/GuessInput'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
+import { ProgressDots } from '@/components/game/ProgressDots'
 import { Button } from '@/components/ui/button'
 import { Globe, Home, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -39,6 +39,7 @@ export default function GamePage() {
     setScreenshotData,
     setSessionScoring,
     setLoading,
+    initializePositionStates,
   } = useGameStore()
 
   // Service for leaderboard operations
@@ -125,6 +126,9 @@ export default function GamePage() {
       // Set up countdown scoring from server config
       setSessionScoring(startData.scoringConfig, startData.sessionStartedAt)
 
+      // Initialize position states for navigation tracking
+      initializePositionStates(startData.totalScreenshots, startData.scoringConfig.maxTriesPerScreenshot)
+
       // Fetch the first screenshot
       await fetchScreenshot(startData.sessionId, 1)
 
@@ -134,7 +138,7 @@ export default function GamePage() {
       setError(t('game.errorStarting'))
       setLoading(false)
     }
-  }, [challengeId, session, isSessionPending, setSessionId, setSessionScoring, fetchScreenshot, setGamePhase, setLoading, t])
+  }, [challengeId, session, isSessionPending, setSessionId, setSessionScoring, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, t])
 
   // Fetch next screenshot when position changes (after nextRound is called)
   useEffect(() => {
@@ -214,7 +218,7 @@ export default function GamePage() {
             {/* Score (Top Right) */}
             <div className="absolute top-4 right-4 z-40">
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
-                <ScoreDisplay score={totalScore} />
+                <ScoreDisplay />
               </div>
             </div>
 
@@ -229,11 +233,6 @@ export default function GamePage() {
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             )}
-
-            {/* Timer (Top Center) */}
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30">
-              <Timer />
-            </div>
 
             {/* Live Leaderboard (Left Side) */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20">
@@ -250,8 +249,12 @@ export default function GamePage() {
             </div>
 
             {/* Guess Input (Bottom Center) */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-background/90 to-transparent pt-8 pb-4 px-4">
-              <div className="container mx-auto max-w-2xl">
+            <div className="absolute bottom-0 left-0 right-0 z-20 bg-linear-to-t from-background/90 to-transparent pt-8 pb-4 px-4">
+              <div className="container mx-auto max-w-2xl space-y-4">
+                {/* Progress Dots (Above Input) */}
+                <div className="flex justify-center">
+                  <ProgressDots />
+                </div>
                 <GuessInput />
               </div>
             </div>

@@ -117,6 +117,36 @@ router.delete('/games/:id', async (req, res, next) => {
   }
 })
 
+// Sync a game from RAWG API
+router.post('/games/:id/sync-rawg', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const game = await adminService.syncGameFromRawg(id)
+
+    if (!game) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Game not found' },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: { game },
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found on RAWG')) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'RAWG_NOT_FOUND', message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
 // Get screenshots for a game
 router.get('/games/:id/screenshots', async (req, res, next) => {
   try {

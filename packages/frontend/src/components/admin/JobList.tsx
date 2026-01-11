@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Input } from '@/components/ui/input'
 import { useAdminStore } from '@/stores/adminStore'
 import {
   Clock,
@@ -13,6 +15,8 @@ import {
   Loader2,
   RefreshCw,
   Timer,
+  Gamepad2,
+  Download,
 } from 'lucide-react'
 import type { JobStatus } from '@/types'
 
@@ -57,10 +61,45 @@ function formatInterval(ms: number): string {
 
 export function JobList() {
   const { t } = useTranslation()
-  const { jobs, isLoading, cancelJob, clearCompleted, recurringJobs } = useAdminStore()
+  const { 
+    jobs, 
+    isLoading, 
+    cancelJob, 
+    clearCompleted, 
+    recurringJobs, 
+    triggerSyncJob,
+    triggerImportGames,
+    triggerImportScreenshots,
+  } = useAdminStore()
+
+  // State for manual task configurations
+  const [importGamesConfig, setImportGamesConfig] = useState({
+    targetGames: 50,
+    screenshotsPerGame: 3,
+  })
+  const [importScreenshotsLoading, setImportScreenshotsLoading] = useState(false)
+  const [importGamesLoading, setImportGamesLoading] = useState(false)
 
   const completedCount = jobs.filter((j) => j.status === 'completed').length
   const syncJob = recurringJobs.find((j) => j.name === 'sync-new-games')
+
+  const handleImportGames = async () => {
+    setImportGamesLoading(true)
+    try {
+      await triggerImportGames(importGamesConfig.targetGames, importGamesConfig.screenshotsPerGame)
+    } finally {
+      setImportGamesLoading(false)
+    }
+  }
+
+  const handleImportScreenshots = async () => {
+    setImportScreenshotsLoading(true)
+    try {
+      await triggerImportScreenshots()
+    } finally {
+      setImportScreenshotsLoading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -102,15 +141,27 @@ export function JobList() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                {syncJob.every && (
-                  <span>{t('admin.jobs.every')} {formatInterval(syncJob.every)}</span>
-                )}
-                {syncJob.nextRun && !syncJob.isActive && (
-                  <span className="text-neon-purple">
-                    {t('admin.jobs.nextRun')}: {formatRelativeTime(syncJob.nextRun)}
-                  </span>
-                )}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  {syncJob.every && (
+                    <span>{t('admin.jobs.every')} {formatInterval(syncJob.every)}</span>
+                  )}
+                  {syncJob.nextRun && !syncJob.isActive && (
+                    <span className="text-neon-purple">
+                      {t('admin.jobs.nextRun')}: {formatRelativeTime(syncJob.nextRun)}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => triggerSyncJob()}
+                  disabled={syncJob.isActive}
+                  className="border-neon-purple/30 hover:bg-neon-purple/10"
+                >
+                  <Play className="h-4 w-4 mr-1" />
+                  {t('admin.jobs.runNow')}
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -129,101 +180,100 @@ export function JobList() {
           )}
         </CardHeader>
         <CardContent>
-        {jobs.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            {t('admin.jobs.noJobs')}
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {statusIcons[job.status]}
-                    <div>
-                      <p className="font-medium">
-                        {job.type === 'import-games'
-                          ? t('admin.jobs.importGames')
-                          : job.type === 'sync-new-games'
-                            ? t('admin.jobs.syncNewGames')
-                            : t('admin.jobs.importScreenshots')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(job.createdAt)}
-                      </p>
+          {jobs.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {t('admin.jobs.noJobs')}
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {statusIcons[job.status]}
+                      <div>
+                        <p className="font-medium">
+                          {job.type === 'import-games'
+                            ? t('admin.jobs.importGames')
+                            : job.type === 'sync-new-games'
+                              ? t('admin.jobs.syncNewGames')
+                              : t('admin.jobs.importScreenshots')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(job.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${job.status === 'completed'
+                            ? 'bg-green-500/20 text-green-400'
+                            : job.status === 'failed'
+                              ? 'bg-red-500/20 text-red-400'
+                              : job.status === 'active'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                          }`}
+                      >
+                        {t(`admin.jobs.status.${job.status}`)}
+                      </span>
+                      {(job.status === 'waiting' || job.status === 'active') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => cancelJob(job.id)}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-sm px-2 py-1 rounded ${
-                        job.status === 'completed'
-                          ? 'bg-green-500/20 text-green-400'
-                          : job.status === 'failed'
-                            ? 'bg-red-500/20 text-red-400'
-                            : job.status === 'active'
-                              ? 'bg-blue-500/20 text-blue-400'
-                              : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
-                    >
-                      {t(`admin.jobs.status.${job.status}`)}
-                    </span>
-                    {(job.status === 'waiting' || job.status === 'active') && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => cancelJob(job.id)}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
 
-                {job.status === 'active' && (
-                  <div className="space-y-1">
-                    <Progress value={job.progress} />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {job.progress}%
+                  {job.status === 'active' && (
+                    <div className="space-y-1">
+                      <Progress value={job.progress} />
+                      <p className="text-xs text-muted-foreground text-right">
+                        {job.progress}%
+                      </p>
+                    </div>
+                  )}
+
+                  {job.status === 'completed' && job.result && (
+                    <p className="text-sm text-muted-foreground">
+                      {job.result.message}
                     </p>
-                  </div>
-                )}
+                  )}
 
-                {job.status === 'completed' && job.result && (
-                  <p className="text-sm text-muted-foreground">
-                    {job.result.message}
-                  </p>
-                )}
+                  {job.status === 'failed' && job.error && (
+                    <p className="text-sm text-red-400">{job.error}</p>
+                  )}
 
-                {job.status === 'failed' && job.error && (
-                  <p className="text-sm text-red-400">{job.error}</p>
-                )}
-
-                {job.data && (job.data.targetGames || job.data.screenshotsPerGame || job.data.maxGames) && (
-                  <div className="text-xs text-muted-foreground">
-                    {job.data.targetGames && (
-                      <span className="mr-3">
-                        {t('admin.jobs.targetGames')}: {job.data.targetGames}
-                      </span>
-                    )}
-                    {job.data.maxGames && (
-                      <span className="mr-3">
-                        {t('admin.jobs.maxGames')}: {job.data.maxGames}
-                      </span>
-                    )}
-                    {job.data.screenshotsPerGame && (
-                      <span>
-                        {t('admin.jobs.screenshotsPerGame')}: {job.data.screenshotsPerGame}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                  {job.data && (job.data.targetGames || job.data.screenshotsPerGame || job.data.maxGames) && (
+                    <div className="text-xs text-muted-foreground">
+                      {job.data.targetGames && (
+                        <span className="mr-3">
+                          {t('admin.jobs.targetGames')}: {job.data.targetGames}
+                        </span>
+                      )}
+                      {job.data.maxGames && (
+                        <span className="mr-3">
+                          {t('admin.jobs.maxGames')}: {job.data.maxGames}
+                        </span>
+                      )}
+                      {job.data.screenshotsPerGame && (
+                        <span>
+                          {t('admin.jobs.screenshotsPerGame')}: {job.data.screenshotsPerGame}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

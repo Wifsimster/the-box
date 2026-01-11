@@ -67,6 +67,20 @@
       "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
       "time": "The faster you answer, the more points you earn"
+    },
+    "scoring": {
+      "title": "How scoring works",
+      "countdown": "Countdown from {{initial}} pts",
+      "decay": "Loses {{rate}} pts per second",
+      "lock": "Correct answer = locked points",
+      "tries": "3 tries per screenshot"
+    },
+    "navigation": {
+      "previous": "Previous",
+      "next": "Next",
+      "skip": "Skip",
+      "finish": "Finish",
+      "reviewSkipped": "Review Skipped"
     }
   },
   "home": {
@@ -176,6 +190,7 @@
       "syncRunning": "Syncing new games...",
       "every": "Every",
       "nextRun": "Next run",
+      "runNow": "Run Now",
       "maxGames": "Max games",
       "status": {
         "waiting": "Waiting",
@@ -190,6 +205,8 @@
       "addGame": "Add Game",
       "editGame": "Edit Game",
       "deleteGame": "Delete Game",
+      "syncRawg": "Sync from RAWG",
+      "syncing": "Syncing...",
       "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
       "noGames": "No games found",
       "searchPlaceholder": "Search games...",
@@ -221,9 +238,11 @@
         "created": "Game created successfully",
         "updated": "Game updated successfully",
         "deleted": "Game deleted successfully",
+        "synced": "Game synced from RAWG",
         "createError": "Failed to create game",
         "updateError": "Failed to update game",
-        "deleteError": "Failed to delete game"
+        "deleteError": "Failed to delete game",
+        "syncError": "Failed to sync game from RAWG"
       },
       "viewScreenshots": "View screenshots",
       "screenshotsDialog": {

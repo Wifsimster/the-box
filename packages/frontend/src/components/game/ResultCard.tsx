@@ -12,7 +12,10 @@ export function ResultCard() {
     currentPosition,
     totalScreenshots,
     setGamePhase,
-    nextRound,
+    findNextUnfinished,
+    navigateToPosition,
+    positionStates,
+    maxTriesPerScreenshot,
   } = useGameStore()
 
   if (!lastResult) return null
@@ -21,6 +24,12 @@ export function ResultCard() {
   const maxScore = 200
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
+
+  // Check if there are any unfinished positions (for button text)
+  const nextPosition = findNextUnfinished(currentPosition)
+  const hasSkippedPositions = Object.values(positionStates).some(
+    (state) => state.status === 'skipped'
+  )
 
   // Format time display (e.g., "5s", "1:23", "10:05")
   const formatTime = (seconds: number): string => {
@@ -44,12 +53,41 @@ export function ResultCard() {
   const speedFeedback = getSpeedFeedback()
 
   const handleNext = () => {
-    if (currentPosition < totalScreenshots) {
-      nextRound()
+    if (nextPosition) {
+      // Navigate to next unfinished position
+      navigateToPosition(nextPosition)
+      // Initialize position state if not visited
+      const nextState = positionStates[nextPosition]
+      if (!nextState || nextState.status === 'not_visited') {
+        useGameStore.setState((state) => ({
+          positionStates: {
+            ...state.positionStates,
+            [nextPosition]: {
+              position: nextPosition,
+              status: 'in_progress',
+              triesUsed: 0,
+              triesRemaining: maxTriesPerScreenshot,
+              isCorrect: false,
+            },
+          },
+        }))
+      }
       setGamePhase('playing')
     } else {
+      // All positions finished - show completion
       setGamePhase('challenge_complete')
     }
+  }
+
+  // Determine button text
+  const getButtonText = () => {
+    if (!nextPosition) {
+      return t('game.viewResults')
+    }
+    if (hasSkippedPositions && nextPosition < currentPosition) {
+      return t('game.navigation.reviewSkipped', 'Review Skipped')
+    }
+    return t('game.nextRound')
   }
 
   return (
@@ -243,9 +281,7 @@ export function ResultCard() {
             onClick={handleNext}
             className="w-full gap-2 font-bold"
           >
-            {currentPosition < totalScreenshots
-              ? t('game.nextRound')
-              : t('game.viewResults')}
+            {getButtonText()}
             <ChevronRight className="w-5 h-5" />
           </Button>
         </motion.div>

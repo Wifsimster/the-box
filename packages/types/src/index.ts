@@ -174,6 +174,16 @@ export interface GuessResult {
   scoreEarned: number
 }
 
+// Position tracking for navigation
+export type PositionStatus = 'not_visited' | 'in_progress' | 'skipped' | 'correct'
+
+export interface PositionState {
+  position: number
+  status: PositionStatus
+  isCorrect: boolean
+  screenshotData?: ScreenshotResponse
+}
+
 // ============================================
 // API Types
 // ============================================
@@ -224,7 +234,6 @@ export interface TodayChallengeResponse {
 export interface ScoringConfig {
   initialScore: number
   decayRate: number
-  maxTriesPerScreenshot: number
 }
 
 export interface StartChallengeResponse {
@@ -261,11 +270,10 @@ export interface GuessResponse {
   correctGame: Game
   scoreEarned: number
   totalScore: number
-  triesRemaining: number
   screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
-  completionReason?: 'all_found' | 'all_tries_exhausted'
+  completionReason?: 'all_found'
 }
 
 // Search API

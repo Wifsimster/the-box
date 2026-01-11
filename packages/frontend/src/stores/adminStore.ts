@@ -43,6 +43,7 @@ interface AdminState {
   fetchJobs: () => Promise<void>
   fetchStats: () => Promise<void>
   fetchRecurringJobs: () => Promise<void>
+  triggerSyncJob: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number) => Promise<Job>
   createImportScreenshotsJob: () => Promise<Job>
   cancelJob: (id: string) => Promise<void>
@@ -108,6 +109,16 @@ export const useAdminStore = create<AdminState>()(
           console.error('Failed to fetch recurring jobs:', err)
         }
       },
+      triggerSyncJob: async () => {
+        try {
+          await adminApi.syncNewGames(10, 3)
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger sync job:', err)
+          throw err
+        }
+      },
 
       createImportGamesJob: async (targetGames, screenshotsPerGame) => {
         set({ error: null })
@@ -168,12 +179,12 @@ export const useAdminStore = create<AdminState>()(
           jobs: get().jobs.map((j) =>
             j.id === jobId
               ? {
-                  ...j,
-                  status: 'completed' as const,
-                  progress: 100,
-                  result: result as Job['result'],
-                  completedAt: new Date().toISOString(),
-                }
+                ...j,
+                status: 'completed' as const,
+                progress: 100,
+                result: result as Job['result'],
+                completedAt: new Date().toISOString(),
+              }
               : j
           ),
         })
@@ -184,11 +195,11 @@ export const useAdminStore = create<AdminState>()(
           jobs: get().jobs.map((j) =>
             j.id === jobId
               ? {
-                  ...j,
-                  status: 'failed' as const,
-                  error,
-                  failedAt: new Date().toISOString(),
-                }
+                ...j,
+                status: 'failed' as const,
+                error,
+                failedAt: new Date().toISOString(),
+              }
               : j
           ),
         })

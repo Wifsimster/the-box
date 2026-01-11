@@ -60,6 +60,34 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         store.setTriesRemaining(result.triesRemaining)
         store.setScreenshotsFound(result.screenshotsFound)
 
+        // Update position state for navigation tracking
+        const currentPos = store.currentPosition
+        const triesUsed = store.maxTriesPerScreenshot - result.triesRemaining
+
+        if (result.isCorrect) {
+          // Mark position as correct
+          store.updatePositionState(currentPos, {
+            status: 'correct',
+            triesUsed,
+            triesRemaining: result.triesRemaining,
+            isCorrect: true,
+          })
+        } else if (result.triesRemaining === 0) {
+          // Mark position as failed (all tries exhausted)
+          store.updatePositionState(currentPos, {
+            status: 'failed',
+            triesUsed,
+            triesRemaining: 0,
+            isCorrect: false,
+          })
+        } else {
+          // Wrong guess but still has tries - update tries count
+          store.updatePositionState(currentPos, {
+            triesUsed,
+            triesRemaining: result.triesRemaining,
+          })
+        }
+
         // Determine if we should advance to next screenshot
         const shouldAdvance = result.isCorrect || result.triesRemaining === 0
 
@@ -137,17 +165,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
     [submissionService, store]
   )
 
-  const skipRound = useCallback(
-    async () => {
-      // Skip exhausts all remaining tries for this screenshot
-      // Submit with null game to use up a try
-      return submitGuess(null, '')
-    },
-    [submitGuess]
-  )
-
   return {
     submitGuess,
-    skipRound,
   }
 }

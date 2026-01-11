@@ -4,6 +4,68 @@ import {
   challengeRepository,
 } from '../../infrastructure/repositories/index.js'
 import type { Game, Screenshot } from '@the-box/types'
+import { env } from '../../config/env.js'
+
+// RAWG API Types
+interface RAWGGenre {
+  id: number
+  name: string
+  slug: string
+}
+
+interface RAWGPlatform {
+  platform: {
+    id: number
+    name: string
+    slug: string
+  }
+}
+
+interface RAWGDeveloper {
+  id: number
+  name: string
+  slug: string
+}
+
+interface RAWGPublisher {
+  id: number
+  name: string
+  slug: string
+}
+
+interface RAWGGame {
+  id: number
+  slug: string
+  name: string
+  released: string | null
+  background_image: string | null
+  developers?: RAWGDeveloper[]
+  publishers?: RAWGPublisher[]
+  genres: RAWGGenre[]
+  platforms: RAWGPlatform[]
+}
+
+// Simple RAWG API client for single game fetch
+async function fetchGameFromRawg(slug: string): Promise<RAWGGame | null> {
+  const apiKey = env.RAWG_API_KEY
+  if (!apiKey) {
+    throw new Error('RAWG_API_KEY environment variable is required')
+  }
+
+  // Fetch game directly by slug using the RAWG slug endpoint
+  const detailUrl = new URL(`https://api.rawg.io/api/games/${encodeURIComponent(slug)}`)
+  detailUrl.searchParams.set('key', apiKey)
+
+  const detailResponse = await fetch(detailUrl.toString())
+  if (detailResponse.status === 404) {
+    return null
+  }
+  if (!detailResponse.ok) {
+    throw new Error(`RAWG API error: ${detailResponse.status} ${detailResponse.statusText}`)
+  }
+
+  return (await detailResponse.json()) as RAWGGame
+}
 
 export const adminService = {
   // Games
@@ -31,6 +93,32 @@ export const adminService = {
 
   async deleteGame(id: number): Promise<void> {
     await gameRepository.delete(id)
+  },
+
+  async syncGameFromRawg(id: number): Promise<Game | null> {
+    // Get the game from database
+    const game = await gameRepository.findById(id)
+    if (!game) {
+      return null
+    }
+
+    // Fetch data from RAWG using the game's slug
+    const rawgGame = await fetchGameFromRawg(game.slug)
+    if (!rawgGame) {
+      throw new Error(`Game not found on RAWG: ${game.slug}`)
+    }
+
+    // Update game with RAWG data
+    const updatedGame = await gameRepository.update(id, {
+      developer: rawgGame.developers?.[0]?.name ?? game.developer,
+      publisher: rawgGame.publishers?.[0]?.name ?? game.publisher,
+      genres: rawgGame.genres?.map((g) => g.name) ?? game.genres,
+      platforms: rawgGame.platforms?.map((p) => p.platform.name) ?? game.platforms,
+      coverImageUrl: rawgGame.background_image ?? game.coverImageUrl,
+      releaseYear: rawgGame.released ? parseInt(rawgGame.released.slice(0, 4)) : game.releaseYear,
+    })
+
+    return updatedGame
   },
 
   // Screenshots

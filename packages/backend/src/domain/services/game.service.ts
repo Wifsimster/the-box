@@ -27,9 +27,9 @@ export class GameError extends Error {
 }
 
 const TOTAL_SCREENSHOTS = 10
-const MAX_TRIES_PER_SCREENSHOT = 3
 // Default scoring config (actual values come from database)
 // INITIAL_SCORE = 1000, DECAY_RATE = 2 pts/sec
+const WRONG_GUESS_PENALTY = 100
 
 export const gameService = {
   async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
@@ -163,13 +163,6 @@ export const gameService = {
       throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
     }
 
-    // Get current try count for this position
-    const currentTries = await sessionRepository.getTriesForPosition(data.tierSessionId, data.position)
-
-    if (currentTries >= MAX_TRIES_PER_SCREENSHOT) {
-      throw new GameError('MAX_TRIES_EXCEEDED', 'Maximum tries reached for this screenshot', 400)
-    }
-
     const screenshotData = await screenshotRepository.findWithGame(data.screenshotId)
     if (!screenshotData) {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
@@ -178,7 +171,6 @@ export const gameService = {
     const { screenshot, gameName, coverImageUrl } = screenshotData
 
     const isCorrect = data.gameId === screenshot.gameId
-    const tryNumber = currentTries + 1
 
     // Calculate current countdown score
     const currentScore = this.calculateCurrentScore(
@@ -187,16 +179,19 @@ export const gameService = {
       tierSession.decay_rate
     )
 
-    // Score earned is only awarded on correct guess - it "locks in" the current countdown value
+    // Score earned is awarded on correct guess - it "locks in" the current countdown value
+    // Wrong guesses deduct 100 points from the total score (clamped at 0)
     const scoreEarned = isCorrect ? currentScore : 0
+    const scorePenalty = isCorrect ? 0 : WRONG_GUESS_PENALTY
+    const newSessionScore = Math.max(0, tierSession.score - scorePenalty)
 
     log.info(
       {
         userId: data.userId,
         position: data.position,
-        tryNumber,
         isCorrect,
         scoreEarned,
+        scorePenalty,
         currentScore,
         sessionElapsedMs: data.sessionElapsedMs,
         guessedGame: data.guessText,
@@ -209,7 +204,6 @@ export const gameService = {
       tierSessionId: data.tierSessionId,
       screenshotId: data.screenshotId,
       position: data.position,
-      tryNumber,
       guessedGameId: data.gameId,
       guessedText: data.guessText,
       isCorrect,
@@ -218,7 +212,7 @@ export const gameService = {
     })
 
     await sessionRepository.updateTierSession(data.tierSessionId, {
-      score: tierSession.score + scoreEarned,
+      score: newSessionScore + scoreEarned,
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
     })
 

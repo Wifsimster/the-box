@@ -4,13 +4,15 @@ import type { Game } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw, ImageOff } from 'lucide-react'
 
 interface GameFormProps {
   game?: Game | null
   onSubmit: (data: Omit<Game, 'id'>) => Promise<void>
   onCancel: () => void
+  onSyncRawg?: () => Promise<void>
   isLoading?: boolean
+  isSyncing?: boolean
 }
 
 function slugify(text: string): string {
@@ -22,9 +24,10 @@ function slugify(text: string): string {
     .trim()
 }
 
-export function GameForm({ game, onSubmit, onCancel, isLoading = false }: GameFormProps) {
+export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = false, isSyncing = false }: GameFormProps) {
   const { t } = useTranslation()
   const isEditing = !!game
+  const [imageError, setImageError] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -51,8 +54,14 @@ export function GameForm({ game, onSubmit, onCancel, isLoading = false }: GameFo
         platforms: game.platforms?.join(', ') || '',
         coverImageUrl: game.coverImageUrl || '',
       })
+      setImageError(false)
     }
   }, [game])
+
+  // Reset image error when URL changes
+  useEffect(() => {
+    setImageError(false)
+  }, [formData.coverImageUrl])
 
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
@@ -92,10 +101,28 @@ export function GameForm({ game, onSubmit, onCancel, isLoading = false }: GameFo
 
   return (
     <Card className="border-0 shadow-none">
-      <CardHeader className="px-0 pt-0">
-        <CardTitle>
-          {isEditing ? t('admin.games.editGame') : t('admin.games.addGame')}
-        </CardTitle>
+      <CardHeader className="px-0 pt-0 pr-8">
+        <div className="flex items-center justify-between">
+          <CardTitle>
+            {isEditing ? t('admin.games.editGame') : t('admin.games.addGame')}
+          </CardTitle>
+          {isEditing && onSyncRawg && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onSyncRawg}
+              disabled={isSyncing || isLoading}
+            >
+              {isSyncing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              {isSyncing ? t('admin.games.syncing') : t('admin.games.syncRawg')}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -196,15 +223,35 @@ export function GameForm({ game, onSubmit, onCancel, isLoading = false }: GameFo
 
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('admin.games.form.coverImageUrl')}</label>
-            <Input
-              type="url"
-              value={formData.coverImageUrl}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, coverImageUrl: e.target.value }))
-              }
-              placeholder="https://example.com/cover.jpg"
-              disabled={isLoading}
-            />
+            <div className="flex gap-4">
+              {/* Image Preview */}
+              <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-800 border border-gray-700">
+                {formData.coverImageUrl && !imageError ? (
+                  <img
+                    src={formData.coverImageUrl}
+                    alt="Cover preview"
+                    className="w-full h-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <ImageOff className="h-8 w-8" />
+                  </div>
+                )}
+              </div>
+              {/* URL Input */}
+              <div className="flex-1">
+                <Input
+                  type="url"
+                  value={formData.coverImageUrl}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, coverImageUrl: e.target.value }))
+                  }
+                  placeholder="https://example.com/cover.jpg"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

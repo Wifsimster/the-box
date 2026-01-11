@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Tooltip } from '@/components/ui/tooltip'
 import { useGameStore } from '@/stores/gameStore'
 import { Send, SkipForward, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -41,9 +42,9 @@ export function GuessInput() {
   )
 
   // Custom hook for guess submission logic
-  const { submitGuess, skipRound } = useGameGuess(guessSubmissionService)
+  const { submitGuess } = useGameGuess(guessSubmissionService)
 
-  const { gamePhase, startScoreCountdown } = useGameStore()
+  const { gamePhase, startScoreCountdown, skipToNextPosition } = useGameStore()
 
   // Focus input when playing
   useEffect(() => {
@@ -110,16 +111,13 @@ export function GuessInput() {
     }
   }
 
-  const handleSkip = async () => {
+  const handleSkip = () => {
     if (isSubmitting) return // Prevent double click
 
-    setIsSubmitting(true)
-    try {
-      await skipRound()
-      setQuery('')
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Skip to next position without using a try (preserves tries for later)
+    skipToNextPosition()
+    setQuery('')
+    setShowSuggestions(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -178,29 +176,33 @@ export function GuessInput() {
           </div>
         </div>
 
-        <Button
-          variant="gaming"
-          size="lg"
-          onClick={() => handleSubmit()}
-          disabled={gamePhase !== 'playing' || query.length === 0 || isSubmitting}
-          className="h-14 px-6"
-        >
-          {isSubmitting ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Send className="w-5 h-5" />
-          )}
-        </Button>
+        <Tooltip content={t('common.submit')}>
+          <Button
+            variant="gaming"
+            size="lg"
+            onClick={() => handleSubmit()}
+            disabled={gamePhase !== 'playing' || query.length === 0 || isSubmitting}
+            className="h-14 px-6"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </Button>
+        </Tooltip>
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handleSkip}
-          disabled={gamePhase !== 'playing' || isSubmitting}
-          className="h-14 px-6"
-        >
-          <SkipForward className="w-5 h-5" />
-        </Button>
+        <Tooltip content={t('common.skip')}>
+          <Button
+            variant="gaming"
+            size="lg"
+            onClick={handleSkip}
+            disabled={gamePhase !== 'playing' || isSubmitting}
+            className="h-14 px-6"
+          >
+            <SkipForward className="w-5 h-5" />
+          </Button>
+        </Tooltip>
       </div>
 
       {/* Suggestions dropdown */}

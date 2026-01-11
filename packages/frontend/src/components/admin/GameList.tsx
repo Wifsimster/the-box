@@ -5,7 +5,7 @@ import { useAdminStore } from '@/stores/adminStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { GameTable } from './GameTable'
 import { GameForm } from './GameForm'
@@ -13,6 +13,7 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { ScreenshotsDialog } from './ScreenshotsDialog'
 import { Plus, Search, Loader2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import { adminApi } from '@/lib/api/admin'
 
 function debounce<T extends (...args: Parameters<T>) => void>(
   fn: T,
@@ -48,6 +49,7 @@ export function GameList() {
   const [deletingGame, setDeletingGame] = useState<Game | null>(null)
   const [screenshotsGame, setScreenshotsGame] = useState<Game | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [searchInput, setSearchInput] = useState(gamesSearch)
 
   // Debounced search
@@ -122,6 +124,22 @@ export function GameList() {
       toast.error(t('admin.games.messages.deleteError'))
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Handle sync from RAWG
+  const handleSyncRawg = async () => {
+    if (!editingGame) return
+    setIsSyncing(true)
+    try {
+      const { game } = await adminApi.syncGameFromRawg(editingGame.id)
+      setEditingGame(game)
+      toast.success(t('admin.games.messages.synced'))
+      fetchGames() // Refresh list
+    } catch {
+      toast.error(t('admin.games.messages.syncError'))
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -226,11 +244,16 @@ export function GameList() {
       {/* Create/Edit Dialog */}
       <Dialog open={isFormOpen || !!editingGame} onOpenChange={handleCloseForm}>
         <DialogContent className="max-w-2xl">
+          <DialogTitle className="sr-only">
+            {editingGame ? t('admin.games.editGame') : t('admin.games.addGame')}
+          </DialogTitle>
           <GameForm
             game={editingGame}
             onSubmit={editingGame ? handleUpdate : handleCreate}
             onCancel={handleCloseForm}
+            onSyncRawg={editingGame ? handleSyncRawg : undefined}
             isLoading={isSubmitting}
+            isSyncing={isSyncing}
           />
         </DialogContent>
       </Dialog>

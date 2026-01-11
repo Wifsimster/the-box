@@ -67,6 +67,20 @@
       "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
       "time": "Plus vous répondez vite, plus vous gagnez de points"
+    },
+    "scoring": {
+      "title": "Comment le score fonctionne",
+      "countdown": "Compte à rebours depuis {{initial}} pts",
+      "decay": "Perd {{rate}} pts par seconde",
+      "lock": "Bonne réponse = points verrouillés",
+      "tries": "3 essais par capture"
+    },
+    "navigation": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "skip": "Passer",
+      "finish": "Terminer",
+      "reviewSkipped": "Voir les Passées"
     }
   },
   "home": {
@@ -176,6 +190,7 @@
       "syncRunning": "Synchronisation en cours...",
       "every": "Toutes les",
       "nextRun": "Prochaine exécution",
+      "runNow": "Exécuter maintenant",
       "maxGames": "Jeux max",
       "status": {
         "waiting": "En attente",
@@ -190,6 +205,8 @@
       "addGame": "Ajouter un jeu",
       "editGame": "Modifier le jeu",
       "deleteGame": "Supprimer le jeu",
+      "syncRawg": "Sync depuis RAWG",
+      "syncing": "Synchronisation...",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
       "noGames": "Aucun jeu trouvé",
       "searchPlaceholder": "Rechercher un jeu...",
@@ -221,9 +238,11 @@
         "created": "Jeu créé avec succès",
         "updated": "Jeu modifié avec succès",
         "deleted": "Jeu supprimé avec succès",
+        "synced": "Jeu synchronisé depuis RAWG",
         "createError": "Erreur lors de la création du jeu",
         "updateError": "Erreur lors de la modification du jeu",
-        "deleteError": "Erreur lors de la suppression du jeu"
+        "deleteError": "Erreur lors de la suppression du jeu",
+        "syncError": "Erreur lors de la synchronisation depuis RAWG"
       },
       "viewScreenshots": "Voir les captures",
       "screenshotsDialog": {

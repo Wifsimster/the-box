@@ -8,7 +8,9 @@ import type {
   Game,
   TierScreenshot,
   ScreenshotResponse,
-  ScoringConfig
+  ScoringConfig,
+  PositionStatus,
+  PositionState
 } from '@/types'
 
 interface GameState {
@@ -23,6 +25,9 @@ interface GameState {
   totalScreenshots: number
   currentScreenshot: TierScreenshot | null
   currentScreenshotData: ScreenshotResponse | null
+
+  // Position tracking for navigation
+  positionStates: Record<number, PositionState>
 
   // Countdown scoring state
   currentScore: number
@@ -85,6 +90,14 @@ interface GameState {
 
   updateLiveLeaderboard: (entries: { username: string; score: number }[]) => void
 
+  // Position navigation actions
+  initializePositionStates: (total: number, maxTries: number) => void
+  updatePositionState: (position: number, updates: Partial<PositionState>) => void
+  skipToNextPosition: () => number | null
+  navigateToPosition: (position: number) => void
+  findNextUnfinished: (fromPosition: number) => number | null
+  canNavigateTo: (position: number) => boolean
+
   nextRound: () => void
   resetGame: () => void
 }
@@ -98,6 +111,8 @@ const initialState = {
   totalScreenshots: 10,
   currentScreenshot: null,
   currentScreenshotData: null,
+  // Position tracking for navigation
+  positionStates: {} as Record<number, PositionState>,
   // Countdown scoring state
   currentScore: 1000,
   initialScore: 1000,
@@ -218,6 +233,152 @@ export const useGameStore = create<GameState>()(
         })),
 
         updateLiveLeaderboard: (entries) => set({ liveLeaderboard: entries }),
+
+        // Position navigation actions
+        initializePositionStates: (total, maxTries) => {
+          const states: Record<number, PositionState> = {}
+          for (let i = 1; i <= total; i++) {
+            states[i] = {
+              position: i,
+              status: i === 1 ? 'in_progress' : 'not_visited',
+              triesUsed: 0,
+              triesRemaining: maxTries,
+              isCorrect: false,
+            }
+          }
+          set({ positionStates: states, currentPosition: 1 })
+        },
+
+        updatePositionState: (position, updates) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                ...updates,
+              },
+            },
+          }))
+        },
+
+        findNextUnfinished: (fromPosition) => {
+          const { positionStates, totalScreenshots } = get()
+          // First check forward positions (new or skipped)
+          for (let i = fromPosition + 1; i <= totalScreenshots; i++) {
+            const state = positionStates[i]
+            if (!state || state.status === 'not_visited' || state.status === 'skipped') {
+              return i
+            }
+          }
+          // Then check skipped positions from beginning
+          for (let i = 1; i < fromPosition; i++) {
+            const state = positionStates[i]
+            if (state?.status === 'skipped') {
+              return i
+            }
+          }
+          return null
+        },
+
+        canNavigateTo: (position) => {
+          const { positionStates } = get()
+          const state = positionStates[position]
+          if (!state) return false
+          return state.status === 'skipped' ||
+                 state.status === 'in_progress' ||
+                 state.status === 'not_visited'
+        },
+
+        skipToNextPosition: () => {
+          const { currentPosition, positionStates, maxTriesPerScreenshot } = get()
+          const currentState = positionStates[currentPosition]
+
+          // Mark current as skipped (only if not already correct/failed)
+          if (currentState && currentState.status === 'in_progress') {
+            set((state) => ({
+              positionStates: {
+                ...state.positionStates,
+                [currentPosition]: {
+                  ...state.positionStates[currentPosition],
+                  status: 'skipped',
+                },
+              },
+            }))
+          }
+
+          // Find next unfinished position
+          const nextPos = get().findNextUnfinished(currentPosition)
+          if (nextPos) {
+            // Navigate to next position
+            const nextState = get().positionStates[nextPos]
+            set({
+              currentPosition: nextPos,
+              lastResult: null,
+              activePowerUp: null,
+              triesRemaining: nextState?.triesRemaining ?? maxTriesPerScreenshot,
+            })
+            // Mark as in_progress if was not_visited
+            if (!nextState || nextState.status === 'not_visited') {
+              set((state) => ({
+                positionStates: {
+                  ...state.positionStates,
+                  [nextPos]: {
+                    ...state.positionStates[nextPos],
+                    position: nextPos,
+                    status: 'in_progress',
+                    triesUsed: 0,
+                    triesRemaining: maxTriesPerScreenshot,
+                    isCorrect: false,
+                  },
+                },
+              }))
+            } else {
+              // Resuming a skipped position, mark as in_progress
+              set((state) => ({
+                positionStates: {
+                  ...state.positionStates,
+                  [nextPos]: {
+                    ...state.positionStates[nextPos],
+                    status: 'in_progress',
+                  },
+                },
+              }))
+            }
+            return nextPos
+          }
+
+          // No more positions - challenge complete
+          set({ gamePhase: 'challenge_complete', scoreRunning: false })
+          return null
+        },
+
+        navigateToPosition: (position) => {
+          const { positionStates, maxTriesPerScreenshot } = get()
+          const state = positionStates[position]
+
+          if (!state) return
+
+          // Update current position
+          set({
+            currentPosition: position,
+            lastResult: null,
+            activePowerUp: null,
+            triesRemaining: state.triesRemaining,
+          })
+
+          // Mark as in_progress
+          if (state.status === 'not_visited' || state.status === 'skipped') {
+            set((prev) => ({
+              positionStates: {
+                ...prev.positionStates,
+                [position]: {
+                  ...prev.positionStates[position],
+                  status: 'in_progress',
+                },
+              },
+            }))
+          }
+        },
 
         nextRound: () => {
           const { currentPosition, totalScreenshots, maxTriesPerScreenshot } = get()

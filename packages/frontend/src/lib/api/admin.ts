@@ -122,6 +122,21 @@ export const adminApi = {
   },
 
   /**
+   * Start sync new games job (manual trigger)
+   */
+  async syncNewGames(maxGames?: number, screenshotsPerGame?: number): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/sync-new-games', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ maxGames, screenshotsPerGame }),
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
    * Get queue stats
    */
   async getStats(): Promise<{
@@ -229,6 +244,17 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<{ deleted: boolean }>(response)
+  },
+
+  /**
+   * Sync a game's metadata from RAWG API
+   */
+  async syncGameFromRawg(id: number): Promise<{ game: Game }> {
+    const response = await fetch(`/api/admin/games/${id}/sync-rawg`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ game: Game }>(response)
   },
 
   /**
