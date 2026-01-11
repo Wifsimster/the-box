@@ -19,8 +19,6 @@ export interface TierScreenshotRow {
   bonus_multiplier: string
   screenshot_id: number
   image_url: string
-  haov: number
-  vaov: number
 }
 
 export const challengeRepository = {
@@ -57,9 +55,7 @@ export const challengeRepository = {
         'tier_screenshots.position',
         'tier_screenshots.bonus_multiplier',
         'screenshots.id as screenshot_id',
-        'screenshots.image_url',
-        'screenshots.haov',
-        'screenshots.vaov'
+        'screenshots.image_url'
       )
       .first()
     return row ?? null

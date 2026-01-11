@@ -64,14 +64,14 @@
     "rules": {
       "title": "How to play",
       "screenshots": "{{count}} screenshots to guess in limited time",
-      "explore": "Explore the 360° panorama by dragging your mouse",
+      "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
       "time": "The faster you answer, the more points you earn"
     }
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Guess games from immersive 360° screenshots. Daily challenges, multiplayer battles, and live leaderboards await!",
+    "subtitle": "Guess games from screenshots. Daily challenges, multiplayer battles, and live leaderboards await!",
     "playToday": "Play Today's Challenge",
     "dailyGuess": "Daily Guess",
     "multiplayerGame": "Multiplayer Game",
@@ -80,8 +80,8 @@
     "yourScore": "Your Score",
     "rank": "Rank",
     "features": {
-      "panorama": "360° Panoramas",
-      "panoramaDesc": "Explore immersive panoramic screenshots with full mouse panning",
+      "panorama": "Screenshots",
+      "panoramaDesc": "Identify games from detailed in-game screenshots",
       "daily": "Daily Challenge",
       "dailyDesc": "Same challenge for everyone. Compete globally and climb the leaderboard!",
       "multiplayer": "Multiplayer Mode",
@@ -279,9 +279,9 @@
     "faqTitle": "Frequently Asked Questions",
     "faqIntro": "Find answers to common questions about The Box.",
     "faqQuestion1": "What is The Box?",
-    "faqAnswer1": "The Box is a game where you guess video games from immersive 360° panoramic screenshots. Challenge yourself with daily puzzles or compete with friends in multiplayer mode.",
+    "faqAnswer1": "The Box is a game where you guess video games from screenshots. Challenge yourself with daily puzzles or compete with friends in multiplayer mode.",
     "faqQuestion2": "How do I play?",
-    "faqAnswer2": "Simply explore the 360° panorama by dragging your mouse, then type your guess for the game name. The faster you answer correctly, the more points you earn!",
+    "faqAnswer2": "Look at the screenshot carefully, then type your guess for the game name. The faster you answer correctly, the more points you earn!",
     "faqQuestion3": "Do I need an account to play?",
     "faqAnswer3": "You can play as a guest, but creating an account allows you to save your scores, appear on leaderboards, and track your progress over time.",
     "faqQuestion4": "How is my score calculated?",

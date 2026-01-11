@@ -38,8 +38,6 @@ export interface Screenshot {
   imageUrl: string
   thumbnailUrl?: string
   difficulty: 1 | 2 | 3
-  haov?: number
-  vaov?: number
   locationHint?: string
 }
 
@@ -234,8 +232,6 @@ export interface ScreenshotResponse {
   screenshotId: number
   position: number
   imageUrl: string
-  haov?: number
-  vaov?: number
   timeLimit: number
   bonusMultiplier?: number
 }

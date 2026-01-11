@@ -64,14 +64,14 @@
     "rules": {
       "title": "Comment jouer",
       "screenshots": "{{count}} captures à deviner en temps limité",
-      "explore": "Explorez le panorama 360° en glissant la souris",
+      "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
       "time": "Plus vous répondez vite, plus vous gagnez de points"
     }
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Devinez les jeux à partir de screenshots 360° immersifs. Défis quotidiens, batailles multijoueur et classements en direct !",
+    "subtitle": "Devinez les jeux à partir de captures d'écran. Défis quotidiens, batailles multijoueur et classements en direct !",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
     "multiplayerGame": "Mode Multijoueur",
@@ -80,8 +80,8 @@
     "yourScore": "Votre Score",
     "rank": "Classement",
     "features": {
-      "panorama": "Panoramas 360°",
-      "panoramaDesc": "Explorez des captures panoramiques immersives avec navigation à la souris",
+      "panorama": "Captures d'écran",
+      "panoramaDesc": "Identifiez les jeux à partir de captures d'écran détaillées",
       "daily": "Défi Quotidien",
       "dailyDesc": "Même défi pour tous. Affrontez le monde entier et grimpez au classement !",
       "multiplayer": "Mode Multijoueur",
@@ -279,9 +279,9 @@
     "faqTitle": "Questions Fréquentes",
     "faqIntro": "Trouvez les réponses aux questions courantes sur The Box.",
     "faqQuestion1": "Qu'est-ce que The Box ?",
-    "faqAnswer1": "The Box est un jeu où vous devinez des jeux vidéo à partir de captures d'écran panoramiques 360° immersives. Relevez le défi quotidien ou affrontez vos amis en mode multijoueur.",
+    "faqAnswer1": "The Box est un jeu où vous devinez des jeux vidéo à partir de captures d'écran. Relevez le défi quotidien ou affrontez vos amis en mode multijoueur.",
     "faqQuestion2": "Comment jouer ?",
-    "faqAnswer2": "Explorez simplement le panorama 360° en glissant votre souris, puis tapez votre réponse pour le nom du jeu. Plus vous répondez vite et correctement, plus vous gagnez de points !",
+    "faqAnswer2": "Observez attentivement la capture d'écran, puis tapez votre réponse pour le nom du jeu. Plus vous répondez vite et correctement, plus vous gagnez de points !",
     "faqQuestion3": "Dois-je créer un compte pour jouer ?",
     "faqAnswer3": "Vous pouvez jouer en tant qu'invité, mais créer un compte vous permet de sauvegarder vos scores, d'apparaître dans les classements et de suivre votre progression.",
     "faqQuestion4": "Comment mon score est-il calculé ?",

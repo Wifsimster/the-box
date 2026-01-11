@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { DailyIntro } from '@/components/game/TierIntro'
-import { PanoramaViewer } from '@/components/game/PanoramaViewer'
+import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { Timer } from '@/components/game/Timer'
 import { GuessInput } from '@/components/game/GuessInput'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
@@ -202,21 +202,21 @@ export default function GamePage() {
                     {t('common.home')}
                   </Link>
                 </Button>
-                <div className="flex items-center gap-6 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
                   <div className="text-lg font-bold text-white drop-shadow-lg">
                     {currentPosition}/{totalScreenshots}
                   </div>
+                </div>
+                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
                   <ScoreDisplay score={totalScore} />
                 </div>
               </div>
             </div>
 
-            {/* Panorama Viewer (Full Screen) */}
+            {/* Screenshot Viewer (Full Screen) */}
             {currentImageUrl ? (
-              <PanoramaViewer
+              <ScreenshotViewer
                 imageUrl={currentImageUrl}
-                haov={currentScreenshotData?.haov}
-                vaov={currentScreenshotData?.vaov}
                 className="w-full h-full"
               />
             ) : (

@@ -44,7 +44,11 @@
       "Bash(docker start:*)",
       "Bash(netstat:*)",
       "Bash(docker-compose exec:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(node:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(npm run db:migrate:status:*)",
+      "Bash(npx knex:*)"
     ]
   }
 }

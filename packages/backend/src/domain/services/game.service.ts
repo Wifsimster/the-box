@@ -132,8 +132,6 @@ export const gameService = {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: tierScreenshot.image_url,
-      haov: tierScreenshot.haov,
-      vaov: tierScreenshot.vaov,
       timeLimit: TIME_LIMIT_SECONDS,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
     }

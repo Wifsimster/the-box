@@ -7,8 +7,6 @@ export interface ScreenshotRow {
   image_url: string
   thumbnail_url: string | null
   difficulty: number
-  haov: number
-  vaov: number
   location_hint: string | null
   created_at: Date
 }
@@ -26,8 +24,6 @@ function mapRowToScreenshot(row: ScreenshotRow): Screenshot {
     imageUrl: row.image_url,
     thumbnailUrl: row.thumbnail_url ?? undefined,
     difficulty: row.difficulty as 1 | 2 | 3,
-    haov: row.haov,
-    vaov: row.vaov,
     locationHint: row.location_hint ?? undefined,
   }
 }
@@ -75,8 +71,6 @@ export const screenshotRepository = {
     imageUrl: string
     thumbnailUrl?: string
     difficulty: number
-    haov: number
-    vaov: number
     locationHint?: string
   }): Promise<Screenshot> {
     const [row] = await db('screenshots')
@@ -85,8 +79,6 @@ export const screenshotRepository = {
         image_url: data.imageUrl,
         thumbnail_url: data.thumbnailUrl,
         difficulty: data.difficulty,
-        haov: data.haov,
-        vaov: data.vaov,
         location_hint: data.locationHint,
       })
       .returning<ScreenshotRow[]>('*')
