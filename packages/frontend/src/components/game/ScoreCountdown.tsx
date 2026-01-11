@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { cn } from '@/lib/utils'
@@ -9,32 +9,44 @@ import { cn } from '@/lib/utils'
  */
 export function ScoreCountdown() {
   const {
-    currentScore,
     initialScore,
     decayRate,
     scoreRunning,
-    decrementScore,
+    sessionStartedAt,
     gamePhase,
   } = useGameStore()
 
-  // Score countdown effect
+  // Tick counter to force re-renders every second
+  const [, setTick] = useState(0)
+
+  // Timer effect to trigger re-renders for score updates
   useEffect(() => {
     if (!scoreRunning || gamePhase !== 'playing') return
 
     const interval = setInterval(() => {
-      decrementScore()
+      setTick(t => t + 1)
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [scoreRunning, gamePhase, decrementScore])
+  }, [scoreRunning, gamePhase])
+
+  // Calculate current score from actual elapsed time (authoritative)
+  const calculateCurrentScore = () => {
+    if (!sessionStartedAt || !initialScore) return initialScore || 0
+    const elapsedMs = Date.now() - sessionStartedAt
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
+    return Math.max(0, initialScore - (elapsedSeconds * (decayRate || 2)))
+  }
+
+  const currentScore = calculateCurrentScore()
 
   // Calculate percentage for visual indicators
-  const percentage = (currentScore / initialScore) * 100
+  const percentage = initialScore > 0 ? (currentScore / initialScore) * 100 : 100
   const isWarning = percentage <= 30 && percentage > 10
   const isCritical = percentage <= 10
 
   // Calculate progress for circular indicator
-  const progress = currentScore / initialScore
+  const progress = initialScore > 0 ? currentScore / initialScore : 1
   const radius = 42
   const strokeWidth = 6
   const normalizedRadius = radius - strokeWidth / 2
@@ -110,27 +122,39 @@ export function ScoreCountdown() {
  */
 export function ScoreCountdownCompact() {
   const {
-    currentScore,
     initialScore,
     decayRate,
     scoreRunning,
-    decrementScore,
+    sessionStartedAt,
     gamePhase,
   } = useGameStore()
 
-  // Score countdown effect
+  // Tick counter to force re-renders every second
+  const [, setTick] = useState(0)
+
+  // Timer effect to trigger re-renders for score updates
   useEffect(() => {
     if (!scoreRunning || gamePhase !== 'playing') return
 
     const interval = setInterval(() => {
-      decrementScore()
+      setTick(t => t + 1)
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [scoreRunning, gamePhase, decrementScore])
+  }, [scoreRunning, gamePhase])
+
+  // Calculate current score from actual elapsed time (authoritative)
+  const calculateCurrentScore = () => {
+    if (!sessionStartedAt || !initialScore) return initialScore || 0
+    const elapsedMs = Date.now() - sessionStartedAt
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
+    return Math.max(0, initialScore - (elapsedSeconds * (decayRate || 2)))
+  }
+
+  const currentScore = calculateCurrentScore()
 
   // Calculate percentage for visual indicators
-  const percentage = (currentScore / initialScore) * 100
+  const percentage = initialScore > 0 ? (currentScore / initialScore) * 100 : 100
   const isWarning = percentage <= 30 && percentage > 10
   const isCritical = percentage <= 10
 
@@ -152,7 +176,7 @@ export function ScoreCountdownCompact() {
         {currentScore}
       </motion.div>
       <span className="text-sm text-white/50">
-        (-{decayRate}/s)
+        (-{decayRate || 2}/s)
       </span>
     </div>
   )

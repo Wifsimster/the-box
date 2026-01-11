@@ -42,8 +42,12 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         ? Date.now() - store.roundStartedAt
         : 0
 
-      // Capture the current countdown score for display (what the user sees)
-      const currentCountdownScore = store.currentScore
+      // Calculate current countdown score from elapsed time (authoritative)
+      const sessionElapsedSeconds = Math.floor(sessionElapsedMs / 1000)
+      const currentCountdownScore = Math.max(
+        0,
+        (store.initialScore || 1000) - (sessionElapsedSeconds * (store.decayRate || 2))
+      )
 
       try {
         // Submit guess to service (handles validation + scoring)
