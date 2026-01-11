@@ -28,6 +28,7 @@ export function GuessInput() {
   const [suggestions, setSuggestions] = useState<Game[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Services (dependency injection via factory functions)
@@ -76,22 +77,36 @@ export function GuessInput() {
   }, [query, gameSearchService])
 
   const handleSubmit = async (game?: Game) => {
+    if (isSubmitting) return // Prevent double submission
+
     const selectedGame = game || suggestions[selectedIndex]
 
-    const result = await submitGuess(selectedGame || null, query)
+    setIsSubmitting(true)
+    try {
+      const result = await submitGuess(selectedGame || null, query)
 
-    // Show error toast if submission failed
-    if (!result.success && result.error) {
-      toast.error(result.error)
+      // Show error toast if submission failed
+      if (!result.success && result.error) {
+        toast.error(result.error)
+      }
+
+      setQuery('')
+      setShowSuggestions(false)
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setQuery('')
-    setShowSuggestions(false)
   }
 
-  const handleSkip = () => {
-    skipRound()
-    setQuery('')
+  const handleSkip = async () => {
+    if (isSubmitting) return // Prevent double click
+
+    setIsSubmitting(true)
+    try {
+      await skipRound()
+      setQuery('')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -150,17 +165,26 @@ export function GuessInput() {
           variant="gaming"
           size="lg"
           onClick={() => handleSubmit()}
-          disabled={gamePhase !== 'playing' || query.length === 0}
+          disabled={gamePhase !== 'playing' || query.length === 0 || isSubmitting}
           className="h-14 px-6"
         >
-          <Send className="w-5 h-5" />
+          {isSubmitting ? (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Send className="w-5 h-5" />
+            </motion.div>
+          ) : (
+            <Send className="w-5 h-5" />
+          )}
         </Button>
 
         <Button
           variant="outline"
           size="lg"
           onClick={handleSkip}
-          disabled={gamePhase !== 'playing'}
+          disabled={gamePhase !== 'playing' || isSubmitting}
           className="h-14 px-6"
         >
           <SkipForward className="w-5 h-5" />

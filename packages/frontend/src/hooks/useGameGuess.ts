@@ -30,7 +30,10 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
 
-      const timeTakenMs = Date.now() - (store.timerStartedAt || Date.now())
+      // Calculate time taken, ensuring no NaN from null values
+      const timeTakenMs = store.timerStartedAt
+        ? Date.now() - store.timerStartedAt
+        : 0
 
       try {
         // Submit guess to service (handles validation + scoring)

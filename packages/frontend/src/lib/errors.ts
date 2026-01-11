@@ -82,6 +82,8 @@ export interface RetryConfig {
   delayMs: number
   backoffMultiplier: number
   retryableStatuses: number[]
+  timeoutMs: number
+  maxBackoffMs: number
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
@@ -89,6 +91,8 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   delayMs: 1000,
   backoffMultiplier: 2,
   retryableStatuses: [408, 429, 500, 502, 503, 504],
+  timeoutMs: 10000, // 10 seconds default timeout
+  maxBackoffMs: 5000, // Cap backoff at 5 seconds
 }
 
 /**
@@ -99,7 +103,7 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Fetch with automatic retry logic
+ * Fetch with automatic retry logic and timeout protection
  */
 export async function fetchWithRetry(
   url: string,
@@ -110,8 +114,21 @@ export async function fetchWithRetry(
   let lastError: Error | undefined
 
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    // Create AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs)
+
     try {
-      const response = await fetch(url, options)
+      // Merge abort signal with existing options
+      const fetchOptions: RequestInit = {
+        ...options,
+        signal: controller.signal,
+      }
+
+      const response = await fetch(url, fetchOptions)
+
+      // Clear timeout on successful response
+      clearTimeout(timeoutId)
 
       // If response is OK or not retryable, return it
       if (response.ok || !config.retryableStatuses.includes(response.status)) {
@@ -126,15 +143,25 @@ export async function fetchWithRetry(
         throw lastError
       }
 
-      // Wait before retry with exponential backoff
-      const delayTime = config.delayMs * Math.pow(config.backoffMultiplier, attempt)
-      console.warn(
-        `Request failed (${response.status}), retrying in ${delayTime}ms... (attempt ${attempt + 1}/${config.maxRetries})`
-      )
+      // Wait before retry with capped exponential backoff
+      const uncappedDelay = config.delayMs * Math.pow(config.backoffMultiplier, attempt)
+      const delayTime = Math.min(uncappedDelay, config.maxBackoffMs)
+
+      if (import.meta.env.DEV) {
+        console.warn(
+          `Request failed (${response.status}), retrying in ${delayTime}ms... (attempt ${attempt + 1}/${config.maxRetries})`
+        )
+      }
+
       await delay(delayTime)
     } catch (error) {
-      // Network error or fetch failed
-      if (error instanceof ApiError) {
+      // Clear timeout on error
+      clearTimeout(timeoutId)
+
+      // Handle abort (timeout) specifically
+      if (error instanceof Error && error.name === 'AbortError') {
+        lastError = new NetworkError(`Request timeout after ${config.timeoutMs}ms`, error)
+      } else if (error instanceof ApiError) {
         lastError = error
       } else {
         lastError = new NetworkError('Network request failed', error)
@@ -145,11 +172,16 @@ export async function fetchWithRetry(
         throw lastError
       }
 
-      // Wait before retry
-      const delayTime = config.delayMs * Math.pow(config.backoffMultiplier, attempt)
-      console.warn(
-        `Network error, retrying in ${delayTime}ms... (attempt ${attempt + 1}/${config.maxRetries})`
-      )
+      // Wait before retry with capped exponential backoff
+      const uncappedDelay = config.delayMs * Math.pow(config.backoffMultiplier, attempt)
+      const delayTime = Math.min(uncappedDelay, config.maxBackoffMs)
+
+      if (import.meta.env.DEV) {
+        console.warn(
+          `Network error, retrying in ${delayTime}ms... (attempt ${attempt + 1}/${config.maxRetries})`
+        )
+      }
+
       await delay(delayTime)
     }
   }

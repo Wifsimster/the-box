@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { ToastContainer } from '@/components/ui/toast-container'
+import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
 import {
   SUPPORTED_LANGUAGES,
   getBrowserLanguage,
@@ -61,9 +62,11 @@ function LanguageLayout() {
     <div className="min-h-screen bg-background flex flex-col">
       {!isFullscreen && <Header />}
       <main className="flex-1">
-        <Suspense fallback={<LoadingSpinner />}>
-          <Outlet />
-        </Suspense>
+        <LazyComponentErrorBoundary>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Outlet />
+          </Suspense>
+        </LazyComponentErrorBoundary>
       </main>
       {!isFullscreen && <Footer />}
     </div>
@@ -72,7 +75,7 @@ function LanguageLayout() {
 
 function App() {
   return (
-    <>
+    <ErrorBoundary>
       <Routes>
         {/* Redirect root to browser language */}
         <Route path="/" element={<LanguageRedirect />} />
@@ -98,7 +101,7 @@ function App() {
 
       {/* Global toast notifications */}
       <ToastContainer />
-    </>
+    </ErrorBoundary>
   )
 }
 
