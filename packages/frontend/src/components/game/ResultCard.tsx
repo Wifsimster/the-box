@@ -15,7 +15,6 @@ export function ResultCard() {
     findNextUnfinished,
     navigateToPosition,
     positionStates,
-    maxTriesPerScreenshot,
   } = useGameStore()
 
   if (!lastResult) return null
@@ -65,8 +64,6 @@ export function ResultCard() {
             [nextPosition]: {
               position: nextPosition,
               status: 'in_progress',
-              triesUsed: 0,
-              triesRemaining: maxTriesPerScreenshot,
               isCorrect: false,
             },
           },
@@ -204,7 +201,7 @@ export function ResultCard() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.35 }}
-          className="text-center mb-4"
+          className="text-center mb-6"
         >
           <div className="flex items-center justify-center gap-2">
             <span
@@ -214,8 +211,8 @@ export function ResultCard() {
                   ? scorePercentage >= 80
                     ? "text-success"
                     : scorePercentage >= 50
-                    ? "text-yellow-400"
-                    : "text-orange-400"
+                      ? "text-yellow-400"
+                      : "text-orange-400"
                   : "text-muted-foreground"
               )}
             >
@@ -239,36 +236,6 @@ export function ResultCard() {
           )}
         </motion.div>
 
-        {/* Score Progress Bar */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mb-6"
-        >
-          <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-            <span>0</span>
-            <span>{maxScore} pts max</span>
-          </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${scorePercentage}%` }}
-              transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
-              className={cn(
-                "h-full rounded-full",
-                isCorrect
-                  ? scorePercentage >= 80
-                    ? "bg-gradient-to-r from-success to-emerald-400"
-                    : scorePercentage >= 50
-                    ? "bg-gradient-to-r from-yellow-500 to-yellow-400"
-                    : "bg-gradient-to-r from-orange-500 to-orange-400"
-                  : "bg-muted-foreground/50"
-              )}
-            />
-          </div>
-        </motion.div>
-
         {/* Next Button */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -276,7 +243,7 @@ export function ResultCard() {
           transition={{ delay: 0.6 }}
         >
           <Button
-            variant="gaming"
+            variant="secondary"
             size="lg"
             onClick={handleNext}
             className="w-full gap-2 font-bold"

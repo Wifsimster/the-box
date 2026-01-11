@@ -253,6 +253,48 @@ router.post('/challenges', async (req, res, next) => {
   }
 })
 
+// Reroll a daily challenge's screenshots
+const rerollChallengeSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+})
+
+router.post('/challenges/reroll', async (req, res, next) => {
+  try {
+    const { date } = rerollChallengeSchema.parse(req.body)
+    const result = await adminService.rerollDailyChallenge(date)
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
+      })
+      return
+    }
+    if (error instanceof Error) {
+      if (error.message.includes('No challenge found') || error.message.includes('No tier found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+        })
+        return
+      }
+      if (error.message.includes('Not enough available screenshots')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INSUFFICIENT_SCREENSHOTS', message: error.message },
+        })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
 // === Jobs ===
 
 // List all jobs
@@ -326,6 +368,7 @@ const createJobSchema = z.object({
     .object({
       targetGames: z.number().min(1).max(1000).optional(),
       screenshotsPerGame: z.number().min(1).max(10).optional(),
+      minMetacritic: z.number().min(0).max(100).optional(),
       maxGames: z.number().min(1).max(100).optional(),
     })
     .optional(),
@@ -394,6 +437,7 @@ router.post('/jobs/import-games', async (req, res, next) => {
     const data = {
       targetGames: req.body?.targetGames || 200,
       screenshotsPerGame: req.body?.screenshotsPerGame || 3,
+      minMetacritic: req.body?.minMetacritic ?? 70,
     }
     const job = await jobService.createJob('import-games', data)
 
@@ -428,6 +472,39 @@ router.post('/jobs/sync-new-games', async (req, res, next) => {
       screenshotsPerGame: req.body?.screenshotsPerGame || 3,
     }
     const job = await jobService.createJob('sync-new-games', data)
+
+    res.status(201).json({
+      success: true,
+      data: { job },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Manual trigger: Import games
+router.post('/jobs/import-games/trigger', async (req, res, next) => {
+  try {
+    const data = {
+      targetGames: req.body?.targetGames || 50,
+      screenshotsPerGame: req.body?.screenshotsPerGame || 3,
+      minMetacritic: req.body?.minMetacritic ?? 70,
+    }
+    const job = await jobService.createJob('import-games', data)
+
+    res.status(201).json({
+      success: true,
+      data: { job },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Manual trigger: Import screenshots
+router.post('/jobs/import-screenshots/trigger', async (_req, res, next) => {
+  try {
+    const job = await jobService.createJob('import-screenshots', {})
 
     res.status(201).json({
       success: true,

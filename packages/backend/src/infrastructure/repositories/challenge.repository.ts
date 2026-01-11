@@ -99,4 +99,10 @@ export const challengeRepository = {
     }))
     await db('tier_screenshots').insert(data)
   },
+
+  async deleteTierScreenshots(tierId: number): Promise<number> {
+    return await db('tier_screenshots')
+      .where('tier_id', tierId)
+      .del()
+  },
 }

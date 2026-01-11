@@ -181,4 +181,45 @@ export const adminService = {
       date: challenge.challenge_date,
     }
   },
+
+  async rerollDailyChallenge(date?: string): Promise<{
+    challengeId: number
+    date: string
+    newScreenshotCount: number
+  }> {
+    // Default to today's date in YYYY-MM-DD format
+    const targetDate = date ?? new Date().toISOString().split('T')[0]!
+
+    // 1. Find the challenge for the date
+    const challenge = await challengeRepository.findByDate(targetDate)
+    if (!challenge) {
+      throw new Error(`No challenge found for date: ${targetDate}`)
+    }
+
+    // 2. Get the tier for this challenge (there should be exactly 1)
+    const tiers = await challengeRepository.findTiersByChallenge(challenge.id)
+    if (tiers.length === 0) {
+      throw new Error(`No tier found for challenge on: ${targetDate}`)
+    }
+    const tier = tiers[0]!
+
+    // 3. Get 10 new random screenshots (not currently used in this tier)
+    const newScreenshots = await screenshotRepository.findRandomNotInTier(tier.id, 10)
+    if (newScreenshots.length < 10) {
+      throw new Error(`Not enough available screenshots. Found: ${newScreenshots.length}, needed: 10`)
+    }
+
+    // 4. Delete existing tier_screenshots
+    await challengeRepository.deleteTierScreenshots(tier.id)
+
+    // 5. Create new tier_screenshots with the new random screenshots
+    const newScreenshotIds = newScreenshots.map(s => s.id)
+    await challengeRepository.createTierScreenshots(tier.id, newScreenshotIds)
+
+    return {
+      challengeId: challenge.id,
+      date: challenge.challenge_date,
+      newScreenshotCount: newScreenshotIds.length,
+    }
+  },
 }

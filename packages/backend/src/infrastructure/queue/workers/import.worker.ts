@@ -46,10 +46,12 @@ export const importWorker = new Worker<JobData, JobResult>(
       if (name === 'import-games') {
         const targetGames = data.targetGames || 200
         const screenshotsPerGame = data.screenshotsPerGame || 3
+        const minMetacritic = data.minMetacritic ?? 70
 
         const result = await fetchGamesFromRAWG(
           targetGames,
           screenshotsPerGame,
+          minMetacritic,
           (current, total, message) => {
             const progress = Math.round((current / total) * 100)
             job.updateProgress(progress)
@@ -62,7 +64,8 @@ export const importWorker = new Worker<JobData, JobResult>(
         const jobResult: JobResult = {
           gamesProcessed: result.games.length,
           screenshotsProcessed: result.screenshots.length,
-          message: `Fetched ${result.games.length} games with ${result.screenshots.length} screenshots`,
+          skipped: result.skipped,
+          message: `Fetched ${result.games.length} games with ${result.screenshots.length} screenshots (${result.skipped} skipped - already exist)`,
         }
 
         log.info({ jobId: id, result: jobResult }, 'import-games job completed')

@@ -36,9 +36,6 @@ interface GameState {
   sessionStartedAt: number | null
   scoreRunning: boolean
 
-  // Tries tracking
-  triesRemaining: number
-  maxTriesPerScreenshot: number
   screenshotsFound: number
 
   // Round timing (for per-screenshot time tracking)
@@ -72,7 +69,6 @@ interface GameState {
   startScoreCountdown: () => void
   stopScoreCountdown: () => void
   decrementScore: () => void
-  setTriesRemaining: (tries: number) => void
   setScreenshotsFound: (count: number) => void
   setRoundStartedAt: (timestamp: number) => void
 
@@ -91,7 +87,7 @@ interface GameState {
   updateLiveLeaderboard: (entries: { username: string; score: number }[]) => void
 
   // Position navigation actions
-  initializePositionStates: (total: number, maxTries: number) => void
+  initializePositionStates: (total: number) => void
   updatePositionState: (position: number, updates: Partial<PositionState>) => void
   skipToNextPosition: () => number | null
   navigateToPosition: (position: number) => void
@@ -119,9 +115,6 @@ const initialState = {
   decayRate: 2,
   sessionStartedAt: null,
   scoreRunning: false,
-  // Tries tracking
-  triesRemaining: 3,
-  maxTriesPerScreenshot: 3,
   screenshotsFound: 0,
   // Round timing
   roundStartedAt: null,
@@ -168,8 +161,6 @@ export const useGameStore = create<GameState>()(
           set({
             initialScore: config.initialScore,
             decayRate: config.decayRate,
-            maxTriesPerScreenshot: config.maxTriesPerScreenshot,
-            triesRemaining: config.maxTriesPerScreenshot,
             sessionStartedAt: startedAtTimestamp,
             currentScore: config.initialScore,
             roundStartedAt: Date.now(),
@@ -186,8 +177,6 @@ export const useGameStore = create<GameState>()(
             set({ currentScore: Math.max(0, currentScore - decayRate) })
           }
         },
-
-        setTriesRemaining: (tries) => set({ triesRemaining: tries }),
 
         setScreenshotsFound: (count) => set({ screenshotsFound: count }),
 
@@ -235,14 +224,12 @@ export const useGameStore = create<GameState>()(
         updateLiveLeaderboard: (entries) => set({ liveLeaderboard: entries }),
 
         // Position navigation actions
-        initializePositionStates: (total, maxTries) => {
+        initializePositionStates: (total) => {
           const states: Record<number, PositionState> = {}
           for (let i = 1; i <= total; i++) {
             states[i] = {
               position: i,
               status: i === 1 ? 'in_progress' : 'not_visited',
-              triesUsed: 0,
-              triesRemaining: maxTries,
               isCorrect: false,
             }
           }
@@ -285,15 +272,15 @@ export const useGameStore = create<GameState>()(
           const state = positionStates[position]
           if (!state) return false
           return state.status === 'skipped' ||
-                 state.status === 'in_progress' ||
-                 state.status === 'not_visited'
+            state.status === 'in_progress' ||
+            state.status === 'not_visited'
         },
 
         skipToNextPosition: () => {
-          const { currentPosition, positionStates, maxTriesPerScreenshot } = get()
+          const { currentPosition, positionStates } = get()
           const currentState = positionStates[currentPosition]
 
-          // Mark current as skipped (only if not already correct/failed)
+          // Mark current as skipped (only if not already correct)
           if (currentState && currentState.status === 'in_progress') {
             set((state) => ({
               positionStates: {
@@ -315,7 +302,6 @@ export const useGameStore = create<GameState>()(
               currentPosition: nextPos,
               lastResult: null,
               activePowerUp: null,
-              triesRemaining: nextState?.triesRemaining ?? maxTriesPerScreenshot,
             })
             // Mark as in_progress if was not_visited
             if (!nextState || nextState.status === 'not_visited') {
@@ -326,8 +312,6 @@ export const useGameStore = create<GameState>()(
                     ...state.positionStates[nextPos],
                     position: nextPos,
                     status: 'in_progress',
-                    triesUsed: 0,
-                    triesRemaining: maxTriesPerScreenshot,
                     isCorrect: false,
                   },
                 },
@@ -353,7 +337,7 @@ export const useGameStore = create<GameState>()(
         },
 
         navigateToPosition: (position) => {
-          const { positionStates, maxTriesPerScreenshot } = get()
+          const { positionStates } = get()
           const state = positionStates[position]
 
           if (!state) return
@@ -363,7 +347,6 @@ export const useGameStore = create<GameState>()(
             currentPosition: position,
             lastResult: null,
             activePowerUp: null,
-            triesRemaining: state.triesRemaining,
           })
 
           // Mark as in_progress
@@ -381,13 +364,12 @@ export const useGameStore = create<GameState>()(
         },
 
         nextRound: () => {
-          const { currentPosition, totalScreenshots, maxTriesPerScreenshot } = get()
+          const { currentPosition, totalScreenshots } = get()
           if (currentPosition < totalScreenshots) {
             set({
               currentPosition: currentPosition + 1,
               lastResult: null,
               activePowerUp: null,
-              triesRemaining: maxTriesPerScreenshot,
             })
           } else {
             // Challenge complete
@@ -408,7 +390,6 @@ export const useGameStore = create<GameState>()(
           sessionStartedAt: state.sessionStartedAt,
           initialScore: state.initialScore,
           decayRate: state.decayRate,
-          maxTriesPerScreenshot: state.maxTriesPerScreenshot,
         }),
       }
     ),

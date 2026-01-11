@@ -41,7 +41,7 @@ export function ScoreDisplay() {
       <span>• {t('game.scoring.countdown', { initial: initialScore || 1000 })}</span>
       <span>• {t('game.scoring.decay', { rate: decayRate || 2 })}</span>
       <span>• {t('game.scoring.lock')}</span>
-      <span>• {t('game.scoring.tries')}</span>
+      <span>• {t('game.scoring.penalty')}</span>
     </div>
   )
 

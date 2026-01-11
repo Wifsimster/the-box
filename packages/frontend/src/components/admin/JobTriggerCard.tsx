@@ -18,6 +18,7 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [targetGames, setTargetGames] = useState(50)
   const [screenshotsPerGame, setScreenshotsPerGame] = useState(3)
+  const [minMetacritic, setMinMetacritic] = useState(70)
 
   const isGamesImport = type === 'import-games'
 
@@ -25,7 +26,7 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
     setIsLoading(true)
     try {
       if (isGamesImport) {
-        await createImportGamesJob(targetGames, screenshotsPerGame)
+        await createImportGamesJob(targetGames, screenshotsPerGame, minMetacritic)
       } else {
         await createImportScreenshotsJob()
       }
@@ -60,28 +61,42 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
 
       {isGamesImport && (
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">
-              {t('admin.jobs.targetGames')}
-            </label>
-            <Input
-              type="number"
-              value={targetGames}
-              onChange={(e) => setTargetGames(parseInt(e.target.value) || 50)}
-              min={1}
-              max={500}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">
+                {t('admin.jobs.targetGames')}
+              </label>
+              <Input
+                type="number"
+                value={targetGames}
+                onChange={(e) => setTargetGames(parseInt(e.target.value) || 50)}
+                min={1}
+                max={500}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">
+                {t('admin.jobs.screenshotsPerGame')}
+              </label>
+              <Input
+                type="number"
+                value={screenshotsPerGame}
+                onChange={(e) => setScreenshotsPerGame(parseInt(e.target.value) || 3)}
+                min={1}
+                max={10}
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
-              {t('admin.jobs.screenshotsPerGame')}
+              {t('admin.jobs.minMetacritic')}
             </label>
             <Input
               type="number"
-              value={screenshotsPerGame}
-              onChange={(e) => setScreenshotsPerGame(parseInt(e.target.value) || 3)}
-              min={1}
-              max={10}
+              value={minMetacritic}
+              onChange={(e) => setMinMetacritic(parseInt(e.target.value) || 70)}
+              min={0}
+              max={100}
             />
           </div>
         </CardContent>

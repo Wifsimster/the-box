@@ -92,4 +92,20 @@ export const screenshotRepository = {
       .returning<ScreenshotRow[]>('*')
     return mapRowToScreenshot(row!)
   },
+
+  async findRandomNotInTier(tierId: number, count: number): Promise<Screenshot[]> {
+    // Get screenshot IDs currently used in the tier
+    const usedIds = await db('tier_screenshots')
+      .where('tier_id', tierId)
+      .pluck<number[]>('screenshot_id')
+
+    // Select random screenshots excluding the currently used ones
+    const rows = await db('screenshots')
+      .whereNotIn('id', usedIds.length > 0 ? usedIds : [0])
+      .orderByRaw('RANDOM()')
+      .limit(count)
+      .select<ScreenshotRow[]>('*')
+
+    return rows.map(mapRowToScreenshot)
+  },
 }

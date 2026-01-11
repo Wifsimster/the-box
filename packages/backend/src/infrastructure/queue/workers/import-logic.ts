@@ -10,6 +10,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
+import { gameRepository } from '../../repositories/index.js'
 
 const log = queueLogger
 
@@ -169,12 +170,12 @@ class RAWGClient {
     return response.json() as Promise<T>
   }
 
-  async fetchGames(page: number, pageSize: number = 40): Promise<RAWGPaginatedResponse<RAWGGame>> {
+  async fetchGames(page: number, pageSize: number = 40, minMetacritic: number = 70): Promise<RAWGPaginatedResponse<RAWGGame>> {
     return this.fetch<RAWGPaginatedResponse<RAWGGame>>('/games', {
       page,
       page_size: pageSize,
       ordering: '-rating',
-      metacritic: '70,100', // Only well-rated games
+      metacritic: `${minMetacritic},100`,
     })
   }
 
@@ -220,8 +221,9 @@ async function downloadImage(url: string, outputPath: string, retries: number = 
 export async function fetchGamesFromRAWG(
   targetCount: number,
   screenshotsPerGame: number,
+  minMetacritic: number = 70,
   onProgress?: ProgressCallback
-): Promise<{ games: GameData[]; screenshots: ScreenshotData[] }> {
+): Promise<{ games: GameData[]; screenshots: ScreenshotData[]; skipped: number }> {
   const apiKey = env.RAWG_API_KEY
   if (!apiKey) {
     throw new Error('RAWG_API_KEY environment variable is required')
@@ -232,16 +234,26 @@ export async function fetchGamesFromRAWG(
   const screenshots: ScreenshotData[] = []
   let page = 1
   let screenshotIndex = 0
+  let skipped = 0
 
-  log.info({ targetCount, screenshotsPerGame }, 'starting RAWG fetch')
+  log.info({ targetCount, screenshotsPerGame, minMetacritic }, 'starting RAWG fetch')
 
   while (games.length < targetCount) {
     onProgress?.(games.length, targetCount, `Fetching page ${page}...`)
 
-    const response = await client.fetchGames(page)
+    const response = await client.fetchGames(page, 40, minMetacritic)
 
     for (const rawGame of response.results) {
       if (games.length >= targetCount) break
+
+      // Check if game already exists in database
+      const existingGame = await gameRepository.findBySlug(rawGame.slug)
+      if (existingGame) {
+        log.debug({ slug: rawGame.slug }, 'game already exists, skipping')
+        onProgress?.(games.length, targetCount, `Skipped: ${rawGame.name} (exists)`)
+        skipped++
+        continue
+      }
 
       // Fetch screenshots for this game
       const screenshotResponse = await client.fetchGameScreenshots(rawGame.id)
@@ -302,8 +314,8 @@ export async function fetchGamesFromRAWG(
     page++
   }
 
-  log.info({ gamesCount: games.length, screenshotsCount: screenshots.length }, 'RAWG fetch complete')
-  return { games, screenshots }
+  log.info({ gamesCount: games.length, screenshotsCount: screenshots.length, skipped }, 'RAWG fetch complete')
+  return { games, screenshots, skipped }
 }
 
 export async function saveData(games: GameData[], screenshots: ScreenshotData[]): Promise<void> {

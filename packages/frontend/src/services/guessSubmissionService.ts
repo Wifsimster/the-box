@@ -27,11 +27,10 @@ export interface GuessSubmissionResult {
   correctGame: Game
   scoreEarned: number
   totalScore: number
-  triesRemaining: number
   screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
-  completionReason?: 'all_found' | 'all_tries_exhausted'
+  completionReason?: 'all_found'
 }
 
 /**
@@ -53,12 +52,12 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
     releaseYear: 2015,
   }
 
-  private triesPerPosition: Map<number, number> = new Map()
   private correctAnswers = 0
   private totalLockedScore = 0
   private sessionStartTime = Date.now()
   private initialScore = 1000
   private decayRate = 2
+  private readonly WRONG_GUESS_PENALTY = 100
 
   async submitGuess(
     request: GuessSubmissionRequest
@@ -68,25 +67,24 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
 
     const isCorrect = request.gameId === this.mockCorrectGame.id
 
-    // Get current tries for this position
-    const currentTries = this.triesPerPosition.get(request.position) ?? 0
-    const tryNumber = currentTries + 1
-    this.triesPerPosition.set(request.position, tryNumber)
-
     // Calculate countdown score based on elapsed time
     const elapsedSeconds = Math.floor(request.sessionElapsedMs / 1000)
     const currentScore = Math.max(0, this.initialScore - (elapsedSeconds * this.decayRate))
 
     // Score is "locked in" only on correct guess
+    // Wrong guesses deduct 100 points from total score (clamped at 0)
     const scoreEarned = isCorrect ? currentScore : 0
+    const scorePenalty = isCorrect ? 0 : this.WRONG_GUESS_PENALTY
 
     if (isCorrect) {
       this.correctAnswers++
-      this.totalLockedScore += scoreEarned
     }
 
-    const triesRemaining = isCorrect ? 3 : Math.max(0, 3 - tryNumber)
-    const shouldAdvance = isCorrect || triesRemaining === 0
+    // Apply penalty for wrong guess, add earned score for correct
+    this.totalLockedScore = Math.max(0, this.totalLockedScore - scorePenalty) + scoreEarned
+
+    // Advance only on correct guess
+    const shouldAdvance = isCorrect
 
     // Determine next position and completion
     const nextPosition = shouldAdvance
@@ -96,9 +94,9 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
     const isCompleted = this.correctAnswers >= 10 ||
       (shouldAdvance && request.position >= 10)
 
-    let completionReason: 'all_found' | 'all_tries_exhausted' | undefined
+    let completionReason: 'all_found' | undefined
     if (isCompleted) {
-      completionReason = this.correctAnswers >= 10 ? 'all_found' : 'all_tries_exhausted'
+      completionReason = 'all_found'
     }
 
     return {
@@ -106,7 +104,6 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
       correctGame: this.mockCorrectGame,
       scoreEarned,
       totalScore: this.totalLockedScore,
-      triesRemaining,
       screenshotsFound: this.correctAnswers,
       nextPosition,
       isCompleted,

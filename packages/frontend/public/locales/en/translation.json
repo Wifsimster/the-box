@@ -73,7 +73,7 @@
       "countdown": "Countdown from {{initial}} pts",
       "decay": "Loses {{rate}} pts per second",
       "lock": "Correct answer = locked points",
-      "tries": "3 tries per screenshot"
+      "penalty": "-100 pts per wrong guess"
     },
     "navigation": {
       "previous": "Previous",
@@ -81,7 +81,8 @@
       "skip": "Skip",
       "finish": "Finish",
       "reviewSkipped": "Review Skipped"
-    }
+    },
+    "adminHint": "Answer (Admin)"
   },
   "home": {
     "title": "The Box",
@@ -161,11 +162,21 @@
     "tabs": {
       "import": "Import",
       "jobs": "Jobs",
-      "games": "Games"
+      "games": "Games",
+      "challenges": "Challenges"
     },
     "screenshots": "Screenshots",
-    "challenges": "Challenges",
     "addScreenshot": "Add Screenshot",
+    "challenges": {
+      "todaysChallenge": "Today's Challenge",
+      "rerollTitle": "Reroll Screenshots",
+      "rerollDesc": "Replace the 10 screenshots with new random ones. Players who already played will not be able to replay.",
+      "date": "Date",
+      "reroll": "Reroll Today's Game",
+      "confirmReroll": "Confirm Reroll",
+      "rerollSuccess": "Daily challenge screenshots have been rerolled",
+      "rerollError": "Failed to reroll daily challenge"
+    },
     "createChallenge": "Create Challenge",
     "import": {
       "gamesSection": "Step 1: Import Games",
@@ -175,12 +186,14 @@
     },
     "jobs": {
       "title": "Jobs",
+      "manualTasks": "Manual Tasks",
       "importGames": "Import Games",
-      "importGamesDesc": "Fetch games and screenshots from RAWG API",
+      "importGamesDesc": "Fetches popular games from RAWG (based on Metacritic score) with metadata. Games already in the database are automatically skipped.",
       "importScreenshots": "Download Screenshots",
-      "importScreenshotsDesc": "Download screenshots to local storage",
+      "importScreenshotsDesc": "Downloads all screenshot images referenced in the database to local storage",
       "targetGames": "Number of games",
       "screenshotsPerGame": "Screenshots per game",
+      "minMetacritic": "Min. Metacritic score",
       "startJob": "Start Import",
       "cancel": "Cancel",
       "clearCompleted": "Clear Completed",

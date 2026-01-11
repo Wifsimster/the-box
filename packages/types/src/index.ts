@@ -252,6 +252,8 @@ export interface ScreenshotResponse {
   position: number
   imageUrl: string
   bonusMultiplier?: number
+  /** Game name hint - only returned for admin users */
+  gameName?: string
 }
 
 // Guess API
@@ -350,6 +352,7 @@ export interface JobData {
   // For import-games
   targetGames?: number
   screenshotsPerGame?: number
+  minMetacritic?: number
   // For sync-new-games
   maxGames?: number
 }

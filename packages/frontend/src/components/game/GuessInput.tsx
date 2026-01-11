@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useGameStore } from '@/stores/gameStore'
-import { Send, SkipForward, Loader2 } from 'lucide-react'
+import { SkipForward, SkipBack, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Game } from '@/types'
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
+import { useAuth } from '@/hooks/useAuth'
 
 /**
  * Game guess input component with autocomplete
@@ -34,6 +35,10 @@ export function GuessInput() {
   const inputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Auth hook for admin check
+  const { session } = useAuth()
+  const isAdmin = session?.user.role === 'admin'
+
   // Services (dependency injection via factory functions)
   const gameSearchService = useMemo(() => createGameSearchService(), [])
   const guessSubmissionService = useMemo(
@@ -44,7 +49,16 @@ export function GuessInput() {
   // Custom hook for guess submission logic
   const { submitGuess } = useGameGuess(guessSubmissionService)
 
-  const { gamePhase, startScoreCountdown, skipToNextPosition } = useGameStore()
+  const {
+    gamePhase,
+    startScoreCountdown,
+    skipToNextPosition,
+    currentPosition,
+    totalScreenshots,
+    navigateToPosition,
+    positionStates,
+    currentScreenshotData,
+  } = useGameStore()
 
   // Focus input when playing
   useEffect(() => {
@@ -120,6 +134,35 @@ export function GuessInput() {
     setShowSuggestions(false)
   }
 
+  // Find previous navigable position (skipped or in_progress positions before current)
+  const findPreviousPosition = () => {
+    for (let i = currentPosition - 1; i >= 1; i--) {
+      const state = positionStates[i]
+      if (state?.status === 'skipped') {
+        return i
+      }
+    }
+    return null
+  }
+
+  const handlePrevious = () => {
+    if (isSubmitting) return
+
+    const prevPos = findPreviousPosition()
+    if (prevPos) {
+      navigateToPosition(prevPos)
+      setQuery('')
+      setShowSuggestions(false)
+    }
+  }
+
+  // Can show previous button if position > 1 and there's a skipped position before
+  const previousPosition = findPreviousPosition()
+  const canGoPrevious = currentPosition > 1 && previousPosition !== null
+
+  // Hide skip button on last screenshot
+  const isLastPosition = currentPosition === totalScreenshots
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -143,6 +186,21 @@ export function GuessInput() {
     <div className="relative">
       {/* Input with suggestions */}
       <div className="flex gap-2">
+        {/* Previous button - shown when there are skipped positions before current */}
+        {canGoPrevious && (
+          <Tooltip content={t('game.navigation.previous')}>
+            <Button
+              variant="gaming"
+              size="lg"
+              onClick={handlePrevious}
+              disabled={gamePhase !== 'playing' || isSubmitting}
+              className="h-14 px-6"
+            >
+              <SkipBack className="w-5 h-5" />
+            </Button>
+          </Tooltip>
+        )}
+
         <div className="relative flex-1">
           <Input
             ref={inputRef}
@@ -176,34 +234,30 @@ export function GuessInput() {
           </div>
         </div>
 
-        <Tooltip content={t('common.submit')}>
-          <Button
-            variant="gaming"
-            size="lg"
-            onClick={() => handleSubmit()}
-            disabled={gamePhase !== 'playing' || query.length === 0 || isSubmitting}
-            className="h-14 px-6"
-          >
-            {isSubmitting ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </Button>
-        </Tooltip>
-
-        <Tooltip content={t('common.skip')}>
-          <Button
-            variant="gaming"
-            size="lg"
-            onClick={handleSkip}
-            disabled={gamePhase !== 'playing' || isSubmitting}
-            className="h-14 px-6"
-          >
-            <SkipForward className="w-5 h-5" />
-          </Button>
-        </Tooltip>
+        {/* Skip/Next button - hidden on last screenshot */}
+        {!isLastPosition && (
+          <Tooltip content={t('game.navigation.skip')}>
+            <Button
+              variant="gaming"
+              size="lg"
+              onClick={handleSkip}
+              disabled={gamePhase !== 'playing' || isSubmitting}
+              className="h-14 px-6"
+            >
+              <SkipForward className="w-5 h-5" />
+            </Button>
+          </Tooltip>
+        )}
       </div>
+
+      {/* Admin hint - only shown to admin users */}
+      {isAdmin && currentScreenshotData?.gameName && (
+        <div className="mt-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <span className="text-xs text-red-400 font-medium">
+            {t('game.adminHint')}: {currentScreenshotData.gameName}
+          </span>
+        </div>
+      )}
 
       {/* Suggestions dropdown */}
       <AnimatePresence>

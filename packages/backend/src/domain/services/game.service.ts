@@ -111,7 +111,6 @@ export const gameService = {
       scoringConfig: {
         initialScore: gameSession.initial_score,
         decayRate: gameSession.decay_rate,
-        maxTriesPerScreenshot: MAX_TRIES_PER_SCREENSHOT,
       },
     }
   },
@@ -119,7 +118,8 @@ export const gameService = {
   async getScreenshot(
     sessionId: string,
     position: number,
-    userId: string
+    userId: string,
+    isAdmin: boolean = false
   ): Promise<ScreenshotResponse> {
     const session = await sessionRepository.findGameSessionById(sessionId, userId)
     if (!session) {
@@ -138,12 +138,22 @@ export const gameService = {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
     }
 
-    return {
+    const response: ScreenshotResponse = {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: tierScreenshot.image_url,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
     }
+
+    // Include game name hint for admin users
+    if (isAdmin) {
+      const screenshotData = await screenshotRepository.findWithGame(tierScreenshot.screenshot_id)
+      if (screenshotData) {
+        response.gameName = screenshotData.gameName
+      }
+    }
+
+    return response
   },
 
   async submitGuess(data: {
@@ -216,31 +226,25 @@ export const gameService = {
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
     })
 
-    // Calculate remaining tries for this position
-    const triesRemaining = MAX_TRIES_PER_SCREENSHOT - tryNumber
-
     // Get count of screenshots found (correct answers)
     const screenshotsFound = await sessionRepository.getCorrectAnswersCount(data.tierSessionId)
     const totalScreenshotsFound = screenshotsFound + (isCorrect ? 1 : 0)
 
-    // Determine if we should advance to next position
-    const shouldAdvance = isCorrect || triesRemaining === 0
+    // Advance to next position only on correct guess
+    const shouldAdvance = isCorrect
 
     // Calculate completion
     let isCompleted = false
-    let completionReason: 'all_found' | 'all_tries_exhausted' | undefined
+    let completionReason: 'all_found' | undefined
 
     if (totalScreenshotsFound >= TOTAL_SCREENSHOTS) {
       isCompleted = true
       completionReason = 'all_found'
     } else if (shouldAdvance && data.position >= TOTAL_SCREENSHOTS) {
-      // Last position and either correct or out of tries
+      // Last position and correct
       isCompleted = true
-      // Check if all screenshots were found
       if (totalScreenshotsFound >= TOTAL_SCREENSHOTS) {
         completionReason = 'all_found'
-      } else {
-        completionReason = 'all_tries_exhausted'
       }
     }
 
@@ -283,7 +287,6 @@ export const gameService = {
       correctGame,
       scoreEarned,
       totalScore: newTotalScore,
-      triesRemaining: isCorrect ? MAX_TRIES_PER_SCREENSHOT : triesRemaining,
       screenshotsFound: totalScreenshotsFound,
       nextPosition,
       isCompleted,

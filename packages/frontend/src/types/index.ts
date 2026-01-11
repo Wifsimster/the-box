@@ -18,6 +18,8 @@ export type {
   // Game State
   GamePhase,
   GuessResult,
+  PositionStatus,
+  PositionState,
 
   // API Types
   ApiResponse,

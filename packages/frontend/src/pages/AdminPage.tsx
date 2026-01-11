@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '@/lib/auth-client'
 import { useAdminStore } from '@/stores/adminStore'
-import { JobTriggerCard } from '@/components/admin/JobTriggerCard'
 import { JobList } from '@/components/admin/JobList'
 import { GameList } from '@/components/admin/GameList'
+import { ChallengeManager } from '@/components/admin/ChallengeManager'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   joinAdminRoom,
@@ -15,7 +15,7 @@ import {
   onJobFailed,
   removeJobListeners,
 } from '@/lib/socket'
-import { Loader2, Settings, Download, ListTodo, Gamepad2 } from 'lucide-react'
+import { Loader2, Settings, ListTodo, Gamepad2, CalendarDays } from 'lucide-react'
 
 export default function AdminPage() {
   const { t } = useTranslation()
@@ -95,12 +95,8 @@ export default function AdminPage() {
         <h1 className="text-3xl font-bold">{t('admin.title')}</h1>
       </div>
 
-      <Tabs defaultValue="import" className="w-full">
+      <Tabs defaultValue="jobs" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="import" className="gap-2">
-            <Download className="h-4 w-4" />
-            {t('admin.tabs.import')}
-          </TabsTrigger>
           <TabsTrigger value="jobs" className="gap-2">
             <ListTodo className="h-4 w-4" />
             {t('admin.tabs.jobs')}
@@ -109,31 +105,11 @@ export default function AdminPage() {
             <Gamepad2 className="h-4 w-4" />
             {t('admin.tabs.games')}
           </TabsTrigger>
+          <TabsTrigger value="challenges" className="gap-2">
+            <CalendarDays className="h-4 w-4" />
+            {t('admin.tabs.challenges')}
+          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="import">
-          <div className="space-y-8">
-            {/* Step 1: Games Import */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-purple/20 text-neon-purple text-sm font-bold">1</span>
-                <h2 className="text-lg font-semibold">{t('admin.import.gamesSection')}</h2>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">{t('admin.import.gamesSectionDesc')}</p>
-              <JobTriggerCard type="import-games" />
-            </section>
-
-            {/* Step 2: Screenshots Download */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-pink/20 text-neon-pink text-sm font-bold">2</span>
-                <h2 className="text-lg font-semibold">{t('admin.import.screenshotsSection')}</h2>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">{t('admin.import.screenshotsSectionDesc')}</p>
-              <JobTriggerCard type="import-screenshots" />
-            </section>
-          </div>
-        </TabsContent>
 
         <TabsContent value="jobs">
           <JobList />
@@ -141,6 +117,10 @@ export default function AdminPage() {
 
         <TabsContent value="games">
           <GameList />
+        </TabsContent>
+
+        <TabsContent value="challenges">
+          <ChallengeManager />
         </TabsContent>
       </Tabs>
     </div>

@@ -98,14 +98,14 @@ export const adminApi = {
   /**
    * Start import games job
    */
-  async importGames(targetGames?: number, screenshotsPerGame?: number): Promise<{ job: Job }> {
+  async importGames(targetGames?: number, screenshotsPerGame?: number, minMetacritic?: number): Promise<{ job: Job }> {
     const response = await fetch('/api/admin/jobs/import-games', {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ targetGames, screenshotsPerGame }),
+      body: JSON.stringify({ targetGames, screenshotsPerGame, minMetacritic }),
     })
     return handleResponse<{ job: Job }>(response)
   },
@@ -132,6 +132,32 @@ export const adminApi = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ maxGames, screenshotsPerGame }),
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
+   * Manually trigger import games job
+   */
+  async triggerImportGames(targetGames?: number, screenshotsPerGame?: number): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/import-games/trigger', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ targetGames, screenshotsPerGame }),
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
+   * Manually trigger import screenshots job
+   */
+  async triggerImportScreenshots(): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/import-screenshots/trigger', {
+      method: 'POST',
+      credentials: 'include',
     })
     return handleResponse<{ job: Job }>(response)
   },
@@ -265,5 +291,33 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<{ screenshots: Screenshot[] }>(response)
+  },
+
+  // ============================================
+  // Challenges Management
+  // ============================================
+
+  /**
+   * Reroll a daily challenge's screenshots
+   * Replaces the 10 screenshots with new random ones
+   */
+  async rerollDailyChallenge(date?: string): Promise<{
+    challengeId: number
+    date: string
+    newScreenshotCount: number
+  }> {
+    const response = await fetch('/api/admin/challenges/reroll', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ date }),
+    })
+    return handleResponse<{
+      challengeId: number
+      date: string
+      newScreenshotCount: number
+    }>(response)
   },
 }

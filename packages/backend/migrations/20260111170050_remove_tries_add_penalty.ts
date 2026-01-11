@@ -1,4 +1,5 @@
-import type { Knex } from 'knex'
+import type { Knex } from "knex";
+
 
 export async function up(knex: Knex): Promise<void> {
     // Remove try tracking index
@@ -12,6 +13,7 @@ export async function up(knex: Knex): Promise<void> {
     })
 }
 
+
 export async function down(knex: Knex): Promise<void> {
     // Restore try_number column
     await knex.schema.alterTable('guesses', (table) => {
@@ -23,3 +25,5 @@ export async function down(knex: Knex): Promise<void> {
         table.index(['tier_session_id', 'position'], 'guesses_tier_position_idx')
     })
 }
+
+

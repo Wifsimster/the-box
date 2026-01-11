@@ -44,7 +44,9 @@ interface AdminState {
   fetchStats: () => Promise<void>
   fetchRecurringJobs: () => Promise<void>
   triggerSyncJob: () => Promise<void>
-  createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number) => Promise<Job>
+  triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
+  triggerImportScreenshots: () => Promise<void>
+  createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number, minMetacritic?: number) => Promise<Job>
   createImportScreenshotsJob: () => Promise<Job>
   cancelJob: (id: string) => Promise<void>
   clearCompleted: () => Promise<void>
@@ -62,6 +64,10 @@ interface AdminState {
   setGamesSearch: (search: string) => void
   setGamesSort: (field: string, order: 'asc' | 'desc') => void
   setGamesPage: (page: number) => void
+
+  // Challenges
+  rerollLoading: boolean
+  rerollDailyChallenge: (date?: string) => Promise<void>
 }
 
 export const useAdminStore = create<AdminState>()(
@@ -81,6 +87,9 @@ export const useAdminStore = create<AdminState>()(
       gamesPagination: { page: 1, limit: 10, total: 0 },
       gamesSearch: '',
       gamesSort: { field: 'name', order: 'asc' },
+
+      // Challenges initial state
+      rerollLoading: false,
 
       fetchJobs: async () => {
         set({ isLoading: true, error: null })
@@ -120,10 +129,32 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
-      createImportGamesJob: async (targetGames, screenshotsPerGame) => {
+      triggerImportGames: async (targetGames, screenshotsPerGame) => {
+        try {
+          await adminApi.triggerImportGames(targetGames, screenshotsPerGame)
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger import games job:', err)
+          throw err
+        }
+      },
+
+      triggerImportScreenshots: async () => {
+        try {
+          await adminApi.triggerImportScreenshots()
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger import screenshots job:', err)
+          throw err
+        }
+      },
+
+      createImportGamesJob: async (targetGames, screenshotsPerGame, minMetacritic) => {
         set({ error: null })
         try {
-          const { job } = await adminApi.importGames(targetGames, screenshotsPerGame)
+          const { job } = await adminApi.importGames(targetGames, screenshotsPerGame, minMetacritic)
           set({ jobs: [job, ...get().jobs] })
           return job
         } catch (err) {
@@ -283,6 +314,19 @@ export const useAdminStore = create<AdminState>()(
         set({ gamesPagination: { ...get().gamesPagination, page } })
         // Fetch the new page
         get().fetchGames({ page })
+      },
+
+      // Challenges Actions
+      rerollDailyChallenge: async (date?: string) => {
+        set({ rerollLoading: true })
+        try {
+          await adminApi.rerollDailyChallenge(date)
+        } catch (err) {
+          console.error('Failed to reroll daily challenge:', err)
+          throw err
+        } finally {
+          set({ rerollLoading: false })
+        }
       },
     }),
     { name: 'AdminStore' }

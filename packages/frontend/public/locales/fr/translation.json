@@ -73,7 +73,7 @@
       "countdown": "Compte à rebours depuis {{initial}} pts",
       "decay": "Perd {{rate}} pts par seconde",
       "lock": "Bonne réponse = points verrouillés",
-      "tries": "3 essais par capture"
+      "penalty": "-100 pts par mauvaise réponse"
     },
     "navigation": {
       "previous": "Précédent",
@@ -81,7 +81,8 @@
       "skip": "Passer",
       "finish": "Terminer",
       "reviewSkipped": "Voir les Passées"
-    }
+    },
+    "adminHint": "Réponse (Admin)"
   },
   "home": {
     "title": "The Box",
@@ -161,11 +162,21 @@
     "tabs": {
       "import": "Import",
       "jobs": "Tâches",
-      "games": "Jeux"
+      "games": "Jeux",
+      "challenges": "Défis"
     },
     "screenshots": "Captures d'écran",
-    "challenges": "Défis",
     "addScreenshot": "Ajouter une Capture",
+    "challenges": {
+      "todaysChallenge": "Défi du Jour",
+      "rerollTitle": "Relancer les Captures",
+      "rerollDesc": "Remplacer les 10 captures par de nouvelles aléatoires. Les joueurs ayant déjà joué ne pourront pas rejouer.",
+      "date": "Date",
+      "reroll": "Relancer le Jeu du Jour",
+      "confirmReroll": "Confirmer le Relancement",
+      "rerollSuccess": "Les captures du défi quotidien ont été relancées",
+      "rerollError": "Échec du relancement du défi quotidien"
+    },
     "createChallenge": "Créer un Défi",
     "import": {
       "gamesSection": "Étape 1 : Importer les jeux",
@@ -175,12 +186,14 @@
     },
     "jobs": {
       "title": "Tâches",
+      "manualTasks": "Tâches manuelles",
       "importGames": "Importer les Jeux",
-      "importGamesDesc": "Récupérer les jeux et captures depuis l'API RAWG",
+      "importGamesDesc": "Récupère les jeux populaires depuis RAWG (selon le score Metacritic) avec leurs métadonnées. Les jeux déjà en base sont ignorés automatiquement.",
       "importScreenshots": "Télécharger les Captures",
-      "importScreenshotsDesc": "Télécharger les captures en local",
+      "importScreenshotsDesc": "Télécharge toutes les images des captures d'écran référencées en base de données vers le stockage local",
       "targetGames": "Nombre de jeux",
       "screenshotsPerGame": "Captures par jeu",
+      "minMetacritic": "Score Metacritic min.",
       "startJob": "Lancer l'import",
       "cancel": "Annuler",
       "clearCompleted": "Supprimer terminées",

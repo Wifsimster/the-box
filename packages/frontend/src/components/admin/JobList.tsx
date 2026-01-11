@@ -61,12 +61,12 @@ function formatInterval(ms: number): string {
 
 export function JobList() {
   const { t } = useTranslation()
-  const { 
-    jobs, 
-    isLoading, 
-    cancelJob, 
-    clearCompleted, 
-    recurringJobs, 
+  const {
+    jobs,
+    isLoading,
+    cancelJob,
+    clearCompleted,
+    recurringJobs,
     triggerSyncJob,
     triggerImportGames,
     triggerImportScreenshots,
@@ -113,6 +113,105 @@ export function JobList() {
 
   return (
     <div className="space-y-6">
+      {/* Manual Tasks */}
+      <Card className="bg-card/50 backdrop-blur-sm border-neon-blue/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Play className="h-4 w-4 text-neon-blue" />
+            {t('admin.jobs.manualTasks')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Import Games Task */}
+          <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Gamepad2 className="h-5 w-5 text-neon-purple" />
+                <div>
+                  <span className="text-sm font-medium">{t('admin.jobs.importGames')}</span>
+                  <p className="text-xs text-muted-foreground">{t('admin.jobs.importGamesDesc')}</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">
+                  {t('admin.jobs.targetGames')}
+                </label>
+                <Input
+                  type="number"
+                  value={importGamesConfig.targetGames}
+                  onChange={(e) => setImportGamesConfig(prev => ({
+                    ...prev,
+                    targetGames: parseInt(e.target.value) || 50
+                  }))}
+                  min={1}
+                  max={500}
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">
+                  {t('admin.jobs.screenshotsPerGame')}
+                </label>
+                <Input
+                  type="number"
+                  value={importGamesConfig.screenshotsPerGame}
+                  onChange={(e) => setImportGamesConfig(prev => ({
+                    ...prev,
+                    screenshotsPerGame: parseInt(e.target.value) || 3
+                  }))}
+                  min={1}
+                  max={10}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImportGames}
+              disabled={importGamesLoading}
+              className="w-full border-neon-purple/30 hover:bg-neon-purple/10"
+            >
+              {importGamesLoading ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1" />
+              )}
+              {t('admin.jobs.runNow')}
+            </Button>
+          </div>
+
+          {/* Import Screenshots Task */}
+          <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Download className="h-5 w-5 text-neon-pink" />
+                <div>
+                  <span className="text-sm font-medium">{t('admin.jobs.importScreenshots')}</span>
+                  <p className="text-xs text-muted-foreground">{t('admin.jobs.importScreenshotsDesc')}</p>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImportScreenshots}
+              disabled={importScreenshotsLoading}
+              className="w-full border-neon-pink/30 hover:bg-neon-pink/10"
+            >
+              {importScreenshotsLoading ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1" />
+              )}
+              {t('admin.jobs.runNow')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Recurring Jobs Status */}
       {syncJob && (
         <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
@@ -210,12 +309,12 @@ export function JobList() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`text-sm px-2 py-1 rounded ${job.status === 'completed'
-                            ? 'bg-green-500/20 text-green-400'
-                            : job.status === 'failed'
-                              ? 'bg-red-500/20 text-red-400'
-                              : job.status === 'active'
-                                ? 'bg-blue-500/20 text-blue-400'
-                                : 'bg-yellow-500/20 text-yellow-400'
+                          ? 'bg-green-500/20 text-green-400'
+                          : job.status === 'failed'
+                            ? 'bg-red-500/20 text-red-400'
+                            : job.status === 'active'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-yellow-500/20 text-yellow-400'
                           }`}
                       >
                         {t(`admin.jobs.status.${job.status}`)}

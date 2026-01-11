@@ -158,7 +158,6 @@ export const sessionRepository = {
     tierSessionId: string
     screenshotId: number
     position: number
-    tryNumber: number
     guessedGameId: number | null
     guessedText: string
     isCorrect: boolean
@@ -169,7 +168,6 @@ export const sessionRepository = {
       {
         tierSessionId: data.tierSessionId,
         position: data.position,
-        tryNumber: data.tryNumber,
         isCorrect: data.isCorrect,
         scoreEarned: data.scoreEarned,
         sessionElapsedMs: data.sessionElapsedMs,
@@ -180,7 +178,6 @@ export const sessionRepository = {
       tier_session_id: data.tierSessionId,
       screenshot_id: data.screenshotId,
       position: data.position,
-      try_number: data.tryNumber,
       guessed_game_id: data.guessedGameId,
       guessed_text: data.guessedText,
       is_correct: data.isCorrect,
@@ -188,18 +185,6 @@ export const sessionRepository = {
       session_elapsed_ms: data.sessionElapsedMs,
       score_earned: data.scoreEarned,
     })
-  },
-
-  async getTriesForPosition(tierSessionId: string, position: number): Promise<number> {
-    log.debug({ tierSessionId, position }, 'getTriesForPosition')
-    const result = await db('guesses')
-      .where('tier_session_id', tierSessionId)
-      .andWhere('position', position)
-      .count('id as count')
-      .first<{ count: string }>()
-    const count = parseInt(result?.count ?? '0', 10)
-    log.debug({ tierSessionId, position, tries: count }, 'getTriesForPosition result')
-    return count
   },
 
   async getCorrectAnswersCount(tierSessionId: string): Promise<number> {

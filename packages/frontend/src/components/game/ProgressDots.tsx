@@ -7,9 +7,8 @@ import type { PositionStatus } from '@/types'
  * ProgressDots displays the status of all screenshots in the challenge.
  * Color coding:
  * - Green: correct (guessed correctly)
- * - Yellow: skipped (has tries remaining)
+ * - Yellow: skipped (not yet attempted)
  * - Gray: not visited (haven't reached yet)
- * - Red: failed (all tries used, no correct answer)
  * - Ring highlight on current position
  */
 export function ProgressDots() {
@@ -27,8 +26,6 @@ export function ProgressDots() {
         return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
       case 'skipped':
         return 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]'
-      case 'failed':
-        return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
       case 'in_progress':
         return 'bg-primary shadow-[0_0_8px_rgba(168,85,247,0.6)]'
       default:
@@ -83,13 +80,11 @@ export function ProgressDotsCompact() {
   const counts = {
     correct: 0,
     skipped: 0,
-    failed: 0,
   }
 
   Object.values(positionStates).forEach((state) => {
     if (state.status === 'correct') counts.correct++
     else if (state.status === 'skipped') counts.skipped++
-    else if (state.status === 'failed') counts.failed++
   })
 
   return (

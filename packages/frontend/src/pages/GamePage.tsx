@@ -127,7 +127,7 @@ export default function GamePage() {
       setSessionScoring(startData.scoringConfig, startData.sessionStartedAt)
 
       // Initialize position states for navigation tracking
-      initializePositionStates(startData.totalScreenshots, startData.scoringConfig.maxTriesPerScreenshot)
+      initializePositionStates(startData.totalScreenshots)
 
       // Fetch the first screenshot
       await fetchScreenshot(startData.sessionId, 1)
