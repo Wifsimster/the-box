@@ -79,6 +79,8 @@ export interface GameSession {
   dailyChallengeId: number
   currentPosition: number
   totalScore: number
+  initialScore: number
+  decayRate: number
   isCompleted: boolean
   startedAt: string
   completedAt?: string
@@ -100,10 +102,11 @@ export interface Guess {
   tierSessionId: string
   screenshotId: number
   position: number
+  tryNumber: number
   guessedGameId?: number
   guessedText?: string
   isCorrect: boolean
-  timeTakenMs: number
+  sessionElapsedMs: number
   scoreEarned: number
   powerUpUsed?: PowerUpType
   createdAt: string
@@ -208,7 +211,6 @@ export interface TodayChallengeResponse {
   challengeId: number | null
   date: string
   totalScreenshots: number
-  timeLimit: number
   hasPlayed: boolean
   userSession?: {
     sessionId: string
@@ -218,11 +220,18 @@ export interface TodayChallengeResponse {
   } | null
 }
 
+export interface ScoringConfig {
+  initialScore: number
+  decayRate: number
+  maxTriesPerScreenshot: number
+}
+
 export interface StartChallengeResponse {
   sessionId: string
   tierSessionId: string
-  timeLimit: number
   totalScreenshots: number
+  sessionStartedAt: string
+  scoringConfig: ScoringConfig
 }
 
 // Backwards compatibility alias
@@ -232,7 +241,6 @@ export interface ScreenshotResponse {
   screenshotId: number
   position: number
   imageUrl: string
-  timeLimit: number
   bonusMultiplier?: number
 }
 
@@ -243,7 +251,7 @@ export interface GuessRequest {
   position: number
   gameId: number | null
   guessText: string
-  timeTakenMs: number
+  sessionElapsedMs: number
   powerUpUsed?: PowerUpType
 }
 
@@ -252,8 +260,11 @@ export interface GuessResponse {
   correctGame: Game
   scoreEarned: number
   totalScore: number
+  triesRemaining: number
+  screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
+  completionReason?: 'all_found' | 'all_tries_exhausted'
 }
 
 // Search API

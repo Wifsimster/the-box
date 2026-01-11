@@ -10,6 +10,8 @@ export interface GameSessionRow {
   current_tier: number
   current_position: number
   total_score: number
+  initial_score: number
+  decay_rate: number
   is_completed: boolean
   started_at: Date
   completed_at: Date | null
@@ -29,6 +31,9 @@ export interface TierSessionRow {
 export interface TierSessionWithContext extends TierSessionRow {
   user_id: string
   game_total_score: number
+  game_session_started_at: Date
+  initial_score: number
+  decay_rate: number
   tier_number: number
   time_limit_seconds: number
 }
@@ -95,6 +100,9 @@ export const sessionRepository = {
         'tier_sessions.*',
         'game_sessions.user_id',
         'game_sessions.total_score as game_total_score',
+        'game_sessions.started_at as game_session_started_at',
+        'game_sessions.initial_score',
+        'game_sessions.decay_rate',
         'game_sessions.id as game_session_id',
         'tiers.tier_number',
         'tiers.time_limit_seconds'
@@ -140,19 +148,21 @@ export const sessionRepository = {
     tierSessionId: string
     screenshotId: number
     position: number
+    tryNumber: number
     guessedGameId: number | null
     guessedText: string
     isCorrect: boolean
-    timeTakenMs: number
+    sessionElapsedMs: number
     scoreEarned: number
   }): Promise<void> {
     log.info(
       {
         tierSessionId: data.tierSessionId,
         position: data.position,
+        tryNumber: data.tryNumber,
         isCorrect: data.isCorrect,
         scoreEarned: data.scoreEarned,
-        timeTakenMs: data.timeTakenMs,
+        sessionElapsedMs: data.sessionElapsedMs,
       },
       'saveGuess'
     )
@@ -160,11 +170,49 @@ export const sessionRepository = {
       tier_session_id: data.tierSessionId,
       screenshot_id: data.screenshotId,
       position: data.position,
+      try_number: data.tryNumber,
       guessed_game_id: data.guessedGameId,
       guessed_text: data.guessedText,
       is_correct: data.isCorrect,
-      time_taken_ms: data.timeTakenMs,
+      time_taken_ms: data.sessionElapsedMs,
+      session_elapsed_ms: data.sessionElapsedMs,
       score_earned: data.scoreEarned,
     })
+  },
+
+  async getTriesForPosition(tierSessionId: string, position: number): Promise<number> {
+    log.debug({ tierSessionId, position }, 'getTriesForPosition')
+    const result = await db('guesses')
+      .where('tier_session_id', tierSessionId)
+      .andWhere('position', position)
+      .count('id as count')
+      .first<{ count: string }>()
+    const count = parseInt(result?.count ?? '0', 10)
+    log.debug({ tierSessionId, position, tries: count }, 'getTriesForPosition result')
+    return count
+  },
+
+  async getCorrectAnswersCount(tierSessionId: string): Promise<number> {
+    log.debug({ tierSessionId }, 'getCorrectAnswersCount')
+    const result = await db('guesses')
+      .where('tier_session_id', tierSessionId)
+      .andWhere('is_correct', true)
+      .count('id as count')
+      .first<{ count: string }>()
+    const count = parseInt(result?.count ?? '0', 10)
+    log.debug({ tierSessionId, correctCount: count }, 'getCorrectAnswersCount result')
+    return count
+  },
+
+  async getExhaustedPositionsCount(tierSessionId: string, maxTries: number): Promise<number> {
+    log.debug({ tierSessionId, maxTries }, 'getExhaustedPositionsCount')
+    // Count positions where tries >= maxTries and no correct answer
+    const result = await db('guesses')
+      .where('tier_session_id', tierSessionId)
+      .groupBy('position')
+      .havingRaw('COUNT(*) >= ? AND SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) = 0', [maxTries])
+      .count('* as exhausted_count')
+    log.debug({ tierSessionId, exhaustedCount: result.length }, 'getExhaustedPositionsCount result')
+    return result.length
   },
 }

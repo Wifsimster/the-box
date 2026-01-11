@@ -7,7 +7,8 @@ import type {
   PowerUp,
   Game,
   TierScreenshot,
-  ScreenshotResponse
+  ScreenshotResponse,
+  ScoringConfig
 } from '@/types'
 
 interface GameState {
@@ -23,13 +24,19 @@ interface GameState {
   currentScreenshot: TierScreenshot | null
   currentScreenshotData: ScreenshotResponse | null
 
-  // Timer state
-  timeRemaining: number
-  defaultTimeLimit: number
-  timerRunning: boolean
-  timerStartedAt: number | null
+  // Countdown scoring state
+  currentScore: number
+  initialScore: number
+  decayRate: number
+  sessionStartedAt: number | null
+  scoreRunning: boolean
 
-  // Score tracking
+  // Tries tracking
+  triesRemaining: number
+  maxTriesPerScreenshot: number
+  screenshotsFound: number
+
+  // Score tracking (legacy - totalScore now represents locked-in score)
   totalScore: number
   correctAnswers: number
   guessResults: GuessResult[]
@@ -51,11 +58,14 @@ interface GameState {
   setChallengeId: (id: number, date: string) => void
   setScreenshot: (screenshot: TierScreenshot, position: number, total: number) => void
   setScreenshotData: (data: ScreenshotResponse) => void
-  setTimeLimit: (seconds: number) => void
 
-  startTimer: () => void
-  pauseTimer: () => void
-  decrementTimer: () => void
+  // Countdown scoring actions
+  setSessionScoring: (config: ScoringConfig, sessionStartedAt: string) => void
+  startScoreCountdown: () => void
+  stopScoreCountdown: () => void
+  decrementScore: () => void
+  setTriesRemaining: (tries: number) => void
+  setScreenshotsFound: (count: number) => void
 
   setGamePhase: (phase: GamePhase) => void
   setLoading: (loading: boolean) => void
@@ -84,10 +94,17 @@ const initialState = {
   totalScreenshots: 10,
   currentScreenshot: null,
   currentScreenshotData: null,
-  timeRemaining: 30,
-  defaultTimeLimit: 30,
-  timerRunning: false,
-  timerStartedAt: null,
+  // Countdown scoring state
+  currentScore: 1000,
+  initialScore: 1000,
+  decayRate: 2,
+  sessionStartedAt: null,
+  scoreRunning: false,
+  // Tries tracking
+  triesRemaining: 3,
+  maxTriesPerScreenshot: 3,
+  screenshotsFound: 0,
+  // Score tracking
   totalScore: 0,
   correctAnswers: 0,
   guessResults: [],
@@ -123,28 +140,33 @@ export const useGameStore = create<GameState>()(
           currentPosition: data.position,
         }),
 
-        setTimeLimit: (seconds) => {
-          const { activePowerUp } = get()
-          const actualTime = activePowerUp === 'x2_timer' ? seconds * 2 : seconds
+        // Countdown scoring actions
+        setSessionScoring: (config, sessionStartedAt) => {
+          const startedAtTimestamp = new Date(sessionStartedAt).getTime()
           set({
-            defaultTimeLimit: seconds,
-            timeRemaining: actualTime
+            initialScore: config.initialScore,
+            decayRate: config.decayRate,
+            maxTriesPerScreenshot: config.maxTriesPerScreenshot,
+            triesRemaining: config.maxTriesPerScreenshot,
+            sessionStartedAt: startedAtTimestamp,
+            currentScore: config.initialScore,
           })
         },
 
-        startTimer: () => set({
-          timerRunning: true,
-          timerStartedAt: Date.now()
-        }),
+        startScoreCountdown: () => set({ scoreRunning: true }),
 
-        pauseTimer: () => set({ timerRunning: false }),
+        stopScoreCountdown: () => set({ scoreRunning: false }),
 
-        decrementTimer: () => {
-          const { timeRemaining } = get()
-          if (timeRemaining > 0) {
-            set({ timeRemaining: timeRemaining - 1 })
+        decrementScore: () => {
+          const { currentScore, decayRate, scoreRunning } = get()
+          if (scoreRunning && currentScore > 0) {
+            set({ currentScore: Math.max(0, currentScore - decayRate) })
           }
         },
+
+        setTriesRemaining: (tries) => set({ triesRemaining: tries }),
+
+        setScreenshotsFound: (count) => set({ screenshotsFound: count }),
 
         setGamePhase: (phase) => set({ gamePhase: phase }),
 
@@ -166,14 +188,11 @@ export const useGameStore = create<GameState>()(
         })),
 
         activatePowerUp: (type) => {
-          const { defaultTimeLimit, availablePowerUps } = get()
+          const { availablePowerUps } = get()
           const powerUp = availablePowerUps.find(p => p.powerUpType === type && !p.isUsed)
           if (powerUp) {
             set({ activePowerUp: type })
-            // If it's a timer power-up, double the time
-            if (type === 'x2_timer') {
-              set({ timeRemaining: defaultTimeLimit * 2 })
-            }
+            // Note: x2_timer power-up no longer affects time - could add score multiplier instead
           }
         },
 
@@ -191,16 +210,17 @@ export const useGameStore = create<GameState>()(
         updateLiveLeaderboard: (entries) => set({ liveLeaderboard: entries }),
 
         nextRound: () => {
-          const { currentPosition, totalScreenshots } = get()
+          const { currentPosition, totalScreenshots, maxTriesPerScreenshot } = get()
           if (currentPosition < totalScreenshots) {
             set({
               currentPosition: currentPosition + 1,
               lastResult: null,
               activePowerUp: null,
+              triesRemaining: maxTriesPerScreenshot,
             })
           } else {
             // Challenge complete
-            set({ gamePhase: 'challenge_complete' })
+            set({ gamePhase: 'challenge_complete', scoreRunning: false })
           }
         },
 
@@ -214,6 +234,10 @@ export const useGameStore = create<GameState>()(
           challengeId: state.challengeId,
           challengeDate: state.challengeDate,
           totalScore: state.totalScore,
+          sessionStartedAt: state.sessionStartedAt,
+          initialScore: state.initialScore,
+          decayRate: state.decayRate,
+          maxTriesPerScreenshot: state.maxTriesPerScreenshot,
         }),
       }
     ),

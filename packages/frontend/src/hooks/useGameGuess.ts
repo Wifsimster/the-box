@@ -12,8 +12,10 @@ import {
 /**
  * Custom hook for handling game guess submission logic
  *
- * Refactored to use unified guessSubmissionService that handles
- * validation and scoring in a single API call
+ * Refactored for countdown scoring system:
+ * - Uses sessionElapsedMs instead of per-screenshot time
+ * - Handles tries remaining per screenshot
+ * - Score countdown continues until game completion
  */
 export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
@@ -30,9 +32,9 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
 
-      // Calculate time taken, ensuring no NaN from null values
-      const timeTakenMs = store.timerStartedAt
-        ? Date.now() - store.timerStartedAt
+      // Calculate session elapsed time (from session start, not per-screenshot)
+      const sessionElapsedMs = store.sessionStartedAt
+        ? Date.now() - store.sessionStartedAt
         : 0
 
       try {
@@ -43,45 +45,58 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           position: store.currentPosition,
           gameId: game?.id || null,
           guessText: userInput,
-          timeTakenMs,
+          sessionElapsedMs,
         })
 
-        // Pause timer
-        store.pauseTimer()
+        // Update tries remaining and screenshots found
+        store.setTriesRemaining(result.triesRemaining)
+        store.setScreenshotsFound(result.screenshotsFound)
 
-        // Record result
-        store.addGuessResult({
-          position: store.currentPosition,
-          isCorrect: result.isCorrect,
-          correctGame: result.correctGame,
-          userGuess: game?.name || userInput,
-          timeTakenMs,
-          scoreEarned: result.scoreEarned,
-        })
+        // Determine if we should advance to next screenshot
+        const shouldAdvance = result.isCorrect || result.triesRemaining === 0
+
+        // Record result only when advancing (to show in result screen)
+        if (shouldAdvance) {
+          store.addGuessResult({
+            position: store.currentPosition,
+            isCorrect: result.isCorrect,
+            correctGame: result.correctGame,
+            userGuess: game?.name || userInput,
+            timeTakenMs: sessionElapsedMs,
+            scoreEarned: result.scoreEarned,
+          })
+        }
 
         // Update stats
         if (result.isCorrect) {
           store.incrementCorrectAnswers()
         }
 
-        // Update total score from server
+        // Update total score from server (locked-in score)
         store.updateScore(result.totalScore)
 
-        // Transition to result phase
-        store.setGamePhase('result')
-
-        // Check if challenge is completed
+        // Handle game phase transitions
         if (result.isCompleted) {
+          // Stop the countdown and show completion
+          store.stopScoreCountdown()
           store.setGamePhase('challenge_complete')
+        } else if (shouldAdvance) {
+          // Show result screen before advancing to next screenshot
+          store.setGamePhase('result')
         }
+        // If not advancing (wrong guess, tries remaining), stay in playing phase
 
         return {
           success: true,
           isCorrect: result.isCorrect,
           scoreEarned: result.scoreEarned,
           totalScore: result.totalScore,
+          triesRemaining: result.triesRemaining,
+          screenshotsFound: result.screenshotsFound,
           nextPosition: result.nextPosition,
           isCompleted: result.isCompleted,
+          completionReason: result.completionReason,
+          shouldAdvance,
         }
       } catch (error) {
         // Log error with context
@@ -99,9 +114,6 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           console.warn('Session or screenshot not found')
         }
 
-        // Pause timer even on error
-        store.pauseTimer()
-
         return {
           success: false,
           isCorrect: false,
@@ -115,7 +127,8 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
   const skipRound = useCallback(
     async () => {
-      // Skip is just submitting with null game
+      // Skip exhausts all remaining tries for this screenshot
+      // Submit with null game to use up a try
       return submitGuess(null, '')
     },
     [submitGuess]

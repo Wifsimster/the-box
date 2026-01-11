@@ -27,7 +27,9 @@ export class GameError extends Error {
 }
 
 const TOTAL_SCREENSHOTS = 10
-const TIME_LIMIT_SECONDS = 30
+const MAX_TRIES_PER_SCREENSHOT = 3
+// Default scoring config (actual values come from database)
+// INITIAL_SCORE = 1000, DECAY_RATE = 2 pts/sec
 
 export const gameService = {
   async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
@@ -42,7 +44,6 @@ export const gameService = {
         challengeId: null,
         date: today,
         totalScreenshots: TOTAL_SCREENSHOTS,
-        timeLimit: TIME_LIMIT_SECONDS,
         hasPlayed: false,
         userSession: null,
       }
@@ -66,7 +67,6 @@ export const gameService = {
       challengeId: challenge.id,
       date: challenge.challenge_date,
       totalScreenshots: TOTAL_SCREENSHOTS,
-      timeLimit: TIME_LIMIT_SECONDS,
       hasPlayed: !!userSession,
       userSession,
     }
@@ -101,8 +101,13 @@ export const gameService = {
     return {
       sessionId: gameSession.id,
       tierSessionId: tierSession.id,
-      timeLimit: TIME_LIMIT_SECONDS,
       totalScreenshots: TOTAL_SCREENSHOTS,
+      sessionStartedAt: gameSession.started_at.toISOString(),
+      scoringConfig: {
+        initialScore: gameSession.initial_score,
+        decayRate: gameSession.decay_rate,
+        maxTriesPerScreenshot: MAX_TRIES_PER_SCREENSHOT,
+      },
     }
   },
 
@@ -132,7 +137,6 @@ export const gameService = {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: tierScreenshot.image_url,
-      timeLimit: TIME_LIMIT_SECONDS,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
     }
   },
@@ -143,7 +147,7 @@ export const gameService = {
     position: number
     gameId: number | null
     guessText: string
-    timeTakenMs: number
+    sessionElapsedMs: number
     userId: string
   }): Promise<GuessResponse> {
     log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
@@ -154,6 +158,13 @@ export const gameService = {
       throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
     }
 
+    // Get current try count for this position
+    const currentTries = await sessionRepository.getTriesForPosition(data.tierSessionId, data.position)
+
+    if (currentTries >= MAX_TRIES_PER_SCREENSHOT) {
+      throw new GameError('MAX_TRIES_EXCEEDED', 'Maximum tries reached for this screenshot', 400)
+    }
+
     const screenshotData = await screenshotRepository.findWithGame(data.screenshotId)
     if (!screenshotData) {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
@@ -162,20 +173,27 @@ export const gameService = {
     const { screenshot, gameName, coverImageUrl } = screenshotData
 
     const isCorrect = data.gameId === screenshot.gameId
+    const tryNumber = currentTries + 1
 
-    const scoreEarned = this.calculateScore(
-      isCorrect,
-      data.timeTakenMs,
-      TIME_LIMIT_SECONDS
+    // Calculate current countdown score
+    const currentScore = this.calculateCurrentScore(
+      tierSession.game_session_started_at,
+      tierSession.initial_score,
+      tierSession.decay_rate
     )
+
+    // Score earned is only awarded on correct guess - it "locks in" the current countdown value
+    const scoreEarned = isCorrect ? currentScore : 0
 
     log.info(
       {
         userId: data.userId,
         position: data.position,
+        tryNumber,
         isCorrect,
         scoreEarned,
-        timeTakenMs: data.timeTakenMs,
+        currentScore,
+        sessionElapsedMs: data.sessionElapsedMs,
         guessedGame: data.guessText,
         correctGame: gameName,
       },
@@ -186,10 +204,11 @@ export const gameService = {
       tierSessionId: data.tierSessionId,
       screenshotId: data.screenshotId,
       position: data.position,
+      tryNumber,
       guessedGameId: data.gameId,
       guessedText: data.guessText,
       isCorrect,
-      timeTakenMs: data.timeTakenMs,
+      sessionElapsedMs: data.sessionElapsedMs,
       scoreEarned,
     })
 
@@ -198,18 +217,56 @@ export const gameService = {
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
     })
 
-    const newTotalScore = tierSession.game_total_score + scoreEarned
-    const isCompleted = data.position >= TOTAL_SCREENSHOTS
+    // Calculate remaining tries for this position
+    const triesRemaining = MAX_TRIES_PER_SCREENSHOT - tryNumber
 
+    // Get count of screenshots found (correct answers)
+    const screenshotsFound = await sessionRepository.getCorrectAnswersCount(data.tierSessionId)
+    const totalScreenshotsFound = screenshotsFound + (isCorrect ? 1 : 0)
+
+    // Determine if we should advance to next position
+    const shouldAdvance = isCorrect || triesRemaining === 0
+
+    // Calculate completion
+    let isCompleted = false
+    let completionReason: 'all_found' | 'all_tries_exhausted' | undefined
+
+    if (totalScreenshotsFound >= TOTAL_SCREENSHOTS) {
+      isCompleted = true
+      completionReason = 'all_found'
+    } else if (shouldAdvance && data.position >= TOTAL_SCREENSHOTS) {
+      // Last position and either correct or out of tries
+      isCompleted = true
+      // Check if all screenshots were found
+      if (totalScreenshotsFound >= TOTAL_SCREENSHOTS) {
+        completionReason = 'all_found'
+      } else {
+        completionReason = 'all_tries_exhausted'
+      }
+    }
+
+    // Calculate next position
+    const nextPosition = shouldAdvance
+      ? (data.position < TOTAL_SCREENSHOTS ? data.position + 1 : null)
+      : data.position // Stay on same position if tries remaining
+
+    // Update game session with locked-in score
+    const newTotalScore = tierSession.game_total_score + scoreEarned
     await sessionRepository.updateGameSession(tierSession.game_session_id, {
       totalScore: newTotalScore,
-      currentPosition: isCompleted ? data.position : data.position + 1,
+      currentPosition: nextPosition ?? data.position,
       isCompleted,
     })
 
     if (isCompleted) {
       log.info(
-        { userId: data.userId, sessionId: tierSession.game_session_id, finalScore: newTotalScore },
+        {
+          userId: data.userId,
+          sessionId: tierSession.game_session_id,
+          finalScore: newTotalScore,
+          screenshotsFound: totalScreenshotsFound,
+          completionReason
+        },
         'game completed'
       )
     }
@@ -227,24 +284,17 @@ export const gameService = {
       correctGame,
       scoreEarned,
       totalScore: newTotalScore,
-      nextPosition: isCompleted ? null : data.position + 1,
+      triesRemaining: isCorrect ? MAX_TRIES_PER_SCREENSHOT : triesRemaining,
+      screenshotsFound: totalScreenshotsFound,
+      nextPosition,
       isCompleted,
+      completionReason,
     }
   },
 
-  calculateScore(isCorrect: boolean, timeTakenMs: number, timeLimitSeconds: number): number {
-    if (!isCorrect) return 0
-
-    const baseScore = 100
-    const timeRatio = timeTakenMs / (timeLimitSeconds * 1000)
-
-    let timeBonus = 0
-    if (timeRatio < 0.25) {
-      timeBonus = 100
-    } else if (timeRatio < 0.75) {
-      timeBonus = Math.round(100 * (1 - (timeRatio - 0.25) / 0.5))
-    }
-
-    return baseScore + timeBonus
+  calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: number): number {
+    const elapsedMs = Date.now() - sessionStartedAt.getTime()
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
+    return Math.max(0, initialScore - (elapsedSeconds * decayRate))
   },
 }

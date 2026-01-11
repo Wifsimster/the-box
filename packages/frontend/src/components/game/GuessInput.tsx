@@ -43,15 +43,15 @@ export function GuessInput() {
   // Custom hook for guess submission logic
   const { submitGuess, skipRound } = useGameGuess(guessSubmissionService)
 
-  const { gamePhase, startTimer, setTimeLimit } = useGameStore()
+  const { gamePhase, startScoreCountdown } = useGameStore()
 
   // Focus input when playing
   useEffect(() => {
     if (gamePhase === 'playing' && inputRef.current) {
       inputRef.current.focus()
-      startTimer()
+      startScoreCountdown()
     }
-  }, [gamePhase, startTimer])
+  }, [gamePhase, startScoreCountdown])
 
   // Search games as user types (with debounce)
   useEffect(() => {

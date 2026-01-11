@@ -79,7 +79,7 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
 // Submit a guess
 router.post('/guess', authMiddleware, async (req, res, next) => {
   try {
-    const { tierSessionId, screenshotId, position, gameId, guessText, timeTakenMs } = req.body
+    const { tierSessionId, screenshotId, position, gameId, guessText, sessionElapsedMs } = req.body
 
     const data = await gameService.submitGuess({
       tierSessionId,
@@ -87,7 +87,7 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
       position,
       gameId,
       guessText,
-      timeTakenMs,
+      sessionElapsedMs,
       userId: req.userId!,
     })
 

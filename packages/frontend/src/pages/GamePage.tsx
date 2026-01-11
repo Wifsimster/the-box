@@ -37,7 +37,7 @@ export default function GamePage() {
     setChallengeId,
     setSessionId,
     setScreenshotData,
-    setTimeLimit,
+    setSessionScoring,
     setLoading,
   } = useGameStore()
 
@@ -93,14 +93,13 @@ export default function GamePage() {
       setLoading(true)
       const data = await gameApi.getScreenshot(sid, position)
       setScreenshotData(data)
-      setTimeLimit(data.timeLimit)
     } catch (err) {
       console.error('Failed to fetch screenshot:', err)
       setError(t('game.errorLoadingScreenshot'))
     } finally {
       setLoading(false)
     }
-  }, [setScreenshotData, setTimeLimit, setLoading, t])
+  }, [setScreenshotData, setLoading, t])
 
   // Handle starting the game
   const handleStartGame = useCallback(async () => {
@@ -122,7 +121,9 @@ export default function GamePage() {
       const startData = await gameApi.startChallenge(challengeId)
       setSessionId(startData.sessionId, startData.tierSessionId)
       useGameStore.setState({ totalScreenshots: startData.totalScreenshots })
-      setTimeLimit(startData.timeLimit)
+
+      // Set up countdown scoring from server config
+      setSessionScoring(startData.scoringConfig, startData.sessionStartedAt)
 
       // Fetch the first screenshot
       await fetchScreenshot(startData.sessionId, 1)
@@ -133,7 +134,7 @@ export default function GamePage() {
       setError(t('game.errorStarting'))
       setLoading(false)
     }
-  }, [challengeId, session, isSessionPending, setSessionId, setTimeLimit, fetchScreenshot, setGamePhase, setLoading, t])
+  }, [challengeId, session, isSessionPending, setSessionId, setSessionScoring, fetchScreenshot, setGamePhase, setLoading, t])
 
   // Fetch next screenshot when position changes (after nextRound is called)
   useEffect(() => {
@@ -200,18 +201,20 @@ export default function GamePage() {
             exit={{ opacity: 0 }}
             className="relative w-full h-full"
           >
-            {/* Top Bar */}
-            <div className="absolute top-0 left-0 right-0 z-40 bg-gradient-to-b from-background/90 to-transparent pb-8 pt-4 px-4">
-              <div className="container mx-auto flex items-center justify-between gap-4">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to={localizedPath('/')}>
-                    <Home className="w-4 h-4 mr-1" />
-                    {t('common.home')}
-                  </Link>
-                </Button>
-                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
-                  <ScoreDisplay score={totalScore} />
-                </div>
+            {/* Home Button (Top Left) */}
+            <div className="absolute top-4 left-4 z-40">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to={localizedPath('/')}>
+                  <Home className="w-4 h-4 mr-1" />
+                  {t('common.home')}
+                </Link>
+              </Button>
+            </div>
+
+            {/* Score (Top Right) */}
+            <div className="absolute top-4 right-4 z-40">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                <ScoreDisplay score={totalScore} />
               </div>
             </div>
 

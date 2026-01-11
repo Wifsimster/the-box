@@ -16,7 +16,7 @@ export interface GuessSubmissionRequest {
   position: number
   gameId: number | null
   guessText: string
-  timeTakenMs: number
+  sessionElapsedMs: number
 }
 
 /**
@@ -27,8 +27,11 @@ export interface GuessSubmissionResult {
   correctGame: Game
   scoreEarned: number
   totalScore: number
+  triesRemaining: number
+  screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
+  completionReason?: 'all_found' | 'all_tries_exhausted'
 }
 
 /**
@@ -50,6 +53,13 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
     releaseYear: 2015,
   }
 
+  private triesPerPosition: Map<number, number> = new Map()
+  private correctAnswers = 0
+  private totalLockedScore = 0
+  private sessionStartTime = Date.now()
+  private initialScore = 1000
+  private decayRate = 2
+
   async submitGuess(
     request: GuessSubmissionRequest
   ): Promise<GuessSubmissionResult> {
@@ -58,29 +68,49 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
 
     const isCorrect = request.gameId === this.mockCorrectGame.id
 
-    // Mock scoring: Base 100 + time bonus (up to 100)
-    const baseScore = 100
-    const timeBonus = Math.max(
-      0,
-      Math.min(100, 100 - Math.floor(request.timeTakenMs / 300))
-    )
-    const scoreEarned = isCorrect ? baseScore + timeBonus : 0
+    // Get current tries for this position
+    const currentTries = this.triesPerPosition.get(request.position) ?? 0
+    const tryNumber = currentTries + 1
+    this.triesPerPosition.set(request.position, tryNumber)
 
-    // Mock total score
-    const totalScore = scoreEarned
+    // Calculate countdown score based on elapsed time
+    const elapsedSeconds = Math.floor(request.sessionElapsedMs / 1000)
+    const currentScore = Math.max(0, this.initialScore - (elapsedSeconds * this.decayRate))
 
-    // Mock next position
-    const nextPosition =
-      request.position < 10 ? request.position + 1 : null
-    const isCompleted = request.position >= 10
+    // Score is "locked in" only on correct guess
+    const scoreEarned = isCorrect ? currentScore : 0
+
+    if (isCorrect) {
+      this.correctAnswers++
+      this.totalLockedScore += scoreEarned
+    }
+
+    const triesRemaining = isCorrect ? 3 : Math.max(0, 3 - tryNumber)
+    const shouldAdvance = isCorrect || triesRemaining === 0
+
+    // Determine next position and completion
+    const nextPosition = shouldAdvance
+      ? (request.position < 10 ? request.position + 1 : null)
+      : request.position
+
+    const isCompleted = this.correctAnswers >= 10 ||
+      (shouldAdvance && request.position >= 10)
+
+    let completionReason: 'all_found' | 'all_tries_exhausted' | undefined
+    if (isCompleted) {
+      completionReason = this.correctAnswers >= 10 ? 'all_found' : 'all_tries_exhausted'
+    }
 
     return {
       isCorrect,
       correctGame: this.mockCorrectGame,
       scoreEarned,
-      totalScore,
+      totalScore: this.totalLockedScore,
+      triesRemaining,
+      screenshotsFound: this.correctAnswers,
       nextPosition,
       isCompleted,
+      completionReason,
     }
   }
 }
