@@ -20,54 +20,59 @@ function RotatingCube() {
   )
 }
 
-function Particles() {
+function DigitalDust() {
   const pointsRef = useRef<THREE.Points>(null)
   const { pointer, viewport } = useThree()
-  const particleCount = 200
-  const mouseInfluenceRadius = 2
-  const mouseRepelStrength = 0.15
+  const particleCount = 600
+  const mouseInfluenceRadius = 1.5
+  const mouseRepelStrength = 0.08
 
-  const [positions, velocities, originalPositions] = useMemo(() => {
+  const [positions, velocities, sizes, phases] = useMemo(() => {
     const pos = new Float32Array(particleCount * 3)
     const vel = new Float32Array(particleCount * 3)
-    const orig = new Float32Array(particleCount * 3)
+    const siz = new Float32Array(particleCount)
+    const pha = new Float32Array(particleCount)
 
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3
-      pos[i3] = (Math.random() - 0.5) * 15
-      pos[i3 + 1] = (Math.random() - 0.5) * 15
-      pos[i3 + 2] = (Math.random() - 0.5) * 10
+      pos[i3] = (Math.random() - 0.5) * 20
+      pos[i3 + 1] = (Math.random() - 0.5) * 16
+      pos[i3 + 2] = (Math.random() - 0.5) * 8
 
-      orig[i3] = pos[i3]
-      orig[i3 + 1] = pos[i3 + 1]
-      orig[i3 + 2] = pos[i3 + 2]
+      // Slower, more subtle movement
+      vel[i3] = (Math.random() - 0.5) * 0.003
+      vel[i3 + 1] = (Math.random() - 0.5) * 0.003
+      vel[i3 + 2] = (Math.random() - 0.5) * 0.001
 
-      vel[i3] = (Math.random() - 0.5) * 0.01
-      vel[i3 + 1] = (Math.random() - 0.5) * 0.01
-      vel[i3 + 2] = (Math.random() - 0.5) * 0.005
+      // Varying sizes for dust effect
+      siz[i] = Math.random() * 0.015 + 0.005
+
+      // Random phase for twinkling
+      pha[i] = Math.random() * Math.PI * 2
     }
 
-    return [pos, vel, orig]
+    return [pos, vel, siz, pha]
   }, [])
 
-  useFrame(() => {
+  useFrame((state) => {
     if (pointsRef.current) {
       const posAttr = pointsRef.current.geometry.attributes.position
+      const sizeAttr = pointsRef.current.geometry.attributes.size
       const array = posAttr.array as Float32Array
+      const sizeArray = sizeAttr.array as Float32Array
+      const time = state.clock.elapsedTime
 
-      // Convert mouse to world coordinates
       const mouseX = (pointer.x * viewport.width) / 2
       const mouseY = (pointer.y * viewport.height) / 2
 
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3
 
-        // Calculate distance from mouse (in 2D, ignoring z)
+        // Mouse repulsion
         const dx = array[i3] - mouseX
         const dy = array[i3 + 1] - mouseY
         const dist = Math.sqrt(dx * dx + dy * dy)
 
-        // Apply repulsion force if within influence radius
         if (dist < mouseInfluenceRadius && dist > 0.01) {
           const force = (1 - dist / mouseInfluenceRadius) * mouseRepelStrength
           const angle = Math.atan2(dy, dx)
@@ -75,18 +80,28 @@ function Particles() {
           array[i3 + 1] += Math.sin(angle) * force
         }
 
-        // Apply base velocity
+        // Drift movement
         array[i3] += velocities[i3]
         array[i3 + 1] += velocities[i3 + 1]
         array[i3 + 2] += velocities[i3 + 2]
 
-        // Boundary check
-        if (Math.abs(array[i3]) > 7.5) velocities[i3] *= -1
-        if (Math.abs(array[i3 + 1]) > 7.5) velocities[i3 + 1] *= -1
-        if (Math.abs(array[i3 + 2]) > 5) velocities[i3 + 2] *= -1
+        // Subtle floating motion
+        array[i3 + 1] += Math.sin(time * 0.5 + phases[i]) * 0.001
+
+        // Boundary wrap
+        if (array[i3] > 10) array[i3] = -10
+        if (array[i3] < -10) array[i3] = 10
+        if (array[i3 + 1] > 8) array[i3 + 1] = -8
+        if (array[i3 + 1] < -8) array[i3 + 1] = 8
+        if (array[i3 + 2] > 4) array[i3 + 2] = -4
+        if (array[i3 + 2] < -4) array[i3 + 2] = 4
+
+        // Twinkle effect - subtle size variation
+        sizeArray[i] = sizes[i] * (0.7 + 0.3 * Math.sin(time * 2 + phases[i]))
       }
 
       posAttr.needsUpdate = true
+      sizeAttr.needsUpdate = true
     }
   })
 
@@ -97,13 +112,19 @@ function Particles() {
           attach="attributes-position"
           args={[positions, 3]}
         />
+        <bufferAttribute
+          attach="attributes-size"
+          args={[sizes, 1]}
+        />
       </bufferGeometry>
       <pointsMaterial
-        size={0.03}
-        color="#888888"
+        size={0.012}
+        color="#667788"
         transparent
-        opacity={0.5}
+        opacity={0.6}
         sizeAttenuation
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
       />
     </points>
   )
@@ -117,7 +138,7 @@ export function CubeBackground() {
         style={{ background: 'black' }}
       >
         <RotatingCube />
-        <Particles />
+        <DigitalDust />
       </Canvas>
     </div>
   )

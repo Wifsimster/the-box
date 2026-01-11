@@ -1,4 +1,7 @@
 import { db } from '../database/connection.js'
+import { repoLogger } from '../logger/logger.js'
+
+const log = repoLogger.child({ repository: 'session' })
 
 export interface GameSessionRow {
   id: string
@@ -32,30 +35,38 @@ export interface TierSessionWithContext extends TierSessionRow {
 
 export const sessionRepository = {
   async findGameSession(userId: string, challengeId: number): Promise<GameSessionRow | null> {
-    return await db('game_sessions')
+    log.debug({ userId, challengeId }, 'findGameSession')
+    const row = await db('game_sessions')
       .where('user_id', userId)
       .andWhere('daily_challenge_id', challengeId)
       .first<GameSessionRow>()
+    log.debug({ userId, challengeId, found: !!row }, 'findGameSession result')
+    return row ?? null
   },
 
   async findGameSessionById(sessionId: string, userId: string): Promise<GameSessionRow | null> {
-    return await db('game_sessions')
+    log.debug({ sessionId, userId }, 'findGameSessionById')
+    const row = await db('game_sessions')
       .where('id', sessionId)
       .andWhere('user_id', userId)
       .first<GameSessionRow>()
+    log.debug({ sessionId, found: !!row }, 'findGameSessionById result')
+    return row ?? null
   },
 
   async createGameSession(data: {
     userId: string
     dailyChallengeId: number
   }): Promise<GameSessionRow> {
+    log.info({ userId: data.userId, challengeId: data.dailyChallengeId }, 'createGameSession')
     const [row] = await db('game_sessions')
       .insert({
         user_id: data.userId,
         daily_challenge_id: data.dailyChallengeId,
-        current_tier: 1, // Always 1 (single tier system)
+        current_tier: 1,
       })
       .returning<GameSessionRow[]>('*')
+    log.info({ sessionId: row!.id, userId: data.userId }, 'game session created')
     return row!
   },
 
@@ -63,16 +74,19 @@ export const sessionRepository = {
     gameSessionId: string
     tierId: number
   }): Promise<TierSessionRow> {
+    log.debug({ gameSessionId: data.gameSessionId, tierId: data.tierId }, 'createTierSession')
     const [row] = await db('tier_sessions')
       .insert({
         game_session_id: data.gameSessionId,
         tier_id: data.tierId,
       })
       .returning<TierSessionRow[]>('*')
+    log.debug({ tierSessionId: row!.id }, 'tier session created')
     return row!
   },
 
   async findTierSessionWithContext(tierSessionId: string): Promise<TierSessionWithContext | null> {
+    log.debug({ tierSessionId }, 'findTierSessionWithContext')
     const row = await db('tier_sessions')
       .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
       .join('tiers', 'tier_sessions.tier_id', 'tiers.id')
@@ -86,6 +100,7 @@ export const sessionRepository = {
         'tiers.time_limit_seconds'
       )
       .first()
+    log.debug({ tierSessionId, found: !!row }, 'findTierSessionWithContext result')
     return row ?? null
   },
 
@@ -93,6 +108,7 @@ export const sessionRepository = {
     score: number
     correctAnswers: number
   }): Promise<void> {
+    log.debug({ tierSessionId, score: data.score, correctAnswers: data.correctAnswers }, 'updateTierSession')
     await db('tier_sessions')
       .where('id', tierSessionId)
       .update({
@@ -106,6 +122,10 @@ export const sessionRepository = {
     currentPosition: number
     isCompleted: boolean
   }): Promise<void> {
+    log.info(
+      { sessionId: gameSessionId, totalScore: data.totalScore, position: data.currentPosition, completed: data.isCompleted },
+      'updateGameSession'
+    )
     await db('game_sessions')
       .where('id', gameSessionId)
       .update({
@@ -126,6 +146,16 @@ export const sessionRepository = {
     timeTakenMs: number
     scoreEarned: number
   }): Promise<void> {
+    log.info(
+      {
+        tierSessionId: data.tierSessionId,
+        position: data.position,
+        isCorrect: data.isCorrect,
+        scoreEarned: data.scoreEarned,
+        timeTakenMs: data.timeTakenMs,
+      },
+      'saveGuess'
+    )
     await db('guesses').insert({
       tier_session_id: data.tierSessionId,
       screenshot_id: data.screenshotId,

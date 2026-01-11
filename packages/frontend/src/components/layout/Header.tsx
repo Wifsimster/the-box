@@ -40,7 +40,20 @@ export function Header() {
           </Button>
 
           <LanguageSwitcher />
+        </nav>
 
+        {/* Auth Buttons */}
+        <div className="flex items-center gap-3">
+          {!session && !isPending && (
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">{t('common.login')}</Link>
+              </Button>
+              <Button variant="gaming" size="sm" asChild>
+                <Link to="/register">{t('common.register')}</Link>
+              </Button>
+            </>
+          )}
           {session && !isPending && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
@@ -51,7 +64,7 @@ export function Header() {
               </Button>
             </div>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   )

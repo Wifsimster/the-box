@@ -31,7 +31,9 @@
       "mcp__plugin_playwright_playwright__browser_take_screenshot",
       "Bash(npx tsc:*)",
       "mcp__plugin_playwright_playwright__browser_close",
-      "Bash(npm run dev:frontend:*)"
+      "Bash(npm run dev:frontend:*)",
+      "Bash(npm --version:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }

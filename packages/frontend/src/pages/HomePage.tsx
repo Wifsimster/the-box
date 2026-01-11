@@ -24,18 +24,6 @@ export default function HomePage() {
     <>
       <CubeBackground />
       <div className="container mx-auto px-4 py-12 relative z-10">
-      {/* Auth Buttons - Top Right */}
-      {!session && (
-        <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/login">{t('common.login')}</Link>
-          </Button>
-          <Button variant="gaming" size="sm" asChild>
-            <Link to="/register">{t('common.register')}</Link>
-          </Button>
-        </div>
-      )}
-
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -132,6 +120,38 @@ export default function HomePage() {
         </Card>
       </motion.div>
       </div>
+
+      {/* Legal Links - Fixed at bottom of screen */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+        className="fixed bottom-0 left-0 right-0 z-20 py-4 text-center"
+      >
+        <nav className="flex items-center justify-center gap-6 text-sm">
+          <Link
+            to="/terms"
+            className="text-muted-foreground hover:text-neon-purple transition-colors"
+          >
+            {t('footer.terms')}
+          </Link>
+          <Link
+            to="/privacy"
+            className="text-muted-foreground hover:text-neon-purple transition-colors"
+          >
+            {t('footer.privacy')}
+          </Link>
+          <Link
+            to="/contact"
+            className="text-muted-foreground hover:text-neon-purple transition-colors"
+          >
+            {t('footer.contact')}
+          </Link>
+        </nav>
+        <p className="mt-2 text-xs text-muted-foreground/60">
+          &copy; {new Date().getFullYear()} The Box. {t('footer.allRightsReserved')}
+        </p>
+      </motion.div>
     </>
   )
 }

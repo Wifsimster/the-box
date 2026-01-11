@@ -10,6 +10,9 @@ import type {
   GuessResponse,
   Game,
 } from '@the-box/types'
+import { serviceLogger } from '../../infrastructure/logger/logger.js'
+
+const log = serviceLogger.child({ service: 'game' })
 
 export class GameError extends Error {
   constructor(
@@ -19,6 +22,7 @@ export class GameError extends Error {
   ) {
     super(message)
     this.name = 'GameError'
+    log.warn({ code, statusCode }, message)
   }
 }
 
@@ -28,10 +32,12 @@ const TIME_LIMIT_SECONDS = 30
 export const gameService = {
   async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
     const today = new Date().toISOString().split('T')[0]!
+    log.debug({ date: today, userId }, 'getTodayChallenge')
 
     const challenge = await challengeRepository.findByDate(today)
 
     if (!challenge) {
+      log.debug({ date: today }, 'no challenge found for today')
       return {
         challengeId: null,
         date: today,
@@ -52,6 +58,7 @@ export const gameService = {
           isCompleted: session.is_completed,
           totalScore: session.total_score,
         }
+        log.debug({ userId, challengeId: challenge.id, hasPlayed: true }, 'user has existing session')
       }
     }
 
@@ -66,14 +73,14 @@ export const gameService = {
   },
 
   async startChallenge(challengeId: number, userId: string): Promise<StartChallengeResponse> {
-    // Find the single tier for this challenge
+    log.info({ challengeId, userId }, 'startChallenge')
+
     const tiers = await challengeRepository.findTiersByChallenge(challengeId)
     const tier = tiers[0]
     if (!tier) {
       throw new GameError('CHALLENGE_NOT_FOUND', 'Challenge not found', 404)
     }
 
-    // Get or create game session
     let gameSession = await sessionRepository.findGameSession(userId, challengeId)
 
     if (!gameSession) {
@@ -81,9 +88,11 @@ export const gameService = {
         userId,
         dailyChallengeId: challengeId,
       })
+      log.info({ sessionId: gameSession.id, challengeId, userId }, 'new game session started')
+    } else {
+      log.debug({ sessionId: gameSession.id, challengeId, userId }, 'resuming existing session')
     }
 
-    // Create tier session (we still use tier_sessions internally)
     const tierSession = await sessionRepository.createTierSession({
       gameSessionId: gameSession.id,
       tierId: tier.id,
@@ -138,13 +147,14 @@ export const gameService = {
     timeTakenMs: number
     userId: string
   }): Promise<GuessResponse> {
+    log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
+
     const tierSession = await sessionRepository.findTierSessionWithContext(data.tierSessionId)
 
     if (!tierSession || tierSession.user_id !== data.userId) {
       throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
     }
 
-    // Get screenshot with game info
     const screenshotData = await screenshotRepository.findWithGame(data.screenshotId)
     if (!screenshotData) {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
@@ -152,17 +162,27 @@ export const gameService = {
 
     const { screenshot, gameName, coverImageUrl } = screenshotData
 
-    // Check if correct
     const isCorrect = data.gameId === screenshot.gameId
 
-    // Calculate score
     const scoreEarned = this.calculateScore(
       isCorrect,
       data.timeTakenMs,
       TIME_LIMIT_SECONDS
     )
 
-    // Save guess
+    log.info(
+      {
+        userId: data.userId,
+        position: data.position,
+        isCorrect,
+        scoreEarned,
+        timeTakenMs: data.timeTakenMs,
+        guessedGame: data.guessText,
+        correctGame: gameName,
+      },
+      'guess submitted'
+    )
+
     await sessionRepository.saveGuess({
       tierSessionId: data.tierSessionId,
       screenshotId: data.screenshotId,
@@ -174,13 +194,11 @@ export const gameService = {
       scoreEarned,
     })
 
-    // Update tier session
     await sessionRepository.updateTierSession(data.tierSessionId, {
       score: tierSession.score + scoreEarned,
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
     })
 
-    // Update game session
     const newTotalScore = tierSession.game_total_score + scoreEarned
     const isCompleted = data.position >= TOTAL_SCREENSHOTS
 
@@ -189,6 +207,13 @@ export const gameService = {
       currentPosition: isCompleted ? data.position : data.position + 1,
       isCompleted,
     })
+
+    if (isCompleted) {
+      log.info(
+        { userId: data.userId, sessionId: tierSession.game_session_id, finalScore: newTotalScore },
+        'game completed'
+      )
+    }
 
     const correctGame: Game = {
       id: screenshot.gameId,

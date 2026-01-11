@@ -1,5 +1,8 @@
 import { db } from '../database/connection.js'
 import type { User } from '@the-box/types'
+import { repoLogger } from '../logger/logger.js'
+
+const log = repoLogger.child({ repository: 'user' })
 
 /**
  * User repository for better-auth's 'user' table.
@@ -46,35 +49,45 @@ function mapRowToUser(row: UserRow): User {
 
 export const userRepository = {
   async findById(id: string): Promise<User | null> {
+    log.debug({ userId: id }, 'findById')
     const row = await db('user').where('id', id).first<UserRow>()
+    log.debug({ userId: id, found: !!row }, 'findById result')
     return row ? mapRowToUser(row) : null
   },
 
   async findByEmail(email: string): Promise<User | null> {
+    log.debug({ email }, 'findByEmail')
     const row = await db('user').where('email', email).first<UserRow>()
+    log.debug({ email, found: !!row }, 'findByEmail result')
     return row ? mapRowToUser(row) : null
   },
 
   async findByUsername(username: string): Promise<User | null> {
+    log.debug({ username }, 'findByUsername')
     const row = await db('user').where('username', username).first<UserRow>()
+    log.debug({ username, found: !!row }, 'findByUsername result')
     return row ? mapRowToUser(row) : null
   },
 
   async findByUsernameOrEmail(username: string, email: string): Promise<User | null> {
+    log.debug({ username, email }, 'findByUsernameOrEmail')
     const row = await db('user')
       .where('username', username)
       .orWhere('email', email)
       .first<UserRow>()
+    log.debug({ username, email, found: !!row }, 'findByUsernameOrEmail result')
     return row ? mapRowToUser(row) : null
   },
 
   async updateScore(userId: string, additionalScore: number): Promise<void> {
+    log.info({ userId, additionalScore }, 'updateScore')
     await db('user')
       .where('id', userId)
       .increment('totalScore', additionalScore)
   },
 
   async updateStreak(userId: string, currentStreak: number, longestStreak: number): Promise<void> {
+    log.info({ userId, currentStreak, longestStreak }, 'updateStreak')
     await db('user')
       .where('id', userId)
       .update({

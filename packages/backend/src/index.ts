@@ -8,6 +8,8 @@ import { env, validateEnv } from './config/env.js'
 import { testConnection } from './infrastructure/database/connection.js'
 import { initializeSocket } from './infrastructure/socket/socket.js'
 import { auth } from './infrastructure/auth/auth.js'
+import { logger } from './infrastructure/logger/logger.js'
+import { requestLogger } from './presentation/middleware/request-logger.middleware.js'
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
@@ -35,6 +37,9 @@ app.all('/api/auth/*splat', toNodeHandler(auth))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+// Request logging (after body parsing for potential body logging)
+app.use(requestLogger)
+
 // Static file serving for uploads (screenshots)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', 'uploads')
@@ -52,8 +57,16 @@ app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/admin', adminRoutes)
 
 // Error handling
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Error:', err)
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error(
+    {
+      error: err.message,
+      stack: env.NODE_ENV === 'development' ? err.stack : undefined,
+      method: req.method,
+      url: req.url,
+    },
+    'unhandled error'
+  )
   res.status(500).json({
     success: false,
     error: {
@@ -76,17 +89,28 @@ app.use((_req, res) => {
 
 // Start server
 async function start(): Promise<void> {
+  logger.info({ env: env.NODE_ENV }, 'starting server')
+
   // Test database connection
   const dbConnected = await testConnection()
   if (!dbConnected) {
-    console.warn('Warning: Database connection failed. Some features may not work.')
+    logger.warn('database connection failed - some features may not work')
   }
 
   httpServer.listen(env.PORT, () => {
-    console.log(`Server running on port ${env.PORT}`)
-    console.log(`Environment: ${env.NODE_ENV}`)
-    console.log(`CORS origin: ${env.CORS_ORIGIN}`)
+    logger.info(
+      {
+        port: env.PORT,
+        env: env.NODE_ENV,
+        corsOrigin: env.CORS_ORIGIN,
+        logLevel: env.LOG_LEVEL,
+      },
+      'server started'
+    )
   })
 }
 
-start().catch(console.error)
+start().catch((err) => {
+  logger.fatal({ error: String(err) }, 'failed to start server')
+  process.exit(1)
+})
