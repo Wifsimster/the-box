@@ -312,6 +312,12 @@ export interface LeaderboardResponse {
   entries: LeaderboardEntry[]
 }
 
+export interface PercentileResponse {
+  percentile: number      // e.g., 85 means "top 15%"
+  totalPlayers: number    // total completed sessions
+  rank: number            // actual rank position
+}
+
 // ============================================
 // Socket Events
 // ============================================

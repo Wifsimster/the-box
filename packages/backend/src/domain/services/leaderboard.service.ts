@@ -1,5 +1,5 @@
 import { challengeRepository, leaderboardRepository } from '../../infrastructure/repositories/index.js'
-import type { LeaderboardResponse } from '@the-box/types'
+import type { LeaderboardResponse, PercentileResponse } from '@the-box/types'
 
 export const leaderboardService = {
   async getTodayLeaderboard(): Promise<LeaderboardResponse> {
@@ -45,5 +45,18 @@ export const leaderboardService = {
       challengeId: challenge.id,
       entries,
     }
+  },
+
+  async getTodayPercentile(score: number): Promise<PercentileResponse> {
+    const today = new Date().toISOString().split('T')[0]!
+
+    const challenge = await challengeRepository.findByDate(today)
+
+    if (!challenge) {
+      // No challenge today, return default values
+      return { percentile: 100, totalPlayers: 0, rank: 1 }
+    }
+
+    return leaderboardRepository.getPercentileForScore(challenge.id, score)
   },
 }

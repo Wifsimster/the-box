@@ -17,6 +17,31 @@ router.get('/today', async (_req, res, next) => {
   }
 })
 
+// Get percentile ranking for a score on today's challenge
+router.get('/today/percentile', async (req, res, next) => {
+  try {
+    const scoreParam = req.query.score as string | undefined
+
+    if (!scoreParam || isNaN(Number(scoreParam))) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_SCORE', message: 'Score query parameter is required and must be a number' },
+      })
+      return
+    }
+
+    const score = Number(scoreParam)
+    const data = await leaderboardService.getTodayPercentile(score)
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Get leaderboard for specific date
 router.get('/:date', async (req, res, next) => {
   try {

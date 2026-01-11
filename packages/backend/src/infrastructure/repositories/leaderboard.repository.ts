@@ -1,5 +1,5 @@
 import { db } from '../database/connection.js'
-import type { LeaderboardEntry } from '@the-box/types'
+import type { LeaderboardEntry, PercentileResponse } from '@the-box/types'
 
 interface LeaderboardRow {
   user_id: string
@@ -36,5 +36,38 @@ export const leaderboardRepository = {
       totalScore: session.total_score,
       completedAt: session.completed_at?.toISOString(),
     }))
+  },
+
+  async getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse> {
+    // Count total completed sessions for this challenge
+    const totalResult = await db('game_sessions')
+      .where('daily_challenge_id', challengeId)
+      .andWhere('is_completed', true)
+      .count('id as count')
+      .first()
+
+    const totalPlayers = Number(totalResult?.count ?? 0)
+
+    if (totalPlayers === 0) {
+      return { percentile: 100, totalPlayers: 0, rank: 1 }
+    }
+
+    // Count players with score higher than the given score (to determine rank)
+    const higherScoreResult = await db('game_sessions')
+      .where('daily_challenge_id', challengeId)
+      .andWhere('is_completed', true)
+      .andWhere('total_score', '>', score)
+      .count('id as count')
+      .first()
+
+    const playersAbove = Number(higherScoreResult?.count ?? 0)
+    const rank = playersAbove + 1
+
+    // Calculate percentile: what percentage of players scored lower
+    // percentile = (players with lower score / total players) * 100
+    const playersBelow = totalPlayers - rank
+    const percentile = Math.round((playersBelow / totalPlayers) * 100)
+
+    return { percentile, totalPlayers, rank }
   },
 }
