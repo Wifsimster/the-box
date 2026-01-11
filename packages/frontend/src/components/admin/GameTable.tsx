@@ -69,6 +69,7 @@ export function GameTable({
           <SortableHeader field="slug">{t('admin.games.table.slug')}</SortableHeader>
           <SortableHeader field="releaseYear">{t('admin.games.table.releaseYear')}</SortableHeader>
           <SortableHeader field="developer">{t('admin.games.table.developer')}</SortableHeader>
+          <SortableHeader field="metacritic">{t('admin.games.table.metacritic')}</SortableHeader>
           <TableHead>{t('admin.games.table.genres')}</TableHead>
           <TableHead className="text-right">{t('admin.games.table.actions')}</TableHead>
         </TableRow>
@@ -80,6 +81,7 @@ export function GameTable({
             <TableCell className="text-muted-foreground">{game.slug}</TableCell>
             <TableCell>{game.releaseYear || '-'}</TableCell>
             <TableCell>{game.developer || '-'}</TableCell>
+            <TableCell>{game.metacritic ?? '-'}</TableCell>
             <TableCell>
               {game.genres?.length ? (
                 <span className="text-sm text-muted-foreground">

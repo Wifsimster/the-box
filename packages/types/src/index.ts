@@ -29,6 +29,7 @@ export interface Game {
   genres?: string[]
   platforms?: string[]
   coverImageUrl?: string
+  metacritic?: number
 }
 
 // Screenshot types

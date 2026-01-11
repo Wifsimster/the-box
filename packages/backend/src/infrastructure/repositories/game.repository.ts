@@ -15,6 +15,7 @@ export interface GameRow {
   genres: string[] | null
   platforms: string[] | null
   cover_image_url: string | null
+  metacritic: number | null
   created_at: Date
 }
 
@@ -30,6 +31,7 @@ function mapRowToGame(row: GameRow): Game {
     genres: row.genres ?? undefined,
     platforms: row.platforms ?? undefined,
     coverImageUrl: row.cover_image_url ?? undefined,
+    metacritic: row.metacritic ?? undefined,
   }
 }
 
@@ -77,6 +79,7 @@ export const gameRepository = {
       createdAt: 'created_at',
       developer: 'developer',
       slug: 'slug',
+      metacritic: 'metacritic',
     }
     const sortColumn = columnMap[sortBy] || 'name'
 
@@ -148,6 +151,7 @@ export const gameRepository = {
         genres: data.genres,
         platforms: data.platforms,
         cover_image_url: data.coverImageUrl,
+        metacritic: data.metacritic,
       })
       .returning<GameRow[]>('*')
     log.info({ gameId: row!.id, name: row!.name }, 'game created')
@@ -166,6 +170,7 @@ export const gameRepository = {
     if (data.genres) updateData['genres'] = data.genres
     if (data.platforms) updateData['platforms'] = data.platforms
     if (data.coverImageUrl) updateData['cover_image_url'] = data.coverImageUrl
+    if (data.metacritic !== undefined) updateData['metacritic'] = data.metacritic
 
     const [row] = await db('games')
       .where('id', id)

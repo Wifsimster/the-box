@@ -228,6 +228,7 @@
         "slug": "Slug",
         "releaseYear": "Année",
         "developer": "Développeur",
+        "metacritic": "Metascore",
         "genres": "Genres",
         "actions": "Actions"
       },

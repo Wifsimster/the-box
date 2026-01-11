@@ -139,6 +139,16 @@ export default function GamePage() {
       setLoading(true)
       setError(null)
 
+      // Reset relevant game state to ensure clean slate for new game
+      // This clears any persisted state from previously completed games
+      useGameStore.setState({
+        totalScore: 0,
+        correctAnswers: 0,
+        guessResults: [],
+        lastResult: null,
+        screenshotsFound: 0,
+      })
+
       // Auto-login as guest if not authenticated
       if (!session && !isSessionPending) {
         await authClient.signIn.anonymous()
@@ -154,6 +164,9 @@ export default function GamePage() {
 
       // Initialize position states for navigation tracking
       initializePositionStates(startData.totalScreenshots)
+
+      // Start the score countdown timer
+      useGameStore.getState().startScoreCountdown()
 
       // Fetch the first screenshot
       await fetchScreenshot(startData.sessionId, 1)

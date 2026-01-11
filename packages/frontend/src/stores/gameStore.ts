@@ -174,11 +174,14 @@ export const useGameStore = create<GameState>()(
         // Countdown scoring actions
         setSessionScoring: (config, sessionStartedAt) => {
           const startedAtTimestamp = new Date(sessionStartedAt).getTime()
+          // Use defensive defaults to ensure valid score values
+          const initialScoreValue = config.initialScore || 1000
+          const decayRateValue = config.decayRate || 2
           set({
-            initialScore: config.initialScore,
-            decayRate: config.decayRate,
+            initialScore: initialScoreValue,
+            decayRate: decayRateValue,
             sessionStartedAt: startedAtTimestamp,
-            currentScore: config.initialScore,
+            currentScore: initialScoreValue,
             roundStartedAt: Date.now(),
           })
         },
