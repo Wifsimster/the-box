@@ -1,4 +1,19 @@
 services:
+  # Redis (Job Queue)
+  redis:
+    image: redis:7-alpine
+    container_name: thebox-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
@@ -28,6 +43,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -38,6 +55,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@battistella.ovh}
       RAWG_API_KEY: ${RAWG_API_KEY:-}
+      REDIS_URL: redis://thebox-redis:6379
     volumes:
       - ./uploads:/app/uploads
     networks:
@@ -122,6 +140,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   # Internal network for database communication

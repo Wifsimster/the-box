@@ -41,4 +41,16 @@ export type {
   PlayerFinishedEvent,
   PlayerJoinedEvent,
   PlayerLeftEvent,
+
+  // Job Management (Admin)
+  JobType,
+  JobStatus,
+  Job,
+  JobData,
+  JobResult,
+  JobProgressEvent,
+  JobCompletedEvent,
+  JobFailedEvent,
+  CreateJobRequest,
+  JobListResponse,
 } from '@the-box/types'

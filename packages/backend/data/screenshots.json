@@ -1,0 +1,205 @@
+[
+  {
+    "game_slug": "the-witcher-3-wild-hunt-blood-and-wine",
+    "image_url": "/uploads/screenshots/the-witcher-3-wild-hunt-blood-and-wine/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/88b/88bd812b03e695f608ec6465f9290708.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-witcher-3-wild-hunt-blood-and-wine",
+    "image_url": "/uploads/screenshots/the-witcher-3-wild-hunt-blood-and-wine/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/777/7773199e9937c4ed2a6cc4088a06f70e_PfIohkJ.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-witcher-3-game-of-the-year",
+    "image_url": "/uploads/screenshots/the-witcher-3-game-of-the-year/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/6e1/6e13d9acb4e7a6e184f24892f52c4544.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-witcher-3-wild-hunt-hearts-of-stone",
+    "image_url": "/uploads/screenshots/the-witcher-3-wild-hunt-hearts-of-stone/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/795/795e17029d6e4439646ca719621b292b.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-witcher-3-wild-hunt-hearts-of-stone",
+    "image_url": "/uploads/screenshots/the-witcher-3-wild-hunt-hearts-of-stone/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/8fc/8fcaf0f314c81bd641e0ee6e88c8ed48.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "persona-5-royal",
+    "image_url": "/uploads/screenshots/persona-5-royal/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e70/e701311c431504ccd8653a5243188a13.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "persona-5-royal",
+    "image_url": "/uploads/screenshots/persona-5-royal/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/5af/5af7efeca549b9a768870c52eff7e128.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-last-of-us-remastered",
+    "image_url": "/uploads/screenshots/the-last-of-us-remastered/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/5a7/5a74e852355169e1767f3b59d5488829.jpeg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-last-of-us-remastered",
+    "image_url": "/uploads/screenshots/the-last-of-us-remastered/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a4b/a4b8e8d4d56d1889f76872da7364e406.jpeg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "ballistics",
+    "image_url": "/uploads/screenshots/ballistics/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/c3f/c3ff65c2d5fc1f60331dc069f6c0d514.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "ballistics",
+    "image_url": "/uploads/screenshots/ballistics/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/79b/79b084f76e691921db40dc3942520596.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "disco-elysium-final-cut",
+    "image_url": "/uploads/screenshots/disco-elysium-final-cut/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/627/627aeb395f83dbbe72ab6292f7980c97.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "disco-elysium-final-cut",
+    "image_url": "/uploads/screenshots/disco-elysium-final-cut/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/273/2733c373f7b29cfb25d15db8055fbfb2.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-witcher-3-wild-hunt",
+    "image_url": "/uploads/screenshots/the-witcher-3-wild-hunt/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/1ac/1ac19f31974314855ad7be266adeb500.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-witcher-3-wild-hunt",
+    "image_url": "/uploads/screenshots/the-witcher-3-wild-hunt/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/6a0/6a08afca95261a2fe221ea9e01d28762.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "mario-luigi-bowsers-inside-story-bowser-jrs-journe",
+    "image_url": "/uploads/screenshots/mario-luigi-bowsers-inside-story-bowser-jrs-journe/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/4c5/4c5789bff5bde8f2c7b991832f49b5ed.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "mario-luigi-bowsers-inside-story-bowser-jrs-journe",
+    "image_url": "/uploads/screenshots/mario-luigi-bowsers-inside-story-bowser-jrs-journe/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/2e8/2e8e99f8cc75b385d8b8ee271285e805.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "starlancer",
+    "image_url": "/uploads/screenshots/starlancer/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/61b/61b129d6bd5980c591197015c5babcd7.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "starlancer",
+    "image_url": "/uploads/screenshots/starlancer/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f78/f78d0605f05b880f03fdbec1097f35a8.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "splatoon-2-octo-expansion",
+    "image_url": "/uploads/screenshots/splatoon-2-octo-expansion/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/db9/db9989c431ccb4e7d04af45bb1b14807.jpeg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "splatoon-2-octo-expansion",
+    "image_url": "/uploads/screenshots/splatoon-2-octo-expansion/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b48/b48d42763a2478be1946dd2ad4d97a54.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "dark-souls-iii-the-ringed-city",
+    "image_url": "/uploads/screenshots/dark-souls-iii-the-ringed-city/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/57d/57d01e954cfb193ff54cb86c5f1265d5.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "dark-souls-iii-the-ringed-city",
+    "image_url": "/uploads/screenshots/dark-souls-iii-the-ringed-city/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/602/6027567fd2b054aa56e71237a4ba37f2.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-v-skyrim-legendary-edition/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/ac1/ac1718fd93797bf4657014fd98db900f.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-v-skyrim-legendary-edition/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f65/f65d270a4bccfd9fea90ef346faf0ab1.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "starraft-ii-legacy-of-the-void",
+    "image_url": "/uploads/screenshots/starraft-ii-legacy-of-the-void/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/016/01686ea39060bf92a74411787704b6db.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "starraft-ii-legacy-of-the-void",
+    "image_url": "/uploads/screenshots/starraft-ii-legacy-of-the-void/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b4c/b4c1ae1ad173a4d9806fa961a6886b1e.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "red-dead-redemption-2",
+    "image_url": "/uploads/screenshots/red-dead-redemption-2/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/7b8/7b8895a23e8ca0dbd9e1ba24696579d9.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "red-dead-redemption-2",
+    "image_url": "/uploads/screenshots/red-dead-redemption-2/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b8c/b8cee381079d58b981594ede46a3d6ca.jpg",
+    "difficulty": 2
+  }
+]

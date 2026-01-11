@@ -21,6 +21,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
 const TermsPage = lazy(() => import('@/pages/TermsPage'))
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'))
 const ContactPage = lazy(() => import('@/pages/ContactPage'))
+const AdminPage = lazy(() => import('@/pages/AdminPage'))
 
 function LoadingSpinner() {
   return (
@@ -88,6 +89,7 @@ function App() {
         <Route path="terms" element={<TermsPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="contact" element={<ContactPage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
 
       {/* Catch-all redirect to browser language */}

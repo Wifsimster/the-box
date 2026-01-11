@@ -308,3 +308,67 @@ export interface PlayerLeftEvent {
   username: string
   totalPlayers: number
 }
+
+// ============================================
+// Job Management (Admin)
+// ============================================
+
+export type JobType = 'import-games' | 'import-screenshots'
+export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
+
+export interface Job {
+  id: string
+  type: JobType
+  status: JobStatus
+  progress: number
+  data: JobData
+  result?: JobResult
+  error?: string
+  createdAt: string
+  startedAt?: string
+  completedAt?: string
+  failedAt?: string
+}
+
+export interface JobData {
+  // For import-games
+  targetGames?: number
+  screenshotsPerGame?: number
+}
+
+export interface JobResult {
+  gamesProcessed?: number
+  screenshotsProcessed?: number
+  failedCount?: number
+  message?: string
+}
+
+// Job Socket Events
+export interface JobProgressEvent {
+  jobId: string
+  progress: number
+  current: number
+  total: number
+  message: string
+}
+
+export interface JobCompletedEvent {
+  jobId: string
+  result: JobResult
+}
+
+export interface JobFailedEvent {
+  jobId: string
+  error: string
+}
+
+// Job API Types
+export interface CreateJobRequest {
+  type: JobType
+  data?: JobData
+}
+
+export interface JobListResponse {
+  jobs: Job[]
+  total: number
+}

@@ -27,6 +27,7 @@ export const serviceLogger = logger.child({ module: 'service' })
 export const routeLogger = logger.child({ module: 'route' })
 export const authLogger = logger.child({ module: 'auth' })
 export const socketLogger = logger.child({ module: 'socket' })
+export const queueLogger = logger.child({ module: 'queue' })
 
 // Helper for timing operations
 export function withTiming<T>(

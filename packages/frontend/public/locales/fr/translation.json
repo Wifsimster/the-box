@@ -18,7 +18,8 @@
     "logout": "Déconnexion",
     "guest": "Jouer en invité",
     "share": "Partager",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "admin": "Admin"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",
@@ -39,6 +40,12 @@
     "viewResults": "Voir les Résultats",
     "worldTotal": "Score Mondial",
     "bonusRound": "Round Bonus",
+    "yourGuess": "Ta réponse",
+    "speed": {
+      "lightning": "Éclair !",
+      "fast": "Rapide !",
+      "good": "Bien joué !"
+    },
     "powerUps": {
       "x2Timer": "Temps Double",
       "hint": "Indice"
@@ -131,7 +138,27 @@
     "challenges": "Défis",
     "addGame": "Ajouter un Jeu",
     "addScreenshot": "Ajouter une Capture",
-    "createChallenge": "Créer un Défi"
+    "createChallenge": "Créer un Défi",
+    "jobs": {
+      "title": "Tâches",
+      "importGames": "Importer les Jeux",
+      "importGamesDesc": "Récupérer les jeux et captures depuis l'API RAWG",
+      "importScreenshots": "Télécharger les Captures",
+      "importScreenshotsDesc": "Télécharger les captures en local",
+      "targetGames": "Nombre de jeux",
+      "screenshotsPerGame": "Captures par jeu",
+      "startJob": "Lancer l'import",
+      "cancel": "Annuler",
+      "clearCompleted": "Supprimer terminées",
+      "noJobs": "Aucune tâche",
+      "status": {
+        "waiting": "En attente",
+        "active": "En cours",
+        "completed": "Terminé",
+        "failed": "Échoué",
+        "delayed": "Retardé"
+      }
+    }
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",

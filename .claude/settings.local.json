@@ -34,7 +34,15 @@
       "Bash(npm run dev:frontend:*)",
       "Bash(npm --version:*)",
       "Bash(taskkill:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm run build:types:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run dev:backend:*)",
+      "Bash(docker run:*)",
+      "Bash(docker start:*)",
+      "Bash(netstat:*)"
     ]
   }
 }

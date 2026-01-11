@@ -1,0 +1,272 @@
+[
+  {
+    "name": "The Witcher 3: Wild Hunt – Blood and Wine",
+    "slug": "the-witcher-3-wild-hunt-blood-and-wine",
+    "aliases": [],
+    "release_year": 2016,
+    "developer": "CD PROJEKT RED",
+    "publisher": "CD PROJEKT RED",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/b51/b51c3649322ac0de9dfbe83435eda449.jpg"
+  },
+  {
+    "name": "The Witcher 3 Wild Hunt - Complete Edition",
+    "slug": "the-witcher-3-game-of-the-year",
+    "aliases": [],
+    "release_year": 2016,
+    "developer": "CD PROJEKT RED",
+    "publisher": "CD PROJEKT RED",
+    "genres": [
+      "Adventure",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 5",
+      "Xbox One",
+      "PlayStation 4",
+      "Xbox Series S/X",
+      "Nintendo Switch"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/52b/52be96c19be0d79eeb8664e4ca2aabd5.jpg"
+  },
+  {
+    "name": "The Witcher 3: Wild Hunt – Hearts of Stone",
+    "slug": "the-witcher-3-wild-hunt-hearts-of-stone",
+    "aliases": [],
+    "release_year": 2015,
+    "developer": "CD PROJEKT RED",
+    "publisher": "CD PROJEKT RED",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/c19/c193180583c34e5753a1aaf15a586761.jpg"
+  },
+  {
+    "name": "Persona 5 Royal",
+    "slug": "persona-5-royal",
+    "aliases": [],
+    "release_year": 2020,
+    "developer": "Atlus",
+    "publisher": "SEGA",
+    "genres": [
+      "Adventure",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 5",
+      "Xbox One",
+      "PlayStation 4",
+      "Xbox Series S/X",
+      "Nintendo Switch"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/a9c/a9c789951de65da545d51f664b4f2ce0.jpg"
+  },
+  {
+    "name": "The Last Of Us Remastered",
+    "slug": "the-last-of-us-remastered",
+    "aliases": [],
+    "release_year": 2014,
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "genres": [
+      "Adventure",
+      "Action"
+    ],
+    "platforms": [
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/364/3642d850efb217c58feab80b8affaa89.jpg"
+  },
+  {
+    "name": "Ballistics",
+    "slug": "ballistics",
+    "aliases": [],
+    "release_year": 2001,
+    "developer": "GRIN",
+    "publisher": "Xicat Interactive",
+    "genres": [
+      "Racing",
+      "Arcade"
+    ],
+    "platforms": [
+      "PC",
+      "Linux"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/e51/e51bed8ffc09f30987b5e8798d2ede03.jpg"
+  },
+  {
+    "name": "Disco Elysium: Final Cut",
+    "slug": "disco-elysium-final-cut",
+    "aliases": [],
+    "release_year": 2021,
+    "developer": "ZA/UM",
+    "publisher": null,
+    "genres": [
+      "Adventure",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 5",
+      "Xbox One",
+      "PlayStation 4",
+      "Xbox Series S/X",
+      "Nintendo Switch",
+      "iOS",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/0af/0afe9e8ace196123d8c7cf22172cec63.jpg"
+  },
+  {
+    "name": "The Witcher 3: Wild Hunt",
+    "slug": "the-witcher-3-wild-hunt",
+    "aliases": [],
+    "release_year": 2015,
+    "developer": "CD PROJEKT RED",
+    "publisher": "CD PROJEKT RED",
+    "genres": [
+      "Action",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 5",
+      "Xbox One",
+      "PlayStation 4",
+      "Xbox Series S/X",
+      "Nintendo Switch",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg"
+  },
+  {
+    "name": "Mario & Luigi: Bowser's Inside Story + Bowser Jr's Journey",
+    "slug": "mario-luigi-bowsers-inside-story-bowser-jrs-journe",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Alpha Dream",
+    "publisher": "Nintendo",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "Nintendo 3DS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/df3/df355872a5ee2d9bb15c390a7db7a7d4.jpg"
+  },
+  {
+    "name": "Starlancer",
+    "slug": "starlancer",
+    "aliases": [],
+    "release_year": 2000,
+    "developer": "Digital Anvil",
+    "publisher": "Ubisoft Entertainment",
+    "genres": [
+      "Simulation"
+    ],
+    "platforms": [
+      "PC",
+      "Dreamcast"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/463/4632b7e19146131ff1986170b045439d.jpg"
+  },
+  {
+    "name": "Splatoon 2: Octo Expansion",
+    "slug": "splatoon-2-octo-expansion",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Nintendo",
+    "publisher": "Nintendo",
+    "genres": [
+      "Shooter",
+      "Action"
+    ],
+    "platforms": [
+      "Nintendo Switch"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/8a7/8a7e9776a4f72be09eff57c821391b96.jpg"
+  },
+  {
+    "name": "Dark Souls III: The Ringed City",
+    "slug": "dark-souls-iii-the-ringed-city",
+    "aliases": [],
+    "release_year": 2017,
+    "developer": "FromSoftware",
+    "publisher": "Bandai Namco Entertainment",
+    "genres": [
+      "Action",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/25a/25a2a77f6feb0b14bcb0847ed966db20.jpg"
+  },
+  {
+    "name": "The Elder Scrolls V: Skyrim Legendary Edition",
+    "slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "aliases": [],
+    "release_year": 2013,
+    "developer": "Bethesda Game Studios",
+    "publisher": "Bethesda Softworks",
+    "genres": [
+      "Adventure",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/6db/6db2d022f77b1c99116bbf6750ec2c7d.jpg"
+  },
+  {
+    "name": "StarСraft II: Legacy of the Void",
+    "slug": "starraft-ii-legacy-of-the-void",
+    "aliases": [],
+    "release_year": 2015,
+    "developer": null,
+    "publisher": "Blizzard Entertainment",
+    "genres": [
+      "Strategy"
+    ],
+    "platforms": [
+      "PC",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/cc7/cc7caf0e38a065f75d9030999e50c671.jpg"
+  },
+  {
+    "name": "Red Dead Redemption 2",
+    "slug": "red-dead-redemption-2",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Rockstar Games",
+    "publisher": "Rockstar Games",
+    "genres": [
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg"
+  }
+]

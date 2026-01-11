@@ -13,6 +13,8 @@ import { requestLogger } from './presentation/middleware/request-logger.middlewa
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
+import { setSocketInstance } from './infrastructure/queue/workers/import.worker.js'
+import { testRedisConnection } from './infrastructure/queue/connection.js'
 
 // Validate environment
 validateEnv()
@@ -22,6 +24,9 @@ const httpServer = createServer(app)
 
 // Initialize Socket.io
 export const io = initializeSocket(httpServer)
+
+// Set socket instance for job worker
+setSocketInstance(io)
 
 // CORS middleware
 app.use(cors({
@@ -95,6 +100,12 @@ async function start(): Promise<void> {
   const dbConnected = await testConnection()
   if (!dbConnected) {
     logger.warn('database connection failed - some features may not work')
+  }
+
+  // Test Redis connection
+  const redisConnected = await testRedisConnection()
+  if (!redisConnected) {
+    logger.warn('redis connection failed - job queue may not work')
   }
 
   httpServer.listen(env.PORT, () => {

@@ -19,6 +19,9 @@ export const env = {
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
+
+  // Redis (for BullMQ job queue)
+  REDIS_URL: process.env['REDIS_URL'] || 'redis://localhost:6379',
 }
 
 export function validateEnv(): void {

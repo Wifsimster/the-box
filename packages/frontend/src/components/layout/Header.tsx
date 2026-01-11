@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Trophy, Home, LogOut } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth-client'
 
 export function Header() {
@@ -40,6 +40,15 @@ export function Header() {
               {t('common.leaderboard')}
             </Link>
           </Button>
+
+          {session?.user.role === 'admin' && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/${currentLang}/admin`}>
+                <Settings className="w-4 h-4 mr-1" />
+                {t('common.admin')}
+              </Link>
+            </Button>
+          )}
         </nav>
 
         {/* Auth Buttons */}

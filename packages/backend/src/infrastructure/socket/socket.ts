@@ -71,6 +71,17 @@ export function initializeSocket(httpServer: HttpServer): Server {
       })
     })
 
+    // Admin room for job updates
+    socket.on('join_admin', () => {
+      socket.join('admin')
+      log.debug({ socketId: socket.id }, 'joined admin room')
+    })
+
+    socket.on('leave_admin', () => {
+      socket.leave('admin')
+      log.debug({ socketId: socket.id }, 'left admin room')
+    })
+
     // Handle disconnect
     socket.on('disconnect', () => {
       // Remove from all rooms

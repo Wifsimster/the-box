@@ -18,7 +18,8 @@
     "logout": "Logout",
     "guest": "Play as Guest",
     "share": "Share",
-    "retry": "Retry"
+    "retry": "Retry",
+    "admin": "Admin"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -39,6 +40,12 @@
     "viewResults": "View Results",
     "worldTotal": "World Total",
     "bonusRound": "Bonus Round",
+    "yourGuess": "Your guess",
+    "speed": {
+      "lightning": "Lightning!",
+      "fast": "Fast!",
+      "good": "Nice!"
+    },
     "powerUps": {
       "x2Timer": "Double Time",
       "hint": "Hint"
@@ -131,7 +138,27 @@
     "challenges": "Challenges",
     "addGame": "Add Game",
     "addScreenshot": "Add Screenshot",
-    "createChallenge": "Create Challenge"
+    "createChallenge": "Create Challenge",
+    "jobs": {
+      "title": "Jobs",
+      "importGames": "Import Games",
+      "importGamesDesc": "Fetch games and screenshots from RAWG API",
+      "importScreenshots": "Download Screenshots",
+      "importScreenshotsDesc": "Download screenshots to local storage",
+      "targetGames": "Number of games",
+      "screenshotsPerGame": "Screenshots per game",
+      "startJob": "Start Import",
+      "cancel": "Cancel",
+      "clearCompleted": "Clear Completed",
+      "noJobs": "No jobs yet",
+      "status": {
+        "waiting": "Waiting",
+        "active": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "delayed": "Delayed"
+      }
+    }
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
