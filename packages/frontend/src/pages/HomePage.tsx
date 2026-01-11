@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Rotate3D, Users, Gamepad2 } from 'lucide-react'
+import { Play, Trophy, Rotate3D, Users } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -33,14 +33,14 @@ export default function HomePage() {
         transition={{ duration: 0.5 }}
         className="text-center mb-12"
       >
-        <motion.div
+        <motion.img
+          src="/logo.svg"
+          alt="The Box"
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-2xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
-        >
-          <Gamepad2 className="w-12 h-12 text-white" />
-        </motion.div>
+          className="w-24 h-24 mb-6 mx-auto"
+        />
 
         <h1 className="text-5xl font-bold mb-4 bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
           {t('home.title')}

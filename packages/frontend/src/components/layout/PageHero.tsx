@@ -3,13 +3,15 @@ import type { LucideIcon } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 
 interface PageHeroProps {
-  icon: LucideIcon
+  icon?: LucideIcon
+  logo?: string
+  iconStyle?: 'gradient' | 'simple'
   title: string
   subtitle?: string
   children?: React.ReactNode
 }
 
-export function PageHero({ icon: Icon, title, subtitle, children }: PageHeroProps) {
+export function PageHero({ icon: Icon, logo, iconStyle = 'gradient', title, subtitle, children }: PageHeroProps) {
   return (
     <>
       <CubeBackground />
@@ -20,14 +22,34 @@ export function PageHero({ icon: Icon, title, subtitle, children }: PageHeroProp
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-2xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
-          >
-            <Icon className="w-12 h-12 text-white" />
-          </motion.div>
+          {logo ? (
+            <motion.img
+              src={logo}
+              alt=""
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="w-24 h-24 mb-6 mx-auto"
+            />
+          ) : Icon && iconStyle === 'simple' ? (
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center justify-center w-24 h-24 mb-6"
+            >
+              <Icon className="w-16 h-16 text-white" />
+            </motion.div>
+          ) : Icon ? (
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-2xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
+            >
+              <Icon className="w-12 h-12 text-white" />
+            </motion.div>
+          ) : null}
 
           <h1 className="text-5xl font-bold mb-4 bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
             {title}

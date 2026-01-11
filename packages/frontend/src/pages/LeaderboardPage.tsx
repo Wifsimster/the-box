@@ -48,7 +48,7 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <PageHero icon={Trophy} title={t('leaderboard.title')}>
+    <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
       <div className="max-w-4xl mx-auto">
         {/* Loading State */}
         {loading && (

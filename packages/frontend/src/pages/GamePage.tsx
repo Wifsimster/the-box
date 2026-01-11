@@ -16,10 +16,12 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useWorldScore } from '@/hooks/useWorldScore'
 import { createLeaderboardService } from '@/services'
 import { gameApi } from '@/lib/api'
+import { authClient, useSession } from '@/lib/auth-client'
 
 export default function GamePage() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
+  const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
   const {
     gamePhase,
@@ -111,6 +113,11 @@ export default function GamePage() {
       setLoading(true)
       setError(null)
 
+      // Auto-login as guest if not authenticated
+      if (!session && !isSessionPending) {
+        await authClient.signIn.anonymous()
+      }
+
       // Start the challenge session
       const startData = await gameApi.startChallenge(challengeId)
       setSessionId(startData.sessionId, startData.tierSessionId)
@@ -126,7 +133,7 @@ export default function GamePage() {
       setError(t('game.errorStarting'))
       setLoading(false)
     }
-  }, [challengeId, setSessionId, setTimeLimit, fetchScreenshot, setGamePhase, setLoading, t])
+  }, [challengeId, session, isSessionPending, setSessionId, setTimeLimit, fetchScreenshot, setGamePhase, setLoading, t])
 
   // Fetch next screenshot when position changes (after nextRound is called)
   useEffect(() => {
@@ -203,11 +210,6 @@ export default function GamePage() {
                   </Link>
                 </Button>
                 <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
-                  <div className="text-lg font-bold text-white drop-shadow-lg">
-                    {currentPosition}/{totalScreenshots}
-                  </div>
-                </div>
-                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
                   <ScoreDisplay score={totalScore} />
                 </div>
               </div>
@@ -233,6 +235,15 @@ export default function GamePage() {
             {/* Live Leaderboard (Left Side) */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20">
               <LiveLeaderboard />
+            </div>
+
+            {/* Pagination (Bottom Right) */}
+            <div className="absolute bottom-4 right-4 z-30">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                <div className="text-lg font-bold text-white drop-shadow-lg">
+                  {currentPosition}/{totalScreenshots}
+                </div>
+              </div>
             </div>
 
             {/* Guess Input (Bottom Center) */}
