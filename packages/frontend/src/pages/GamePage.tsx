@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -7,19 +7,19 @@ import { DailyIntro } from '@/components/game/TierIntro'
 import { PanoramaViewer } from '@/components/game/PanoramaViewer'
 import { Timer } from '@/components/game/Timer'
 import { GuessInput } from '@/components/game/GuessInput'
-import { ProgressBar } from '@/components/game/ProgressBar'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { Button } from '@/components/ui/button'
 import { Globe, Home, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useWorldScore } from '@/hooks/useWorldScore'
+import { createLeaderboardService } from '@/services'
 import { gameApi } from '@/lib/api'
 
 export default function GamePage() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
-  const [worldTotalScore, setWorldTotalScore] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const {
     gamePhase,
@@ -38,6 +38,15 @@ export default function GamePage() {
     setTimeLimit,
     setLoading,
   } = useGameStore()
+
+  // Service for leaderboard operations
+  const leaderboardService = useMemo(() => createLeaderboardService(), [])
+
+  // Fetch world total score when challenge is complete
+  const { worldScore } = useWorldScore(
+    leaderboardService,
+    gamePhase === 'challenge_complete'
+  )
 
   // Fetch today's challenge on mount
   useEffect(() => {
@@ -129,26 +138,6 @@ export default function GamePage() {
       }
     }
   }, [gamePhase, sessionId, currentPosition, currentScreenshotData?.position, fetchScreenshot])
-
-  // Fetch world total score when challenge is complete
-  useEffect(() => {
-    if (gamePhase === 'challenge_complete') {
-      fetch('/api/leaderboard/today')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.data?.entries) {
-            const worldTotal = data.data.entries.reduce(
-              (sum: number, entry: { totalScore: number }) => sum + entry.totalScore,
-              0
-            )
-            setWorldTotalScore(worldTotal)
-          }
-        })
-        .catch(() => {
-          // Silently fail - world score is optional
-        })
-    }
-  }, [gamePhase])
 
   // Get the current image URL from screenshot data
   const currentImageUrl = currentScreenshotData?.imageUrl || null
@@ -274,7 +263,7 @@ export default function GamePage() {
               <p className="text-2xl text-primary font-bold mb-8">{totalScore} pts</p>
 
               {/* World Total Score */}
-              {worldTotalScore !== null && (
+              {worldScore !== null && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -283,7 +272,7 @@ export default function GamePage() {
                 >
                   <Globe className="w-5 h-5" />
                   <span className="text-lg">
-                    {t('game.worldTotal')}: <span className="font-bold text-foreground">{worldTotalScore.toLocaleString()}</span> pts
+                    {t('game.worldTotal')}: <span className="font-bold text-foreground">{worldScore.toLocaleString()}</span> pts
                   </span>
                 </motion.div>
               )}

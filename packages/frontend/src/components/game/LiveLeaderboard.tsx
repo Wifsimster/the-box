@@ -3,23 +3,39 @@ import { useGameStore } from '@/stores/gameStore'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 
-export function LiveLeaderboard() {
-  const { liveLeaderboard } = useGameStore()
-  const { user } = useAuthStore()
+/**
+ * Leaderboard player interface
+ */
+interface LeaderboardPlayer {
+  username: string
+  score: number
+  isCurrentUser?: boolean
+}
 
-  // Only show real live data - no mock data
-  if (liveLeaderboard.length === 0) {
+/**
+ * Presentational component for live leaderboard
+ *
+ * Pure UI component that accepts data via props
+ * Follows SOLID principles - no direct store dependencies
+ */
+export function LiveLeaderboardView({
+  players,
+  currentUsername,
+}: {
+  players: Array<{ username: string; score: number }>
+  currentUsername: string | null
+}) {
+  // Only show if there are players
+  if (players.length === 0) {
     return null
   }
 
-  const players = liveLeaderboard
-
-  // Add current user to the list if not present
-  const currentUser = user?.username || 'YOU'
-  const sortedPlayers = [...players]
+  // Process and sort players
+  const sortedPlayers: LeaderboardPlayer[] = [...players]
     .map((p) => ({
       ...p,
-      isCurrentUser: p.username === currentUser || p.username === 'YOU',
+      isCurrentUser:
+        p.username === currentUsername || p.username === 'YOU',
     }))
     .sort((a, b) => b.score - a.score)
 
@@ -40,8 +56,8 @@ export function LiveLeaderboard() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: index * 0.1 }}
             className={cn(
-              "relative",
-              player.isCurrentUser && "ring-1 ring-primary rounded"
+              'relative',
+              player.isCurrentUser && 'ring-1 ring-primary rounded'
             )}
           >
             <div className="flex items-center gap-2 py-1 px-2">
@@ -50,8 +66,8 @@ export function LiveLeaderboard() {
               </span>
               <span
                 className={cn(
-                  "text-sm font-medium truncate flex-1",
-                  player.isCurrentUser && "text-primary"
+                  'text-sm font-medium truncate flex-1',
+                  player.isCurrentUser && 'text-primary'
                 )}
               >
                 {player.username}
@@ -68,8 +84,10 @@ export function LiveLeaderboard() {
                 animate={{ width: `${(player.score / maxScore) * 100}%` }}
                 transition={{ delay: index * 0.1 + 0.2, duration: 0.3 }}
                 className={cn(
-                  "h-full rounded-full",
-                  player.isCurrentUser ? "bg-primary" : "bg-muted-foreground/50"
+                  'h-full rounded-full',
+                  player.isCurrentUser
+                    ? 'bg-primary'
+                    : 'bg-muted-foreground/50'
                 )}
               />
             </div>
@@ -77,5 +95,23 @@ export function LiveLeaderboard() {
         ))}
       </div>
     </motion.div>
+  )
+}
+
+/**
+ * Container component that fetches data from stores
+ *
+ * Separates data fetching from presentation
+ * Makes the presentational component reusable and testable
+ */
+export function LiveLeaderboard() {
+  const { liveLeaderboard } = useGameStore()
+  const { user } = useAuthStore()
+
+  return (
+    <LiveLeaderboardView
+      players={liveLeaderboard}
+      currentUsername={user?.username || null}
+    />
   )
 }

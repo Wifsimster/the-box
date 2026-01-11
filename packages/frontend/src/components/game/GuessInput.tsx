@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
@@ -6,13 +6,26 @@ import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { Send, SkipForward, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { gameApi } from '@/lib/api'
-import type { GameSearchResult } from '@/types'
+import type { Game } from '@/types'
+import {
+  createGameSearchService,
+  createGuessSubmissionService,
+} from '@/services'
+import { useGameGuess } from '@/hooks/useGameGuess'
+import { toast } from '@/lib/toast'
 
+/**
+ * Game guess input component with autocomplete
+ *
+ * Refactored to follow SOLID principles:
+ * - Services injected for game search and guess submission
+ * - Business logic extracted to useGameGuess hook
+ * - Component focuses only on UI rendering
+ */
 export function GuessInput() {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<GameSearchResult[]>([])
+  const [suggestions, setSuggestions] = useState<Game[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
@@ -20,20 +33,17 @@ export function GuessInput() {
   const inputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const {
-    gamePhase,
-    tierSessionId,
-    currentScreenshotData,
-    currentPosition,
-    timerStartedAt,
-    setGamePhase,
-    addGuessResult,
-    updateScore,
-    incrementCorrectAnswers,
-    pauseTimer,
-    startTimer,
-    setTimeLimit,
-  } = useGameStore()
+  // Services (dependency injection via factory functions)
+  const gameSearchService = useMemo(() => createGameSearchService(), [])
+  const guessSubmissionService = useMemo(
+    () => createGuessSubmissionService(),
+    []
+  )
+
+  // Custom hook for guess submission logic
+  const { submitGuess, skipRound } = useGameGuess(guessSubmissionService)
+
+  const { gamePhase, startTimer, setTimeLimit } = useGameStore()
 
   // Focus input when playing
   useEffect(() => {
@@ -60,7 +70,7 @@ export function GuessInput() {
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true)
       try {
-        const results = await gameApi.searchGames(query)
+        const results = await gameSearchService.search(query)
         setSuggestions(results)
         setShowSuggestions(results.length > 0)
         setSelectedIndex(-1)
@@ -77,96 +87,40 @@ export function GuessInput() {
         clearTimeout(searchTimeoutRef.current)
       }
     }
-  }, [query])
+  }, [query, gameSearchService])
 
-  const handleSubmit = useCallback(async (game?: GameSearchResult) => {
-    if (!tierSessionId || !currentScreenshotData) {
-      console.error('Missing session data')
-      return
-    }
+  const handleSubmit = async (game?: Game) => {
+    if (isSubmitting) return // Prevent double submission
 
     const selectedGame = game || suggestions[selectedIndex]
-    const timeTakenMs = Date.now() - (timerStartedAt || Date.now())
 
-    pauseTimer()
     setIsSubmitting(true)
-
     try {
-      const result = await gameApi.submitGuess({
-        tierSessionId,
-        screenshotId: currentScreenshotData.screenshotId,
-        position: currentPosition,
-        gameId: selectedGame?.id || null,
-        guessText: selectedGame?.name || query,
-        timeTakenMs,
-      })
+      const result = await submitGuess(selectedGame || null, query)
 
-      addGuessResult({
-        position: currentPosition,
-        isCorrect: result.isCorrect,
-        correctGame: result.correctGame,
-        userGuess: selectedGame?.name || query,
-        timeTakenMs,
-        scoreEarned: result.scoreEarned,
-      })
-
-      if (result.isCorrect) {
-        incrementCorrectAnswers()
+      // Show error toast if submission failed
+      if (!result.success && result.error) {
+        toast.error(result.error)
       }
 
-      updateScore(result.totalScore)
-      setGamePhase('result')
-    } catch (err) {
-      console.error('Failed to submit guess:', err)
-      // Still show result even on error
-      setGamePhase('result')
-    } finally {
-      setIsSubmitting(false)
       setQuery('')
       setShowSuggestions(false)
-    }
-  }, [tierSessionId, currentScreenshotData, currentPosition, suggestions, selectedIndex, query, timerStartedAt, pauseTimer, addGuessResult, incrementCorrectAnswers, updateScore, setGamePhase])
-
-  const handleSkip = useCallback(async () => {
-    if (!tierSessionId || !currentScreenshotData) {
-      console.error('Missing session data')
-      return
-    }
-
-    const timeTakenMs = Date.now() - (timerStartedAt || Date.now())
-
-    pauseTimer()
-    setIsSubmitting(true)
-
-    try {
-      const result = await gameApi.submitGuess({
-        tierSessionId,
-        screenshotId: currentScreenshotData.screenshotId,
-        position: currentPosition,
-        gameId: null,
-        guessText: '',
-        timeTakenMs,
-      })
-
-      addGuessResult({
-        position: currentPosition,
-        isCorrect: false,
-        correctGame: result.correctGame,
-        userGuess: null,
-        timeTakenMs,
-        scoreEarned: 0,
-      })
-
-      updateScore(result.totalScore)
-      setGamePhase('result')
-    } catch (err) {
-      console.error('Failed to submit skip:', err)
-      setGamePhase('result')
     } finally {
       setIsSubmitting(false)
-      setQuery('')
     }
-  }, [tierSessionId, currentScreenshotData, currentPosition, timerStartedAt, pauseTimer, addGuessResult, updateScore, setGamePhase])
+  }
+
+  const handleSkip = async () => {
+    if (isSubmitting) return // Prevent double click
+
+    setIsSubmitting(true)
+    try {
+      await skipRound()
+      setQuery('')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -263,8 +217,8 @@ export function GuessInput() {
                 key={game.id}
                 onClick={() => handleSubmit(game)}
                 className={cn(
-                  "w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-secondary transition-colors",
-                  selectedIndex === index && "bg-secondary"
+                  'w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-secondary transition-colors',
+                  selectedIndex === index && 'bg-secondary'
                 )}
               >
                 <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs font-bold">
@@ -273,7 +227,9 @@ export function GuessInput() {
                 <div className="flex-1">
                   <div className="font-medium">{game.name}</div>
                   {game.releaseYear && (
-                    <div className="text-xs text-muted-foreground">{game.releaseYear}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {game.releaseYear}
+                    </div>
                   )}
                 </div>
               </button>

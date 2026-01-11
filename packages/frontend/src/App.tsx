@@ -3,6 +3,8 @@ import { Suspense, lazy, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { ToastContainer } from '@/components/ui/toast-container'
+import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
 import {
   SUPPORTED_LANGUAGES,
   getBrowserLanguage,
@@ -61,9 +63,11 @@ function LanguageLayout() {
     <div className="min-h-screen bg-background flex flex-col">
       {!isFullscreen && <Header />}
       <main className="flex-1">
-        <Suspense fallback={<LoadingSpinner />}>
-          <Outlet />
-        </Suspense>
+        <LazyComponentErrorBoundary>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Outlet />
+          </Suspense>
+        </LazyComponentErrorBoundary>
       </main>
       {!isFullscreen && <Footer />}
     </div>
@@ -72,29 +76,34 @@ function LanguageLayout() {
 
 function App() {
   return (
-    <Routes>
-      {/* Redirect root to browser language */}
-      <Route path="/" element={<LanguageRedirect />} />
+    <ErrorBoundary>
+      <Routes>
+        {/* Redirect root to browser language */}
+        <Route path="/" element={<LanguageRedirect />} />
 
-      {/* Language-prefixed routes */}
-      <Route path="/:lang" element={<LanguageLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="play" element={<GamePage />} />
-        <Route path="leaderboard" element={<LeaderboardPage />} />
-        <Route path="results" element={<ResultsPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="reset-password" element={<ResetPasswordPage />} />
-        <Route path="terms" element={<TermsPage />} />
-        <Route path="privacy" element={<PrivacyPage />} />
-        <Route path="contact" element={<ContactPage />} />
-        <Route path="admin" element={<AdminPage />} />
-      </Route>
+        {/* Language-prefixed routes */}
+        <Route path="/:lang" element={<LanguageLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="play" element={<GamePage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="results" element={<ResultsPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="terms" element={<TermsPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="admin" element={<AdminPage />} />
+        </Route>
 
-      {/* Catch-all redirect to browser language */}
-      <Route path="*" element={<LanguageRedirect />} />
-    </Routes>
+        {/* Catch-all redirect to browser language */}
+        <Route path="*" element={<LanguageRedirect />} />
+      </Routes>
+
+      {/* Global toast notifications */}
+      <ToastContainer />
+    </ErrorBoundary>
   )
 }
 
