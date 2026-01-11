@@ -42,7 +42,9 @@
       "Bash(npm run dev:backend:*)",
       "Bash(docker run:*)",
       "Bash(docker start:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(git add:*)"
     ]
   }
 }
