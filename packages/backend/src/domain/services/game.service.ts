@@ -129,6 +129,7 @@ export const gameService = {
     }
 
     return {
+      screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: tierScreenshot.image_url,
       haov: tierScreenshot.haov,

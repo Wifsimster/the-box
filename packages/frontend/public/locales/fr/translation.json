@@ -17,7 +17,8 @@
     "register": "Inscription",
     "logout": "Déconnexion",
     "guest": "Jouer en invité",
-    "share": "Partager"
+    "share": "Partager",
+    "retry": "Réessayer"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",
@@ -44,7 +45,11 @@
     },
     "tierComplete": "Défi Terminé !",
     "resultsSummary": "Résumé des Résultats",
-    "noResults": "Aucun résultat. Jouez d'abord !"
+    "noResults": "Aucun résultat. Jouez d'abord !",
+    "errorLoadingChallenge": "Impossible de charger le défi",
+    "errorLoadingScreenshot": "Impossible de charger l'image",
+    "errorStarting": "Impossible de démarrer la partie",
+    "noChallenge": "Aucun défi disponible"
   },
   "home": {
     "title": "The Box",

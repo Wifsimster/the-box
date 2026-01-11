@@ -33,7 +33,8 @@
       "mcp__plugin_playwright_playwright__browser_close",
       "Bash(npm run dev:frontend:*)",
       "Bash(npm --version:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

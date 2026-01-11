@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -12,21 +12,123 @@ import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { Button } from '@/components/ui/button'
-import { Globe, Home } from 'lucide-react'
+import { Globe, Home, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { gameApi } from '@/lib/api'
 
 export default function GamePage() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const [worldTotalScore, setWorldTotalScore] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const {
     gamePhase,
+    challengeId,
     challengeDate,
+    sessionId,
     currentPosition,
     totalScreenshots,
     totalScore,
+    currentScreenshotData,
+    isLoading,
     setGamePhase,
+    setChallengeId,
+    setSessionId,
+    setScreenshotData,
+    setTimeLimit,
+    setLoading,
   } = useGameStore()
+
+  // Fetch today's challenge on mount
+  useEffect(() => {
+    const fetchChallenge = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await gameApi.getTodayChallenge()
+
+        if (data.challengeId) {
+          setChallengeId(data.challengeId, data.date)
+          // Store total screenshots from challenge
+          useGameStore.setState({ totalScreenshots: data.totalScreenshots })
+
+          // If user has an existing session, restore it
+          if (data.userSession && !data.userSession.isCompleted) {
+            setSessionId(data.userSession.sessionId, data.userSession.sessionId)
+            useGameStore.setState({
+              currentPosition: data.userSession.currentPosition,
+              totalScore: data.userSession.totalScore,
+            })
+          }
+        }
+
+        setGamePhase('daily_intro')
+      } catch (err) {
+        console.error('Failed to fetch challenge:', err)
+        setError(t('game.errorLoadingChallenge'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (gamePhase === 'idle') {
+      fetchChallenge()
+    }
+  }, [gamePhase, setGamePhase, setChallengeId, setSessionId, setLoading, t])
+
+  // Fetch screenshot when position changes or game starts
+  const fetchScreenshot = useCallback(async (sid: string, position: number) => {
+    try {
+      setLoading(true)
+      const data = await gameApi.getScreenshot(sid, position)
+      setScreenshotData(data)
+      setTimeLimit(data.timeLimit)
+    } catch (err) {
+      console.error('Failed to fetch screenshot:', err)
+      setError(t('game.errorLoadingScreenshot'))
+    } finally {
+      setLoading(false)
+    }
+  }, [setScreenshotData, setTimeLimit, setLoading, t])
+
+  // Handle starting the game
+  const handleStartGame = useCallback(async () => {
+    if (!challengeId) {
+      setError(t('game.noChallenge'))
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Start the challenge session
+      const startData = await gameApi.startChallenge(challengeId)
+      setSessionId(startData.sessionId, startData.tierSessionId)
+      useGameStore.setState({ totalScreenshots: startData.totalScreenshots })
+      setTimeLimit(startData.timeLimit)
+
+      // Fetch the first screenshot
+      await fetchScreenshot(startData.sessionId, 1)
+
+      setGamePhase('playing')
+    } catch (err) {
+      console.error('Failed to start game:', err)
+      setError(t('game.errorStarting'))
+      setLoading(false)
+    }
+  }, [challengeId, setSessionId, setTimeLimit, fetchScreenshot, setGamePhase, setLoading, t])
+
+  // Fetch next screenshot when position changes (after nextRound is called)
+  useEffect(() => {
+    // Only fetch if we're transitioning to playing phase and have a session
+    if (gamePhase === 'playing' && sessionId && currentPosition > 1) {
+      // Check if we already have the screenshot for this position
+      if (currentScreenshotData?.position !== currentPosition) {
+        fetchScreenshot(sessionId, currentPosition)
+      }
+    }
+  }, [gamePhase, sessionId, currentPosition, currentScreenshotData?.position, fetchScreenshot])
 
   // Fetch world total score when challenge is complete
   useEffect(() => {
@@ -48,23 +150,48 @@ export default function GamePage() {
     }
   }, [gamePhase])
 
-  // Start with daily intro on first load
-  useEffect(() => {
-    if (gamePhase === 'idle') {
-      setGamePhase('daily_intro')
-    }
-  }, [gamePhase, setGamePhase])
+  // Get the current image URL from screenshot data
+  const currentImageUrl = currentScreenshotData?.imageUrl || null
 
   return (
     <div className="fixed inset-0 bg-background overflow-hidden">
       <AnimatePresence mode="wait">
+        {/* Loading State */}
+        {isLoading && gamePhase === 'idle' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center w-full h-full"
+          >
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </motion.div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center w-full h-full gap-4"
+          >
+            <p className="text-destructive">{error}</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              {t('common.retry')}
+            </Button>
+          </motion.div>
+        )}
+
         {/* Daily Challenge Intro Screen */}
-        {gamePhase === 'daily_intro' && (
+        {gamePhase === 'daily_intro' && !error && (
           <DailyIntro
             key="daily-intro"
             date={challengeDate || new Date().toISOString().split('T')[0]!}
             totalScreenshots={totalScreenshots}
-            onStart={() => setGamePhase('playing')}
+            onStart={handleStartGame}
           />
         )}
 
@@ -96,10 +223,18 @@ export default function GamePage() {
             </div>
 
             {/* Panorama Viewer (Full Screen) */}
-            <PanoramaViewer
-              imageUrl="/placeholder-panorama.jpg"
-              className="w-full h-full"
-            />
+            {currentImageUrl ? (
+              <PanoramaViewer
+                imageUrl={currentImageUrl}
+                haov={currentScreenshotData?.haov}
+                vaov={currentScreenshotData?.vaov}
+                className="w-full h-full"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            )}
 
             {/* Timer (Top Center) */}
             <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30">

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 3D Cube wireframe - white lines only -->
+  <g stroke="#ffffff" stroke-width="6" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Top face -->
+    <polygon points="256,80 432,170 256,260 80,170"/>
+    <!-- Vertical edges -->
+    <line x1="256" y1="260" x2="256" y2="432"/>
+    <line x1="80" y1="170" x2="80" y2="342"/>
+    <line x1="432" y1="170" x2="432" y2="342"/>
+    <!-- Bottom edges -->
+    <line x1="80" y1="342" x2="256" y2="432"/>
+    <line x1="256" y1="432" x2="432" y2="342"/>
+  </g>
+</svg>

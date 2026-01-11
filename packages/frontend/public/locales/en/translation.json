@@ -17,7 +17,8 @@
     "register": "Register",
     "logout": "Logout",
     "guest": "Play as Guest",
-    "share": "Share"
+    "share": "Share",
+    "retry": "Retry"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -44,7 +45,11 @@
     },
     "tierComplete": "Challenge Complete!",
     "resultsSummary": "Results Summary",
-    "noResults": "No results yet. Play the game first!"
+    "noResults": "No results yet. Play the game first!",
+    "errorLoadingChallenge": "Failed to load challenge",
+    "errorLoadingScreenshot": "Failed to load image",
+    "errorStarting": "Failed to start game",
+    "noChallenge": "No challenge available"
   },
   "home": {
     "title": "The Box",

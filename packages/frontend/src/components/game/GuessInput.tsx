@@ -1,32 +1,30 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
-import { Send, SkipForward } from 'lucide-react'
+import { Send, SkipForward, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Game } from '@/types'
-
-// Mock game search results for demo
-const mockGames: Game[] = [
-  { id: 1, name: 'The Witcher 3: Wild Hunt', slug: 'witcher-3', aliases: ['Witcher 3', 'TW3'], releaseYear: 2015 },
-  { id: 2, name: 'The Sims 4', slug: 'sims-4', aliases: ['Sims 4', 'TS4'], releaseYear: 2014 },
-  { id: 3, name: 'Red Dead Redemption 2', slug: 'rdr2', aliases: ['RDR2'], releaseYear: 2018 },
-  { id: 4, name: 'Elden Ring', slug: 'elden-ring', aliases: [], releaseYear: 2022 },
-  { id: 5, name: 'Minecraft', slug: 'minecraft', aliases: ['MC'], releaseYear: 2011 },
-]
+import { gameApi } from '@/lib/api'
+import type { GameSearchResult } from '@/types'
 
 export function GuessInput() {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<Game[]>([])
+  const [suggestions, setSuggestions] = useState<GameSearchResult[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const {
     gamePhase,
+    tierSessionId,
+    currentScreenshotData,
+    currentPosition,
     timerStartedAt,
     setGamePhase,
     addGuessResult,
@@ -42,11 +40,10 @@ export function GuessInput() {
     if (gamePhase === 'playing' && inputRef.current) {
       inputRef.current.focus()
       startTimer()
-      setTimeLimit(30)
     }
-  }, [gamePhase, startTimer, setTimeLimit])
+  }, [gamePhase, startTimer])
 
-  // Search games as user types
+  // Search games as user types (with debounce)
   useEffect(() => {
     if (query.length < 2) {
       setSuggestions([])
@@ -54,65 +51,122 @@ export function GuessInput() {
       return
     }
 
-    // Filter mock games (replace with API call)
-    const filtered = mockGames.filter(
-      (game) =>
-        game.name.toLowerCase().includes(query.toLowerCase()) ||
-        game.aliases.some((alias) =>
-          alias.toLowerCase().includes(query.toLowerCase())
-        )
-    )
-    setSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0)
-    setSelectedIndex(-1)
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const results = await gameApi.searchGames(query)
+        setSuggestions(results)
+        setShowSuggestions(results.length > 0)
+        setSelectedIndex(-1)
+      } catch (err) {
+        console.error('Search failed:', err)
+        setSuggestions([])
+      } finally {
+        setIsSearching(false)
+      }
+    }, 200)
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
   }, [query])
 
-  const handleSubmit = (game?: Game) => {
+  const handleSubmit = useCallback(async (game?: GameSearchResult) => {
+    if (!tierSessionId || !currentScreenshotData) {
+      console.error('Missing session data')
+      return
+    }
+
     const selectedGame = game || suggestions[selectedIndex]
     const timeTakenMs = Date.now() - (timerStartedAt || Date.now())
 
-    // Mock result (replace with API call)
-    const isCorrect = selectedGame?.name === 'The Witcher 3: Wild Hunt'
-    const scoreEarned = isCorrect ? Math.max(200 - Math.floor(timeTakenMs / 1000) * 5, 50) : 0
-
     pauseTimer()
+    setIsSubmitting(true)
 
-    addGuessResult({
-      position: 1,
-      isCorrect,
-      correctGame: mockGames[0],
-      userGuess: selectedGame?.name || query,
-      timeTakenMs,
-      scoreEarned,
-    })
+    try {
+      const result = await gameApi.submitGuess({
+        tierSessionId,
+        screenshotId: currentScreenshotData.screenshotId,
+        position: currentPosition,
+        gameId: selectedGame?.id || null,
+        guessText: selectedGame?.name || query,
+        timeTakenMs,
+      })
 
-    if (isCorrect) {
-      incrementCorrectAnswers()
+      addGuessResult({
+        position: currentPosition,
+        isCorrect: result.isCorrect,
+        correctGame: result.correctGame,
+        userGuess: selectedGame?.name || query,
+        timeTakenMs,
+        scoreEarned: result.scoreEarned,
+      })
+
+      if (result.isCorrect) {
+        incrementCorrectAnswers()
+      }
+
+      updateScore(result.totalScore)
+      setGamePhase('result')
+    } catch (err) {
+      console.error('Failed to submit guess:', err)
+      // Still show result even on error
+      setGamePhase('result')
+    } finally {
+      setIsSubmitting(false)
+      setQuery('')
+      setShowSuggestions(false)
+    }
+  }, [tierSessionId, currentScreenshotData, currentPosition, suggestions, selectedIndex, query, timerStartedAt, pauseTimer, addGuessResult, incrementCorrectAnswers, updateScore, setGamePhase])
+
+  const handleSkip = useCallback(async () => {
+    if (!tierSessionId || !currentScreenshotData) {
+      console.error('Missing session data')
+      return
     }
 
-    updateScore(scoreEarned)
-    setGamePhase('result')
-    setQuery('')
-    setShowSuggestions(false)
-  }
-
-  const handleSkip = () => {
     const timeTakenMs = Date.now() - (timerStartedAt || Date.now())
 
     pauseTimer()
+    setIsSubmitting(true)
 
-    addGuessResult({
-      position: 1,
-      isCorrect: false,
-      correctGame: mockGames[0],
-      userGuess: null,
-      timeTakenMs,
-      scoreEarned: 0,
-    })
+    try {
+      const result = await gameApi.submitGuess({
+        tierSessionId,
+        screenshotId: currentScreenshotData.screenshotId,
+        position: currentPosition,
+        gameId: null,
+        guessText: '',
+        timeTakenMs,
+      })
 
-    setGamePhase('result')
-    setQuery('')
-  }
+      addGuessResult({
+        position: currentPosition,
+        isCorrect: false,
+        correctGame: result.correctGame,
+        userGuess: null,
+        timeTakenMs,
+        scoreEarned: 0,
+      })
+
+      updateScore(result.totalScore)
+      setGamePhase('result')
+    } catch (err) {
+      console.error('Failed to submit skip:', err)
+      setGamePhase('result')
+    } finally {
+      setIsSubmitting(false)
+      setQuery('')
+    }
+  }, [tierSessionId, currentScreenshotData, currentPosition, timerStartedAt, pauseTimer, addGuessResult, updateScore, setGamePhase])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -149,20 +203,24 @@ export function GuessInput() {
             disabled={gamePhase !== 'playing'}
           />
 
-          {/* Typing indicator dots */}
+          {/* Searching/typing indicator */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 bg-primary rounded-full"
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
-              />
-            ))}
+            {isSearching ? (
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            ) : (
+              [0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-2 bg-primary rounded-full"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    delay: i * 0.2,
+                  }}
+                />
+              ))
+            )}
           </div>
         </div>
 
@@ -170,17 +228,21 @@ export function GuessInput() {
           variant="gaming"
           size="lg"
           onClick={() => handleSubmit()}
-          disabled={gamePhase !== 'playing' || query.length === 0}
+          disabled={gamePhase !== 'playing' || query.length === 0 || isSubmitting}
           className="h-14 px-6"
         >
-          <Send className="w-5 h-5" />
+          {isSubmitting ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Send className="w-5 h-5" />
+          )}
         </Button>
 
         <Button
           variant="outline"
           size="lg"
           onClick={handleSkip}
-          disabled={gamePhase !== 'playing'}
+          disabled={gamePhase !== 'playing' || isSubmitting}
           className="h-14 px-6"
         >
           <SkipForward className="w-5 h-5" />

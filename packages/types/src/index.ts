@@ -231,6 +231,7 @@ export interface StartChallengeResponse {
 export type StartTierResponse = StartChallengeResponse
 
 export interface ScreenshotResponse {
+  screenshotId: number
   position: number
   imageUrl: string
   haov?: number

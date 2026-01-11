@@ -26,6 +26,7 @@ export type {
   RegisterRequest,
   AuthResponse,
   TodayChallengeResponse,
+  StartChallengeResponse,
   StartTierResponse,
   ScreenshotResponse,
   GuessRequest,

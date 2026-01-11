@@ -6,7 +6,8 @@ import type {
   PowerUpType,
   PowerUp,
   Game,
-  TierScreenshot
+  TierScreenshot,
+  ScreenshotResponse
 } from '@/types'
 
 interface GameState {
@@ -20,6 +21,7 @@ interface GameState {
   currentPosition: number
   totalScreenshots: number
   currentScreenshot: TierScreenshot | null
+  currentScreenshotData: ScreenshotResponse | null
 
   // Timer state
   timeRemaining: number
@@ -48,6 +50,7 @@ interface GameState {
   setSessionId: (id: string, tierSessionId: string) => void
   setChallengeId: (id: number, date: string) => void
   setScreenshot: (screenshot: TierScreenshot, position: number, total: number) => void
+  setScreenshotData: (data: ScreenshotResponse) => void
   setTimeLimit: (seconds: number) => void
 
   startTimer: () => void
@@ -80,6 +83,7 @@ const initialState = {
   currentPosition: 1,
   totalScreenshots: 10,
   currentScreenshot: null,
+  currentScreenshotData: null,
   timeRemaining: 30,
   defaultTimeLimit: 30,
   timerRunning: false,
@@ -112,6 +116,11 @@ export const useGameStore = create<GameState>()(
           currentScreenshot: screenshot,
           currentPosition: position,
           totalScreenshots: total,
+        }),
+
+        setScreenshotData: (data) => set({
+          currentScreenshotData: data,
+          currentPosition: data.position,
         }),
 
         setTimeLimit: (seconds) => {
