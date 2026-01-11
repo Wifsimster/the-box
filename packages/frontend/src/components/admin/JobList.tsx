@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { useAdminStore } from '@/stores/adminStore'
+import { FullImportCard } from './FullImportCard'
 import {
   Clock,
   Play,
@@ -113,6 +114,9 @@ export function JobList() {
 
   return (
     <div className="space-y-6">
+      {/* Full Import */}
+      <FullImportCard />
+
       {/* Manual Tasks */}
       <Card className="bg-card/50 backdrop-blur-sm border-neon-blue/30">
         <CardHeader className="pb-2">
@@ -299,7 +303,9 @@ export function JobList() {
                             ? t('admin.jobs.importGames')
                             : job.type === 'sync-new-games'
                               ? t('admin.jobs.syncNewGames')
-                              : t('admin.jobs.importScreenshots')}
+                              : job.type === 'batch-import-games'
+                                ? t('admin.fullImport.title')
+                                : t('admin.jobs.importScreenshots')}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatDate(job.createdAt)}

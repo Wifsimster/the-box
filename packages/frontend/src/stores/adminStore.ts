@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Job, JobProgressEvent, Game, RecurringJob } from '@/types'
+import type { Job, JobProgressEvent, Game, RecurringJob, ImportState, BatchImportProgressEvent } from '@/types'
 import { adminApi } from '@/lib/api'
 
 interface GamesPagination {
@@ -68,6 +68,20 @@ interface AdminState {
   // Challenges
   rerollLoading: boolean
   rerollDailyChallenge: (date?: string) => Promise<void>
+
+  // Full Import (Batch Processing)
+  currentImport: ImportState | null
+  fullImportLoading: boolean
+  fullImportError: string | null
+  fetchCurrentImport: () => Promise<void>
+  startFullImport: (config?: {
+    batchSize?: number
+    screenshotsPerGame?: number
+    minMetacritic?: number
+  }) => Promise<ImportState>
+  pauseFullImport: () => Promise<void>
+  resumeFullImport: () => Promise<void>
+  updateBatchImportProgress: (event: BatchImportProgressEvent) => void
 }
 
 export const useAdminStore = create<AdminState>()(
@@ -90,6 +104,11 @@ export const useAdminStore = create<AdminState>()(
 
       // Challenges initial state
       rerollLoading: false,
+
+      // Full Import initial state
+      currentImport: null,
+      fullImportLoading: false,
+      fullImportError: null,
 
       fetchJobs: async () => {
         set({ isLoading: true, error: null })
@@ -326,6 +345,78 @@ export const useAdminStore = create<AdminState>()(
           throw err
         } finally {
           set({ rerollLoading: false })
+        }
+      },
+
+      // Full Import Actions
+      fetchCurrentImport: async () => {
+        try {
+          const { importState } = await adminApi.getCurrentImport()
+          set({ currentImport: importState })
+        } catch (err) {
+          console.error('Failed to fetch current import:', err)
+        }
+      },
+
+      startFullImport: async (config) => {
+        set({ fullImportLoading: true, fullImportError: null })
+        try {
+          const { importState } = await adminApi.startFullImport(config)
+          set({ currentImport: importState, fullImportLoading: false })
+          // Refresh jobs list
+          get().fetchJobs()
+          return importState
+        } catch (err) {
+          set({ fullImportError: (err as Error).message, fullImportLoading: false })
+          throw err
+        }
+      },
+
+      pauseFullImport: async () => {
+        const { currentImport } = get()
+        if (!currentImport) return
+
+        set({ fullImportLoading: true, fullImportError: null })
+        try {
+          const { importState } = await adminApi.pauseFullImport(currentImport.id)
+          set({ currentImport: importState, fullImportLoading: false })
+        } catch (err) {
+          set({ fullImportError: (err as Error).message, fullImportLoading: false })
+          throw err
+        }
+      },
+
+      resumeFullImport: async () => {
+        const { currentImport } = get()
+        if (!currentImport) return
+
+        set({ fullImportLoading: true, fullImportError: null })
+        try {
+          const { importState } = await adminApi.resumeFullImport(currentImport.id)
+          set({ currentImport: importState, fullImportLoading: false })
+          // Refresh jobs list
+          get().fetchJobs()
+        } catch (err) {
+          set({ fullImportError: (err as Error).message, fullImportLoading: false })
+          throw err
+        }
+      },
+
+      updateBatchImportProgress: (event) => {
+        const { currentImport } = get()
+        if (currentImport && currentImport.id === event.importStateId) {
+          set({
+            currentImport: {
+              ...currentImport,
+              gamesProcessed: event.current,
+              gamesImported: event.gamesImported,
+              gamesSkipped: event.gamesSkipped,
+              screenshotsDownloaded: event.screenshotsDownloaded,
+              currentBatch: event.currentBatch,
+              totalGamesAvailable: event.totalGamesAvailable,
+              totalBatchesEstimated: event.totalBatches,
+            },
+          })
         }
       },
     }),

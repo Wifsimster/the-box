@@ -264,6 +264,32 @@
         "difficulty": "Difficulté",
         "close": "Fermer"
       }
+    },
+    "fullImport": {
+      "title": "Import Complet RAWG",
+      "description": "Importer tous les jeux avec un score Metacritic >= seuil (traitement par lots avec pause/reprise)",
+      "startImport": "Demarrer l'import complet",
+      "pause": "Mettre en pause",
+      "resume": "Reprendre",
+      "progress": "Progression",
+      "totalAvailable": "Jeux disponibles",
+      "processed": "Traites",
+      "imported": "Importes",
+      "skipped": "Ignores",
+      "screenshots": "Captures",
+      "batch": "Lot",
+      "batchSize": "Taille du lot",
+      "estimatedTime": "Temps estime",
+      "completedMessage": "Import termine avec succes !",
+      "gamesImported": "jeux importes",
+      "gamesSkippedSuffix": "ignores",
+      "status": {
+        "pending": "En attente",
+        "inProgress": "En cours",
+        "paused": "En pause",
+        "completed": "Termine",
+        "failed": "Echoue"
+      }
     }
   },
   "footer": {

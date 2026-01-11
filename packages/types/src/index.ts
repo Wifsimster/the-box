@@ -331,8 +331,44 @@ export interface PlayerLeftEvent {
 // Job Management (Admin)
 // ============================================
 
-export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games'
+export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games'
 export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
+
+// Import State for batch processing
+export type ImportStatus = 'pending' | 'in_progress' | 'paused' | 'completed' | 'failed'
+
+export interface ImportState {
+  id: number
+  importType: string
+  status: ImportStatus
+
+  // Configuration
+  batchSize: number
+  minMetacritic: number
+  screenshotsPerGame: number
+
+  // Progress tracking
+  totalGamesAvailable: number | null
+  currentPage: number
+  lastProcessedOffset: number
+  gamesProcessed: number
+  gamesImported: number
+  gamesSkipped: number
+  screenshotsDownloaded: number
+  failedCount: number
+
+  // Batch tracking
+  currentBatch: number
+  totalBatchesEstimated: number | null
+
+  // Timestamps
+  startedAt: string | null
+  pausedAt: string | null
+  resumedAt: string | null
+  completedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
 
 export interface Job {
   id: string
@@ -355,6 +391,10 @@ export interface JobData {
   minMetacritic?: number
   // For sync-new-games
   maxGames?: number
+  // For batch-import-games
+  batchSize?: number
+  importStateId?: number
+  isResume?: boolean
 }
 
 export interface JobResult {
@@ -365,6 +405,15 @@ export interface JobResult {
   // For sync-new-games
   newGames?: number
   skipped?: number
+  // For batch-import-games
+  batchNumber?: number
+  totalBatches?: number
+  importStateId?: number
+  totalGamesAvailable?: number
+  isComplete?: boolean
+  nextBatchScheduled?: boolean
+  gamesImported?: number
+  gamesSkipped?: number
 }
 
 // Job Socket Events
@@ -384,6 +433,18 @@ export interface JobCompletedEvent {
 export interface JobFailedEvent {
   jobId: string
   error: string
+}
+
+// Extended progress event for batch imports
+export interface BatchImportProgressEvent extends JobProgressEvent {
+  importStateId: number
+  totalGamesAvailable: number
+  currentBatch: number
+  totalBatches: number
+  gamesImported: number
+  gamesSkipped: number
+  screenshotsDownloaded: number
+  estimatedTimeRemaining: string | null
 }
 
 // Job API Types

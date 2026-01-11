@@ -49,7 +49,8 @@
       "Bash(npx shadcn@latest:*)",
       "Bash(npm run db:migrate:status:*)",
       "Bash(npx knex:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(PGPASSWORD=thebox psql:*)"
     ]
   }
 }

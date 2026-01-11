@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState } from '@/types'
 
 // Games API types
 export interface GamesListParams {
@@ -319,5 +319,70 @@ export const adminApi = {
       date: string
       newScreenshotCount: number
     }>(response)
+  },
+
+  // ============================================
+  // Full Import (Batch Processing)
+  // ============================================
+
+  /**
+   * Start a full import of all high-quality games from RAWG
+   */
+  async startFullImport(config?: {
+    batchSize?: number
+    screenshotsPerGame?: number
+    minMetacritic?: number
+  }): Promise<{ importState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch('/api/admin/jobs/full-import/start', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config || {}),
+    })
+    return handleResponse<{ importState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  /**
+   * Get the current active import state
+   */
+  async getCurrentImport(): Promise<{ importState: ImportState | null }> {
+    const response = await fetch('/api/admin/jobs/full-import/current', {
+      credentials: 'include',
+    })
+    return handleResponse<{ importState: ImportState | null }>(response)
+  },
+
+  /**
+   * Get import state by ID
+   */
+  async getImportState(id: number): Promise<{ importState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/full-import/${id}`, {
+      credentials: 'include',
+    })
+    return handleResponse<{ importState: ImportState }>(response)
+  },
+
+  /**
+   * Pause an ongoing full import
+   */
+  async pauseFullImport(id: number): Promise<{ importState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/full-import/${id}/pause`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ importState: ImportState }>(response)
+  },
+
+  /**
+   * Resume a paused full import
+   */
+  async resumeFullImport(id: number): Promise<{ importState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch(`/api/admin/jobs/full-import/${id}/resume`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ importState: ImportState; job: { id: string; name: string } }>(response)
   },
 }

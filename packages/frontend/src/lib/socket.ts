@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client'
-import type { JobProgressEvent, JobCompletedEvent, JobFailedEvent } from '@/types'
+import type { JobProgressEvent, JobCompletedEvent, JobFailedEvent, BatchImportProgressEvent } from '@/types'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -48,9 +48,15 @@ export function onJobFailed(callback: (event: JobFailedEvent) => void): () => vo
   return () => socket.off('job_failed', callback)
 }
 
+export function onBatchImportProgress(callback: (event: BatchImportProgressEvent) => void): () => void {
+  socket.on('batch_import_progress', callback)
+  return () => socket.off('batch_import_progress', callback)
+}
+
 // Remove all job event listeners
 export function removeJobListeners(): void {
   socket.off('job_progress')
   socket.off('job_completed')
   socket.off('job_failed')
+  socket.off('batch_import_progress')
 }

@@ -11,6 +11,7 @@ import type {
   Game,
 } from '@the-box/types'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
+import { fuzzyMatchService } from './fuzzy-match.service.js'
 
 const log = serviceLogger.child({ service: 'game' })
 
@@ -178,9 +179,11 @@ export const gameService = {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
     }
 
-    const { screenshot, gameName, coverImageUrl } = screenshotData
+    const { screenshot, gameName, coverImageUrl, aliases } = screenshotData
 
-    const isCorrect = data.gameId === screenshot.gameId
+    // Check if guess is correct using fuzzy matching on text
+    const isCorrect = data.gameId === screenshot.gameId ||
+      (data.guessText.trim() !== '' && fuzzyMatchService.isMatch(data.guessText, gameName, aliases))
 
     // Calculate current countdown score
     const currentScore = this.calculateCurrentScore(

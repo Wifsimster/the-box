@@ -15,6 +15,7 @@ export interface ScreenshotWithGame extends ScreenshotRow {
   game_name: string
   game_slug: string
   cover_image_url: string | null
+  game_aliases: string[] | null
 }
 
 function mapRowToScreenshot(row: ScreenshotRow): Screenshot {
@@ -42,7 +43,7 @@ export const screenshotRepository = {
     return rows.map(mapRowToScreenshot)
   },
 
-  async findWithGame(id: number): Promise<{ screenshot: Screenshot; gameName: string; coverImageUrl?: string } | null> {
+  async findWithGame(id: number): Promise<{ screenshot: Screenshot; gameName: string; coverImageUrl?: string; aliases: string[] } | null> {
     const row = await db('screenshots')
       .join('games', 'screenshots.game_id', 'games.id')
       .where('screenshots.id', id)
@@ -50,7 +51,8 @@ export const screenshotRepository = {
         'screenshots.*',
         'games.name as game_name',
         'games.slug as game_slug',
-        'games.cover_image_url'
+        'games.cover_image_url',
+        'games.aliases as game_aliases'
       )
       .first()
 
@@ -60,6 +62,7 @@ export const screenshotRepository = {
       screenshot: mapRowToScreenshot(row),
       gameName: row.game_name,
       coverImageUrl: row.cover_image_url ?? undefined,
+      aliases: row.game_aliases ?? [],
     }
   },
 

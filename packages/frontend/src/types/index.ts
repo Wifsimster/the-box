@@ -57,4 +57,9 @@ export type {
   CreateJobRequest,
   JobListResponse,
   RecurringJob,
+
+  // Full Import (Batch Processing)
+  ImportStatus,
+  ImportState,
+  BatchImportProgressEvent,
 } from '@the-box/types'

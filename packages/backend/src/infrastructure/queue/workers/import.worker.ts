@@ -1,9 +1,10 @@
 import { Worker, Job as BullJob } from 'bullmq'
 import { redisConnectionOptions } from '../connection.js'
 import { queueLogger } from '../../logger/logger.js'
-import type { JobData, JobResult, JobProgressEvent, JobCompletedEvent, JobFailedEvent } from '@the-box/types'
+import type { JobData, JobResult, JobProgressEvent, JobCompletedEvent, JobFailedEvent, BatchImportProgressEvent } from '@the-box/types'
 import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-logic.js'
 import { syncNewGamesFromRAWG } from './sync-logic.js'
+import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 
 const log = queueLogger
 
@@ -33,6 +34,12 @@ function emitFailed(jobId: string, error: string): void {
   if (ioInstance) {
     const event: JobFailedEvent = { jobId, error }
     ioInstance.to('admin').emit('job_failed', event)
+  }
+}
+
+function emitBatchProgress(jobId: string, event: BatchImportProgressEvent): void {
+  if (ioInstance) {
+    ioInstance.to('admin').emit('batch_import_progress', { jobId, ...event })
   }
 }
 
@@ -112,6 +119,67 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result: jobResult }, 'sync-new-games job completed')
+        return jobResult
+      }
+
+      if (name === 'batch-import-games') {
+        const { importStateId } = data
+        if (!importStateId) {
+          throw new Error('importStateId is required for batch-import-games job')
+        }
+
+        const result = await processBatch(importStateId, (current, total, message, state) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0
+          job.updateProgress(progress)
+
+          // Emit standard progress
+          emitProgress(id!, progress, current, total, message)
+
+          // Emit batch-specific progress
+          emitBatchProgress(id!, {
+            jobId: id!,
+            progress,
+            current,
+            total,
+            message,
+            importStateId: state.id,
+            totalGamesAvailable: state.totalGamesAvailable || 0,
+            currentBatch: state.currentBatch,
+            totalBatches: state.totalBatchesEstimated || 0,
+            gamesImported: state.gamesImported,
+            gamesSkipped: state.gamesSkipped,
+            screenshotsDownloaded: state.screenshotsDownloaded,
+            estimatedTimeRemaining: null, // Could calculate this based on average time per game
+          })
+        })
+
+        // If not complete and not paused, schedule next batch
+        let nextBatchScheduled = false
+        if (!result.isComplete && !result.isPaused) {
+          const nextJob = await scheduleNextBatch(importStateId)
+          nextBatchScheduled = !!nextJob
+        }
+
+        const jobResult: JobResult = {
+          gamesProcessed: result.gamesProcessed,
+          gamesImported: result.gamesImported,
+          gamesSkipped: result.gamesSkipped,
+          screenshotsProcessed: result.screenshotsDownloaded,
+          failedCount: result.failedCount,
+          importStateId: result.importStateId,
+          batchNumber: result.currentBatch,
+          totalBatches: result.totalBatches ?? undefined,
+          totalGamesAvailable: result.totalGamesAvailable ?? undefined,
+          isComplete: result.isComplete,
+          nextBatchScheduled,
+          message: result.isPaused
+            ? `Batch paused after ${result.gamesProcessed} games`
+            : result.isComplete
+              ? `Import complete! ${result.gamesImported} games imported, ${result.gamesSkipped} skipped`
+              : `Batch ${result.currentBatch} complete: ${result.gamesImported} imported, ${result.gamesSkipped} skipped`,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'batch-import-games job completed')
         return jobResult
       }
 

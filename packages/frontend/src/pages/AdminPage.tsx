@@ -13,6 +13,7 @@ import {
   onJobProgress,
   onJobCompleted,
   onJobFailed,
+  onBatchImportProgress,
   removeJobListeners,
 } from '@/lib/socket'
 import { Loader2, Settings, ListTodo, Gamepad2, CalendarDays } from 'lucide-react'
@@ -28,6 +29,8 @@ export default function AdminPage() {
     updateJobProgress,
     updateJobCompleted,
     updateJobFailed,
+    updateBatchImportProgress,
+    fetchCurrentImport,
   } = useAdminStore()
 
   // Redirect non-admins
@@ -42,6 +45,7 @@ export default function AdminPage() {
     if (session?.user.role === 'admin') {
       fetchJobs()
       fetchRecurringJobs()
+      fetchCurrentImport()
 
       // Join admin room for real-time updates
       joinAdminRoom()
@@ -54,6 +58,7 @@ export default function AdminPage() {
       const unsubFailed = onJobFailed((event) =>
         updateJobFailed(event.jobId, event.error)
       )
+      const unsubBatchProgress = onBatchImportProgress(updateBatchImportProgress)
 
       return () => {
         leaveAdminRoom()
@@ -61,9 +66,10 @@ export default function AdminPage() {
         unsubProgress()
         unsubCompleted()
         unsubFailed()
+        unsubBatchProgress()
       }
     }
-  }, [session, fetchJobs, updateJobProgress, updateJobCompleted, updateJobFailed])
+  }, [session, fetchJobs, updateJobProgress, updateJobCompleted, updateJobFailed, updateBatchImportProgress, fetchCurrentImport])
 
   // Refresh jobs periodically as fallback
   useEffect(() => {
