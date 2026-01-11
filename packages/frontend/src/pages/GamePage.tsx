@@ -80,6 +80,7 @@ export default function GamePage() {
 
             // Restore full session state from backend (merges with persisted local state)
             restoreSessionState({
+              challengeId: data.challengeId,
               correctPositions: data.userSession.correctPositions,
               currentPosition: data.userSession.currentPosition,
               totalScreenshots: data.totalScreenshots,

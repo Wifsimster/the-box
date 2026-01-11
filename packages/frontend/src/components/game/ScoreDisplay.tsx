@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -9,24 +9,36 @@ import { cn } from '@/lib/utils'
 export function ScoreDisplay() {
   const { t } = useTranslation()
   const {
-    currentScore,
     initialScore,
     decayRate,
     scoreRunning,
-    decrementScore,
+    sessionStartedAt,
     gamePhase,
   } = useGameStore()
 
-  // Countdown timer effect
+  // Tick counter to force re-renders every second
+  const [, setTick] = useState(0)
+
+  // Timer effect to trigger re-renders for score updates
   useEffect(() => {
     if (!scoreRunning || gamePhase !== 'playing') return
 
     const interval = setInterval(() => {
-      decrementScore()
+      setTick(t => t + 1)
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [scoreRunning, gamePhase, decrementScore])
+  }, [scoreRunning, gamePhase])
+
+  // Calculate current score from actual elapsed time (authoritative)
+  const calculateCurrentScore = () => {
+    if (!sessionStartedAt || !initialScore) return initialScore || 0
+    const elapsedMs = Date.now() - sessionStartedAt
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
+    return Math.max(0, initialScore - (elapsedSeconds * (decayRate || 2)))
+  }
+
+  const currentScore = calculateCurrentScore()
 
   // Calculate percentage for color states
   const percentage = initialScore > 0 ? (currentScore / initialScore) * 100 : 100

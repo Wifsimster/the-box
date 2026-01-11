@@ -100,6 +100,7 @@ interface GameState {
 
   // Session restore action
   restoreSessionState: (data: {
+    challengeId: number
     correctPositions: number[]
     currentPosition: number
     totalScreenshots: number
@@ -250,11 +251,15 @@ export const useGameStore = create<GameState>()(
         // Session restore action - restores full game state from backend data
         // Merges persisted local state with authoritative backend data
         restoreSessionState: (data) => {
-          const { correctPositions, currentPosition: backendPosition, totalScreenshots, screenshotsFound, totalScore, sessionStartedAt, scoringConfig } = data
+          const { challengeId, correctPositions, currentPosition: backendPosition, totalScreenshots, screenshotsFound, totalScore, sessionStartedAt, scoringConfig } = data
 
           // Get existing persisted state (from localStorage hydration)
           const existingStates = get().positionStates
           const persistedPosition = get().currentPosition
+          const persistedChallengeId = get().challengeId
+
+          // Check if localStorage data is from the same challenge
+          const isSameChallenge = persistedChallengeId === challengeId
 
           // Build position states by merging backend + persisted data
           const states: Record<number, PositionState> = {}
@@ -264,13 +269,13 @@ export const useGameStore = create<GameState>()(
 
             // Determine status with priority:
             // 1. Backend says correct → always correct (authoritative)
-            // 2. Persisted state exists and not stale → use it (preserves skipped)
+            // 2. Persisted state exists, same challenge, and not stale → use it (preserves skipped)
             // 3. Calculate from backend currentPosition
             let status: PositionStatus
             if (isCorrect) {
               status = 'correct'
-            } else if (existingState && existingState.status !== 'correct') {
-              // Keep persisted status (skipped, in_progress, not_visited)
+            } else if (isSameChallenge && existingState && existingState.status !== 'correct') {
+              // Keep persisted status (skipped, in_progress, not_visited) only if same challenge
               status = existingState.status
             } else if (i === backendPosition) {
               status = 'in_progress'
@@ -283,8 +288,8 @@ export const useGameStore = create<GameState>()(
             states[i] = { position: i, status, isCorrect }
           }
 
-          // Use persisted position if available and valid, otherwise use backend position
-          const restoredPosition = persistedPosition > 0 && persistedPosition <= totalScreenshots
+          // Use persisted position only if same challenge and valid, otherwise use backend position
+          const restoredPosition = isSameChallenge && persistedPosition > 0 && persistedPosition <= totalScreenshots
             ? persistedPosition
             : backendPosition
 
@@ -300,6 +305,7 @@ export const useGameStore = create<GameState>()(
           const currentScore = Math.max(0, scoringConfig.initialScore - (elapsedSeconds * scoringConfig.decayRate))
 
           set({
+            challengeId, // Update challenge ID to current
             positionStates: states,
             currentPosition: restoredPosition,
             totalScreenshots,
