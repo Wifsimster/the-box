@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
@@ -7,16 +7,21 @@ import { useGameStore } from '@/stores/gameStore'
 import { Send, SkipForward } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Game } from '@/types'
+import {
+  createGameSearchService,
+  createGameValidationService,
+  createScoringService,
+} from '@/services'
+import { useGameGuess } from '@/hooks/useGameGuess'
 
-// Mock game search results for demo
-const mockGames: Game[] = [
-  { id: 1, name: 'The Witcher 3: Wild Hunt', slug: 'witcher-3', aliases: ['Witcher 3', 'TW3'], releaseYear: 2015 },
-  { id: 2, name: 'The Sims 4', slug: 'sims-4', aliases: ['Sims 4', 'TS4'], releaseYear: 2014 },
-  { id: 3, name: 'Red Dead Redemption 2', slug: 'rdr2', aliases: ['RDR2'], releaseYear: 2018 },
-  { id: 4, name: 'Elden Ring', slug: 'elden-ring', aliases: [], releaseYear: 2022 },
-  { id: 5, name: 'Minecraft', slug: 'minecraft', aliases: ['MC'], releaseYear: 2011 },
-]
-
+/**
+ * Game guess input component with autocomplete
+ *
+ * Refactored to follow SOLID principles:
+ * - Services injected for game search, validation, and scoring
+ * - Business logic extracted to useGameGuess hook
+ * - Component focuses only on UI rendering
+ */
 export function GuessInput() {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
@@ -25,17 +30,18 @@ export function GuessInput() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const {
-    gamePhase,
-    timerStartedAt,
-    setGamePhase,
-    addGuessResult,
-    updateScore,
-    incrementCorrectAnswers,
-    pauseTimer,
-    startTimer,
-    setTimeLimit,
-  } = useGameStore()
+  // Services (dependency injection via factory functions)
+  const gameSearchService = useMemo(() => createGameSearchService(), [])
+  const validationService = useMemo(() => createGameValidationService(), [])
+  const scoringService = useMemo(() => createScoringService(), [])
+
+  // Custom hook for guess submission logic
+  const { submitGuess, skipRound } = useGameGuess(
+    validationService,
+    scoringService
+  )
+
+  const { gamePhase, startTimer, setTimeLimit } = useGameStore()
 
   // Focus input when playing
   useEffect(() => {
@@ -54,63 +60,33 @@ export function GuessInput() {
       return
     }
 
-    // Filter mock games (replace with API call)
-    const filtered = mockGames.filter(
-      (game) =>
-        game.name.toLowerCase().includes(query.toLowerCase()) ||
-        game.aliases.some((alias) =>
-          alias.toLowerCase().includes(query.toLowerCase())
-        )
-    )
-    setSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0)
-    setSelectedIndex(-1)
-  }, [query])
+    let cancelled = false
 
-  const handleSubmit = (game?: Game) => {
-    const selectedGame = game || suggestions[selectedIndex]
-    const timeTakenMs = Date.now() - (timerStartedAt || Date.now())
-
-    // Mock result (replace with API call)
-    const isCorrect = selectedGame?.name === 'The Witcher 3: Wild Hunt'
-    const scoreEarned = isCorrect ? Math.max(200 - Math.floor(timeTakenMs / 1000) * 5, 50) : 0
-
-    pauseTimer()
-
-    addGuessResult({
-      position: 1,
-      isCorrect,
-      correctGame: mockGames[0],
-      userGuess: selectedGame?.name || query,
-      timeTakenMs,
-      scoreEarned,
+    // Use game search service
+    gameSearchService.search(query).then((results) => {
+      if (!cancelled) {
+        setSuggestions(results)
+        setShowSuggestions(results.length > 0)
+        setSelectedIndex(-1)
+      }
     })
 
-    if (isCorrect) {
-      incrementCorrectAnswers()
+    return () => {
+      cancelled = true
     }
+  }, [query, gameSearchService])
 
-    updateScore(scoreEarned)
-    setGamePhase('result')
+  const handleSubmit = async (game?: Game) => {
+    const selectedGame = game || suggestions[selectedIndex]
+
+    await submitGuess(selectedGame || null, query)
+
     setQuery('')
     setShowSuggestions(false)
   }
 
   const handleSkip = () => {
-    const timeTakenMs = Date.now() - (timerStartedAt || Date.now())
-
-    pauseTimer()
-
-    addGuessResult({
-      position: 1,
-      isCorrect: false,
-      correctGame: mockGames[0],
-      userGuess: null,
-      timeTakenMs,
-      scoreEarned: 0,
-    })
-
-    setGamePhase('result')
+    skipRound()
     setQuery('')
   }
 
@@ -201,8 +177,8 @@ export function GuessInput() {
                 key={game.id}
                 onClick={() => handleSubmit(game)}
                 className={cn(
-                  "w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-secondary transition-colors",
-                  selectedIndex === index && "bg-secondary"
+                  'w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-secondary transition-colors',
+                  selectedIndex === index && 'bg-secondary'
                 )}
               >
                 <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs font-bold">
@@ -211,7 +187,9 @@ export function GuessInput() {
                 <div className="flex-1">
                   <div className="font-medium">{game.name}</div>
                   {game.releaseYear && (
-                    <div className="text-xs text-muted-foreground">{game.releaseYear}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {game.releaseYear}
+                    </div>
                   )}
                 </div>
               </button>
