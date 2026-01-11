@@ -109,4 +109,28 @@ export const jobService = {
 
     return { waiting, active, completed, failed }
   },
+
+  async getRecurringJobs(): Promise<{
+    id: string
+    name: string
+    pattern: string | null
+    every: number | null
+    nextRun: string | null
+    isActive: boolean
+  }[]> {
+    const repeatableJobs = await importQueue.getRepeatableJobs()
+
+    // Get active jobs to check if any recurring job is currently running
+    const activeJobs = await importQueue.getJobs(['active'])
+    const activeJobNames = new Set(activeJobs.map(j => j.name))
+
+    return repeatableJobs.map(job => ({
+      id: job.id || job.key,
+      name: job.name,
+      pattern: job.pattern || null,
+      every: job.every ? parseInt(job.every, 10) : null,
+      nextRun: job.next ? new Date(job.next).toISOString() : null,
+      isActive: activeJobNames.has(job.name),
+    }))
+  },
 }

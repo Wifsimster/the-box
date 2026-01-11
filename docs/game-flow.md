@@ -36,48 +36,46 @@ idle ──► tier_intro ──► playing ──► result ──► tier_comp
 
 ## Scoring System
 
-### Base Score
+### Countdown Scoring
 
-- **Correct answer**: 100 points
-- **Incorrect answer**: 0 points
+The game uses a countdown scoring system where points decrease over time:
 
-### Time Bonus
-
-Fast answers earn bonus points:
+- **Initial score**: 1000 points per screenshot
+- **Decay rate**: 2 points per second
+- **Minimum score**: 0 points
 
 ```typescript
-calculateScore(isCorrect, timeTakenMs, timeLimitSeconds) {
-  if (!isCorrect) return 0
-
-  const baseScore = 100
-  const timeRatio = timeTakenMs / (timeLimitSeconds * 1000)
-
-  let timeBonus = 0
-  if (timeRatio < 0.25) {
-    // Very fast: full bonus
-    timeBonus = 100
-  } else if (timeRatio < 0.75) {
-    // Moderate: scaled bonus
-    timeBonus = Math.round(100 * (1 - (timeRatio - 0.25) / 0.5))
-  }
-  // Slow (>75% time): no bonus
-
-  return baseScore + timeBonus  // Max: 200 points
+calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: number): number {
+  const elapsedMs = Date.now() - sessionStartedAt.getTime()
+  const elapsedSeconds = Math.floor(elapsedMs / 1000)
+  return Math.max(0, initialScore - (elapsedSeconds * decayRate))
 }
 ```
 
-| Time Used | Bonus | Total |
-| --------- | ----- | ----- |
-| < 25% | +100 | 200 |
-| 25-50% | +50-100 | 150-200 |
-| 50-75% | +0-50 | 100-150 |
-| > 75% | +0 | 100 |
+| Time Elapsed | Score |
+| ------------ | ----- |
+| 0 seconds | 1000 |
+| 100 seconds | 800 |
+| 250 seconds | 500 |
+| 500+ seconds | 0 |
+
+When a player submits a **correct** guess, they "lock in" the current countdown value as their score for that screenshot.
+
+### Tries System
+
+Players get multiple attempts per screenshot:
+
+- **Maximum tries**: 3 per screenshot
+- **Wrong guess**: Does not end the round (until 3rd try)
+- **Score**: Only awarded on correct guess
+
+After 3 incorrect guesses, the round ends with 0 points for that screenshot.
 
 ### Maximum Score
 
-- Per screenshot: 200 points
-- Per tier (18 screenshots): 3,600 points
-- Per challenge (3 tiers): 10,800 points
+- Per screenshot: 1,000 points
+- Per tier (18 screenshots): 18,000 points
+- Per challenge (3 tiers): 54,000 points
 
 ## Power-ups
 
@@ -96,7 +94,7 @@ After positions 6, 12, and 18, a bonus round may appear offering power-ups.
 1. Show screenshot (360° panorama)
          │
          ▼
-2. Start timer (30/25/20 seconds)
+2. Score countdown begins (1000 → 0)
          │
          ▼
 3. Player types game name
@@ -104,7 +102,13 @@ After positions 6, 12, and 18, a bonus round may appear offering power-ups.
          ├──► Autocomplete suggestions appear
          │
          ▼
-4. Player submits guess (or timer expires)
+4. Player submits guess
+         │
+         ├──► Correct? Lock in current score, next screenshot
+         │
+         ├──► Wrong (tries < 3)? Try again, score keeps decaying
+         │
+         └──► Wrong (tries = 3)? 0 points, next screenshot
          │
          ▼
 5. Show result (correct game, score earned)
@@ -139,10 +143,10 @@ Response:
 }
 ```
 
-### Starting a Tier
+### Starting a Challenge Session
 
 ```http
-POST /api/game/start/:tierId
+POST /api/game/start/:challengeId
 ```
 
 Response:
@@ -152,8 +156,13 @@ Response:
   "tierSessionId": "uuid",
   "tierNumber": 1,
   "tierName": "Facile",
-  "timeLimit": 30,
-  "totalScreenshots": 18
+  "totalScreenshots": 18,
+  "sessionStartedAt": "2025-01-10T14:30:00.000Z",
+  "scoringConfig": {
+    "initialScore": 1000,
+    "decayRate": 2,
+    "maxTriesPerScreenshot": 3
+  }
 }
 ```
 
@@ -188,23 +197,39 @@ Request:
   "screenshotId": 1,
   "position": 1,
   "gameId": 42,
-  "guessText": "The Witcher 3",
-  "timeTakenMs": 5000
+  "guessText": "The Witcher 3"
 }
 ```
 
-Response:
+Response (correct guess):
 ```json
 {
   "isCorrect": true,
+  "tryNumber": 1,
+  "triesRemaining": 0,
   "correctGame": {
     "id": 42,
     "name": "The Witcher 3: Wild Hunt",
     "coverImageUrl": "/covers/witcher3.jpg"
   },
-  "scoreEarned": 180,
-  "totalScore": 180,
+  "scoreEarned": 850,
+  "totalScore": 850,
   "nextPosition": 2,
+  "isTierCompleted": false,
+  "isCompleted": false
+}
+```
+
+Response (wrong guess, tries remaining):
+```json
+{
+  "isCorrect": false,
+  "tryNumber": 1,
+  "triesRemaining": 2,
+  "correctGame": null,
+  "scoreEarned": 0,
+  "totalScore": 0,
+  "nextPosition": null,
   "isTierCompleted": false,
   "isCompleted": false
 }
@@ -221,10 +246,16 @@ interface GameState {
   challengeId: number | null
   currentTier: number
   currentPosition: number
+  sessionStartedAt: string | null
 
-  // Timer
-  timeRemaining: number
-  isTimerRunning: boolean
+  // Countdown Scoring
+  scoringConfig: {
+    initialScore: number      // Default: 1000
+    decayRate: number         // Default: 2 points/second
+    maxTriesPerScreenshot: number  // Default: 3
+  } | null
+  currentScore: number        // Calculated from elapsed time
+  triesRemaining: number      // Tries left for current screenshot
 
   // Scoring
   totalScore: number

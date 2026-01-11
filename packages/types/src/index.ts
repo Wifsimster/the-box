@@ -214,6 +214,7 @@ export interface TodayChallengeResponse {
   hasPlayed: boolean
   userSession?: {
     sessionId: string
+    tierSessionId: string
     currentPosition: number
     isCompleted: boolean
     totalScore: number
@@ -320,7 +321,7 @@ export interface PlayerLeftEvent {
 // Job Management (Admin)
 // ============================================
 
-export type JobType = 'import-games' | 'import-screenshots'
+export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games'
 export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
 
 export interface Job {
@@ -341,6 +342,8 @@ export interface JobData {
   // For import-games
   targetGames?: number
   screenshotsPerGame?: number
+  // For sync-new-games
+  maxGames?: number
 }
 
 export interface JobResult {
@@ -348,6 +351,9 @@ export interface JobResult {
   screenshotsProcessed?: number
   failedCount?: number
   message?: string
+  // For sync-new-games
+  newGames?: number
+  skipped?: number
 }
 
 // Job Socket Events
@@ -378,4 +384,13 @@ export interface CreateJobRequest {
 export interface JobListResponse {
   jobs: Job[]
   total: number
+}
+
+export interface RecurringJob {
+  id: string
+  name: string
+  pattern: string | null
+  every: number | null
+  nextRun: string | null
+  isActive: boolean
 }

@@ -105,6 +105,8 @@ erDiagram
         integer current_tier
         integer current_position
         integer total_score
+        integer initial_score
+        integer decay_rate
         boolean is_completed
         timestamp started_at
         timestamp completed_at
@@ -129,7 +131,9 @@ erDiagram
         integer guessed_game_id FK
         varchar guessed_text
         boolean is_correct
+        integer try_number
         integer time_taken_ms
+        integer session_elapsed_ms
         integer score_earned
         varchar power_up_used
     }
@@ -274,6 +278,8 @@ Player attempts at challenges.
 | current_tier | INTEGER | Current tier number |
 | current_position | INTEGER | Current screenshot |
 | total_score | INTEGER | Accumulated score |
+| initial_score | INTEGER | Starting countdown score (default 1000) |
+| decay_rate | INTEGER | Points lost per second (default 2) |
 | is_completed | BOOLEAN | Finished flag |
 | started_at | TIMESTAMP | Start time |
 | completed_at | TIMESTAMP | Completion time |
@@ -306,7 +312,9 @@ Individual player guesses.
 | guessed_game_id | INTEGER | FK to games (if matched) |
 | guessed_text | VARCHAR(255) | Raw guess text |
 | is_correct | BOOLEAN | Correct flag |
+| try_number | INTEGER | Which try (1-3) for this screenshot |
 | time_taken_ms | INTEGER | Response time |
+| session_elapsed_ms | INTEGER | Time since session started |
 | score_earned | INTEGER | Points earned |
 | power_up_used | VARCHAR(50) | Power-up if used |
 
@@ -385,4 +393,5 @@ Key indexes for performance:
 - `tiers(daily_challenge_id, tier_number)` - Unique
 - `tier_screenshots(tier_id, position)` - Unique
 - `game_sessions(user_id, daily_challenge_id)` - Unique
+- `guesses(tier_session_id, position)` - For efficient try counting
 - `live_event_participants(live_event_id, user_id)` - Unique

@@ -17,8 +17,9 @@ A gaming screenshot guessing game where players identify video games from 360° 
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, Vite, TypeScript, TailwindCSS, Zustand |
-| Backend | Node.js, Express, Better Auth, Socket.io |
+| Backend | Node.js, Express, Better Auth, Socket.io, BullMQ |
 | Database | PostgreSQL, Knex.js |
+| Cache/Queue | Redis |
 | Monorepo | npm workspaces |
 
 ## Project Structure
@@ -108,10 +109,12 @@ npm run db:seed         # Seed database
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://thebox:thebox_secret@localhost:5432/thebox` |
+| `REDIS_URL` | Redis connection string | `redis://localhost:6379` |
 | `BETTER_AUTH_SECRET` | Auth secret (min 32 chars) | - |
 | `API_URL` | Backend API URL | `http://localhost:3000` |
 | `RESEND_API_KEY` | Resend API key for emails | - |
 | `EMAIL_FROM` | Email sender address | - |
+| `RAWG_API_KEY` | RAWG API key for game imports | - |
 | `PORT` | Backend port | `3000` |
 | `CORS_ORIGIN` | Frontend URL | `http://localhost:5173` |
 

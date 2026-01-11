@@ -65,7 +65,7 @@ export default function GamePage() {
 
           // If user has an existing session, restore it
           if (data.userSession && !data.userSession.isCompleted) {
-            setSessionId(data.userSession.sessionId, data.userSession.sessionId)
+            setSessionId(data.userSession.sessionId, data.userSession.tierSessionId)
             useGameStore.setState({
               currentPosition: data.userSession.currentPosition,
               totalScore: data.userSession.totalScore,

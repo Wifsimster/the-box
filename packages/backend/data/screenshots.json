@@ -194,5 +194,831 @@
     "thumbnail_url": null,
     "original_url": "https://media.rawg.io/media/screenshots/456/456191bc8215926d2b9f75d450aa2abe.jpg",
     "difficulty": 1
+  },
+  {
+    "game_slug": "splatoon-2-octo-expansion",
+    "image_url": "/uploads/screenshots/splatoon-2-octo-expansion/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/db9/db9989c431ccb4e7d04af45bb1b14807.jpeg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "splatoon-2-octo-expansion",
+    "image_url": "/uploads/screenshots/splatoon-2-octo-expansion/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b48/b48d42763a2478be1946dd2ad4d97a54.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "splatoon-2-octo-expansion",
+    "image_url": "/uploads/screenshots/splatoon-2-octo-expansion/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/46f/46f52378e4bd3b35a401c522f5909f45.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "dark-souls-iii-the-ringed-city",
+    "image_url": "/uploads/screenshots/dark-souls-iii-the-ringed-city/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/57d/57d01e954cfb193ff54cb86c5f1265d5.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "dark-souls-iii-the-ringed-city",
+    "image_url": "/uploads/screenshots/dark-souls-iii-the-ringed-city/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/602/6027567fd2b054aa56e71237a4ba37f2.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-v-skyrim-legendary-edition/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/ac1/ac1718fd93797bf4657014fd98db900f.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-v-skyrim-legendary-edition/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f65/f65d270a4bccfd9fea90ef346faf0ab1.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-v-skyrim-legendary-edition/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a5d/a5dd57675da4b26b60e1cbb52475c465.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "starraft-ii-legacy-of-the-void",
+    "image_url": "/uploads/screenshots/starraft-ii-legacy-of-the-void/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/016/01686ea39060bf92a74411787704b6db.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "starraft-ii-legacy-of-the-void",
+    "image_url": "/uploads/screenshots/starraft-ii-legacy-of-the-void/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b4c/b4c1ae1ad173a4d9806fa961a6886b1e.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "starraft-ii-legacy-of-the-void",
+    "image_url": "/uploads/screenshots/starraft-ii-legacy-of-the-void/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b2e/b2e88891d552bd0ffc4aa9af7548a6f0.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "red-dead-redemption-2",
+    "image_url": "/uploads/screenshots/red-dead-redemption-2/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/7b8/7b8895a23e8ca0dbd9e1ba24696579d9.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "red-dead-redemption-2",
+    "image_url": "/uploads/screenshots/red-dead-redemption-2/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b8c/b8cee381079d58b981594ede46a3d6ca.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "red-dead-redemption-2",
+    "image_url": "/uploads/screenshots/red-dead-redemption-2/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/fd6/fd6e41d4c30c098158568aef32dfed35.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "grand-theft-auto-iv-complete-edition",
+    "image_url": "/uploads/screenshots/grand-theft-auto-iv-complete-edition/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/c82/c8278ac80481cf297730fbecac162428.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "grand-theft-auto-iv-complete-edition",
+    "image_url": "/uploads/screenshots/grand-theft-auto-iv-complete-edition/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f1d/f1d10446805403a28b374fbd0f4bcc89.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "grand-theft-auto-iv-complete-edition",
+    "image_url": "/uploads/screenshots/grand-theft-auto-iv-complete-edition/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/1a6/1a6aa2235c187a2849e21db5cf8bfa07.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "portal-2",
+    "image_url": "/uploads/screenshots/portal-2/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/221/221a03c11e5ff9f765d62f60d4b4cbf5.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "portal-2",
+    "image_url": "/uploads/screenshots/portal-2/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/173/1737ff43c14f40294011a209b1012875.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "portal-2",
+    "image_url": "/uploads/screenshots/portal-2/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/b11/b11a2ae0664f0e8a1ef2346f99df26e1.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "midnight-club-3-dub-edition-remix",
+    "image_url": "/uploads/screenshots/midnight-club-3-dub-edition-remix/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/625/625a8f9b11ac4d2520fbd5124e26f7fc.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "midnight-club-3-dub-edition-remix",
+    "image_url": "/uploads/screenshots/midnight-club-3-dub-edition-remix/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/8f4/8f4e1f67bb81bbc640fa475e7ef7d6e5.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "midnight-club-3-dub-edition-remix",
+    "image_url": "/uploads/screenshots/midnight-club-3-dub-edition-remix/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f5a/f5ac9a81deabcb7b75c71fd1e2bbbe6d.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "mega-man-maverick-hunter-x",
+    "image_url": "/uploads/screenshots/mega-man-maverick-hunter-x/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/910/9107326783c98e60559ba710b87d914d.jpeg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "mega-man-maverick-hunter-x",
+    "image_url": "/uploads/screenshots/mega-man-maverick-hunter-x/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/522/5229c17108d25f72c0c27fd627227ec7.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "starcraft-ii-wings-of-liberty",
+    "image_url": "/uploads/screenshots/starcraft-ii-wings-of-liberty/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/bb4/bb44d47aad507399057a320969cfb639.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "starcraft-ii-wings-of-liberty",
+    "image_url": "/uploads/screenshots/starcraft-ii-wings-of-liberty/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/14d/14d5a969573b103fba709ebd3fe4389c.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "starcraft-ii-wings-of-liberty",
+    "image_url": "/uploads/screenshots/starcraft-ii-wings-of-liberty/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/477/477f555883a65f8bc131194dffd08d41.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-legend-of-zelda-the-wind-waker-hd",
+    "image_url": "/uploads/screenshots/the-legend-of-zelda-the-wind-waker-hd/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/613/61347c0071b12cb51c8a1630a8a7cedb.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-legend-of-zelda-the-wind-waker-hd",
+    "image_url": "/uploads/screenshots/the-legend-of-zelda-the-wind-waker-hd/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/cf5/cf596cb31940ad5cfd84df65292feabd.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-legend-of-zelda-the-wind-waker-hd",
+    "image_url": "/uploads/screenshots/the-legend-of-zelda-the-wind-waker-hd/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f6d/f6d39839f98c6089209f014e4a6d01a1.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "mass-effect-legendary-edition",
+    "image_url": "/uploads/screenshots/mass-effect-legendary-edition/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/dfc/dfc2297daea764355a7fa2771d173703.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "mass-effect-legendary-edition",
+    "image_url": "/uploads/screenshots/mass-effect-legendary-edition/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e4d/e4dae9c803e11cde07423bec1a324c0e.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "mass-effect-legendary-edition",
+    "image_url": "/uploads/screenshots/mass-effect-legendary-edition/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/09b/09b34e452541b996ee6bba894710407d.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "metal-gear-rising-revengeance-jetstream-sam",
+    "image_url": "/uploads/screenshots/metal-gear-rising-revengeance-jetstream-sam/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/65b/65ba41339e3f71689b5c41ebb64c0fdc_l6D9XW8.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "metal-gear-rising-revengeance-jetstream-sam",
+    "image_url": "/uploads/screenshots/metal-gear-rising-revengeance-jetstream-sam/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/1a6/1a62cafc153e6fc9cc49e414aec5d936.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "metal-gear-rising-revengeance-jetstream-sam",
+    "image_url": "/uploads/screenshots/metal-gear-rising-revengeance-jetstream-sam/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/1db/1dbc65a1f6f01e4c9f01be023161cb56.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "warcraft-3-the-frozen-throne",
+    "image_url": "/uploads/screenshots/warcraft-3-the-frozen-throne/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/832/8326651fe9ccc0b4c06637136290f18c.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "warcraft-3-the-frozen-throne",
+    "image_url": "/uploads/screenshots/warcraft-3-the-frozen-throne/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/2bf/2bf62c1f634a84d53f9f5ec456197cc3.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "warcraft-3-the-frozen-throne",
+    "image_url": "/uploads/screenshots/warcraft-3-the-frozen-throne/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f86/f86f1cf6408b316fab66f098fc54fda2.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-legend-of-zelda-ocarina-of-time-3d",
+    "image_url": "/uploads/screenshots/the-legend-of-zelda-ocarina-of-time-3d/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f9a/f9ad2c9a324a78e5397b2a8a5f4307b3.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-legend-of-zelda-ocarina-of-time-3d",
+    "image_url": "/uploads/screenshots/the-legend-of-zelda-ocarina-of-time-3d/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f43/f4372ab3f32410fcb18107bad5c4b91f.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-legend-of-zelda-ocarina-of-time-3d",
+    "image_url": "/uploads/screenshots/the-legend-of-zelda-ocarina-of-time-3d/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/c69/c69e9f259d8fec19a571513272233fcc.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "god-of-war-2",
+    "image_url": "/uploads/screenshots/god-of-war-2/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/d68/d6868e5f7bce66e326bd48b11ba24b13.jpeg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "god-of-war-2",
+    "image_url": "/uploads/screenshots/god-of-war-2/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/928/928cdaf4ae204f202d177bbd65e911b3.jpeg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "god-of-war-2",
+    "image_url": "/uploads/screenshots/god-of-war-2/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a54/a549a06ebe89c570cabb57308c4c42a5.jpeg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-orange-box",
+    "image_url": "/uploads/screenshots/the-orange-box/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/7f9/7f9844fb68b8917faadbdfa9261abef0.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-orange-box",
+    "image_url": "/uploads/screenshots/the-orange-box/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/625/625ab90b94c166bbb8b4340587d36085.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-orange-box",
+    "image_url": "/uploads/screenshots/the-orange-box/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/d14/d14c1c86014ad24eec1abb63382920e8.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-last-of-us",
+    "image_url": "/uploads/screenshots/the-last-of-us/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e58/e5851e0c9b08172369dc1a1814b1c275.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-last-of-us",
+    "image_url": "/uploads/screenshots/the-last-of-us/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/4a8/4a8bc73ffc37e6794fd962736d0a5436.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-last-of-us",
+    "image_url": "/uploads/screenshots/the-last-of-us/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/fd5/fd5e75708c5d123519f5329344d0a376.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "ace-attorney-phoenix-wright-trilogy-hd",
+    "image_url": "/uploads/screenshots/ace-attorney-phoenix-wright-trilogy-hd/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/655/65591b04a29b1173eae5f24099880634.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "ace-attorney-phoenix-wright-trilogy-hd",
+    "image_url": "/uploads/screenshots/ace-attorney-phoenix-wright-trilogy-hd/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/342/342e7a68035e8354c0ca51e4ed1ec4db.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "ace-attorney-phoenix-wright-trilogy-hd",
+    "image_url": "/uploads/screenshots/ace-attorney-phoenix-wright-trilogy-hd/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/45c/45cb41965266ea0f75179da495a81be3.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "ace-combat-5-the-unsung-war",
+    "image_url": "/uploads/screenshots/ace-combat-5-the-unsung-war/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/488/4882c259d5b9d597f06064923e1278e8.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "ace-combat-5-the-unsung-war",
+    "image_url": "/uploads/screenshots/ace-combat-5-the-unsung-war/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/dee/dee5398684c1add8d7708769354401e9.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "ace-combat-5-the-unsung-war",
+    "image_url": "/uploads/screenshots/ace-combat-5-the-unsung-war/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/251/251ef34ccf2633fb907f5385051c5001.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "kingdom-hearts-ii-final-mix",
+    "image_url": "/uploads/screenshots/kingdom-hearts-ii-final-mix/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/2eb/2ebad8f5e5a42bf842c6f56f81d48c9e.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "kingdom-hearts-ii-final-mix",
+    "image_url": "/uploads/screenshots/kingdom-hearts-ii-final-mix/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/189/1893cb0399fd59b1484d2adeb4917dcc.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "kingdom-hearts-ii-final-mix",
+    "image_url": "/uploads/screenshots/kingdom-hearts-ii-final-mix/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f25/f25b346d29d6f43f84e08a43143d67bc.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "the-elder-scrolls-4-shivering-isles",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-4-shivering-isles/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/085/085eff6df92c144ab5bef142f784d968.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "the-elder-scrolls-4-shivering-isles",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-4-shivering-isles/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/757/7577199e0ce3f19db8b0ccef4fe9e7b9.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "the-elder-scrolls-4-shivering-isles",
+    "image_url": "/uploads/screenshots/the-elder-scrolls-4-shivering-isles/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/d1e/d1ec8bb3f6df6a0d29e21e71abcbb5f1.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "cuphead-the-delicious-last-course",
+    "image_url": "/uploads/screenshots/cuphead-the-delicious-last-course/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/7c0/7c05123051ac759263d2e5df7e70c81c.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "cuphead-the-delicious-last-course",
+    "image_url": "/uploads/screenshots/cuphead-the-delicious-last-course/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/3f6/3f667e5a77c1e1624e0284fb0a77d1c5.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "cuphead-the-delicious-last-course",
+    "image_url": "/uploads/screenshots/cuphead-the-delicious-last-course/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/43a/43a514cf8e421a5dacf8132d6be012c7.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "divinity-original-sin-ii-definitive-edition",
+    "image_url": "/uploads/screenshots/divinity-original-sin-ii-definitive-edition/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/74f/74f84644afad52da62aebf244b9fb2ba.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "divinity-original-sin-ii-definitive-edition",
+    "image_url": "/uploads/screenshots/divinity-original-sin-ii-definitive-edition/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/931/9318ed069d654fa1e7149a0663bdbfc0.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "divinity-original-sin-ii-definitive-edition",
+    "image_url": "/uploads/screenshots/divinity-original-sin-ii-definitive-edition/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f03/f0307e709f4b41dbb6ae5d7a416a5b47.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "shining-force-resurrection-of-the-dark-dragon",
+    "image_url": "/uploads/screenshots/shining-force-resurrection-of-the-dark-dragon/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e9b/e9b50fde86a132ebd3b8247bf9e82785.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "shining-force-resurrection-of-the-dark-dragon",
+    "image_url": "/uploads/screenshots/shining-force-resurrection-of-the-dark-dragon/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f94/f94237646283e12bc131511f15cabf8b.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "shining-force-resurrection-of-the-dark-dragon",
+    "image_url": "/uploads/screenshots/shining-force-resurrection-of-the-dark-dragon/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e59/e59aea6432453288b95da5874c74f5fc.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "resident-evil-2-2019",
+    "image_url": "/uploads/screenshots/resident-evil-2-2019/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/9e6/9e6e83b37dfd176eab77a829c5c7a109.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "resident-evil-2-2019",
+    "image_url": "/uploads/screenshots/resident-evil-2-2019/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/ca6/ca6629a8a4565b8ae7816ffcb4d38657.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "resident-evil-2-2019",
+    "image_url": "/uploads/screenshots/resident-evil-2-2019/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/df4/df450d260b14fb77ac238d77fe98746d.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "zone-of-the-enders-2-the-second-runner",
+    "image_url": "/uploads/screenshots/zone-of-the-enders-2-the-second-runner/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a9a/a9a2516f0670c8e29119cedd95103170.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "zone-of-the-enders-2-the-second-runner",
+    "image_url": "/uploads/screenshots/zone-of-the-enders-2-the-second-runner/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/982/982b979d4d712d5b070c0847ae5cc926.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "zone-of-the-enders-2-the-second-runner",
+    "image_url": "/uploads/screenshots/zone-of-the-enders-2-the-second-runner/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/91c/91c7cd98fadf1919d97d7142eb9d4718.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "baten-kaitos-eternal-wings-and-the-lost-ocean",
+    "image_url": "/uploads/screenshots/baten-kaitos-eternal-wings-and-the-lost-ocean/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/6a6/6a6cb3ac26df3eafc1a34b161da48d75.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "baten-kaitos-eternal-wings-and-the-lost-ocean",
+    "image_url": "/uploads/screenshots/baten-kaitos-eternal-wings-and-the-lost-ocean/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/1b4/1b4e20e153f68efbaa2c1163389ef0eb.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "baten-kaitos-eternal-wings-and-the-lost-ocean",
+    "image_url": "/uploads/screenshots/baten-kaitos-eternal-wings-and-the-lost-ocean/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/7a3/7a34c9c5d375bf3e89fc16489d5d978c.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "odin-sphere",
+    "image_url": "/uploads/screenshots/odin-sphere/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/854/854eb12a5c834c41d5fe048893cb72ea.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "odin-sphere",
+    "image_url": "/uploads/screenshots/odin-sphere/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/f8e/f8e518523e6fada1288f5d52f335337a.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "odin-sphere",
+    "image_url": "/uploads/screenshots/odin-sphere/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a02/a028bd56cead06601f2bcd4fb7671f13.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "grand-theft-auto-san-andreas",
+    "image_url": "/uploads/screenshots/grand-theft-auto-san-andreas/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/679/679c267107151f01696d3c8ea71ac650.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "grand-theft-auto-san-andreas",
+    "image_url": "/uploads/screenshots/grand-theft-auto-san-andreas/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/560/560610b498ef079e1f45ec83b039cbc7.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "grand-theft-auto-san-andreas",
+    "image_url": "/uploads/screenshots/grand-theft-auto-san-andreas/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/c8c/c8cf7ea395e6aa2e46abee36d9d2d699.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "ace-combat-zero-the-belkan-war",
+    "image_url": "/uploads/screenshots/ace-combat-zero-the-belkan-war/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/efe/efe5f8efc217afa36e45306e47069a83.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "ace-combat-zero-the-belkan-war",
+    "image_url": "/uploads/screenshots/ace-combat-zero-the-belkan-war/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/ced/ced9f951de22410ce623b64df17afb90.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "ace-combat-zero-the-belkan-war",
+    "image_url": "/uploads/screenshots/ace-combat-zero-the-belkan-war/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e6b/e6b85871c8b4f62ffaf075dab898d0cd.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "gran-turismo-4",
+    "image_url": "/uploads/screenshots/gran-turismo-4/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a94/a94b0ac30f5491e52af71cd9b75b7357.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "gran-turismo-4",
+    "image_url": "/uploads/screenshots/gran-turismo-4/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/836/8368f52f8a869170953789173dc9977a.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "gran-turismo-4",
+    "image_url": "/uploads/screenshots/gran-turismo-4/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/13b/13b60ee4df38d508546dca3ccd5aa188.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "persona-3-portable",
+    "image_url": "/uploads/screenshots/persona-3-portable/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/e9d/e9d0789128df3119542b3ec1cde5ecdc.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "persona-3-portable",
+    "image_url": "/uploads/screenshots/persona-3-portable/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/8db/8db96e101e96795959fc9ad336a2db5d.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "persona-3-portable",
+    "image_url": "/uploads/screenshots/persona-3-portable/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/a09/a09d536204933390bd7d8101c28c9458.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "bioshock-the-collection",
+    "image_url": "/uploads/screenshots/bioshock-the-collection/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/419/419212995f4b9b324cb48f7584c144ca.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "bioshock-the-collection",
+    "image_url": "/uploads/screenshots/bioshock-the-collection/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/de8/de80b9652b9e2ccbeba84f84b88112f3.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "bioshock-the-collection",
+    "image_url": "/uploads/screenshots/bioshock-the-collection/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/6f4/6f481a902a3cc7b079eef7d58eb1f01c.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "portal",
+    "image_url": "/uploads/screenshots/portal/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/99e/99e94bd55eb75fa6e75c3dcbb1a570b2.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "portal",
+    "image_url": "/uploads/screenshots/portal/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/2f0/2f0297a46934d9fa914c626902b1ce20.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "portal",
+    "image_url": "/uploads/screenshots/portal/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/3b3/3b3713fbca6194dfc4d6e8a8d006d354.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "disciples-ii-rise-of-the-elves",
+    "image_url": "/uploads/screenshots/disciples-ii-rise-of-the-elves/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/1e4/1e4501df44f78bf9b9c3f07dbce4cc6b.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "disciples-ii-rise-of-the-elves",
+    "image_url": "/uploads/screenshots/disciples-ii-rise-of-the-elves/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/29f/29fd9590887e3fd6c193ebe5f88f5ec3.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "disciples-ii-rise-of-the-elves",
+    "image_url": "/uploads/screenshots/disciples-ii-rise-of-the-elves/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/686/686e703b328a41d73a304593d1052748.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "disciples-ii-galleans-return",
+    "image_url": "/uploads/screenshots/disciples-ii-galleans-return/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/16d/16d7357b92e91c6229b72bbe919d4777.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "disciples-ii-galleans-return",
+    "image_url": "/uploads/screenshots/disciples-ii-galleans-return/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/ada/ada73769d8d2bc70a2a3b36bc1ba3c8f.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "disciples-ii-galleans-return",
+    "image_url": "/uploads/screenshots/disciples-ii-galleans-return/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/236/23614d51ce0fb8b85d036c173928448e.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "uncharted-4-a-thiefs-end",
+    "image_url": "/uploads/screenshots/uncharted-4-a-thiefs-end/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/fd5/fd5451e27048c3e416de1737047e4684.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "uncharted-4-a-thiefs-end",
+    "image_url": "/uploads/screenshots/uncharted-4-a-thiefs-end/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/63f/63f551c55bb44ec41dbcab6898cdd264.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "uncharted-4-a-thiefs-end",
+    "image_url": "/uploads/screenshots/uncharted-4-a-thiefs-end/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/30b/30bfd42d8bfe46301dbef56ba526b3ed.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "half-life-2",
+    "image_url": "/uploads/screenshots/half-life-2/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/8af/8af6188357426890cbc8c8a34d9e7b75.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "half-life-2",
+    "image_url": "/uploads/screenshots/half-life-2/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/3b5/3b542c954ba5bd2f32da067c8122cd80.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "half-life-2",
+    "image_url": "/uploads/screenshots/half-life-2/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/3d6/3d6066e45d259d2e83bf6767e6113d94.jpg",
+    "difficulty": 2
+  },
+  {
+    "game_slug": "zone-of-the-enders-the-2nd-runner-mrs",
+    "image_url": "/uploads/screenshots/zone-of-the-enders-the-2nd-runner-mrs/screenshot_1.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/ce9/ce9b1dbc4c7cbc15517ea2493d236f7a.jpg",
+    "difficulty": 3
+  },
+  {
+    "game_slug": "zone-of-the-enders-the-2nd-runner-mrs",
+    "image_url": "/uploads/screenshots/zone-of-the-enders-the-2nd-runner-mrs/screenshot_2.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/8b5/8b593edf31e22ce2c9a0dd0abc01070f.jpg",
+    "difficulty": 1
+  },
+  {
+    "game_slug": "zone-of-the-enders-the-2nd-runner-mrs",
+    "image_url": "/uploads/screenshots/zone-of-the-enders-the-2nd-runner-mrs/screenshot_3.jpg",
+    "thumbnail_url": null,
+    "original_url": "https://media.rawg.io/media/screenshots/c8c/c8c1c5628663baf9121d5a00687d90ee.jpg",
+    "difficulty": 2
   }
 ]

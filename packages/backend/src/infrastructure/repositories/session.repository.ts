@@ -59,6 +59,16 @@ export const sessionRepository = {
     return row ?? null
   },
 
+  async findLatestTierSession(gameSessionId: string): Promise<TierSessionRow | null> {
+    log.debug({ gameSessionId }, 'findLatestTierSession')
+    const row = await db('tier_sessions')
+      .where('game_session_id', gameSessionId)
+      .orderBy('started_at', 'desc')
+      .first<TierSessionRow>()
+    log.debug({ gameSessionId, found: !!row, tierSessionId: row?.id }, 'findLatestTierSession result')
+    return row ?? null
+  },
+
   async createGameSession(data: {
     userId: string
     dailyChallengeId: number

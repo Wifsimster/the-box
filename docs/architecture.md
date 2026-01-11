@@ -39,7 +39,7 @@ The backend follows a pragmatic 3-layer clean architecture:
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                 INFRASTRUCTURE LAYER                     │
-│   Repositories, Database, Auth, Socket.io, External APIs │
+│ Repositories, Database, Auth, Socket.io, Queue, Redis   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -68,20 +68,14 @@ router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
 - **Business Logic**: Scoring algorithms, game rules
 - **Validation**: Domain-level data validation
 - **Orchestration**: Coordinate between repositories
+- **Services**: `game.service.ts`, `job.service.ts`
 
 ```typescript
-// Example: Score calculation in game.service.ts
-calculateScore(isCorrect: boolean, timeTakenMs: number, timeLimitSeconds: number): number {
-  if (!isCorrect) return 0
-
-  const baseScore = 100
-  const timeRatio = timeTakenMs / (timeLimitSeconds * 1000)
-
-  let timeBonus = 0
-  if (timeRatio < 0.25) timeBonus = 100
-  else if (timeRatio < 0.75) timeBonus = Math.round(100 * (1 - (timeRatio - 0.25) / 0.5))
-
-  return baseScore + timeBonus
+// Example: Countdown score calculation in game.service.ts
+calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: number): number {
+  const elapsedMs = Date.now() - sessionStartedAt.getTime()
+  const elapsedSeconds = Math.floor(elapsedMs / 1000)
+  return Math.max(0, initialScore - (elapsedSeconds * decayRate))
 }
 ```
 
@@ -91,6 +85,20 @@ calculateScore(isCorrect: boolean, timeTakenMs: number, timeLimitSeconds: number
 - **Database**: Connection management
 - **Auth**: Better Auth integration
 - **Socket**: Real-time communication
+- **Queue**: BullMQ job queue with Redis for background imports
+
+```text
+infrastructure/
+├── auth/           # Better Auth setup
+├── database/       # PostgreSQL connection
+├── logger/         # Pino logger
+├── queue/          # BullMQ job queue
+│   ├── connection.ts    # Redis connection
+│   ├── queues.ts        # Queue definitions
+│   └── workers/         # Job workers
+├── repositories/   # Data access layer
+└── socket/         # Socket.io setup
+```
 
 ```typescript
 // Example: Repository pattern

@@ -41,6 +41,13 @@ export const gameRepository = {
     return row ? mapRowToGame(row) : null
   },
 
+  async findBySlug(slug: string): Promise<Game | null> {
+    log.debug({ slug }, 'findBySlug')
+    const row = await db('games').where('slug', slug).first<GameRow>()
+    log.debug({ slug, found: !!row }, 'findBySlug result')
+    return row ? mapRowToGame(row) : null
+  },
+
   async findAll(): Promise<Game[]> {
     log.debug('findAll')
     const rows = await db('games').orderBy('created_at', 'desc').select<GameRow[]>('*')

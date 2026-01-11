@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob } from '@/types'
 
 // Games API types
 export interface GamesListParams {
@@ -133,6 +133,16 @@ export const adminApi = {
     return handleResponse<{
       stats: { waiting: number; active: number; completed: number; failed: number }
     }>(response)
+  },
+
+  /**
+   * Get recurring jobs info (scheduled jobs)
+   */
+  async getRecurringJobs(): Promise<{ recurringJobs: RecurringJob[] }> {
+    const response = await fetch('/api/admin/jobs/recurring', {
+      credentials: 'include',
+    })
+    return handleResponse<{ recurringJobs: RecurringJob[] }>(response)
   },
 
   /**

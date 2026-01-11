@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Job, JobProgressEvent, Game } from '@/types'
+import type { Job, JobProgressEvent, Game, RecurringJob } from '@/types'
 import { adminApi } from '@/lib/api'
 
 interface GamesPagination {
@@ -19,6 +19,9 @@ interface AdminState {
   jobs: Job[]
   isLoading: boolean
   error: string | null
+
+  // Recurring jobs
+  recurringJobs: RecurringJob[]
 
   // Stats
   stats: {
@@ -39,6 +42,7 @@ interface AdminState {
   // Jobs Actions
   fetchJobs: () => Promise<void>
   fetchStats: () => Promise<void>
+  fetchRecurringJobs: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number) => Promise<Job>
   createImportScreenshotsJob: () => Promise<Job>
   cancelJob: (id: string) => Promise<void>
@@ -66,6 +70,7 @@ export const useAdminStore = create<AdminState>()(
       jobs: [],
       isLoading: false,
       error: null,
+      recurringJobs: [],
       stats: null,
 
       // Games initial state
@@ -92,6 +97,15 @@ export const useAdminStore = create<AdminState>()(
           set({ stats })
         } catch (err) {
           console.error('Failed to fetch stats:', err)
+        }
+      },
+
+      fetchRecurringJobs: async () => {
+        try {
+          const { recurringJobs } = await adminApi.getRecurringJobs()
+          set({ recurringJobs })
+        } catch (err) {
+          console.error('Failed to fetch recurring jobs:', err)
         }
       },
 

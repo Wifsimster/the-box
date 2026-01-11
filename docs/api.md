@@ -40,10 +40,10 @@ Authorization: Bearer <token> (optional)
 }
 ```
 
-### Start Tier
+### Start Challenge
 
 ```http
-POST /api/game/start/:tierId
+POST /api/game/start/:challengeId
 Authorization: Bearer <token>
 ```
 
@@ -56,8 +56,13 @@ Authorization: Bearer <token>
     "tierSessionId": "550e8400-e29b-41d4-a716-446655440001",
     "tierNumber": 1,
     "tierName": "Facile",
-    "timeLimit": 30,
-    "totalScreenshots": 18
+    "totalScreenshots": 18,
+    "sessionStartedAt": "2025-01-10T14:30:00.000Z",
+    "scoringConfig": {
+      "initialScore": 1000,
+      "decayRate": 2,
+      "maxTriesPerScreenshot": 3
+    }
   }
 }
 ```
@@ -99,17 +104,18 @@ Content-Type: application/json
   "screenshotId": 1,
   "position": 1,
   "gameId": 42,
-  "guessText": "The Witcher 3",
-  "timeTakenMs": 5000
+  "guessText": "The Witcher 3"
 }
 ```
 
-**Response:**
+**Response (correct):**
 ```json
 {
   "success": true,
   "data": {
     "isCorrect": true,
+    "tryNumber": 1,
+    "triesRemaining": 0,
     "correctGame": {
       "id": 42,
       "name": "The Witcher 3: Wild Hunt",
@@ -117,9 +123,27 @@ Content-Type: application/json
       "aliases": [],
       "coverImageUrl": "/covers/witcher3.jpg"
     },
-    "scoreEarned": 180,
-    "totalScore": 180,
+    "scoreEarned": 850,
+    "totalScore": 850,
     "nextPosition": 2,
+    "isTierCompleted": false,
+    "isCompleted": false
+  }
+}
+```
+
+**Response (wrong, tries remaining):**
+```json
+{
+  "success": true,
+  "data": {
+    "isCorrect": false,
+    "tryNumber": 1,
+    "triesRemaining": 2,
+    "correctGame": null,
+    "scoreEarned": 0,
+    "totalScore": 0,
+    "nextPosition": null,
     "isTierCompleted": false,
     "isCompleted": false
   }
@@ -221,6 +245,44 @@ POST /api/admin/challenges        # Create challenge
       "screenshotIds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
     }
   ]
+}
+```
+
+### Jobs (Background Tasks)
+
+Manage background import jobs for games and screenshots.
+
+```http
+GET    /api/admin/jobs                    # List all jobs
+GET    /api/admin/jobs/stats              # Get job statistics
+GET    /api/admin/jobs/:id                # Get job details
+POST   /api/admin/jobs                    # Create generic job
+POST   /api/admin/jobs/import-games       # Import games from RAWG API
+POST   /api/admin/jobs/import-screenshots # Import screenshots for games
+DELETE /api/admin/jobs/:id                # Cancel a job
+DELETE /api/admin/jobs/completed          # Clear completed jobs
+```
+
+**Import Games Request:**
+```json
+{
+  "query": "action rpg",
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+**Job Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "abc123",
+    "type": "import-games",
+    "status": "active",
+    "progress": 45,
+    "createdAt": "2025-01-10T14:30:00.000Z"
+  }
 }
 ```
 

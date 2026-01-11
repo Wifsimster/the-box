@@ -54,4 +54,5 @@ export type {
   JobFailedEvent,
   CreateJobRequest,
   JobListResponse,
+  RecurringJob,
 } from '@the-box/types'

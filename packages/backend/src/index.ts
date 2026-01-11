@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 import { createServer } from 'http'
 import { toNodeHandler } from 'better-auth/node'
 import { env, validateEnv } from './config/env.js'
-import { testConnection } from './infrastructure/database/connection.js'
+import { testConnection, runMigrations } from './infrastructure/database/connection.js'
 import { initializeSocket } from './infrastructure/socket/socket.js'
 import { auth } from './infrastructure/auth/auth.js'
 import { logger } from './infrastructure/logger/logger.js'
@@ -15,6 +15,7 @@ import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
 import { setSocketInstance } from './infrastructure/queue/workers/import.worker.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
+import { importQueue } from './infrastructure/queue/queues.js'
 
 // Validate environment
 validateEnv()
@@ -100,12 +101,33 @@ async function start(): Promise<void> {
   const dbConnected = await testConnection()
   if (!dbConnected) {
     logger.warn('database connection failed - some features may not work')
+  } else {
+    // Run migrations automatically on startup
+    const migrated = await runMigrations()
+    if (!migrated) {
+      logger.warn('database migration failed - schema may be outdated')
+    }
   }
 
   // Test Redis connection
   const redisConnected = await testRedisConnection()
   if (!redisConnected) {
     logger.warn('redis connection failed - job queue may not work')
+  } else {
+    // Schedule recurring sync job (every 1 hour)
+    try {
+      await importQueue.add(
+        'sync-new-games',
+        { maxGames: 10, screenshotsPerGame: 3 },
+        {
+          repeat: { every: 3600000 }, // 1 hour in milliseconds
+          jobId: 'sync-new-games-recurring',
+        }
+      )
+      logger.info('scheduled recurring sync-new-games job (every 1h)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring sync job')
+    }
   }
 
   httpServer.listen(env.PORT, () => {

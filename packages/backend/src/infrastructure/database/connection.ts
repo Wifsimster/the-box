@@ -1,6 +1,10 @@
 import knex, { Knex } from 'knex'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { env } from '../../config/env.js'
 import { dbLogger } from '../logger/logger.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const db: Knex = knex({
   client: 'pg',
@@ -12,6 +16,10 @@ export const db: Knex = knex({
       dbLogger.debug('new connection created in pool')
       done()
     },
+  },
+  migrations: {
+    directory: path.resolve(__dirname, '..', '..', '..', 'migrations'),
+    extension: 'ts',
   },
 })
 
@@ -45,4 +53,31 @@ export async function testConnection(): Promise<boolean> {
 export async function closeConnection(): Promise<void> {
   dbLogger.info('closing database connection')
   await db.destroy()
+}
+
+export async function runMigrations(): Promise<boolean> {
+  try {
+    const start = Date.now()
+    dbLogger.info('running database migrations')
+
+    const [batchNo, migrations] = await db.migrate.latest()
+
+    if (migrations.length === 0) {
+      dbLogger.info({ durationMs: Date.now() - start }, 'database already up to date')
+    } else {
+      dbLogger.info(
+        {
+          batchNo,
+          migrations,
+          durationMs: Date.now() - start,
+        },
+        'database migrations completed'
+      )
+    }
+
+    return true
+  } catch (error) {
+    dbLogger.error({ error: String(error) }, 'database migration failed')
+    return false
+  }
 }

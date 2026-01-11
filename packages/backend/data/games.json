@@ -183,5 +183,716 @@
       "Dreamcast"
     ],
     "cover_image_url": "https://media.rawg.io/media/screenshots/463/4632b7e19146131ff1986170b045439d.jpg"
+  },
+  {
+    "name": "Splatoon 2: Octo Expansion",
+    "slug": "splatoon-2-octo-expansion",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Nintendo",
+    "publisher": "Nintendo",
+    "genres": [
+      "Shooter",
+      "Action"
+    ],
+    "platforms": [
+      "Nintendo Switch"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/8a7/8a7e9776a4f72be09eff57c821391b96.jpg"
+  },
+  {
+    "name": "Dark Souls III: The Ringed City",
+    "slug": "dark-souls-iii-the-ringed-city",
+    "aliases": [],
+    "release_year": 2017,
+    "developer": "FromSoftware",
+    "publisher": "Bandai Namco Entertainment",
+    "genres": [
+      "Action",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/25a/25a2a77f6feb0b14bcb0847ed966db20.jpg"
+  },
+  {
+    "name": "The Elder Scrolls V: Skyrim Legendary Edition",
+    "slug": "the-elder-scrolls-v-skyrim-legendary-edition",
+    "aliases": [],
+    "release_year": 2013,
+    "developer": "Bethesda Game Studios",
+    "publisher": "Bethesda Softworks",
+    "genres": [
+      "Adventure",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/6db/6db2d022f77b1c99116bbf6750ec2c7d.jpg"
+  },
+  {
+    "name": "StarСraft II: Legacy of the Void",
+    "slug": "starraft-ii-legacy-of-the-void",
+    "aliases": [],
+    "release_year": 2015,
+    "developer": null,
+    "publisher": "Blizzard Entertainment",
+    "genres": [
+      "Strategy"
+    ],
+    "platforms": [
+      "PC",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/cc7/cc7caf0e38a065f75d9030999e50c671.jpg"
+  },
+  {
+    "name": "Red Dead Redemption 2",
+    "slug": "red-dead-redemption-2",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Rockstar Games",
+    "publisher": "Rockstar Games",
+    "genres": [
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg"
+  },
+  {
+    "name": "Grand Theft Auto IV: Complete Edition",
+    "slug": "grand-theft-auto-iv-complete-edition",
+    "aliases": [],
+    "release_year": 2010,
+    "developer": "Rockstar Toronto",
+    "publisher": "Rockstar Games",
+    "genres": [
+      "Adventure",
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/e59/e59cc96f38cc93af5a396173878018d7.jpg"
+  },
+  {
+    "name": "Portal 2",
+    "slug": "portal-2",
+    "aliases": [],
+    "release_year": 2011,
+    "developer": "Valve Software",
+    "publisher": "Electronic Arts",
+    "genres": [
+      "Shooter",
+      "Puzzle"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "macOS",
+      "Linux",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/2ba/2bac0e87cf45e5b508f227d281c9252a.jpg"
+  },
+  {
+    "name": "Midnight Club 3: DUB Edition Remix",
+    "slug": "midnight-club-3-dub-edition-remix",
+    "aliases": [],
+    "release_year": 2006,
+    "developer": "Rockstar San Diego",
+    "publisher": "Rockstar Games",
+    "genres": [
+      "Racing",
+      "Arcade"
+    ],
+    "platforms": [
+      "Xbox",
+      "PlayStation 3",
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/2f9/2f9504a1ff679995114d7c8f56534121.jpg"
+  },
+  {
+    "name": "Mega Man Maverick Hunter X",
+    "slug": "mega-man-maverick-hunter-x",
+    "aliases": [],
+    "release_year": 2006,
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "genres": [
+      "Platformer",
+      "Action"
+    ],
+    "platforms": [
+      "PSP"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/522/5229c17108d25f72c0c27fd627227ec7.jpg"
+  },
+  {
+    "name": "StarCraft II: Wings of Liberty",
+    "slug": "starcraft-ii-wings-of-liberty",
+    "aliases": [],
+    "release_year": 2010,
+    "developer": null,
+    "publisher": "Blizzard Entertainment",
+    "genres": [
+      "Strategy"
+    ],
+    "platforms": [
+      "PC",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/5f7/5f7191716faebcf102a357c5c2889394.jpg"
+  },
+  {
+    "name": "The Legend of Zelda: The Wind Waker HD",
+    "slug": "the-legend-of-zelda-the-wind-waker-hd",
+    "aliases": [],
+    "release_year": 2013,
+    "developer": null,
+    "publisher": "Nintendo",
+    "genres": [
+      "Adventure"
+    ],
+    "platforms": [
+      "Wii U"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/c75/c75f83d346ded0cb785e0649e0ac10cd.jpg"
+  },
+  {
+    "name": "Mass Effect: Legendary Edition",
+    "slug": "mass-effect-legendary-edition",
+    "aliases": [],
+    "release_year": 2021,
+    "developer": "BioWare",
+    "publisher": "Electronic Arts",
+    "genres": [
+      "Shooter",
+      "Adventure",
+      "Action",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 5",
+      "Xbox One",
+      "PlayStation 4",
+      "Xbox Series S/X"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/64e/64e2a77f37ddc48d102127234af99886.jpg"
+  },
+  {
+    "name": "Metal Gear Rising: Revengeance - Jetstream Sam",
+    "slug": "metal-gear-rising-revengeance-jetstream-sam",
+    "aliases": [],
+    "release_year": 2013,
+    "developer": "Platinum Games",
+    "publisher": "Konami",
+    "genres": [
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/7da/7da7fa556279c66cab1c9d4e194a8c37.jpg"
+  },
+  {
+    "name": "Warcraft 3: The Frozen Throne",
+    "slug": "warcraft-3-the-frozen-throne",
+    "aliases": [],
+    "release_year": 2003,
+    "developer": null,
+    "publisher": "Blizzard Entertainment",
+    "genres": [
+      "Strategy"
+    ],
+    "platforms": [
+      "PC",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/672/67272c0ae016e71bf46c8e337803d7da.jpg"
+  },
+  {
+    "name": "The Legend of Zelda: Ocarina of Time 3D",
+    "slug": "the-legend-of-zelda-ocarina-of-time-3d",
+    "aliases": [],
+    "release_year": 2011,
+    "developer": null,
+    "publisher": "Nintendo",
+    "genres": [
+      "Adventure",
+      "RPG",
+      "Puzzle"
+    ],
+    "platforms": [
+      "Nintendo 3DS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/c91/c916af1fa182bc2d674b4d9270bb7713.jpg"
+  },
+  {
+    "name": "God of War (2018)",
+    "slug": "god-of-war-2",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Santa Monica Studio",
+    "publisher": "Sony Interactive Entertainment",
+    "genres": [
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/4be/4be6a6ad0364751a96229c56bf69be59.jpg"
+  },
+  {
+    "name": "The Orange Box",
+    "slug": "the-orange-box",
+    "aliases": [],
+    "release_year": 2008,
+    "developer": "Valve Software",
+    "publisher": "Electronic Arts",
+    "genres": [
+      "Shooter"
+    ],
+    "platforms": [
+      "PC",
+      "macOS",
+      "Linux",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/55a/55a685051caa3d478836fa7c1d074694.jpg"
+  },
+  {
+    "name": "The Last Of Us",
+    "slug": "the-last-of-us",
+    "aliases": [],
+    "release_year": 2013,
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "genres": [
+      "Adventure",
+      "Action"
+    ],
+    "platforms": [
+      "PlayStation 4",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/a5a/a5a7fb8d9cb8063a8b42ee002b410db6.jpg"
+  },
+  {
+    "name": "Phoenix Wright: Ace Attorney Trilogy",
+    "slug": "ace-attorney-phoenix-wright-trilogy-hd",
+    "aliases": [],
+    "release_year": 2013,
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "genres": [
+      "Adventure",
+      "Simulation"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4",
+      "Nintendo Switch",
+      "iOS",
+      "Nintendo 3DS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/3e5/3e55a40ff233aacf63f96ea80fcc7234.jpg"
+  },
+  {
+    "name": "Ace Combat 5: The Unsung War",
+    "slug": "ace-combat-5-the-unsung-war",
+    "aliases": [],
+    "release_year": 2004,
+    "developer": "NAMCO",
+    "publisher": "Namco",
+    "genres": [
+      "Simulation"
+    ],
+    "platforms": [
+      "PlayStation 5",
+      "PlayStation 4",
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/b34/b34c2c6005f3c629462ea6d16ad7b3bc.jpg"
+  },
+  {
+    "name": "Kingdom Hearts II Final Mix",
+    "slug": "kingdom-hearts-ii-final-mix",
+    "aliases": [],
+    "release_year": 2007,
+    "developer": "Square Enix",
+    "publisher": "Square Enix",
+    "genres": [
+      "Action",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 4",
+      "PlayStation 3",
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/cc8/cc89b08b309cf550b2cf25410a91833e.jpg"
+  },
+  {
+    "name": "The Elder Scrolls 4: Shivering Isles",
+    "slug": "the-elder-scrolls-4-shivering-isles",
+    "aliases": [],
+    "release_year": 2007,
+    "developer": "Bethesda Game Studios",
+    "publisher": "2K Games",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "PC"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/a9d/a9d494c3789952790470cfbcf0f8e367.jpg"
+  },
+  {
+    "name": "Cuphead: The Delicious Last Course",
+    "slug": "cuphead-the-delicious-last-course",
+    "aliases": [],
+    "release_year": 2022,
+    "developer": "Studio MDHR",
+    "publisher": "StudioMDHR Entertainment",
+    "genres": [
+      "Platformer"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4",
+      "Nintendo Switch"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/01b/01b85423bbfb5f8bc6bcf29dc0cfd6d9.jpg"
+  },
+  {
+    "name": "Divinity: Original Sin 2 - Definitive Edition",
+    "slug": "divinity-original-sin-ii-definitive-edition",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Larian Studios",
+    "publisher": "Bandai Namco Entertainment",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4",
+      "Nintendo Switch",
+      "iOS",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/cd2/cd2a1a360839002bceadc5a8b3c7dbf7.jpg"
+  },
+  {
+    "name": "Shining Force: Resurrection of the Dark Dragon",
+    "slug": "shining-force-resurrection-of-the-dark-dragon",
+    "aliases": [],
+    "release_year": 2004,
+    "developer": "SEGA",
+    "publisher": "SEGA",
+    "genres": [
+      "Strategy",
+      "RPG"
+    ],
+    "platforms": [
+      "iOS",
+      "Game Boy Advance"
+    ],
+    "cover_image_url": null
+  },
+  {
+    "name": "Resident Evil 2",
+    "slug": "resident-evil-2-2019",
+    "aliases": [],
+    "release_year": 2019,
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "genres": [
+      "Shooter",
+      "Adventure",
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 5",
+      "Xbox One",
+      "PlayStation 4",
+      "Nintendo Switch",
+      "macOS"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/053/053fc543bf488349610f1ae2d0c1b51b.jpg"
+  },
+  {
+    "name": "Zone of the Enders 2: The Second Runner",
+    "slug": "zone-of-the-enders-2-the-second-runner",
+    "aliases": [],
+    "release_year": 2003,
+    "developer": "Konami Computer Entertainment Japan",
+    "publisher": "Konami",
+    "genres": [
+      "Action",
+      "Simulation"
+    ],
+    "platforms": [
+      "PlayStation 3",
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/91c/91c7cd98fadf1919d97d7142eb9d4718.jpg"
+  },
+  {
+    "name": "Baten Kaitos: Eternal Wings and the Lost Ocean",
+    "slug": "baten-kaitos-eternal-wings-and-the-lost-ocean",
+    "aliases": [],
+    "release_year": 2003,
+    "developer": "Monolith Soft",
+    "publisher": "Namco",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "GameCube"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/845/84520cabe424512e5364a08862d8713a.jpg"
+  },
+  {
+    "name": "Odin Sphere",
+    "slug": "odin-sphere",
+    "aliases": [],
+    "release_year": 2007,
+    "developer": "VanillaWare",
+    "publisher": "Square Enix",
+    "genres": [
+      "RPG"
+    ],
+    "platforms": [
+      "PlayStation 3",
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/11f/11f3a8f5b0c044c1d3e0960a9ae30113.jpg"
+  },
+  {
+    "name": "Grand Theft Auto: San Andreas",
+    "slug": "grand-theft-auto-san-andreas",
+    "aliases": [],
+    "release_year": 2004,
+    "developer": "Rockstar North",
+    "publisher": "Capcom",
+    "genres": [
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4",
+      "iOS",
+      "Android",
+      "macOS",
+      "Xbox 360",
+      "Xbox",
+      "PlayStation 3",
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/960/960b601d9541cec776c5fa42a00bf6c4.jpg"
+  },
+  {
+    "name": "Ace Combat Zero: The Belkan War",
+    "slug": "ace-combat-zero-the-belkan-war",
+    "aliases": [],
+    "release_year": 2006,
+    "developer": "Project Aces",
+    "publisher": "Bandai Namco Entertainment",
+    "genres": [
+      "Simulation"
+    ],
+    "platforms": [
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/e59/e59ed4927acdf2b73466e3c3530ab487.jpg"
+  },
+  {
+    "name": "Gran Turismo 4",
+    "slug": "gran-turismo-4",
+    "aliases": [],
+    "release_year": 2004,
+    "developer": "Polyphony Digital",
+    "publisher": "Sony Computer Entertainment",
+    "genres": [
+      "Racing"
+    ],
+    "platforms": [
+      "PlayStation 2"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/e9d/e9d6ebd887cbdade457d64cea51fe47c.jpg"
+  },
+  {
+    "name": "Persona 3 Portable",
+    "slug": "persona-3-portable",
+    "aliases": [],
+    "release_year": 2009,
+    "developer": "Atlus",
+    "publisher": "SEGA",
+    "genres": [
+      "Strategy",
+      "Adventure",
+      "RPG"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4",
+      "Xbox Series S/X",
+      "Nintendo Switch",
+      "PSP"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/68a/68a5aaddf51fa089fe1d2fcc9aa1b62b.jpg"
+  },
+  {
+    "name": "BioShock: The Collection",
+    "slug": "bioshock-the-collection",
+    "aliases": [],
+    "release_year": 2016,
+    "developer": "2K",
+    "publisher": "2K Games",
+    "genres": [
+      "Shooter",
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Xbox One",
+      "PlayStation 4",
+      "Nintendo Switch"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/abd/abd7b98d0ebe13e7e8f2b3bb8300bc0b.jpg"
+  },
+  {
+    "name": "Portal",
+    "slug": "portal",
+    "aliases": [],
+    "release_year": 2007,
+    "developer": "Valve Software",
+    "publisher": "Valve",
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "platforms": [
+      "PC",
+      "Nintendo Switch",
+      "Android",
+      "macOS",
+      "Linux",
+      "Xbox 360",
+      "PlayStation 3"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/7fa/7fa0b586293c5861ee32490e953a4996.jpg"
+  },
+  {
+    "name": "Disciples II: Rise of the Elves",
+    "slug": "disciples-ii-rise-of-the-elves",
+    "aliases": [],
+    "release_year": 2006,
+    "developer": "Strategy First",
+    "publisher": "Strategy First",
+    "genres": [
+      "Strategy"
+    ],
+    "platforms": [
+      "PC"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/7b4/7b49a66ff8ef74067ccfa31d23da9f21.jpg"
+  },
+  {
+    "name": "Disciples II: Gallean's Return",
+    "slug": "disciples-ii-galleans-return",
+    "aliases": [],
+    "release_year": 2006,
+    "developer": "Strategy First",
+    "publisher": "Strategy First",
+    "genres": [
+      "Strategy"
+    ],
+    "platforms": [
+      "PC"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/be2/be255cabe42fc00f2b0234be753f1a1b.jpg"
+  },
+  {
+    "name": "Uncharted 4: A Thief’s End",
+    "slug": "uncharted-4-a-thiefs-end",
+    "aliases": [],
+    "release_year": 2016,
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "genres": [
+      "Shooter",
+      "Action"
+    ],
+    "platforms": [
+      "PlayStation 5",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/709/709bf81f874ce5d25d625b37b014cb63.jpg"
+  },
+  {
+    "name": "Half-Life 2",
+    "slug": "half-life-2",
+    "aliases": [],
+    "release_year": 2004,
+    "developer": "Valve Software",
+    "publisher": "Valve",
+    "genres": [
+      "Shooter",
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "Android",
+      "macOS",
+      "Linux",
+      "Xbox 360",
+      "Xbox"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/games/b8c/b8c243eaa0fbac8115e0cdccac3f91dc.jpg"
+  },
+  {
+    "name": "ZONE OF THE ENDERS: The 2nd Runner - M∀RS",
+    "slug": "zone-of-the-enders-the-2nd-runner-mrs",
+    "aliases": [],
+    "release_year": 2018,
+    "developer": "Konami Digital Entertainment",
+    "publisher": "Konami",
+    "genres": [
+      "Action"
+    ],
+    "platforms": [
+      "PC",
+      "PlayStation 4"
+    ],
+    "cover_image_url": "https://media.rawg.io/media/screenshots/d60/d60b589d52b3f0ceeb164a847db8142a.jpg"
   }
 ]

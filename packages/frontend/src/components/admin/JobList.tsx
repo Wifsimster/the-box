@@ -11,6 +11,8 @@ import {
   Pause,
   Trash2,
   Loader2,
+  RefreshCw,
+  Timer,
 } from 'lucide-react'
 import type { JobStatus } from '@/types'
 
@@ -27,11 +29,38 @@ function formatDate(dateString: string): string {
   return date.toLocaleString()
 }
 
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffMinutes = Math.round(diffMs / 60000)
+
+  if (diffMinutes < 0) {
+    return 'now'
+  } else if (diffMinutes < 60) {
+    return `in ${diffMinutes}m`
+  } else {
+    const hours = Math.floor(diffMinutes / 60)
+    const mins = diffMinutes % 60
+    return `in ${hours}h ${mins}m`
+  }
+}
+
+function formatInterval(ms: number): string {
+  const hours = ms / 3600000
+  if (hours >= 1) {
+    return `${hours}h`
+  }
+  const minutes = ms / 60000
+  return `${minutes}m`
+}
+
 export function JobList() {
   const { t } = useTranslation()
-  const { jobs, isLoading, cancelJob, clearCompleted } = useAdminStore()
+  const { jobs, isLoading, cancelJob, clearCompleted, recurringJobs } = useAdminStore()
 
   const completedCount = jobs.filter((j) => j.status === 'completed').length
+  const syncJob = recurringJobs.find((j) => j.name === 'sync-new-games')
 
   if (isLoading) {
     return (
@@ -44,17 +73,62 @@ export function JobList() {
   }
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{t('admin.jobs.title')}</CardTitle>
-        {completedCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearCompleted}>
-            <Trash2 className="h-4 w-4 mr-1" />
-            {t('admin.jobs.clearCompleted')}
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-6">
+      {/* Recurring Jobs Status */}
+      {syncJob && (
+        <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <RefreshCw className="h-4 w-4 text-neon-purple" />
+              {t('admin.jobs.recurringJobs')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                {syncJob.isActive ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                    <span className="text-sm font-medium text-blue-400">
+                      {t('admin.jobs.syncRunning')}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium">
+                      {t('admin.jobs.syncNewGames')}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                {syncJob.every && (
+                  <span>{t('admin.jobs.every')} {formatInterval(syncJob.every)}</span>
+                )}
+                {syncJob.nextRun && !syncJob.isActive && (
+                  <span className="text-neon-purple">
+                    {t('admin.jobs.nextRun')}: {formatRelativeTime(syncJob.nextRun)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Job History */}
+      <Card className="bg-card/50 backdrop-blur-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{t('admin.jobs.title')}</CardTitle>
+          {completedCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearCompleted}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              {t('admin.jobs.clearCompleted')}
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
         {jobs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             {t('admin.jobs.noJobs')}
@@ -73,7 +147,9 @@ export function JobList() {
                       <p className="font-medium">
                         {job.type === 'import-games'
                           ? t('admin.jobs.importGames')
-                          : t('admin.jobs.importScreenshots')}
+                          : job.type === 'sync-new-games'
+                            ? t('admin.jobs.syncNewGames')
+                            : t('admin.jobs.importScreenshots')}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(job.createdAt)}
@@ -125,11 +201,16 @@ export function JobList() {
                   <p className="text-sm text-red-400">{job.error}</p>
                 )}
 
-                {job.data && (job.data.targetGames || job.data.screenshotsPerGame) && (
+                {job.data && (job.data.targetGames || job.data.screenshotsPerGame || job.data.maxGames) && (
                   <div className="text-xs text-muted-foreground">
                     {job.data.targetGames && (
                       <span className="mr-3">
                         {t('admin.jobs.targetGames')}: {job.data.targetGames}
+                      </span>
+                    )}
+                    {job.data.maxGames && (
+                      <span className="mr-3">
+                        {t('admin.jobs.maxGames')}: {job.data.maxGames}
                       </span>
                     )}
                     {job.data.screenshotsPerGame && (
@@ -143,7 +224,8 @@ export function JobList() {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

@@ -238,6 +238,20 @@ router.get('/jobs/stats', async (_req, res, next) => {
   }
 })
 
+// Get recurring jobs info (scheduled jobs)
+router.get('/jobs/recurring', async (_req, res, next) => {
+  try {
+    const recurringJobs = await jobService.getRecurringJobs()
+
+    res.json({
+      success: true,
+      data: { recurringJobs },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Get specific job
 router.get('/jobs/:id', async (req, res, next) => {
   try {
@@ -262,11 +276,12 @@ router.get('/jobs/:id', async (req, res, next) => {
 
 // Create import job
 const createJobSchema = z.object({
-  type: z.enum(['import-games', 'import-screenshots']),
+  type: z.enum(['import-games', 'import-screenshots', 'sync-new-games']),
   data: z
     .object({
       targetGames: z.number().min(1).max(1000).optional(),
       screenshotsPerGame: z.number().min(1).max(10).optional(),
+      maxGames: z.number().min(1).max(100).optional(),
     })
     .optional(),
 })
@@ -288,6 +303,20 @@ router.post('/jobs', async (req, res, next) => {
       })
       return
     }
+    next(error)
+  }
+})
+
+// Clear completed jobs (must be before /jobs/:id to avoid matching "completed" as an id)
+router.delete('/jobs/completed', async (_req, res, next) => {
+  try {
+    const count = await jobService.clearCompleted()
+
+    res.json({
+      success: true,
+      data: { cleared: count },
+    })
+  } catch (error) {
     next(error)
   }
 })
@@ -346,14 +375,18 @@ router.post('/jobs/import-screenshots', async (_req, res, next) => {
   }
 })
 
-// Clear completed jobs
-router.delete('/jobs/completed', async (_req, res, next) => {
+// Shortcut: Start sync-new-games job (fetch newest games from RAWG)
+router.post('/jobs/sync-new-games', async (req, res, next) => {
   try {
-    const count = await jobService.clearCompleted()
+    const data = {
+      maxGames: req.body?.maxGames || 10,
+      screenshotsPerGame: req.body?.screenshotsPerGame || 3,
+    }
+    const job = await jobService.createJob('sync-new-games', data)
 
-    res.json({
+    res.status(201).json({
       success: true,
-      data: { cleared: count },
+      data: { job },
     })
   } catch (error) {
     next(error)

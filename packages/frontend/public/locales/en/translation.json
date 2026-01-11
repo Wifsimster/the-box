@@ -153,6 +153,12 @@
     "challenges": "Challenges",
     "addScreenshot": "Add Screenshot",
     "createChallenge": "Create Challenge",
+    "import": {
+      "gamesSection": "Step 1: Import Games",
+      "gamesSectionDesc": "Fetch game metadata and screenshot URLs from RAWG API. This creates the list of games and their screenshots to download.",
+      "screenshotsSection": "Step 2: Download Screenshots",
+      "screenshotsSectionDesc": "Download the actual screenshot images to local storage. Requires Step 1 to be completed first."
+    },
     "jobs": {
       "title": "Jobs",
       "importGames": "Import Games",
@@ -165,6 +171,12 @@
       "cancel": "Cancel",
       "clearCompleted": "Clear Completed",
       "noJobs": "No jobs yet",
+      "recurringJobs": "Scheduled Jobs",
+      "syncNewGames": "Sync New Games",
+      "syncRunning": "Syncing new games...",
+      "every": "Every",
+      "nextRun": "Next run",
+      "maxGames": "Max games",
       "status": {
         "waiting": "Waiting",
         "active": "Running",

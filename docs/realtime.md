@@ -148,15 +148,97 @@ socket.on('player_finished', (data) => {
 }
 ```
 
+## Admin Events
+
+Admin users can subscribe to job progress updates in real-time.
+
+### Client to Server
+
+#### `join_admin`
+
+Join the admin room to receive job updates.
+
+```typescript
+socket.emit('join_admin')
+```
+
+#### `leave_admin`
+
+Leave the admin room.
+
+```typescript
+socket.emit('leave_admin')
+```
+
+### Server to Client (Admin)
+
+#### `job_progress`
+
+Received when a background job makes progress.
+
+```typescript
+socket.on('job_progress', (data) => {
+  console.log(`Job ${data.jobId}: ${data.progress}% - ${data.message}`)
+})
+```
+
+**Payload:**
+```typescript
+{
+  jobId: string
+  progress: number  // 0-100
+  message: string
+}
+```
+
+#### `job_completed`
+
+Received when a job finishes successfully.
+
+```typescript
+socket.on('job_completed', (data) => {
+  console.log(`Job ${data.jobId} completed!`, data.result)
+})
+```
+
+**Payload:**
+```typescript
+{
+  jobId: string
+  result: any
+}
+```
+
+#### `job_failed`
+
+Received when a job fails.
+
+```typescript
+socket.on('job_failed', (data) => {
+  console.error(`Job ${data.jobId} failed:`, data.error)
+})
+```
+
+**Payload:**
+```typescript
+{
+  jobId: string
+  error: string
+}
+```
+
 ## Room Management
 
 Players are automatically placed in rooms based on challenge ID:
 
 ```text
-Room: challenge_1
+Room: challenge_1          # Game challenge rooms
 ├── Player A (socket.id: abc123)
 ├── Player B (socket.id: def456)
 └── Player C (socket.id: ghi789)
+
+Room: admin                # Admin room for job updates
+└── Admin User (socket.id: xyz789)
 ```
 
 ### Server-side Room Logic

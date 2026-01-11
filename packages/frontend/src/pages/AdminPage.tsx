@@ -24,6 +24,7 @@ export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const {
     fetchJobs,
+    fetchRecurringJobs,
     updateJobProgress,
     updateJobCompleted,
     updateJobFailed,
@@ -40,6 +41,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (session?.user.role === 'admin') {
       fetchJobs()
+      fetchRecurringJobs()
 
       // Join admin room for real-time updates
       joinAdminRoom()
@@ -66,10 +68,13 @@ export default function AdminPage() {
   // Refresh jobs periodically as fallback
   useEffect(() => {
     if (session?.user.role === 'admin') {
-      const interval = setInterval(fetchJobs, 30000) // Every 30 seconds
+      const interval = setInterval(() => {
+        fetchJobs()
+        fetchRecurringJobs()
+      }, 30000) // Every 30 seconds
       return () => clearInterval(interval)
     }
-  }, [session, fetchJobs])
+  }, [session, fetchJobs, fetchRecurringJobs])
 
   if (isPending) {
     return (
@@ -107,9 +112,26 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="import">
-          <div className="grid gap-6 md:grid-cols-2">
-            <JobTriggerCard type="import-games" />
-            <JobTriggerCard type="import-screenshots" />
+          <div className="space-y-8">
+            {/* Step 1: Games Import */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-purple/20 text-neon-purple text-sm font-bold">1</span>
+                <h2 className="text-lg font-semibold">{t('admin.import.gamesSection')}</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">{t('admin.import.gamesSectionDesc')}</p>
+              <JobTriggerCard type="import-games" />
+            </section>
+
+            {/* Step 2: Screenshots Download */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-pink/20 text-neon-pink text-sm font-bold">2</span>
+                <h2 className="text-lg font-semibold">{t('admin.import.screenshotsSection')}</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">{t('admin.import.screenshotsSectionDesc')}</p>
+              <JobTriggerCard type="import-screenshots" />
+            </section>
           </div>
         </TabsContent>
 

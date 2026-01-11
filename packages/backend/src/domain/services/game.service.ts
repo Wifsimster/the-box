@@ -53,13 +53,18 @@ export const gameService = {
     if (userId) {
       const session = await sessionRepository.findGameSession(userId, challenge.id)
       if (session) {
-        userSession = {
-          sessionId: session.id,
-          currentPosition: session.current_position,
-          isCompleted: session.is_completed,
-          totalScore: session.total_score,
+        // Find the latest tier session for this game session
+        const tierSession = await sessionRepository.findLatestTierSession(session.id)
+        if (tierSession) {
+          userSession = {
+            sessionId: session.id,
+            tierSessionId: tierSession.id,
+            currentPosition: session.current_position,
+            isCompleted: session.is_completed,
+            totalScore: session.total_score,
+          }
+          log.debug({ userId, challengeId: challenge.id, tierSessionId: tierSession.id, hasPlayed: true }, 'user has existing session')
         }
-        log.debug({ userId, challengeId: challenge.id, hasPlayed: true }, 'user has existing session')
       }
     }
 

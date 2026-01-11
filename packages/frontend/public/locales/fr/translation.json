@@ -153,6 +153,12 @@
     "challenges": "Défis",
     "addScreenshot": "Ajouter une Capture",
     "createChallenge": "Créer un Défi",
+    "import": {
+      "gamesSection": "Étape 1 : Importer les jeux",
+      "gamesSectionDesc": "Récupère les métadonnées et les URLs des captures depuis l'API RAWG. Crée la liste des jeux et leurs captures à télécharger.",
+      "screenshotsSection": "Étape 2 : Télécharger les captures",
+      "screenshotsSectionDesc": "Télécharge les images des captures en local. Nécessite que l'étape 1 soit complétée."
+    },
     "jobs": {
       "title": "Tâches",
       "importGames": "Importer les Jeux",
@@ -165,6 +171,12 @@
       "cancel": "Annuler",
       "clearCompleted": "Supprimer terminées",
       "noJobs": "Aucune tâche",
+      "recurringJobs": "Tâches planifiées",
+      "syncNewGames": "Sync nouveaux jeux",
+      "syncRunning": "Synchronisation en cours...",
+      "every": "Toutes les",
+      "nextRun": "Prochaine exécution",
+      "maxGames": "Jeux max",
       "status": {
         "waiting": "En attente",
         "active": "En cours",
