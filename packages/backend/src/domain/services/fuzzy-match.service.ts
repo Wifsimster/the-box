@@ -52,6 +52,7 @@ interface ParsedGameTitle {
   seriesName: string | null
   seriesNumber: number | null
   subtitle: string | null
+  baseName: string | null // Part before colon (for DLC detection)
   original: string
   normalized: string
 }
@@ -173,6 +174,7 @@ function parseGameTitle(title: string): ParsedGameTitle {
     seriesName: hasSeriesIndicators ? seriesName : null,
     seriesNumber,
     subtitle: subtitlePart || (hasSeriesIndicators ? null : seriesPart),
+    baseName: colonIndex > 0 ? seriesPart : null, // Store base name when title has colon
     original: title,
     normalized: normalizeForFuzzy(strippedEdition),
   }
@@ -267,6 +269,43 @@ function isSubtitleOnly(parsed: ParsedGameTitle): boolean {
 }
 
 /**
+ * Check if input matches only the base name of a "Base: Subtitle" title
+ * Used to reject matches like "Cuphead" for "Cuphead: The Delicious Last Course"
+ * DLCs should not be matched by their base game name alone
+ *
+ * Exception: If input has a series number that matches target's, it's specific enough
+ * (e.g., "Witcher 3" for "The Witcher 3: Wild Hunt" is allowed)
+ */
+function isBaseNameOnlyMatch(input: string, targetParsed: ParsedGameTitle): boolean {
+  // Only applies to titles with both a base name and subtitle (format: "Base: Subtitle")
+  if (!targetParsed.baseName || !targetParsed.subtitle) return false
+
+  // If target has a series number, allow matching with the number
+  // (e.g., "Witcher 3" should match "The Witcher 3: Wild Hunt")
+  if (targetParsed.seriesNumber !== null) {
+    const inputParsed = parseGameTitle(input)
+    // If input also has the matching series number, it's specific enough
+    if (inputParsed.seriesNumber === targetParsed.seriesNumber) {
+      return false // Not a base-name-only match, allow it to continue
+    }
+  }
+
+  const normalizedInput = normalizeForFuzzy(input)
+  const normalizedBaseName = normalizeForFuzzy(targetParsed.baseName)
+
+  // Check if input closely matches the base name
+  const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
+  if (baseNameSimilarity < 0.90) return false
+
+  // Check that input does NOT match the subtitle
+  const subtitleSimilarity = jaroWinkler(normalizedInput, normalizeForFuzzy(targetParsed.subtitle))
+  if (subtitleSimilarity >= SUBTITLE_THRESHOLD) return false
+
+  // Input matches base name but not subtitle = base name only match (should be rejected)
+  return true
+}
+
+/**
  * Enhanced game title matching with structural awareness
  */
 function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []): boolean {
@@ -293,6 +332,16 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
   const targetParsed = parseGameTitle(gameName)
 
   log.debug({ inputParsed, targetParsed }, 'parsed titles')
+
+  // 3. Early rejection: Base name only match for DLC titles
+  // Prevents "Cuphead" from matching "Cuphead: The Delicious Last Course"
+  if (isBaseNameOnlyMatch(input, targetParsed)) {
+    log.debug(
+      { input, gameName, baseName: targetParsed.baseName },
+      'rejected - base name only match for title with subtitle (DLC)'
+    )
+    return false
+  }
 
   // 3a. Subtitle-only match (e.g., "Skyrim" for "The Elder Scrolls V: Skyrim")
   if (isSubtitleOnly(inputParsed) && targetParsed.subtitle) {
