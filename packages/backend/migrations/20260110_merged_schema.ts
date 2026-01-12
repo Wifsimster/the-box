@@ -40,6 +40,7 @@ export async function up(knex: Knex): Promise<void> {
 
         // Plugin: username
         table.text('username').unique()
+        table.text('displayUsername').unique()
         table.timestamp('usernameUpdatedAt', { useTz: true })
 
         // Plugin: admin
@@ -328,6 +329,7 @@ export async function up(knex: Knex): Promise<void> {
                 updatedAt: now,
                 // Custom fields
                 username: 'admin',
+                displayUsername: 'admin',
                 displayName: 'Administrator',
                 totalScore: 0,
                 currentStreak: 0,

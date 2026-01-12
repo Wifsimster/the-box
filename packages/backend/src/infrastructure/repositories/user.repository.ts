@@ -21,6 +21,7 @@ export interface UserRow {
   updatedAt: Date
   // Custom fields from additionalFields config
   username: string | null
+  displayUsername: string | null
   displayName: string | null
   avatarUrl: string | null
   totalScore: number
