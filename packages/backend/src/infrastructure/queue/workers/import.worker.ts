@@ -5,6 +5,7 @@ import type { JobData, JobResult, JobProgressEvent, JobCompletedEvent, JobFailed
 import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-logic.js'
 import { syncNewGamesFromRAWG } from './sync-logic.js'
 import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
+import { createDailyChallenge } from './daily-challenge-logic.js'
 
 const log = queueLogger
 
@@ -192,6 +193,21 @@ export const importWorker = new Worker<JobData, JobResult>(
         } else {
           log.info({ jobId: id, nextBatch: result.currentBatch + 1 }, 'Batch completed, next batch scheduled')
         }
+        return jobResult
+      }
+
+      if (name === 'create-daily-challenge') {
+        const result = await createDailyChallenge((current, total, message) => {
+          const progress = Math.round((current / total) * 100)
+          job.updateProgress(progress)
+          emitProgress(id!, progress, current, total, message)
+        })
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'create-daily-challenge job completed')
         return jobResult
       }
 

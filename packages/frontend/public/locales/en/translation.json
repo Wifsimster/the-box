@@ -56,6 +56,10 @@
     "tierComplete": "Challenge Complete!",
     "resultsSummary": "Results Summary",
     "noResults": "No results yet. Play the game first!",
+    "results": {
+      "percentileTop": "You're in the top {{percent}}%!",
+      "rankOf": "Rank #{{rank}} of {{total}} players"
+    },
     "errorLoadingChallenge": "Failed to load challenge",
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",

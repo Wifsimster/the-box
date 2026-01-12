@@ -521,6 +521,8 @@ export const useGameStore = create<GameState>()(
           positionStates: state.positionStates,
           currentPosition: state.currentPosition,
           screenshotsFound: state.screenshotsFound,
+          // Persist guess results for results page display
+          guessResults: state.guessResults,
         }),
         onRehydrateStorage: () => (state) => {
           state?.setHasHydrated(true)

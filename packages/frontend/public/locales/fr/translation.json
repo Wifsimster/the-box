@@ -56,6 +56,10 @@
     "tierComplete": "Défi Terminé !",
     "resultsSummary": "Résumé des Résultats",
     "noResults": "Aucun résultat. Jouez d'abord !",
+    "results": {
+      "percentileTop": "Tu es dans le top {{percent}}% !",
+      "rankOf": "Rang #{{rank}} sur {{total}} joueurs"
+    },
     "errorLoadingChallenge": "Impossible de charger le défi",
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",

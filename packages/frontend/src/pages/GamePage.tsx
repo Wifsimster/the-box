@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
@@ -22,6 +22,7 @@ import { authClient, useSession } from '@/lib/auth-client'
 
 export default function GamePage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +57,17 @@ export default function GamePage() {
     leaderboardService,
     gamePhase === 'challenge_complete'
   )
+
+  // Redirect to results page when challenge is complete
+  useEffect(() => {
+    if (gamePhase === 'challenge_complete') {
+      // Brief delay to show completion message before redirecting
+      const timer = setTimeout(() => {
+        navigate(localizedPath('/results'))
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [gamePhase, navigate, localizedPath])
 
   // Fetch today's challenge on mount (after hydration completes)
   useEffect(() => {

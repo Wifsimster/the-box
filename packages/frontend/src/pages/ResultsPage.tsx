@@ -4,8 +4,10 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
-import { Trophy, Home, Share2, CheckCircle, XCircle } from 'lucide-react'
+import { Trophy, Home, Share2, CheckCircle, XCircle, Award } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { usePercentileRank } from '@/hooks/usePercentileRank'
+import { PercentileBanner } from '@/components/game/PercentileBanner'
 
 export default function ResultsPage() {
   const { t } = useTranslation()
@@ -13,7 +15,13 @@ export default function ResultsPage() {
   const { localizedPath } = useLocalizedPath()
   const { totalScore, correctAnswers, totalScreenshots, guessResults, resetGame } = useGameStore()
 
-  const accuracy = Math.round((correctAnswers / totalScreenshots) * 100)
+  const accuracy = totalScreenshots > 0 ? Math.round((correctAnswers / totalScreenshots) * 100) : 0
+
+  // Fetch percentile ranking
+  const { percentile, rank, totalPlayers, isLoading: isLoadingPercentile } = usePercentileRank(
+    totalScore,
+    totalScore > 0
+  )
 
   const handlePlayAgain = () => {
     resetGame()
@@ -61,13 +69,25 @@ export default function ResultsPage() {
         </div>
       </motion.div>
 
+      {/* Percentile Ranking Banner */}
+      <PercentileBanner
+        percentile={percentile}
+        rank={rank}
+        totalPlayers={totalPlayers}
+        isLoading={isLoadingPercentile}
+      />
+
       {/* Action Buttons */}
-      <div className="flex justify-center gap-4 mb-8">
+      <div className="flex justify-center gap-4 mb-8 flex-wrap">
         <Button variant="outline" size="lg" onClick={() => navigate(localizedPath('/'))}>
           <Home className="w-4 h-4 mr-2" />
           {t('common.home')}
         </Button>
-        <Button variant="gaming" size="lg">
+        <Button variant="gaming" size="lg" onClick={() => navigate(localizedPath('/leaderboard'))}>
+          <Award className="w-4 h-4 mr-2" />
+          {t('common.leaderboard')}
+        </Button>
+        <Button variant="outline" size="lg">
           <Share2 className="w-4 h-4 mr-2" />
           {t('common.share')}
         </Button>
