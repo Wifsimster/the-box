@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Trophy, Home, LogOut, Settings } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
@@ -62,15 +63,15 @@ export function Header() {
           )}
           {session && !isPending && (
             <div className="flex items-center gap-2">
-              <span
-                className={`text-sm ${
-                  session.user.role === 'admin'
-                    ? 'border border-red-500 rounded px-2 py-0.5 text-red-400'
-                    : 'text-muted-foreground'
-                }`}
-              >
-                {session.user.name || session.user.email?.split('@')[0]}
-              </span>
+              {session.user.role === 'admin' ? (
+                <Badge variant="admin">
+                  {session.user.name || session.user.email?.split('@')[0]}
+                </Badge>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {session.user.name || session.user.email?.split('@')[0]}
+                </span>
+              )}
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="w-4 h-4" />
               </Button>

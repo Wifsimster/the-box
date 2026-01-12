@@ -137,6 +137,20 @@ export const adminApi = {
   },
 
   /**
+   * Start create daily challenge job (manual trigger)
+   */
+  async triggerDailyChallenge(): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/create-daily-challenge', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
    * Manually trigger import games job
    */
   async triggerImportGames(targetGames?: number, screenshotsPerGame?: number): Promise<{ job: Job }> {

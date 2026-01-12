@@ -128,6 +128,21 @@ async function start(): Promise<void> {
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring sync job')
     }
+
+    // Schedule recurring daily challenge creation (midnight UTC)
+    try {
+      await importQueue.add(
+        'create-daily-challenge',
+        {},
+        {
+          repeat: { pattern: '0 0 * * *' }, // Cron: midnight UTC daily
+          jobId: 'create-daily-challenge-recurring',
+        }
+      )
+      logger.info('scheduled recurring create-daily-challenge job (daily at midnight UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring daily challenge job')
+    }
   }
 
   httpServer.listen(env.PORT, () => {

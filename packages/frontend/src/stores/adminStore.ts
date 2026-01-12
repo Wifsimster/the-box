@@ -44,6 +44,7 @@ interface AdminState {
   fetchStats: () => Promise<void>
   fetchRecurringJobs: () => Promise<void>
   triggerSyncJob: () => Promise<void>
+  triggerDailyChallengeJob: () => Promise<void>
   triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
   triggerImportScreenshots: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number, minMetacritic?: number) => Promise<Job>
@@ -144,6 +145,17 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger sync job:', err)
+          throw err
+        }
+      },
+
+      triggerDailyChallengeJob: async () => {
+        try {
+          await adminApi.triggerDailyChallenge()
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger daily challenge job:', err)
           throw err
         }
       },

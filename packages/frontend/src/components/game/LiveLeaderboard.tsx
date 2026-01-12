@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react'
 import { useGameStore } from '@/stores/gameStore'
 import { useAuthStore } from '@/stores/authStore'
 import { usePartyStore } from '@/stores/partyStore'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 /**
@@ -58,13 +59,15 @@ export function LiveLeaderboardView({
     >
       {/* Party host reset button */}
       {isInParty && isHost && onResetGame && (
-        <button
+        <Button
+          variant="warning"
+          size="sm"
           onClick={onResetGame}
-          className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-md transition-colors"
+          className="w-full mb-2"
         >
           <RotateCcw className="w-3 h-3" />
           Recommencer
-        </button>
+        </Button>
       )}
 
       <div className="space-y-2">

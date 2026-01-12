@@ -22,6 +22,8 @@ const buttonVariants = cva(
           "text-primary underline-offset-4 hover:underline",
         gaming:
           "bg-linear-to-r from-neon-purple to-neon-pink text-white shadow-lg hover:shadow-neon-purple/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
+        warning:
+          "text-orange-400 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",

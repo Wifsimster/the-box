@@ -1,6 +1,35 @@
 import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "@/lib/utils"
 
+const TooltipProvider = TooltipPrimitive.Provider
+
+const TooltipRoot = TooltipPrimitive.Root
+
+const TooltipTrigger = TooltipPrimitive.Trigger
+
+const TooltipContent = React.forwardRef<
+  React.ComponentRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 overflow-hidden rounded-md bg-card border border-border px-3 py-1.5 text-xs text-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        className
+      )}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+))
+TooltipContent.displayName = TooltipPrimitive.Content.displayName
+
+/**
+ * Simple Tooltip wrapper that matches the previous API for backward compatibility.
+ * Usage: <Tooltip content="Hello">Hover me</Tooltip>
+ */
 interface TooltipProps {
   content: React.ReactNode
   children: React.ReactNode
@@ -9,31 +38,27 @@ interface TooltipProps {
   contentClassName?: string
 }
 
-export function Tooltip({ content, children, side = "top", className, contentClassName }: TooltipProps) {
-  const sideClasses = {
-    top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
-    bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
-    left: "right-full top-1/2 -translate-y-1/2 mr-2",
-    right: "left-full top-1/2 -translate-y-1/2 ml-2",
-  }
-
-  const isSimpleContent = typeof content === "string"
-
+function Tooltip({ content, children, side = "top", className, contentClassName }: TooltipProps) {
   return (
-    <div className={cn("relative group inline-flex", className)}>
-      {children}
-      <div
-        className={cn(
-          "absolute z-50 px-2 py-1 text-xs font-medium text-white bg-card border border-border rounded shadow-lg",
-          "opacity-0 invisible group-hover:opacity-100 group-hover:visible",
-          "transition-all duration-200 pointer-events-none",
-          isSimpleContent && "whitespace-nowrap",
-          sideClasses[side],
-          contentClassName
-        )}
-      >
-        {content}
-      </div>
-    </div>
+    <TooltipProvider delayDuration={200}>
+      <TooltipRoot>
+        <TooltipTrigger asChild>
+          <span className={cn("inline-flex", className)}>
+            {children}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side={side} className={contentClassName}>
+          {content}
+        </TooltipContent>
+      </TooltipRoot>
+    </TooltipProvider>
   )
+}
+
+export {
+  Tooltip,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+  TooltipContent,
 }

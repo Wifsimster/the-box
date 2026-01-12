@@ -55,7 +55,8 @@
       "Bash(docker stop:*)",
       "Bash(docker rm:*)",
       "Bash(find:*)",
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "Bash(ls -la \"c:\\\\git\\\\the-box\\\\packages\\\\frontend\\\\src\\\\components\\\\admin\"\" 2>&1 || echo \"Directory check \")"
     ]
   }
 }

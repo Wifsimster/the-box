@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { PaginationDots } from '@/components/ui/pagination-dots'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ScreenshotsDialogProps {
@@ -59,16 +61,16 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [open, screenshots.length, goToPrevious, goToNext])
 
-  const getDifficultyLabel = (difficulty: number) => {
+  const getDifficultyLabel = (difficulty: number): { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' } => {
     switch (difficulty) {
       case 1:
-        return { label: 'Easy', color: 'bg-green-500/20 text-green-400 border-green-500/30' }
+        return { label: 'Easy', variant: 'success' }
       case 2:
-        return { label: 'Medium', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' }
+        return { label: 'Medium', variant: 'warning' }
       case 3:
-        return { label: 'Hard', color: 'bg-red-500/20 text-red-400 border-red-500/30' }
+        return { label: 'Hard', variant: 'destructive' }
       default:
-        return { label: 'Unknown', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
+        return { label: 'Unknown', variant: 'secondary' }
     }
   }
 
@@ -127,9 +129,9 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
               <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4">
                 <div className="flex items-center justify-between">
                   {currentScreenshot && (
-                    <span className={`text-xs px-2 py-1 rounded border ${getDifficultyLabel(currentScreenshot.difficulty).color}`}>
+                    <Badge variant={getDifficultyLabel(currentScreenshot.difficulty).variant}>
                       {t('admin.games.screenshotsDialog.difficulty')}: {getDifficultyLabel(currentScreenshot.difficulty).label}
-                    </span>
+                    </Badge>
                   )}
                   {currentScreenshot?.locationHint && (
                     <span className="text-xs text-white/70">
@@ -146,21 +148,11 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
                 {currentIndex + 1} / {screenshots.length}
               </span>
 
-              {screenshots.length > 1 && screenshots.length <= 10 && (
-                <div className="flex gap-1.5">
-                  {screenshots.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        index === currentIndex
-                          ? 'bg-primary'
-                          : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                      }`}
-                      onClick={() => setCurrentIndex(index)}
-                    />
-                  ))}
-                </div>
-              )}
+              <PaginationDots
+                total={screenshots.length}
+                current={currentIndex}
+                onSelect={setCurrentIndex}
+              />
             </div>
           </div>
         )}

@@ -404,7 +404,7 @@ router.get('/jobs/:id', async (req, res, next) => {
 
 // Create import job
 const createJobSchema = z.object({
-  type: z.enum(['import-games', 'import-screenshots', 'sync-new-games']),
+  type: z.enum(['import-games', 'import-screenshots', 'sync-new-games', 'create-daily-challenge']),
   data: z
     .object({
       targetGames: z.number().min(1).max(1000).optional(),
@@ -513,6 +513,20 @@ router.post('/jobs/sync-new-games', async (req, res, next) => {
       screenshotsPerGame: req.body?.screenshotsPerGame || 3,
     }
     const job = await jobService.createJob('sync-new-games', data)
+
+    res.status(201).json({
+      success: true,
+      data: { job },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Shortcut: Start create-daily-challenge job
+router.post('/jobs/create-daily-challenge', async (_req, res, next) => {
+  try {
+    const job = await jobService.createJob('create-daily-challenge', {})
 
     res.status(201).json({
       success: true,

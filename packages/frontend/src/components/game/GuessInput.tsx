@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
+import { Alert } from '@/components/ui/alert'
 import { useGameStore } from '@/stores/gameStore'
 import { SkipForward, SkipBack, Loader2, Send } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
@@ -192,11 +193,11 @@ export function GuessInput() {
 
       {/* Admin hint - only shown to admin users */}
       {isAdmin && currentScreenshotData?.gameName && (
-        <div className="mt-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <span className="text-xs text-red-400 font-medium">
+        <Alert variant="destructive" className="mt-2 py-1.5">
+          <span className="text-xs font-medium">
             {t('game.adminHint')}: {currentScreenshotData.gameName}
           </span>
-        </div>
+        </Alert>
       )}
     </div>
   )

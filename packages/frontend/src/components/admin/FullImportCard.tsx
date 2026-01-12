@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { useAdminStore } from '@/stores/adminStore'
@@ -196,9 +197,9 @@ export function FullImportCard() {
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
+                <Label className="text-muted-foreground font-normal">
                   {t('admin.fullImport.batchSize')}
-                </label>
+                </Label>
                 <Input
                   type="number"
                   value={batchSize}
@@ -208,9 +209,9 @@ export function FullImportCard() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
+                <Label className="text-muted-foreground font-normal">
                   {t('admin.jobs.screenshotsPerGame')}
-                </label>
+                </Label>
                 <Input
                   type="number"
                   value={screenshotsPerGame}
@@ -220,9 +221,9 @@ export function FullImportCard() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
+                <Label className="text-muted-foreground font-normal">
                   {t('admin.jobs.minMetacritic')}
-                </label>
+                </Label>
                 <Input
                   type="number"
                   value={minMetacritic}

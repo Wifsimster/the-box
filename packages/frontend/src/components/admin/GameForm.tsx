@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { Game } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, RefreshCw, ImageOff } from 'lucide-react'
 
@@ -128,7 +129,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.name')} *</label>
+              <Label>{t('admin.games.form.name')} *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
@@ -138,7 +139,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.slug')} *</label>
+              <Label>{t('admin.games.form.slug')} *</Label>
               <Input
                 value={formData.slug}
                 onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
@@ -150,7 +151,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('admin.games.form.aliases')}</label>
+            <Label>{t('admin.games.form.aliases')}</Label>
             <Input
               value={formData.aliases}
               onChange={(e) => setFormData((prev) => ({ ...prev, aliases: e.target.value }))}
@@ -161,7 +162,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
 
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.releaseYear')}</label>
+              <Label>{t('admin.games.form.releaseYear')}</Label>
               <Input
                 type="number"
                 value={formData.releaseYear}
@@ -175,7 +176,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.metacritic')}</label>
+              <Label>{t('admin.games.form.metacritic')}</Label>
               <Input
                 type="number"
                 value={game?.metacritic ?? ''}
@@ -185,7 +186,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.developer')}</label>
+              <Label>{t('admin.games.form.developer')}</Label>
               <Input
                 value={formData.developer}
                 onChange={(e) =>
@@ -196,7 +197,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.publisher')}</label>
+              <Label>{t('admin.games.form.publisher')}</Label>
               <Input
                 value={formData.publisher}
                 onChange={(e) =>
@@ -210,7 +211,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.genres')}</label>
+              <Label>{t('admin.games.form.genres')}</Label>
               <Input
                 value={formData.genres}
                 onChange={(e) => setFormData((prev) => ({ ...prev, genres: e.target.value }))}
@@ -219,7 +220,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('admin.games.form.platforms')}</label>
+              <Label>{t('admin.games.form.platforms')}</Label>
               <Input
                 value={formData.platforms}
                 onChange={(e) =>
@@ -232,7 +233,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('admin.games.form.coverImageUrl')}</label>
+            <Label>{t('admin.games.form.coverImageUrl')}</Label>
             <div className="flex gap-4">
               {/* Image Preview */}
               <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-800 border border-gray-700">

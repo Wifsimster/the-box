@@ -38,8 +38,8 @@ function getTodayDateUTC(): string {
  */
 async function selectRandomScreenshots(count: number): Promise<number[]> {
   // Get count of available screenshots
-  const [{ count: totalCount }] = await db('screenshots').count('id as count')
-  const available = Number(totalCount)
+  const result = await db('screenshots').count('id as count').first()
+  const available = Number(result?.count ?? 0)
 
   if (available === 0) {
     throw new Error('No screenshots available in database')
