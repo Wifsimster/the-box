@@ -50,8 +50,14 @@ export default function ResetPasswordPage() {
       return
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       setError(t('auth.passwordTooShort'))
+      setIsLoading(false)
+      return
+    }
+
+    if (formData.password.length > 128) {
+      setError('Password must not exceed 128 characters')
       setIsLoading(false)
       return
     }
@@ -192,7 +198,8 @@ export default function ResetPasswordPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="pl-10"
-                    minLength={6}
+                    minLength={8}
+                    maxLength={128}
                     required
                   />
                 </div>

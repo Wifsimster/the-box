@@ -71,6 +71,10 @@ docker run -d \
   -e EMAIL_FROM=noreply@yourdomain.com \
   -v thebox-uploads:/app/uploads \
   wifsimster/the-box:latest
+
+# Run database migrations and seed admin user
+docker exec the-box npm run --workspace=@the-box/backend db:migrate
+docker exec the-box npm run --workspace=@the-box/backend db:seed
 ```
 
 Or use Docker Compose for a complete stack:
@@ -137,6 +141,9 @@ docker-compose up -d
 
 # Run database migrations
 npm run db:migrate
+
+# Seed database with admin user
+npm run db:seed
 
 # Start development servers
 npm run dev

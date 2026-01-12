@@ -4,6 +4,8 @@ services:
     image: redis:7-alpine
     container_name: thebox-redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -19,6 +21,8 @@ services:
     image: postgres:16-alpine
     container_name: thebox-db
     restart: unless-stopped
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-thebox}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-thebox_secret}
@@ -47,7 +51,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 80
       DATABASE_URL: postgresql://${DB_USER:-thebox}:${DB_PASSWORD:-thebox_secret}@thebox-db:5432/${DB_NAME:-thebox}
       CORS_ORIGIN: https://the-box.battistella.ovh
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -56,6 +60,8 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-noreply@battistella.ovh}
       RAWG_API_KEY: ${RAWG_API_KEY:-}
       REDIS_URL: redis://thebox-redis:6379
+    ports:
+      - "3000:80"
     volumes:
       - ./uploads:/app/uploads
     networks:
@@ -120,6 +126,8 @@ services:
         VITE_API_URL: ""
     container_name: thebox-frontend
     restart: unless-stopped
+    ports:
+      - "8080:80"
     depends_on:
       - backend
     networks:

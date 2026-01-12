@@ -30,7 +30,8 @@ const formSchema = z.object({
     .email({ message: 'Please enter a valid email address' }),
   password: z
     .string()
-    .min(6, { message: 'Password must be at least 6 characters' }),
+    .min(8, { message: 'Password must be at least 8 characters' })
+    .max(128, { message: 'Password must not exceed 128 characters' }),
   confirmPassword: z
     .string(),
 }).refine((data) => data.password === data.confirmPassword, {

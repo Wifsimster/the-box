@@ -35,9 +35,6 @@ RUN npm run build:frontend
 FROM node:24-alpine AS runner
 WORKDIR /app
 
-# Install nginx
-RUN apk add --no-cache nginx
-
 # Create non-root user for node app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 thebox
@@ -59,23 +56,16 @@ COPY packages/backend/migrations ./packages/backend/migrations
 COPY packages/backend/seeds ./packages/backend/seeds
 COPY packages/backend/knexfile.ts ./packages/backend/knexfile.ts
 
-# Copy built frontend to nginx serve directory
-COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
-
-# Copy nginx config
-COPY nginx.conf /etc/nginx/http.d/default.conf
+# Copy built frontend to be served by Node.js
+COPY --from=builder /app/packages/frontend/dist ./packages/frontend/dist
 
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R thebox:nodejs /app/uploads
 
-# Create nginx directories with proper permissions
-RUN mkdir -p /var/run/nginx /var/log/nginx && \
-    chown -R thebox:nodejs /var/run/nginx /var/log/nginx /var/lib/nginx
-
 # Set ownership of app directory
 RUN chown -R thebox:nodejs /app
 
-# Expose port (nginx serves on 80)
+# Expose port (Node.js serves on 80)
 EXPOSE 80
 
 # Copy startup script

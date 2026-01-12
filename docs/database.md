@@ -400,7 +400,31 @@ npm run db:rollback
 
 # Create new migration
 npm run db:make-migration -- migration_name
+
+# Seed database (creates admin user)
+npm run db:seed
 ```
+
+## Seeding
+
+The database includes a seed file that creates an initial admin user:
+
+**Admin Credentials:**
+- Email: `admin@thebox.local`
+- Username: `admin`
+- Password: `admin123`
+- Role: `admin`
+
+**Run seed:**
+```bash
+# Local development
+npm run db:seed
+
+# Docker container
+docker exec the-box npm run --workspace=@the-box/backend db:seed
+```
+
+Note: The seed will skip if the admin user already exists.
 
 ## Indexes
 

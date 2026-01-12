@@ -176,7 +176,7 @@
     "resetError": "Error during password reset",
     "guestError": "Error logging in as guest",
     "passwordMismatch": "Passwords do not match",
-    "passwordTooShort": "Password must be at least 6 characters"
+    "passwordTooShort": "Password must be at least 8 characters"
   },
   "admin": {
     "title": "Admin Panel",

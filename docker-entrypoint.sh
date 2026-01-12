@@ -12,10 +12,6 @@ npx @better-auth/cli migrate
 echo "Running database migrations..."
 npm run db:migrate
 
-# Start nginx in the background
-echo "Starting nginx..."
-nginx
-
 # Start the backend server
 echo "Starting backend server..."
 cd /app/packages/backend

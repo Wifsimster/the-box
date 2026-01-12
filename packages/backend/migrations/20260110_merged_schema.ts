@@ -1,13 +1,107 @@
 import type { Knex } from 'knex'
+import { randomBytes } from 'crypto'
+// @ts-ignore - from better-auth's dependency
+import { scryptAsync } from '@noble/hashes/scrypt.js'
+
+/**
+ * Hash password using the same algorithm as better-auth.
+ * Matches: N=16384, r=16, p=1, dkLen=64
+ * Format: salt:key (both hex encoded)
+ */
+async function hashPassword(password: string): Promise<string> {
+    const saltBytes = randomBytes(16)
+    const salt = saltBytes.toString('hex')
+    const key = await scryptAsync(password.normalize('NFKC'), salt, {
+        N: 16384,
+        r: 16,
+        p: 1,
+        dkLen: 64,
+        maxmem: 128 * 16384 * 16 * 2, // 64 MB
+    })
+    return `${salt}:${Buffer.from(key).toString('hex')}`
+}
 
 export async function up(knex: Knex): Promise<void> {
     // Enable UUID extension
     await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
 
-    // ===== Initial Schema (20260110_initial_schema) =====
+    // ===== Better-Auth Tables =====
+    // Authentication tables for better-auth with custom game fields
 
-    // Better-auth's user table should already exist
-    // If not, this migration should be run after: npx @better-auth/cli migrate
+    // Users table (singular 'user' as required by better-auth)
+    await knex.schema.createTable('user', (table) => {
+        table.text('id').primary()
+        table.text('email').notNullable().unique()
+        table.text('emailVerified').notNullable().defaultTo('false')
+        table.text('name')
+        table.text('image')
+        table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+        table.timestamp('updatedAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+
+        // Plugin: username
+        table.text('username').unique()
+        table.timestamp('usernameUpdatedAt', { useTz: true })
+
+        // Plugin: admin
+        table.text('role').notNullable().defaultTo('user')
+        table.boolean('banned').notNullable().defaultTo(false)
+        table.text('banReason')
+        table.timestamp('banExpires', { useTz: true })
+
+        // Additional fields from auth config
+        table.text('displayName')
+        table.text('avatarUrl')
+        table.integer('totalScore').notNullable().defaultTo(0)
+        table.integer('currentStreak').notNullable().defaultTo(0)
+        table.integer('longestStreak').notNullable().defaultTo(0)
+        table.timestamp('lastPlayedAt', { useTz: true })
+    })
+
+    // Sessions table
+    await knex.schema.createTable('session', (table) => {
+        table.text('id').primary()
+        table.timestamp('expiresAt', { useTz: true }).notNullable()
+        table.text('token').notNullable().unique()
+        table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+        table.timestamp('updatedAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+        table.text('ipAddress')
+        table.text('userAgent')
+        table.text('userId').notNullable().references('id').inTable('user').onDelete('CASCADE')
+
+        // Plugin: anonymous
+        table.text('anonymousId')
+    })
+
+    // Accounts table
+    await knex.schema.createTable('account', (table) => {
+        table.text('id').primary()
+        table.text('accountId').notNullable()
+        table.text('providerId').notNullable()
+        table.text('userId').notNullable().references('id').inTable('user').onDelete('CASCADE')
+        table.text('accessToken')
+        table.text('refreshToken')
+        table.timestamp('accessTokenExpiresAt', { useTz: true })
+        table.timestamp('refreshTokenExpiresAt', { useTz: true })
+        table.text('scope')
+        table.text('password')
+        table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+        table.timestamp('updatedAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+    })
+
+    // Verification table
+    await knex.schema.createTable('verification', (table) => {
+        table.text('id').primary()
+        table.text('identifier').notNullable()
+        table.text('value').notNullable()
+        table.timestamp('expiresAt', { useTz: true }).notNullable()
+        table.timestamp('createdAt', { useTz: true })
+        table.timestamp('updatedAt', { useTz: true })
+    })
+
+    // Create a view to alias 'user' table as 'users' for foreign key compatibility
+    await knex.raw('CREATE VIEW users AS SELECT * FROM "user"')
+
+    // ===== Initial Schema (20260110_initial_schema) =====
 
     // Games table
     await knex.schema.createTable('games', (table) => {
@@ -210,6 +304,57 @@ export async function up(knex: Knex): Promise<void> {
         // Index for quick lookup of active imports
         table.index(['status'], 'idx_import_states_status')
     })
+
+    // ===== Seed Initial Admin User =====
+    // Create admin user if it doesn't exist
+    const existingUser = await knex('user')
+        .where('email', 'admin@thebox.local')
+        .first()
+
+    if (!existingUser) {
+        try {
+            const userId = randomBytes(16).toString('hex')
+            const hashedPassword = await hashPassword('admin123')
+            const now = new Date()
+
+            // Insert user into better-auth's user table
+            await knex('user').insert({
+                id: userId,
+                email: 'admin@thebox.local',
+                name: 'admin',
+                emailVerified: true,
+                role: 'admin',
+                createdAt: now,
+                updatedAt: now,
+                // Custom fields
+                username: 'admin',
+                displayName: 'Administrator',
+                totalScore: 0,
+                currentStreak: 0,
+                longestStreak: 0,
+            })
+
+            // Insert account for credential-based auth (password stored here)
+            await knex('account').insert({
+                id: randomBytes(16).toString('hex'),
+                userId: userId,
+                providerId: 'credential',
+                accountId: userId,
+                password: hashedPassword,
+                createdAt: now,
+                updatedAt: now,
+            })
+
+            console.log('Admin user created successfully:')
+            console.log('  Email: admin@thebox.local')
+            console.log('  Username: admin')
+            console.log('  Password: admin123')
+            console.log('  Role: admin')
+        } catch (error) {
+            console.error('Failed to create admin user:', error)
+            throw error
+        }
+    }
 }
 
 export async function down(knex: Knex): Promise<void> {
@@ -227,4 +372,13 @@ export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('daily_challenges')
     await knex.schema.dropTableIfExists('screenshots')
     await knex.schema.dropTableIfExists('games')
+
+    // Drop the users view first
+    await knex.raw('DROP VIEW IF EXISTS users')
+
+    // Drop better-auth tables
+    await knex.schema.dropTableIfExists('verification')
+    await knex.schema.dropTableIfExists('account')
+    await knex.schema.dropTableIfExists('session')
+    await knex.schema.dropTableIfExists('user')
 }

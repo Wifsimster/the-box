@@ -21,6 +21,24 @@ import { importQueue } from './infrastructure/queue/queues.js'
 // Validate environment
 validateEnv()
 
+// Log configuration on startup
+logger.info(
+  {
+    nodeEnv: env.NODE_ENV,
+    port: env.PORT,
+    logLevel: env.LOG_LEVEL,
+    corsOrigin: env.CORS_ORIGIN,
+    apiUrl: env.API_URL,
+    databaseUrl: env.DATABASE_URL.replace(/\/\/([^:]+):([^@]+)@/, '//$1:***@'), // Hide password
+    redisUrl: env.REDIS_URL,
+    emailFrom: env.EMAIL_FROM,
+    hasResendApiKey: !!env.RESEND_API_KEY,
+    hasRawgApiKey: !!env.RAWG_API_KEY,
+    betterAuthSecretLength: env.BETTER_AUTH_SECRET.length,
+  },
+  'configuration loaded'
+)
+
 const app = express()
 const httpServer = createServer(app)
 
@@ -64,6 +82,15 @@ app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/user', userRoutes)
 
+// Serve frontend static files (after API routes)
+const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
+app.use(express.static(frontendPath))
+
+// SPA fallback - serve index.html for all other routes (must be after API routes and static files)
+app.use((_req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'))
+})
+
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error(
@@ -80,17 +107,6 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
     error: {
       code: 'INTERNAL_ERROR',
       message: env.NODE_ENV === 'development' ? err.message : 'Internal server error',
-    },
-  })
-})
-
-// 404 handler
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      code: 'NOT_FOUND',
-      message: 'Resource not found',
     },
   })
 })
