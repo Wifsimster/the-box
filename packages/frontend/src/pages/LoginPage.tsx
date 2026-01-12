@@ -39,8 +39,8 @@ export default function LoginPage() {
           onSuccess: () => {
             navigate(redirectTo)
           },
-          onError: (ctx) => {
-            setError(ctx.error.message || t('auth.invalidCredentials'))
+          onError: () => {
+            setError(t('auth.invalidCredentials'))
           },
         })
       } else {
@@ -51,8 +51,8 @@ export default function LoginPage() {
           onSuccess: () => {
             navigate(redirectTo)
           },
-          onError: (ctx) => {
-            setError(ctx.error.message || t('auth.invalidCredentials'))
+          onError: () => {
+            setError(t('auth.invalidCredentials'))
           },
         })
       }
@@ -72,8 +72,8 @@ export default function LoginPage() {
         onSuccess: () => {
           navigate(redirectTo)
         },
-        onError: (ctx) => {
-          setError(ctx.error.message || t('auth.guestError'))
+        onError: () => {
+          setError(t('auth.guestError'))
         },
       })
     } catch {

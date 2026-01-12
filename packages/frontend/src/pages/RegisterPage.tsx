@@ -75,9 +75,9 @@ export default function RegisterPage() {
         onSuccess: () => {
           navigate(localizedPath('/'))
         },
-        onError: (ctx) => {
+        onError: () => {
           form.setError('root', {
-            message: ctx.error.message || t('auth.registerError'),
+            message: t('auth.registerError'),
           })
         },
       })
@@ -130,7 +130,6 @@ export default function RegisterPage() {
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="text"
-                            name="username"
                             placeholder={t('auth.usernamePlaceholder')}
                             className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-cyan/50 rounded-xl"
                             autoComplete="off"
@@ -156,7 +155,6 @@ export default function RegisterPage() {
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="email"
-                            name="email"
                             placeholder="you@example.com"
                             className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-cyan/50 rounded-xl"
                             autoComplete="email"

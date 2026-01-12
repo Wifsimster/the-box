@@ -54,9 +54,9 @@ export default function ForgotPasswordPage() {
           setSubmittedEmail(values.email)
           setSuccess(true)
         },
-        onError: (ctx: { error: { message?: string } }) => {
+        onError: () => {
           form.setError('root', {
-            message: ctx.error.message || t('auth.resetError'),
+            message: t('auth.resetError'),
           })
         },
       })

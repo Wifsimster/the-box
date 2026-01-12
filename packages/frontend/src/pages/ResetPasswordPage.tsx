@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
           if (ctx.error.message?.includes('INVALID_TOKEN') || ctx.error.message?.includes('expired')) {
             setTokenError(true)
           } else {
-            setError(ctx.error.message || t('auth.resetError'))
+            setError(t('auth.resetError'))
           }
         },
       })
