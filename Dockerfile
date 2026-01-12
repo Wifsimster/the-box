@@ -35,8 +35,8 @@ RUN npm run build:frontend
 FROM node:24-alpine AS runner
 WORKDIR /app
 
-# Install nginx and supervisor
-RUN apk add --no-cache nginx supervisor
+# Install nginx
+RUN apk add --no-cache nginx
 
 # Create non-root user for node app
 RUN addgroup --system --gid 1001 nodejs && \
@@ -65,14 +65,11 @@ COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
 # Copy nginx config
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
-# Copy supervisor config
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R thebox:nodejs /app/uploads
 
-# Create nginx and supervisor directories with proper permissions
-RUN mkdir -p /var/run/nginx /var/log/nginx /var/log/supervisor && \
+# Create nginx directories with proper permissions
+RUN mkdir -p /var/run/nginx /var/log/nginx && \
     chown -R thebox:nodejs /var/run/nginx /var/log/nginx /var/lib/nginx
 
 # Set ownership of app directory
@@ -81,9 +78,13 @@ RUN chown -R thebox:nodejs /app
 # Expose port (nginx serves on 80)
 EXPOSE 80
 
+# Copy startup script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
 
-# Start with supervisor (manages both nginx and node)
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Start services
+CMD ["/docker-entrypoint.sh"]
