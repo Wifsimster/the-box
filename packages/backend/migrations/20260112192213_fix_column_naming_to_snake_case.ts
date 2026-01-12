@@ -23,7 +23,8 @@ export async function up(knex: Knex): Promise<void> {
         table.renameColumn('currentStreak', 'current_streak')
         table.renameColumn('longestStreak', 'longest_streak')
         table.renameColumn('lastPlayedAt', 'last_played_at')
-        table.renameColumn('isAnonymous', 'is_anonymous')
+        // isAnonymous is created directly as is_anonymous by Better Auth
+        // table.renameColumn('isAnonymous', 'is_anonymous')
     })
 
     // Rename columns in session table

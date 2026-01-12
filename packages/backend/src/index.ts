@@ -54,13 +54,13 @@ app.use(cors({
   credentials: true,
 }))
 
-// Mount better-auth handler BEFORE express.json()
-// This handles all /api/auth/* routes automatically
-app.all('/api/auth/*splat', toNodeHandler(auth))
-
-// JSON parsing middleware (after better-auth)
+// JSON parsing middleware
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+// Mount better-auth handler
+// This handles all /api/auth/* routes automatically
+app.use('/api/auth', toNodeHandler(auth))
 
 // Request logging (after body parsing for potential body logging)
 app.use(requestLogger)
