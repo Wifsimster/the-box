@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Home, LogOut, Settings } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings, History } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -36,6 +36,15 @@ export function Header() {
               {t('common.leaderboard')}
             </Link>
           </Button>
+
+          {session && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={localizedPath('/history')}>
+                <History className="w-4 h-4 mr-1" />
+                {t('common.history')}
+              </Link>
+            </Button>
+          )}
 
           {session?.user.role === 'admin' && (
             <Button variant="ghost" size="sm" asChild>

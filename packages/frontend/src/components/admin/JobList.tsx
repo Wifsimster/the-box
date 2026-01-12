@@ -72,6 +72,9 @@ function formatCronPattern(pattern: string, t: (key: string) => string): string 
   if (pattern === '0 0 * * *') {
     return t('admin.jobs.atMidnight')
   }
+  if (pattern === '0 2 * * 0') {
+    return t('admin.jobs.weeklySunday2am')
+  }
   return pattern
 }
 
@@ -79,6 +82,7 @@ function getJobTranslationKey(jobName: string): string {
   const keyMap: Record<string, string> = {
     'sync-new-games': 'admin.jobs.syncNewGames',
     'create-daily-challenge': 'admin.jobs.createDailyChallenge',
+    'sync-all-games': 'admin.jobs.syncAllGames',
   }
   return keyMap[jobName] || jobName
 }
@@ -87,6 +91,7 @@ function getJobRunningTranslationKey(jobName: string): string {
   const keyMap: Record<string, string> = {
     'sync-new-games': 'admin.jobs.syncRunning',
     'create-daily-challenge': 'admin.jobs.dailyChallengeRunning',
+    'sync-all-games': 'admin.jobs.syncAllRunning',
   }
   return keyMap[jobName] || jobName
 }

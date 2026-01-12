@@ -151,6 +151,26 @@ export const adminApi = {
   },
 
   /**
+   * Start sync-all-games job (manual trigger)
+   */
+  async startSyncAll(config?: {
+    batchSize?: number
+    screenshotsPerGame?: number
+    minMetacritic?: number
+    updateExistingMetadata?: boolean
+  }): Promise<{ syncState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch('/api/admin/jobs/sync-all/start', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config || {}),
+    })
+    return handleResponse<{ syncState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  /**
    * Manually trigger import games job
    */
   async triggerImportGames(targetGames?: number, screenshotsPerGame?: number): Promise<{ job: Job }> {

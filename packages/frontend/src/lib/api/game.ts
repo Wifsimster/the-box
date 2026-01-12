@@ -5,6 +5,7 @@ import type {
   GuessResponse,
   EndGameResponse,
   GameSearchResult,
+  GameHistoryResponse,
 } from '@/types'
 
 interface ApiResponse<T> {
@@ -124,6 +125,16 @@ export const gameApi = {
       body: JSON.stringify({ sessionId }),
     })
     return handleResponse<EndGameResponse>(response)
+  },
+
+  /**
+   * Get user's daily game history
+   */
+  async getGameHistory(): Promise<GameHistoryResponse> {
+    const response = await fetch('/api/user/history', {
+      credentials: 'include',
+    })
+    return handleResponse<GameHistoryResponse>(response)
   },
 }
 

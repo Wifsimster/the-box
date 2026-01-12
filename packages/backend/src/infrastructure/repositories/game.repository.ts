@@ -16,6 +16,8 @@ export interface GameRow {
   platforms: string[] | null
   cover_image_url: string | null
   metacritic: number | null
+  rawg_id: number | null
+  last_synced_at: Date | null
   created_at: Date
 }
 
@@ -32,6 +34,8 @@ function mapRowToGame(row: GameRow): Game {
     platforms: row.platforms ?? undefined,
     coverImageUrl: row.cover_image_url ?? undefined,
     metacritic: row.metacritic ?? undefined,
+    rawgId: row.rawg_id ?? undefined,
+    lastSyncedAt: row.last_synced_at?.toISOString() ?? undefined,
   }
 }
 
@@ -47,6 +51,13 @@ export const gameRepository = {
     log.debug({ slug }, 'findBySlug')
     const row = await db('games').where('slug', slug).first<GameRow>()
     log.debug({ slug, found: !!row }, 'findBySlug result')
+    return row ? mapRowToGame(row) : null
+  },
+
+  async findByRawgId(rawgId: number): Promise<Game | null> {
+    log.debug({ rawgId }, 'findByRawgId')
+    const row = await db('games').where('rawg_id', rawgId).first<GameRow>()
+    log.debug({ rawgId, found: !!row }, 'findByRawgId result')
     return row ? mapRowToGame(row) : null
   },
 
@@ -152,6 +163,8 @@ export const gameRepository = {
         platforms: data.platforms,
         cover_image_url: data.coverImageUrl,
         metacritic: data.metacritic,
+        rawg_id: data.rawgId,
+        last_synced_at: data.lastSyncedAt ? new Date(data.lastSyncedAt) : null,
       })
       .returning<GameRow[]>('*')
     log.info({ gameId: row!.id, name: row!.name }, 'game created')
@@ -184,5 +197,46 @@ export const gameRepository = {
     log.warn({ gameId: id }, 'delete game')
     await db('games').where('id', id).del()
     log.info({ gameId: id }, 'game deleted')
+  },
+
+  /**
+   * Update a game with data from RAWG API.
+   * Only updates metadata fields, not slug or aliases (user-curated).
+   */
+  async updateFromRawg(id: number, data: {
+    name?: string
+    releaseYear?: number
+    developer?: string
+    publisher?: string
+    genres?: string[]
+    platforms?: string[]
+    coverImageUrl?: string
+    metacritic?: number
+    rawgId?: number
+    lastSyncedAt?: Date
+  }): Promise<Game | null> {
+    log.info({ gameId: id, fields: Object.keys(data) }, 'updateFromRawg')
+    const updateData: Record<string, unknown> = {}
+    if (data.name !== undefined) updateData['name'] = data.name
+    if (data.releaseYear !== undefined) updateData['release_year'] = data.releaseYear
+    if (data.developer !== undefined) updateData['developer'] = data.developer
+    if (data.publisher !== undefined) updateData['publisher'] = data.publisher
+    if (data.genres !== undefined) updateData['genres'] = data.genres
+    if (data.platforms !== undefined) updateData['platforms'] = data.platforms
+    if (data.coverImageUrl !== undefined) updateData['cover_image_url'] = data.coverImageUrl
+    if (data.metacritic !== undefined) updateData['metacritic'] = data.metacritic
+    if (data.rawgId !== undefined) updateData['rawg_id'] = data.rawgId
+    if (data.lastSyncedAt !== undefined) updateData['last_synced_at'] = data.lastSyncedAt
+
+    if (Object.keys(updateData).length === 0) {
+      return this.findById(id)
+    }
+
+    const [row] = await db('games')
+      .where('id', id)
+      .update(updateData)
+      .returning<GameRow[]>('*')
+    log.info({ gameId: id, updated: !!row }, 'updateFromRawg result')
+    return row ? mapRowToGame(row) : null
   },
 }

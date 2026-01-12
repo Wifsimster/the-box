@@ -22,7 +22,8 @@
     "admin": "Admin",
     "delete": "Supprimer",
     "save": "Enregistrer",
-    "create": "Créer"
+    "create": "Créer",
+    "history": "Historique"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",
@@ -124,7 +125,14 @@
     "player": "Joueur",
     "score": "Score",
     "time": "Temps",
-    "noResults": "Aucun résultat"
+    "noResults": "Aucun résultat",
+    "noDataForDate": "Aucune donnée pour cette date"
+  },
+  "history": {
+    "title": "Historique des Parties",
+    "yourGames": "Vos Parties",
+    "noResults": "Aucune partie jouée. Jouez votre premier défi quotidien !",
+    "inProgress": "En cours"
   },
   "auth": {
     "login": "Connexion",
@@ -217,9 +225,12 @@
       "createDailyChallenge": "Création défi quotidien",
       "dailyChallengeRunning": "Création du défi en cours...",
       "atMidnight": "Minuit UTC",
+      "weeklySunday2am": "Dimanche 2h UTC (hebdo)",
       "every": "Toutes les",
       "nextRun": "Prochaine exécution",
       "runNow": "Exécuter maintenant",
+      "syncAllGames": "Sync complète",
+      "syncAllRunning": "Sync complète en cours...",
       "maxGames": "Jeux max",
       "status": {
         "waiting": "En attente",

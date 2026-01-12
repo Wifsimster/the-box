@@ -5,6 +5,7 @@ import type { JobData, JobResult, JobProgressEvent, JobCompletedEvent, JobFailed
 import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-logic.js'
 import { syncNewGamesFromRAWG } from './sync-logic.js'
 import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
+import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
 
 const log = queueLogger
@@ -208,6 +209,85 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result: jobResult }, 'create-daily-challenge job completed')
+        return jobResult
+      }
+
+      if (name === 'sync-all-games') {
+        const { syncStateId, updateExistingMetadata, isResume } = data
+        if (!syncStateId) {
+          throw new Error('syncStateId is required for sync-all-games job')
+        }
+
+        log.info({
+          jobId: id,
+          syncStateId,
+          updateExistingMetadata: updateExistingMetadata ?? true,
+          isResume: !!isResume,
+        }, `Processing sync-all-games job (${isResume ? 'RESUME' : 'NEW'})`)
+
+        const result = await processSyncAllBatch(
+          syncStateId,
+          updateExistingMetadata ?? true,
+          (current, total, message, state) => {
+            const progress = total > 0 ? Math.round((current / total) * 100) : 0
+            job.updateProgress(progress)
+
+            // Emit standard progress
+            emitProgress(id!, progress, current, total, message)
+
+            // Emit batch-specific progress
+            emitBatchProgress({
+              jobId: id!,
+              progress,
+              current,
+              total,
+              message,
+              importStateId: state.id,
+              totalGamesAvailable: state.totalGamesAvailable || 0,
+              currentBatch: state.currentBatch,
+              totalBatches: state.totalBatchesEstimated || 0,
+              gamesImported: state.gamesImported,
+              gamesSkipped: state.gamesSkipped,
+              screenshotsDownloaded: state.screenshotsDownloaded,
+              estimatedTimeRemaining: null,
+            })
+          }
+        )
+
+        // If not complete and not paused, schedule next batch
+        let nextBatchScheduled = false
+        if (!result.isComplete && !result.isPaused) {
+          const nextJob = await scheduleSyncAllNextBatch(syncStateId)
+          nextBatchScheduled = !!nextJob
+        }
+
+        const jobResult: JobResult = {
+          gamesProcessed: result.gamesProcessed,
+          gamesImported: result.gamesImported,
+          gamesUpdated: result.gamesUpdated,
+          gamesSkipped: result.gamesSkipped,
+          screenshotsProcessed: result.screenshotsDownloaded,
+          failedCount: result.failedCount,
+          syncStateId: result.syncStateId,
+          batchNumber: result.currentBatch,
+          totalBatches: result.totalBatches ?? undefined,
+          totalGamesAvailable: result.totalGamesAvailable ?? undefined,
+          isComplete: result.isComplete,
+          nextBatchScheduled,
+          message: result.isPaused
+            ? `Sync paused after ${result.gamesProcessed} games`
+            : result.isComplete
+              ? `Sync complete! ${result.gamesImported} new, ${result.gamesUpdated} updated`
+              : `Sync batch ${result.currentBatch} complete: ${result.gamesImported} new, ${result.gamesUpdated} updated`,
+        }
+
+        if (result.isPaused) {
+          log.info({ jobId: id }, 'Sync job stopped (paused by user)')
+        } else if (result.isComplete) {
+          log.info({ jobId: id, totalImported: result.gamesImported, totalUpdated: result.gamesUpdated }, 'Sync all games completed!')
+        } else {
+          log.info({ jobId: id, nextBatch: result.currentBatch + 1 }, 'Sync batch completed, next batch scheduled')
+        }
         return jobResult
       }
 

@@ -30,6 +30,8 @@ export interface Game {
   platforms?: string[]
   coverImageUrl?: string
   metacritic?: number
+  rawgId?: number
+  lastSyncedAt?: string
 }
 
 // Screenshot types
@@ -318,6 +320,19 @@ export interface PercentileResponse {
   rank: number            // actual rank position
 }
 
+// User History API
+export interface GameHistoryEntry {
+  sessionId: string
+  challengeDate: string  // YYYY-MM-DD
+  totalScore: number
+  isCompleted: boolean
+  completedAt: string | null
+}
+
+export interface GameHistoryResponse {
+  entries: GameHistoryEntry[]
+}
+
 // ============================================
 // Socket Events
 // ============================================
@@ -440,7 +455,7 @@ export interface PartyDisbandedEvent {
 // Job Management (Admin)
 // ============================================
 
-export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge'
+export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge' | 'sync-all-games'
 export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
 
 // Import State for batch processing
@@ -504,6 +519,9 @@ export interface JobData {
   batchSize?: number
   importStateId?: number
   isResume?: boolean
+  // For sync-all-games
+  syncStateId?: number
+  updateExistingMetadata?: boolean
 }
 
 export interface JobResult {
@@ -514,7 +532,7 @@ export interface JobResult {
   // For sync-new-games
   newGames?: number
   skipped?: number
-  // For batch-import-games
+  // For batch-import-games and sync-all-games
   batchNumber?: number
   totalBatches?: number
   importStateId?: number
@@ -523,6 +541,9 @@ export interface JobResult {
   nextBatchScheduled?: boolean
   gamesImported?: number
   gamesSkipped?: number
+  // For sync-all-games
+  gamesUpdated?: number
+  syncStateId?: number
 }
 
 // Job Socket Events

@@ -22,7 +22,8 @@
     "admin": "Admin",
     "delete": "Delete",
     "save": "Save",
-    "create": "Create"
+    "create": "Create",
+    "history": "History"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -124,7 +125,14 @@
     "player": "Player",
     "score": "Score",
     "time": "Time",
-    "noResults": "No results yet"
+    "noResults": "No results yet",
+    "noDataForDate": "No challenge data for this date"
+  },
+  "history": {
+    "title": "Game History",
+    "yourGames": "Your Games",
+    "noResults": "No games played yet. Play your first daily challenge!",
+    "inProgress": "In Progress"
   },
   "auth": {
     "login": "Login",
@@ -217,9 +225,12 @@
       "createDailyChallenge": "Create Daily Challenge",
       "dailyChallengeRunning": "Creating daily challenge...",
       "atMidnight": "Midnight UTC",
+      "weeklySunday2am": "Sunday 2 AM UTC (weekly)",
       "every": "Every",
       "nextRun": "Next run",
       "runNow": "Run Now",
+      "syncAllGames": "Full Sync",
+      "syncAllRunning": "Full sync in progress...",
       "maxGames": "Max games",
       "status": {
         "waiting": "Waiting",

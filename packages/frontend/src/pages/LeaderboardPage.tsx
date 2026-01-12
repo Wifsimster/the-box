@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
+import { format } from 'date-fns'
+import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Medal, Award, Loader2 } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface LeaderboardEntry {
   rank: number
@@ -14,25 +17,52 @@ interface LeaderboardEntry {
 }
 
 export default function LeaderboardPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const [selectedDate, setSelectedDate] = useState<Date>(today)
+
+  const formatDateForApi = (date: Date) => {
+    return format(date, 'yyyy-MM-dd')
+  }
+
+  const getDateLocale = () => {
+    return i18n.language === 'fr' ? fr : enUS
+  }
+
+  const isToday = (date: Date) => {
+    const todayStr = formatDateForApi(today)
+    const dateStr = formatDateForApi(date)
+    return todayStr === dateStr
+  }
+
   useEffect(() => {
-    fetch('/api/leaderboard/today')
+    setLoading(true)
+    const dateStr = formatDateForApi(selectedDate)
+    fetch(`/api/leaderboard/${dateStr}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data?.entries) {
           setLeaderboard(data.data.entries)
+        } else {
+          setLeaderboard([])
         }
       })
       .catch(() => {
-        // Silently fail
+        setLeaderboard([])
       })
       .finally(() => {
         setLoading(false)
       })
-  }, [])
+  }, [selectedDate])
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date)
+  }
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -47,9 +77,27 @@ export default function LeaderboardPage() {
     }
   }
 
+  const getCardTitle = () => {
+    if (isToday(selectedDate)) {
+      return t('leaderboard.today')
+    }
+    return format(selectedDate, 'PPP', { locale: getDateLocale() })
+  }
+
   return (
     <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
       <div className="max-w-4xl mx-auto">
+        {/* Date Picker */}
+        <div className="flex justify-center mb-8">
+          <DatePicker
+            value={selectedDate}
+            onChange={handleDateChange}
+            maxDate={today}
+            formatStr="PPP"
+            locale={getDateLocale()}
+          />
+        </div>
+
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
@@ -60,7 +108,10 @@ export default function LeaderboardPage() {
         {/* Empty State */}
         {!loading && leaderboard.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            {t('leaderboard.noResults')}
+            {isToday(selectedDate)
+              ? t('leaderboard.noResults')
+              : t('leaderboard.noDataForDate')
+            }
           </div>
         )}
 
@@ -98,7 +149,7 @@ export default function LeaderboardPage() {
         {!loading && leaderboard.length > 0 && (
           <Card className="bg-card/50 border-border">
             <CardHeader>
-              <CardTitle>{t('leaderboard.today')}</CardTitle>
+              <CardTitle>{getCardTitle()}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">

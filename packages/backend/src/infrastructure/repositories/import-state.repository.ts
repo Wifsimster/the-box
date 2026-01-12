@@ -58,20 +58,22 @@ function mapRowToImportState(row: ImportStateRow): ImportState {
 
 export const importStateRepository = {
   async create(data: {
+    importType?: string
     batchSize?: number
     minMetacritic?: number
     screenshotsPerGame?: number
   }): Promise<ImportState> {
-    log.info({ batchSize: data.batchSize, minMetacritic: data.minMetacritic }, 'create import state')
+    log.info({ importType: data.importType, batchSize: data.batchSize, minMetacritic: data.minMetacritic }, 'create import state')
     const [row] = await db('import_states')
       .insert({
+        import_type: data.importType ?? 'full-import',
         batch_size: data.batchSize ?? 100,
         min_metacritic: data.minMetacritic ?? 70,
         screenshots_per_game: data.screenshotsPerGame ?? 3,
         status: 'pending',
       })
       .returning<ImportStateRow[]>('*')
-    log.info({ importStateId: row!.id }, 'import state created')
+    log.info({ importStateId: row!.id, importType: row!.import_type }, 'import state created')
     return mapRowToImportState(row!)
   },
 
@@ -89,6 +91,17 @@ export const importStateRepository = {
       .orderBy('created_at', 'desc')
       .first<ImportStateRow>()
     log.debug({ found: !!row, status: row?.status }, 'findActive result')
+    return row ? mapRowToImportState(row) : null
+  },
+
+  async findActiveByType(importType: string): Promise<ImportState | null> {
+    log.debug({ importType }, 'findActiveByType')
+    const row = await db('import_states')
+      .where('import_type', importType)
+      .whereIn('status', ['pending', 'in_progress', 'paused'])
+      .orderBy('created_at', 'desc')
+      .first<ImportStateRow>()
+    log.debug({ found: !!row, status: row?.status, importType }, 'findActiveByType result')
     return row ? mapRowToImportState(row) : null
   },
 

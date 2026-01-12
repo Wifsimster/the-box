@@ -13,6 +13,7 @@ import { requestLogger } from './presentation/middleware/request-logger.middlewa
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
+import userRoutes from './presentation/routes/user.routes.js'
 import { setSocketInstance } from './infrastructure/queue/workers/import.worker.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
@@ -61,6 +62,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/game', gameRoutes)
 app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/user', userRoutes)
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -142,6 +144,26 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring create-daily-challenge job (daily at midnight UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring daily challenge job')
+    }
+
+    // Schedule recurring sync-all-games job (weekly on Sundays at 2 AM UTC)
+    try {
+      await importQueue.add(
+        'sync-all-games',
+        {
+          batchSize: 100,
+          minMetacritic: 70,
+          screenshotsPerGame: 3,
+          updateExistingMetadata: true,
+        },
+        {
+          repeat: { pattern: '0 2 * * 0' }, // Cron: 2 AM UTC every Sunday
+          jobId: 'sync-all-games-recurring',
+        }
+      )
+      logger.info('scheduled recurring sync-all-games job (weekly on Sundays at 2 AM UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring sync-all-games job')
     }
   }
 

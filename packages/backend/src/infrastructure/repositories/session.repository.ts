@@ -17,6 +17,14 @@ export interface GameSessionRow {
   completed_at: Date | null
 }
 
+export interface GameHistoryRow {
+  session_id: string
+  challenge_date: string
+  total_score: number
+  is_completed: boolean
+  completed_at: Date | null
+}
+
 export interface TierSessionRow {
   id: string
   game_session_id: string
@@ -259,5 +267,22 @@ export const sessionRepository = {
 
     log.info({ userId, challengeId, sessionId: session.id }, 'Game session deleted successfully')
     return true
+  },
+
+  async findUserGameHistory(userId: string): Promise<GameHistoryRow[]> {
+    log.debug({ userId }, 'findUserGameHistory')
+    const rows = await db('game_sessions')
+      .join('daily_challenges', 'game_sessions.daily_challenge_id', 'daily_challenges.id')
+      .where('game_sessions.user_id', userId)
+      .orderBy('daily_challenges.challenge_date', 'desc')
+      .select<GameHistoryRow[]>(
+        'game_sessions.id as session_id',
+        'daily_challenges.challenge_date',
+        'game_sessions.total_score',
+        'game_sessions.is_completed',
+        'game_sessions.completed_at'
+      )
+    log.debug({ userId, count: rows.length }, 'findUserGameHistory result')
+    return rows
   },
 }

@@ -10,6 +10,13 @@ import {
   getActiveImport,
   getImportState,
 } from '../../infrastructure/queue/workers/batch-import-logic.js'
+import {
+  startSyncAll,
+  pauseSyncAll,
+  resumeSyncAll,
+  getActiveSyncAll,
+  getSyncAllState,
+} from '../../infrastructure/queue/workers/sync-all-logic.js'
 
 const router = Router()
 
@@ -688,6 +695,147 @@ router.post('/jobs/full-import/:id/resume', async (req, res, next) => {
     res.json({
       success: true,
       data: { importState, job: { id: job.id, name: job.name } },
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+        })
+        return
+      }
+      if (error.message.includes('Cannot resume')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATE', message: error.message },
+        })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+// === Sync All Games (Find missing + Update existing) ===
+
+// Start a new sync-all job
+const startSyncAllSchema = z.object({
+  batchSize: z.number().min(10).max(500).default(100),
+  screenshotsPerGame: z.number().min(1).max(10).default(3),
+  minMetacritic: z.number().min(0).max(100).default(70),
+  updateExistingMetadata: z.boolean().default(true),
+})
+
+router.post('/jobs/sync-all/start', async (req, res, next) => {
+  try {
+    // Check if there's already an active sync
+    const activeSyncAll = await getActiveSyncAll()
+    if (activeSyncAll) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'SYNC_IN_PROGRESS', message: 'A sync-all job is already in progress or paused' },
+        data: { syncState: activeSyncAll },
+      })
+      return
+    }
+
+    const config = startSyncAllSchema.parse(req.body)
+    const { syncState, job } = await startSyncAll(config)
+
+    res.status(201).json({
+      success: true,
+      data: { syncState, job: { id: job.id, name: job.name } },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
+// Get current active sync-all state
+router.get('/jobs/sync-all/current', async (_req, res, next) => {
+  try {
+    const syncState = await getActiveSyncAll()
+
+    res.json({
+      success: true,
+      data: { syncState }, // null if no active sync
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Get sync-all state by ID
+router.get('/jobs/sync-all/:id', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const syncState = await getSyncAllState(id)
+
+    if (!syncState) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Sync state not found' },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: { syncState },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Pause an ongoing sync-all
+router.post('/jobs/sync-all/:id/pause', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const syncState = await pauseSyncAll(id)
+
+    res.json({
+      success: true,
+      data: { syncState },
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+        })
+        return
+      }
+      if (error.message.includes('Cannot pause')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATE', message: error.message },
+        })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+// Resume a paused sync-all
+router.post('/jobs/sync-all/:id/resume', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const { syncState, job } = await resumeSyncAll(id)
+
+    res.json({
+      success: true,
+      data: { syncState, job: { id: job.id, name: job.name } },
     })
   } catch (error) {
     if (error instanceof Error) {
