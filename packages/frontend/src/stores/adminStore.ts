@@ -43,7 +43,6 @@ interface AdminState {
   fetchJobs: () => Promise<void>
   fetchStats: () => Promise<void>
   fetchRecurringJobs: () => Promise<void>
-  triggerSyncJob: () => Promise<void>
   triggerDailyChallengeJob: () => Promise<void>
   triggerSyncAllJob: () => Promise<void>
   triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
@@ -137,16 +136,6 @@ export const useAdminStore = create<AdminState>()(
           set({ recurringJobs })
         } catch (err) {
           console.error('Failed to fetch recurring jobs:', err)
-        }
-      },
-      triggerSyncJob: async () => {
-        try {
-          await adminApi.syncNewGames(10, 3)
-          // Refresh job list after triggering
-          get().fetchJobs()
-        } catch (err) {
-          console.error('Failed to trigger sync job:', err)
-          throw err
         }
       },
 

@@ -81,6 +81,19 @@
   /* Fonts */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Animation timing */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Enhanced glow intensities */
+  --glow-sm: 0 0 10px oklch(0.7 0.25 300 / 0.3);
+  --glow-md: 0 0 20px oklch(0.7 0.25 300 / 0.4);
+  --glow-lg: 0 0 30px oklch(0.7 0.25 300 / 0.5);
 }
 
 * {
@@ -130,4 +143,57 @@ body {
 /* Text glow */
 .text-glow {
   text-shadow: 0 0 10px currentColor;
+}
+
+/* Skeleton loader shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    oklch(0.2 0.02 280) 25%,
+    oklch(0.28 0.03 280) 50%,
+    oklch(0.2 0.02 280) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
+/* Glow hover utility */
+.glow-hover {
+  transition: box-shadow var(--duration-normal) var(--ease-smooth);
+}
+
+.glow-hover:hover {
+  box-shadow: var(--glow-md);
+}
+
+/* Interactive card hover effect */
+.card-interactive {
+  transition: all var(--duration-normal) var(--ease-smooth);
+}
+
+.card-interactive:hover {
+  border-color: oklch(0.7 0.25 300 / 0.5);
+  box-shadow: var(--glow-md);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

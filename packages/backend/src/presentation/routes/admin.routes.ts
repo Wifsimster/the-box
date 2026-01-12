@@ -411,13 +411,12 @@ router.get('/jobs/:id', async (req, res, next) => {
 
 // Create import job
 const createJobSchema = z.object({
-  type: z.enum(['import-games', 'import-screenshots', 'sync-new-games', 'create-daily-challenge']),
+  type: z.enum(['import-games', 'import-screenshots', 'create-daily-challenge']),
   data: z
     .object({
       targetGames: z.number().min(1).max(1000).optional(),
       screenshotsPerGame: z.number().min(1).max(10).optional(),
       minMetacritic: z.number().min(0).max(100).optional(),
-      maxGames: z.number().min(1).max(100).optional(),
     })
     .optional(),
 })
@@ -502,24 +501,6 @@ router.post('/jobs/import-games', async (req, res, next) => {
 router.post('/jobs/import-screenshots', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('import-screenshots', {})
-
-    res.status(201).json({
-      success: true,
-      data: { job },
-    })
-  } catch (error) {
-    next(error)
-  }
-})
-
-// Shortcut: Start sync-new-games job (fetch newest games from RAWG)
-router.post('/jobs/sync-new-games', async (req, res, next) => {
-  try {
-    const data = {
-      maxGames: req.body?.maxGames || 10,
-      screenshotsPerGame: req.body?.screenshotsPerGame || 3,
-    }
-    const job = await jobService.createJob('sync-new-games', data)
 
     res.status(201).json({
       success: true,

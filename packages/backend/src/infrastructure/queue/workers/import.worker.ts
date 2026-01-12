@@ -3,7 +3,6 @@ import { redisConnectionOptions } from '../connection.js'
 import { queueLogger } from '../../logger/logger.js'
 import type { JobData, JobResult, JobProgressEvent, JobCompletedEvent, JobFailedEvent, BatchImportProgressEvent } from '@the-box/types'
 import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-logic.js'
-import { syncNewGamesFromRAWG } from './sync-logic.js'
 import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
@@ -95,32 +94,6 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result: jobResult }, 'import-screenshots job completed')
-        return jobResult
-      }
-
-      if (name === 'sync-new-games') {
-        const maxGames = data.maxGames || 10
-        const screenshotsPerGame = data.screenshotsPerGame || 3
-
-        const result = await syncNewGamesFromRAWG(
-          maxGames,
-          screenshotsPerGame,
-          (current, total, message) => {
-            const progress = Math.round((current / total) * 100)
-            job.updateProgress(progress)
-            emitProgress(id!, progress, current, total, message)
-          }
-        )
-
-        const jobResult: JobResult = {
-          newGames: result.newGames,
-          screenshotsProcessed: result.screenshotsProcessed,
-          skipped: result.skipped,
-          failedCount: result.failedCount,
-          message: result.message,
-        }
-
-        log.info({ jobId: id, result: jobResult }, 'sync-new-games job completed')
         return jobResult
       }
 

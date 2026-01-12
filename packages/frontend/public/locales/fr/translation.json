@@ -218,6 +218,7 @@
       "startJob": "Lancer l'import",
       "cancel": "Annuler",
       "clearCompleted": "Supprimer terminées",
+      "clearAll": "Supprimer tout",
       "noJobs": "Aucune tâche",
       "recurringJobs": "Tâches planifiées",
       "syncNewGames": "Sync nouveaux jeux",

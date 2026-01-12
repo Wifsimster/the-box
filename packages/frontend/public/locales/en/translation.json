@@ -218,6 +218,7 @@
       "startJob": "Start Import",
       "cancel": "Cancel",
       "clearCompleted": "Clear Completed",
+      "clearAll": "Clear All",
       "noJobs": "No jobs yet",
       "recurringJobs": "Scheduled Jobs",
       "syncNewGames": "Sync New Games",

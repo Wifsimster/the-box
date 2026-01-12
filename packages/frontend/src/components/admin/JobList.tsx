@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
+import { AnimatedProgress } from '@/components/ui/animated-progress'
+import { JobCardSkeleton } from '@/components/ui/skeleton'
 import { useAdminStore } from '@/stores/adminStore'
 import { FullImportCard } from './FullImportCard'
+import { staggerContainer, listItem, hoverGlow } from '@/lib/animations'
 import {
   Clock,
   Play,
@@ -33,6 +36,14 @@ const statusBadgeVariants: Record<JobStatus, 'success' | 'destructive' | 'info' 
   active: 'info',
   completed: 'success',
   failed: 'destructive',
+  delayed: 'warning',
+}
+
+const progressVariants: Record<JobStatus, 'default' | 'success' | 'warning' | 'error'> = {
+  waiting: 'warning',
+  active: 'default',
+  completed: 'success',
+  failed: 'error',
   delayed: 'warning',
 }
 
@@ -80,7 +91,6 @@ function formatCronPattern(pattern: string, t: (key: string) => string): string 
 
 function getJobTranslationKey(jobName: string): string {
   const keyMap: Record<string, string> = {
-    'sync-new-games': 'admin.jobs.syncNewGames',
     'create-daily-challenge': 'admin.jobs.createDailyChallenge',
     'sync-all-games': 'admin.jobs.syncAllGames',
   }
@@ -89,7 +99,6 @@ function getJobTranslationKey(jobName: string): string {
 
 function getJobRunningTranslationKey(jobName: string): string {
   const keyMap: Record<string, string> = {
-    'sync-new-games': 'admin.jobs.syncRunning',
     'create-daily-challenge': 'admin.jobs.dailyChallengeRunning',
     'sync-all-games': 'admin.jobs.syncAllRunning',
   }
@@ -104,21 +113,19 @@ export function JobList() {
     cancelJob,
     clearCompleted,
     recurringJobs,
-    triggerSyncJob,
     triggerDailyChallengeJob,
+    triggerSyncAllJob,
   } = useAdminStore()
 
   const [recurringJobLoading, setRecurringJobLoading] = useState<string | null>(null)
 
-  const completedCount = jobs.filter((j) => j.status === 'completed').length
-
   const handleTriggerRecurringJob = async (jobName: string) => {
     setRecurringJobLoading(jobName)
     try {
-      if (jobName === 'sync-new-games') {
-        await triggerSyncJob()
-      } else if (jobName === 'create-daily-challenge') {
+      if (jobName === 'create-daily-challenge') {
         await triggerDailyChallengeJob()
+      } else if (jobName === 'sync-all-games') {
+        await triggerSyncAllJob()
       }
     } finally {
       setRecurringJobLoading(null)
@@ -127,194 +134,270 @@ export function JobList() {
 
   if (isLoading) {
     return (
-      <Card className="bg-card/50 backdrop-blur-sm">
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-6"
+      >
+        <Card className="bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <div className="h-6 w-32 skeleton rounded" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <JobCardSkeleton key={i} />
+            ))}
+          </CardContent>
+        </Card>
+      </motion.div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
       {/* Full Import */}
       <FullImportCard />
 
       {/* Recurring Jobs Status */}
       {recurringJobs.length > 0 && (
-        <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <RefreshCw className="h-4 w-4 text-neon-purple" />
-              {t('admin.jobs.recurringJobs')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recurringJobs.map((job) => {
-              const isLoading = recurringJobLoading === job.name
-              const JobIcon = job.name === 'create-daily-challenge' ? Calendar : Timer
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <RefreshCw className="h-4 w-4 text-neon-purple" />
+                {t('admin.jobs.recurringJobs')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="space-y-3"
+              >
+                {recurringJobs.map((job) => {
+                  const isJobLoading = recurringJobLoading === job.name
+                  const JobIcon = job.name === 'create-daily-challenge' ? Calendar : Timer
 
-              return (
-                <div
-                  key={job.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                >
-                  <div className="flex items-center gap-3">
-                    {job.isActive || isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                        <span className="text-sm font-medium text-blue-400">
-                          {t(getJobRunningTranslationKey(job.name))}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <JobIcon className="h-4 w-4 text-green-500" />
-                        <span className="text-sm font-medium">
-                          {t(getJobTranslationKey(job.name))}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {job.every && (
-                        <span>{t('admin.jobs.every')} {formatInterval(job.every)}</span>
-                      )}
-                      {job.pattern && (
-                        <span>{formatCronPattern(job.pattern, t)}</span>
-                      )}
-                      {job.nextRun && !job.isActive && (
-                        <span className="text-neon-purple">
-                          {t('admin.jobs.nextRun')}: {formatRelativeTime(job.nextRun)}
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTriggerRecurringJob(job.name)}
-                      disabled={job.isActive || isLoading}
-                      className="border-neon-purple/30 hover:bg-neon-purple/10"
+                  return (
+                    <motion.div
+                      key={job.id}
+                      variants={listItem}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-purple-500/20 transition-colors"
                     >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Play className="h-4 w-4 mr-1" />
-                      )}
-                      {t('admin.jobs.runNow')}
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
-          </CardContent>
-        </Card>
+                      <div className="flex items-center gap-3">
+                        {job.isActive || isJobLoading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                            <span className="text-sm font-medium text-blue-400">
+                              {t(getJobRunningTranslationKey(job.name))}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <JobIcon className="h-4 w-4 text-green-500" />
+                            <span className="text-sm font-medium">
+                              {t(getJobTranslationKey(job.name))}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {job.every && (
+                            <span>{t('admin.jobs.every')} {formatInterval(job.every)}</span>
+                          )}
+                          {job.pattern && (
+                            <span>{formatCronPattern(job.pattern, t)}</span>
+                          )}
+                          {job.nextRun && !job.isActive && (
+                            <span className="text-neon-purple">
+                              {t('admin.jobs.nextRun')}: {formatRelativeTime(job.nextRun)}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTriggerRecurringJob(job.name)}
+                          disabled={job.isActive || isJobLoading}
+                          className="border-neon-purple/30 hover:bg-neon-purple/10"
+                        >
+                          {isJobLoading ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4 mr-1" />
+                          )}
+                          {t('admin.jobs.runNow')}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Job History */}
-      <Card className="bg-card/50 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t('admin.jobs.title')}</CardTitle>
-          {completedCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearCompleted}>
-              <Trash2 className="h-4 w-4 mr-1" />
-              {t('admin.jobs.clearCompleted')}
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          {jobs.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              {t('admin.jobs.noJobs')}
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {statusIcons[job.status]}
-                      <div>
-                        <p className="font-medium">
-                          {job.type === 'import-games'
-                            ? t('admin.jobs.importGames')
-                            : job.type === 'sync-new-games'
-                              ? t('admin.jobs.syncNewGames')
-                              : job.type === 'create-daily-challenge'
-                                ? t('admin.jobs.createDailyChallenge')
-                                : job.type === 'batch-import-games'
-                                  ? t('admin.fullImport.title')
-                                  : t('admin.jobs.importScreenshots')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(job.createdAt)}
-                        </p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="bg-card/50 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{t('admin.jobs.title')}</CardTitle>
+            {jobs.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearCompleted}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                {t('admin.jobs.clearAll')}
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {jobs.length === 0 ? (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center text-muted-foreground py-8"
+              >
+                {t('admin.jobs.noJobs')}
+              </motion.p>
+            ) : (
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="space-y-4"
+              >
+                <AnimatePresence mode="popLayout">
+                  {jobs.map((job) => (
+                    <motion.div
+                      key={job.id}
+                      variants={listItem}
+                      layout
+                      exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                      whileHover={{
+                        scale: 1.01,
+                        boxShadow: '0 0 25px oklch(0.7 0.25 300 / 0.15)',
+                      }}
+                      className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50 border border-transparent hover:border-purple-500/20 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <motion.div
+                            animate={job.status === 'active' ? {
+                              scale: [1, 1.2, 1],
+                              opacity: [1, 0.7, 1],
+                            } : {}}
+                            transition={{ duration: 1, repeat: Infinity }}
+                          >
+                            {statusIcons[job.status]}
+                          </motion.div>
+                          <div>
+                            <p className="font-medium">
+                              {job.type === 'import-games'
+                                ? t('admin.jobs.importGames')
+                                : job.type === 'create-daily-challenge'
+                                  ? t('admin.jobs.createDailyChallenge')
+                                  : job.type === 'batch-import-games'
+                                    ? t('admin.fullImport.title')
+                                    : t('admin.jobs.importScreenshots')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(job.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <motion.div
+                            animate={job.status === 'active' ? {
+                              scale: [1, 1.05, 1],
+                            } : {}}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          >
+                            <Badge variant={statusBadgeVariants[job.status]}>
+                              {t(`admin.jobs.status.${job.status}`)}
+                            </Badge>
+                          </motion.div>
+                          {(job.status === 'waiting' || job.status === 'active') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cancelJob(job.id)}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={statusBadgeVariants[job.status]}>
-                        {t(`admin.jobs.status.${job.status}`)}
-                      </Badge>
-                      {(job.status === 'waiting' || job.status === 'active') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => cancelJob(job.id)}
+
+                      {job.status === 'active' && (
+                        <AnimatedProgress
+                          value={job.progress}
+                          variant={progressVariants[job.status]}
+                          showValue
+                        />
+                      )}
+
+                      {job.status === 'completed' && job.result && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-muted-foreground"
                         >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
+                          {job.result.message}
+                        </motion.p>
                       )}
-                    </div>
-                  </div>
 
-                  {job.status === 'active' && (
-                    <div className="space-y-1">
-                      <Progress value={job.progress} />
-                      <p className="text-xs text-muted-foreground text-right">
-                        {job.progress}%
-                      </p>
-                    </div>
-                  )}
-
-                  {job.status === 'completed' && job.result && (
-                    <p className="text-sm text-muted-foreground">
-                      {job.result.message}
-                    </p>
-                  )}
-
-                  {job.status === 'failed' && job.error && (
-                    <p className="text-sm text-red-400">{job.error}</p>
-                  )}
-
-                  {job.data && (job.data.targetGames || job.data.screenshotsPerGame || job.data.maxGames) && (
-                    <div className="text-xs text-muted-foreground">
-                      {job.data.targetGames && (
-                        <span className="mr-3">
-                          {t('admin.jobs.targetGames')}: {job.data.targetGames}
-                        </span>
+                      {job.status === 'failed' && job.error && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-400"
+                        >
+                          {job.error}
+                        </motion.p>
                       )}
-                      {job.data.maxGames && (
-                        <span className="mr-3">
-                          {t('admin.jobs.maxGames')}: {job.data.maxGames}
-                        </span>
+
+                      {job.data && (job.data.targetGames || job.data.screenshotsPerGame || job.data.maxGames) && (
+                        <div className="text-xs text-muted-foreground">
+                          {job.data.targetGames && (
+                            <span className="mr-3">
+                              {t('admin.jobs.targetGames')}: {job.data.targetGames}
+                            </span>
+                          )}
+                          {job.data.maxGames && (
+                            <span className="mr-3">
+                              {t('admin.jobs.maxGames')}: {job.data.maxGames}
+                            </span>
+                          )}
+                          {job.data.screenshotsPerGame && (
+                            <span>
+                              {t('admin.jobs.screenshotsPerGame')}: {job.data.screenshotsPerGame}
+                            </span>
+                          )}
+                        </div>
                       )}
-                      {job.data.screenshotsPerGame && (
-                        <span>
-                          {t('admin.jobs.screenshotsPerGame')}: {job.data.screenshotsPerGame}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   )
 }

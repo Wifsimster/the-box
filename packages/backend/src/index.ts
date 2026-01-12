@@ -116,19 +116,17 @@ async function start(): Promise<void> {
   if (!redisConnected) {
     logger.warn('redis connection failed - job queue may not work')
   } else {
-    // Schedule recurring sync job (every 1 hour)
+    // Clean up deprecated recurring jobs
     try {
-      await importQueue.add(
-        'sync-new-games',
-        { maxGames: 10, screenshotsPerGame: 3 },
-        {
-          repeat: { every: 3600000 }, // 1 hour in milliseconds
-          jobId: 'sync-new-games-recurring',
+      const repeatableJobs = await importQueue.getRepeatableJobs()
+      for (const job of repeatableJobs) {
+        if (job.name === 'sync-new-games') {
+          await importQueue.removeRepeatableByKey(job.key)
+          logger.info('removed deprecated sync-new-games recurring job')
         }
-      )
-      logger.info('scheduled recurring sync-new-games job (every 1h)')
+      }
     } catch (error) {
-      logger.warn({ error: String(error) }, 'failed to schedule recurring sync job')
+      logger.warn({ error: String(error) }, 'failed to clean up deprecated recurring jobs')
     }
 
     // Schedule recurring daily challenge creation (midnight UTC)

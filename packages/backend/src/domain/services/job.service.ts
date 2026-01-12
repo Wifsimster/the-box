@@ -88,9 +88,9 @@ export const jobService = {
   },
 
   async clearCompleted(): Promise<number> {
-    const jobs = await importQueue.getJobs(['completed'])
+    const jobs = await importQueue.getJobs(['completed', 'failed', 'waiting', 'delayed'])
     await Promise.all(jobs.map((j) => j.remove()))
-    log.info({ count: jobs.length }, 'cleared completed jobs')
+    log.info({ count: jobs.length }, 'cleared all jobs')
     return jobs.length
   },
 
