@@ -168,7 +168,17 @@ export default function GamePage() {
 
       // Auto-login as guest if not authenticated
       if (!session && !isSessionPending) {
-        await authClient.signIn.anonymous()
+        const signInResult = await authClient.signIn.anonymous()
+        if (signInResult.error) {
+          console.error('Failed to sign in as guest:', signInResult.error)
+          setError(t('game.errorStarting'))
+          setLoading(false)
+          return
+        }
+
+        // Wait a moment for the session cookie to be set
+        // Better-auth sets cookies immediately but we need to ensure they're propagated
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
 
       // Start the challenge session

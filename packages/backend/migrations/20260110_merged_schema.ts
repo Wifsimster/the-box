@@ -32,7 +32,7 @@ export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTable('user', (table) => {
         table.text('id').primary()
         table.text('email').notNullable().unique()
-        table.text('emailVerified').notNullable().defaultTo('false')
+        table.boolean('emailVerified').notNullable().defaultTo(false)
         table.text('name')
         table.text('image')
         table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
@@ -317,12 +317,12 @@ export async function up(knex: Knex): Promise<void> {
             const hashedPassword = await hashPassword('admin123')
             const now = new Date()
 
-            // Insert user into better-auth's user table
+            // Insert user into better-auth's user table (emailVerified is boolean)
             await knex('user').insert({
                 id: userId,
                 email: 'admin@thebox.local',
                 name: 'admin',
-                emailVerified: true,
+                emailVerified: true, // boolean, not string
                 role: 'admin',
                 createdAt: now,
                 updatedAt: now,

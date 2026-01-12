@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
     }
 
     if (formData.password.length > 128) {
-      setError('Password must not exceed 128 characters')
+      setError(t('auth.passwordTooLong'))
       setIsLoading(false)
       return
     }

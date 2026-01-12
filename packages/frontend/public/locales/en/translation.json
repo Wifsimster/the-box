@@ -176,7 +176,11 @@
     "resetError": "Error during password reset",
     "guestError": "Error logging in as guest",
     "passwordMismatch": "Passwords do not match",
-    "passwordTooShort": "Password must be at least 8 characters"
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordTooLong": "Password must not exceed 128 characters",
+    "usernameMin": "Username must be at least 3 characters",
+    "usernameMax": "Username must be at most 50 characters",
+    "emailInvalid": "Please enter a valid email address"
   },
   "admin": {
     "title": "Admin Panel",

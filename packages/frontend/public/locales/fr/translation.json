@@ -176,7 +176,11 @@
     "resetError": "Erreur lors de la réinitialisation",
     "guestError": "Erreur lors de la connexion en tant qu'invité",
     "passwordMismatch": "Les mots de passe ne correspondent pas",
-    "passwordTooShort": "Le mot de passe doit faire au moins 6 caractères"
+    "passwordTooShort": "Le mot de passe doit faire au moins 8 caractères",
+    "passwordTooLong": "Le mot de passe ne doit pas dépasser 128 caractères",
+    "usernameMin": "Le nom d'utilisateur doit faire au moins 3 caractères",
+    "usernameMax": "Le nom d'utilisateur doit faire au maximum 50 caractères",
+    "emailInvalid": "Veuillez entrer une adresse email valide"
   },
   "admin": {
     "title": "Administration",
