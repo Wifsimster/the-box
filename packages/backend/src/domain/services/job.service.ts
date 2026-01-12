@@ -89,9 +89,20 @@ export const jobService = {
 
   async clearCompleted(): Promise<number> {
     const jobs = await importQueue.getJobs(['completed', 'failed', 'waiting', 'delayed'])
-    await Promise.all(jobs.map((j) => j.remove()))
-    log.info({ count: jobs.length }, 'cleared all jobs')
-    return jobs.length
+    let removed = 0
+
+    for (const job of jobs) {
+      try {
+        await job.remove()
+        removed++
+      } catch (err) {
+        // Job might already be removed or in a state that can't be removed
+        log.debug({ jobId: job.id, error: err }, 'failed to remove job, skipping')
+      }
+    }
+
+    log.info({ total: jobs.length, removed }, 'cleared jobs')
+    return removed
   },
 
   async getQueueStats(): Promise<{
