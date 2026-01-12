@@ -29,11 +29,7 @@ Authorization: Bearer <token> (optional)
   "data": {
     "challengeId": 1,
     "date": "2025-01-10",
-    "tiers": [
-      { "tierNumber": 1, "name": "Facile", "screenshotCount": 18 },
-      { "tierNumber": 2, "name": "Moyen", "screenshotCount": 18 },
-      { "tierNumber": 3, "name": "Difficile", "screenshotCount": 18 }
-    ],
+    "totalScreenshots": 10,
     "hasPlayed": false,
     "userSession": null
   }
@@ -54,14 +50,11 @@ Authorization: Bearer <token>
   "data": {
     "sessionId": "550e8400-e29b-41d4-a716-446655440000",
     "tierSessionId": "550e8400-e29b-41d4-a716-446655440001",
-    "tierNumber": 1,
-    "tierName": "Facile",
-    "totalScreenshots": 18,
+    "totalScreenshots": 10,
     "sessionStartedAt": "2025-01-10T14:30:00.000Z",
     "scoringConfig": {
       "initialScore": 1000,
-      "decayRate": 2,
-      "maxTriesPerScreenshot": 3
+      "decayRate": 2
     }
   }
 }
@@ -114,8 +107,6 @@ Content-Type: application/json
   "success": true,
   "data": {
     "isCorrect": true,
-    "tryNumber": 1,
-    "triesRemaining": 0,
     "correctGame": {
       "id": 42,
       "name": "The Witcher 3: Wild Hunt",
@@ -126,25 +117,28 @@ Content-Type: application/json
     "scoreEarned": 850,
     "totalScore": 850,
     "nextPosition": 2,
-    "isTierCompleted": false,
     "isCompleted": false
   }
 }
 ```
 
-**Response (wrong, tries remaining):**
+**Response (wrong):**
 ```json
 {
   "success": true,
   "data": {
     "isCorrect": false,
-    "tryNumber": 1,
-    "triesRemaining": 2,
-    "correctGame": null,
+    "correctGame": {
+      "id": 42,
+      "name": "The Witcher 3: Wild Hunt",
+      "slug": "the-witcher-3",
+      "aliases": [],
+      "coverImageUrl": "/covers/witcher3.jpg"
+    },
     "scoreEarned": 0,
-    "totalScore": 0,
+    "scorePenalty": 50,
+    "totalScore": -50,
     "nextPosition": null,
-    "isTierCompleted": false,
     "isCompleted": false
   }
 }
@@ -206,6 +200,56 @@ GET /api/leaderboard/:date
 
 Date format: `YYYY-MM-DD`
 
+### Get Today's Percentile
+
+```http
+GET /api/leaderboard/today/percentile
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "percentile": 85,
+    "rank": 15,
+    "totalPlayers": 100
+  }
+}
+```
+
+## User Endpoints
+
+### Get Game History
+
+```http
+GET /api/user/history
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "games": [
+      {
+        "sessionId": "uuid",
+        "challengeDate": "2025-01-10",
+        "totalScore": 5400,
+        "completedAt": "2025-01-10T14:30:00Z",
+        "tierResults": [
+          { "tierNumber": 1, "score": 1800, "correctAnswers": 15 },
+          { "tierNumber": 2, "score": 1800, "correctAnswers": 14 },
+          { "tierNumber": 3, "score": 1800, "correctAnswers": 12 }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ## Admin Endpoints
 
 All admin endpoints require authentication and admin privileges.
@@ -259,6 +303,10 @@ GET    /api/admin/jobs/:id                # Get job details
 POST   /api/admin/jobs                    # Create generic job
 POST   /api/admin/jobs/import-games       # Import games from RAWG API
 POST   /api/admin/jobs/import-screenshots # Import screenshots for games
+POST   /api/admin/jobs/full-import        # Full import with pause/resume
+POST   /api/admin/jobs/full-import/pause  # Pause full import
+POST   /api/admin/jobs/full-import/resume # Resume full import
+POST   /api/admin/jobs/sync-all           # Sync all games from RAWG
 DELETE /api/admin/jobs/:id                # Cancel a job
 DELETE /api/admin/jobs/completed          # Clear completed jobs
 ```

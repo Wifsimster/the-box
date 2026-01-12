@@ -54,12 +54,72 @@ the-box/
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Docker (Recommended)
 
-- Node.js >= 18
-- Docker (for PostgreSQL)
+Pull and run the pre-built image from Docker Hub:
 
-### Installation
+```bash
+docker pull wifsimster/the-box:latest
+
+docker run -d \
+  --name the-box \
+  -p 80:80 \
+  -e DATABASE_URL=postgresql://user:pass@host:5432/thebox \
+  -e REDIS_URL=redis://host:6379 \
+  -e BETTER_AUTH_SECRET=your-secret-min-32-chars \
+  -e RESEND_API_KEY=your-resend-key \
+  -e EMAIL_FROM=noreply@yourdomain.com \
+  -v thebox-uploads:/app/uploads \
+  wifsimster/the-box:latest
+```
+
+Or use Docker Compose for a complete stack:
+
+```yaml
+version: '3.8'
+services:
+  app:
+    image: wifsimster/the-box:latest
+    ports:
+      - "80:80"
+    environment:
+      - DATABASE_URL=postgresql://thebox:thebox_secret@postgres:5432/thebox
+      - REDIS_URL=redis://redis:6379
+      - BETTER_AUTH_SECRET=your-secret-min-32-chars
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: thebox
+      POSTGRES_PASSWORD: thebox_secret
+      POSTGRES_DB: thebox
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+
+volumes:
+  uploads:
+  postgres-data:
+  redis-data:
+```
+
+### Option 2: Local Development
+
+#### Prerequisites
+
+- Node.js >= 24
+- Docker (for PostgreSQL and Redis)
+
+#### Installation
 
 ```bash
 # Clone the repository
@@ -72,7 +132,7 @@ npm install
 # Copy environment variables
 cp .env.example .env
 
-# Start PostgreSQL
+# Start PostgreSQL and Redis
 docker-compose up -d
 
 # Run database migrations
@@ -117,6 +177,36 @@ npm run db:seed         # Seed database
 | `RAWG_API_KEY` | RAWG API key for game imports | - |
 | `PORT` | Backend port | `3000` |
 | `CORS_ORIGIN` | Frontend URL | `http://localhost:5173` |
+
+## Docker
+
+### Pre-built Image
+
+The application is available as a single Docker image on Docker Hub:
+
+```bash
+docker pull wifsimster/the-box:latest
+```
+
+### Build Locally
+
+```bash
+# Build the image
+docker build -t the-box:latest .
+
+# Run the container
+docker run -p 80:80 -e DATABASE_URL=... the-box:latest
+```
+
+### Architecture
+
+The Docker image uses:
+
+- **nginx** - Serves the frontend static files and proxies API requests
+- **Node.js** - Runs the backend API on internal port 3000
+- **supervisord** - Process manager to run both services
+
+Exposed port: **80** (nginx)
 
 ## Documentation
 

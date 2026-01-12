@@ -4,16 +4,14 @@ This document explains the game mechanics, scoring system, and player progressio
 
 ## Overview
 
-Players identify video games from 360° panoramic screenshots. Each daily challenge consists of 3 tiers with 18 screenshots each.
+Players identify video games from 360° panoramic screenshots. Each daily challenge consists of 10 screenshots to identify.
 
 ## Game Structure
 
 ```text
 Daily Challenge
     │
-    ├── Tier 1 (Easy)      - 18 screenshots, 30s timer
-    ├── Tier 2 (Medium)    - 18 screenshots, 25s timer
-    └── Tier 3 (Hard)      - 18 screenshots, 20s timer
+    └── 10 Screenshots - Countdown scoring with penalty system
 ```
 
 ## Game Phases
@@ -40,7 +38,7 @@ idle ──► tier_intro ──► playing ──► result ──► tier_comp
 
 The game uses a countdown scoring system where points decrease over time:
 
-- **Initial score**: 1000 points per screenshot
+- **Initial score**: 1000 points (countdown starts here)
 - **Decay rate**: 2 points per second
 - **Minimum score**: 0 points
 
@@ -61,21 +59,20 @@ calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: n
 
 When a player submits a **correct** guess, they "lock in" the current countdown value as their score for that screenshot.
 
-### Tries System
+### Penalty System
 
-Players get multiple attempts per screenshot:
+Players can guess unlimited times, but wrong guesses incur penalties:
 
-- **Maximum tries**: 3 per screenshot
-- **Wrong guess**: Does not end the round (until 3rd try)
-- **Score**: Only awarded on correct guess
+- **Wrong guess penalty**: -50 points from session score
+- **Unfound penalty**: -100 points if screenshot not identified
+- **Correct guess**: Locks in current countdown score
 
-After 3 incorrect guesses, the round ends with 0 points for that screenshot.
+The penalty system encourages careful guessing while allowing multiple attempts.
 
 ### Maximum Score
 
 - Per screenshot: 1,000 points
-- Per tier (18 screenshots): 18,000 points
-- Per challenge (3 tiers): 54,000 points
+- Per challenge (10 screenshots): 10,000 points
 
 ## Power-ups
 
@@ -99,25 +96,20 @@ After positions 6, 12, and 18, a bonus round may appear offering power-ups.
          ▼
 3. Player types game name
          │
-         ├──► Autocomplete suggestions appear
+         ├──► Autocomplete suggestions appear (fuzzy matching)
          │
          ▼
 4. Player submits guess
          │
          ├──► Correct? Lock in current score, next screenshot
          │
-         ├──► Wrong (tries < 3)? Try again, score keeps decaying
-         │
-         └──► Wrong (tries = 3)? 0 points, next screenshot
+         └──► Wrong? -50 penalty, try again (score keeps decaying)
          │
          ▼
 5. Show result (correct game, score earned)
          │
          ▼
-6. Check for bonus round (positions 6, 12, 18)
-         │
-         ▼
-7. Next screenshot OR tier complete
+6. Next screenshot OR challenge complete (after 10)
 ```
 
 ## API Flow
@@ -133,11 +125,7 @@ Response:
 {
   "challengeId": 1,
   "date": "2025-01-10",
-  "tiers": [
-    { "tierNumber": 1, "name": "Facile", "screenshotCount": 18 },
-    { "tierNumber": 2, "name": "Moyen", "screenshotCount": 18 },
-    { "tierNumber": 3, "name": "Difficile", "screenshotCount": 18 }
-  ],
+  "totalScreenshots": 10,
   "hasPlayed": false,
   "userSession": null
 }
@@ -154,14 +142,11 @@ Response:
 {
   "sessionId": "uuid",
   "tierSessionId": "uuid",
-  "tierNumber": 1,
-  "tierName": "Facile",
-  "totalScreenshots": 18,
+  "totalScreenshots": 10,
   "sessionStartedAt": "2025-01-10T14:30:00.000Z",
   "scoringConfig": {
     "initialScore": 1000,
-    "decayRate": 2,
-    "maxTriesPerScreenshot": 3
+    "decayRate": 2
   }
 }
 ```
@@ -205,8 +190,6 @@ Response (correct guess):
 ```json
 {
   "isCorrect": true,
-  "tryNumber": 1,
-  "triesRemaining": 0,
   "correctGame": {
     "id": 42,
     "name": "The Witcher 3: Wild Hunt",
@@ -215,22 +198,23 @@ Response (correct guess):
   "scoreEarned": 850,
   "totalScore": 850,
   "nextPosition": 2,
-  "isTierCompleted": false,
   "isCompleted": false
 }
 ```
 
-Response (wrong guess, tries remaining):
+Response (wrong guess):
 ```json
 {
   "isCorrect": false,
-  "tryNumber": 1,
-  "triesRemaining": 2,
-  "correctGame": null,
+  "correctGame": {
+    "id": 42,
+    "name": "The Witcher 3: Wild Hunt",
+    "coverImageUrl": "/covers/witcher3.jpg"
+  },
   "scoreEarned": 0,
-  "totalScore": 0,
+  "scorePenalty": 50,
+  "totalScore": -50,
   "nextPosition": null,
-  "isTierCompleted": false,
   "isCompleted": false
 }
 ```
@@ -244,7 +228,6 @@ interface GameState {
   // Session
   sessionId: string | null
   challengeId: number | null
-  currentTier: number
   currentPosition: number
   sessionStartedAt: string | null
 
@@ -252,14 +235,13 @@ interface GameState {
   scoringConfig: {
     initialScore: number      // Default: 1000
     decayRate: number         // Default: 2 points/second
-    maxTriesPerScreenshot: number  // Default: 3
   } | null
   currentScore: number        // Calculated from elapsed time
-  triesRemaining: number      // Tries left for current screenshot
 
   // Scoring
   totalScore: number
-  tierScores: number[]
+  screenshotsFound: number    // Correct answers count
+  correctPositions: number[]  // Positions correctly guessed
   guessResults: GuessResult[]
 
   // Power-ups

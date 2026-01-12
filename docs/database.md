@@ -50,6 +50,7 @@ erDiagram
     
     games {
         serial id PK
+        integer rawg_id UK
         varchar name
         varchar slug UK
         text_array aliases
@@ -59,6 +60,8 @@ erDiagram
         text_array genres
         text_array platforms
         varchar cover_image_url
+        integer metacritic_score
+        timestamp last_synced_at
     }
     
     screenshots {
@@ -198,11 +201,12 @@ Player accounts and statistics.
 
 ### games
 
-Video game catalog.
+Video game catalog with RAWG integration.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
 | id | SERIAL | Primary key |
+| rawg_id | INTEGER | Unique RAWG database ID |
 | name | VARCHAR(255) | Game title |
 | slug | VARCHAR(255) | URL-friendly name |
 | aliases | TEXT[] | Alternative names |
@@ -212,6 +216,8 @@ Video game catalog.
 | genres | TEXT[] | Genre tags |
 | platforms | TEXT[] | Platform tags |
 | cover_image_url | VARCHAR(500) | Cover image |
+| metacritic_score | INTEGER | Metacritic score (0-100) |
+| last_synced_at | TIMESTAMP | Last RAWG sync timestamp |
 
 ### screenshots
 
@@ -368,6 +374,21 @@ Players participating in live events.
 | game_session_id | UUID | FK to game_sessions (nullable) |
 | joined_at | TIMESTAMP | Join time |
 
+### import_states
+
+Tracks background import job progress for pause/resume functionality.
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| id | SERIAL | Primary key |
+| import_type | VARCHAR(50) | Type of import (games, screenshots) |
+| current_page | INTEGER | Current page being processed |
+| total_pages | INTEGER | Total pages to process |
+| status | VARCHAR(20) | running, paused, completed, failed |
+| last_error | TEXT | Last error message if failed |
+| created_at | TIMESTAMP | Import start time |
+| updated_at | TIMESTAMP | Last update time |
+
 ## Migrations
 
 ```bash
@@ -389,6 +410,7 @@ Key indexes for performance:
 - `users.email` - Unique
 - `games.name` - For search
 - `games.slug` - Unique
+- `games.rawg_id` - Unique
 - `daily_challenges.challenge_date` - Unique
 - `tiers(daily_challenge_id, tier_number)` - Unique
 - `tier_screenshots(tier_id, position)` - Unique

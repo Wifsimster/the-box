@@ -68,7 +68,14 @@ router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
 - **Business Logic**: Scoring algorithms, game rules
 - **Validation**: Domain-level data validation
 - **Orchestration**: Coordinate between repositories
-- **Services**: `game.service.ts`, `job.service.ts`
+- **Services**:
+  - `game.service.ts` - Challenge and screenshot management
+  - `user.service.ts` - User profiles and game history
+  - `leaderboard.service.ts` - Rankings and percentile calculations
+  - `job.service.ts` - Background job management
+  - `admin.service.ts` - Admin operations
+  - `auth.service.ts` - Authentication logic
+  - `fuzzy-match.service.ts` - Game name matching for guesses
 
 ```typescript
 // Example: Countdown score calculation in game.service.ts
@@ -91,11 +98,16 @@ calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: n
 infrastructure/
 ├── auth/           # Better Auth setup
 ├── database/       # PostgreSQL connection
-├── logger/         # Pino logger
-├── queue/          # BullMQ job queue
-│   ├── connection.ts    # Redis connection
-│   ├── queues.ts        # Queue definitions
-│   └── workers/         # Job workers
+├── logger/         # Pino structured logging
+├── queue/          # BullMQ job queue with Redis
+│   ├── connection.ts    # Redis connection pool
+│   ├── queues.ts        # Queue definitions (import, daily-challenge, sync)
+│   └── workers/         # Job processors
+│       ├── import.worker.ts
+│       ├── import-logic.ts
+│       ├── batch-import-logic.ts
+│       ├── daily-challenge-logic.ts
+│       └── sync-all-logic.ts
 ├── repositories/   # Data access layer
 └── socket/         # Socket.io setup
 ```
@@ -156,6 +168,41 @@ React Component ──► Zustand Store ──► API Call
                                     Repository ──► PostgreSQL
 ```
 
+## Background Job System
+
+The application uses BullMQ with Redis for background processing:
+
+### Job Types
+
+| Job Type | Description | Schedule |
+| -------- | ----------- | -------- |
+| `import-games` | Import games from RAWG API | On demand |
+| `import-screenshots` | Fetch screenshots for games | On demand |
+| `create-daily-challenge` | Generate daily challenge | Daily at midnight UTC |
+| `sync-all-games` | Sync game data from RAWG | Weekly (Sundays 2 AM UTC) |
+
+### Job Flow
+
+```text
+Admin triggers import ──► Job added to queue ──► Worker processes
+                                                      │
+                                                      ▼
+                              Socket.io broadcasts progress to admin UI
+                                                      │
+                                                      ▼
+                                              Job completed/failed
+```
+
+## External Integrations
+
+### RAWG API
+
+Games and screenshots are imported from [RAWG](https://rawg.io/apidocs):
+
+- `rawg_id`: Unique RAWG game identifier stored in `games` table
+- `last_synced_at`: Tracks when game data was last synchronized
+- Automatic sync via scheduled background jobs
+
 ## Key Design Decisions
 
 1. **Shared Types Package**: Single source of truth for TypeScript interfaces
@@ -163,3 +210,5 @@ React Component ──► Zustand Store ──► API Call
 3. **Service Layer**: Centralizes business rules, testable in isolation
 4. **Thin Controllers**: Routes only handle HTTP concerns
 5. **Zustand over Redux**: Simpler API, less boilerplate
+6. **BullMQ + Redis**: Reliable background job processing with retry support
+7. **Fuzzy Matching**: Forgiving game name validation for better UX
