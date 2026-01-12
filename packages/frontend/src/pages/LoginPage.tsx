@@ -8,6 +8,7 @@ import { signIn, authClient } from '@/lib/auth-client'
 import { Lock, User, Loader2, Sparkles } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { mapLoginError } from '@/lib/auth-errors'
 
 export default function LoginPage() {
   const { t } = useTranslation()
@@ -39,8 +40,9 @@ export default function LoginPage() {
           onSuccess: () => {
             navigate(redirectTo)
           },
-          onError: () => {
-            setError(t('auth.invalidCredentials'))
+          onError: (ctx) => {
+            const errorKey = mapLoginError(ctx.error)
+            setError(t(errorKey))
           },
         })
       } else {
@@ -51,13 +53,15 @@ export default function LoginPage() {
           onSuccess: () => {
             navigate(redirectTo)
           },
-          onError: () => {
-            setError(t('auth.invalidCredentials'))
+          onError: (ctx) => {
+            const errorKey = mapLoginError(ctx.error)
+            setError(t(errorKey))
           },
         })
       }
-    } catch {
-      setError(t('auth.loginError'))
+    } catch (err) {
+      const errorKey = mapLoginError(err)
+      setError(t(errorKey))
     } finally {
       setIsLoading(false)
     }
@@ -72,12 +76,14 @@ export default function LoginPage() {
         onSuccess: () => {
           navigate(redirectTo)
         },
-        onError: () => {
-          setError(t('auth.guestError'))
+        onError: (ctx) => {
+          const errorKey = mapLoginError(ctx.error)
+          setError(t(errorKey))
         },
       })
-    } catch {
-      setError(t('auth.guestError'))
+    } catch (err) {
+      const errorKey = mapLoginError(err)
+      setError(t(errorKey))
     } finally {
       setIsLoading(false)
     }

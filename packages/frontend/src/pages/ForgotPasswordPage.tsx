@@ -19,6 +19,7 @@ import { requestPasswordReset } from '@/lib/auth-client'
 import { Mail, Loader2, ArrowLeft } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { mapPasswordResetError } from '@/lib/auth-errors'
 
 const formSchema = z.object({
   email: z
@@ -54,15 +55,17 @@ export default function ForgotPasswordPage() {
           setSubmittedEmail(values.email)
           setSuccess(true)
         },
-        onError: () => {
+        onError: (ctx) => {
+          const errorKey = mapPasswordResetError(ctx.error)
           form.setError('root', {
-            message: t('auth.resetError'),
+            message: t(errorKey),
           })
         },
       })
-    } catch {
+    } catch (err) {
+      const errorKey = mapPasswordResetError(err)
       form.setError('root', {
-        message: t('auth.resetError'),
+        message: t(errorKey),
       })
     } finally {
       setIsLoading(false)

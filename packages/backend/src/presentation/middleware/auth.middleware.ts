@@ -28,7 +28,7 @@ export async function authMiddleware(
     if (!session) {
       res.status(401).json({
         success: false,
-        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        error: { code: 'UNAUTHORIZED' },
       })
       return
     }
@@ -42,7 +42,7 @@ export async function authMiddleware(
     log.error({ error: String(error), url: req.url }, 'auth middleware error')
     res.status(401).json({
       success: false,
-      error: { code: 'AUTH_ERROR', message: 'Authentication failed' },
+      error: { code: 'AUTH_ERROR' },
     })
   }
 }
@@ -83,7 +83,7 @@ export async function adminMiddleware(
     if (!session) {
       res.status(401).json({
         success: false,
-        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        error: { code: 'UNAUTHORIZED' },
       })
       return
     }
@@ -93,7 +93,7 @@ export async function adminMiddleware(
       log.warn({ userId: session.user.id, url: req.url }, 'admin access denied')
       res.status(403).json({
         success: false,
-        error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        error: { code: 'FORBIDDEN' },
       })
       return
     }
@@ -107,7 +107,7 @@ export async function adminMiddleware(
     log.error({ error: String(error), url: req.url }, 'admin middleware error')
     res.status(401).json({
       success: false,
-      error: { code: 'AUTH_ERROR', message: 'Authentication failed' },
+      error: { code: 'AUTH_ERROR' },
     })
   }
 }

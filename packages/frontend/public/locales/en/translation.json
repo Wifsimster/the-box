@@ -180,7 +180,22 @@
     "passwordTooLong": "Password must not exceed 128 characters",
     "usernameMin": "Username must be at least 3 characters",
     "usernameMax": "Username must be at most 50 characters",
-    "emailInvalid": "Please enter a valid email address"
+    "emailInvalid": "Please enter a valid email address",
+    "errors": {
+      "userAlreadyExists": "An account with this email already exists",
+      "userNotFound": "No account found with these credentials",
+      "invalidPassword": "The password you entered is incorrect",
+      "emailNotVerified": "Please verify your email before logging in",
+      "weakPassword": "Password is too weak. Use a stronger password",
+      "usernameTaken": "This username is already taken",
+      "tooManyAttempts": "Too many attempts. Please try again later",
+      "networkError": "Network error. Please check your connection",
+      "serverError": "Server error. Please try again later",
+      "unknownError": "An unexpected error occurred",
+      "UNAUTHORIZED": "Authentication required. Please log in",
+      "FORBIDDEN": "You don't have permission to access this resource",
+      "AUTH_ERROR": "Authentication failed. Please try again"
+    }
   },
   "admin": {
     "title": "Admin Panel",

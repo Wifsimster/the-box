@@ -19,6 +19,7 @@ import { authClient } from '@/lib/auth-client'
 import { Mail, Lock, User, Loader2 } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { mapRegisterError } from '@/lib/auth-errors'
 
 type FormValues = {
   username: string
@@ -75,15 +76,17 @@ export default function RegisterPage() {
         onSuccess: () => {
           navigate(localizedPath('/'))
         },
-        onError: () => {
+        onError: (ctx) => {
+          const errorKey = mapRegisterError(ctx.error)
           form.setError('root', {
-            message: t('auth.registerError'),
+            message: t(errorKey),
           })
         },
       })
-    } catch {
+    } catch (err) {
+      const errorKey = mapRegisterError(err)
       form.setError('root', {
-        message: t('auth.registerError'),
+        message: t(errorKey),
       })
     } finally {
       setIsLoading(false)

@@ -180,7 +180,22 @@
     "passwordTooLong": "Le mot de passe ne doit pas dépasser 128 caractères",
     "usernameMin": "Le nom d'utilisateur doit faire au moins 3 caractères",
     "usernameMax": "Le nom d'utilisateur doit faire au maximum 50 caractères",
-    "emailInvalid": "Veuillez entrer une adresse email valide"
+    "emailInvalid": "Veuillez entrer une adresse email valide",
+    "errors": {
+      "userAlreadyExists": "Un compte avec cet email existe déjà",
+      "userNotFound": "Aucun compte trouvé avec ces identifiants",
+      "invalidPassword": "Le mot de passe que vous avez entré est incorrect",
+      "emailNotVerified": "Veuillez vérifier votre email avant de vous connecter",
+      "weakPassword": "Le mot de passe est trop faible. Utilisez un mot de passe plus fort",
+      "usernameTaken": "Ce nom d'utilisateur est déjà pris",
+      "tooManyAttempts": "Trop de tentatives. Veuillez réessayer plus tard",
+      "networkError": "Erreur réseau. Veuillez vérifier votre connexion",
+      "serverError": "Erreur serveur. Veuillez réessayer plus tard",
+      "unknownError": "Une erreur inattendue s'est produite",
+      "UNAUTHORIZED": "Authentification requise. Veuillez vous connecter",
+      "FORBIDDEN": "Vous n'avez pas la permission d'accéder à cette ressource",
+      "AUTH_ERROR": "Échec de l'authentification. Veuillez réessayer"
+    }
   },
   "admin": {
     "title": "Administration",

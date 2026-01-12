@@ -14,20 +14,20 @@ export interface UserRow {
   id: string
   name: string
   email: string
-  emailVerified: boolean
+  email_verified: boolean
   image: string | null
   role: string | null
-  createdAt: Date
-  updatedAt: Date
+  created_at: Date
+  updated_at: Date
   // Custom fields from additionalFields config
   username: string | null
-  displayUsername: string | null
-  displayName: string | null
-  avatarUrl: string | null
-  totalScore: number
-  currentStreak: number
-  longestStreak: number
-  lastPlayedAt: Date | null
+  display_username: string | null
+  display_name: string | null
+  avatar_url: string | null
+  total_score: number
+  current_streak: number
+  longest_streak: number
+  last_played_at: Date | null
 }
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
@@ -37,14 +37,14 @@ function mapRowToUser(row: UserRow): User {
     id: row.id,
     username: row.username ?? row.name,
     email: row.email,
-    displayName: row.displayName ?? row.name,
-    avatarUrl: row.avatarUrl ?? row.image ?? undefined,
+    displayName: row.display_name ?? row.name,
+    avatarUrl: row.avatar_url ?? row.image ?? undefined,
     isGuest: row.email.endsWith(`@${GUEST_EMAIL_DOMAIN}`),
     isAdmin: row.role === 'admin',
-    totalScore: row.totalScore ?? 0,
-    currentStreak: row.currentStreak ?? 0,
-    longestStreak: row.longestStreak ?? 0,
-    createdAt: row.createdAt.toISOString(),
+    totalScore: row.total_score ?? 0,
+    currentStreak: row.current_streak ?? 0,
+    longestStreak: row.longest_streak ?? 0,
+    createdAt: row.created_at.toISOString(),
   }
 }
 
@@ -84,7 +84,7 @@ export const userRepository = {
     log.info({ userId, additionalScore }, 'updateScore')
     await db('user')
       .where('id', userId)
-      .increment('totalScore', additionalScore)
+      .increment('total_score', additionalScore)
   },
 
   async updateStreak(userId: string, currentStreak: number, longestStreak: number): Promise<void> {
@@ -92,9 +92,9 @@ export const userRepository = {
     await db('user')
       .where('id', userId)
       .update({
-        currentStreak,
-        longestStreak,
-        lastPlayedAt: new Date(),
+        current_streak: currentStreak,
+        longest_streak: longestStreak,
+        last_played_at: new Date(),
       })
   },
 }
