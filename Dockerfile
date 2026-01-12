@@ -47,8 +47,8 @@ COPY package.json package-lock.json ./
 COPY packages/types/package.json ./packages/types/
 COPY packages/backend/package.json ./packages/backend/
 
-# Install production dependencies only + tsx for migrations
-RUN npm ci --omit=dev && npm install -w @the-box/backend tsx
+# Install production dependencies only + tsx for migrations + better-auth CLI
+RUN npm ci --omit=dev && npm install -w @the-box/backend tsx @better-auth/cli
 
 # Copy built backend artifacts
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
@@ -71,8 +71,8 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R thebox:nodejs /app/uploads
 
-# Create nginx directories and set permissions
-RUN mkdir -p /var/run/nginx /var/log/nginx && \
+# Create nginx and supervisor directories with proper permissions
+RUN mkdir -p /var/run/nginx /var/log/nginx /var/log/supervisor && \
     chown -R thebox:nodejs /var/run/nginx /var/log/nginx /var/lib/nginx
 
 # Set ownership of app directory
