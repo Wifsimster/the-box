@@ -19,6 +19,7 @@ function createAuth() {
     database: pool,
     emailAndPassword: {
       enabled: true,
+      autoSignIn: true, // Explicitly enable automatic sign-in after registration
       minPasswordLength: 8, // OWASP recommended minimum
       sendResetPassword: async ({ user, url }) => {
         if (resend) {
@@ -62,6 +63,13 @@ function createAuth() {
       username({
         minUsernameLength: 3,
         maxUsernameLength: 50,
+        schema: {
+          user: {
+            fields: {
+              displayUsername: "display_username",
+            },
+          },
+        },
       }),
       anonymous({
         emailDomainName: "guest.thebox.local",
@@ -71,31 +79,11 @@ function createAuth() {
       }),
     ],
     user: {
-      additionalFields: {
-        displayName: {
-          type: "string",
-          required: false,
-        },
-        avatarUrl: {
-          type: "string",
-          required: false,
-        },
-        totalScore: {
-          type: "number",
-          defaultValue: 0,
-        },
-        currentStreak: {
-          type: "number",
-          defaultValue: 0,
-        },
-        longestStreak: {
-          type: "number",
-          defaultValue: 0,
-        },
-        lastPlayedAt: {
-          type: "date",
-          required: false,
-        },
+      fields: {
+        emailVerified: "emailVerified",
+        createdAt: "createdAt",
+        updatedAt: "updatedAt",
+        isAnonymous: "isAnonymous",
       },
     },
     session: {
@@ -107,17 +95,24 @@ function createAuth() {
       user: {
         create: {
           before: async (user) => {
-            // First user to register becomes admin
-            const result = await pool.query('SELECT COUNT(*) as count FROM "user"');
-            const userCount = parseInt(result.rows[0].count, 10);
+            try {
+              // First user to register becomes admin
+              const result = await pool.query('SELECT COUNT(*) as count FROM "user"');
+              const userCount = parseInt(result.rows[0].count, 10);
 
-            if (userCount === 0) {
-              console.log("[AUTH] First user registration - assigning admin role");
-              return {
-                data: { ...user, role: "admin" },
-              };
+              if (userCount === 0) {
+                console.log("[AUTH] First user registration - assigning admin role");
+                return {
+                  data: { ...user, role: "admin" },
+                };
+              }
+              return { data: user };
+            } catch (error) {
+              // Log the error but don't fail the registration
+              // Better-auth will handle the user creation, we just won't assign admin role
+              console.error("[AUTH] Error in user creation hook:", error);
+              return { data: user };
             }
-            return { data: user };
           },
         },
       },

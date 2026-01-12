@@ -14,12 +14,12 @@ export interface UserRow {
   id: string
   name: string
   email: string
-  email_verified: boolean
+  emailVerified: boolean
   image: string | null
   role: string | null
-  created_at: Date
-  updated_at: Date
-  // Custom fields from additionalFields config
+  createdAt: Date
+  updatedAt: Date
+  // Custom fields from additionalFields config (snake_case as defined in migration)
   username: string | null
   display_username: string | null
   display_name: string | null
@@ -44,7 +44,7 @@ function mapRowToUser(row: UserRow): User {
     totalScore: row.total_score ?? 0,
     currentStreak: row.current_streak ?? 0,
     longestStreak: row.longest_streak ?? 0,
-    createdAt: row.created_at.toISOString(),
+    createdAt: row.createdAt.toISOString(),
   }
 }
 

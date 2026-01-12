@@ -45,14 +45,14 @@ export default function AdminPage() {
 
   // Redirect non-admins
   useEffect(() => {
-    if (!isPending && (!session || session.user.role !== 'admin')) {
+    if (!isPending && (!session || session.user?.role !== 'admin')) {
       navigate(`/${lang || 'en'}`)
     }
   }, [session, isPending, navigate, lang])
 
   // Fetch jobs and setup socket on mount
   useEffect(() => {
-    if (session?.user.role === 'admin') {
+    if (session?.user?.role === 'admin') {
       fetchJobs()
       fetchRecurringJobs()
       fetchCurrentImport()
@@ -83,7 +83,7 @@ export default function AdminPage() {
 
   // Refresh jobs periodically as fallback
   useEffect(() => {
-    if (session?.user.role === 'admin') {
+    if (session?.user?.role === 'admin') {
       const interval = setInterval(() => {
         fetchJobs()
         fetchRecurringJobs()
@@ -104,7 +104,7 @@ export default function AdminPage() {
     )
   }
 
-  if (!session || session.user.role !== 'admin') {
+  if (!session || session.user?.role !== 'admin') {
     return null // Will redirect
   }
 

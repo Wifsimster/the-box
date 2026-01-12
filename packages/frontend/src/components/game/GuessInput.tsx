@@ -26,7 +26,7 @@ export function GuessInput() {
 
   // Auth hook for admin check
   const { session } = useAuth()
-  const isAdmin = session?.user.role === 'admin'
+  const isAdmin = session?.user?.role === 'admin'
 
   // Services (dependency injection via factory functions)
   const guessSubmissionService = useMemo(

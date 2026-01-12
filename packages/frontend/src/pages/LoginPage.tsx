@@ -32,37 +32,32 @@ export default function LoginPage() {
     setError(null)
 
     try {
+      let result
       if (isEmail(formData.identifier)) {
-        await signIn.email({
+        result = await signIn.email({
           email: formData.identifier,
           password: formData.password,
-        }, {
-          onSuccess: () => {
-            navigate(redirectTo)
-          },
-          onError: (ctx) => {
-            const errorKey = mapLoginError(ctx.error)
-            setError(t(errorKey))
-          },
         })
       } else {
-        await authClient.signIn.username({
+        result = await authClient.signIn.username({
           username: formData.identifier,
           password: formData.password,
-        }, {
-          onSuccess: () => {
-            navigate(redirectTo)
-          },
-          onError: (ctx) => {
-            const errorKey = mapLoginError(ctx.error)
-            setError(t(errorKey))
-          },
         })
       }
+
+      if (result.error) {
+        const errorKey = mapLoginError(result.error)
+        setError(t(errorKey))
+        setIsLoading(false)
+        return
+      }
+
+      // Wait a moment for the session cookie to be set
+      await new Promise(resolve => setTimeout(resolve, 100))
+      navigate(redirectTo)
     } catch (err) {
       const errorKey = mapLoginError(err)
       setError(t(errorKey))
-    } finally {
       setIsLoading(false)
     }
   }
@@ -72,19 +67,21 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      await authClient.signIn.anonymous({}, {
-        onSuccess: () => {
-          navigate(redirectTo)
-        },
-        onError: (ctx) => {
-          const errorKey = mapLoginError(ctx.error)
-          setError(t(errorKey))
-        },
-      })
+      const result = await authClient.signIn.anonymous()
+
+      if (result.error) {
+        const errorKey = mapLoginError(result.error)
+        setError(t(errorKey))
+        setIsLoading(false)
+        return
+      }
+
+      // Wait a moment for the session cookie to be set
+      await new Promise(resolve => setTimeout(resolve, 100))
+      navigate(redirectTo)
     } catch (err) {
       const errorKey = mapLoginError(err)
       setError(t(errorKey))
-    } finally {
       setIsLoading(false)
     }
   }

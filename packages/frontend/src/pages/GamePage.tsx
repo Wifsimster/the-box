@@ -27,7 +27,7 @@ export default function GamePage() {
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
-  const isAdmin = session?.user.role === 'admin'
+  const isAdmin = session?.user?.role === 'admin'
   const {
     _hasHydrated,
     gamePhase,

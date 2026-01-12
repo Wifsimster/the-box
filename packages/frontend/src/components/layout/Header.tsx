@@ -18,6 +18,12 @@ export function Header() {
   const { localizedPath } = useLocalizedPath()
   const { session, isPending, signOut } = useAuth()
 
+  // Show login/register buttons if there's no session
+  // Also check if session is valid (has user data)
+  // This handles cases where the session endpoint returns invalid data
+  const hasValidSession = session && session.user && session.user.id
+  const showAuthButtons = !hasValidSession
+
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -37,7 +43,7 @@ export function Header() {
             </Link>
           </Button>
 
-          {session && (
+          {hasValidSession && (
             <Button variant="ghost" size="sm" asChild>
               <Link to={localizedPath('/history')}>
                 <History className="w-4 h-4 mr-1" />
@@ -46,7 +52,7 @@ export function Header() {
             </Button>
           )}
 
-          {session?.user.role === 'admin' && (
+          {hasValidSession && session?.user?.role === 'admin' && (
             <Button variant="ghost" size="sm" asChild>
               <Link to={localizedPath('/admin')}>
                 <Settings className="w-4 h-4 mr-1" />
@@ -58,7 +64,7 @@ export function Header() {
 
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
-          {!session && !isPending && (
+          {showAuthButtons && (
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link to={localizedPath('/login')}>{t('common.login')}</Link>
@@ -70,15 +76,15 @@ export function Header() {
               </Button>
             </>
           )}
-          {session && !isPending && (
+          {hasValidSession && !isPending && (
             <div className="flex items-center gap-2">
-              {session.user.role === 'admin' ? (
+              {session?.user?.role === 'admin' ? (
                 <Badge variant="admin">
-                  {session.user.name || session.user.email?.split('@')[0]}
+                  {session.user?.name || session.user?.email?.split('@')[0]}
                 </Badge>
               ) : (
                 <span className="text-sm text-muted-foreground">
-                  {session.user.name || session.user.email?.split('@')[0]}
+                  {session.user?.name || session.user?.email?.split('@')[0]}
                 </span>
               )}
               <Button variant="ghost" size="sm" onClick={signOut}>

@@ -12,18 +12,28 @@ export function useAuth() {
   const navigate = useNavigate()
   const { lang } = useParams<{ lang: string }>()
   const { i18n } = useTranslation()
-  const { data: session, isPending } = useSession()
+  const { data: session, isPending, error } = useSession()
+  
+  // Log session errors for debugging
+  if (error) {
+    console.error('Session error:', error)
+  }
 
   const currentLang = lang || i18n.language
 
   const signOut = useCallback(async () => {
-    await authSignOut({
-      fetchOptions: {
-        onSuccess: () => {
-          navigate(`/${currentLang}`)
-        },
-      },
-    })
+    try {
+      const result = await authSignOut()
+      if (result.error) {
+        console.error('Sign out error:', result.error)
+      }
+      // Navigate regardless of error to ensure user is redirected
+      navigate(`/${currentLang}`)
+    } catch (err) {
+      console.error('Sign out failed:', err)
+      // Navigate even on error to ensure user is redirected
+      navigate(`/${currentLang}`)
+    }
   }, [navigate, currentLang])
 
   const signIn = useCallback(

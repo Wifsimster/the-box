@@ -29,80 +29,163 @@ export async function up(knex: Knex): Promise<void> {
     // Authentication tables for better-auth with custom game fields
 
     // Users table (singular 'user' as required by better-auth)
+    // Using camelCase for Better Auth standard columns (requires double quotes in PostgreSQL)
     await knex.schema.createTable('user', (table) => {
         table.text('id').primary()
         table.text('email').notNullable().unique()
-        table.boolean('emailVerified').notNullable().defaultTo(false)
         table.text('name')
         table.text('image')
-        table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
-        table.timestamp('updatedAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
 
         // Plugin: username
         table.text('username').unique()
-        table.text('displayUsername').unique()
-        table.timestamp('usernameUpdatedAt', { useTz: true })
+        table.text('display_username').unique()
+        table.timestamp('username_updated_at', { useTz: true })
 
         // Plugin: admin
         table.text('role').notNullable().defaultTo('user')
         table.boolean('banned').notNullable().defaultTo(false)
-        table.text('banReason')
-        table.timestamp('banExpires', { useTz: true })
+        table.text('ban_reason')
+        table.timestamp('ban_expires', { useTz: true })
+
+        // Plugin: anonymous - using camelCase to match better-auth expectations
+        // Note: PostgreSQL requires double quotes for camelCase column names
 
         // Additional fields from auth config
-        table.text('displayName')
-        table.text('avatarUrl')
-        table.integer('totalScore').notNullable().defaultTo(0)
-        table.integer('currentStreak').notNullable().defaultTo(0)
-        table.integer('longestStreak').notNullable().defaultTo(0)
-        table.timestamp('lastPlayedAt', { useTz: true })
+        table.text('display_name')
+        table.text('avatar_url')
+        table.integer('total_score').notNullable().defaultTo(0)
+        table.integer('current_streak').notNullable().defaultTo(0)
+        table.integer('longest_streak').notNullable().defaultTo(0)
+        table.timestamp('last_played_at', { useTz: true })
     })
+
+    // Add Better Auth standard columns with camelCase (requires double quotes)
+    await knex.raw(`
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'emailVerified') THEN
+                ALTER TABLE "user" ADD COLUMN "emailVerified" BOOLEAN NOT NULL DEFAULT false;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'createdAt') THEN
+                ALTER TABLE "user" ADD COLUMN "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'updatedAt') THEN
+                ALTER TABLE "user" ADD COLUMN "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+            END IF;
+            -- Handle isAnonymous column: rename from is_anonymous if it exists, otherwise create it
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'is_anonymous') THEN
+                ALTER TABLE "user" RENAME COLUMN is_anonymous TO "isAnonymous";
+            ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'isAnonymous') THEN
+                ALTER TABLE "user" ADD COLUMN "isAnonymous" BOOLEAN NOT NULL DEFAULT false;
+            END IF;
+        END $$;
+    `)
 
     // Sessions table
+    // Using camelCase for Better Auth standard columns
     await knex.schema.createTable('session', (table) => {
         table.text('id').primary()
-        table.timestamp('expiresAt', { useTz: true }).notNullable()
         table.text('token').notNullable().unique()
-        table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
-        table.timestamp('updatedAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
-        table.text('ipAddress')
-        table.text('userAgent')
-        table.text('userId').notNullable().references('id').inTable('user').onDelete('CASCADE')
 
         // Plugin: anonymous
-        table.text('anonymousId')
+        table.text('anonymous_id')
     })
+
+    // Add Better Auth standard columns with camelCase (requires double quotes)
+    await knex.raw(`
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'session' AND column_name = 'expiresAt') THEN
+                ALTER TABLE session ADD COLUMN "expiresAt" TIMESTAMP WITH TIME ZONE NOT NULL;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'session' AND column_name = 'createdAt') THEN
+                ALTER TABLE session ADD COLUMN "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'session' AND column_name = 'updatedAt') THEN
+                ALTER TABLE session ADD COLUMN "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'session' AND column_name = 'ipAddress') THEN
+                ALTER TABLE session ADD COLUMN "ipAddress" TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'session' AND column_name = 'userAgent') THEN
+                ALTER TABLE session ADD COLUMN "userAgent" TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'session' AND column_name = 'userId') THEN
+                ALTER TABLE session ADD COLUMN "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE;
+            END IF;
+        END $$;
+    `)
 
     // Accounts table
+    // Using camelCase for Better Auth standard columns
     await knex.schema.createTable('account', (table) => {
         table.text('id').primary()
-        table.text('accountId').notNullable()
-        table.text('providerId').notNullable()
-        table.text('userId').notNullable().references('id').inTable('user').onDelete('CASCADE')
-        table.text('accessToken')
-        table.text('refreshToken')
-        table.timestamp('accessTokenExpiresAt', { useTz: true })
-        table.timestamp('refreshTokenExpiresAt', { useTz: true })
         table.text('scope')
         table.text('password')
-        table.timestamp('createdAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
-        table.timestamp('updatedAt', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
+    // Add Better Auth standard columns with camelCase (requires double quotes)
+    await knex.raw(`
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'accountId') THEN
+                ALTER TABLE account ADD COLUMN "accountId" TEXT NOT NULL;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'providerId') THEN
+                ALTER TABLE account ADD COLUMN "providerId" TEXT NOT NULL;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'userId') THEN
+                ALTER TABLE account ADD COLUMN "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'accessToken') THEN
+                ALTER TABLE account ADD COLUMN "accessToken" TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'refreshToken') THEN
+                ALTER TABLE account ADD COLUMN "refreshToken" TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'accessTokenExpiresAt') THEN
+                ALTER TABLE account ADD COLUMN "accessTokenExpiresAt" TIMESTAMP WITH TIME ZONE;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'refreshTokenExpiresAt') THEN
+                ALTER TABLE account ADD COLUMN "refreshTokenExpiresAt" TIMESTAMP WITH TIME ZONE;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'createdAt') THEN
+                ALTER TABLE account ADD COLUMN "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'updatedAt') THEN
+                ALTER TABLE account ADD COLUMN "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+            END IF;
+        END $$;
+    `)
+
     // Verification table
+    // Using camelCase for Better Auth standard columns
     await knex.schema.createTable('verification', (table) => {
         table.text('id').primary()
         table.text('identifier').notNullable()
         table.text('value').notNullable()
-        table.timestamp('expiresAt', { useTz: true }).notNullable()
-        table.timestamp('createdAt', { useTz: true })
-        table.timestamp('updatedAt', { useTz: true })
     })
+
+    // Add Better Auth standard columns with camelCase (requires double quotes)
+    await knex.raw(`
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'verification' AND column_name = 'expiresAt') THEN
+                ALTER TABLE verification ADD COLUMN "expiresAt" TIMESTAMP WITH TIME ZONE NOT NULL;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'verification' AND column_name = 'createdAt') THEN
+                ALTER TABLE verification ADD COLUMN "createdAt" TIMESTAMP WITH TIME ZONE;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'verification' AND column_name = 'updatedAt') THEN
+                ALTER TABLE verification ADD COLUMN "updatedAt" TIMESTAMP WITH TIME ZONE;
+            END IF;
+        END $$;
+    `)
 
     // Create a view to alias 'user' table as 'users' for foreign key compatibility
     await knex.raw('CREATE VIEW users AS SELECT * FROM "user"')
 
-    // ===== Initial Schema (20260110_initial_schema) =====
+    // ===== Initial Schema =====
 
     // Games table
     await knex.schema.createTable('games', (table) => {
@@ -116,15 +199,12 @@ export async function up(knex: Knex): Promise<void> {
         table.specificType('genres', 'text[]')
         table.specificType('platforms', 'text[]')
         table.string('cover_image_url', 500)
-        // Added in 20260114_add_metacritic_to_games
         table.integer('metacritic').nullable()
-        // Added in 20260115_add_rawg_id_and_last_synced
         table.integer('rawg_id').unique().nullable()
         table.timestamp('last_synced_at', { useTz: true }).nullable()
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
 
         table.index('name', 'games_name_idx')
-        // Added in 20260115_add_rawg_id_and_last_synced
         table.index(['rawg_id'], 'idx_games_rawg_id')
         table.index(['last_synced_at'], 'idx_games_last_synced')
     })
@@ -185,7 +265,6 @@ export async function up(knex: Knex): Promise<void> {
         table.integer('current_tier').notNullable().defaultTo(1)
         table.integer('current_position').notNullable().defaultTo(1)
         table.integer('total_score').notNullable().defaultTo(0)
-        // Added in 20260112_countdown_scoring
         table.integer('initial_score').notNullable().defaultTo(1000)
         table.integer('decay_rate').notNullable().defaultTo(2)
         table.boolean('is_completed').notNullable().defaultTo(false)
@@ -219,9 +298,7 @@ export async function up(knex: Knex): Promise<void> {
         table.integer('time_taken_ms').notNullable()
         table.integer('score_earned').notNullable().defaultTo(0)
         table.string('power_up_used', 50)
-        // Added in 20260112_countdown_scoring
         table.integer('session_elapsed_ms')
-        // Note: try_number was added in 20260112 but removed in 20260113
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
@@ -268,7 +345,7 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['live_event_id', 'user_id'], { indexName: 'unique_event_participant' })
     })
 
-    // ===== Import States (20260111_import_states) =====
+    // ===== Import States =====
 
     await knex.schema.createTable('import_states', (table) => {
         table.increments('id').primary()
@@ -318,25 +395,25 @@ export async function up(knex: Knex): Promise<void> {
             const hashedPassword = await hashPassword('admin123')
             const now = new Date()
 
-            // Insert user into better-auth's user table (emailVerified is boolean)
+            // Insert user into better-auth's user table (using camelCase for Better Auth columns)
             await knex('user').insert({
                 id: userId,
                 email: 'admin@thebox.local',
                 name: 'admin',
-                emailVerified: true, // boolean, not string
+                emailVerified: true,
                 role: 'admin',
                 createdAt: now,
                 updatedAt: now,
-                // Custom fields
+                // Custom fields (snake_case as defined in schema)
                 username: 'admin',
-                displayUsername: 'admin',
-                displayName: 'Administrator',
-                totalScore: 0,
-                currentStreak: 0,
-                longestStreak: 0,
+                display_username: 'admin',
+                display_name: 'Administrator',
+                total_score: 0,
+                current_streak: 0,
+                longest_streak: 0,
             })
 
-            // Insert account for credential-based auth (password stored here)
+            // Insert account for credential-based auth (password stored here, using camelCase)
             await knex('account').insert({
                 id: randomBytes(16).toString('hex'),
                 userId: userId,

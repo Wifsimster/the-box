@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import { Mail, Lock, User, Loader2 } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const [isLoading, setIsLoading] = useState(false)
+  const { refetch: refetchSession } = useSession()
 
   const formSchema = useMemo(() => z.object({
     username: z
@@ -67,28 +68,54 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      await authClient.signUp.email({
+      const result = await authClient.signUp.email({
         email: values.email,
         password: values.password,
         name: values.username,
         username: values.username,
-      }, {
-        onSuccess: () => {
-          navigate(localizedPath('/'))
-        },
-        onError: (ctx) => {
-          const errorKey = mapRegisterError(ctx.error)
-          form.setError('root', {
-            message: t(errorKey),
-          })
-        },
       })
+
+      if (result.error) {
+        const errorKey = mapRegisterError(result.error)
+        form.setError('root', {
+          message: t(errorKey),
+        })
+        setIsLoading(false)
+        return
+      }
+
+      // Better-auth automatically signs users in after registration
+      // Log the full response for debugging
+      console.log('Registration response:', result)
+      
+      if (result.data && 'session' in result.data && result.data.session) {
+        console.log('Registration successful, session created:', result.data.session)
+      } else if (result.data?.user) {
+        console.log('Registration successful, user created:', result.data.user)
+        console.warn('No session in response - backend may not have created session automatically')
+      }
+
+      // Wait for the session cookie to be set by better-auth
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Refetch the session to ensure React state is updated
+      // refetch() may not return a value, so we just call it and then reload
+      try {
+        await refetchSession()
+        // Wait a bit more for state to update
+        await new Promise(resolve => setTimeout(resolve, 300))
+      } catch (sessionError) {
+        console.error('Error refetching session:', sessionError)
+      }
+      
+      // Force a page reload to ensure cookies are picked up and session state is refreshed
+      // This is more reliable than relying on React state updates
+      window.location.href = localizedPath('/')
     } catch (err) {
       const errorKey = mapRegisterError(err)
       form.setError('root', {
         message: t(errorKey),
       })
-    } finally {
       setIsLoading(false)
     }
   }

@@ -16,6 +16,9 @@ import type {
   PlayerLeftEvent,
 } from '@/types'
 
+// In development, use relative path (empty string) to leverage Vite proxy
+// In production, use VITE_API_URL if set, otherwise relative path
+// When empty, Socket.io connects to the same origin, which the Vite proxy will forward
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 // Socket instance
