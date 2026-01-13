@@ -17,6 +17,8 @@ import {
   getActiveSyncAll,
   getSyncAllState,
 } from '../../infrastructure/queue/workers/sync-all-logic.js'
+import { resend } from '../../infrastructure/auth/auth.js'
+import { env } from '../../config/env.js'
 
 const router = Router()
 
@@ -834,6 +836,103 @@ router.post('/jobs/sync-all/:id/resume', async (req, res, next) => {
         })
         return
       }
+    }
+    next(error)
+  }
+})
+
+// === Email Settings ===
+
+// Get email configuration status
+router.get('/email/config', async (_req, res, next) => {
+  try {
+    const hasApiKey = !!env.RESEND_API_KEY
+    const configured = hasApiKey && !!resend
+
+    res.json({
+      success: true,
+      data: {
+        configured,
+        hasApiKey,
+        emailFrom: env.EMAIL_FROM,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Send test email
+const testEmailSchema = z.object({
+  email: z.string().email().optional(),
+})
+
+router.post('/email/test', async (req, res, next) => {
+  try {
+    const user = req.user
+    const { email } = testEmailSchema.parse(req.body)
+    
+    // Use provided email or fallback to user's email
+    const recipientEmail = email || user?.email
+
+    if (!recipientEmail) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'NO_EMAIL', message: 'No email address provided and user email not found' },
+      })
+      return
+    }
+
+    if (!resend) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'NOT_CONFIGURED', message: 'Email service is not configured. Please set RESEND_API_KEY.' },
+      })
+      return
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: `The Box <${env.EMAIL_FROM}>`,
+      to: recipientEmail,
+      subject: 'Test Email - The Box',
+      html: `
+        <h1>Test Email</h1>
+        <p>This is a test email from The Box admin panel.</p>
+        <p>If you received this email, your email configuration is working correctly!</p>
+        <p>Sent at: ${new Date().toISOString()}</p>
+      `,
+    })
+
+    if (error) {
+      res.status(500).json({
+        success: false,
+        error: { 
+          code: 'EMAIL_ERROR', 
+          message: error.message || 'Failed to send email',
+          details: error.name || 'unknown_error',
+        },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: { sent: true, to: recipientEmail, emailId: data?.id },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
+      })
+      return
+    }
+    if (error instanceof Error) {
+      res.status(500).json({
+        success: false,
+        error: { code: 'EMAIL_ERROR', message: error.message },
+      })
+      return
     }
     next(error)
   }

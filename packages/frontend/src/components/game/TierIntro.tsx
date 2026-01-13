@@ -30,14 +30,14 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-background via-card to-background"
+      className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-background via-card to-background h-dvh"
     >
-      {/* Home Button */}
-      <div className="absolute top-4 left-4 z-20">
-        <Button variant="ghost" size="sm" asChild>
+      {/* Home Button - Mobile-first positioning */}
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20">
+        <Button variant="ghost" size="sm" asChild className="h-8 sm:h-9 px-2 sm:px-3">
           <Link to={localizedPath('/')}>
-            <Home className="w-4 h-4 mr-1" />
-            {t('common.home')}
+            <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+            <span className="text-xs sm:text-sm">{t('common.home')}</span>
           </Link>
         </Button>
       </div>
@@ -56,13 +56,14 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
         />
       </div>
 
-      <div className="relative text-center z-10">
-        {/* Daily Challenge Title */}
+      {/* Main content container - Mobile-first padding */}
+      <div className="relative text-center z-10 w-full px-4 sm:px-6 md:px-8 max-w-2xl mx-auto">
+        {/* Daily Challenge Title - Mobile-first typography */}
         <motion.h1
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-5xl md:text-7xl font-black mb-4 tracking-wider"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-3 sm:mb-4 tracking-wider"
           style={{
             textShadow: `
               0 0 10px rgba(139, 92, 246, 0.8),
@@ -77,93 +78,94 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
           </span>
         </motion.h1>
 
-        {/* Date */}
+        {/* Date - Mobile-first spacing */}
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="flex items-center justify-center gap-2 text-muted-foreground mb-8"
+          className="flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground mb-4 sm:mb-6 md:mb-8"
         >
-          <Calendar className="w-5 h-5" />
-          <span className="text-lg">{formattedDate}</span>
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="text-sm sm:text-base md:text-lg">{formattedDate}</span>
         </motion.div>
 
-        {/* Game rules */}
+        {/* Game rules - Mobile-first padding and spacing */}
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-8 p-4 rounded-lg bg-card/50 border border-border/50 max-w-md mx-auto"
+          className="mb-4 sm:mb-6 md:mb-8 p-3 sm:p-4 md:p-5 rounded-lg bg-card/50 border border-border/50 max-w-md mx-auto"
         >
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">
             {t('game.rules.title')}
           </h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2">
-              <Images className="w-4 h-4 text-neon-purple" />
+          <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground text-left">
+            <li className="flex items-start gap-2">
+              <Images className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
               <span>{t('game.rules.screenshots', { count: totalScreenshots })}</span>
             </li>
-            <li className="flex items-center gap-2">
-              <Move className="w-4 h-4 text-neon-purple" />
+            <li className="flex items-start gap-2">
+              <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
               <span>{t('game.rules.explore')}</span>
             </li>
-            <li className="flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4 text-neon-purple" />
+            <li className="flex items-start gap-2">
+              <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
               <span>{t('game.rules.guess')}</span>
             </li>
             <li className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-neon-purple shrink-0 mt-0.5" />
+              <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
               <span>{t('game.rules.matchingTips')}</span>
             </li>
-            <li className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-neon-purple" />
+            <li className="flex items-start gap-2">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
               <span>{t('game.rules.time')}</span>
             </li>
           </ul>
         </motion.div>
 
-        {/* Guest warning */}
+        {/* Guest warning - Mobile-first spacing */}
         {!isAuthenticated && (
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="flex items-center justify-center gap-2 text-amber-500 mb-8"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 text-amber-500 mb-4 sm:mb-6 md:mb-8 px-4"
           >
-            <AlertTriangle className="w-5 h-5" />
-            <span className="text-sm">{t('game.guestWarning')}</span>
+            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <span className="text-xs sm:text-sm">{t('game.guestWarning')}</span>
           </motion.div>
         )}
 
-        {/* Start Button */}
+        {/* Start Button - Mobile-first sizing */}
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
+          className="px-2 sm:px-4"
         >
           <Button
             variant="gaming"
             size="xl"
             onClick={onStart}
-            className="gap-3 text-xl px-12 py-6"
+            className="gap-2 sm:gap-3 text-base sm:text-lg md:text-xl px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 w-full sm:w-auto"
           >
             {t('game.startChallenge')}
-            <Play className="w-6 h-6" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
           </Button>
         </motion.div>
 
-        {/* Decorative elements */}
+        {/* Decorative elements - Hidden on mobile, shown on larger screens */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="absolute -top-20 -left-20 w-40 h-40 bg-neon-purple/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -top-20 -left-20 w-40 h-40 bg-neon-purple/10 rounded-full blur-3xl"
         />
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="absolute -bottom-20 -right-20 w-40 h-40 bg-neon-pink/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -bottom-20 -right-20 w-40 h-40 bg-neon-pink/10 rounded-full blur-3xl"
         />
       </div>
     </motion.div>

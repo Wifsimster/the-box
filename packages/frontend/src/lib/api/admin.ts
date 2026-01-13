@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User } from '@/types'
 
 // Games API types
 export interface GamesListParams {
@@ -14,6 +14,27 @@ export interface GamesListResponse {
   total: number
   page: number
   limit: number
+}
+
+// Users API types
+export interface UsersListParams {
+  limit?: number
+  offset?: number
+  searchValue?: string
+  searchField?: 'email' | 'name'
+  searchOperator?: 'contains' | 'starts_with' | 'ends_with'
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+  filterField?: string
+  filterValue?: string | number | boolean
+  filterOperator?: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'
+}
+
+export interface UsersListResponse {
+  users: User[]
+  total: number
+  limit?: number
+  offset?: number
 }
 
 interface ApiResponse<T> {
@@ -426,5 +447,209 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<{ importState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  // ============================================
+  // User Management
+  // ============================================
+
+  /**
+   * List all users with pagination, search, filter, and sort
+   */
+  async listUsers(params?: UsersListParams): Promise<UsersListResponse> {
+    const queryParams = new URLSearchParams()
+    if (params?.limit !== undefined) queryParams.set('limit', String(params.limit))
+    if (params?.offset !== undefined) queryParams.set('offset', String(params.offset))
+    if (params?.searchValue) queryParams.set('searchValue', params.searchValue)
+    if (params?.searchField) queryParams.set('searchField', params.searchField)
+    if (params?.searchOperator) queryParams.set('searchOperator', params.searchOperator)
+    if (params?.sortBy) queryParams.set('sortBy', params.sortBy)
+    if (params?.sortDirection) queryParams.set('sortDirection', params.sortDirection)
+    if (params?.filterField) queryParams.set('filterField', params.filterField)
+    if (params?.filterValue !== undefined) queryParams.set('filterValue', String(params.filterValue))
+    if (params?.filterOperator) queryParams.set('filterOperator', params.filterOperator)
+
+    const queryString = queryParams.toString()
+    const url = `/api/auth/admin/list-users${queryString ? `?${queryString}` : ''}`
+
+    const response = await fetch(url, {
+      credentials: 'include',
+    })
+
+    // Better-auth returns data directly, not wrapped in { success, data }
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to fetch users' }))
+      throw new AdminApiError(
+        error.code || 'UNKNOWN_ERROR',
+        error.message || 'An unexpected error occurred'
+      )
+    }
+
+    const data = await response.json()
+    return data
+  },
+
+  /**
+   * Set user role
+   */
+  async setUserRole(userId: string, role: string | string[]): Promise<{ user: User }> {
+    const response = await fetch('/api/auth/admin/set-role', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, role }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to set user role' }))
+      throw new AdminApiError(
+        error.code || 'UNKNOWN_ERROR',
+        error.message || 'An unexpected error occurred'
+      )
+    }
+
+    const data = await response.json()
+    return data
+  },
+
+  /**
+   * Ban a user
+   */
+  async banUser(userId: string, reason?: string, banExpiresIn?: number): Promise<{ user: User }> {
+    const response = await fetch('/api/auth/admin/ban-user', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, banReason: reason, banExpiresIn }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to ban user' }))
+      throw new AdminApiError(
+        error.code || 'UNKNOWN_ERROR',
+        error.message || 'An unexpected error occurred'
+      )
+    }
+
+    const data = await response.json()
+    return data
+  },
+
+  /**
+   * Unban a user
+   */
+  async unbanUser(userId: string): Promise<{ user: User }> {
+    const response = await fetch('/api/auth/admin/unban-user', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to unban user' }))
+      throw new AdminApiError(
+        error.code || 'UNKNOWN_ERROR',
+        error.message || 'An unexpected error occurred'
+      )
+    }
+
+    const data = await response.json()
+    return data
+  },
+
+  /**
+   * Delete a user
+   */
+  async deleteUser(userId: string): Promise<{ deleted: boolean }> {
+    const response = await fetch('/api/auth/admin/delete-user', {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to delete user' }))
+      throw new AdminApiError(
+        error.code || 'UNKNOWN_ERROR',
+        error.message || 'An unexpected error occurred'
+      )
+    }
+
+    const data = await response.json()
+    return data
+  },
+
+  /**
+   * Create a new user (optional for future use)
+   */
+  async createUser(data: {
+    email: string
+    password: string
+    name: string
+    role?: string | string[]
+    emailVerified?: boolean
+  }): Promise<{ newUser: User }> {
+    const response = await fetch('/api/auth/admin/create-user', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to create user' }))
+      throw new AdminApiError(
+        error.code || 'UNKNOWN_ERROR',
+        error.message || 'An unexpected error occurred'
+      )
+    }
+
+    const data_response = await response.json()
+    return data_response
+  },
+
+  /**
+   * Get email configuration status
+   */
+  async getEmailConfig(): Promise<{
+    configured: boolean
+    hasApiKey: boolean
+    emailFrom: string
+  }> {
+    const response = await fetch('/api/admin/email/config', {
+      credentials: 'include',
+    })
+    return handleResponse<{
+      configured: boolean
+      hasApiKey: boolean
+      emailFrom: string
+    }>(response)
+  },
+
+  /**
+   * Send test email to specified email address or current admin user
+   */
+  async testEmail(email?: string): Promise<{ sent: boolean; to: string }> {
+    const response = await fetch('/api/admin/email/test', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(email ? { email } : {}),
+    })
+    return handleResponse<{ sent: boolean; to: string }>(response)
   },
 }

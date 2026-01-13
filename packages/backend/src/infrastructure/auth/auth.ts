@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { Resend } from "resend";
 import { env } from "../../config/env.js";
 
-const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
 // Shared pool for database hooks
 const pool = new Pool({
@@ -23,7 +23,7 @@ function createAuth() {
       minPasswordLength: 8, // OWASP recommended minimum
       sendResetPassword: async ({ user, url }) => {
         if (resend) {
-          await resend.emails.send({
+          const { data, error } = await resend.emails.send({
             from: `The Box <${env.EMAIL_FROM}>`,
             to: user.email,
             subject: "Réinitialiser votre mot de passe",
@@ -35,6 +35,11 @@ function createAuth() {
             <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
           `,
           });
+          if (error) {
+            console.error(`[AUTH] Failed to send password reset email to ${user.email}:`, error.message);
+          } else {
+            console.log(`[AUTH] Password reset email sent to ${user.email}, id: ${data?.id}`);
+          }
         } else {
           console.log(`[DEV] Password reset for ${user.email}: ${url}`);
         }
@@ -43,7 +48,7 @@ function createAuth() {
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
         if (resend) {
-          await resend.emails.send({
+          const { data, error } = await resend.emails.send({
             from: `The Box <${env.EMAIL_FROM}>`,
             to: user.email,
             subject: "Vérifiez votre adresse email",
@@ -54,6 +59,11 @@ function createAuth() {
             <p>Ce lien expirera dans 24 heures.</p>
           `,
           });
+          if (error) {
+            console.error(`[AUTH] Failed to send verification email to ${user.email}:`, error.message);
+          } else {
+            console.log(`[AUTH] Verification email sent to ${user.email}, id: ${data?.id}`);
+          }
         } else {
           console.log(`[DEV] Email verification for ${user.email}: ${url}`);
         }

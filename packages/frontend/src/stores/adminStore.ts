@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Job, JobProgressEvent, Game, RecurringJob, ImportState, BatchImportProgressEvent } from '@/types'
+import type { Job, JobProgressEvent, Game, RecurringJob, ImportState, BatchImportProgressEvent, User } from '@/types'
 import { adminApi } from '@/lib/api'
 
 interface GamesPagination {
@@ -10,6 +10,18 @@ interface GamesPagination {
 }
 
 interface GamesSort {
+  field: string
+  order: 'asc' | 'desc'
+}
+
+interface UsersPagination {
+  page: number
+  limit: number
+  total: number
+  offset: number
+}
+
+interface UsersSort {
   field: string
   order: 'asc' | 'desc'
 }
@@ -83,6 +95,24 @@ interface AdminState {
   pauseFullImport: () => Promise<void>
   resumeFullImport: () => Promise<void>
   updateBatchImportProgress: (event: BatchImportProgressEvent) => void
+
+  // Users data
+  users: User[]
+  usersLoading: boolean
+  usersError: string | null
+  usersPagination: UsersPagination
+  usersSearch: string
+  usersSort: UsersSort
+
+  // Users Actions
+  fetchUsers: (params?: { page?: number; search?: string }) => Promise<void>
+  setUsersSearch: (search: string) => void
+  setUsersSort: (field: string, order: 'asc' | 'desc') => void
+  setUsersPage: (page: number) => void
+  setUserRole: (userId: string, role: string | string[]) => Promise<void>
+  banUser: (userId: string, reason?: string, banExpiresIn?: number) => Promise<void>
+  unbanUser: (userId: string) => Promise<void>
+  deleteUser: (userId: string) => Promise<void>
 }
 
 export const useAdminStore = create<AdminState>()(
@@ -110,6 +140,14 @@ export const useAdminStore = create<AdminState>()(
       currentImport: null,
       fullImportLoading: false,
       fullImportError: null,
+
+      // Users initial state
+      users: [],
+      usersLoading: false,
+      usersError: null,
+      usersPagination: { page: 1, limit: 20, total: 0, offset: 0 },
+      usersSearch: '',
+      usersSort: { field: 'createdAt', order: 'desc' },
 
       fetchJobs: async () => {
         set({ isLoading: true, error: null })
@@ -430,6 +468,113 @@ export const useAdminStore = create<AdminState>()(
               totalBatchesEstimated: event.totalBatches,
             },
           })
+        }
+      },
+
+      // Users Actions
+      fetchUsers: async (params) => {
+        const { usersPagination, usersSearch, usersSort } = get()
+        const page = params?.page ?? usersPagination.page
+        const limit = usersPagination.limit
+        const offset = (page - 1) * limit
+
+        set({ usersLoading: true, usersError: null })
+        try {
+          const result = await adminApi.listUsers({
+            limit,
+            offset,
+            searchValue: (params?.search ?? usersSearch) || undefined,
+            searchField: 'email',
+            searchOperator: 'contains',
+            sortBy: usersSort.field,
+            sortDirection: usersSort.order,
+          })
+          // Transform users to ensure isAdmin is correctly set from role field
+          // Better-auth returns users with a 'role' field, but our User type uses 'isAdmin'
+          const transformedUsers = result.users.map((user: any) => {
+            // Check both role field (from better-auth) and isAdmin field
+            const isAdmin = user.role === 'admin' || user.isAdmin === true
+            return {
+              ...user,
+              isAdmin,
+            }
+          })
+          set({
+            users: transformedUsers,
+            usersPagination: {
+              page,
+              limit,
+              total: result.total,
+              offset: result.offset ?? offset,
+            },
+            usersLoading: false,
+          })
+        } catch (err) {
+          set({ usersError: (err as Error).message, usersLoading: false })
+        }
+      },
+
+      setUsersSearch: (search) => {
+        set({ usersSearch: search })
+      },
+
+      setUsersSort: (field, order) => {
+        set({ usersSort: { field, order } })
+        // Fetch with new sort
+        get().fetchUsers()
+      },
+
+      setUsersPage: (page) => {
+        set({ usersPagination: { ...get().usersPagination, page } })
+        // Fetch the new page
+        get().fetchUsers({ page })
+      },
+
+      setUserRole: async (userId, role) => {
+        set({ usersError: null })
+        try {
+          await adminApi.setUserRole(userId, role)
+          // Refresh the list
+          get().fetchUsers()
+        } catch (err) {
+          set({ usersError: (err as Error).message })
+          throw err
+        }
+      },
+
+      banUser: async (userId, reason, banExpiresIn) => {
+        set({ usersError: null })
+        try {
+          await adminApi.banUser(userId, reason, banExpiresIn)
+          // Refresh the list
+          get().fetchUsers()
+        } catch (err) {
+          set({ usersError: (err as Error).message })
+          throw err
+        }
+      },
+
+      unbanUser: async (userId) => {
+        set({ usersError: null })
+        try {
+          await adminApi.unbanUser(userId)
+          // Refresh the list
+          get().fetchUsers()
+        } catch (err) {
+          set({ usersError: (err as Error).message })
+          throw err
+        }
+      },
+
+      deleteUser: async (userId) => {
+        set({ usersError: null })
+        try {
+          await adminApi.deleteUser(userId)
+          // Refresh the list
+          get().fetchUsers()
+        } catch (err) {
+          set({ usersError: (err as Error).message })
+          throw err
         }
       },
     }),

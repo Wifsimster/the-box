@@ -40,7 +40,7 @@ export function ProgressDots() {
   }
 
   return (
-    <div className="flex gap-2 bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
+    <div className="flex gap-1 sm:gap-1.5 md:gap-2 bg-black/50 backdrop-blur-sm rounded-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {Array.from({ length: totalScreenshots }, (_, i) => {
         const pos = i + 1
         const state = positionStates[pos]
@@ -54,10 +54,10 @@ export function ProgressDots() {
             onClick={() => handleDotClick(pos)}
             disabled={!isClickable}
             className={cn(
-              "w-3 h-3 rounded-full transition-all duration-300",
+              "w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 flex-shrink-0 touch-manipulation",
               getStatusColor(status),
-              isCurrent && "ring-2 ring-white ring-offset-1 ring-offset-transparent",
-              isClickable && "cursor-pointer hover:scale-125",
+              isCurrent && "ring-2 ring-white ring-offset-0.5 sm:ring-offset-1 ring-offset-transparent",
+              isClickable && "cursor-pointer hover:scale-125 active:scale-110",
               !isClickable && pos !== currentPosition && "cursor-not-allowed opacity-80"
             )}
             animate={isCurrent ? { scale: [1, 1.15, 1] } : { scale: 1 }}

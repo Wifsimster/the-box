@@ -8,7 +8,6 @@ import type {
   Game,
   TierScreenshot,
   ScreenshotResponse,
-  ScoringConfig,
   PositionStatus,
   PositionState
 } from '@/types'
@@ -33,19 +32,12 @@ interface GameState {
   // Position tracking for navigation
   positionStates: Record<number, PositionState>
 
-  // Countdown scoring state
-  currentScore: number
-  initialScore: number
-  decayRate: number
-  sessionStartedAt: number | null
-  scoreRunning: boolean
-
   screenshotsFound: number
 
   // Round timing (for per-screenshot time tracking)
   roundStartedAt: number | null
 
-  // Score tracking (legacy - totalScore now represents locked-in score)
+  // Score tracking
   totalScore: number
   correctAnswers: number
   guessResults: GuessResult[]
@@ -68,11 +60,6 @@ interface GameState {
   setScreenshot: (screenshot: TierScreenshot, position: number, total: number) => void
   setScreenshotData: (data: ScreenshotResponse) => void
 
-  // Countdown scoring actions
-  setSessionScoring: (config: ScoringConfig, sessionStartedAt: string) => void
-  startScoreCountdown: () => void
-  stopScoreCountdown: () => void
-  decrementScore: () => void
   setScreenshotsFound: (count: number) => void
   setRoundStartedAt: (timestamp: number) => void
 
@@ -106,8 +93,6 @@ interface GameState {
     totalScreenshots: number
     screenshotsFound: number
     totalScore: number
-    sessionStartedAt: string
-    scoringConfig: ScoringConfig
   }) => void
 
   nextRound: () => void
@@ -131,12 +116,6 @@ const initialState = {
   currentScreenshotData: null,
   // Position tracking for navigation
   positionStates: {} as Record<number, PositionState>,
-  // Countdown scoring state
-  currentScore: 1000,
-  initialScore: 1000,
-  decayRate: 2,
-  sessionStartedAt: null,
-  scoreRunning: false,
   screenshotsFound: 0,
   // Round timing
   roundStartedAt: null,
@@ -176,32 +155,6 @@ export const useGameStore = create<GameState>()(
           currentPosition: data.position,
           roundStartedAt: Date.now(),
         }),
-
-        // Countdown scoring actions
-        setSessionScoring: (config, sessionStartedAt) => {
-          const startedAtTimestamp = new Date(sessionStartedAt).getTime()
-          // Use defensive defaults to ensure valid score values
-          const initialScoreValue = config.initialScore || 1000
-          const decayRateValue = config.decayRate || 2
-          set({
-            initialScore: initialScoreValue,
-            decayRate: decayRateValue,
-            sessionStartedAt: startedAtTimestamp,
-            currentScore: initialScoreValue,
-            roundStartedAt: Date.now(),
-          })
-        },
-
-        startScoreCountdown: () => set({ scoreRunning: true }),
-
-        stopScoreCountdown: () => set({ scoreRunning: false }),
-
-        decrementScore: () => {
-          const { currentScore, decayRate, scoreRunning } = get()
-          if (scoreRunning && currentScore > 0) {
-            set({ currentScore: Math.max(0, currentScore - decayRate) })
-          }
-        },
 
         setScreenshotsFound: (count) => set({ screenshotsFound: count }),
 
@@ -251,7 +204,7 @@ export const useGameStore = create<GameState>()(
         // Session restore action - restores full game state from backend data
         // Merges persisted local state with authoritative backend data
         restoreSessionState: (data) => {
-          const { challengeId, correctPositions, currentPosition: backendPosition, totalScreenshots, screenshotsFound, totalScore, sessionStartedAt, scoringConfig } = data
+          const { challengeId, correctPositions, currentPosition: backendPosition, totalScreenshots, screenshotsFound, totalScore } = data
 
           // Get existing persisted state (from localStorage hydration)
           const existingStates = get().positionStates
@@ -298,12 +251,6 @@ export const useGameStore = create<GameState>()(
             states[restoredPosition] = { ...states[restoredPosition], status: 'in_progress' }
           }
 
-          // Calculate current countdown score based on elapsed time
-          const startedAtTimestamp = new Date(sessionStartedAt).getTime()
-          const elapsedMs = Date.now() - startedAtTimestamp
-          const elapsedSeconds = Math.floor(elapsedMs / 1000)
-          const currentScore = Math.max(0, scoringConfig.initialScore - (elapsedSeconds * scoringConfig.decayRate))
-
           set({
             challengeId, // Update challenge ID to current
             positionStates: states,
@@ -312,11 +259,6 @@ export const useGameStore = create<GameState>()(
             screenshotsFound,
             correctAnswers: screenshotsFound,
             totalScore,
-            sessionStartedAt: startedAtTimestamp,
-            initialScore: scoringConfig.initialScore,
-            decayRate: scoringConfig.decayRate,
-            currentScore,
-            scoreRunning: true,
           })
         },
 
@@ -365,12 +307,15 @@ export const useGameStore = create<GameState>()(
         },
 
         canNavigateTo: (position) => {
-          const { positionStates } = get()
+          const { positionStates, currentPosition } = get()
           const state = positionStates[position]
           if (!state) return false
+          // Allow navigation to any position except the current one
+          if (position === currentPosition) return false
           return state.status === 'skipped' ||
             state.status === 'in_progress' ||
-            state.status === 'not_visited'
+            state.status === 'not_visited' ||
+            state.status === 'correct'
         },
 
         skipToNextPosition: () => {
@@ -429,7 +374,7 @@ export const useGameStore = create<GameState>()(
           }
 
           // No more positions - challenge complete
-          set({ gamePhase: 'challenge_complete', scoreRunning: false })
+          set({ gamePhase: 'challenge_complete' })
           return null
         },
 
@@ -446,7 +391,8 @@ export const useGameStore = create<GameState>()(
             activePowerUp: null,
           })
 
-          // Mark as in_progress
+          // Mark as in_progress only if not already correct
+          // Keep correct positions as correct (don't change to in_progress)
           if (state.status === 'not_visited' || state.status === 'skipped') {
             set((prev) => ({
               positionStates: {
@@ -458,6 +404,7 @@ export const useGameStore = create<GameState>()(
               },
             }))
           }
+          // If status is 'correct', keep it as 'correct' (don't modify)
         },
 
         nextRound: () => {
@@ -470,7 +417,7 @@ export const useGameStore = create<GameState>()(
             })
           } else {
             // Challenge complete
-            set({ gamePhase: 'challenge_complete', scoreRunning: false })
+            set({ gamePhase: 'challenge_complete' })
           }
         },
 
@@ -491,14 +438,13 @@ export const useGameStore = create<GameState>()(
         },
 
         endGameAction: async () => {
-          const { sessionId, stopScoreCountdown, updateScore, setScreenshotsFound, setGamePhase } = get()
+          const { sessionId, updateScore, setScreenshotsFound, setGamePhase } = get()
           if (!sessionId) return
 
           try {
             const result = await gameApi.endGame(sessionId)
             updateScore(result.totalScore)
             setScreenshotsFound(result.screenshotsFound)
-            stopScoreCountdown()
             setGamePhase('challenge_complete')
           } catch (err) {
             console.error('Failed to end game:', err)
@@ -514,9 +460,6 @@ export const useGameStore = create<GameState>()(
           challengeId: state.challengeId,
           challengeDate: state.challengeDate,
           totalScore: state.totalScore,
-          sessionStartedAt: state.sessionStartedAt,
-          initialScore: state.initialScore,
-          decayRate: state.decayRate,
           // Persist position states for navigation on refresh
           positionStates: state.positionStates,
           currentPosition: state.currentPosition,

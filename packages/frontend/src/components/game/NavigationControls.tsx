@@ -22,11 +22,19 @@ export function NavigationControls() {
     gamePhase,
   } = useGameStore()
 
-  // Find previous navigable position (skipped screenshots before current)
+  // Find previous navigable position (prioritize skipped/not_visited, but also allow correct)
   const previousPosition = useMemo(() => {
+    // First pass: look for skipped or not_visited positions (preferred)
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
-      if (state?.status === 'skipped') {
+      if (state?.status === 'skipped' || state?.status === 'not_visited') {
+        return i
+      }
+    }
+    // Second pass: if no skipped/not_visited found, allow correct positions
+    for (let i = currentPosition - 1; i >= 1; i--) {
+      const state = positionStates[i]
+      if (state?.status === 'correct') {
         return i
       }
     }

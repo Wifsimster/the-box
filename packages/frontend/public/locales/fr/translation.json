@@ -76,15 +76,15 @@
     },
     "scoring": {
       "title": "Comment le score fonctionne",
-      "countdown": "Compte à rebours depuis {{initial}} pts",
-      "decay": "Perd {{rate}} pts par seconde",
-      "lock": "Bonne réponse = points verrouillés",
-      "penalty": "-100 pts par mauvaise réponse"
+      "basePoints": "50 points par bonne réponse",
+      "speedMultiplier": "Multiplicateur de vitesse : <5s = 2.0x (100pts), 5-15s = 1.5x (75pts), 15-30s = 1.2x (60pts), >30s = 1.0x (50pts)",
+      "unlimitedTries": "Essais illimités - les mauvaises réponses n'affectent pas le score",
+      "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
     },
     "navigation": {
-      "previous": "Précédent",
-      "next": "Suivant",
-      "skip": "Passer",
+      "previous": "Précédent (Ctrl+←)",
+      "next": "Suivant (Ctrl+→)",
+      "skip": "Passer (Ctrl+→)",
       "finish": "Terminer",
       "reviewSkipped": "Voir les Passées"
     },
@@ -95,7 +95,12 @@
       "button": "Terminer",
       "confirmTitle": "Terminer la partie ?",
       "confirmMessage": "Vous avez {{unfound}} capture(s) non trouvée(s). Cela appliquera une pénalité de -{{penalty}} points.",
-      "confirm": "Terminer"
+      "confirm": "Terminer",
+      "currentScore": "Score actuel",
+      "totalScore": "Votre Score Total",
+      "penaltyApplied": "Pénalité",
+      "finalScore": "Score final",
+      "points": "points"
     }
   },
   "home": {
@@ -203,7 +208,9 @@
       "import": "Import",
       "jobs": "Tâches",
       "games": "Jeux",
-      "challenges": "Défis"
+      "challenges": "Défis",
+      "users": "Utilisateurs",
+      "email": "Email"
     },
     "screenshots": "Captures d'écran",
     "addScreenshot": "Ajouter une Capture",
@@ -314,6 +321,44 @@
         "close": "Fermer"
       }
     },
+    "users": {
+      "title": "Utilisateurs",
+      "email": "Email",
+      "name": "Nom",
+      "roleLabel": "Rôle",
+      "role": {
+        "user": "Utilisateur",
+        "admin": "Administrateur"
+      },
+      "totalScore": "Score Total",
+      "currentStreak": "Série Actuelle",
+      "createdAt": "Créé Le",
+      "actions": "Actions",
+      "guest": "Invité",
+      "searchPlaceholder": "Rechercher un utilisateur par email...",
+      "noUsers": "Aucun utilisateur trouvé",
+      "setRole": "Définir le Rôle",
+      "banUser": "Bannir l'Utilisateur",
+      "unbanUser": "Débannir l'Utilisateur",
+      "deleteUser": "Supprimer l'Utilisateur",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer l'utilisateur \"{{email}}\" ? Cette action est irréversible.",
+      "confirmBan": "Êtes-vous sûr de vouloir bannir l'utilisateur \"{{email}}\" ?",
+      "confirmUnban": "Êtes-vous sûr de vouloir débannir l'utilisateur \"{{email}}\" ?",
+      "role": {
+        "user": "Utilisateur",
+        "admin": "Administrateur"
+      },
+      "messages": {
+        "roleUpdated": "Rôle de l'utilisateur mis à jour avec succès",
+        "banned": "Utilisateur banni avec succès",
+        "unbanned": "Utilisateur débanni avec succès",
+        "deleted": "Utilisateur supprimé avec succès",
+        "roleUpdateError": "Échec de la mise à jour du rôle",
+        "banError": "Échec du bannissement",
+        "unbanError": "Échec du débannissement",
+        "deleteError": "Échec de la suppression"
+      }
+    },
     "fullImport": {
       "title": "Import Complet RAWG",
       "description": "Importer tous les jeux avec un score Metacritic >= seuil (traitement par lots avec pause/reprise)",
@@ -339,6 +384,27 @@
         "completed": "Termine",
         "failed": "Echoue"
       }
+    },
+    "email": {
+      "title": "Paramètres Email",
+      "description": "Configurer et tester l'envoi d'emails",
+      "status": "Statut",
+      "configured": "Configuré",
+      "notConfigured": "Non Configuré",
+      "apiKey": "Clé API",
+      "apiKeySet": "Définie",
+      "apiKeyNotSet": "Non Définie",
+      "fromAddress": "Adresse Expéditeur",
+      "sendTest": "Envoyer un Email de Test",
+      "sending": "Envoi en cours...",
+      "testSuccess": "Email de test envoyé avec succès à {{email}}",
+      "testError": "Échec de l'envoi de l'email de test : {{message}}",
+      "fetchError": "Échec de la récupération de la configuration email",
+      "noEmail": "Aucune adresse email trouvée pour l'utilisateur actuel",
+      "recipientEmail": "Email Destinataire",
+      "recipientEmailPlaceholder": "Entrez l'adresse email",
+      "emailRequired": "Veuillez entrer une adresse email destinataire",
+      "invalidEmail": "Veuillez entrer une adresse email valide"
     }
   },
   "footer": {

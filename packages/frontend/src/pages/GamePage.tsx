@@ -43,7 +43,6 @@ export default function GamePage() {
     setChallengeId,
     setSessionId,
     setScreenshotData,
-    setSessionScoring,
     setLoading,
     initializePositionStates,
     restoreSessionState,
@@ -98,8 +97,6 @@ export default function GamePage() {
               totalScreenshots: data.totalScreenshots,
               screenshotsFound: data.userSession.screenshotsFound,
               totalScore: data.userSession.totalScore,
-              sessionStartedAt: data.userSession.sessionStartedAt,
-              scoringConfig: data.userSession.scoringConfig,
             })
 
             // Get the restored position (may be from localStorage, not backend)
@@ -186,14 +183,8 @@ export default function GamePage() {
       setSessionId(startData.sessionId, startData.tierSessionId)
       useGameStore.setState({ totalScreenshots: startData.totalScreenshots })
 
-      // Set up countdown scoring from server config
-      setSessionScoring(startData.scoringConfig, startData.sessionStartedAt)
-
       // Initialize position states for navigation tracking
       initializePositionStates(startData.totalScreenshots)
-
-      // Start the score countdown timer
-      useGameStore.getState().startScoreCountdown()
 
       // Fetch the first screenshot
       await fetchScreenshot(startData.sessionId, 1)
@@ -204,7 +195,7 @@ export default function GamePage() {
       setError(t('game.errorStarting'))
       setLoading(false)
     }
-  }, [challengeId, session, isSessionPending, setSessionId, setSessionScoring, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, t])
+  }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, t])
 
   // Fetch next screenshot when position changes (after nextRound is called)
   useEffect(() => {
@@ -216,6 +207,44 @@ export default function GamePage() {
       }
     }
   }, [gamePhase, sessionId, currentPosition, currentScreenshotData?.position, fetchScreenshot])
+
+  // Keyboard shortcuts for navigation (Ctrl+Arrow Left/Right)
+  // Uses Ctrl+Arrow to avoid interfering with text cursor navigation
+  useEffect(() => {
+    if (gamePhase !== 'playing') return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger on Ctrl+Arrow (or Cmd+Arrow on Mac)
+      if (!e.ctrlKey && !e.metaKey) return
+
+      const {
+        currentPosition,
+        positionStates,
+        totalScreenshots,
+        skipToNextPosition,
+        navigateToPosition,
+      } = useGameStore.getState()
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        // Find previous navigable position (skipped screenshots before current)
+        for (let i = currentPosition - 1; i >= 1; i--) {
+          const state = positionStates[i]
+          if (state?.status === 'skipped') {
+            navigateToPosition(i)
+            return
+          }
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        // Skip to next position
+        skipToNextPosition()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [gamePhase])
 
   // Handle resetting the daily session (admin only)
   const handleResetSession = useCallback(async () => {
@@ -290,18 +319,18 @@ export default function GamePage() {
             className="relative w-full h-full"
           >
             {/* Home Button (Top Left) */}
-            <div className="absolute top-4 left-4 z-40">
-              <Button variant="ghost" size="sm" asChild>
+            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-40">
+              <Button variant="ghost" size="sm" asChild className="h-8 sm:h-9 px-2 sm:px-3">
                 <Link to={localizedPath('/')}>
-                  <Home className="w-4 h-4 mr-1" />
-                  {t('common.home')}
+                  <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+                  <span className="text-xs sm:text-sm">{t('common.home')}</span>
                 </Link>
               </Button>
             </div>
 
             {/* Score (Top Right) */}
-            <div className="absolute top-4 right-4 z-40">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-40">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
                 <ScoreDisplay />
               </div>
             </div>
@@ -318,25 +347,25 @@ export default function GamePage() {
               </div>
             )}
 
-            {/* Live Leaderboard (Left Side) */}
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20">
+            {/* Live Leaderboard (Left Side) - Hidden on mobile, shown on md and up */}
+            <div className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-20">
               <LiveLeaderboard />
             </div>
 
             {/* Pagination (Bottom Right) */}
-            <div className="absolute bottom-4 right-4 z-30">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
-                <div className="text-lg font-bold text-white drop-shadow-lg">
+            <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-30">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
+                <div className="text-sm sm:text-base md:text-lg font-bold text-white drop-shadow-lg">
                   {currentPosition}/{totalScreenshots}
                 </div>
               </div>
             </div>
 
             {/* Guess Input (Bottom Center) */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 bg-linear-to-t from-background/90 to-transparent pt-8 pb-4 px-4">
-              <div className="container mx-auto max-w-2xl space-y-4">
+            <div className="absolute bottom-0 left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-4 sm:pt-6 md:pt-8 pb-2 sm:pb-3 md:pb-4 px-2 sm:px-3 md:px-4">
+              <div className="container mx-auto max-w-2xl space-y-2 sm:space-y-3 md:space-y-4">
                 {/* Progress Dots (Above Input) */}
-                <div className="flex justify-center items-center gap-4">
+                <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4">
                   <ProgressDots />
                   <EndGameButton />
                 </div>

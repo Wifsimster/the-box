@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '@/lib/auth-client'
@@ -7,6 +7,8 @@ import { useAdminStore } from '@/stores/adminStore'
 import { JobList } from '@/components/admin/JobList'
 import { GameList } from '@/components/admin/GameList'
 import { ChallengeManager } from '@/components/admin/ChallengeManager'
+import { UserList } from '@/components/admin/UserList'
+import { EmailSettings } from '@/components/admin/EmailSettings'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition } from '@/lib/animations'
@@ -19,14 +21,18 @@ import {
   onBatchImportProgress,
   removeJobListeners,
 } from '@/lib/socket'
-import { Settings, ListTodo, Gamepad2, CalendarDays } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, CalendarDays, Users, Mail } from 'lucide-react'
+
+const VALID_TABS = ['jobs', 'games', 'challenges', 'users', 'email']
+const DEFAULT_TAB = 'jobs'
 
 export default function AdminPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { lang } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data: session, isPending } = useSession()
-  const [activeTab, setActiveTab] = useState('jobs')
+  
   const {
     fetchJobs,
     fetchRecurringJobs,
@@ -41,7 +47,36 @@ export default function AdminPage() {
     { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="h-4 w-4" /> },
     { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="h-4 w-4" /> },
     { id: 'challenges', label: t('admin.tabs.challenges'), icon: <CalendarDays className="h-4 w-4" /> },
+    { id: 'users', label: t('admin.tabs.users'), icon: <Users className="h-4 w-4" /> },
+    { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
   ]
+
+  // Get active tab from URL, default to 'jobs' if not present or invalid
+  const tabFromUrl = searchParams.get('tab')
+  const activeTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : DEFAULT_TAB
+
+  // Handle tab change - update URL
+  const handleTabChange = (tabId: string) => {
+    if (VALID_TABS.includes(tabId)) {
+      const newSearchParams = new URLSearchParams(searchParams)
+      if (tabId === DEFAULT_TAB) {
+        newSearchParams.delete('tab')
+      } else {
+        newSearchParams.set('tab', tabId)
+      }
+      setSearchParams(newSearchParams, { replace: true })
+    }
+  }
+
+  // Clean up invalid tab parameters from URL
+  useEffect(() => {
+    const currentTab = searchParams.get('tab')
+    if (currentTab && !VALID_TABS.includes(currentTab)) {
+      const newSearchParams = new URLSearchParams(searchParams)
+      newSearchParams.delete('tab')
+      setSearchParams(newSearchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   // Redirect non-admins
   useEffect(() => {
@@ -145,7 +180,7 @@ export default function AdminPage() {
         <AnimatedTabs
           tabs={tabs}
           activeTab={activeTab}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
           className="mb-6"
         />
       </motion.div>
@@ -161,6 +196,8 @@ export default function AdminPage() {
           {activeTab === 'jobs' && <JobList />}
           {activeTab === 'games' && <GameList />}
           {activeTab === 'challenges' && <ChallengeManager />}
+          {activeTab === 'users' && <UserList />}
+          {activeTab === 'email' && <EmailSettings />}
         </motion.div>
       </AnimatePresence>
     </motion.div>

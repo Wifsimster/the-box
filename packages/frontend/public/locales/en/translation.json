@@ -76,15 +76,15 @@
     },
     "scoring": {
       "title": "How scoring works",
-      "countdown": "Countdown from {{initial}} pts",
-      "decay": "Loses {{rate}} pts per second",
-      "lock": "Correct answer = locked points",
-      "penalty": "-100 pts per wrong guess"
+      "basePoints": "50 points per correct guess",
+      "speedMultiplier": "Speed multiplier: <5s = 2.0x (100pts), 5-15s = 1.5x (75pts), 15-30s = 1.2x (60pts), >30s = 1.0x (50pts)",
+      "unlimitedTries": "Unlimited tries - wrong guesses don't affect score",
+      "penalty": "-50 points per game not found when ending early"
     },
     "navigation": {
-      "previous": "Previous",
-      "next": "Next",
-      "skip": "Skip",
+      "previous": "Previous (Ctrl+←)",
+      "next": "Next (Ctrl+→)",
+      "skip": "Skip (Ctrl+→)",
       "finish": "Finish",
       "reviewSkipped": "Review Skipped"
     },
@@ -95,7 +95,12 @@
       "button": "End Game",
       "confirmTitle": "End Game?",
       "confirmMessage": "You have {{unfound}} unfound screenshot(s). Ending now will apply a -{{penalty}} point penalty.",
-      "confirm": "End Game"
+      "confirm": "End Game",
+      "currentScore": "Current Score",
+      "totalScore": "Your Total Score",
+      "penaltyApplied": "Penalty",
+      "finalScore": "Final Score",
+      "points": "points"
     }
   },
   "home": {
@@ -203,7 +208,9 @@
       "import": "Import",
       "jobs": "Jobs",
       "games": "Games",
-      "challenges": "Challenges"
+      "challenges": "Challenges",
+      "users": "Users",
+      "email": "Email"
     },
     "screenshots": "Screenshots",
     "addScreenshot": "Add Screenshot",
@@ -313,6 +320,65 @@
         "difficulty": "Difficulty",
         "close": "Close"
       }
+    },
+    "users": {
+      "title": "Users",
+      "email": "Email",
+      "name": "Name",
+      "roleLabel": "Role",
+      "role": {
+        "user": "User",
+        "admin": "Admin"
+      },
+      "totalScore": "Total Score",
+      "currentStreak": "Current Streak",
+      "createdAt": "Created At",
+      "actions": "Actions",
+      "guest": "Guest",
+      "searchPlaceholder": "Search users by email...",
+      "noUsers": "No users found",
+      "setRole": "Set Role",
+      "banUser": "Ban User",
+      "unbanUser": "Unban User",
+      "deleteUser": "Delete User",
+      "confirmDelete": "Are you sure you want to delete user \"{{email}}\"? This action cannot be undone.",
+      "confirmBan": "Are you sure you want to ban user \"{{email}}\"?",
+      "confirmUnban": "Are you sure you want to unban user \"{{email}}\"?",
+      "role": {
+        "user": "User",
+        "admin": "Admin"
+      },
+      "messages": {
+        "roleUpdated": "User role updated successfully",
+        "banned": "User banned successfully",
+        "unbanned": "User unbanned successfully",
+        "deleted": "User deleted successfully",
+        "roleUpdateError": "Failed to update user role",
+        "banError": "Failed to ban user",
+        "unbanError": "Failed to unban user",
+        "deleteError": "Failed to delete user"
+      }
+    },
+    "email": {
+      "title": "Email Settings",
+      "description": "Configure and test email sending functionality",
+      "status": "Status",
+      "configured": "Configured",
+      "notConfigured": "Not Configured",
+      "apiKey": "API Key",
+      "apiKeySet": "Set",
+      "apiKeyNotSet": "Not Set",
+      "fromAddress": "From Address",
+      "sendTest": "Send Test Email",
+      "sending": "Sending...",
+      "testSuccess": "Test email sent successfully to {{email}}",
+      "testError": "Failed to send test email: {{message}}",
+      "fetchError": "Failed to fetch email configuration",
+      "noEmail": "No email address found for current user",
+      "recipientEmail": "Recipient Email",
+      "recipientEmailPlaceholder": "Enter email address",
+      "emailRequired": "Please enter a recipient email address",
+      "invalidEmail": "Please enter a valid email address"
     }
   },
   "footer": {

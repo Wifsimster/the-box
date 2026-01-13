@@ -41,7 +41,7 @@ services:
 
       # Email (Optional - for password reset)
       - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - EMAIL_FROM=${EMAIL_FROM:-noreply@battistella.ovh}
+      - EMAIL_FROM=${EMAIL_FROM:-no-reply@the-box.battistella.ovh}
 
       # RAWG API (Optional - for game imports)
       - RAWG_API_KEY=${RAWG_API_KEY:-}

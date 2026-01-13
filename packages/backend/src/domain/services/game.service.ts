@@ -29,10 +29,27 @@ export class GameError extends Error {
 }
 
 const TOTAL_SCREENSHOTS = 10
-// Default scoring config (actual values come from database)
-// INITIAL_SCORE = 1000, DECAY_RATE = 2 pts/sec
-const WRONG_GUESS_PENALTY = 50
-const UNFOUND_PENALTY = 100
+const BASE_SCORE = 50
+const UNFOUND_PENALTY = 50
+
+/**
+ * Calculate speed multiplier based on time taken to find the screenshot
+ * @param timeTakenMs Time in milliseconds from screenshot shown to correct guess
+ * @returns Multiplier value (1.0 to 2.0)
+ */
+function calculateSpeedMultiplier(timeTakenMs: number): number {
+  const timeTakenSeconds = timeTakenMs / 1000
+  
+  if (timeTakenSeconds < 5) {
+    return 2.0 // 100 points
+  } else if (timeTakenSeconds < 15) {
+    return 1.5 // 75 points
+  } else if (timeTakenSeconds < 30) {
+    return 1.2 // 60 points
+  } else {
+    return 1.0 // 50 points
+  }
+}
 
 export const gameService = {
   async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
@@ -174,7 +191,7 @@ export const gameService = {
     position: number
     gameId: number | null
     guessText: string
-    sessionElapsedMs: number
+    roundTimeTakenMs: number
     userId: string
   }): Promise<GuessResponse> {
     log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
@@ -196,18 +213,17 @@ export const gameService = {
     const isCorrect = data.gameId === screenshot.gameId ||
       (data.guessText.trim() !== '' && fuzzyMatchService.isMatch(data.guessText, gameName, aliases))
 
-    // Calculate current countdown score
-    const currentScore = this.calculateCurrentScore(
-      tierSession.game_session_started_at,
-      tierSession.initial_score,
-      tierSession.decay_rate
-    )
-
-    // Score earned is awarded on correct guess - it "locks in" the current countdown value
-    // Wrong guesses deduct 100 points from the total score (clamped at 0)
-    const scoreEarned = isCorrect ? currentScore : 0
-    const scorePenalty = isCorrect ? 0 : WRONG_GUESS_PENALTY
-    const newSessionScore = Math.max(0, tierSession.score - scorePenalty)
+    // Calculate score based on speed multiplier (only for correct guesses)
+    // Base score is 50 points, multiplied by speed factor
+    // Wrong guesses don't affect score (unlimited tries)
+    let scoreEarned = 0
+    if (isCorrect) {
+      const speedMultiplier = calculateSpeedMultiplier(data.roundTimeTakenMs)
+      scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
+    }
+    
+    // No penalty for wrong guesses - unlimited tries
+    const newSessionScore = tierSession.score + scoreEarned
 
     log.info(
       {
@@ -215,9 +231,8 @@ export const gameService = {
         position: data.position,
         isCorrect,
         scoreEarned,
-        scorePenalty,
-        currentScore,
-        sessionElapsedMs: data.sessionElapsedMs,
+        roundTimeTakenMs: data.roundTimeTakenMs,
+        speedMultiplier: isCorrect ? calculateSpeedMultiplier(data.roundTimeTakenMs) : null,
         guessedGame: data.guessText,
         correctGame: gameName,
       },
@@ -231,12 +246,12 @@ export const gameService = {
       guessedGameId: data.gameId,
       guessedText: data.guessText,
       isCorrect,
-      sessionElapsedMs: data.sessionElapsedMs,
+      sessionElapsedMs: data.roundTimeTakenMs, // Store round time as sessionElapsedMs for backward compatibility
       scoreEarned,
     })
 
     await sessionRepository.updateTierSession(data.tierSessionId, {
-      score: newSessionScore + scoreEarned,
+      score: newSessionScore,
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
     })
 
@@ -308,11 +323,6 @@ export const gameService = {
     }
   },
 
-  calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: number): number {
-    const elapsedMs = Date.now() - sessionStartedAt.getTime()
-    const elapsedSeconds = Math.floor(elapsedMs / 1000)
-    return Math.max(0, initialScore - (elapsedSeconds * decayRate))
-  },
 
   async endGame(sessionId: string, userId: string): Promise<EndGameResponse> {
     log.info({ sessionId, userId }, 'endGame')

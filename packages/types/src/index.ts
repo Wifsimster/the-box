@@ -274,7 +274,7 @@ export interface GuessRequest {
   position: number
   gameId: number | null
   guessText: string
-  sessionElapsedMs: number
+  roundTimeTakenMs: number
   powerUpUsed?: PowerUpType
 }
 

@@ -12,10 +12,10 @@ import {
 /**
  * Custom hook for handling game guess submission logic
  *
- * Refactored for countdown scoring system:
- * - Uses sessionElapsedMs instead of per-screenshot time
- * - Handles tries remaining per screenshot
- * - Score countdown continues until game completion
+ * Speed-based scoring system:
+ * - Uses roundTimeTakenMs (time per screenshot) for speed multiplier calculation
+ * - Unlimited tries per screenshot (wrong guesses don't affect score)
+ * - Base score: 50 points, multiplied by speed factor
  */
 export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
@@ -32,22 +32,10 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
 
-      // Calculate session elapsed time (for scoring - from session start)
-      const sessionElapsedMs = store.sessionStartedAt
-        ? Date.now() - store.sessionStartedAt
-        : 0
-
-      // Calculate round time (for display - from current screenshot start)
+      // Calculate round time (from current screenshot start to now)
       const roundTimeTakenMs = store.roundStartedAt
         ? Date.now() - store.roundStartedAt
         : 0
-
-      // Calculate current countdown score from elapsed time (authoritative)
-      const sessionElapsedSeconds = Math.floor(sessionElapsedMs / 1000)
-      const currentCountdownScore = Math.max(
-        0,
-        (store.initialScore || 1000) - (sessionElapsedSeconds * (store.decayRate || 2))
-      )
 
       try {
         // Submit guess to service (handles validation + scoring)
@@ -57,7 +45,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           position: store.currentPosition,
           gameId: game?.id || null,
           guessText: userInput,
-          sessionElapsedMs,
+          roundTimeTakenMs,
         })
 
         // Update screenshots found
@@ -84,17 +72,13 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Record result only when advancing (to show in result screen)
         if (shouldAdvance) {
-          // Use the captured countdown score for correct guesses (what user was seeing)
-          // For incorrect guesses, scoreEarned is 0
-          const displayScore = result.isCorrect ? currentCountdownScore : 0
-
           store.addGuessResult({
             position: store.currentPosition,
             isCorrect: result.isCorrect,
             correctGame: result.correctGame,
             userGuess: game?.name || userInput,
             timeTakenMs: roundTimeTakenMs,
-            scoreEarned: displayScore,
+            scoreEarned: result.scoreEarned,
           })
         }
 
@@ -108,8 +92,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Handle game phase transitions
         if (result.isCompleted) {
-          // Stop the countdown and show completion
-          store.stopScoreCountdown()
+          // Show completion
           store.setGamePhase('challenge_complete')
         } else if (shouldAdvance) {
           // Show result screen before advancing to next screenshot

@@ -15,7 +15,7 @@ export const env = {
 
   // Resend (Email)
   RESEND_API_KEY: process.env['RESEND_API_KEY'] || '',
-  EMAIL_FROM: process.env['EMAIL_FROM'] || 'noreply@thebox.local',
+  EMAIL_FROM: process.env['EMAIL_FROM'] || 'no-reply@the-box.battistella.ovh',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

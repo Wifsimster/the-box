@@ -16,7 +16,7 @@ export interface GuessSubmissionRequest {
   position: number
   gameId: number | null
   guessText: string
-  sessionElapsedMs: number
+  roundTimeTakenMs: number
 }
 
 /**
