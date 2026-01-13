@@ -207,3 +207,8 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Ensure CarouselContent wrapper takes full height for vertical centering */
+[role="region"][aria-roledescription="carousel"] > div {
+  height: 100% !important;
+}

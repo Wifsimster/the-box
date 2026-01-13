@@ -463,12 +463,12 @@ export default function GamePage() {
             </div>
 
             {/* Screenshot Viewer (Full Screen) */}
-            {/* On mobile, add padding to account for fixed UI elements */}
-            <div className="w-full h-full flex items-center justify-center pt-12 pb-32 md:pt-0 md:pb-0">
+            {/* On mobile, center vertically; on desktop, full screen */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center md:block">
               {currentImageUrl ? (
                 <ScreenshotViewer
                   imageUrl={currentImageUrl}
-                  className="w-full h-full max-h-full"
+                  className="w-full h-full"
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full">

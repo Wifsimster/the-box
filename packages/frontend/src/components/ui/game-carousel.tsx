@@ -7,7 +7,6 @@ import {
     CarouselItem,
     type CarouselApi,
 } from '@/components/ui/carousel'
-import { SwipeHint } from '@/components/ui/swipe-hint'
 
 interface GameCarouselImage {
     url: string | null
@@ -30,14 +29,12 @@ export function GameCarousel({
     currentIndex,
     onSlideChange,
     className,
-    showSwipeHint = true,
     enableHapticFeedback = true,
     imageClassName,
     onImageLoad,
 }: GameCarouselProps) {
     const [api, setApi] = useState<CarouselApi>()
     const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
-    const [showHint, setShowHint] = useState(showSwipeHint)
 
     // Trigger haptic feedback on navigation
     const triggerHapticFeedback = useCallback(() => {
@@ -54,7 +51,6 @@ export function GameCarousel({
             const selectedIndex = api.selectedScrollSnap()
             onSlideChange?.(selectedIndex)
             triggerHapticFeedback()
-            setShowHint(false)
         }
 
         api.on('select', handleSelect)
@@ -92,54 +88,40 @@ export function GameCarousel({
                     dragFree: false,
                     skipSnaps: false,
                     containScroll: 'trimSnaps',
+                    watchDrag: false,
                 }}
-                className="w-full h-full"
+                className="w-full h-full pointer-events-none"
             >
-                <CarouselContent className="h-full !ml-0">
+                <CarouselContent className="h-full ml-0">
                     {images.map((image, index) => (
-                        <CarouselItem key={index} className="basis-full h-full !pl-0">
-                            <div className="relative w-full h-full flex items-center justify-center">
-                                {image.url ? (
-                                    <>
-                                        {!loadedImages.has(index) && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-                                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                            </div>
+                        <CarouselItem key={index} className="basis-full h-full pl-0 flex items-center justify-center">
+                            {image.url ? (
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    {!loadedImages.has(index) && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                        </div>
+                                    )}
+                                    <img
+                                        src={image.url}
+                                        alt={image.alt || `Screenshot ${index + 1}`}
+                                        className={cn(
+                                            'max-w-full max-h-full object-contain md:w-full md:h-full md:object-cover transition-opacity duration-300',
+                                            loadedImages.has(index) ? 'opacity-100' : 'opacity-0',
+                                            imageClassName
                                         )}
-                                        <div
-                                            className={cn(
-                                                'absolute inset-0 transition-opacity duration-300',
-                                                loadedImages.has(index) ? 'opacity-100' : 'opacity-0',
-                                                imageClassName
-                                            )}
-                                            style={{
-                                                backgroundImage: `url(${image.url})`,
-                                                backgroundSize: 'contain',
-                                                backgroundPosition: 'center',
-                                                backgroundRepeat: 'no-repeat',
-                                            }}
-                                        />
-                                        <img
-                                            src={image.url}
-                                            alt={image.alt || `Screenshot ${index + 1}`}
-                                            className="w-full h-full object-contain invisible pointer-events-none"
-                                            onLoad={() => handleImageLoad(index)}
-                                        />
-                                    </>
-                                ) : (
-                                    <div className="flex items-center justify-center text-muted-foreground h-full w-full">
-                                        No image available
-                                    </div>
-                                )}
-                            </div>
+                                        onLoad={() => handleImageLoad(index)}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center text-muted-foreground h-full w-full">
+                                    No image available
+                                </div>
+                            )}
                         </CarouselItem>
                     ))}
                 </CarouselContent>
             </Carousel>
-
-            {showHint && images.length > 1 && (
-                <SwipeHint onDismiss={() => setShowHint(false)} />
-            )}
         </div>
     )
 }

@@ -101,22 +101,10 @@ export function ScreenshotViewer({
     setCurrentCarouselIndex(1) // Reset to center
   }, [imageUrl, currentPosition, sessionId, gamePhase, findPreviousPosition, findNextPosition])
 
-  // Handle carousel slide change
+  // Handle carousel slide change (disabled - swipe removed)
   const handleSlideChange = (index: number) => {
-    if (gamePhase !== 'playing') return
-
-    if (index === 0 && findPreviousPosition) {
-      // Navigated to previous
-      navigateToPosition(findPreviousPosition)
-      setCurrentCarouselIndex(1) // Reset to center after navigation
-    } else if (index === 2 && findNextPosition) {
-      // Navigated to next
-      navigateToPosition(findNextPosition)
-      setCurrentCarouselIndex(1) // Reset to center after navigation
-    } else if (index !== 1) {
-      // Invalid navigation, reset to center
-      setCurrentCarouselIndex(1)
-    }
+    // Swipe navigation disabled
+    return
   }
 
   return (
