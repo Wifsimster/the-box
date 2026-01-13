@@ -237,7 +237,7 @@ export function ResultCard() {
           className="text-center mb-6"
         >
           {isCorrect && scoreEarned > 0 ? (
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1">
               <div className="flex items-center justify-center gap-2">
                 <span
                   className={cn(
@@ -252,31 +252,18 @@ export function ResultCard() {
                   +50
                 </span>
                 <span className="text-5xl font-black text-muted-foreground">×</span>
-                <div className="flex flex-col items-center gap-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={cn(
-                        "text-5xl font-black",
-                        scorePercentage >= 80
-                          ? "text-success"
-                          : scorePercentage >= 50
-                            ? "text-yellow-400"
-                            : "text-orange-400"
-                      )}
-                    >
-                      {calculateSpeedMultiplier(timeTakenMs).toFixed(1)}
-                    </span>
-                    {speedFeedback && (
-                      <speedFeedback.icon className={cn("w-5 h-5", speedFeedback.color)} />
-                    )}
-                  </div>
-                  <span className={cn(
-                    "text-xs font-bold uppercase tracking-wider",
-                    speedFeedback?.color || "text-muted-foreground"
-                  )}>
-                    {t('game.speed.label', 'Speed')}
-                  </span>
-                </div>
+                <span
+                  className={cn(
+                    "text-5xl font-black",
+                    scorePercentage >= 80
+                      ? "text-success"
+                      : scorePercentage >= 50
+                        ? "text-yellow-400"
+                        : "text-orange-400"
+                  )}
+                >
+                  {calculateSpeedMultiplier(timeTakenMs).toFixed(1)}
+                </span>
               </div>
               <span className="text-lg text-muted-foreground font-medium">pts</span>
             </div>
