@@ -463,16 +463,19 @@ export default function GamePage() {
             </div>
 
             {/* Screenshot Viewer (Full Screen) */}
-            {currentImageUrl ? (
-              <ScreenshotViewer
-                imageUrl={currentImageUrl}
-                className="w-full h-full"
-              />
-            ) : (
-              <div className="flex items-center justify-center w-full h-full">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            )}
+            {/* On mobile, add padding to account for fixed UI elements */}
+            <div className="w-full h-full flex items-center justify-center pt-12 pb-32 md:pt-0 md:pb-0">
+              {currentImageUrl ? (
+                <ScreenshotViewer
+                  imageUrl={currentImageUrl}
+                  className="w-full h-full max-h-full"
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
 
             {/* Live Leaderboard (Left Side) - Hidden on mobile, shown on md and up */}
             <div className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-20">
