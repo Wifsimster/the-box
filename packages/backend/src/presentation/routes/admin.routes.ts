@@ -272,12 +272,13 @@ router.post('/challenges', async (req, res, next) => {
 // Reroll a daily challenge's screenshots
 const rerollChallengeSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  minMetacritic: z.number().min(70).max(100).optional(),
 })
 
 router.post('/challenges/reroll', async (req, res, next) => {
   try {
-    const { date } = rerollChallengeSchema.parse(req.body)
-    const result = await adminService.rerollDailyChallenge(date)
+    const { date, minMetacritic } = rerollChallengeSchema.parse(req.body)
+    const result = await adminService.rerollDailyChallenge(date, minMetacritic)
 
     res.json({
       success: true,

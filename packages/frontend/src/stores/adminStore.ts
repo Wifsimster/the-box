@@ -387,10 +387,10 @@ export const useAdminStore = create<AdminState>()(
       },
 
       // Challenges Actions
-      rerollDailyChallenge: async (date?: string) => {
+      rerollDailyChallenge: async (date?: string, minMetacritic?: number) => {
         set({ rerollLoading: true })
         try {
-          await adminApi.rerollDailyChallenge(date)
+          await adminApi.rerollDailyChallenge(date, minMetacritic)
         } catch (err) {
           console.error('Failed to reroll daily challenge:', err)
           throw err

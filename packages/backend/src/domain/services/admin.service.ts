@@ -185,13 +185,15 @@ export const adminService = {
     }
   },
 
-  async rerollDailyChallenge(date?: string): Promise<{
+  async rerollDailyChallenge(date?: string, minMetacritic?: number): Promise<{
     challengeId: number
     date: string
     newScreenshotCount: number
   }> {
     // Default to today's date in YYYY-MM-DD format
     const targetDate = date ?? new Date().toISOString().split('T')[0]!
+    // Default to 85 if not provided (maintain backward compatibility)
+    const minScore = minMetacritic ?? 85
 
     // 1. Find the challenge for the date
     const challenge = await challengeRepository.findByDate(targetDate)
@@ -206,8 +208,8 @@ export const adminService = {
     }
     const tier = tiers[0]!
 
-    // 3. Get 10 new random screenshots (not currently used in this tier)
-    const newScreenshots = await screenshotRepository.findRandomNotInTier(tier.id, 10)
+    // 3. Get 10 new random screenshots (not currently used in this tier, filtered by minMetacritic)
+    const newScreenshots = await screenshotRepository.findRandomNotInTier(tier.id, 10, minScore)
     if (newScreenshots.length < 10) {
       throw new Error(`Not enough available screenshots. Found: ${newScreenshots.length}, needed: 10`)
     }

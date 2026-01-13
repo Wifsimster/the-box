@@ -171,13 +171,13 @@ export function JobList() {
           transition={{ delay: 0.1 }}
         >
           <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <RefreshCw className="h-4 w-4 text-neon-purple" />
+            <CardHeader className="pb-2 p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <RefreshCw className="h-4 w-4 text-neon-purple flex-shrink-0" />
                 {t('admin.jobs.recurringJobs')}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               <motion.div
                 variants={staggerContainer}
                 initial="initial"
@@ -192,35 +192,35 @@ export function JobList() {
                     <motion.div
                       key={job.id}
                       variants={listItem}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-purple-500/20 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/50 border border-transparent hover:border-purple-500/20 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         {job.isActive || isJobLoading ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                            <span className="text-sm font-medium text-blue-400">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm font-medium text-blue-400 truncate">
                               {t(getJobRunningTranslationKey(job.name))}
                             </span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <JobIcon className="h-4 w-4 text-green-500" />
-                            <span className="text-sm font-medium">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <JobIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm font-medium truncate">
                               {t(getJobTranslationKey(job.name))}
                             </span>
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:flex-shrink-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                           {job.every && (
-                            <span>{t('admin.jobs.every')} {formatInterval(job.every)}</span>
+                            <span className="whitespace-nowrap">{t('admin.jobs.every')} {formatInterval(job.every)}</span>
                           )}
                           {job.pattern && (
-                            <span>{formatCronPattern(job.pattern, t)}</span>
+                            <span className="whitespace-nowrap">{formatCronPattern(job.pattern, t)}</span>
                           )}
                           {job.nextRun && !job.isActive && (
-                            <span className="text-neon-purple">
+                            <span className="text-neon-purple whitespace-nowrap">
                               {t('admin.jobs.nextRun')}: {formatRelativeTime(job.nextRun)}
                             </span>
                           )}
@@ -230,7 +230,7 @@ export function JobList() {
                           size="sm"
                           onClick={() => handleTriggerRecurringJob(job.name)}
                           disabled={job.isActive || isJobLoading}
-                          className="border-neon-purple/30 hover:bg-neon-purple/10"
+                          className="border-neon-purple/30 hover:bg-neon-purple/10 w-full sm:w-auto sm:flex-shrink-0"
                         >
                           {isJobLoading ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />

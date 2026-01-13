@@ -25,7 +25,7 @@ export function AnimatedTabs({
   return (
     <div
       className={cn(
-        'flex gap-1 p-1 rounded-xl',
+        'flex gap-1 p-1 rounded-xl overflow-x-auto scrollbar-hide',
         variant === 'default' && 'bg-muted/50 border border-white/10',
         variant === 'pills' && 'bg-transparent gap-2',
         variant === 'underline' && 'bg-transparent border-b border-white/10 rounded-none p-0 gap-0',
@@ -40,7 +40,9 @@ export function AnimatedTabs({
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative px-4 py-2 text-sm font-medium rounded-lg transition-colors flex-1',
+              'relative px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+              'flex-shrink-0',
+              'sm:flex-1',
               variant === 'underline' && 'rounded-none px-4 py-3',
               isActive
                 ? 'text-white'

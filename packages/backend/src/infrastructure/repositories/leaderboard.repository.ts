@@ -6,8 +6,8 @@ interface LeaderboardRow {
   total_score: number
   completed_at: Date
   username: string | null
-  displayName: string | null
-  avatarUrl: string | null
+  display_name: string | null
+  avatar_url: string | null
 }
 
 export const leaderboardRepository = {
@@ -23,16 +23,16 @@ export const leaderboardRepository = {
         'game_sessions.total_score',
         'game_sessions.completed_at',
         'user.username',
-        'user.displayName',
-        'user.avatarUrl'
+        'user.display_name',
+        'user.avatar_url'
       )
 
     return sessions.map((session, index) => ({
       rank: index + 1,
       userId: session.user_id,
       username: session.username ?? 'Anonymous',
-      displayName: session.displayName ?? session.username ?? 'Anonymous',
-      avatarUrl: session.avatarUrl ?? undefined,
+      displayName: session.display_name ?? session.username ?? 'Anonymous',
+      avatarUrl: session.avatar_url ?? undefined,
       totalScore: session.total_score,
       completedAt: session.completed_at?.toISOString(),
     }))

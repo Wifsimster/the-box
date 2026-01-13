@@ -185,6 +185,16 @@ body {
   box-shadow: var(--glow-md);
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .skeleton {

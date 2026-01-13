@@ -341,7 +341,7 @@ export const adminApi = {
    * Reroll a daily challenge's screenshots
    * Replaces the 10 screenshots with new random ones
    */
-  async rerollDailyChallenge(date?: string): Promise<{
+  async rerollDailyChallenge(date?: string, minMetacritic?: number): Promise<{
     challengeId: number
     date: string
     newScreenshotCount: number
@@ -352,7 +352,7 @@ export const adminApi = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ date }),
+      body: JSON.stringify({ date, minMetacritic }),
     })
     return handleResponse<{
       challengeId: number

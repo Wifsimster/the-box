@@ -96,18 +96,29 @@ export const screenshotRepository = {
     return mapRowToScreenshot(row!)
   },
 
-  async findRandomNotInTier(tierId: number, count: number): Promise<Screenshot[]> {
+  async findRandomNotInTier(tierId: number, count: number, minMetacritic?: number): Promise<Screenshot[]> {
     // Get screenshot IDs currently used in the tier
     const usedIds = await db('tier_screenshots')
       .where('tier_id', tierId)
       .pluck<number[]>('screenshot_id')
 
-    // Select random screenshots excluding the currently used ones
-    const rows = await db('screenshots')
-      .whereNotIn('id', usedIds.length > 0 ? usedIds : [0])
+    // Build query with optional metacritic filter
+    let query = db('screenshots')
+      .whereNotIn('screenshots.id', usedIds.length > 0 ? usedIds : [0])
+
+    // If minMetacritic is provided, join with games table and filter
+    if (minMetacritic !== undefined) {
+      query = query
+        .join('games', 'screenshots.game_id', 'games.id')
+        .where('games.metacritic', '>=', minMetacritic)
+        .whereNotNull('games.metacritic')
+    }
+
+    // Select random screenshots
+    const rows = await query
       .orderByRaw('RANDOM()')
       .limit(count)
-      .select<ScreenshotRow[]>('*')
+      .select<ScreenshotRow[]>('screenshots.*')
 
     return rows.map(mapRowToScreenshot)
   },

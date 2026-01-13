@@ -149,13 +149,13 @@ export default function AdminPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="container mx-auto px-4 py-8"
+      className="container mx-auto px-3 sm:px-4 py-4 sm:py-8"
     >
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex items-center gap-3 mb-8"
+        className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8"
       >
         <motion.div
           animate={{
@@ -166,10 +166,11 @@ export default function AdminPage() {
             repeat: Infinity,
             ease: 'easeInOut',
           }}
+          className="flex-shrink-0"
         >
-          <Settings className="h-8 w-8 text-neon-purple" />
+          <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-neon-purple" />
         </motion.div>
-        <h1 className="text-3xl font-bold">{t('admin.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">{t('admin.title')}</h1>
       </motion.div>
 
       <motion.div
@@ -181,7 +182,7 @@ export default function AdminPage() {
           tabs={tabs}
           activeTab={activeTab}
           onChange={handleTabChange}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         />
       </motion.div>
 
