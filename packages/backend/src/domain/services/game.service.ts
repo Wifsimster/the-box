@@ -207,7 +207,7 @@ export const gameService = {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
     }
 
-    const { screenshot, gameName, coverImageUrl, aliases } = screenshotData
+    const { screenshot, gameName, coverImageUrl, aliases, releaseYear, metacritic } = screenshotData
 
     // Check if guess is correct using fuzzy matching on text
     const isCorrect = data.gameId === screenshot.gameId ||
@@ -309,6 +309,8 @@ export const gameService = {
       slug: '',
       aliases: [],
       coverImageUrl,
+      releaseYear,
+      metacritic,
     }
 
     return {

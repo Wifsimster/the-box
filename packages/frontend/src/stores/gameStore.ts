@@ -307,11 +307,15 @@ export const useGameStore = create<GameState>()(
               return i
             }
           }
-          // Then check skipped or correct positions from beginning (wrap around)
-          for (let i = 1; i < fromPosition; i++) {
-            const state = positionStates[i]
-            if (state?.status === 'skipped' || state?.status === 'correct') {
-              return i
+          // Only wrap around to skipped/correct positions if we're NOT on the last position
+          // This prevents auto-navigation when on the final screenshot
+          if (fromPosition < totalScreenshots) {
+            // Then check skipped or correct positions from beginning (wrap around)
+            for (let i = 1; i < fromPosition; i++) {
+              const state = positionStates[i]
+              if (state?.status === 'skipped' || state?.status === 'correct') {
+                return i
+              }
             }
           }
           return null

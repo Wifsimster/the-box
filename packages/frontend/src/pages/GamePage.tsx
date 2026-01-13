@@ -28,7 +28,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
-  
+
   // Get date from query params if provided
   const challengeDateParam = searchParams.get('date')
   const {
@@ -70,6 +70,33 @@ export default function GamePage() {
       return () => clearTimeout(timer)
     }
   }, [gamePhase, navigate, localizedPath])
+
+  // Pre-fetch all screenshots when game starts
+  const prefetchAllScreenshots = useCallback(async (sid: string, totalScreenshots: number) => {
+    if (!sid) return
+
+    // Pre-fetch all screenshots in parallel (but limit concurrency to avoid overwhelming the server)
+    const positions = Array.from({ length: totalScreenshots }, (_, i) => i + 1)
+
+    // Process in batches of 3 to avoid overwhelming the server
+    const batchSize = 3
+    for (let i = 0; i < positions.length; i += batchSize) {
+      const batch = positions.slice(i, i + batchSize)
+      await Promise.allSettled(
+        batch.map(async (position) => {
+          try {
+            const data = await gameApi.getScreenshot(sid, position)
+            // Preload the image in browser cache
+            const img = new Image()
+            img.src = data.imageUrl
+          } catch (err) {
+            // Silently fail - pre-fetching is optional
+            console.debug(`Failed to pre-fetch screenshot at position ${position}:`, err)
+          }
+        })
+      )
+    }
+  }, [])
 
   // Fetch today's challenge on mount (after hydration completes)
   useEffect(() => {
@@ -113,6 +140,12 @@ export default function GamePage() {
             setScreenshotData(screenshotData)
             setGamePhase('playing')
             setLoading(false)
+
+            // Pre-fetch all remaining screenshots in the background for smooth swiping
+            // Don't await - let it run in the background
+            prefetchAllScreenshots(data.userSession.sessionId, data.totalScreenshots).catch((err) => {
+              console.debug('Failed to pre-fetch all screenshots:', err)
+            })
             return
           }
         }
@@ -129,7 +162,7 @@ export default function GamePage() {
     if (gamePhase === 'idle') {
       fetchChallenge()
     }
-  }, [_hasHydrated, gamePhase, challengeDateParam, setGamePhase, setChallengeId, setSessionId, setScreenshotData, setLoading, restoreSessionState, t])
+  }, [_hasHydrated, gamePhase, challengeDateParam, setGamePhase, setChallengeId, setSessionId, setScreenshotData, setLoading, restoreSessionState, prefetchAllScreenshots, t])
 
   // Fetch screenshot when position changes or game starts
   const fetchScreenshot = useCallback(async (sid: string, position: number) => {
@@ -144,6 +177,78 @@ export default function GamePage() {
       setLoading(false)
     }
   }, [setScreenshotData, setLoading, t])
+
+  // Pre-fetch adjacent screenshots for smooth swiping
+  const prefetchAdjacentScreenshots = useCallback(async (sid: string, currentPos: number) => {
+    if (!sid || gamePhase !== 'playing') return
+
+    const { positionStates, totalScreenshots } = useGameStore.getState()
+
+    // Find next navigable position
+    const findNextPosition = () => {
+      for (let i = currentPos + 1; i <= totalScreenshots; i++) {
+        const state = positionStates[i]
+        if (!state || state.status === 'not_visited' || state.status === 'skipped' || state.status === 'correct') {
+          return i
+        }
+      }
+      // Check for skipped/correct positions from beginning (wrap around)
+      for (let i = 1; i < currentPos; i++) {
+        const state = positionStates[i]
+        if (state?.status === 'skipped' || state?.status === 'correct') {
+          return i
+        }
+      }
+      return null
+    }
+
+    // Find previous navigable position
+    const findPreviousPosition = () => {
+      for (let i = currentPos - 1; i >= 1; i--) {
+        const state = positionStates[i]
+        if (state?.status === 'skipped' || state?.status === 'not_visited' || state?.status === 'correct') {
+          return i
+        }
+      }
+      // Check for skipped/correct positions from end (wrap around)
+      for (let i = totalScreenshots; i > currentPos; i--) {
+        const state = positionStates[i]
+        if (state?.status === 'skipped' || state?.status === 'correct') {
+          return i
+        }
+      }
+      return null
+    }
+
+    const nextPos = findNextPosition()
+    const prevPos = findPreviousPosition()
+
+    // Pre-fetch next screenshot
+    if (nextPos) {
+      try {
+        const nextData = await gameApi.getScreenshot(sid, nextPos)
+        // Preload the image in browser cache
+        const img = new Image()
+        img.src = nextData.imageUrl
+      } catch (err) {
+        // Silently fail - pre-fetching is optional
+        console.debug('Failed to pre-fetch next screenshot:', err)
+      }
+    }
+
+    // Pre-fetch previous screenshot
+    if (prevPos) {
+      try {
+        const prevData = await gameApi.getScreenshot(sid, prevPos)
+        // Preload the image in browser cache
+        const img = new Image()
+        img.src = prevData.imageUrl
+      } catch (err) {
+        // Silently fail - pre-fetching is optional
+        console.debug('Failed to pre-fetch previous screenshot:', err)
+      }
+    }
+  }, [gamePhase])
 
   // Handle starting the game
   const handleStartGame = useCallback(async () => {
@@ -193,12 +298,18 @@ export default function GamePage() {
       await fetchScreenshot(startData.sessionId, 1)
 
       setGamePhase('playing')
+
+      // Pre-fetch all remaining screenshots in the background for smooth swiping
+      // Don't await - let it run in the background
+      prefetchAllScreenshots(startData.sessionId, startData.totalScreenshots).catch((err) => {
+        console.debug('Failed to pre-fetch all screenshots:', err)
+      })
     } catch (err) {
       console.error('Failed to start game:', err)
       setError(t('game.errorStarting'))
       setLoading(false)
     }
-  }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, t])
+  }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, prefetchAllScreenshots, t])
 
   // Fetch screenshot when position changes (after navigation)
   useEffect(() => {
@@ -210,6 +321,17 @@ export default function GamePage() {
       }
     }
   }, [gamePhase, sessionId, currentPosition, currentScreenshotData?.position, fetchScreenshot])
+
+  // Pre-fetch adjacent screenshots when current screenshot is loaded
+  useEffect(() => {
+    if (gamePhase === 'playing' && sessionId && currentScreenshotData?.imageUrl) {
+      // Pre-fetch after a short delay to not interfere with current image loading
+      const timer = setTimeout(() => {
+        prefetchAdjacentScreenshots(sessionId, currentScreenshotData.position)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [gamePhase, sessionId, currentScreenshotData?.imageUrl, currentScreenshotData?.position, prefetchAdjacentScreenshots])
 
   // Keyboard shortcuts for navigation (Ctrl+Arrow Left/Right)
   // Uses Ctrl+Arrow to avoid interfering with text cursor navigation
