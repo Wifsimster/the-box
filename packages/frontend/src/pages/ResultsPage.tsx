@@ -4,10 +4,11 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
-import { Trophy, Home, Share2, CheckCircle, XCircle, Award } from 'lucide-react'
+import { Trophy, Home, CheckCircle, XCircle, Award } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
+import { calculateSpeedMultiplier } from '@/lib/utils'
 
 export default function ResultsPage() {
   const { t } = useTranslation()
@@ -87,10 +88,6 @@ export default function ResultsPage() {
           <Award className="w-4 h-4 mr-2" />
           {t('common.leaderboard')}
         </Button>
-        <Button variant="outline" size="lg">
-          <Share2 className="w-4 h-4 mr-2" />
-          {t('common.share')}
-        </Button>
       </div>
 
       {/* Results Summary */}
@@ -121,9 +118,20 @@ export default function ResultsPage() {
                   )}
                 </div>
                 <div className="text-right">
-                  <span className={result.scoreEarned > 0 ? 'text-success font-bold' : 'text-muted-foreground'}>
-                    +{result.scoreEarned}
-                  </span>
+                  {result.isCorrect && result.scoreEarned > 0 ? (
+                    <div className="flex flex-col items-end">
+                      <span className="text-success font-bold">
+                        +{result.scoreEarned}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        50 pts × {calculateSpeedMultiplier(result.timeTakenMs).toFixed(1)}x
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      +{result.scoreEarned}
+                    </span>
+                  )}
                 </div>
               </motion.div>
             ))}
