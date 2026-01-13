@@ -80,7 +80,7 @@ interface AdminState {
 
   // Challenges
   rerollLoading: boolean
-  rerollDailyChallenge: (date?: string) => Promise<void>
+  rerollDailyChallenge: (date?: string, minMetacritic?: number) => Promise<void>
 
   // Full Import (Batch Processing)
   currentImport: ImportState | null

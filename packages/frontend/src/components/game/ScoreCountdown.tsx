@@ -41,12 +41,12 @@ export function ScoreCountdown() {
   const currentScore = calculateCurrentScore()
 
   // Calculate percentage for visual indicators
-  const percentage = initialScore > 0 ? (currentScore / initialScore) * 100 : 100
+  const percentage = initialScore && initialScore > 0 ? (currentScore / initialScore) * 100 : 100
   const isWarning = percentage <= 30 && percentage > 10
   const isCritical = percentage <= 10
 
   // Calculate progress for circular indicator
-  const progress = initialScore > 0 ? currentScore / initialScore : 1
+  const progress = initialScore && initialScore > 0 ? currentScore / initialScore : 1
   const radius = 42
   const strokeWidth = 6
   const normalizedRadius = radius - strokeWidth / 2
@@ -154,7 +154,7 @@ export function ScoreCountdownCompact() {
   const currentScore = calculateCurrentScore()
 
   // Calculate percentage for visual indicators
-  const percentage = initialScore > 0 ? (currentScore / initialScore) * 100 : 100
+  const percentage = initialScore && initialScore > 0 ? (currentScore / initialScore) * 100 : 100
   const isWarning = percentage <= 30 && percentage > 10
   const isCritical = percentage <= 10
 

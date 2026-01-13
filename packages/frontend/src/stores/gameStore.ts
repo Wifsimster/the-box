@@ -42,6 +42,12 @@ interface GameState {
   correctAnswers: number
   guessResults: GuessResult[]
 
+  // Countdown scoring
+  initialScore: number | null
+  decayRate: number | null
+  sessionStartedAt: number | null
+  scoreRunning: boolean
+
   // Power-ups
   availablePowerUps: PowerUp[]
   activePowerUp: PowerUpType | null
@@ -123,6 +129,11 @@ const initialState = {
   totalScore: 0,
   correctAnswers: 0,
   guessResults: [],
+  // Countdown scoring
+  initialScore: null,
+  decayRate: null,
+  sessionStartedAt: null,
+  scoreRunning: false,
   availablePowerUps: [],
   activePowerUp: null,
   gamePhase: 'idle' as GamePhase,

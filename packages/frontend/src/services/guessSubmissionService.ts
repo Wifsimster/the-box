@@ -68,7 +68,9 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
     const isCorrect = request.gameId === this.mockCorrectGame.id
 
     // Calculate countdown score based on elapsed time
-    const elapsedSeconds = Math.floor(request.sessionElapsedMs / 1000)
+    // Use sessionStartTime since sessionElapsedMs is not in the request
+    const elapsedMs = Date.now() - this.sessionStartTime
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
     const currentScore = Math.max(0, this.initialScore - (elapsedSeconds * this.decayRate))
 
     // Score is "locked in" only on correct guess

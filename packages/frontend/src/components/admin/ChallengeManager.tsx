@@ -26,7 +26,7 @@ export function ChallengeManager() {
       await rerollDailyChallenge(undefined, minMetacritic)
       toast.success(t('admin.challenges.rerollSuccess'))
       setIsConfirming(false)
-    } catch {
+    } catch (err) {
       toast.error(t('admin.challenges.rerollError'))
       setIsConfirming(false)
     }
