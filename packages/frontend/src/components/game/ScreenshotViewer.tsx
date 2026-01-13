@@ -1,10 +1,15 @@
 import { useEffect, useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useGameStore } from '@/stores/gameStore'
-import { springConfig } from '@/lib/animations'
 import { gameApi } from '@/lib/api/game'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from '@/components/ui/carousel'
 
 interface ScreenshotViewerProps {
   imageUrl: string
@@ -18,9 +23,9 @@ export function ScreenshotViewer({
   onLoad,
 }: ScreenshotViewerProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
-  const [nextImageUrl, setNextImageUrl] = useState<string | null>(null)
+  const [api, setApi] = useState<CarouselApi>()
   const [prevImageUrl, setPrevImageUrl] = useState<string | null>(null)
+  const [nextImageUrl, setNextImageUrl] = useState<string | null>(null)
   
   const {
     currentPosition,
@@ -30,10 +35,6 @@ export function ScreenshotViewer({
     gamePhase,
     sessionId,
   } = useGameStore()
-
-  const screenWidth = useMemo(() => {
-    return typeof window !== 'undefined' ? window.innerWidth : 1000
-  }, [])
 
   // Find previous navigable position
   const findPreviousPosition = useMemo(() => {
@@ -69,43 +70,62 @@ export function ScreenshotViewer({
     return null
   }, [currentPosition, positionStates, totalScreenshots])
 
-  // Handle swipe end
-  const handleSwipeEnd = (_event: any, info: { offset: { x: number }; velocity: { x: number } }) => {
-    if (gamePhase !== 'playing' || !isMobile) return
+  // Initialize carousel to center position
+  useEffect(() => {
+    if (api && gamePhase === 'playing') {
+      api.scrollTo(1, false)
+    }
+  }, [api, gamePhase])
 
-    const threshold = 50
-    const velocityThreshold = 500
-    const offset = info.offset.x
-    const velocity = info.velocity.x
-    const shouldNavigate = Math.abs(offset) > threshold || Math.abs(velocity) > velocityThreshold
+  // Handle carousel navigation to sync with game store
+  useEffect(() => {
+    if (!api || gamePhase !== 'playing') return
 
-    if (shouldNavigate) {
-      if (offset < 0 || velocity < -velocityThreshold) {
-        // Swipe left - go to next
-        const nextPos = findNextPosition
-        if (nextPos) {
-          navigateToPosition(nextPos)
-        }
-      } else if (offset > 0 || velocity > velocityThreshold) {
-        // Swipe right - go to previous
+    const handleSelect = () => {
+      const selectedIndex = api.selectedScrollSnap()
+      // The carousel has 3 items: [prev, current, next]
+      // Index 0 = previous, 1 = current, 2 = next
+      if (selectedIndex === 0) {
+        // Swiped to previous
         const prevPos = findPreviousPosition
         if (prevPos) {
           navigateToPosition(prevPos)
+          // Reset carousel to center after navigation
+          setTimeout(() => api.scrollTo(1, false), 100)
+        } else {
+          // Can't go previous, reset to center
+          api.scrollTo(1, false)
+        }
+      } else if (selectedIndex === 2) {
+        // Swiped to next
+        const nextPos = findNextPosition
+        if (nextPos) {
+          navigateToPosition(nextPos)
+          // Reset carousel to center after navigation
+          setTimeout(() => api.scrollTo(1, false), 100)
+        } else {
+          // Can't go next, reset to center
+          api.scrollTo(1, false)
         }
       }
     }
-  }
 
-  // Detect mobile screen size
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
+    api.on('select', handleSelect)
+    return () => {
+      api.off('select', handleSelect)
     }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+  }, [api, gamePhase, findPreviousPosition, findNextPosition, navigateToPosition])
+
+  // Reset carousel to center when position changes externally
+  useEffect(() => {
+    if (api && gamePhase === 'playing') {
+      // Small delay to ensure carousel is ready
+      const timer = setTimeout(() => {
+        api.scrollTo(1, false)
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [api, currentPosition, gamePhase])
 
   // Load adjacent screenshots
   useEffect(() => {
@@ -115,21 +135,18 @@ export function ScreenshotViewer({
       return
     }
 
-    const nextPos = findNextPosition
-    const prevPos = findPreviousPosition
-
-    if (nextPos) {
-      gameApi.getScreenshot(sessionId, nextPos)
+    if (findNextPosition) {
+      gameApi.getScreenshot(sessionId, findNextPosition)
         .then((data) => setNextImageUrl(data.imageUrl))
-        .catch(() => {})
+        .catch(() => setNextImageUrl(null))
     } else {
       setNextImageUrl(null)
     }
 
-    if (prevPos) {
-      gameApi.getScreenshot(sessionId, prevPos)
+    if (findPreviousPosition) {
+      gameApi.getScreenshot(sessionId, findPreviousPosition)
         .then((data) => setPrevImageUrl(data.imageUrl))
-        .catch(() => {})
+        .catch(() => setPrevImageUrl(null))
     } else {
       setPrevImageUrl(null)
     }
@@ -150,80 +167,91 @@ export function ScreenshotViewer({
     img.src = imageUrl
   }, [imageUrl, onLoad])
 
+  const renderImage = (url: string | null) => {
+    if (!url) {
+      return <div className="h-full w-full bg-card" />
+    }
+    
+    return (
+      <div
+        className="w-full h-full"
+        style={{
+          backgroundImage: `url(${url})`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          minHeight: '100%',
+        }}
+      />
+    )
+  }
+
+  // Fallback: show current image if carousel fails
+  if (!api && imageUrl) {
+    return (
+      <div
+        className={cn(
+          "relative overflow-hidden bg-card select-none",
+          className
+        )}
+      >
+        <div className="absolute inset-0 w-full h-full">
+          {renderImage(imageUrl)}
+        </div>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
+        {/* Loading state */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-card z-20">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-card touch-none select-none",
+        "relative overflow-hidden bg-card select-none",
         className
       )}
     >
-      {/* Swipeable container - only on mobile */}
-      {isMobile ? (
-        <motion.div
-          className="absolute inset-0 flex"
-          drag="x"
-          dragConstraints={{ left: -screenWidth, right: screenWidth }}
-          dragElastic={0.1}
-          dragMomentum={false}
-          onDragEnd={handleSwipeEnd}
-          whileDrag={{ cursor: 'grabbing' }}
-          transition={springConfig.snappy}
-        >
-          {/* Previous image */}
-          {prevImageUrl && (
-            <div
-              className="flex-shrink-0"
-              style={{
-                width: screenWidth,
-                height: '100%',
-                backgroundImage: `url(${prevImageUrl})`,
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-              }}
-            />
-          )}
+      <Carousel
+        setApi={setApi}
+        opts={{
+          align: 'center',
+          loop: false,
+          skipSnaps: false,
+          dragFree: false,
+          containScroll: 'trimSnaps',
+          watchDrag: true,
+        }}
+        className="w-full h-full"
+      >
+        <CarouselContent className="h-full !ml-0">
+          {/* Previous screenshot */}
+          <CarouselItem className="basis-full h-full !pl-0">
+            <div className="h-full w-full">
+              {renderImage(prevImageUrl)}
+            </div>
+          </CarouselItem>
 
-          {/* Current image */}
-          <div
-            className="flex-shrink-0"
-            style={{
-              width: screenWidth,
-              height: '100%',
-              backgroundImage: isLoading ? 'none' : `url(${imageUrl})`,
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-            }}
-          />
+          {/* Current screenshot */}
+          <CarouselItem className="basis-full h-full !pl-0">
+            <div className="h-full w-full">
+              {renderImage(imageUrl)}
+            </div>
+          </CarouselItem>
 
-          {/* Next image */}
-          {nextImageUrl && (
-            <div
-              className="flex-shrink-0"
-              style={{
-                width: screenWidth,
-                height: '100%',
-                backgroundImage: `url(${nextImageUrl})`,
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-              }}
-            />
-          )}
-        </motion.div>
-      ) : (
-        /* Desktop: static image */
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: isLoading ? 'none' : `url(${imageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-          }}
-        />
-      )}
+          {/* Next screenshot */}
+          <CarouselItem className="basis-full h-full !pl-0">
+            <div className="h-full w-full">
+              {renderImage(nextImageUrl)}
+            </div>
+          </CarouselItem>
+        </CarouselContent>
+      </Carousel>
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
