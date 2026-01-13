@@ -10,7 +10,6 @@ import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { ProgressDots } from '@/components/game/ProgressDots'
-import { EndGameButton } from '@/components/game/EndGameButton'
 import { Button } from '@/components/ui/button'
 import { Globe, Home, Loader2, Trophy, RotateCcw } from 'lucide-react'
 import { adminApi } from '@/lib/api/admin'
@@ -201,10 +200,10 @@ export default function GamePage() {
     }
   }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, t])
 
-  // Fetch next screenshot when position changes (after nextRound is called)
+  // Fetch screenshot when position changes (after navigation)
   useEffect(() => {
-    // Only fetch if we're transitioning to playing phase and have a session
-    if (gamePhase === 'playing' && sessionId && currentPosition > 1) {
+    // Only fetch if we're in playing phase and have a session
+    if (gamePhase === 'playing' && sessionId) {
       // Check if we already have the screenshot for this position
       if (currentScreenshotData?.position !== currentPosition) {
         fetchScreenshot(sessionId, currentPosition)
@@ -231,17 +230,17 @@ export default function GamePage() {
 
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
-        // Find previous navigable position (skipped screenshots before current)
+        // Find previous navigable position (include skipped, not_visited, and correct)
         for (let i = currentPosition - 1; i >= 1; i--) {
           const state = positionStates[i]
-          if (state?.status === 'skipped') {
+          if (state?.status === 'skipped' || state?.status === 'not_visited' || state?.status === 'correct') {
             navigateToPosition(i)
             return
           }
         }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
-        // Skip to next position
+        // Skip to next position (includes correct positions)
         skipToNextPosition()
       }
     }
@@ -371,7 +370,6 @@ export default function GamePage() {
                 {/* Progress Dots (Above Input) */}
                 <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4">
                   <ProgressDots />
-                  <EndGameButton />
                 </div>
                 <GuessInput />
               </div>

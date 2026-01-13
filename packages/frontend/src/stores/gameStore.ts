@@ -300,17 +300,17 @@ export const useGameStore = create<GameState>()(
 
         findNextUnfinished: (fromPosition) => {
           const { positionStates, totalScreenshots } = get()
-          // First check forward positions (new or skipped)
+          // First check forward positions (new, skipped, or correct) - return immediately next position
           for (let i = fromPosition + 1; i <= totalScreenshots; i++) {
             const state = positionStates[i]
-            if (!state || state.status === 'not_visited' || state.status === 'skipped') {
+            if (!state || state.status === 'not_visited' || state.status === 'skipped' || state.status === 'correct' || state.status === 'in_progress') {
               return i
             }
           }
-          // Then check skipped positions from beginning
+          // Then check skipped or correct positions from beginning (wrap around)
           for (let i = 1; i < fromPosition; i++) {
             const state = positionStates[i]
-            if (state?.status === 'skipped') {
+            if (state?.status === 'skipped' || state?.status === 'correct') {
               return i
             }
           }
@@ -346,7 +346,7 @@ export const useGameStore = create<GameState>()(
             }))
           }
 
-          // Find next unfinished position
+          // Find next position (including correct ones)
           const nextPos = get().findNextUnfinished(currentPosition)
           if (nextPos) {
             // Navigate to next position
@@ -369,7 +369,7 @@ export const useGameStore = create<GameState>()(
                   },
                 },
               }))
-            } else {
+            } else if (nextState.status === 'skipped') {
               // Resuming a skipped position, mark as in_progress
               set((state) => ({
                 positionStates: {
@@ -381,6 +381,7 @@ export const useGameStore = create<GameState>()(
                 },
               }))
             }
+            // If status is 'correct', keep it as 'correct' (don't modify)
             return nextPos
           }
 

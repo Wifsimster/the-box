@@ -22,38 +22,30 @@ export function NavigationControls() {
     gamePhase,
   } = useGameStore()
 
-  // Find previous navigable position (prioritize skipped/not_visited, but also allow correct)
+  // Find previous navigable position (include all positions: skipped, not_visited, correct)
   const previousPosition = useMemo(() => {
-    // First pass: look for skipped or not_visited positions (preferred)
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
-      if (state?.status === 'skipped' || state?.status === 'not_visited') {
-        return i
-      }
-    }
-    // Second pass: if no skipped/not_visited found, allow correct positions
-    for (let i = currentPosition - 1; i >= 1; i--) {
-      const state = positionStates[i]
-      if (state?.status === 'correct') {
+      if (state?.status === 'skipped' || state?.status === 'not_visited' || state?.status === 'correct') {
         return i
       }
     }
     return null
   }, [currentPosition, positionStates])
 
-  // Check if there's a next unfinished position
+  // Check if there's a next position (include correct positions)
   const hasNext = useMemo(() => {
     // Check forward positions
     for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
       const state = positionStates[i]
-      if (!state || state.status === 'not_visited' || state.status === 'skipped') {
+      if (!state || state.status === 'not_visited' || state.status === 'skipped' || state.status === 'correct') {
         return true
       }
     }
-    // Check skipped positions from start
+    // Check skipped or correct positions from start
     for (let i = 1; i < currentPosition; i++) {
       const state = positionStates[i]
-      if (state?.status === 'skipped') {
+      if (state?.status === 'skipped' || state?.status === 'correct') {
         return true
       }
     }

@@ -58,6 +58,8 @@
     "tierComplete": "Challenge Complete!",
     "resultsSummary": "Results Summary",
     "noResults": "No results yet. Play the game first!",
+    "unguessedGame": "{{count}} game not found",
+    "unguessedGames": "{{count}} games not found",
     "results": {
       "percentileTop": "You're in the top {{percent}}%!",
       "rankOf": "Rank #{{rank}} of {{total}} players"

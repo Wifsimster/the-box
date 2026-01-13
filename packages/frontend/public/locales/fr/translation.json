@@ -58,6 +58,8 @@
     "tierComplete": "Défi Terminé !",
     "resultsSummary": "Résumé des Résultats",
     "noResults": "Aucun résultat. Jouez d'abord !",
+    "unguessedGame": "{{count}} jeu non trouvé",
+    "unguessedGames": "{{count}} jeux non trouvés",
     "results": {
       "percentileTop": "Tu es dans le top {{percent}}% !",
       "rankOf": "Rang #{{rank}} sur {{total}} joueurs"

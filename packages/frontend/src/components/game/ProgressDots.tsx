@@ -7,9 +7,8 @@ import type { PositionStatus } from '@/types'
  * ProgressDots displays the status of all screenshots in the challenge.
  * Color coding:
  * - Green: correct (guessed correctly)
- * - Yellow: skipped (not yet attempted)
- * - Gray: not visited (haven't reached yet)
- * - Ring highlight on current position
+ * - Gray: unguessed pages (not visited, skipped, in progress)
+ * - White border: current page indicator
  */
 export function ProgressDots() {
   const {
@@ -17,24 +16,19 @@ export function ProgressDots() {
     currentPosition,
     totalScreenshots,
     navigateToPosition,
-    canNavigateTo,
   } = useGameStore()
 
   const getStatusColor = (status: PositionStatus) => {
     switch (status) {
       case 'correct':
-        return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
-      case 'skipped':
-        return 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]'
-      case 'in_progress':
-        return 'bg-primary shadow-[0_0_8px_rgba(168,85,247,0.6)]'
+        return 'bg-green-500'
       default:
         return 'bg-gray-600'
     }
   }
 
   const handleDotClick = (position: number) => {
-    if (canNavigateTo(position) && position !== currentPosition) {
+    if (position !== currentPosition) {
       navigateToPosition(position)
     }
   }
@@ -46,7 +40,7 @@ export function ProgressDots() {
         const state = positionStates[pos]
         const status = state?.status ?? 'not_visited'
         const isCurrent = pos === currentPosition
-        const isClickable = canNavigateTo(pos) && pos !== currentPosition
+        const isClickable = pos !== currentPosition
 
         return (
           <motion.button
@@ -56,9 +50,8 @@ export function ProgressDots() {
             className={cn(
               "w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 flex-shrink-0 touch-manipulation",
               getStatusColor(status),
-              isCurrent && "ring-2 ring-white ring-offset-0.5 sm:ring-offset-1 ring-offset-transparent",
-              isClickable && "cursor-pointer hover:scale-125 active:scale-110",
-              !isClickable && pos !== currentPosition && "cursor-not-allowed opacity-80"
+              isCurrent && "ring-2 ring-white ring-offset-1",
+              isClickable && "cursor-pointer hover:scale-125 active:scale-110"
             )}
             animate={isCurrent ? { scale: [1, 1.15, 1] } : { scale: 1 }}
             transition={{ duration: 0.5, repeat: isCurrent ? Infinity : 0, repeatDelay: 1 }}

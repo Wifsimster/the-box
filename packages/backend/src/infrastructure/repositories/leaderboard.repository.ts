@@ -16,7 +16,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
-      .whereRaw('user."isAnonymous" = ?', [false])
+      .whereRaw('"user"."isAnonymous" = ?', [false])
       .orderBy('game_sessions.total_score', 'desc')
       .limit(limit)
       .select<LeaderboardRow[]>(
@@ -45,7 +45,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
-      .whereRaw('user."isAnonymous" = ?', [false])
+      .whereRaw('"user"."isAnonymous" = ?', [false])
       .count('game_sessions.id as count')
       .first()
 
@@ -60,7 +60,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
-      .whereRaw('user."isAnonymous" = ?', [false])
+      .whereRaw('"user"."isAnonymous" = ?', [false])
       .andWhere('game_sessions.total_score', '>', score)
       .count('game_sessions.id as count')
       .first()

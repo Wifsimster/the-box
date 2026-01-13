@@ -5,17 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Alert } from '@/components/ui/alert'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { useGameStore } from '@/stores/gameStore'
-import { usePartyStore } from '@/stores/partyStore'
-import { SkipForward, SkipBack, Loader2, Send, Flag } from 'lucide-react'
+import { SkipForward, SkipBack, Loader2, Send } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
@@ -31,8 +22,6 @@ export function GuessInput() {
   const [query, setQuery] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
-  const [showEndConfirm, setShowEndConfirm] = useState(false)
-  const [isEnding, setIsEnding] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auth hook for admin check
@@ -56,12 +45,8 @@ export function GuessInput() {
     navigateToPosition,
     positionStates,
     currentScreenshotData,
-    endGameAction,
     challengeId,
   } = useGameStore()
-
-  // Get party mode state (for multiplayer party features)
-  const { isInParty, playerFinished } = usePartyStore()
   
   // Daily challenge game mode (party mode = daily guess game)
   const isDailyChallenge = challengeId !== null
@@ -122,19 +107,11 @@ export function GuessInput() {
     setQuery('')
   }
 
-  // Find previous navigable position (prioritize skipped/not_visited, but also allow correct)
+  // Find previous navigable position (include all positions: skipped, not_visited, correct)
   const findPreviousPosition = () => {
-    // First pass: look for skipped or not_visited positions (preferred)
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
-      if (state?.status === 'skipped' || state?.status === 'not_visited') {
-        return i
-      }
-    }
-    // Second pass: if no skipped/not_visited found, allow correct positions
-    for (let i = currentPosition - 1; i >= 1; i--) {
-      const state = positionStates[i]
-      if (state?.status === 'correct') {
+      if (state?.status === 'skipped' || state?.status === 'not_visited' || state?.status === 'correct') {
         return i
       }
     }
@@ -157,43 +134,6 @@ export function GuessInput() {
 
   // Hide skip button on last screenshot
   const isLastPosition = currentPosition === totalScreenshots
-
-  // Show terminer button on last position (both party mode and daily game)
-  const showTerminerButton = isLastPosition
-
-  // Calculate unfound count for confirmation dialog
-  const unfoundCount = useMemo(() => {
-    if (!showTerminerButton) return 0
-    return Object.values(positionStates).filter(
-      (s) => s.status !== 'correct'
-    ).length
-  }, [showTerminerButton, positionStates])
-
-  const UNFOUND_PENALTY = 50
-  const penaltyPreview = unfoundCount * UNFOUND_PENALTY
-
-  const handleEndGame = async () => {
-    setIsEnding(true)
-    try {
-      // End the game session
-      await endGameAction()
-      
-      // Get the final score after ending (it's updated by endGameAction)
-      const finalScore = useGameStore.getState().totalScore
-      
-      // Notify the party that this player finished (only in party mode)
-      if (isInParty) {
-        playerFinished(finalScore)
-      }
-      
-      setShowEndConfirm(false)
-    } catch (err) {
-      console.error('Failed to end game:', err)
-      toast.error(t('game.errorEnding') || 'Failed to end game')
-    } finally {
-      setIsEnding(false)
-    }
-  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -254,33 +194,19 @@ export function GuessInput() {
           </Button>
         </motion.div>
 
-        {/* Terminer button - shown on last screenshot (party mode and daily game) */}
-        {showTerminerButton ? (
-          <Button
-            variant="default"
-            size="lg"
-            onClick={() => setShowEndConfirm(true)}
-            disabled={gamePhase !== 'playing' || isSubmitting}
-            className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 touch-manipulation"
-          >
-            <Flag className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
-            <span className="text-xs sm:text-sm md:text-base">{t('game.endGame.button')}</span>
-          </Button>
-        ) : (
-          /* Skip/Next button - hidden on last screenshot */
-          !isLastPosition && (
-            <Tooltip content={t('game.navigation.skip')}>
-              <Button
-                variant="gaming"
-                size="lg"
-                onClick={handleSkip}
-                disabled={gamePhase !== 'playing' || isSubmitting}
-                className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-[48px] sm:min-w-[56px] touch-manipulation"
-              >
-                <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-            </Tooltip>
-          )
+        {/* Skip/Next button - hidden on last screenshot */}
+        {!isLastPosition && (
+          <Tooltip content={t('game.navigation.skip')}>
+            <Button
+              variant="gaming"
+              size="lg"
+              onClick={handleSkip}
+              disabled={gamePhase !== 'playing' || isSubmitting}
+              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-[48px] sm:min-w-[56px] touch-manipulation"
+            >
+              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+          </Tooltip>
         )}
       </div>
 
@@ -293,39 +219,6 @@ export function GuessInput() {
         </Alert>
       )}
 
-      {/* End game confirmation dialog */}
-      <Dialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('game.endGame.confirmTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('game.endGame.confirmMessage', {
-                unfound: unfoundCount,
-                penalty: penaltyPreview,
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowEndConfirm(false)}
-              disabled={isEnding}
-              className="w-full sm:w-auto"
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleEndGame}
-              disabled={isEnding}
-              className="w-full sm:w-auto"
-            >
-              {isEnding && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              {t('game.endGame.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

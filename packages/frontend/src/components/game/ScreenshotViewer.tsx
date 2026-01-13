@@ -17,6 +17,7 @@ export function ScreenshotViewer({
   onLoad,
 }: ScreenshotViewerProps) {
   const [isLoading, setIsLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const x = useMotionValue(0)
   
   const {
@@ -33,34 +34,28 @@ export function ScreenshotViewer({
     return typeof window !== 'undefined' ? window.innerWidth * 0.3 : 150
   }, [])
 
-  // Find previous navigable position
+  // Find previous navigable position (include all positions: skipped, not_visited, correct)
   const findPreviousPosition = useMemo(() => {
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
-      if (state?.status === 'skipped' || state?.status === 'not_visited') {
-        return i
-      }
-    }
-    for (let i = currentPosition - 1; i >= 1; i--) {
-      const state = positionStates[i]
-      if (state?.status === 'correct') {
+      if (state?.status === 'skipped' || state?.status === 'not_visited' || state?.status === 'correct') {
         return i
       }
     }
     return null
   }, [currentPosition, positionStates])
 
-  // Check if there's a next position
+  // Check if there's a next position (include correct positions)
   const hasNext = useMemo(() => {
     for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
       const state = positionStates[i]
-      if (!state || state.status === 'not_visited' || state.status === 'skipped') {
+      if (!state || state.status === 'not_visited' || state.status === 'skipped' || state.status === 'correct') {
         return true
       }
     }
     for (let i = 1; i < currentPosition; i++) {
       const state = positionStates[i]
-      if (state?.status === 'skipped') {
+      if (state?.status === 'skipped' || state?.status === 'correct') {
         return true
       }
     }
@@ -128,6 +123,17 @@ export function ScreenshotViewer({
     animate(x, 0, springConfig.snappy)
   }
 
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768) // md breakpoint
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // Reset position when image changes (new screenshot loaded)
   useEffect(() => {
     x.set(0)
@@ -157,8 +163,9 @@ export function ScreenshotViewer({
       )}
       style={{
         backgroundImage: isLoading ? 'none' : `url(${imageUrl})`,
-        backgroundSize: 'cover',
+        backgroundSize: isMobile ? 'contain' : 'cover',
         backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
         x,
         opacity,
       }}

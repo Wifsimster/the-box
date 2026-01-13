@@ -314,7 +314,8 @@ function isIncompleteBaseName(input: string, baseName: string): boolean {
       const lastBaseWord = baseNameWords[baseNameWords.length - 1]
       // If last word of input is a prefix of last word of baseName and significantly shorter, it's incomplete
       // Require at least 2 characters difference to avoid false positives with short words
-      if (lastBaseWord.startsWith(lastInputWord) && 
+      if (lastInputWord && lastBaseWord && 
+          lastBaseWord.startsWith(lastInputWord) && 
           lastInputWord.length < lastBaseWord.length && 
           (lastBaseWord.length - lastInputWord.length) >= 2) {
         return true
@@ -420,27 +421,39 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
   // Allow "Castlevania" to match "Castlevania: Harmony of Dissonance"
   // Allow "Cut the Rope" to match "Cut the Rope: Magic"
   // Allow "Teenage Mutant Ninja Turtles" to match "Teenage Mutant Ninja Turtles: Shredder's Revenge"
-  // Allow "Grand Theft Auto" to match "Grand Theft Auto IV: Complete Edition"
+  // Allow "Half-Life 2" to match "Half-Life 2: Episode Two"
+  // Reject "Half-Life" (missing number) for "Half-Life 2: Episode Two"
   // Allow "Planetscape" (typo) to match "Planescape: Torment"
   // Reject "A Space for the Unb" (incomplete) for "A Space for the Unbound"
   // Only check this if it's NOT a DLC (checked above)
   if (targetParsed.baseName && targetParsed.subtitle) {
+    const inputParsed = parseGameTitle(input)
     const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
     const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.baseName))
     
-    // If target has a series number, also check against seriesName (without number)
-    // This allows "Grand Theft Auto" to match "Grand Theft Auto IV: Complete Edition"
-    let normalizedSeriesName: string | null = null
-    if (targetParsed.seriesNumber !== null && targetParsed.seriesName) {
-      normalizedSeriesName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.seriesName))
+    // IMPORTANT: If target has a series number, input MUST also have the same number
+    // This prevents "Half-Life" from matching "Half-Life 2: Episode Two"
+    if (targetParsed.seriesNumber !== null) {
+      if (inputParsed.seriesNumber === null) {
+        log.debug(
+          { input, gameName, targetNumber: targetParsed.seriesNumber },
+          'rejected - target has series number but input does not'
+        )
+        return false
+      }
+      if (inputParsed.seriesNumber !== targetParsed.seriesNumber) {
+        log.debug(
+          { input, gameName, inputNumber: inputParsed.seriesNumber, targetNumber: targetParsed.seriesNumber },
+          'rejected - series numbers do not match'
+        )
+        return false
+      }
     }
     
     // Reject incomplete/truncated inputs (e.g., "A Space for the Unb" for "A Space for the Unbound")
-    // Check against seriesName if available (without number), otherwise baseName
-    const nameToCheck = normalizedSeriesName ? targetParsed.seriesName! : targetParsed.baseName
-    if (isIncompleteBaseName(input, nameToCheck)) {
+    if (isIncompleteBaseName(input, targetParsed.baseName)) {
       log.debug(
-        { input, gameName, checkedName: nameToCheck },
+        { input, gameName, baseName: targetParsed.baseName },
         'rejected - incomplete base name'
       )
       return false
@@ -455,35 +468,17 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
       return true
     }
     
-    // Also check if input matches seriesName (without number) if target has a number
-    if (normalizedSeriesName && normalizedInput === normalizedSeriesName) {
-      log.debug(
-        { input, gameName, seriesName: targetParsed.seriesName },
-        'exact series name match (series with subtitle and number)'
-      )
-      return true
-    }
-    
     const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
     
-    // If target has a series number, also check similarity with seriesName
-    let seriesNameSimilarity = 0
-    if (normalizedSeriesName) {
-      seriesNameSimilarity = jaroWinkler(normalizedInput, normalizedSeriesName)
-    }
-    
-    // Use the better similarity score (baseName or seriesName)
-    const bestSimilarity = Math.max(baseNameSimilarity, seriesNameSimilarity)
-    
-    // If input matches the base name or series name very well, allow it
+    // If input matches the base name very well, allow it
     // Lower threshold (0.90) to allow for common typos (e.g., "Planetscape" -> "Planescape")
     // DLC detection (checked above) prevents false positives for DLC titles
     const requiredSimilarity = 0.90
     
-    if (bestSimilarity >= requiredSimilarity) {
+    if (baseNameSimilarity >= requiredSimilarity) {
       const baseNameWords = targetParsed.baseName.trim().split(/\s+/).length
       log.debug(
-        { input, gameName, baseName: targetParsed.baseName, similarity: bestSimilarity, words: baseNameWords, matchedOn: seriesNameSimilarity > baseNameSimilarity ? 'seriesName' : 'baseName' },
+        { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity, words: baseNameWords },
         'base name match (series with subtitle)'
       )
       return true
