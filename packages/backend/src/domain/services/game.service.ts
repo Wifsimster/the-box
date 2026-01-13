@@ -52,17 +52,17 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
 }
 
 export const gameService = {
-  async getTodayChallenge(userId?: string): Promise<TodayChallengeResponse> {
-    const today = new Date().toISOString().split('T')[0]!
-    log.debug({ date: today, userId }, 'getTodayChallenge')
+  async getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse> {
+    const targetDate = date || new Date().toISOString().split('T')[0]!
+    log.debug({ date: targetDate, userId }, 'getTodayChallenge')
 
-    const challenge = await challengeRepository.findByDate(today)
+    const challenge = await challengeRepository.findByDate(targetDate)
 
     if (!challenge) {
-      log.debug({ date: today }, 'no challenge found for today')
+      log.debug({ date: targetDate }, 'no challenge found for date')
       return {
         challengeId: null,
-        date: today,
+        date: targetDate,
         totalScreenshots: TOTAL_SCREENSHOTS,
         hasPlayed: false,
         userSession: null,

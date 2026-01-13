@@ -387,7 +387,8 @@
     "privacy": "Privacy Policy",
     "cookies": "Cookie Policy",
     "faq": "FAQ",
-    "contact": "Contact"
+    "contact": "Contact",
+    "buildTime": "Built on {{time}}"
   },
   "legal": {
     "termsTitle": "Terms of Use",

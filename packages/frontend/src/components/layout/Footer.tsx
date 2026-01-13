@@ -1,11 +1,21 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { format } from 'date-fns'
+
+// Get build-time constants (injected by Vite at build time)
+const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
 
 export function Footer() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const currentYear = new Date().getFullYear()
+
+  // Format build time for display
+  const formattedBuildTime = buildTime
+    ? format(new Date(buildTime), 'dd/MM/yyyy HH:mm')
+    : null
 
   return (
     <footer className="py-4 text-center relative z-10">
@@ -43,6 +53,12 @@ export function Footer() {
       </nav>
       <p className="mt-2 text-xs text-muted-foreground/60">
         &copy; {currentYear} The Box. {t('footer.allRightsReserved')}
+        {appVersion !== 'dev' && (
+          <>
+            {' • '}v{appVersion}
+            {formattedBuildTime && ` • ${formattedBuildTime}`}
+          </>
+        )}
       </p>
     </footer>
   )

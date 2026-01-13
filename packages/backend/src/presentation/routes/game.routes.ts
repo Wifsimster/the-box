@@ -5,10 +5,11 @@ import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middl
 
 const router = Router()
 
-// Get today's challenge
+// Get today's challenge (or challenge by date if date query param is provided)
 router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
   try {
-    const data = await gameService.getTodayChallenge(req.userId)
+    const date = req.query.date as string | undefined
+    const data = await gameService.getTodayChallenge(req.userId, date)
 
     res.json({
       success: true,

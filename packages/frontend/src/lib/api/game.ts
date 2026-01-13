@@ -42,10 +42,13 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const gameApi = {
   /**
-   * Get today's challenge information
+   * Get today's challenge information (or challenge by date if provided)
    */
-  async getTodayChallenge(): Promise<TodayChallengeResponse> {
-    const response = await fetch('/api/game/today', {
+  async getTodayChallenge(date?: string): Promise<TodayChallengeResponse> {
+    const url = date 
+      ? `/api/game/today?date=${encodeURIComponent(date)}`
+      : '/api/game/today'
+    const response = await fetch(url, {
       credentials: 'include',
     })
     return handleResponse<TodayChallengeResponse>(response)

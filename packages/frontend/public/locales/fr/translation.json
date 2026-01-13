@@ -413,7 +413,8 @@
     "privacy": "Politique de confidentialité",
     "cookies": "Politique des cookies",
     "faq": "FAQ",
-    "contact": "Contact"
+    "contact": "Contact",
+    "buildTime": "Compilé le {{time}}"
   },
   "legal": {
     "termsTitle": "Conditions d'utilisation",

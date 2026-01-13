@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
@@ -24,10 +24,14 @@ export default function GamePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
+  const [searchParams] = useSearchParams()
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
+  
+  // Get date from query params if provided
+  const challengeDateParam = searchParams.get('date')
   const {
     _hasHydrated,
     gamePhase,
@@ -78,7 +82,7 @@ export default function GamePage() {
       try {
         setLoading(true)
         setError(null)
-        const data = await gameApi.getTodayChallenge()
+        const data = await gameApi.getTodayChallenge(challengeDateParam || undefined)
 
         if (data.challengeId) {
           setChallengeId(data.challengeId, data.date)
@@ -126,7 +130,7 @@ export default function GamePage() {
     if (gamePhase === 'idle') {
       fetchChallenge()
     }
-  }, [_hasHydrated, gamePhase, setGamePhase, setChallengeId, setSessionId, setScreenshotData, setLoading, restoreSessionState, t])
+  }, [_hasHydrated, gamePhase, challengeDateParam, setGamePhase, setChallengeId, setSessionId, setScreenshotData, setLoading, restoreSessionState, t])
 
   // Fetch screenshot when position changes or game starts
   const fetchScreenshot = useCallback(async (sid: string, position: number) => {
