@@ -10,6 +10,7 @@ import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { ProgressDots } from '@/components/game/ProgressDots'
+import { EndGameButton } from '@/components/game/EndGameButton'
 import { Button } from '@/components/ui/button'
 import { Globe, Home, Loader2, Trophy, RotateCcw } from 'lucide-react'
 import { adminApi } from '@/lib/api/admin'
@@ -453,8 +454,9 @@ export default function GamePage() {
               </Button>
             </div>
 
-            {/* Score (Top Right) */}
-            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-40">
+            {/* Score and End Game Button (Top Right) */}
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-40 flex items-center gap-2">
+              <EndGameButton />
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
                 <ScoreDisplay />
               </div>

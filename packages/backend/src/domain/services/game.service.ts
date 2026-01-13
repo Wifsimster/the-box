@@ -39,7 +39,7 @@ const UNFOUND_PENALTY = 50
  */
 function calculateSpeedMultiplier(timeTakenMs: number): number {
   const timeTakenSeconds = timeTakenMs / 1000
-  
+
   if (timeTakenSeconds < 5) {
     return 2.0 // 100 points
   } else if (timeTakenSeconds < 15) {
@@ -221,7 +221,7 @@ export const gameService = {
       const speedMultiplier = calculateSpeedMultiplier(data.roundTimeTakenMs)
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
     }
-    
+
     // No penalty for wrong guesses - unlimited tries
     const newSessionScore = tierSession.score + scoreEarned
 
@@ -269,12 +269,6 @@ export const gameService = {
     if (totalScreenshotsFound >= TOTAL_SCREENSHOTS) {
       isCompleted = true
       completionReason = 'all_found'
-    } else if (shouldAdvance && data.position >= TOTAL_SCREENSHOTS) {
-      // Last position and correct
-      isCompleted = true
-      if (totalScreenshotsFound >= TOTAL_SCREENSHOTS) {
-        completionReason = 'all_found'
-      }
     }
 
     // Calculate next position

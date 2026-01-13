@@ -26,7 +26,9 @@ export function ScreenshotViewer({
   const [api, setApi] = useState<CarouselApi>()
   const [prevImageUrl, setPrevImageUrl] = useState<string | null>(null)
   const [nextImageUrl, setNextImageUrl] = useState<string | null>(null)
-  
+  const [dragProgress, setDragProgress] = useState(0)
+  const [showSwipeHint, setShowSwipeHint] = useState(true)
+
   const {
     currentPosition,
     positionStates,
@@ -77,6 +79,33 @@ export function ScreenshotViewer({
     }
   }, [api, gamePhase])
 
+  // Track drag progress for visual feedback
+  useEffect(() => {
+    if (!api) return
+
+    const onScroll = () => {
+      const progress = api.scrollProgress()
+      // Convert progress to -1 to 1 range (left to right)
+      // Progress is 0-1 for entire carousel, we want relative to center
+      const selectedIndex = api.selectedScrollSnap()
+      const centerOffset = progress - (1 / 3) // Center is at 1/3 position
+      setDragProgress(centerOffset * 3) // Scale to -1 to 1 range
+    }
+
+    api.on('scroll', onScroll)
+    return () => api.off('scroll', onScroll)
+  }, [api])
+
+  // Hide swipe hint after first interaction
+  useEffect(() => {
+    if (!api) return
+
+    const hideHint = () => setShowSwipeHint(false)
+
+    api.on('scroll', hideHint)
+    return () => api.off('scroll', hideHint)
+  }, [api])
+
   // Handle carousel navigation to sync with game store
   useEffect(() => {
     if (!api || gamePhase !== 'playing') return
@@ -89,6 +118,10 @@ export function ScreenshotViewer({
         // Swiped to previous
         const prevPos = findPreviousPosition
         if (prevPos) {
+          // Haptic feedback on successful navigation (mobile only)
+          if ('vibrate' in navigator) {
+            navigator.vibrate(50)
+          }
           navigateToPosition(prevPos)
           // Reset carousel to center after navigation
           setTimeout(() => api.scrollTo(1, false), 100)
@@ -100,6 +133,10 @@ export function ScreenshotViewer({
         // Swiped to next
         const nextPos = findNextPosition
         if (nextPos) {
+          // Haptic feedback on successful navigation (mobile only)
+          if ('vibrate' in navigator) {
+            navigator.vibrate(50)
+          }
           navigateToPosition(nextPos)
           // Reset carousel to center after navigation
           setTimeout(() => api.scrollTo(1, false), 100)
@@ -171,7 +208,7 @@ export function ScreenshotViewer({
     if (!url) {
       return <div className="h-full w-full bg-card" />
     }
-    
+
     return (
       <div
         className="w-full h-full"
@@ -186,34 +223,10 @@ export function ScreenshotViewer({
     )
   }
 
-  // Fallback: show current image if carousel fails
-  if (!api && imageUrl) {
-    return (
-      <div
-        className={cn(
-          "relative overflow-hidden bg-card select-none",
-          className
-        )}
-      >
-        <div className="absolute inset-0 w-full h-full">
-          {renderImage(imageUrl)}
-        </div>
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
-        {/* Loading state */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card z-20">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-card select-none",
+        "relative bg-card select-none",
         className
       )}
     >
@@ -226,26 +239,28 @@ export function ScreenshotViewer({
           dragFree: false,
           containScroll: 'trimSnaps',
           watchDrag: true,
+          draggable: true,
+          axis: 'x',
         }}
-        className="w-full h-full"
+        className="w-full h-full overflow-hidden"
       >
-        <CarouselContent className="h-full !ml-0">
+        <CarouselContent className="h-full ml-0!">
           {/* Previous screenshot */}
-          <CarouselItem className="basis-full h-full !pl-0">
+          <CarouselItem className="basis-full h-full pl-0!">
             <div className="h-full w-full">
               {renderImage(prevImageUrl)}
             </div>
           </CarouselItem>
 
           {/* Current screenshot */}
-          <CarouselItem className="basis-full h-full !pl-0">
+          <CarouselItem className="basis-full h-full pl-0!">
             <div className="h-full w-full">
               {renderImage(imageUrl)}
             </div>
           </CarouselItem>
 
           {/* Next screenshot */}
-          <CarouselItem className="basis-full h-full !pl-0">
+          <CarouselItem className="basis-full h-full pl-0!">
             <div className="h-full w-full">
               {renderImage(nextImageUrl)}
             </div>
@@ -254,7 +269,76 @@ export function ScreenshotViewer({
       </Carousel>
 
       {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-linear-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
+
+      {/* Swipe indicators */}
+      <AnimatePresence>
+        {showSwipeHint && gamePhase === 'playing' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 1, duration: 0.5 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
+          >
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/50">
+              <motion.div
+                animate={{ x: [-4, 4, -4] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="text-xs text-muted-foreground flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Swipe</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Drag progress indicators */}
+      {gamePhase === 'playing' && Math.abs(dragProgress) > 0.05 && (
+        <>
+          {/* Left indicator */}
+          {findPreviousPosition && dragProgress > 0.05 && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{
+                opacity: Math.min(dragProgress * 2, 1),
+                x: -20 + dragProgress * 30
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 pointer-events-none"
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/20 backdrop-blur-sm border-2 border-primary flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </div>
+            </motion.div>
+          )}
+          {/* Right indicator */}
+          {findNextPosition && dragProgress < -0.05 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{
+                opacity: Math.min(Math.abs(dragProgress) * 2, 1),
+                x: 20 + dragProgress * 30
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 pointer-events-none"
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/20 backdrop-blur-sm border-2 border-primary flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </motion.div>
+          )}
+        </>
+      )}
 
       {/* Loading state */}
       <AnimatePresence>
@@ -271,7 +355,7 @@ export function ScreenshotViewer({
 
       {/* Placeholder when no image */}
       {!imageUrl && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neon-purple/20 to-neon-pink/20 z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-neon-purple/20 to-neon-pink/20 z-20">
           <p className="text-muted-foreground">Screenshot will appear here</p>
         </div>
       )}
