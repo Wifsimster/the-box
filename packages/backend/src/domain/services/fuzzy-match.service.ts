@@ -333,7 +333,34 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
 
   log.debug({ inputParsed, targetParsed }, 'parsed titles')
 
-  // 3. Early rejection: Base name only match for DLC titles
+  // 3.0. Check if input matches the base name (series name) of a "Base: Subtitle" title
+  // Allow "Paper Mario" to match "Paper Mario: The Thousand-Year Door"
+  // This should happen before the DLC rejection check
+  if (targetParsed.baseName && targetParsed.subtitle) {
+    const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
+    const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.baseName))
+    const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
+    
+    // If input matches the base name very well (>= 0.95), allow it
+    // This handles cases like "Paper Mario" matching "Paper Mario: The Thousand-Year Door"
+    if (baseNameSimilarity >= 0.95) {
+      // Additional check: base name should be a series (multiple words or has series number)
+      // This prevents single-word matches like "Cuphead" for DLCs
+      const baseNameWords = targetParsed.baseName.trim().split(/\s+/).length
+      const hasSeriesNumber = targetParsed.seriesNumber !== null
+      
+      // Allow if base name has multiple words (series) or has a series number
+      if (baseNameWords > 1 || hasSeriesNumber) {
+        log.debug(
+          { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity },
+          'base name match (series with subtitle)'
+        )
+        return true
+      }
+    }
+  }
+
+  // 3.1. Early rejection: Base name only match for DLC titles
   // Prevents "Cuphead" from matching "Cuphead: The Delicious Last Course"
   if (isBaseNameOnlyMatch(input, targetParsed)) {
     log.debug(
