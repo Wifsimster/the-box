@@ -374,20 +374,32 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
   // 3.1. Check if input matches the base name (series name) of a "Base: Subtitle" title
   // Allow "Paper Mario" to match "Paper Mario: The Thousand-Year Door"
   // Allow "Castlevania" to match "Castlevania: Harmony of Dissonance"
+  // Allow "Cut the Rope" to match "Cut the Rope: Magic"
+  // Allow "Teenage Mutant Ninja Turtles" to match "Teenage Mutant Ninja Turtles: Shredder's Revenge"
+  // Allow "Planetscape" (typo) to match "Planescape: Torment"
   // Only check this if it's NOT a DLC (checked above)
   if (targetParsed.baseName && targetParsed.subtitle) {
     const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
     const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.baseName))
+    
+    // Quick check: if input exactly matches base name (after normalization), accept immediately
+    if (normalizedInput === normalizedBaseName) {
+      log.debug(
+        { input, gameName, baseName: targetParsed.baseName },
+        'exact base name match (series with subtitle)'
+      )
+      return true
+    }
+    
     const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
     
     // If input matches the base name very well, allow it
-    // For multi-word base names (series), use 0.95 threshold
-    // For single-word base names, require near-exact match (0.98) to avoid DLC false positives
-    const baseNameWords = targetParsed.baseName.trim().split(/\s+/).length
-    const hasSeriesNumber = targetParsed.seriesNumber !== null
-    const requiredSimilarity = baseNameWords > 1 || hasSeriesNumber ? 0.95 : 0.98
+    // Lower threshold (0.90) to allow for common typos (e.g., "Planetscape" -> "Planescape")
+    // DLC detection (checked above) prevents false positives for DLC titles
+    const requiredSimilarity = 0.90
     
     if (baseNameSimilarity >= requiredSimilarity) {
+      const baseNameWords = targetParsed.baseName.trim().split(/\s+/).length
       log.debug(
         { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity, words: baseNameWords },
         'base name match (series with subtitle)'
