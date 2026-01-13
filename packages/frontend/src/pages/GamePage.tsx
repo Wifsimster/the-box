@@ -352,8 +352,8 @@ export default function GamePage() {
               <LiveLeaderboard />
             </div>
 
-            {/* Pagination (Bottom Right) */}
-            <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-30">
+            {/* Pagination (Bottom Right) - Hidden on mobile */}
+            <div className="hidden md:block absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-30">
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
                 <div className="text-sm sm:text-base md:text-lg font-bold text-white drop-shadow-lg">
                   {currentPosition}/{totalScreenshots}

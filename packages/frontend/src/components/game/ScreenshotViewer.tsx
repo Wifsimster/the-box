@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useState, useMemo } from 'react'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useGameStore } from '@/stores/gameStore'
+import { springConfig } from '@/lib/animations'
 
 interface ScreenshotViewerProps {
   imageUrl: string
@@ -15,11 +16,8 @@ export function ScreenshotViewer({
   className,
   onLoad,
 }: ScreenshotViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const touchStartX = useRef<number | null>(null)
-  const touchStartY = useRef<number | null>(null)
-  const [swipeOffset, setSwipeOffset] = useState(0)
+  const x = useMotionValue(0)
   
   const {
     currentPosition,
@@ -30,8 +28,13 @@ export function ScreenshotViewer({
     gamePhase,
   } = useGameStore()
 
+  // Calculate max drag distance (30% of screen width) - memoized to avoid recalculation
+  const maxDragDistance = useMemo(() => {
+    return typeof window !== 'undefined' ? window.innerWidth * 0.3 : 150
+  }, [])
+
   // Find previous navigable position
-  const findPreviousPosition = () => {
+  const findPreviousPosition = useMemo(() => {
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
       if (state?.status === 'skipped' || state?.status === 'not_visited') {
@@ -45,10 +48,10 @@ export function ScreenshotViewer({
       }
     }
     return null
-  }
+  }, [currentPosition, positionStates])
 
   // Check if there's a next position
-  const hasNext = () => {
+  const hasNext = useMemo(() => {
     for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
       const state = positionStates[i]
       if (!state || state.status === 'not_visited' || state.status === 'skipped') {
@@ -62,59 +65,76 @@ export function ScreenshotViewer({
       }
     }
     return false
-  }
+  }, [currentPosition, positionStates, totalScreenshots])
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (gamePhase !== 'playing') return
-    const touch = e.touches[0]
-    touchStartX.current = touch.clientX
-    touchStartY.current = touch.clientY
-    setSwipeOffset(0)
-  }
+  // Opacity based on drag distance for visual feedback
+  const opacity = useTransform(x, [-maxDragDistance, 0, maxDragDistance], [0.7, 1, 0.7])
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (gamePhase !== 'playing' || touchStartX.current === null) return
-    const touch = e.touches[0]
-    const deltaX = touch.clientX - touchStartX.current
-    const deltaY = Math.abs(touch.clientY - (touchStartY.current || 0))
-    
-    // Only allow horizontal swipes (ignore if vertical movement is too large)
-    if (deltaY < Math.abs(deltaX)) {
-      // Limit swipe offset to prevent over-swiping
-      const maxOffset = window.innerWidth * 0.3
-      setSwipeOffset(Math.max(-maxOffset, Math.min(maxOffset, deltaX)))
+  // Handle drag end - determine if we should navigate
+  const handleDragEnd = (_event: any, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (gamePhase !== 'playing') {
+      // Reset position if not playing
+      animate(x, 0, springConfig.snappy)
+      return
     }
-  }
 
-  const handleTouchEnd = () => {
-    if (gamePhase !== 'playing' || touchStartX.current === null) return
-    
     const threshold = 50 // Minimum swipe distance in pixels
-    const offset = swipeOffset
-    
-    if (Math.abs(offset) > threshold) {
-      if (offset < 0) {
+    const velocityThreshold = 500 // Minimum velocity for quick swipes
+    const offset = info.offset.x
+    const velocity = info.velocity.x
+
+    // Check if swipe is significant enough (either by distance or velocity)
+    const shouldNavigate = Math.abs(offset) > threshold || Math.abs(velocity) > velocityThreshold
+
+    if (shouldNavigate) {
+      const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000
+      
+      if (offset < 0 || velocity < -velocityThreshold) {
         // Swipe left - go to next
-        if (hasNext()) {
-          skipToNextPosition()
+        if (hasNext) {
+          // Animate out to the left before navigating
+          animate(x, -screenWidth, {
+            type: 'spring',
+            stiffness: 400,
+            damping: 17,
+            onComplete: () => {
+              skipToNextPosition()
+              // Reset position after navigation
+              x.set(0)
+            },
+          })
+          return
         }
-      } else {
+      } else if (offset > 0 || velocity > velocityThreshold) {
         // Swipe right - go to previous
-        const prevPos = findPreviousPosition()
-        if (prevPos) {
-          navigateToPosition(prevPos)
+        if (findPreviousPosition) {
+          // Animate out to the right before navigating
+          animate(x, screenWidth, {
+            type: 'spring',
+            stiffness: 400,
+            damping: 17,
+            onComplete: () => {
+              navigateToPosition(findPreviousPosition)
+              // Reset position after navigation
+              x.set(0)
+            },
+          })
+          return
         }
       }
     }
-    
-    // Reset
-    touchStartX.current = null
-    touchStartY.current = null
-    setSwipeOffset(0)
+
+    // Reset to center if swipe wasn't significant enough
+    animate(x, 0, springConfig.snappy)
   }
 
+  // Reset position when image changes (new screenshot loaded)
   useEffect(() => {
-    if (!containerRef.current || !imageUrl) return
+    x.set(0)
+  }, [imageUrl, x])
+
+  useEffect(() => {
+    if (!imageUrl) return
 
     setIsLoading(true)
 
@@ -127,15 +147,10 @@ export function ScreenshotViewer({
       setIsLoading(false)
     }
     img.src = imageUrl
-
-    return () => {
-      // Cleanup
-    }
   }, [imageUrl, onLoad])
 
   return (
-    <div
-      ref={containerRef}
+    <motion.div
       className={cn(
         "relative overflow-hidden bg-card touch-none select-none",
         className
@@ -144,12 +159,19 @@ export function ScreenshotViewer({
         backgroundImage: isLoading ? 'none' : `url(${imageUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : undefined,
-        transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
+        x,
+        opacity,
       }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      drag="x"
+      dragConstraints={{ left: -maxDragDistance, right: maxDragDistance }}
+      dragElastic={0.2}
+      dragMomentum={false}
+      onDragEnd={handleDragEnd}
+      whileDrag={{ 
+        cursor: 'grabbing',
+        scale: 0.98,
+      }}
+      transition={springConfig.snappy}
     >
       {/* Gradient overlay for better UI visibility */}
       <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40 pointer-events-none" />
@@ -173,6 +195,6 @@ export function ScreenshotViewer({
           <p className="text-muted-foreground">Screenshot will appear here</p>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
