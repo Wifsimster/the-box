@@ -58,17 +58,17 @@ export default function HistoryPage() {
 
   return (
     <PageHero icon={History} iconStyle="simple" title={t('history.title')}>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Loading State */}
         {loading && (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex justify-center py-8 sm:py-12">
+            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary" />
           </div>
         )}
 
         {/* Empty State */}
         {!loading && history.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-8 sm:py-12 text-sm sm:text-base text-muted-foreground">
             {t('history.noResults')}
           </div>
         )}
@@ -76,33 +76,41 @@ export default function HistoryPage() {
         {/* History List */}
         {!loading && history.length > 0 && (
           <Card className="bg-card/50 border-border">
-            <CardHeader>
-              <CardTitle>{t('history.yourGames')}</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">{t('history.yourGames')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="space-y-2 sm:space-y-3">
                 {history.map((entry, index) => (
                   <motion.div
                     key={entry.sessionId}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-white" />
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                          <span className="text-sm sm:text-base font-semibold break-words">
+                            {formatDate(entry.challengeDate)}
+                          </span>
+                          {!entry.isCompleted && (
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              ({t('history.inProgress')})
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <span className="font-semibold">{formatDate(entry.challengeDate)}</span>
-                      {!entry.isCompleted && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          ({t('history.inProgress')})
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-primary" />
-                      <span className="font-bold text-primary">{entry.totalScore}</span>
+                    <div className="flex items-center justify-end sm:justify-start gap-2 sm:gap-2 flex-shrink-0">
+                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                      <span className="text-base sm:text-lg font-bold text-primary">
+                        {entry.totalScore}
+                      </span>
                     </div>
                   </motion.div>
                 ))}

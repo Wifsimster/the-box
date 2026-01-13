@@ -106,24 +106,24 @@ export function EndGameButton() {
           </DialogHeader>
           
           {/* Score Section */}
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             {/* Total User Score Card - Prominent */}
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 border-2 border-primary/50 p-6 shadow-lg">
-              <div className="flex flex-col items-center justify-center text-center space-y-2">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/30 mb-2">
-                  <Trophy className="w-6 h-6 text-primary" />
+            <div className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 border-2 border-primary/50 p-4 sm:p-6 shadow-lg">
+              <div className="flex flex-col items-center justify-center text-center space-y-1.5 sm:space-y-2">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-primary/30 mb-1 sm:mb-2">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-foreground/70">
+                <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-foreground/70">
                   {t('game.endGame.currentScore')}
                 </div>
                 <div className={cn(
-                  "text-5xl font-black tabular-nums leading-none",
+                  "text-3xl sm:text-4xl md:text-5xl font-black tabular-nums leading-none",
                   getScoreColor(totalScore || 0),
                   getScoreGlow(totalScore || 0)
                 )}>
                   {totalScore || 0}
                 </div>
-                <div className="text-base font-medium text-foreground/60">
+                <div className="text-sm sm:text-base font-medium text-foreground/60">
                   {t('game.endGame.points')}
                 </div>
               </div>
@@ -131,18 +131,18 @@ export function EndGameButton() {
 
             {/* Penalty Card */}
             {penaltyPreview > 0 && (
-              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-destructive/20 via-destructive/15 to-destructive/10 border-2 border-destructive/40 p-4 shadow-md">
+              <div className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-destructive/20 via-destructive/15 to-destructive/10 border-2 border-destructive/40 p-3 sm:p-4 shadow-md">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-destructive/30">
-                      <TrendingDown className="w-5 h-5 text-destructive" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-destructive/30 flex-shrink-0">
+                      <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
                     </div>
-                    <div>
-                      <div className="text-xs font-medium uppercase tracking-wider text-foreground/70">
+                    <div className="min-w-0">
+                      <div className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-foreground/70">
                         {t('game.endGame.penaltyApplied')}
                       </div>
-                      <div className="text-2xl font-bold text-destructive mt-0.5">
-                        -{penaltyPreview} <span className="text-sm font-normal text-foreground/60">{t('game.endGame.points')}</span>
+                      <div className="text-xl sm:text-2xl font-bold text-destructive mt-0.5">
+                        -{penaltyPreview} <span className="text-xs sm:text-sm font-normal text-foreground/60">{t('game.endGame.points')}</span>
                       </div>
                     </div>
                   </div>
@@ -152,31 +152,32 @@ export function EndGameButton() {
 
             {/* Final Score Card - Centered and Prominent */}
             <div className={cn(
-              "relative overflow-hidden rounded-2xl border-2 p-8 shadow-2xl",
+              "relative overflow-hidden rounded-xl sm:rounded-2xl border-2 p-6 sm:p-8 shadow-2xl",
               getScoreBgColor(finalScore)
             )}>
-              <div className="flex flex-col items-center justify-center text-center space-y-3">
-                <div className="text-sm font-semibold uppercase tracking-widest text-foreground/70">
+              <div className="flex flex-col items-center justify-center text-center space-y-2 sm:space-y-3">
+                <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-foreground/70">
                   {t('game.endGame.finalScore')}
                 </div>
                 <div className={cn(
-                  "text-6xl font-black tabular-nums leading-none",
+                  "text-4xl sm:text-5xl md:text-6xl font-black tabular-nums leading-none",
                   getScoreColor(finalScore),
                   getScoreGlow(finalScore)
                 )}>
                   {finalScore}
                 </div>
-                <div className="text-lg font-medium text-foreground/60">
+                <div className="text-base sm:text-lg font-medium text-foreground/60">
                   {t('game.endGame.points')}
                 </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setShowConfirm(false)}
               disabled={isEnding}
+              className="w-full sm:w-auto"
             >
               {t('common.cancel')}
             </Button>
@@ -184,6 +185,7 @@ export function EndGameButton() {
               variant="destructive"
               onClick={handleEndGame}
               disabled={isEnding}
+              className="w-full sm:w-auto"
             >
               {isEnding && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {t('game.endGame.confirm')}

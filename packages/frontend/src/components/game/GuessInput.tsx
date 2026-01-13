@@ -305,11 +305,12 @@ export function GuessInput() {
               })}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setShowEndConfirm(false)}
               disabled={isEnding}
+              className="w-full sm:w-auto"
             >
               {t('common.cancel')}
             </Button>
@@ -317,6 +318,7 @@ export function GuessInput() {
               variant="default"
               onClick={handleEndGame}
               disabled={isEnding}
+              className="w-full sm:w-auto"
             >
               {isEnding && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {t('game.endGame.confirm')}
