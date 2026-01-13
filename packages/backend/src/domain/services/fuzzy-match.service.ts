@@ -289,6 +289,50 @@ function isLikelyDLC(subtitle: string): boolean {
 }
 
 /**
+ * Check if input appears to be an incomplete/truncated version of the base name
+ * Rejects cases like "A Space for the Unb" for "A Space for the Unbound"
+ */
+function isIncompleteBaseName(input: string, baseName: string): boolean {
+  const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
+  const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(baseName))
+  
+  // Check if input is a prefix of baseName (incomplete word at the end)
+  // This catches cases like "A Space for the Unb" vs "A Space for the Unbound"
+  if (normalizedBaseName.startsWith(normalizedInput)) {
+    // Input is a prefix - check if it ends mid-word (not at a word boundary)
+    const inputWords = normalizedInput.trim().split(/\s+/)
+    const baseNameWords = normalizedBaseName.trim().split(/\s+/)
+    
+    // If input has fewer words, it's likely incomplete
+    if (inputWords.length < baseNameWords.length) {
+      return true
+    }
+    
+    // If same number of words but input is shorter, check if last word is incomplete
+    if (inputWords.length === baseNameWords.length && inputWords.length > 0) {
+      const lastInputWord = inputWords[inputWords.length - 1]
+      const lastBaseWord = baseNameWords[baseNameWords.length - 1]
+      // If last word of input is a prefix of last word of baseName and significantly shorter, it's incomplete
+      // Require at least 2 characters difference to avoid false positives with short words
+      if (lastBaseWord.startsWith(lastInputWord) && 
+          lastInputWord.length < lastBaseWord.length && 
+          (lastBaseWord.length - lastInputWord.length) >= 2) {
+        return true
+      }
+    }
+  }
+  
+  // Also check if input is significantly shorter (more than 15% shorter) and starts with baseName
+  // This catches cases where input might be incomplete even if not a strict prefix
+  const lengthRatio = normalizedInput.length / normalizedBaseName.length
+  if (lengthRatio < 0.85 && normalizedBaseName.startsWith(normalizedInput)) {
+    return true
+  }
+  
+  return false
+}
+
+/**
  * Check if input matches only the base name of a "Base: Subtitle" title
  * Used to reject matches like "Cuphead" for "Cuphead: The Delicious Last Course"
  * DLCs should not be matched by their base game name alone
@@ -376,11 +420,31 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
   // Allow "Castlevania" to match "Castlevania: Harmony of Dissonance"
   // Allow "Cut the Rope" to match "Cut the Rope: Magic"
   // Allow "Teenage Mutant Ninja Turtles" to match "Teenage Mutant Ninja Turtles: Shredder's Revenge"
+  // Allow "Grand Theft Auto" to match "Grand Theft Auto IV: Complete Edition"
   // Allow "Planetscape" (typo) to match "Planescape: Torment"
+  // Reject "A Space for the Unb" (incomplete) for "A Space for the Unbound"
   // Only check this if it's NOT a DLC (checked above)
   if (targetParsed.baseName && targetParsed.subtitle) {
     const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
     const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.baseName))
+    
+    // If target has a series number, also check against seriesName (without number)
+    // This allows "Grand Theft Auto" to match "Grand Theft Auto IV: Complete Edition"
+    let normalizedSeriesName: string | null = null
+    if (targetParsed.seriesNumber !== null && targetParsed.seriesName) {
+      normalizedSeriesName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.seriesName))
+    }
+    
+    // Reject incomplete/truncated inputs (e.g., "A Space for the Unb" for "A Space for the Unbound")
+    // Check against seriesName if available (without number), otherwise baseName
+    const nameToCheck = normalizedSeriesName ? targetParsed.seriesName! : targetParsed.baseName
+    if (isIncompleteBaseName(input, nameToCheck)) {
+      log.debug(
+        { input, gameName, checkedName: nameToCheck },
+        'rejected - incomplete base name'
+      )
+      return false
+    }
     
     // Quick check: if input exactly matches base name (after normalization), accept immediately
     if (normalizedInput === normalizedBaseName) {
@@ -391,17 +455,35 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
       return true
     }
     
+    // Also check if input matches seriesName (without number) if target has a number
+    if (normalizedSeriesName && normalizedInput === normalizedSeriesName) {
+      log.debug(
+        { input, gameName, seriesName: targetParsed.seriesName },
+        'exact series name match (series with subtitle and number)'
+      )
+      return true
+    }
+    
     const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
     
-    // If input matches the base name very well, allow it
+    // If target has a series number, also check similarity with seriesName
+    let seriesNameSimilarity = 0
+    if (normalizedSeriesName) {
+      seriesNameSimilarity = jaroWinkler(normalizedInput, normalizedSeriesName)
+    }
+    
+    // Use the better similarity score (baseName or seriesName)
+    const bestSimilarity = Math.max(baseNameSimilarity, seriesNameSimilarity)
+    
+    // If input matches the base name or series name very well, allow it
     // Lower threshold (0.90) to allow for common typos (e.g., "Planetscape" -> "Planescape")
     // DLC detection (checked above) prevents false positives for DLC titles
     const requiredSimilarity = 0.90
     
-    if (baseNameSimilarity >= requiredSimilarity) {
+    if (bestSimilarity >= requiredSimilarity) {
       const baseNameWords = targetParsed.baseName.trim().split(/\s+/).length
       log.debug(
-        { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity, words: baseNameWords },
+        { input, gameName, baseName: targetParsed.baseName, similarity: bestSimilarity, words: baseNameWords, matchedOn: seriesNameSimilarity > baseNameSimilarity ? 'seriesName' : 'baseName' },
         'base name match (series with subtitle)'
       )
       return true

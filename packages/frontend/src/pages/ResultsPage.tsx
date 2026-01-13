@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
-import { Trophy, Home, CheckCircle, XCircle, Award } from 'lucide-react'
+import { Trophy, Home, CheckCircle, XCircle, Award, Clock } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
@@ -119,13 +119,16 @@ export default function ResultsPage() {
                 </div>
                 <div className="text-right">
                   {result.isCorrect && result.scoreEarned > 0 ? (
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end gap-1">
                       <span className="text-success font-bold">
                         +{result.scoreEarned}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        50 pts × {calculateSpeedMultiplier(result.timeTakenMs).toFixed(1)}x
-                      </span>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>
+                          50 pts × {calculateSpeedMultiplier(result.timeTakenMs).toFixed(1)}x {t('game.speed.label')}
+                        </span>
+                      </div>
                     </div>
                   ) : (
                     <span className="text-muted-foreground">

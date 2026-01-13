@@ -16,6 +16,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
+      .whereRaw('user."isAnonymous" = ?', [false])
       .orderBy('game_sessions.total_score', 'desc')
       .limit(limit)
       .select<LeaderboardRow[]>(
@@ -39,11 +40,13 @@ export const leaderboardRepository = {
   },
 
   async getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse> {
-    // Count total completed sessions for this challenge
+    // Count total completed sessions for this challenge (excluding anonymous users)
     const totalResult = await db('game_sessions')
-      .where('daily_challenge_id', challengeId)
-      .andWhere('is_completed', true)
-      .count('id as count')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .where('game_sessions.daily_challenge_id', challengeId)
+      .andWhere('game_sessions.is_completed', true)
+      .whereRaw('user."isAnonymous" = ?', [false])
+      .count('game_sessions.id as count')
       .first()
 
     const totalPlayers = Number(totalResult?.count ?? 0)
@@ -54,10 +57,12 @@ export const leaderboardRepository = {
 
     // Count players with score higher than the given score (to determine rank)
     const higherScoreResult = await db('game_sessions')
-      .where('daily_challenge_id', challengeId)
-      .andWhere('is_completed', true)
-      .andWhere('total_score', '>', score)
-      .count('id as count')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .where('game_sessions.daily_challenge_id', challengeId)
+      .andWhere('game_sessions.is_completed', true)
+      .whereRaw('user."isAnonymous" = ?', [false])
+      .andWhere('game_sessions.total_score', '>', score)
+      .count('game_sessions.id as count')
       .first()
 
     const playersAbove = Number(higherScoreResult?.count ?? 0)

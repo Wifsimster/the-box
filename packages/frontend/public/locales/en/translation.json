@@ -48,7 +48,8 @@
     "speed": {
       "lightning": "Lightning!",
       "fast": "Fast!",
-      "good": "Nice!"
+      "good": "Nice!",
+      "label": "Speed"
     },
     "powerUps": {
       "x2Timer": "Double Time",

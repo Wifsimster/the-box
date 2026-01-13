@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { CheckCircle, XCircle, ChevronRight, Clock, Zap, Target } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, calculateSpeedMultiplier } from '@/lib/utils'
 
 const AUTO_CLOSE_SECONDS = 5
 
@@ -236,23 +236,58 @@ export function ResultCard() {
           transition={{ delay: 0.35 }}
           className="text-center mb-6"
         >
-          <div className="flex items-center justify-center gap-2">
-            <span
-              className={cn(
-                "text-5xl font-black",
-                isCorrect
-                  ? scorePercentage >= 80
-                    ? "text-success"
-                    : scorePercentage >= 50
-                      ? "text-yellow-400"
-                      : "text-orange-400"
-                  : "text-muted-foreground"
-              )}
-            >
-              +{scoreEarned}
-            </span>
-            <span className="text-lg text-muted-foreground font-medium">pts</span>
-          </div>
+          {isCorrect && scoreEarned > 0 ? (
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="flex items-center justify-center gap-2">
+                <span
+                  className={cn(
+                    "text-5xl font-black",
+                    scorePercentage >= 80
+                      ? "text-success"
+                      : scorePercentage >= 50
+                        ? "text-yellow-400"
+                        : "text-orange-400"
+                  )}
+                >
+                  +50
+                </span>
+                <span className="text-5xl font-black text-muted-foreground">×</span>
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "text-5xl font-black",
+                        scorePercentage >= 80
+                          ? "text-success"
+                          : scorePercentage >= 50
+                            ? "text-yellow-400"
+                            : "text-orange-400"
+                      )}
+                    >
+                      {calculateSpeedMultiplier(timeTakenMs).toFixed(1)}
+                    </span>
+                    {speedFeedback && (
+                      <speedFeedback.icon className={cn("w-5 h-5", speedFeedback.color)} />
+                    )}
+                  </div>
+                  <span className={cn(
+                    "text-xs font-bold uppercase tracking-wider",
+                    speedFeedback?.color || "text-muted-foreground"
+                  )}>
+                    {t('game.speed.label', 'Speed')}
+                  </span>
+                </div>
+              </div>
+              <span className="text-lg text-muted-foreground font-medium">pts</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-5xl font-black text-muted-foreground">
+                +{scoreEarned}
+              </span>
+              <span className="text-lg text-muted-foreground font-medium">pts</span>
+            </div>
+          )}
 
           {/* Speed feedback for correct answers */}
           {isCorrect && speedFeedback && (

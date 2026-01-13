@@ -48,7 +48,8 @@
     "speed": {
       "lightning": "Éclair !",
       "fast": "Rapide !",
-      "good": "Bien joué !"
+      "good": "Bien joué !",
+      "label": "Vitesse"
     },
     "powerUps": {
       "x2Timer": "Temps Double",
