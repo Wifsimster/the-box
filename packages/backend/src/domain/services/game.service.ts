@@ -29,9 +29,9 @@ export class GameError extends Error {
 }
 
 const TOTAL_SCREENSHOTS = 10
-const BASE_SCORE = 50
-const UNFOUND_PENALTY = 50
-const HINT_PENALTY = 25
+const BASE_SCORE = 100
+const UNFOUND_PENALTY = 100
+const WRONG_GUESS_PENALTY = 30
 
 /**
  * Calculate speed multiplier based on time taken to find the screenshot
@@ -41,14 +41,16 @@ const HINT_PENALTY = 25
 function calculateSpeedMultiplier(timeTakenMs: number): number {
   const timeTakenSeconds = timeTakenMs / 1000
 
-  if (timeTakenSeconds < 5) {
-    return 2.0 // 100 points
-  } else if (timeTakenSeconds < 15) {
-    return 1.5 // 75 points
-  } else if (timeTakenSeconds < 30) {
-    return 1.2 // 60 points
+  if (timeTakenSeconds < 3) {
+    return 2.0 // 200 points
+  } else if (timeTakenSeconds < 5) {
+    return 1.75 // 175 points
+  } else if (timeTakenSeconds < 10) {
+    return 1.5 // 150 points
+  } else if (timeTakenSeconds < 20) {
+    return 1.25 // 125 points
   } else {
-    return 1.0 // 50 points
+    return 1.0 // 100 points
   }
 }
 
@@ -88,10 +90,6 @@ export const gameService = {
             correctPositions,
             screenshotsFound: correctPositions.length,
             sessionStartedAt: session.started_at.toISOString(),
-            scoringConfig: {
-              initialScore: session.initial_score,
-              decayRate: session.decay_rate,
-            },
           }
           log.debug({ userId, challengeId: challenge.id, tierSessionId: tierSession.id, hasPlayed: true, correctPositions }, 'user has existing session')
         }
@@ -138,10 +136,6 @@ export const gameService = {
       tierSessionId: tierSession.id,
       totalScreenshots: TOTAL_SCREENSHOTS,
       sessionStartedAt: gameSession.started_at.toISOString(),
-      scoringConfig: {
-        initialScore: gameSession.initial_score,
-        decayRate: gameSession.decay_rate,
-      },
     }
   },
 
@@ -215,23 +209,34 @@ export const gameService = {
     const isCorrect = data.gameId === screenshot.gameId ||
       (data.guessText.trim() !== '' && fuzzyMatchService.isMatch(data.guessText, gameName, aliases))
 
-    // Calculate hint penalty if power-up was used
-    let hintPenalty = 0
-    if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher') {
-      hintPenalty = HINT_PENALTY
-    }
-
     // Calculate score based on speed multiplier (only for correct guesses)
-    // Base score is 50 points, multiplied by speed factor
-    // Wrong guesses don't affect score (unlimited tries)
+    // Base score is 100 points, multiplied by speed factor
     let scoreEarned = 0
+    let hintPenalty = 0
     if (isCorrect) {
       const speedMultiplier = calculateSpeedMultiplier(data.roundTimeTakenMs)
-      scoreEarned = Math.round(BASE_SCORE * speedMultiplier) - hintPenalty
+      scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
+      // Cap max score per screenshot at 200 points
+      scoreEarned = Math.min(scoreEarned, 200)
+      
+      // Calculate hint penalty as 20% of earned score (after speed multiplier)
+      if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher') {
+        hintPenalty = Math.round(scoreEarned * 0.20)
+        scoreEarned -= hintPenalty
+      }
     }
 
-    // No penalty for wrong guesses - unlimited tries
-    const newSessionScore = tierSession.score + scoreEarned
+    // Calculate wrong guess penalty
+    let wrongGuessPenalty = 0
+    if (!isCorrect) {
+      wrongGuessPenalty = WRONG_GUESS_PENALTY
+    }
+
+    // Update session score: add earned score, subtract wrong guess penalty
+    const newSessionScore = Math.max(0, tierSession.score + scoreEarned - wrongGuessPenalty)
+    
+    // Track wrong guesses count
+    const newWrongGuesses = tierSession.wrong_guesses + (isCorrect ? 0 : 1)
 
     log.info(
       {
@@ -261,6 +266,7 @@ export const gameService = {
     await sessionRepository.updateTierSession(data.tierSessionId, {
       score: newSessionScore,
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
+      wrongGuesses: newWrongGuesses,
     })
 
     // Get count of screenshots found (correct answers)
@@ -284,8 +290,8 @@ export const gameService = {
       ? (data.position < TOTAL_SCREENSHOTS ? data.position + 1 : null)
       : data.position // Stay on same position if tries remaining
 
-    // Update game session with locked-in score
-    const newTotalScore = tierSession.game_total_score + scoreEarned
+    // Update game session with locked-in score (includes wrong guess penalty)
+    const newTotalScore = Math.max(0, tierSession.game_total_score + scoreEarned - wrongGuessPenalty)
     await sessionRepository.updateGameSession(tierSession.game_session_id, {
       totalScore: newTotalScore,
       currentPosition: nextPosition ?? data.position,
@@ -334,6 +340,7 @@ export const gameService = {
       isCompleted,
       completionReason,
       hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
+      wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       availableHints: {
         year: releaseYear?.toString() ?? null,
         publisher: fullGameData?.publisher ?? null,

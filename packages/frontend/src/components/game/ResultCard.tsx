@@ -18,6 +18,7 @@ export function ResultCard() {
     findNextUnfinished,
     navigateToPosition,
     positionStates,
+    challengeId,
   } = useGameStore()
 
   // Auto-close countdown state (must be before early return)
@@ -46,10 +47,23 @@ export function ResultCard() {
       }
       setGamePhase('playing')
     } else {
-      // All positions finished - show completion
-      setGamePhase('challenge_complete')
+      // No next position - check if we should auto-complete
+      const isDailyGame = challengeId !== null
+      const hasMissingGames = Object.values(positionStates).some(
+        (state) => state.status !== 'correct'
+      )
+      
+      // In daily games, only auto-complete if all games are discovered
+      // Otherwise, stay on game screen to allow manual ending
+      if (isDailyGame && hasMissingGames) {
+        // Stay in playing phase to allow user to navigate and manually end
+        setGamePhase('playing')
+      } else {
+        // All positions finished - show completion
+        setGamePhase('challenge_complete')
+      }
     }
-  }, [nextPosition, navigateToPosition, positionStates, setGamePhase])
+  }, [nextPosition, navigateToPosition, positionStates, setGamePhase, challengeId])
 
   // Auto-close timer - only runs when there's a next position (must be before early return)
   useEffect(() => {
@@ -78,7 +92,7 @@ export function ResultCard() {
   // Early return after all hooks
   if (!lastResult) return null
 
-  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty } = lastResult
+  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, wrongGuessPenalty } = lastResult
   const maxScore = 200
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
@@ -290,7 +304,7 @@ export function ResultCard() {
                         : "text-orange-400"
                   )}
                 >
-                  +50
+                  +100
                 </span>
                 <span className="text-5xl font-black text-muted-foreground">×</span>
                 <span
@@ -303,7 +317,7 @@ export function ResultCard() {
                         : "text-orange-400"
                   )}
                 >
-                  {calculateSpeedMultiplier(timeTakenMs).toFixed(1)}
+                  {calculateSpeedMultiplier(timeTakenMs).toFixed(2)}
                 </span>
               </div>
               <span className="text-lg text-muted-foreground font-medium">pts</span>
@@ -325,7 +339,19 @@ export function ResultCard() {
               transition={{ delay: 0.55 }}
               className="mt-2 text-orange-400 text-sm font-medium"
             >
-              {t('game.hints.penaltyApplied', { penalty: hintPenalty })}
+              {t('game.hints.penaltyApplied', { penalty: hintPenalty })} ({t('game.hints.percentagePenalty', '20% penalty')})
+            </motion.div>
+          )}
+
+          {/* Wrong Guess Penalty Display */}
+          {wrongGuessPenalty && wrongGuessPenalty > 0 && !isCorrect && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="mt-2 text-error text-sm font-medium"
+            >
+              {t('game.wrongGuessPenalty', { penalty: wrongGuessPenalty, defaultValue: `Wrong guess penalty: -${wrongGuessPenalty} pts` })}
             </motion.div>
           )}
 

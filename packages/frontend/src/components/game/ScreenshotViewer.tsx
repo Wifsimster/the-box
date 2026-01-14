@@ -110,7 +110,7 @@ export function ScreenshotViewer({
   return (
     <div
       className={cn(
-        "relative bg-card select-none",
+        "relative bg-card select-none min-h-[60vh] md:min-h-[65vh]",
         className
       )}
       style={{ overflow: 'hidden' }}

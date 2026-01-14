@@ -82,8 +82,6 @@ export interface GameSession {
   dailyChallengeId: number
   currentPosition: number
   totalScore: number
-  initialScore: number
-  decayRate: number
   isCompleted: boolean
   startedAt: string
   completedAt?: string
@@ -176,6 +174,7 @@ export interface GuessResult {
   timeTakenMs: number
   scoreEarned: number
   hintPenalty?: number
+  wrongGuessPenalty?: number
 }
 
 // Position tracking for navigation
@@ -239,16 +238,9 @@ export interface TodayChallengeResponse {
     correctPositions: number[]
     /** Count of screenshots found (correct answers) */
     screenshotsFound: number
-    /** Session start time for score countdown */
+    /** Session start time */
     sessionStartedAt: string
-    /** Scoring configuration for countdown */
-    scoringConfig: ScoringConfig
   } | null
-}
-
-export interface ScoringConfig {
-  initialScore: number
-  decayRate: number
 }
 
 export interface StartChallengeResponse {
@@ -256,7 +248,6 @@ export interface StartChallengeResponse {
   tierSessionId: string
   totalScreenshots: number
   sessionStartedAt: string
-  scoringConfig: ScoringConfig
 }
 
 // Backwards compatibility alias
@@ -292,6 +283,7 @@ export interface GuessResponse {
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
   hintPenalty?: number
+  wrongGuessPenalty?: number
   availableHints?: {
     year: string | null
     publisher: string | null

@@ -103,6 +103,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             timeTakenMs: roundTimeTakenMs,
             scoreEarned: result.scoreEarned,
             hintPenalty: result.hintPenalty,
+            wrongGuessPenalty: result.wrongGuessPenalty,
           })
         }
 
@@ -116,8 +117,23 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Handle game phase transitions
         if (result.isCompleted) {
-          // Show completion
-          store.setGamePhase('challenge_complete')
+          // Check if we're in a daily game and if there are still missing games
+          const isDailyGame = store.challengeId !== null
+          const hasMissingGames = Object.values(store.positionStates).some(
+            (state) => state.status !== 'correct'
+          )
+          
+          // In daily games, only auto-complete if all games are discovered
+          // Otherwise, stay on game screen to allow manual ending
+          if (isDailyGame && hasMissingGames) {
+            // Stay in result phase to show the result, but don't auto-complete
+            if (shouldAdvance) {
+              store.setGamePhase('result')
+            }
+          } else {
+            // Show completion (all games found or not a daily game)
+            store.setGamePhase('challenge_complete')
+          }
         } else if (shouldAdvance) {
           // Show result screen before advancing to next screenshot
           store.setGamePhase('result')

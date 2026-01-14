@@ -10,8 +10,6 @@ export interface GameSessionRow {
   current_tier: number
   current_position: number
   total_score: number
-  initial_score: number
-  decay_rate: number
   is_completed: boolean
   started_at: Date
   completed_at: Date | null
@@ -31,6 +29,7 @@ export interface TierSessionRow {
   tier_id: number
   score: number
   correct_answers: number
+  wrong_guesses: number
   is_completed: boolean
   started_at: Date
   completed_at: Date | null
@@ -40,8 +39,6 @@ export interface TierSessionWithContext extends TierSessionRow {
   user_id: string
   game_total_score: number
   game_session_started_at: Date
-  initial_score: number
-  decay_rate: number
   tier_number: number
   time_limit_seconds: number
 }
@@ -119,8 +116,6 @@ export const sessionRepository = {
         'game_sessions.user_id',
         'game_sessions.total_score as game_total_score',
         'game_sessions.started_at as game_session_started_at',
-        'game_sessions.initial_score',
-        'game_sessions.decay_rate',
         'game_sessions.id as game_session_id',
         'tiers.tier_number',
         'tiers.time_limit_seconds'
@@ -133,14 +128,19 @@ export const sessionRepository = {
   async updateTierSession(tierSessionId: string, data: {
     score: number
     correctAnswers: number
+    wrongGuesses?: number
   }): Promise<void> {
-    log.debug({ tierSessionId, score: data.score, correctAnswers: data.correctAnswers }, 'updateTierSession')
+    log.debug({ tierSessionId, score: data.score, correctAnswers: data.correctAnswers, wrongGuesses: data.wrongGuesses }, 'updateTierSession')
+    const updateData: Record<string, number> = {
+      score: data.score,
+      correct_answers: data.correctAnswers,
+    }
+    if (data.wrongGuesses !== undefined) {
+      updateData.wrong_guesses = data.wrongGuesses
+    }
     await db('tier_sessions')
       .where('id', tierSessionId)
-      .update({
-        score: data.score,
-        correct_answers: data.correctAnswers,
-      })
+      .update(updateData)
   },
 
   async updateGameSession(gameSessionId: string, data: {

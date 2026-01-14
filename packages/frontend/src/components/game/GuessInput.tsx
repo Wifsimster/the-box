@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
 import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2 } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
@@ -22,6 +23,7 @@ export function GuessInput() {
   const [query, setQuery] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [activeHint, setActiveHint] = useState<'year' | 'publisher' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -74,10 +76,17 @@ export function GuessInput() {
         toast.error(result.error)
       }
 
-      // Trigger shake animation on wrong guess
-      if (result.success && !result.isCorrect) {
-        setIsShaking(true)
-        setTimeout(() => setIsShaking(false), 500)
+      // Trigger animations based on result
+      if (result.success) {
+        if (result.isCorrect) {
+          // Green glow animation for correct guess
+          setIsSuccess(true)
+          setTimeout(() => setIsSuccess(false), 800)
+        } else {
+          // Red shake animation for incorrect guess
+          setIsShaking(true)
+          setTimeout(() => setIsShaking(false), 500)
+        }
       }
 
       // Clear input logic:
@@ -170,13 +179,21 @@ export function GuessInput() {
 
   return (
     <div className="relative">
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {isSuccess && t('game.guessCorrect', { defaultValue: 'Correct guess!' })}
+      </div>
+      <div aria-live="assertive" aria-atomic="true" className="sr-only">
+        {isShaking && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
+      </div>
+      
       {/* Input with submit button */}
       <div className="flex gap-1.5 sm:gap-2">
         {/* Previous button - shown when there are skipped positions before current */}
         {canGoPrevious && (
           <Tooltip content={t('game.navigation.previous')}>
             <Button
-              variant="gaming"
+              variant="outline"
               size="lg"
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
@@ -198,8 +215,13 @@ export function GuessInput() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
-            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-card/80 backdrop-blur-sm border-2 focus:border-primary pl-3 sm:pl-4 pr-11 sm:pr-14 ${isShaking ? 'border-red-500' : 'border-border'
-              }`}
+            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] focus:border-primary focus:shadow-[0_0_30px_rgba(168,85,247,0.5)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300 ${
+              isSuccess 
+                ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse' 
+                : isShaking 
+                  ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]' 
+                  : ''
+            }`}
             disabled={gamePhase !== 'playing'}
           />
 
@@ -232,20 +254,28 @@ export function GuessInput() {
                   ? t('game.hints.unavailableYear')
                   : hintYearUsed
                     ? t('game.hints.alreadyUsed')
-                    : t('game.hints.yearTooltip')
+                    : t('game.hints.yearTooltip', { defaultValue: 'Release Year Hint (-25 pts)' })
             }>
               <Button
                 variant="outline"
                 size="lg"
                 onClick={handleHintYear}
                 disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing' || isSubmitting}
-                className={`h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintYearUsed
+                className={`relative h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintYearUsed
                     ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
                     : ''
                   }`}
               >
                 <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintYearUsed ? 'text-yellow-400' : ''
                   }`} />
+                {!hintYearUsed && hasIncorrectGuess && yearAvailable && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
+                  >
+                    -25
+                  </Badge>
+                )}
               </Button>
             </Tooltip>
 
@@ -256,20 +286,28 @@ export function GuessInput() {
                   ? t('game.hints.unavailablePublisher')
                   : hintPublisherUsed
                     ? t('game.hints.alreadyUsed')
-                    : t('game.hints.publisherTooltip')
+                    : t('game.hints.publisherTooltip', { defaultValue: 'Publisher Hint (-25 pts)' })
             }>
               <Button
                 variant="outline"
                 size="lg"
                 onClick={handleHintPublisher}
                 disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing' || isSubmitting}
-                className={`h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintPublisherUsed
+                className={`relative h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintPublisherUsed
                     ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
                     : ''
                   }`}
               >
                 <Building2 className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintPublisherUsed ? 'text-yellow-400' : ''
                   }`} />
+                {!hintPublisherUsed && hasIncorrectGuess && publisherAvailable && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
+                  >
+                    -25
+                  </Badge>
+                )}
               </Button>
             </Tooltip>
           </>
@@ -279,7 +317,7 @@ export function GuessInput() {
         {!isLastPosition && (
           <Tooltip content={t('game.navigation.skip')}>
             <Button
-              variant="gaming"
+              variant="outline"
               size="lg"
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}

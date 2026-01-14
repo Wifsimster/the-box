@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
 import { DailyIntro } from '@/components/game/TierIntro'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
@@ -38,6 +39,9 @@ export default function GamePage() {
   const [isResetting, setIsResetting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
+
+  // Keyboard detection for mobile layout adjustment
+  const { isKeyboardOpen, keyboardHeight } = useKeyboardHeight()
 
   // Get date from query params if provided
   const challengeDateParam = searchParams.get('date')
@@ -455,7 +459,7 @@ export default function GamePage() {
             className="relative w-full h-full"
           >
             {/* Mobile Menu and Home Button (Top Left) */}
-            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-40 flex items-center gap-1 sm:gap-2">
+            <div className="absolute top-1 left-2 sm:top-2 sm:left-4 z-40 flex items-center gap-1 sm:gap-2">
               {/* Mobile Menu Button - shown on mobile, hidden on md and up */}
               <div className="md:hidden">
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -540,16 +544,42 @@ export default function GamePage() {
             </div>
 
             {/* Score and End Game Button (Top Right) */}
-            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-40 flex items-center gap-2">
+            <div className="absolute top-1 right-2 sm:top-2 sm:right-4 z-40 flex items-center gap-2">
               <EndGameButton />
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
                 <ScoreDisplay />
               </div>
             </div>
 
+            {/* Dynamic Blurred Background Layer */}
+            {currentImageUrl && (
+              <motion.div
+                className="absolute inset-0 w-full h-full z-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <img
+                  src={currentImageUrl}
+                  alt=""
+                  className="w-full h-full object-cover blur-3xl opacity-20 scale-110"
+                  aria-hidden="true"
+                />
+                {/* Gradient overlays for ambient effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 via-transparent to-neon-pink/10 pointer-events-none" />
+              </motion.div>
+            )}
+
             {/* Screenshot Viewer (Full Screen) */}
             {/* On mobile, center vertically; on desktop, full screen */}
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center md:block">
+            {/* When keyboard is open on mobile, reduce height and shift up */}
+            <motion.div
+              className="absolute inset-0 w-full flex items-center justify-center md:block z-10"
+              animate={{
+                height: isKeyboardOpen ? `calc(100% - ${keyboardHeight}px - 120px)` : '100%',
+              }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
               {currentImageUrl ? (
                 <ScreenshotViewer
                   imageUrl={currentImageUrl}
@@ -560,32 +590,31 @@ export default function GamePage() {
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               )}
-            </div>
+            </motion.div>
 
             {/* Live Leaderboard (Left Side) - Hidden on mobile, shown on md and up */}
             <div className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-20">
               <LiveLeaderboard />
             </div>
 
-            {/* Pagination (Bottom Right) - Hidden on mobile */}
-            <div className="hidden md:block absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-30">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
-                <div className="text-sm sm:text-base md:text-lg font-bold text-white drop-shadow-lg">
-                  {currentPosition}/{totalScreenshots}
-                </div>
-              </div>
-            </div>
 
             {/* Guess Input (Bottom Center) */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-4 sm:pt-6 md:pt-8 pb-2 sm:pb-3 md:pb-4 px-2 sm:px-3 md:px-4">
-              <div className="container mx-auto max-w-2xl space-y-2 sm:space-y-3 md:space-y-4">
+            {/* Slides up when keyboard is open on mobile */}
+            <motion.div
+              className="absolute left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-2 sm:pt-3 md:pt-4 pb-2 sm:pb-3 md:pb-4 px-2 sm:px-3 md:px-4"
+              animate={{
+                bottom: isKeyboardOpen ? keyboardHeight : 0,
+              }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              <div className="container mx-auto space-y-2 sm:space-y-3 md:space-y-4">
                 {/* Progress Dots (Above Input) */}
                 <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4">
                   <ProgressDots />
                 </div>
                 <GuessInput />
               </div>
-            </div>
+            </motion.div>
 
             {/* Result Card Overlay */}
             <AnimatePresence>

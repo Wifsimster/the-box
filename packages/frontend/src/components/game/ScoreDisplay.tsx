@@ -16,7 +16,8 @@ export function ScoreDisplay() {
         Score
       </span>
       <motion.div
-        className="text-xl sm:text-2xl md:text-3xl font-black tabular-nums text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+        className="text-xl sm:text-2xl md:text-3xl font-extrabold tabular-nums text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.5)] tracking-tight"
+        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' }}
       >
         {totalScore || 0}
       </motion.div>

@@ -11,7 +11,7 @@ Players identify video games from 360° panoramic screenshots. Each daily challe
 ```text
 Daily Challenge
     │
-    └── 10 Screenshots - Countdown scoring with penalty system
+    └── 10 Screenshots - Speed-based scoring with penalty system
 ```
 
 ## Game Phases
@@ -34,45 +34,52 @@ idle ──► tier_intro ──► playing ──► result ──► tier_comp
 
 ## Scoring System
 
-### Countdown Scoring
+### Speed-Based Scoring
 
-The game uses a countdown scoring system where points decrease over time:
+The game uses a speed-based scoring system where points are awarded based on how quickly you identify each screenshot:
 
-- **Initial score**: 1000 points (countdown starts here)
-- **Decay rate**: 2 points per second
-- **Minimum score**: 0 points
+- **Base score**: 100 points per screenshot
+- **Speed multiplier**: Applied based on time taken to find the screenshot
+- **Maximum score per screenshot**: 200 points (capped)
+
+#### Speed Multiplier Tiers
+
+| Time Taken | Multiplier | Points Earned |
+| ---------- | ---------- | ------------ |
+| < 3 seconds | 2.0x | 200 points |
+| < 5 seconds | 1.75x | 175 points |
+| < 10 seconds | 1.5x | 150 points |
+| < 20 seconds | 1.25x | 125 points |
+| 20+ seconds | 1.0x | 100 points |
 
 ```typescript
-calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: number): number {
-  const elapsedMs = Date.now() - sessionStartedAt.getTime()
-  const elapsedSeconds = Math.floor(elapsedMs / 1000)
-  return Math.max(0, initialScore - (elapsedSeconds * decayRate))
+function calculateSpeedMultiplier(timeTakenMs: number): number {
+  const timeTakenSeconds = timeTakenMs / 1000
+  
+  if (timeTakenSeconds < 3) return 2.0    // 200 points
+  if (timeTakenSeconds < 5) return 1.75  // 175 points
+  if (timeTakenSeconds < 10) return 1.5  // 150 points
+  if (timeTakenSeconds < 20) return 1.25 // 125 points
+  return 1.0                              // 100 points
 }
+
+scoreEarned = Math.min(200, Math.round(100 * calculateSpeedMultiplier(timeTakenMs)))
 ```
-
-| Time Elapsed | Score |
-| ------------ | ----- |
-| 0 seconds | 1000 |
-| 100 seconds | 800 |
-| 250 seconds | 500 |
-| 500+ seconds | 0 |
-
-When a player submits a **correct** guess, they "lock in" the current countdown value as their score for that screenshot.
 
 ### Penalty System
 
-Players can guess unlimited times, but wrong guesses incur penalties:
+Players can guess unlimited times, but penalties apply:
 
-- **Wrong guess penalty**: -50 points from session score
-- **Unfound penalty**: -100 points if screenshot not identified
-- **Correct guess**: Locks in current countdown score
+- **Wrong guess penalty**: -30 points per incorrect attempt (deducted from session score)
+- **Hint penalty**: -20% of earned score (percentage-based, applied after speed multiplier)
+- **Unfound penalty**: -100 points per unfound screenshot (applied when ending game early)
 
 The penalty system encourages careful guessing while allowing multiple attempts.
 
 ### Maximum Score
 
-- Per screenshot: 1,000 points
-- Per challenge (10 screenshots): 10,000 points
+- Per screenshot: 200 points (with perfect speed and no penalties)
+- Per challenge (10 screenshots): 2,000 points maximum theoretical score
 
 ## Power-ups
 
@@ -91,7 +98,7 @@ After positions 6, 12, and 18, a bonus round may appear offering power-ups.
 1. Show screenshot (360° panorama)
          │
          ▼
-2. Score countdown begins (1000 → 0)
+2. Timer starts (speed-based scoring begins)
          │
          ▼
 3. Player types game name
@@ -101,12 +108,12 @@ After positions 6, 12, and 18, a bonus round may appear offering power-ups.
          ▼
 4. Player submits guess
          │
-         ├──► Correct? Lock in current score, next screenshot
+         ├──► Correct? Calculate speed multiplier, apply hint penalty if used, next screenshot
          │
-         └──► Wrong? -50 penalty, try again (score keeps decaying)
+         └──► Wrong? -30 penalty, try again (timer continues)
          │
          ▼
-5. Show result (correct game, score earned)
+5. Show result (correct game, score earned, penalties applied)
          │
          ▼
 6. Next screenshot OR challenge complete (after 10)
@@ -143,11 +150,7 @@ Response:
   "sessionId": "uuid",
   "tierSessionId": "uuid",
   "totalScreenshots": 10,
-  "sessionStartedAt": "2025-01-10T14:30:00.000Z",
-  "scoringConfig": {
-    "initialScore": 1000,
-    "decayRate": 2
-  }
+  "sessionStartedAt": "2025-01-10T14:30:00.000Z"
 }
 ```
 
@@ -195,10 +198,11 @@ Response (correct guess):
     "name": "The Witcher 3: Wild Hunt",
     "coverImageUrl": "/covers/witcher3.jpg"
   },
-  "scoreEarned": 850,
-  "totalScore": 850,
+  "scoreEarned": 175,
+  "totalScore": 175,
   "nextPosition": 2,
-  "isCompleted": false
+  "isCompleted": false,
+  "hintPenalty": 35
 }
 ```
 
@@ -212,8 +216,8 @@ Response (wrong guess):
     "coverImageUrl": "/covers/witcher3.jpg"
   },
   "scoreEarned": 0,
-  "scorePenalty": 50,
-  "totalScore": -50,
+  "totalScore": -30,
+  "wrongGuessPenalty": 30,
   "nextPosition": null,
   "isCompleted": false
 }
@@ -230,13 +234,6 @@ interface GameState {
   challengeId: number | null
   currentPosition: number
   sessionStartedAt: string | null
-
-  // Countdown Scoring
-  scoringConfig: {
-    initialScore: number      // Default: 1000
-    decayRate: number         // Default: 2 points/second
-  } | null
-  currentScore: number        // Calculated from elapsed time
 
   // Scoring
   totalScore: number

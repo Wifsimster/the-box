@@ -31,8 +31,9 @@ export interface GuessSubmissionResult {
   screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
-  completionReason?: 'all_found'
+  completionReason?: 'all_found' | 'forfeit'
   hintPenalty?: number
+  wrongGuessPenalty?: number
   availableHints?: {
     year: string | null
     publisher: string | null
@@ -60,9 +61,6 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
 
   private correctAnswers = 0
   private totalLockedScore = 0
-  private sessionStartTime = Date.now()
-  private initialScore = 1000
-  private decayRate = 2
   private readonly WRONG_GUESS_PENALTY = 100
 
   async submitGuess(
@@ -73,15 +71,9 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
 
     const isCorrect = request.gameId === this.mockCorrectGame.id
 
-    // Calculate countdown score based on elapsed time
-    // Use sessionStartTime since sessionElapsedMs is not in the request
-    const elapsedMs = Date.now() - this.sessionStartTime
-    const elapsedSeconds = Math.floor(elapsedMs / 1000)
-    const currentScore = Math.max(0, this.initialScore - (elapsedSeconds * this.decayRate))
-
     // Score is "locked in" only on correct guess
     // Wrong guesses deduct 100 points from total score (clamped at 0)
-    const scoreEarned = isCorrect ? currentScore : 0
+    const scoreEarned = isCorrect ? 100 : 0
     const scorePenalty = isCorrect ? 0 : this.WRONG_GUESS_PENALTY
 
     if (isCorrect) {
