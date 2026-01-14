@@ -34,7 +34,7 @@ export function ProgressDots() {
   }
 
   return (
-    <div className="flex gap-1 sm:gap-1.5 md:gap-2 bg-black/50 backdrop-blur-sm rounded-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex gap-1.5 sm:gap-2 md:gap-1.5 bg-black/60 backdrop-blur-md rounded-full px-2.5 sm:px-4 md:px-3 py-2 sm:py-2.5 md:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-lg">
       {Array.from({ length: totalScreenshots }, (_, i) => {
         const pos = i + 1
         const state = positionStates[pos]
@@ -48,15 +48,19 @@ export function ProgressDots() {
             onClick={() => handleDotClick(pos)}
             disabled={!isClickable}
             className={cn(
-              "w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 flex-shrink-0 touch-manipulation",
+              "min-w-8 min-h-8 w-8 h-8 sm:w-10 sm:h-10 md:w-7 md:h-7 rounded-full transition-all duration-300 shrink-0 touch-manipulation flex items-center justify-center font-semibold text-xs sm:text-sm md:text-[10px]",
               getStatusColor(status),
-              isCurrent && "ring-2 ring-white ring-offset-1",
-              isClickable && "cursor-pointer hover:scale-125 active:scale-110"
+              isCurrent && "ring-2 sm:ring-3 md:ring-2 ring-white ring-offset-1 ring-offset-black/60 shadow-xl",
+              isClickable && "cursor-pointer hover:scale-125 hover:shadow-lg active:scale-95",
+              !isClickable && "cursor-default opacity-90"
             )}
-            animate={isCurrent ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-            transition={{ duration: 0.5, repeat: isCurrent ? Infinity : 0, repeatDelay: 1 }}
-            aria-label={`Screenshot ${pos}: ${status}`}
-          />
+            animate={isCurrent ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+            transition={{ duration: 0.6, repeat: isCurrent ? Infinity : 0, repeatDelay: 1.5 }}
+            aria-label={`Screenshot ${pos}${isCurrent ? ' (current)' : ''}: ${status}`}
+            aria-current={isCurrent ? 'true' : undefined}
+          >
+            <span className="text-white drop-shadow-md">{pos}</span>
+          </motion.button>
         )
       })}
     </div>

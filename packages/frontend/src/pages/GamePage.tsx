@@ -52,6 +52,7 @@ export default function GamePage() {
     totalScore,
     currentScreenshotData,
     isLoading,
+    guessResults,
     setGamePhase,
     setChallengeId,
     setSessionId,

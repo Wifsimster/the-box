@@ -194,6 +194,7 @@ export const gameService = {
     guessText: string
     roundTimeTakenMs: number
     userId: string
+    powerUpUsed?: 'hint_year' | 'hint_publisher'
   }): Promise<GuessResponse> {
     log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
 
@@ -255,7 +256,6 @@ export const gameService = {
       isCorrect,
       sessionElapsedMs: data.roundTimeTakenMs, // Store round time as sessionElapsedMs for backward compatibility
       scoreEarned,
-      powerUpUsed: data.powerUpUsed,
     })
 
     await sessionRepository.updateTierSession(data.tierSessionId, {
@@ -320,8 +320,8 @@ export const gameService = {
 
     // Add publisher and developer to correctGame if available
     if (fullGameData) {
-      correctGame.publisher = fullGameData.publisher
-      correctGame.developer = fullGameData.developer
+      correctGame.publisher = fullGameData.publisher ?? undefined
+      correctGame.developer = fullGameData.developer ?? undefined
     }
 
     return {
