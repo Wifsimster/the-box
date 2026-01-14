@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar, Home, AlertTriangle, Move, Gamepad2, Zap, Images, Lightbulb } from 'lucide-react'
+import { Play, Calendar, Home, AlertTriangle, Move, Gamepad2, Zap, Images, Lightbulb, Trophy } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -119,6 +119,10 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
             <li className="flex items-start gap-2">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
               <span>{t('game.rules.time')}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
+              <span>{t('game.rules.quality')}</span>
             </li>
           </ul>
         </motion.div>

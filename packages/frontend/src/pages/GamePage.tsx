@@ -12,7 +12,15 @@ import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
 import { Button } from '@/components/ui/button'
-import { Globe, Home, Loader2, Trophy, RotateCcw } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { Globe, Home, Loader2, Trophy, RotateCcw, Menu, Settings, History, LogOut } from 'lucide-react'
 import { adminApi } from '@/lib/api/admin'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useWorldScore } from '@/hooks/useWorldScore'
@@ -28,6 +36,7 @@ export default function GamePage() {
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
 
   // Get date from query params if provided
@@ -444,12 +453,87 @@ export default function GamePage() {
             exit={{ opacity: 0 }}
             className="relative w-full h-full"
           >
-            {/* Home Button (Top Left) */}
-            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-40">
+            {/* Mobile Menu and Home Button (Top Left) */}
+            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-40 flex items-center gap-1 sm:gap-2">
+              {/* Mobile Menu Button - shown on mobile, hidden on md and up */}
+              <div className="md:hidden">
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 px-2">
+                      <Menu className="h-4 w-4" />
+                      <span className="sr-only">Toggle menu</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-70 sm:w-80">
+                    <SheetHeader>
+                      <SheetTitle className="text-left">Menu</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-2 mt-6">
+                      <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                        <Link to={localizedPath('/')} onClick={() => setMobileMenuOpen(false)}>
+                          <Home className="w-4 h-4 mr-2" />
+                          {t('common.home')}
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                        <Link to={localizedPath('/leaderboard')} onClick={() => setMobileMenuOpen(false)}>
+                          <Trophy className="w-4 h-4 mr-2" />
+                          {t('common.leaderboard')}
+                        </Link>
+                      </Button>
+                      {session && session.user && session.user.id && (
+                        <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                          <Link to={localizedPath('/history')} onClick={() => setMobileMenuOpen(false)}>
+                            <History className="w-4 h-4 mr-2" />
+                            {t('common.history')}
+                          </Link>
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                          <Link to={localizedPath('/admin')} onClick={() => setMobileMenuOpen(false)}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            {t('common.admin')}
+                          </Link>
+                        </Button>
+                      )}
+                      {session && session.user && session.user.id && (
+                        <div className="border-t border-border pt-4 mt-4">
+                          <div className="flex flex-col gap-3">
+                            {session.user.name !== 'Anonymous' && (
+                              <div className="flex items-center justify-between">
+                                {session.user.role === 'admin' ? (
+                                  <Badge variant="admin">
+                                    {session.user.name || session.user.email?.split('@')[0]}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    {session.user.name || session.user.email?.split('@')[0]}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={async () => {
+                              await authClient.signOut()
+                              setMobileMenuOpen(false)
+                              navigate(localizedPath('/'))
+                            }} className="w-full justify-start">
+                              <LogOut className="w-4 h-4 mr-2" />
+                              {t('common.logout')}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              {/* Home Button */}
               <Button variant="ghost" size="sm" asChild className="h-8 sm:h-9 px-2 sm:px-3">
                 <Link to={localizedPath('/')}>
-                  <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-                  <span className="text-xs sm:text-sm">{t('common.home')}</span>
+                  <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs sm:text-sm">{t('common.home')}</span>
                 </Link>
               </Button>
             </div>

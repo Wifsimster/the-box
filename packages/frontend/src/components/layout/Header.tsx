@@ -94,22 +94,22 @@ export function Header() {
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
                 <NavigationLinks isMobile={true} />
-                
+
                 {/* Mobile Auth Section */}
                 <div className="border-t border-border pt-4 mt-4">
                   {showAuthButtons ? (
-                    <div className="flex flex-col gap-2">
+                    <>
                       <Button variant="ghost" size="sm" asChild className="w-full justify-start">
                         <Link to={localizedPath('/login')} onClick={() => setMobileMenuOpen(false)}>
                           {t('common.login')}
                         </Link>
                       </Button>
-                      <Button variant="gaming" size="sm" asChild className="w-full">
+                      <Button variant="gaming" size="sm" asChild className="w-full mt-2">
                         <Link to={localizedPath('/register')} onClick={() => setMobileMenuOpen(false)}>
                           {t('common.register')}
                         </Link>
                       </Button>
-                    </div>
+                    </>
                   ) : (
                     hasValidSession && !isPending && (
                       <div className="flex flex-col gap-3">
@@ -138,6 +138,21 @@ export function Header() {
               </div>
             </SheetContent>
           </Sheet>
+        </div>
+
+        {/* Mobile Username Display - shown on mobile, hidden on md and up */}
+        <div className="flex md:hidden items-center">
+          {hasValidSession && !isPending && session.user?.name !== 'Anonymous' && (
+            session?.user?.role === 'admin' ? (
+              <Badge variant="admin" className="text-xs">
+                {session.user?.name || session.user?.email?.split('@')[0]}
+              </Badge>
+            ) : (
+              <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-37.5 sm:max-w-50">
+                {session.user?.name || session.user?.email?.split('@')[0]}
+              </span>
+            )
+          )}
         </div>
 
         {/* Desktop Navigation - hidden on mobile, shown on md and up */}

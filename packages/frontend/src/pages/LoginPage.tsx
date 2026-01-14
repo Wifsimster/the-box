@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { signIn, authClient } from '@/lib/auth-client'
-import { Lock, User, Loader2, Sparkles } from 'lucide-react'
+import { Lock, User, Loader2 } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapLoginError } from '@/lib/auth-errors'
@@ -44,30 +44,6 @@ export default function LoginPage() {
           password: formData.password,
         })
       }
-
-      if (result.error) {
-        const errorKey = mapLoginError(result.error)
-        setError(t(errorKey))
-        setIsLoading(false)
-        return
-      }
-
-      // Wait a moment for the session cookie to be set
-      await new Promise(resolve => setTimeout(resolve, 100))
-      navigate(redirectTo)
-    } catch (err) {
-      const errorKey = mapLoginError(err)
-      setError(t(errorKey))
-      setIsLoading(false)
-    }
-  }
-
-  const handleGuestLogin = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const result = await authClient.signIn.anonymous()
 
       if (result.error) {
         const errorKey = mapLoginError(result.error)
@@ -130,17 +106,9 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground/80">
-                    {t('auth.password')}
-                  </label>
-                  <Link
-                    to={localizedPath('/forgot-password')}
-                    className="text-xs text-neon-purple hover:text-neon-pink transition-colors"
-                  >
-                    {t('auth.forgotPassword')}
-                  </Link>
-                </div>
+                <label className="text-sm font-medium text-foreground/80">
+                  {t('auth.password')}
+                </label>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
                   <Input
@@ -151,6 +119,14 @@ export default function LoginPage() {
                     className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-purple/50 rounded-xl"
                     required
                   />
+                </div>
+                <div className="flex justify-end">
+                  <Link
+                    to={localizedPath('/forgot-password')}
+                    className="text-xs text-neon-purple hover:text-neon-pink transition-colors"
+                  >
+                    {t('auth.forgotPassword')}
+                  </Link>
                 </div>
               </div>
 
@@ -178,29 +154,6 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card/30 backdrop-blur px-3 text-muted-foreground">
-                  {t('auth.or')}
-                </span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="w-full h-12 rounded-xl border-white/10 hover:border-neon-cyan/50 hover:bg-neon-cyan/5 transition-all"
-              onClick={handleGuestLogin}
-              disabled={isLoading}
-            >
-              <Sparkles className="w-4 h-4 mr-2 text-neon-cyan" />
-              {t('auth.continueAsGuest')}
-            </Button>
 
             <p className="text-center text-sm text-muted-foreground mt-6">
               {t('auth.noAccount')}{' '}

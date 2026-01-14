@@ -77,7 +77,8 @@
       "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
       "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
-      "time": "Plus vous répondez vite, plus vous gagnez de points"
+      "time": "Plus vous répondez vite, plus vous gagnez de points",
+      "quality": "Tous les jeux ont un Metascore d'au moins 85"
     },
     "scoring": {
       "title": "Comment le score fonctionne",
@@ -254,7 +255,7 @@
       "recurringJobs": "Tâches planifiées",
       "syncNewGames": "Sync nouveaux jeux",
       "syncRunning": "Synchronisation en cours...",
-      "createDailyChallenge": "Création défi quotidien",
+      "createDailyChallenge": "Création défi quotidien (Metascore ≥ 85)",
       "dailyChallengeRunning": "Création du défi en cours...",
       "atMidnight": "Minuit UTC",
       "weeklySunday2am": "Dimanche 2h UTC (hebdo)",

@@ -77,7 +77,8 @@
       "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
       "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
-      "time": "The faster you answer, the more points you earn"
+      "time": "The faster you answer, the more points you earn",
+      "quality": "All games have a Metascore of 85 or higher"
     },
     "scoring": {
       "title": "How scoring works",
@@ -254,7 +255,7 @@
       "recurringJobs": "Scheduled Jobs",
       "syncNewGames": "Sync New Games",
       "syncRunning": "Syncing new games...",
-      "createDailyChallenge": "Create Daily Challenge",
+      "createDailyChallenge": "Create Daily Challenge (Metascore ≥ 85)",
       "dailyChallengeRunning": "Creating daily challenge...",
       "atMidnight": "Midnight UTC",
       "weeklySunday2am": "Sunday 2 AM UTC (weekly)",

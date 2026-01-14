@@ -3,7 +3,7 @@
  *
  * This module handles the recurring job that:
  * - Creates a new daily challenge for the current day (UTC)
- * - Randomly selects 10 screenshots from the available pool
+ * - Randomly selects 10 screenshots from games with Metacritic score >= 85
  * - Allows reuse if fewer than 10 unique screenshots available
  * - Skips creation if challenge already exists for the date (idempotent)
  */
@@ -34,36 +34,49 @@ function getTodayDateUTC(): string {
 
 /**
  * Select N random screenshots from the database.
+ * Only selects screenshots from games with metacritic >= 85.
  * If fewer than N unique screenshots are available, allows reuse.
  */
 async function selectRandomScreenshots(count: number): Promise<number[]> {
-  // Get count of available screenshots
-  const result = await db('screenshots').count('id as count').first()
+  // Get count of available screenshots from games with metascore >= 85
+  const result = await db('screenshots')
+    .join('games', 'screenshots.game_id', 'games.id')
+    .where('screenshots.is_active', true)
+    .where('games.metacritic', '>=', 85)
+    .count('screenshots.id as count')
+    .first()
   const available = Number(result?.count ?? 0)
 
   if (available === 0) {
-    throw new Error('No screenshots available in database')
+    throw new Error('No screenshots available from games with metascore >= 85')
   }
 
-  log.info({ available, needed: count }, 'Selecting random screenshots')
+  log.info({ available, needed: count, minMetascore: 85 }, 'Selecting random screenshots')
 
   // If we have enough unique screenshots, use ORDER BY RANDOM()
   if (available >= count) {
     const rows = await db('screenshots')
+      .join('games', 'screenshots.game_id', 'games.id')
+      .where('screenshots.is_active', true)
+      .where('games.metacritic', '>=', 85)
       .orderByRaw('RANDOM()')
       .limit(count)
-      .pluck<number[]>('id')
+      .pluck<number[]>('screenshots.id')
     return rows
   }
 
   // Not enough unique screenshots - allow reuse
   log.warn(
-    { available, needed: count },
-    'Not enough unique screenshots, allowing reuse'
+    { available, needed: count, minMetascore: 85 },
+    'Not enough unique screenshots with metascore >= 85, allowing reuse'
   )
 
-  // Get all screenshot IDs
-  const allIds = await db('screenshots').pluck<number[]>('id')
+  // Get all screenshot IDs from games with metascore >= 85
+  const allIds = await db('screenshots')
+    .join('games', 'screenshots.game_id', 'games.id')
+    .where('screenshots.is_active', true)
+    .where('games.metacritic', '>=', 85)
+    .pluck<number[]>('screenshots.id')
 
   // Build selection with reuse
   const selected: number[] = []
