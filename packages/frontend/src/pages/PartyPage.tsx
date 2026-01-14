@@ -94,9 +94,9 @@ export default function PartyPage() {
         className="space-y-6"
       >
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Mode Multijoueur</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('party.title')}</h1>
           <p className="text-muted-foreground">
-            Jouez avec vos amis en temps reel
+            {t('party.subtitle')}
           </p>
         </div>
 
@@ -113,12 +113,12 @@ export default function PartyPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Creer une partie
+                  {t('party.createTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Creez une partie et invitez vos amis avec le code
+                  {t('party.createDescription')}
                 </p>
                 <Button
                   onClick={handleCreateParty}
@@ -126,7 +126,7 @@ export default function PartyPage() {
                   className="w-full"
                   variant="gaming"
                 >
-                  {isLoading ? 'Creation...' : 'Creer une partie'}
+                  {isLoading ? t('party.creating') : t('party.createButton')}
                 </Button>
               </CardContent>
             </Card>
@@ -136,17 +136,17 @@ export default function PartyPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">ou</span>
+                <span className="bg-background px-2 text-muted-foreground">{t('party.or')}</span>
               </div>
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle>Rejoindre une partie</CardTitle>
+                <CardTitle>{t('party.joinTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Input
-                  placeholder="Code de la partie (ex: ABC123)"
+                  placeholder={t('party.codePlaceholder')}
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   maxLength={6}
@@ -157,7 +157,7 @@ export default function PartyPage() {
                   disabled={isLoading || joinCode.length < 6}
                   className="w-full"
                 >
-                  {isLoading ? 'Connexion...' : 'Rejoindre'}
+                  {isLoading ? t('party.connecting') : t('party.joinButton')}
                 </Button>
               </CardContent>
             </Card>
@@ -169,7 +169,7 @@ export default function PartyPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Salon de jeu
+                  {t('party.lobbyTitle')}
                 </CardTitle>
                 <Button
                   variant="ghost"
@@ -178,14 +178,14 @@ export default function PartyPage() {
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <LogOut className="w-4 h-4 mr-1" />
-                  Quitter
+                  {t('party.leave')}
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Party Code */}
               <div className="bg-muted/50 rounded-lg p-4 text-center">
-                <p className="text-sm text-muted-foreground mb-2">Code de la partie</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('party.partyCode')}</p>
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-3xl font-mono font-bold tracking-widest">
                     {partyCode}
@@ -208,7 +208,7 @@ export default function PartyPage() {
               {/* Members List */}
               <div>
                 <h3 className="text-sm font-medium mb-3">
-                  Joueurs ({party?.members.length || 0})
+                  {t('party.players')} ({party?.members.length || 0})
                 </h3>
                 <div className="space-y-2">
                   {party?.members.map((member) => (
@@ -224,7 +224,7 @@ export default function PartyPage() {
                         <span className="font-medium">{member.username}</span>
                       </div>
                       {member.isHost && (
-                        <span className="text-xs text-muted-foreground">Admin</span>
+                        <span className="text-xs text-muted-foreground">{t('party.admin')}</span>
                       )}
                     </div>
                   ))}
@@ -234,7 +234,7 @@ export default function PartyPage() {
               {/* Leaderboard (if game has scores) */}
               {leaderboard.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium mb-3">Classement</h3>
+                  <h3 className="text-sm font-medium mb-3">{t('party.leaderboard')}</h3>
                   <div className="space-y-1">
                     {leaderboard.map((entry, index) => (
                       <div
@@ -255,7 +255,7 @@ export default function PartyPage() {
               {isHost && (
                 <div className="border-t pt-4 space-y-3">
                   <p className="text-xs text-muted-foreground text-center">
-                    Vous etes l'administrateur de cette partie
+                    {t('party.hostMessage')}
                   </p>
 
                   {!isGameStarted ? (
@@ -266,7 +266,7 @@ export default function PartyPage() {
                       disabled={!party || party.members.length < 1}
                     >
                       <Play className="w-4 h-4 mr-2" />
-                      Lancer la partie
+                      {t('party.startGame')}
                     </Button>
                   ) : (
                     <Button
@@ -275,7 +275,7 @@ export default function PartyPage() {
                       variant="outline"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      Recommencer la partie
+                      {t('party.resetGame')}
                     </Button>
                   )}
                 </div>
@@ -284,20 +284,20 @@ export default function PartyPage() {
               {/* Non-host waiting message */}
               {!isHost && !isGameStarted && (
                 <div className="text-center text-muted-foreground text-sm">
-                  En attente du lancement par l'administrateur...
+                  {t('party.waitingMessage')}
                 </div>
               )}
 
               {/* Game started indicator */}
               {isGameStarted && (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
-                  <p className="text-green-500 font-medium">Partie en cours!</p>
+                  <p className="text-green-500 font-medium">{t('party.gameStarted')}</p>
                   <Button
                     onClick={() => navigate(localizedPath('/play'))}
                     className="mt-2"
                     variant="gaming"
                   >
-                    Rejoindre le jeu
+                    {t('party.joinGame')}
                   </Button>
                 </div>
               )}

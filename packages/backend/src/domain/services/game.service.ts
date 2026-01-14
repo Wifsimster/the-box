@@ -31,6 +31,7 @@ export class GameError extends Error {
 const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 50
 const UNFOUND_PENALTY = 50
+const HINT_PENALTY = 25
 
 /**
  * Calculate speed multiplier based on time taken to find the screenshot
@@ -213,13 +214,19 @@ export const gameService = {
     const isCorrect = data.gameId === screenshot.gameId ||
       (data.guessText.trim() !== '' && fuzzyMatchService.isMatch(data.guessText, gameName, aliases))
 
+    // Calculate hint penalty if power-up was used
+    let hintPenalty = 0
+    if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher') {
+      hintPenalty = HINT_PENALTY
+    }
+
     // Calculate score based on speed multiplier (only for correct guesses)
     // Base score is 50 points, multiplied by speed factor
     // Wrong guesses don't affect score (unlimited tries)
     let scoreEarned = 0
     if (isCorrect) {
       const speedMultiplier = calculateSpeedMultiplier(data.roundTimeTakenMs)
-      scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
+      scoreEarned = Math.round(BASE_SCORE * speedMultiplier) - hintPenalty
     }
 
     // No penalty for wrong guesses - unlimited tries
@@ -248,6 +255,7 @@ export const gameService = {
       isCorrect,
       sessionElapsedMs: data.roundTimeTakenMs, // Store round time as sessionElapsedMs for backward compatibility
       scoreEarned,
+      powerUpUsed: data.powerUpUsed,
     })
 
     await sessionRepository.updateTierSession(data.tierSessionId, {
@@ -307,6 +315,15 @@ export const gameService = {
       metacritic,
     }
 
+    // Get full game data for hints (developer and publisher)
+    const fullGameData = await screenshotRepository.getGameByScreenshotId(data.screenshotId)
+
+    // Add publisher and developer to correctGame if available
+    if (fullGameData) {
+      correctGame.publisher = fullGameData.publisher
+      correctGame.developer = fullGameData.developer
+    }
+
     return {
       isCorrect,
       correctGame,
@@ -316,6 +333,11 @@ export const gameService = {
       nextPosition,
       isCompleted,
       completionReason,
+      hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
+      availableHints: {
+        year: releaseYear?.toString() ?? null,
+        publisher: fullGameData?.publisher ?? null,
+      },
     }
   },
 

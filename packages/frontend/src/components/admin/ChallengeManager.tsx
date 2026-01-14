@@ -37,24 +37,30 @@ export function ChallengeManager() {
   }
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
-      <CardHeader className="p-4 sm:p-6">
-        <div className="flex items-start sm:items-center gap-3">
-          <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple flex-shrink-0 mt-0.5 sm:mt-0" />
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-base sm:text-lg">{t('admin.challenges.todaysChallenge')}</CardTitle>
-            <CardDescription className="text-xs sm:text-sm mt-1">{t('admin.challenges.rerollDesc')}</CardDescription>
+    <Card className="relative bg-card/50 backdrop-blur-sm border-neon-purple/30">
+      {/* Date Badge - Top Right */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">{t('admin.challenges.date')}</span>
+          <div className="bg-neon-purple/20 border border-neon-purple/40 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+            <span className="font-mono text-lg sm:text-xl font-bold text-neon-purple">{today}</span>
+          </div>
+        </div>
+      </div>
+
+      <CardHeader className="p-4 sm:p-6 pr-24 sm:pr-32">
+        <div className="flex items-start gap-3">
+          <Calendar className="h-6 w-6 text-neon-purple shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1 space-y-1">
+            <CardTitle className="text-lg sm:text-xl">{t('admin.challenges.todaysChallenge')}</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">{t('admin.challenges.rerollDesc')}</CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
-          <span>{t('admin.challenges.date')}:</span>
-          <span className="font-mono text-foreground">{today}</span>
-        </div>
         <div className="space-y-2">
-          <Label className="text-muted-foreground font-normal text-sm">
+          <Label className="text-sm font-medium text-muted-foreground">
             {t('admin.jobs.minMetacritic')}
           </Label>
           <Input
@@ -67,12 +73,12 @@ export function ChallengeManager() {
             min={70}
             max={100}
             disabled={isConfirming || rerollLoading}
-            className="w-full"
+            className="max-w-xs"
           />
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-col sm:flex-row gap-2 p-4 sm:p-6 pt-0">
+      <CardFooter className="flex flex-col-reverse sm:flex-row gap-2 p-4 sm:p-6 pt-0">
         {isConfirming ? (
           <>
             <Button

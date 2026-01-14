@@ -72,6 +72,16 @@ export const screenshotRepository = {
     }
   },
 
+  async getGameByScreenshotId(screenshotId: number): Promise<{ publisher: string | null; developer: string | null } | null> {
+    const row = await db('screenshots')
+      .join('games', 'screenshots.game_id', 'games.id')
+      .where('screenshots.id', screenshotId)
+      .select('games.publisher', 'games.developer')
+      .first<{ publisher: string | null; developer: string | null }>()
+
+    return row ?? null
+  },
+
   async findAll(): Promise<ScreenshotWithGame[]> {
     return await db('screenshots')
       .join('games', 'screenshots.game_id', 'games.id')

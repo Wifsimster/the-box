@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Alert } from '@/components/ui/alert'
 import { useGameStore } from '@/stores/gameStore'
-import { SkipForward, SkipBack, Loader2, Send } from 'lucide-react'
+import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2 } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
@@ -22,6 +22,7 @@ export function GuessInput() {
   const [query, setQuery] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
+  const [activeHint, setActiveHint] = useState<'year' | 'publisher' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auth hook for admin check
@@ -46,8 +47,11 @@ export function GuessInput() {
     positionStates,
     currentScreenshotData,
     challengeId,
+    availableHints,
+    useHintYear,
+    useHintPublisher,
   } = useGameStore()
-  
+
   // Daily challenge game mode (party mode = daily guess game)
   const isDailyChallenge = challengeId !== null
 
@@ -84,7 +88,7 @@ export function GuessInput() {
         // Get current challenge ID to check if we're in daily challenge mode
         const currentChallengeId = useGameStore.getState().challengeId
         const isDailyChallengeMode = currentChallengeId !== null
-        
+
         if (result.isCorrect) {
           // Correct guess - always clear
           setQuery('')
@@ -135,6 +139,28 @@ export function GuessInput() {
   // Hide skip button on last screenshot
   const isLastPosition = currentPosition === totalScreenshots
 
+  // Get current position state for hint availability
+  const currentPosState = positionStates[currentPosition]
+  const hasIncorrectGuess = currentPosState?.hasIncorrectGuess || false
+  const hintYearUsed = currentPosState?.hintYearUsed || false
+  const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
+
+  // Check if hints are available (data exists)
+  const yearAvailable = availableHints?.year !== null && availableHints?.year !== undefined
+  const publisherAvailable = availableHints?.publisher !== null && availableHints?.publisher !== undefined
+
+  const handleHintYear = () => {
+    if (!hasIncorrectGuess || hintYearUsed || !yearAvailable) return
+    setActiveHint('year')
+    useHintYear(currentPosition)
+  }
+
+  const handleHintPublisher = () => {
+    if (!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable) return
+    setActiveHint('publisher')
+    useHintPublisher(currentPosition)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -154,7 +180,7 @@ export function GuessInput() {
               size="lg"
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
-              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-[48px] sm:min-w-[56px] touch-manipulation"
+              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-12 sm:min-w-14 touch-manipulation"
             >
               <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
@@ -172,9 +198,8 @@ export function GuessInput() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
-            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-card/80 backdrop-blur-sm border-2 focus:border-primary pl-3 sm:pl-4 pr-11 sm:pr-14 ${
-              isShaking ? 'border-red-500' : 'border-border'
-            }`}
+            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-card/80 backdrop-blur-sm border-2 focus:border-primary pl-3 sm:pl-4 pr-11 sm:pr-14 ${isShaking ? 'border-red-500' : 'border-border'
+              }`}
             disabled={gamePhase !== 'playing'}
           />
 
@@ -184,15 +209,71 @@ export function GuessInput() {
             size="sm"
             onClick={handleSubmit}
             disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
-            className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 p-0 touch-manipulation"
+            className={`absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300 ${query.trim()
+                ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
+                : 'hover:bg-accent'
+              }`}
           >
             {isSubmitting ? (
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+              <Loader2 className={`h-4 w-4 sm:h-5 sm:w-5 animate-spin ${query.trim() ? 'text-white' : ''}`} />
             ) : (
-              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Send className={`h-4 w-4 sm:h-5 sm:w-5 ${query.trim() ? 'text-white' : ''}`} />
             )}
           </Button>
         </motion.div>
+
+        {/* Hint buttons - Year and Publisher */}
+        {isDailyChallenge && (
+          <>
+            <Tooltip content={
+              !hasIncorrectGuess
+                ? t('game.hints.lockedTooltip')
+                : !yearAvailable
+                  ? t('game.hints.unavailableYear')
+                  : hintYearUsed
+                    ? t('game.hints.alreadyUsed')
+                    : t('game.hints.yearTooltip')
+            }>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleHintYear}
+                disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing' || isSubmitting}
+                className={`h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintYearUsed
+                    ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
+                    : ''
+                  }`}
+              >
+                <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintYearUsed ? 'text-yellow-400' : ''
+                  }`} />
+              </Button>
+            </Tooltip>
+
+            <Tooltip content={
+              !hasIncorrectGuess
+                ? t('game.hints.lockedTooltip')
+                : !publisherAvailable
+                  ? t('game.hints.unavailablePublisher')
+                  : hintPublisherUsed
+                    ? t('game.hints.alreadyUsed')
+                    : t('game.hints.publisherTooltip')
+            }>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleHintPublisher}
+                disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing' || isSubmitting}
+                className={`h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintPublisherUsed
+                    ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
+                    : ''
+                  }`}
+              >
+                <Building2 className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintPublisherUsed ? 'text-yellow-400' : ''
+                  }`} />
+              </Button>
+            </Tooltip>
+          </>
+        )}
 
         {/* Skip/Next button - hidden on last screenshot */}
         {!isLastPosition && (
@@ -202,13 +283,32 @@ export function GuessInput() {
               size="lg"
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}
-              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-[48px] sm:min-w-[56px] touch-manipulation"
+              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-12 sm:min-w-14 touch-manipulation"
             >
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </Tooltip>
         )}
       </div>
+
+      {/* Hint displays - shown when hints are used */}
+      {hintYearUsed && availableHints?.year && (
+        <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
+          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="text-xs sm:text-sm">
+            {t('game.hints.yearHint')}: <strong>{availableHints.year}</strong> ({t('game.hints.penalty')})
+          </span>
+        </Alert>
+      )}
+
+      {hintPublisherUsed && availableHints?.publisher && (
+        <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
+          <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="text-xs sm:text-sm">
+            {t('game.hints.publisherHint')}: <strong>{availableHints.publisher}</strong> ({t('game.hints.penalty')})
+          </span>
+        </Alert>
+      )}
 
       {/* Admin hint - only shown to admin users */}
       {isAdmin && currentScreenshotData?.gameName && (

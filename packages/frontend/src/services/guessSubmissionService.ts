@@ -17,6 +17,7 @@ export interface GuessSubmissionRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
+  powerUpUsed?: 'hint_year' | 'hint_publisher'
 }
 
 /**
@@ -31,6 +32,11 @@ export interface GuessSubmissionResult {
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found'
+  hintPenalty?: number
+  availableHints?: {
+    year: string | null
+    publisher: string | null
+  }
 }
 
 /**

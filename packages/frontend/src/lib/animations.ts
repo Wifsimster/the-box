@@ -1,13 +1,24 @@
 import type { Variants, Transition } from 'framer-motion'
 
-// Spring configurations
+/**
+ * Centralized animation configurations for Framer Motion
+ * Provides reusable variants and transitions for consistent animations
+ */
+
+// ============================================================================
+// Spring Configurations
+// ============================================================================
+
 export const springConfig = {
   gentle: { type: 'spring', stiffness: 120, damping: 14 } as Transition,
   snappy: { type: 'spring', stiffness: 400, damping: 17 } as Transition,
   bouncy: { type: 'spring', stiffness: 300, damping: 10 } as Transition,
 }
 
-// Fade animations
+// ============================================================================
+// Directional Fade Animations
+// ============================================================================
+
 export const fadeIn: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -38,14 +49,20 @@ export const fadeInRight: Variants = {
   exit: { opacity: 0, x: -20 },
 }
 
-// Scale animations
+// ============================================================================
+// Scale Animations
+// ============================================================================
+
 export const scaleIn: Variants = {
   initial: { opacity: 0, scale: 0.9 },
   animate: { opacity: 1, scale: 1 },
   exit: { opacity: 0, scale: 0.9 },
 }
 
-// Stagger container for lists
+// ============================================================================
+// Stagger Containers
+// ============================================================================
+
 export const staggerContainer: Variants = {
   initial: {},
   animate: {
@@ -66,7 +83,10 @@ export const staggerContainerFast: Variants = {
   },
 }
 
-// List item animations
+// ============================================================================
+// List and Table Animations
+// ============================================================================
+
 export const listItem: Variants = {
   initial: { opacity: 0, y: 20 },
   animate: {
@@ -95,7 +115,10 @@ export const tableRow: Variants = {
   },
 }
 
-// Hover/tap animations (use as props)
+// ============================================================================
+// Interactive Animations (Hover/Tap)
+// ============================================================================
+
 export const hoverScale = {
   whileHover: { scale: 1.02 },
   whileTap: { scale: 0.98 },
@@ -124,7 +147,10 @@ export const hoverLift = {
   transition: springConfig.gentle,
 }
 
-// Page transitions
+// ============================================================================
+// Page and Tab Transitions
+// ============================================================================
+
 export const pageTransition: Variants = {
   initial: { opacity: 0, y: 10 },
   animate: {
@@ -139,7 +165,6 @@ export const pageTransition: Variants = {
   },
 }
 
-// Tab content transitions
 export const tabContent: Variants = {
   initial: { opacity: 0, x: 20 },
   animate: {
@@ -154,7 +179,10 @@ export const tabContent: Variants = {
   },
 }
 
-// Pulse animation for active states
+// ============================================================================
+// Continuous Animations
+// ============================================================================
+
 export const pulse: Variants = {
   animate: {
     scale: [1, 1.05, 1],
@@ -167,7 +195,6 @@ export const pulse: Variants = {
   },
 }
 
-// Glow pulse for neon effects
 export const glowPulse: Variants = {
   animate: {
     boxShadow: [
@@ -183,13 +210,24 @@ export const glowPulse: Variants = {
   },
 }
 
-// Utility to check for reduced motion preference
+// ============================================================================
+// Accessibility Utilities
+// ============================================================================
+
+/**
+ * Check if user prefers reduced motion
+ * @returns true if user has enabled reduced motion preference
+ */
 export function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-// Get transition based on reduced motion preference
+/**
+ * Get transition based on reduced motion preference
+ * @param transition - The transition configuration
+ * @returns The transition with duration 0 if reduced motion is preferred
+ */
 export function getTransition(transition: Transition): Transition {
   if (prefersReducedMotion()) {
     return { duration: 0 }

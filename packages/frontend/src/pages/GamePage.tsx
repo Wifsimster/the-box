@@ -604,7 +604,22 @@ export default function GamePage() {
           >
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4">{t('game.challengeComplete')}</h1>
-              <p className="text-2xl text-primary font-bold mb-8">{totalScore} pts</p>
+              <p className="text-2xl text-primary font-bold mb-2">{totalScore} pts</p>
+
+              {/* Hint Penalties Summary */}
+              {(() => {
+                const totalHintPenalties = guessResults.reduce((sum, result) => sum + (result.hintPenalty || 0), 0)
+                return totalHintPenalties > 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-sm text-orange-400 mb-6"
+                  >
+                    {t('game.hints.penaltyApplied', { penalty: totalHintPenalties })}
+                  </motion.div>
+                ) : null
+              })()}
 
               {/* World Total Score */}
               {worldScore !== null && (

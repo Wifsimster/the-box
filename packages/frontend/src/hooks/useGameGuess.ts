@@ -37,6 +37,22 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         ? Date.now() - store.roundStartedAt
         : 0
 
+      // Check if hints were used for current position
+      const currentPosState = store.positionStates[store.currentPosition]
+      const hintYearUsed = currentPosState?.hintYearUsed || false
+      const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
+
+      // Determine which power-up was used (only one can be active per guess)
+      let powerUpUsed: 'hint_year' | 'hint_publisher' | undefined
+      if (hintYearUsed && !hintPublisherUsed) {
+        powerUpUsed = 'hint_year'
+      } else if (hintPublisherUsed && !hintYearUsed) {
+        powerUpUsed = 'hint_publisher'
+      } else if (hintYearUsed && hintPublisherUsed) {
+        // Both used - prioritize publisher as it was used second
+        powerUpUsed = 'hint_publisher'
+      }
+
       try {
         // Submit guess to service (handles validation + scoring)
         const result = await submissionService.submitGuess({
@@ -46,10 +62,16 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           gameId: game?.id || null,
           guessText: userInput,
           roundTimeTakenMs,
+          powerUpUsed,
         })
 
         // Update screenshots found
         store.setScreenshotsFound(result.screenshotsFound)
+
+        // Store available hints for current position
+        if (result.availableHints) {
+          store.setAvailableHints(result.availableHints)
+        }
 
         // Update position state for navigation tracking
         const currentPos = store.currentPosition
@@ -61,10 +83,11 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             isCorrect: true,
           })
         } else {
-          // Wrong guess - stay on current position
+          // Wrong guess - stay on current position and mark as having incorrect guess
           store.updatePositionState(currentPos, {
             isCorrect: false,
           })
+          store.markIncorrectGuess(currentPos)
         }
 
         // Determine if we should advance to next screenshot (only on correct)
@@ -79,6 +102,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             userGuess: game?.name || userInput,
             timeTakenMs: roundTimeTakenMs,
             scoreEarned: result.scoreEarned,
+            hintPenalty: result.hintPenalty,
           })
         }
 

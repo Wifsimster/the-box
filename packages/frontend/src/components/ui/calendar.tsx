@@ -1,9 +1,9 @@
-import { DayPicker, getDefaultClassNames } from "react-day-picker"
+import * as React from "react"
+import { DayPicker, type DayPickerProps } from "react-day-picker"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import "react-day-picker/style.css"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = DayPickerProps
 
 function Calendar({
   className,
@@ -11,58 +11,60 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  const defaultClassNames = getDefaultClassNames()
-
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
-        root: cn(defaultClassNames.root, "bg-card"),
-        months: "flex flex-col sm:flex-row gap-2",
-        month: "flex flex-col gap-4",
-        month_caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium text-foreground",
-        nav: "flex items-center gap-1",
+        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        month: "space-y-4",
+        month_caption: "flex justify-center pt-1 relative items-center",
+        caption_label: "text-sm font-medium",
+        nav: "space-x-1 flex items-center",
         button_previous: cn(
-          "absolute left-1 top-0",
-          "inline-flex items-center justify-center rounded-md text-sm font-medium",
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-          "hover:bg-muted text-foreground"
+          "absolute left-1",
+          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "disabled:pointer-events-none disabled:opacity-50",
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
         button_next: cn(
-          "absolute right-1 top-0",
-          "inline-flex items-center justify-center rounded-md text-sm font-medium",
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-          "hover:bg-muted text-foreground"
+          "absolute right-1",
+          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "disabled:pointer-events-none disabled:opacity-50",
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
-        weekday: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+        month_grid: "w-full border-collapse space-y-1",
+        weekdays: "flex",
+        weekday:
+          "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
         week: "flex w-full mt-2",
         day: cn(
-          "relative p-0 text-center text-sm",
-          "focus-within:relative focus-within:z-20",
-          "[&:has([aria-selected])]:bg-accent/50",
-          "[&:has([aria-selected].day-outside)]:bg-accent/30",
-          "[&:has([aria-selected].day-range-end)]:rounded-r-md"
+          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
+          "[&:has([aria-selected].day-outside)]:bg-accent/50"
         ),
         day_button: cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium",
-          "h-9 w-9 p-0 font-normal",
-          "hover:bg-muted hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "aria-selected:opacity-100"
+          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "disabled:pointer-events-none disabled:opacity-50",
+          "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
         ),
-        range_start: "day-range-start rounded-l-md",
-        range_end: "day-range-end rounded-r-md",
+        range_start: "day-range-start",
+        range_end: "day-range-end",
         selected: cn(
           "bg-gradient-to-r from-neon-purple to-neon-pink text-white",
           "hover:from-neon-purple hover:to-neon-pink hover:text-white",
-          "focus:from-neon-purple focus:to-neon-pink focus:text-white",
-          "rounded-md"
+          "focus:from-neon-purple focus:to-neon-pink focus:text-white"
         ),
-        today: "bg-accent text-accent-foreground rounded-md",
-        outside: "text-muted-foreground/50 aria-selected:text-muted-foreground/70",
-        disabled: "text-muted-foreground opacity-50 cursor-not-allowed",
+        today: "bg-accent text-accent-foreground",
+        outside:
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        disabled: "text-muted-foreground opacity-50",
+        range_middle:
+          "aria-selected:bg-accent aria-selected:text-accent-foreground",
         hidden: "invisible",
         ...classNames,
       }}

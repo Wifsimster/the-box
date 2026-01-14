@@ -119,7 +119,7 @@ export interface Guess {
 // Power-up Domain
 // ============================================
 
-export type PowerUpType = 'x2_timer' | 'hint'
+export type PowerUpType = 'x2_timer' | 'hint' | 'hint_year' | 'hint_publisher'
 
 export interface PowerUp {
   id: number
@@ -175,6 +175,7 @@ export interface GuessResult {
   userGuess: string | null
   timeTakenMs: number
   scoreEarned: number
+  hintPenalty?: number
 }
 
 // Position tracking for navigation
@@ -185,6 +186,9 @@ export interface PositionState {
   status: PositionStatus
   isCorrect: boolean
   screenshotData?: ScreenshotResponse
+  hasIncorrectGuess?: boolean
+  hintYearUsed?: boolean
+  hintPublisherUsed?: boolean
 }
 
 // ============================================
@@ -275,7 +279,7 @@ export interface GuessRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: PowerUpType
+  powerUpUsed?: 'hint_year' | 'hint_publisher'
 }
 
 export interface GuessResponse {
@@ -287,6 +291,11 @@ export interface GuessResponse {
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
+  hintPenalty?: number
+  availableHints?: {
+    year: string | null
+    publisher: string | null
+  }
 }
 
 // End game (forfeit) API

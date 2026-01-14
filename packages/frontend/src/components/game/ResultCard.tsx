@@ -78,7 +78,7 @@ export function ResultCard() {
   // Early return after all hooks
   if (!lastResult) return null
 
-  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess } = lastResult
+  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty } = lastResult
   const maxScore = 200
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
@@ -232,11 +232,28 @@ export function ResultCard() {
               <span className={cn(
                 "font-medium",
                 correctGame.metacritic >= 75 ? "text-green-400" :
-                correctGame.metacritic >= 50 ? "text-yellow-400" :
-                "text-orange-400"
+                  correctGame.metacritic >= 50 ? "text-yellow-400" :
+                    "text-orange-400"
               )}>
                 {t('game.metascore')}: {correctGame.metacritic}
               </span>
+            )}
+          </motion.div>
+        )}
+
+        {/* Publisher and Developer */}
+        {(correctGame.publisher || correctGame.developer) && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="flex flex-col items-center gap-1 text-xs text-muted-foreground mb-4"
+          >
+            {correctGame.publisher && (
+              <span>{t('game.publisher')}: <span className="text-foreground font-medium">{correctGame.publisher}</span></span>
+            )}
+            {correctGame.developer && (
+              <span>{t('game.developer')}: <span className="text-foreground font-medium">{correctGame.developer}</span></span>
             )}
           </motion.div>
         )}
@@ -246,7 +263,7 @@ export function ResultCard() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.35 }}
+            transition={{ delay: 0.4 }}
             className="text-center text-sm text-muted-foreground mb-4"
           >
             {t('game.yourGuess')}: <span className="text-error line-through">{userGuess}</span>
@@ -257,7 +274,7 @@ export function ResultCard() {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.45 }}
           className="text-center mb-6"
         >
           {isCorrect && scoreEarned > 0 ? (
@@ -300,12 +317,24 @@ export function ResultCard() {
             </div>
           )}
 
+          {/* Hint Penalty Display */}
+          {hintPenalty && hintPenalty > 0 && isCorrect && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="mt-2 text-orange-400 text-sm font-medium"
+            >
+              {t('game.hints.penaltyApplied', { penalty: hintPenalty })}
+            </motion.div>
+          )}
+
           {/* Speed feedback for correct answers */}
           {isCorrect && speedFeedback && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.55 }}
+              transition={{ delay: 0.6 }}
               className={cn("flex items-center justify-center gap-1.5 mt-2 text-sm", speedFeedback.color)}
             >
               <speedFeedback.icon className="w-4 h-4" />
@@ -319,7 +348,7 @@ export function ResultCard() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.65 }}
+          transition={{ delay: 0.7 }}
         >
           <Button
             variant="secondary"

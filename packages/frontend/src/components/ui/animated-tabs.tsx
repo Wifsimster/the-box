@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { springConfig } from '@/lib/animations'
 
 interface Tab {
   id: string
@@ -41,7 +42,7 @@ export function AnimatedTabs({
             onClick={() => onChange(tab.id)}
             className={cn(
               'relative px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-              'flex-shrink-0',
+              'shrink-0',
               'sm:flex-1',
               variant === 'underline' && 'rounded-none px-4 py-3',
               isActive
@@ -52,25 +53,25 @@ export function AnimatedTabs({
             {isActive && variant === 'default' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/40"
+                className="absolute inset-0 bg-linear-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/40"
                 style={{ boxShadow: '0 0 20px oklch(0.7 0.25 300 / 0.2)' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                transition={springConfig.snappy}
               />
             )}
             {isActive && variant === 'pills' && (
               <motion.div
                 layoutId="activeTabPill"
-                className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg"
+                className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg"
                 style={{ boxShadow: '0 0 20px oklch(0.7 0.25 300 / 0.4)' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                transition={springConfig.snappy}
               />
             )}
             {isActive && variant === 'underline' && (
               <motion.div
                 layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-purple-500 to-pink-500"
                 style={{ boxShadow: '0 0 10px oklch(0.7 0.25 300 / 0.5)' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                transition={springConfig.snappy}
               />
             )}
             <span className="relative z-10 flex items-center justify-center gap-2">

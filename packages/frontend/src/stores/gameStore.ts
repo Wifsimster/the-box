@@ -34,6 +34,12 @@ interface GameState {
 
   screenshotsFound: number
 
+  // Available hints data for current position
+  availableHints: {
+    year: string | null
+    publisher: string | null
+  } | null
+
   // Round timing (for per-screenshot time tracking)
   roundStartedAt: number | null
 
@@ -91,6 +97,12 @@ interface GameState {
   findNextUnfinished: (fromPosition: number) => number | null
   canNavigateTo: (position: number) => boolean
 
+  // Hint actions
+  setAvailableHints: (hints: { year: string | null; publisher: string | null }) => void
+  markIncorrectGuess: (position: number) => void
+  useHintYear: (position: number) => void
+  useHintPublisher: (position: number) => void
+
   // Session restore action
   restoreSessionState: (data: {
     challengeId: number
@@ -123,6 +135,8 @@ const initialState = {
   // Position tracking for navigation
   positionStates: {} as Record<number, PositionState>,
   screenshotsFound: 0,
+  // Available hints
+  availableHints: null,
   // Round timing
   roundStartedAt: null,
   // Score tracking
@@ -451,6 +465,45 @@ export const useGameStore = create<GameState>()(
             }
           }
           return true
+        },
+
+        // Hint actions
+        setAvailableHints: (hints) => set({ availableHints: hints }),
+
+        markIncorrectGuess: (position) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                hasIncorrectGuess: true,
+              },
+            },
+          }))
+        },
+
+        useHintYear: (position) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                hintYearUsed: true,
+              },
+            },
+          }))
+        },
+
+        useHintPublisher: (position) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                hintPublisherUsed: true,
+              },
+            },
+          }))
         },
 
         endGameAction: async () => {

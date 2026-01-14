@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -89,6 +90,7 @@ function DefaultErrorFallback({
   error: Error
   reset: () => void
 }) {
+  const { t } = useTranslation()
   const isDev = import.meta.env.DEV
 
   return (
@@ -102,9 +104,9 @@ function DefaultErrorFallback({
         </div>
 
         {/* Error Message */}
-        <h1 className="text-3xl font-bold mb-2">Oops! Something went wrong</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('errors.boundary.title')}</h1>
         <p className="text-muted-foreground mb-6">
-          We're sorry for the inconvenience. The application encountered an unexpected error.
+          {t('errors.boundary.message')}
         </p>
 
         {/* Error Details (Dev Only) */}
@@ -125,7 +127,7 @@ function DefaultErrorFallback({
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={reset} variant="default" className="gap-2">
             <RefreshCw className="w-4 h-4" />
-            Try Again
+            {t('errors.boundary.tryAgain')}
           </Button>
           <Button
             onClick={() => window.location.href = '/'}
@@ -133,13 +135,13 @@ function DefaultErrorFallback({
             className="gap-2"
           >
             <Home className="w-4 h-4" />
-            Go Home
+            {t('errors.boundary.goHome')}
           </Button>
         </div>
 
         {/* Help Text */}
         <p className="text-sm text-muted-foreground mt-6">
-          If this problem persists, please contact support.
+          {t('errors.boundary.contactSupport')}
         </p>
       </div>
     </div>
@@ -163,32 +165,7 @@ export function LazyComponentErrorBoundary({ children }: { children: ReactNode }
           error.message.includes('ChunkLoadError')
 
         if (isChunkError) {
-          return (
-            <div className="min-h-screen flex items-center justify-center bg-background px-4">
-              <div className="max-w-md w-full text-center">
-                <div className="mb-6 flex justify-center">
-                  <div className="w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center">
-                    <AlertTriangle className="w-10 h-10 text-warning" />
-                  </div>
-                </div>
-
-                <h1 className="text-3xl font-bold mb-2">Page Failed to Load</h1>
-                <p className="text-muted-foreground mb-6">
-                  We couldn't load this page. This might be due to a network issue or an outdated version.
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button onClick={() => window.location.reload()} variant="default" className="gap-2">
-                    <RefreshCw className="w-4 h-4" />
-                    Reload Page
-                  </Button>
-                  <Button onClick={reset} variant="outline" className="gap-2">
-                    Try Again
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )
+          return <LazyLoadErrorFallback reset={reset} />
         }
 
         // For non-chunk errors, use default fallback
@@ -197,5 +174,39 @@ export function LazyComponentErrorBoundary({ children }: { children: ReactNode }
     >
       {children}
     </ErrorBoundary>
+  )
+}
+
+/**
+ * Lazy load error fallback UI
+ */
+function LazyLoadErrorFallback({ reset }: { reset: () => void }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6 flex justify-center">
+          <div className="w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center">
+            <AlertTriangle className="w-10 h-10 text-warning" />
+          </div>
+        </div>
+
+        <h1 className="text-3xl font-bold mb-2">{t('errors.lazyLoad.title')}</h1>
+        <p className="text-muted-foreground mb-6">
+          {t('errors.lazyLoad.message')}
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={() => window.location.reload()} variant="default" className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            {t('errors.lazyLoad.reload')}
+          </Button>
+          <Button onClick={reset} variant="outline" className="gap-2">
+            {t('errors.lazyLoad.tryAgain')}
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -47,6 +47,8 @@
     "yourGuess": "Your guess",
     "releaseYear": "Release Year",
     "metascore": "Metascore",
+    "developer": "Developer",
+    "publisher": "Publisher",
     "speed": {
       "lightning": "Lightning!",
       "fast": "Fast!",
@@ -107,6 +109,18 @@
       "penaltyApplied": "Penalty",
       "finalScore": "Final Score",
       "points": "points"
+    },
+    "hints": {
+      "yearTooltip": "Show release year (-25 pts)",
+      "publisherTooltip": "Show publisher (-25 pts)",
+      "lockedTooltip": "Available after first wrong guess",
+      "unavailableYear": "Release year not available",
+      "unavailablePublisher": "Publisher not available",
+      "alreadyUsed": "Already used",
+      "yearHint": "Release Year",
+      "publisherHint": "Publisher",
+      "penalty": "-25 points",
+      "penaltyApplied": "Hint penalty: -{{penalty}} points"
     }
   },
   "home": {
@@ -463,5 +477,57 @@
     "faqAnswer5": "Daily challenges reset at midnight UTC. Everyone gets the same challenge each day, so you can compete fairly on the global leaderboard.",
     "faqQuestion6": "How can I report a bug or suggest a feature?",
     "faqAnswer6": "Visit our Contact page to reach out. We appreciate all feedback and work to improve the game based on player suggestions."
+  },
+  "party": {
+    "title": "Multiplayer Mode",
+    "subtitle": "Play with your friends in real-time",
+    "createTitle": "Create a Party",
+    "createDescription": "Create a party and invite your friends with the code",
+    "creating": "Creating...",
+    "createButton": "Create a Party",
+    "or": "or",
+    "joinTitle": "Join a Party",
+    "joinDescription": "Enter the party code to join",
+    "codePlaceholder": "Party code (e.g. ABC123)",
+    "connecting": "Connecting...",
+    "joinButton": "Join",
+    "lobbyTitle": "Game Lobby",
+    "leave": "Leave",
+    "partyCode": "Party Code",
+    "players": "Players",
+    "admin": "Admin",
+    "leaderboard": "Leaderboard",
+    "hostMessage": "You are the administrator of this party",
+    "startGame": "Start Game",
+    "resetGame": "Restart Game",
+    "waitingMessage": "Waiting for the administrator to start...",
+    "gameStarted": "Game in progress!",
+    "joinGame": "Join Game"
+  },
+  "errors": {
+    "boundary": {
+      "title": "Oops! Something went wrong",
+      "message": "We're sorry for the inconvenience. The application encountered an unexpected error.",
+      "tryAgain": "Try Again",
+      "goHome": "Go Home",
+      "contactSupport": "If this problem persists, please contact support."
+    },
+    "lazyLoad": {
+      "title": "Page Failed to Load",
+      "message": "We couldn't load this page. This might be due to a network issue or an outdated version.",
+      "reload": "Reload Page",
+      "tryAgain": "Try Again"
+    },
+    "notFound": {
+      "title": "Page Not Found",
+      "message": "The page you're looking for doesn't exist or has been moved.",
+      "goHome": "Go Home"
+    },
+    "serverError": {
+      "title": "Server Error",
+      "message": "We're experiencing technical difficulties. Please try again later.",
+      "retry": "Retry",
+      "goHome": "Go Home"
+    }
   }
 }

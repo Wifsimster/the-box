@@ -47,6 +47,8 @@
     "yourGuess": "Ta réponse",
     "releaseYear": "Année de sortie",
     "metascore": "Metascore",
+    "developer": "Développeur",
+    "publisher": "Éditeur",
     "speed": {
       "lightning": "Éclair !",
       "fast": "Rapide !",
@@ -107,6 +109,18 @@
       "penaltyApplied": "Pénalité",
       "finalScore": "Score final",
       "points": "points"
+    },
+    "hints": {
+      "yearTooltip": "Afficher l'année de sortie (-25 pts)",
+      "publisherTooltip": "Afficher l'éditeur (-25 pts)",
+      "lockedTooltip": "Disponible après la première mauvaise réponse",
+      "unavailableYear": "Année de sortie non disponible",
+      "unavailablePublisher": "Éditeur non disponible",
+      "alreadyUsed": "Déjà utilisé",
+      "yearHint": "Année de sortie",
+      "publisherHint": "Éditeur",
+      "penalty": "-25 points",
+      "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
     }
   },
   "home": {
@@ -489,5 +503,57 @@
     "faqAnswer5": "Les défis quotidiens sont réinitialisés à minuit UTC. Tout le monde a le même défi chaque jour, vous pouvez donc concourir équitablement dans le classement mondial.",
     "faqQuestion6": "Comment signaler un bug ou suggérer une fonctionnalité ?",
     "faqAnswer6": "Visitez notre page Contact pour nous joindre. Nous apprécions tous les retours et travaillons à améliorer le jeu en fonction des suggestions des joueurs."
+  },
+  "party": {
+    "title": "Mode Multijoueur",
+    "subtitle": "Jouez avec vos amis en temps réel",
+    "createTitle": "Créer une partie",
+    "createDescription": "Créez une partie et invitez vos amis avec le code",
+    "creating": "Création...",
+    "createButton": "Créer une partie",
+    "or": "ou",
+    "joinTitle": "Rejoindre une partie",
+    "joinDescription": "Entrez le code de la partie pour rejoindre",
+    "codePlaceholder": "Code de la partie (ex: ABC123)",
+    "connecting": "Connexion...",
+    "joinButton": "Rejoindre",
+    "lobbyTitle": "Salon de jeu",
+    "leave": "Quitter",
+    "partyCode": "Code de la partie",
+    "players": "Joueurs",
+    "admin": "Admin",
+    "leaderboard": "Classement",
+    "hostMessage": "Vous êtes l'administrateur de cette partie",
+    "startGame": "Lancer la partie",
+    "resetGame": "Recommencer la partie",
+    "waitingMessage": "En attente du lancement par l'administrateur...",
+    "gameStarted": "Partie en cours !",
+    "joinGame": "Rejoindre le jeu"
+  },
+  "errors": {
+    "boundary": {
+      "title": "Oups ! Une erreur s'est produite",
+      "message": "Nous sommes désolés pour le désagrément. L'application a rencontré une erreur inattendue.",
+      "tryAgain": "Réessayer",
+      "goHome": "Retour à l'accueil",
+      "contactSupport": "Si ce problème persiste, veuillez contacter le support."
+    },
+    "lazyLoad": {
+      "title": "Échec du chargement de la page",
+      "message": "Nous n'avons pas pu charger cette page. Cela peut être dû à un problème de réseau ou à une version obsolète.",
+      "reload": "Recharger la page",
+      "tryAgain": "Réessayer"
+    },
+    "notFound": {
+      "title": "Page introuvable",
+      "message": "La page que vous recherchez n'existe pas ou a été déplacée.",
+      "goHome": "Retour à l'accueil"
+    },
+    "serverError": {
+      "title": "Erreur serveur",
+      "message": "Nous rencontrons des difficultés techniques. Veuillez réessayer plus tard.",
+      "retry": "Réessayer",
+      "goHome": "Retour à l'accueil"
+    }
   }
 }
