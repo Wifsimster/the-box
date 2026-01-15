@@ -18,4 +18,19 @@ router.get('/history', authMiddleware, async (req, res, next) => {
   }
 })
 
+// Get detailed game session information
+router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
+  try {
+    const { sessionId } = req.params
+    const data = await userService.getGameSessionDetails(sessionId, req.userId!)
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 export default router

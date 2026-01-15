@@ -22,6 +22,12 @@ export interface TierScreenshotRow {
 }
 
 export const challengeRepository = {
+  async findById(id: number): Promise<ChallengeRow | null> {
+    return await db('daily_challenges')
+      .where('id', id)
+      .first<ChallengeRow>()
+  },
+
   async findByDate(date: string): Promise<ChallengeRow | null> {
     return await db('daily_challenges')
       .where('challenge_date', date)

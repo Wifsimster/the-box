@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { DailyIntro } from '@/components/game/TierIntro'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
@@ -42,6 +43,7 @@ export default function GamePage() {
 
   // Keyboard detection for mobile layout adjustment
   const { isKeyboardOpen, keyboardHeight } = useKeyboardHeight()
+  const isMobile = useIsMobile()
 
   // Get date from query params if provided
   const challengeDateParam = searchParams.get('date')
@@ -575,10 +577,11 @@ export default function GamePage() {
             {/* When keyboard is open on mobile, reduce height and shift up */}
             <motion.div
               className="absolute inset-0 w-full flex items-center justify-center md:block z-10"
+              initial={isMobile ? undefined : false}
               animate={{
                 height: isKeyboardOpen ? `calc(100% - ${keyboardHeight}px - 120px)` : '100%',
               }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0 }}
             >
               {currentImageUrl ? (
                 <ScreenshotViewer
@@ -602,10 +605,11 @@ export default function GamePage() {
             {/* Slides up when keyboard is open on mobile */}
             <motion.div
               className="absolute left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-2 sm:pt-3 md:pt-4 pb-2 sm:pb-3 md:pb-4 px-2 sm:px-3 md:px-4"
+              initial={isMobile ? undefined : false}
               animate={{
                 bottom: isKeyboardOpen ? keyboardHeight : 0,
               }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0 }}
             >
               <div className="container mx-auto space-y-2 sm:space-y-3 md:space-y-4">
                 {/* Progress Dots (Above Input) */}

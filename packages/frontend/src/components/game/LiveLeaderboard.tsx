@@ -103,7 +103,7 @@ export function LiveLeaderboardView({
             <div className="mx-2 h-1 bg-muted rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(player.score / maxScore) * 100}%` }}
+                animate={{ width: `${Math.max(0, (player.score / maxScore) * 100)}%` }}
                 transition={{ delay: index * 0.1 + 0.2, duration: 0.3 }}
                 className={cn(
                   'h-full rounded-full',

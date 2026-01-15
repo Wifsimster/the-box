@@ -24,18 +24,12 @@ export default function ResultsPage() {
   // Calculate correct answers from guess results (more reliable than store)
   const correctAnswers = guessResults.filter(r => r.isCorrect).length
 
-  // Calculate total score from individual results (more reliable than backend total)
-  const totalScoreFromResults = guessResults.reduce((sum, result) => sum + result.scoreEarned, 0)
-  
-  // Calculate unguessed positions and total penalty
+  // Calculate unguessed positions and total penalty (for display breakdown)
   const unguessedCount = totalScreenshots - guessResults.length
   const totalPenalty = unguessedCount * UNFOUND_PENALTY
-  
-  // Final score is sum of individual scores minus penalties
-  const calculatedTotalScore = Math.max(0, totalScoreFromResults - totalPenalty)
-  
-  // Use calculated score for display, but fallback to backend score if no results
-  const displayTotalScore = guessResults.length > 0 ? calculatedTotalScore : backendTotalScore
+
+  // Use backend score directly (source of truth - includes wrong guess penalties)
+  const displayTotalScore = backendTotalScore
 
   const accuracy = totalScreenshots > 0 ? Math.round((correctAnswers / totalScreenshots) * 100) : 0
 

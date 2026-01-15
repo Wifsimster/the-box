@@ -88,14 +88,14 @@ export default function HistoryPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     onClick={() => {
-                      if (!entry.isCompleted) {
+                      if (entry.isCompleted) {
+                        navigate(`${localizedPath('/history')}/${entry.sessionId}`)
+                      } else {
                         navigate(`${localizedPath('/play')}?date=${encodeURIComponent(entry.challengeDate)}`)
                       }
                     }}
                     className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 transition-colors ${
-                      !entry.isCompleted 
-                        ? 'hover:bg-secondary cursor-pointer hover:ring-2 hover:ring-primary/50' 
-                        : 'hover:bg-secondary'
+                      'hover:bg-secondary cursor-pointer hover:ring-2 hover:ring-primary/50'
                     }`}
                   >
                     <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">

@@ -285,4 +285,118 @@ export const sessionRepository = {
     log.debug({ userId, count: rows.length }, 'findUserGameHistory result')
     return rows
   },
+
+  async findGuessesByGameSession(gameSessionId: string): Promise<Array<{
+    id: number
+    tierSessionId: string
+    screenshotId: number
+    position: number
+    tryNumber: number
+    guessedGameId: number | null
+    guessedText: string | null
+    isCorrect: boolean
+    timeTakenMs: number
+    sessionElapsedMs: number
+    scoreEarned: number
+    powerUpUsed: string | null
+    correctGameId: number
+    correctGameName: string
+    correctGameSlug: string
+    correctGameCoverImageUrl: string | null
+    correctGameReleaseYear: number | null
+    correctGameMetacritic: number | null
+    correctGamePublisher: string | null
+    correctGameDeveloper: string | null
+    createdAt: Date
+  }>> {
+    log.debug({ gameSessionId }, 'findGuessesByGameSession')
+    const rows = await db('guesses')
+      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+      .join('screenshots', 'guesses.screenshot_id', 'screenshots.id')
+      .join('games as correct_game', 'screenshots.game_id', 'correct_game.id')
+      .where('tier_sessions.game_session_id', gameSessionId)
+      .orderBy('guesses.position', 'asc')
+      .orderBy('guesses.created_at', 'asc')
+      .select<
+        Array<{
+          id: number
+          tier_session_id: string
+          screenshot_id: number
+          position: number
+          guessed_game_id: number | null
+          guessed_text: string | null
+          is_correct: boolean
+          time_taken_ms: number
+          session_elapsed_ms: number
+          score_earned: number
+          power_up_used: string | null
+          correct_game_id: number
+          correct_game_name: string
+          correct_game_slug: string
+          correct_game_cover_image_url: string | null
+          correct_game_release_year: number | null
+          correct_game_metacritic: number | null
+          correct_game_publisher: string | null
+          correct_game_developer: string | null
+          created_at: Date
+        }>
+      >(
+        'guesses.id',
+        'guesses.tier_session_id',
+        'guesses.screenshot_id',
+        'guesses.position',
+        'guesses.guessed_game_id',
+        'guesses.guessed_text',
+        'guesses.is_correct',
+        'guesses.time_taken_ms',
+        'guesses.session_elapsed_ms',
+        'guesses.score_earned',
+        'guesses.power_up_used',
+        'correct_game.id as correct_game_id',
+        'correct_game.name as correct_game_name',
+        'correct_game.slug as correct_game_slug',
+        'correct_game.cover_image_url as correct_game_cover_image_url',
+        'correct_game.release_year as correct_game_release_year',
+        'correct_game.metacritic as correct_game_metacritic',
+        'correct_game.publisher as correct_game_publisher',
+        'correct_game.developer as correct_game_developer',
+        'guesses.created_at'
+      )
+    
+    // Calculate try_number for each guess by counting previous guesses for the same position
+    const positionCounts = new Map<number, number>()
+    
+    const result = rows.map(row => {
+      const position = row.position
+      const currentCount = (positionCounts.get(position) || 0) + 1
+      positionCounts.set(position, currentCount)
+      
+      return {
+        id: row.id,
+        tierSessionId: row.tier_session_id,
+        screenshotId: row.screenshot_id,
+        position: row.position,
+        tryNumber: currentCount,
+        guessedGameId: row.guessed_game_id,
+        guessedText: row.guessed_text,
+        isCorrect: row.is_correct,
+        timeTakenMs: row.time_taken_ms,
+        sessionElapsedMs: row.session_elapsed_ms,
+        scoreEarned: row.score_earned,
+        powerUpUsed: row.power_up_used,
+        correctGameId: row.correct_game_id,
+        correctGameName: row.correct_game_name,
+        correctGameSlug: row.correct_game_slug,
+        correctGameCoverImageUrl: row.correct_game_cover_image_url,
+        correctGameReleaseYear: row.correct_game_release_year,
+        correctGameMetacritic: row.correct_game_metacritic,
+        correctGamePublisher: row.correct_game_publisher,
+        correctGameDeveloper: row.correct_game_developer,
+        createdAt: row.created_at,
+      }
+    })
+    
+    log.debug({ gameSessionId, count: result.length }, 'findGuessesByGameSession result')
+    return result
+  },
 }

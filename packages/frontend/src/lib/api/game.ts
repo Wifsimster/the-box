@@ -6,6 +6,7 @@ import type {
   EndGameResponse,
   GameSearchResult,
   GameHistoryResponse,
+  GameSessionDetailsResponse,
 } from '@/types'
 
 interface ApiResponse<T> {
@@ -138,6 +139,16 @@ export const gameApi = {
       credentials: 'include',
     })
     return handleResponse<GameHistoryResponse>(response)
+  },
+
+  /**
+   * Get detailed game session information
+   */
+  async getGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse> {
+    const response = await fetch(`/api/user/history/${sessionId}`, {
+      credentials: 'include',
+    })
+    return handleResponse<GameSessionDetailsResponse>(response)
   },
 }
 

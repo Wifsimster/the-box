@@ -61,7 +61,7 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
 
   private correctAnswers = 0
   private totalLockedScore = 0
-  private readonly WRONG_GUESS_PENALTY = 100
+  private readonly WRONG_GUESS_PENALTY = 30
 
   async submitGuess(
     request: GuessSubmissionRequest

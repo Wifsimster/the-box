@@ -30,7 +30,7 @@ export class GameError extends Error {
 
 const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 100
-const UNFOUND_PENALTY = 100
+const UNFOUND_PENALTY = 50
 const WRONG_GUESS_PENALTY = 30
 
 /**
@@ -370,8 +370,8 @@ export const gameService = {
     // Calculate penalty
     const penaltyApplied = unfoundCount * UNFOUND_PENALTY
 
-    // Calculate final score (clamp at 0)
-    const finalScore = Math.max(0, session.total_score - penaltyApplied)
+    // Calculate final score (allow negative)
+    const finalScore = session.total_score - penaltyApplied
 
     // Mark session as completed
     await sessionRepository.updateGameSession(sessionId, {

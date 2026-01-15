@@ -334,6 +334,26 @@ export interface GameHistoryResponse {
   entries: GameHistoryEntry[]
 }
 
+export interface GameSessionDetailsResponse {
+  sessionId: string
+  challengeDate: string
+  totalScore: number
+  isCompleted: boolean
+  completedAt: string | null
+  totalScreenshots: number
+  guesses: Array<{
+    position: number
+    isCorrect: boolean
+    correctGame: Game
+    userGuess: string | null
+    timeTakenMs: number
+    scoreEarned: number
+    hintPenalty?: number
+    wrongGuessPenalty?: number
+    tryNumber: number
+  }>
+}
+
 // ============================================
 // Socket Events
 // ============================================

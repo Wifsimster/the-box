@@ -38,11 +38,11 @@ export function EndGameButton() {
     (s) => s.status !== 'correct'
   ).length
   const penaltyPreview = unfoundCount * UNFOUND_PENALTY
-  const finalScore = Math.max(0, totalScore - penaltyPreview)
+  const finalScore = totalScore - penaltyPreview
 
   // Determine score color based on value
   const getScoreColor = (score: number) => {
-    if (score === 0) return 'text-error'
+    if (score <= 0) return 'text-error'
     if (score >= 800) return 'text-success'
     if (score >= 500) return 'text-yellow-400'
     if (score >= 250) return 'text-orange-400'
