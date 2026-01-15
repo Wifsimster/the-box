@@ -191,7 +191,7 @@ export default function GameHistoryDetailsPage() {
                                 <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
                                   <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                   <span className="whitespace-nowrap">
-                                    50 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
+                                    100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
                                   </span>
                                 </div>
                               )

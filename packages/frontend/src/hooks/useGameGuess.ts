@@ -14,8 +14,9 @@ import {
  *
  * Speed-based scoring system:
  * - Uses roundTimeTakenMs (time per screenshot) for speed multiplier calculation
- * - Unlimited tries per screenshot (wrong guesses don't affect score)
- * - Base score: 50 points, multiplied by speed factor
+ * - Wrong guesses: -30 points per incorrect attempt
+ * - Base score: 100 points, multiplied by speed factor (capped at 200)
+ * - Hint penalty: -20% of earned score
  */
 export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
