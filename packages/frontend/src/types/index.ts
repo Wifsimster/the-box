@@ -38,6 +38,7 @@ export type {
   LeaderboardResponse,
   GameHistoryEntry,
   GameHistoryResponse,
+  GameSessionDetailsResponse,
 
   // Socket Events
   LiveScore,

@@ -10,6 +10,8 @@ import { initializeSocket } from './infrastructure/socket/socket.js'
 import { auth } from './infrastructure/auth/auth.js'
 import { logger } from './infrastructure/logger/logger.js'
 import { requestLogger } from './presentation/middleware/request-logger.middleware.js'
+import { adminMiddleware } from './presentation/middleware/auth.middleware.js'
+import { Pool } from 'pg'
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
@@ -57,6 +59,61 @@ app.use(cors({
 // JSON parsing middleware
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+// Database pool for user deletion
+const dbPool = new Pool({
+  connectionString: env.DATABASE_URL,
+})
+
+// Custom route for delete-user (must be before better-auth handler)
+app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.body
+
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_USER_ID', message: 'User ID is required' },
+      })
+    }
+
+    // Prevent self-deletion
+    if (userId === req.userId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CANNOT_DELETE_SELF', message: 'You cannot delete your own account' },
+      })
+    }
+
+    // Check if user exists
+    const userCheck = await dbPool.query('SELECT id, role FROM "user" WHERE id = $1', [userId])
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    // Delete user - CASCADE will handle related records (sessions, accounts, game_sessions, etc.)
+    await dbPool.query('DELETE FROM "user" WHERE id = $1', [userId])
+
+    logger.info({ deletedUserId: userId, deletedBy: req.userId }, 'user deleted by admin')
+
+    res.json({
+      success: true,
+      data: { deleted: true },
+    })
+  } catch (error) {
+    logger.error({ error: String(error) }, 'failed to delete user')
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to delete user',
+      },
+    })
+  }
+})
 
 // Mount better-auth handler
 // This handles all /api/auth/* routes automatically

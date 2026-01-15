@@ -69,7 +69,7 @@ export default function GameHistoryDetailsPage() {
   }
 
   // Calculate statistics
-  const correctAnswers = sessionData.guesses.filter(g => g.isCorrect).length
+  const correctAnswers = sessionData.guesses.filter((g: GameSessionDetailsResponse['guesses'][0]) => g.isCorrect).length
   const accuracy = sessionData.totalScreenshots > 0 
     ? Math.round((correctAnswers / sessionData.totalScreenshots) * 100) 
     : 0
@@ -154,7 +154,7 @@ export default function GameHistoryDetailsPage() {
           <div className="md:hidden">
             <ScrollArea className="h-[calc(100vh-500px)]">
               <div className="space-y-2 pr-2">
-                {sessionData.guesses.map((result, index) => (
+                {sessionData.guesses.map((result: GameSessionDetailsResponse['guesses'][0], index: number) => (
                   <motion.div
                     key={result.position}
                     initial={{ opacity: 0, x: -20 }}
@@ -244,7 +244,7 @@ export default function GameHistoryDetailsPage() {
           {/* Full list on desktop - no scroll */}
           <div className="hidden md:block">
             <div className="space-y-3">
-              {sessionData.guesses.map((result, index) => (
+              {sessionData.guesses.map((result: GameSessionDetailsResponse['guesses'][0], index: number) => (
                 <motion.div
                   key={result.position}
                   initial={{ opacity: 0, x: -20 }}

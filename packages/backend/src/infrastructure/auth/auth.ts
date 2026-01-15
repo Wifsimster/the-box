@@ -86,6 +86,14 @@ function createAuth() {
       }),
       admin({
         defaultRole: "user",
+        schema: {
+          user: {
+            fields: {
+              banReason: "ban_reason",
+              banExpires: "ban_expires",
+            },
+          },
+        },
       }),
     ],
     user: {

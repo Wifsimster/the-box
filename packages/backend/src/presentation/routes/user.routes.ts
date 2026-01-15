@@ -22,6 +22,12 @@ router.get('/history', authMiddleware, async (req, res, next) => {
 router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
   try {
     const { sessionId } = req.params
+    if (!sessionId || Array.isArray(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_SESSION_ID', message: 'Invalid session ID' },
+      })
+    }
     const data = await userService.getGameSessionDetails(sessionId, req.userId!)
 
     res.json({
