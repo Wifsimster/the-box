@@ -286,6 +286,15 @@ export const sessionRepository = {
     return rows
   },
 
+  async findAllInProgressSessions(): Promise<GameSessionRow[]> {
+    log.debug('findAllInProgressSessions')
+    const rows = await db('game_sessions')
+      .where('is_completed', false)
+      .select<GameSessionRow[]>('*')
+    log.debug({ count: rows.length }, 'findAllInProgressSessions result')
+    return rows
+  },
+
   async findGuessesByGameSession(gameSessionId: string): Promise<Array<{
     id: number
     tierSessionId: string

@@ -10,9 +10,13 @@
 
 import { queueLogger } from '../../logger/logger.js'
 import { challengeRepository } from '../../repositories/challenge.repository.js'
+import { sessionRepository } from '../../repositories/session.repository.js'
 import { db } from '../../database/connection.js'
 
 const log = queueLogger.child({ module: 'daily-challenge' })
+
+const TOTAL_SCREENSHOTS = 10
+const UNFOUND_PENALTY = 50
 
 export type ProgressCallback = (current: number, total: number, message: string) => void
 
@@ -91,6 +95,72 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
 }
 
 /**
+ * End all in-progress game sessions by applying penalties for unfound screenshots.
+ * This is called when a new daily challenge is created to ensure users can't continue
+ * playing previous day's games.
+ */
+async function endAllInProgressGames(): Promise<{ ended: number; failed: number }> {
+  log.info('Starting to end all in-progress games')
+  
+  let ended = 0
+  let failed = 0
+
+  try {
+    const inProgressSessions = await sessionRepository.findAllInProgressSessions()
+    log.info({ count: inProgressSessions.length }, 'Found in-progress game sessions')
+
+    for (const session of inProgressSessions) {
+      try {
+        // Get correct positions to calculate unfound count
+        const correctPositions = await sessionRepository.getCorrectPositions(session.id)
+        const screenshotsFound = correctPositions.length
+        const unfoundCount = TOTAL_SCREENSHOTS - screenshotsFound
+
+        // Calculate penalty
+        const penaltyApplied = unfoundCount * UNFOUND_PENALTY
+
+        // Calculate final score (allow negative)
+        const finalScore = session.total_score - penaltyApplied
+
+        // Mark session as completed
+        await sessionRepository.updateGameSession(session.id, {
+          totalScore: finalScore,
+          currentPosition: session.current_position,
+          isCompleted: true,
+        })
+
+        log.info(
+          {
+            sessionId: session.id,
+            userId: session.user_id,
+            finalScore,
+            screenshotsFound,
+            unfoundCount,
+            penaltyApplied,
+            completionReason: 'midnight_auto_end',
+          },
+          'game ended automatically at midnight'
+        )
+
+        ended++
+      } catch (error) {
+        failed++
+        log.error(
+          { sessionId: session.id, userId: session.user_id, error: String(error) },
+          'failed to end game session'
+        )
+      }
+    }
+
+    log.info({ ended, failed, total: inProgressSessions.length }, 'Finished ending in-progress games')
+  } catch (error) {
+    log.error({ error: String(error) }, 'failed to fetch in-progress sessions')
+  }
+
+  return { ended, failed }
+}
+
+/**
  * Main function to create a daily challenge for today.
  * This function is idempotent - it will skip if a challenge already exists.
  */
@@ -100,14 +170,22 @@ export async function createDailyChallenge(
   const challengeDate = getTodayDateUTC()
 
   log.info({ challengeDate }, 'Starting daily challenge creation')
-  onProgress?.(0, 4, `Checking for existing challenge on ${challengeDate}...`)
+  onProgress?.(0, 5, `Checking for existing challenge on ${challengeDate}...`)
 
   // Step 1: Check if challenge already exists for this date
   const existingChallenge = await challengeRepository.findByDate(challengeDate)
   if (existingChallenge) {
     log.info(
       { challengeId: existingChallenge.id, challengeDate },
-      'Challenge already exists for date, skipping'
+      'Challenge already exists for date, skipping creation'
+    )
+
+    // Still end in-progress games even if challenge already exists
+    onProgress?.(4, 5, 'Ending all in-progress games...')
+    const endGamesResult = await endAllInProgressGames()
+    log.info(
+      { ended: endGamesResult.ended, failed: endGamesResult.failed },
+      'Finished ending in-progress games'
     )
 
     return {
@@ -115,23 +193,23 @@ export async function createDailyChallenge(
       challengeId: existingChallenge.id,
       challengeDate,
       screenshotsAssigned: 0,
-      message: `Challenge already exists for ${challengeDate} (ID: ${existingChallenge.id})`,
+      message: `Challenge already exists for ${challengeDate} (ID: ${existingChallenge.id}). Ended ${endGamesResult.ended} in-progress games.`,
     }
   }
 
-  onProgress?.(1, 4, 'Selecting random screenshots...')
+  onProgress?.(1, 5, 'Selecting random screenshots...')
 
   // Step 2: Select 10 random screenshots
   const screenshotIds = await selectRandomScreenshots(10)
   log.info({ count: screenshotIds.length }, 'Selected screenshots for challenge')
 
-  onProgress?.(2, 4, 'Creating daily challenge entry...')
+  onProgress?.(2, 5, 'Creating daily challenge entry...')
 
   // Step 3: Create the daily challenge
   const challenge = await challengeRepository.create(challengeDate)
   log.info({ challengeId: challenge.id }, 'Created daily challenge')
 
-  onProgress?.(3, 4, 'Creating tier and assigning screenshots...')
+  onProgress?.(3, 5, 'Creating tier and assigning screenshots...')
 
   // Step 4: Create tier (single "Daily Challenge" tier)
   const tier = await challengeRepository.createTier({
@@ -144,14 +222,23 @@ export async function createDailyChallenge(
   // Step 5: Assign screenshots to positions 1-10
   await challengeRepository.createTierScreenshots(tier.id, screenshotIds)
 
-  onProgress?.(4, 4, 'Daily challenge created successfully!')
+  onProgress?.(4, 5, 'Ending all in-progress games...')
+
+  // Step 6: End all in-progress games
+  const endGamesResult = await endAllInProgressGames()
+  log.info(
+    { ended: endGamesResult.ended, failed: endGamesResult.failed },
+    'Finished ending in-progress games'
+  )
+
+  onProgress?.(5, 5, 'Daily challenge created successfully!')
 
   const result: DailyChallengeResult = {
     created: true,
     challengeId: challenge.id,
     challengeDate,
     screenshotsAssigned: screenshotIds.length,
-    message: `Created daily challenge for ${challengeDate} with ${screenshotIds.length} screenshots`,
+    message: `Created daily challenge for ${challengeDate} with ${screenshotIds.length} screenshots. Ended ${endGamesResult.ended} in-progress games.`,
   }
 
   log.info(result, 'Daily challenge creation complete')
