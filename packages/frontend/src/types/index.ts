@@ -29,7 +29,6 @@ export type {
   AuthResponse,
   TodayChallengeResponse,
   StartChallengeResponse,
-  StartTierResponse,
   ScreenshotResponse,
   GuessRequest,
   GuessResponse,
@@ -40,41 +39,12 @@ export type {
   GameHistoryResponse,
   GameSessionDetailsResponse,
 
-  // Socket Events
-  LiveScore,
-  JoinChallengeEvent,
-  ScoreUpdateEvent,
-  PlayerFinishedEvent,
-  PlayerJoinedEvent,
-  PlayerLeftEvent,
-
-  // Party System
-  PartyMember,
-  Party,
-  CreatePartyEvent,
-  JoinPartyEvent,
-  LeavePartyEvent,
-  StartPartyGameEvent,
-  PartyResetGameEvent,
-  PartyScoreUpdateEvent,
-  PartyPlayerFinishedEvent,
-  PartyCreatedEvent,
-  PartyJoinedEvent,
-  PartyUpdatedEvent,
-  PartyGameStartedEvent,
-  PartyGameResetEvent,
-  PartyErrorEvent,
-  PartyDisbandedEvent,
-
   // Job Management (Admin)
   JobType,
   JobStatus,
   Job,
   JobData,
   JobResult,
-  JobProgressEvent,
-  JobCompletedEvent,
-  JobFailedEvent,
   CreateJobRequest,
   JobListResponse,
   RecurringJob,
@@ -82,5 +52,4 @@ export type {
   // Full Import (Batch Processing)
   ImportStatus,
   ImportState,
-  BatchImportProgressEvent,
 } from '@the-box/types'

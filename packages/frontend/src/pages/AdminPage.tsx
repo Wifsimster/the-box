@@ -12,15 +12,6 @@ import { EmailSettings } from '@/components/admin/EmailSettings'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import {
-  joinAdminRoom,
-  leaveAdminRoom,
-  onJobProgress,
-  onJobCompleted,
-  onJobFailed,
-  onBatchImportProgress,
-  removeJobListeners,
-} from '@/lib/socket'
 import { Settings, ListTodo, Gamepad2, CalendarDays, Users, Mail } from 'lucide-react'
 
 const VALID_TABS = ['jobs', 'games', 'challenges', 'users', 'email']
@@ -36,10 +27,6 @@ export default function AdminPage() {
   const {
     fetchJobs,
     fetchRecurringJobs,
-    updateJobProgress,
-    updateJobCompleted,
-    updateJobFailed,
-    updateBatchImportProgress,
     fetchCurrentImport,
   } = useAdminStore()
 
@@ -85,44 +72,22 @@ export default function AdminPage() {
     }
   }, [session, isPending, navigate, lang])
 
-  // Fetch jobs and setup socket on mount
+  // Fetch jobs and setup polling for updates
   useEffect(() => {
     if (session?.user?.role === 'admin') {
       fetchJobs()
       fetchRecurringJobs()
       fetchCurrentImport()
-
-      // Join admin room for real-time updates
-      joinAdminRoom()
-
-      // Setup event listeners
-      const unsubProgress = onJobProgress(updateJobProgress)
-      const unsubCompleted = onJobCompleted((event) =>
-        updateJobCompleted(event.jobId, event.result)
-      )
-      const unsubFailed = onJobFailed((event) =>
-        updateJobFailed(event.jobId, event.error)
-      )
-      const unsubBatchProgress = onBatchImportProgress(updateBatchImportProgress)
-
-      return () => {
-        leaveAdminRoom()
-        removeJobListeners()
-        unsubProgress()
-        unsubCompleted()
-        unsubFailed()
-        unsubBatchProgress()
-      }
     }
-  }, [session, fetchJobs, updateJobProgress, updateJobCompleted, updateJobFailed, updateBatchImportProgress, fetchCurrentImport])
+  }, [session, fetchJobs, fetchRecurringJobs, fetchCurrentImport])
 
-  // Refresh jobs periodically as fallback
+  // Refresh jobs periodically
   useEffect(() => {
     if (session?.user?.role === 'admin') {
       const interval = setInterval(() => {
         fetchJobs()
         fetchRecurringJobs()
-      }, 30000) // Every 30 seconds
+      }, 5000) // Every 5 seconds
       return () => clearInterval(interval)
     }
   }, [session, fetchJobs, fetchRecurringJobs])

@@ -175,6 +175,7 @@ export interface GuessResult {
   scoreEarned: number
   hintPenalty?: number
   wrongGuessPenalty?: number
+  screenshot?: Screenshot
 }
 
 // Position tracking for navigation
@@ -298,6 +299,11 @@ export interface EndGameResponse {
   penaltyApplied: number
   isCompleted: boolean
   completionReason: 'forfeit'
+  unfoundGames: Array<{
+    position: number
+    game: Game
+    screenshot: Screenshot
+  }>
 }
 
 // Search API
@@ -352,124 +358,11 @@ export interface GameSessionDetailsResponse {
     wrongGuessPenalty?: number
     tryNumber: number
   }>
-}
-
-// ============================================
-// Socket Events
-// ============================================
-
-export interface LiveScore {
-  username: string
-  score: number
-}
-
-export interface JoinChallengeEvent {
-  challengeId: number
-  username: string
-}
-
-export interface ScoreUpdateEvent {
-  challengeId: number
-  score: number
-}
-
-export interface PlayerFinishedEvent {
-  challengeId: number
-  score: number
-}
-
-export interface PlayerJoinedEvent {
-  username: string
-  totalPlayers: number
-}
-
-export interface PlayerLeftEvent {
-  username: string
-  totalPlayers: number
-}
-
-// ============================================
-// Party System (Multiplayer Rooms)
-// ============================================
-
-export interface PartyMember {
-  socketId: string
-  username: string
-  score: number
-  isHost: boolean
-  isReady: boolean
-}
-
-export interface Party {
-  code: string
-  hostSocketId: string
-  challengeId: number | null
-  members: PartyMember[]
-  isGameStarted: boolean
-  createdAt: string
-}
-
-// Party Socket Events (Client -> Server)
-export interface CreatePartyEvent {
-  username: string
-}
-
-export interface JoinPartyEvent {
-  partyCode: string
-  username: string
-}
-
-export interface LeavePartyEvent {
-  partyCode: string
-}
-
-export interface StartPartyGameEvent {
-  partyCode: string
-  challengeId: number
-}
-
-export interface PartyResetGameEvent {
-  partyCode: string
-}
-
-export interface PartyScoreUpdateEvent {
-  partyCode: string
-  score: number
-}
-
-export interface PartyPlayerFinishedEvent {
-  partyCode: string
-  score: number
-}
-
-// Party Socket Events (Server -> Client)
-export interface PartyCreatedEvent {
-  partyCode: string
-  party: Party
-}
-
-export interface PartyJoinedEvent {
-  party: Party
-}
-
-export interface PartyUpdatedEvent {
-  party: Party
-}
-
-export interface PartyGameStartedEvent {
-  challengeId: number
-}
-
-export interface PartyGameResetEvent {
-  message: string
-}
-
-export interface PartyErrorEvent {
-  message: string
-}
-
-export interface PartyDisbandedEvent {
-  reason: string
+  unfoundGames: Array<{
+    position: number
+    game: Game
+    screenshot: Screenshot
+  }>
 }
 
 // ============================================
@@ -567,37 +460,6 @@ export interface JobResult {
   syncStateId?: number
   // For cleanup-anonymous-users
   usersDeleted?: number
-}
-
-// Job Socket Events
-export interface JobProgressEvent {
-  jobId: string
-  progress: number
-  current: number
-  total: number
-  message: string
-}
-
-export interface JobCompletedEvent {
-  jobId: string
-  result: JobResult
-}
-
-export interface JobFailedEvent {
-  jobId: string
-  error: string
-}
-
-// Extended progress event for batch imports
-export interface BatchImportProgressEvent extends JobProgressEvent {
-  importStateId: number
-  totalGamesAvailable: number
-  currentBatch: number
-  totalBatches: number
-  gamesImported: number
-  gamesSkipped: number
-  screenshotsDownloaded: number
-  estimatedTimeRemaining: string | null
 }
 
 // Job API Types

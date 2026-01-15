@@ -1,5 +1,6 @@
 import { sessionRepository, challengeRepository } from '../../infrastructure/repositories/index.js'
-import type { GameHistoryResponse, GameSessionDetailsResponse, Game } from '@the-box/types'
+import { db } from '../../infrastructure/database/connection.js'
+import type { GameHistoryResponse, GameSessionDetailsResponse, Game, Screenshot } from '@the-box/types'
 
 const TOTAL_SCREENSHOTS = 10
 const WRONG_GUESS_PENALTY = 30
@@ -87,7 +88,7 @@ export const userService = {
         } else {
           // No correct guess - use the last guess for display
           const lastGuess = positionGuesses[positionGuesses.length - 1]!
-          
+
           // Get correct game info from the screenshot
           const anyGuess = positionGuesses[0]!
           const correctGame: Game = {
@@ -115,6 +116,69 @@ export const userService = {
         }
       })
 
+    // Get unfound games (positions with no guesses)
+    const guessedPositions = Array.from(positionMap.keys())
+    const allPositions = Array.from({ length: TOTAL_SCREENSHOTS }, (_, i) => i + 1)
+    const unfoundPositions = allPositions.filter(pos => !guessedPositions.includes(pos))
+
+    const unfoundGames: Array<{ position: number; game: Game; screenshot: Screenshot }> = []
+    if (unfoundPositions.length > 0) {
+      // Get the tier for this challenge
+      const tiers = await challengeRepository.findTiersByChallenge(gameSession.daily_challenge_id)
+      const tier = tiers[0]
+      if (tier) {
+        // Get tier screenshots with game info for unfound positions
+        const unfoundTierScreenshots = await db('tier_screenshots')
+          .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
+          .join('games', 'screenshots.game_id', 'games.id')
+          .where('tier_screenshots.tier_id', tier.id)
+          .whereIn('tier_screenshots.position', unfoundPositions)
+          .select(
+            'tier_screenshots.position',
+            'screenshots.id as screenshot_id',
+            'screenshots.image_url',
+            'screenshots.thumbnail_url',
+            'screenshots.difficulty',
+            'screenshots.location_hint',
+            'screenshots.game_id',
+            'games.id as game_id',
+            'games.name as game_name',
+            'games.slug as game_slug',
+            'games.cover_image_url',
+            'games.release_year',
+            'games.developer',
+            'games.publisher',
+            'games.metacritic'
+          )
+          .orderBy('tier_screenshots.position', 'asc')
+
+        for (const row of unfoundTierScreenshots) {
+          unfoundGames.push({
+            position: row.position,
+            game: {
+              id: row.game_id,
+              name: row.game_name,
+              slug: row.game_slug,
+              aliases: [],
+              coverImageUrl: row.cover_image_url ?? undefined,
+              releaseYear: row.release_year ?? undefined,
+              developer: row.developer ?? undefined,
+              publisher: row.publisher ?? undefined,
+              metacritic: row.metacritic ?? undefined,
+            },
+            screenshot: {
+              id: row.screenshot_id,
+              gameId: row.game_id,
+              imageUrl: row.image_url,
+              thumbnailUrl: row.thumbnail_url ?? undefined,
+              difficulty: row.difficulty,
+              locationHint: row.location_hint ?? undefined,
+            },
+          })
+        }
+      }
+    }
+
     return {
       sessionId: gameSession.id,
       challengeDate: challenge.challenge_date,
@@ -123,6 +187,7 @@ export const userService = {
       completedAt: gameSession.completed_at?.toISOString() ?? null,
       totalScreenshots: TOTAL_SCREENSHOTS,
       guesses,
+      unfoundGames,
     }
   },
 }

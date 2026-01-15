@@ -10,7 +10,6 @@ import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
-import { LiveLeaderboard } from '@/components/game/LiveLeaderboard'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
 import { Button } from '@/components/ui/button'
@@ -80,11 +79,8 @@ export default function GamePage() {
   // Redirect to results page when challenge is complete
   useEffect(() => {
     if (gamePhase === 'challenge_complete') {
-      // Brief delay to show completion message before redirecting
-      const timer = setTimeout(() => {
-        navigate(localizedPath('/results'))
-      }, 1500)
-      return () => clearTimeout(timer)
+      // Navigate directly to results without delay
+      navigate(localizedPath('/results'))
     }
   }, [gamePhase, navigate, localizedPath])
 
@@ -594,12 +590,6 @@ export default function GamePage() {
                 </div>
               )}
             </motion.div>
-
-            {/* Live Leaderboard (Left Side) - Hidden on mobile, shown on md and up */}
-            <div className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-20">
-              <LiveLeaderboard />
-            </div>
-
 
             {/* Guess Input (Bottom Center) */}
             {/* Slides up when keyboard is open on mobile */}

@@ -1,7 +1,7 @@
 import { Worker, Job as BullJob } from 'bullmq'
 import { redisConnectionOptions } from '../connection.js'
 import { queueLogger } from '../../logger/logger.js'
-import type { JobData, JobResult, JobProgressEvent, JobCompletedEvent, JobFailedEvent, BatchImportProgressEvent } from '@the-box/types'
+import type { JobData, JobResult } from '@the-box/types'
 import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-logic.js'
 import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
@@ -9,41 +9,6 @@ import { createDailyChallenge } from './daily-challenge-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 
 const log = queueLogger
-
-// Socket.io instance - will be set after initialization
-let ioInstance: { to: (room: string) => { emit: (event: string, data: unknown) => void } } | null = null
-
-export function setSocketInstance(io: typeof ioInstance): void {
-  ioInstance = io
-  log.debug('socket instance set for worker')
-}
-
-function emitProgress(jobId: string, progress: number, current: number, total: number, message: string): void {
-  if (ioInstance) {
-    const event: JobProgressEvent = { jobId, progress, current, total, message }
-    ioInstance.to('admin').emit('job_progress', event)
-  }
-}
-
-function emitCompleted(jobId: string, result: JobResult): void {
-  if (ioInstance) {
-    const event: JobCompletedEvent = { jobId, result }
-    ioInstance.to('admin').emit('job_completed', event)
-  }
-}
-
-function emitFailed(jobId: string, error: string): void {
-  if (ioInstance) {
-    const event: JobFailedEvent = { jobId, error }
-    ioInstance.to('admin').emit('job_failed', event)
-  }
-}
-
-function emitBatchProgress(event: BatchImportProgressEvent): void {
-  if (ioInstance) {
-    ioInstance.to('admin').emit('batch_import_progress', event)
-  }
-}
 
 export const importWorker = new Worker<JobData, JobResult>(
   'import-jobs',
@@ -61,10 +26,9 @@ export const importWorker = new Worker<JobData, JobResult>(
           targetGames,
           screenshotsPerGame,
           minMetacritic,
-          (current, total, message) => {
+          (current, total) => {
             const progress = Math.round((current / total) * 100)
             job.updateProgress(progress)
-            emitProgress(id!, progress, current, total, message)
           }
         )
 
@@ -82,10 +46,9 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'import-screenshots') {
-        const result = await downloadAllScreenshots((current, total, message) => {
+        const result = await downloadAllScreenshots((current, total) => {
           const progress = Math.round((current / total) * 100)
           job.updateProgress(progress)
-          emitProgress(id!, progress, current, total, message)
         })
 
         const jobResult: JobResult = {
@@ -110,29 +73,9 @@ export const importWorker = new Worker<JobData, JobResult>(
           isResume: !!isResume,
         }, `Processing batch-import-games job (${isResume ? 'RESUME' : 'NEW'})`)
 
-        const result = await processBatch(importStateId, (current, total, message, state) => {
+        const result = await processBatch(importStateId, (current, total) => {
           const progress = total > 0 ? Math.round((current / total) * 100) : 0
           job.updateProgress(progress)
-
-          // Emit standard progress
-          emitProgress(id!, progress, current, total, message)
-
-          // Emit batch-specific progress
-          emitBatchProgress({
-            jobId: id!,
-            progress,
-            current,
-            total,
-            message,
-            importStateId: state.id,
-            totalGamesAvailable: state.totalGamesAvailable || 0,
-            currentBatch: state.currentBatch,
-            totalBatches: state.totalBatchesEstimated || 0,
-            gamesImported: state.gamesImported,
-            gamesSkipped: state.gamesSkipped,
-            screenshotsDownloaded: state.screenshotsDownloaded,
-            estimatedTimeRemaining: null, // Could calculate this based on average time per game
-          })
         })
 
         // If not complete and not paused, schedule next batch
@@ -172,10 +115,9 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'create-daily-challenge') {
-        const result = await createDailyChallenge((current, total, message) => {
+        const result = await createDailyChallenge((current, total) => {
           const progress = Math.round((current / total) * 100)
           job.updateProgress(progress)
-          emitProgress(id!, progress, current, total, message)
         })
 
         const jobResult: JobResult = {
@@ -202,29 +144,9 @@ export const importWorker = new Worker<JobData, JobResult>(
         const result = await processSyncAllBatch(
           syncStateId,
           updateExistingMetadata ?? true,
-          (current, total, message, state) => {
+          (current, total) => {
             const progress = total > 0 ? Math.round((current / total) * 100) : 0
             job.updateProgress(progress)
-
-            // Emit standard progress
-            emitProgress(id!, progress, current, total, message)
-
-            // Emit batch-specific progress
-            emitBatchProgress({
-              jobId: id!,
-              progress,
-              current,
-              total,
-              message,
-              importStateId: state.id,
-              totalGamesAvailable: state.totalGamesAvailable || 0,
-              currentBatch: state.currentBatch,
-              totalBatches: state.totalBatchesEstimated || 0,
-              gamesImported: state.gamesImported,
-              gamesSkipped: state.gamesSkipped,
-              screenshotsDownloaded: state.screenshotsDownloaded,
-              estimatedTimeRemaining: null,
-            })
           }
         )
 
@@ -266,10 +188,9 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'cleanup-anonymous-users') {
-        const result = await cleanupAnonymousUsers((current, total, message) => {
+        const result = await cleanupAnonymousUsers((current, total) => {
           const progress = Math.round((current / total) * 100)
           job.updateProgress(progress)
-          emitProgress(id!, progress, current, total, message)
         })
 
         const jobResult: JobResult = {
@@ -292,15 +213,6 @@ export const importWorker = new Worker<JobData, JobResult>(
     concurrency: 1, // One job at a time due to RAWG rate limits
   }
 )
-
-// Event handlers for Socket.io updates
-importWorker.on('completed', (job, result) => {
-  emitCompleted(job.id!, result)
-})
-
-importWorker.on('failed', (job, error) => {
-  emitFailed(job?.id || 'unknown', error.message)
-})
 
 importWorker.on('error', (error) => {
   log.error({ error: String(error) }, 'worker error')

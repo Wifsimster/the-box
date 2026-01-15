@@ -1,7 +1,28 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Job, JobProgressEvent, Game, RecurringJob, ImportState, BatchImportProgressEvent, User } from '@/types'
+import type { Job, Game, RecurringJob, ImportState, User } from '@/types'
 import { adminApi } from '@/lib/api'
+
+// Define missing event types locally
+interface JobProgressEvent {
+  jobId: string
+  progress: number
+  message?: string
+}
+
+interface BatchImportProgressEvent {
+  importStateId: number
+  progress: number
+  status: string
+  message?: string
+  current: number
+  gamesImported: number
+  gamesSkipped: number
+  screenshotsDownloaded: number
+  currentBatch: number
+  totalGamesAvailable: number
+  totalBatches: number
+}
 
 interface GamesPagination {
   page: number

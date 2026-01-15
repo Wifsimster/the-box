@@ -68,13 +68,42 @@ export default function GameHistoryDetailsPage() {
     )
   }
 
-  // Calculate statistics
-  const correctAnswers = sessionData.guesses.filter((g: GameSessionDetailsResponse['guesses'][0]) => g.isCorrect).length
-  const accuracy = sessionData.totalScreenshots > 0 
-    ? Math.round((correctAnswers / sessionData.totalScreenshots) * 100) 
+  // Calculate statistics and merge unfound games with guesses
+  const allResults: Array<{
+    position: number
+    isCorrect: boolean
+    correctGame: typeof sessionData.guesses[0]['correctGame']
+    userGuess: string | null
+    timeTakenMs: number
+    scoreEarned: number
+    hintPenalty?: number
+    wrongGuessPenalty?: number
+    tryNumber: number
+    screenshot?: { thumbnailUrl?: string; imageUrl: string }
+  }> = [...sessionData.guesses]
+
+  // Add unfound games as unguessed entries
+  if (sessionData.unfoundGames && sessionData.unfoundGames.length > 0) {
+    const unfoundResults = sessionData.unfoundGames.map(unfound => ({
+      position: unfound.position,
+      isCorrect: false,
+      correctGame: unfound.game,
+      userGuess: null,
+      timeTakenMs: 0,
+      scoreEarned: -50,
+      tryNumber: 0,
+      screenshot: unfound.screenshot,
+    }))
+    allResults.push(...unfoundResults)
+  }
+
+  // Sort by position
+  allResults.sort((a, b) => a.position - b.position)
+
+  const correctAnswers = allResults.filter(g => g.isCorrect).length
+  const accuracy = sessionData.totalScreenshots > 0
+    ? Math.round((correctAnswers / sessionData.totalScreenshots) * 100)
     : 0
-  const unguessedCount = sessionData.totalScreenshots - sessionData.guesses.length
-  const totalPenalty = unguessedCount * UNFOUND_PENALTY
 
   // Format date for display
   const formatDate = (dateStr: string) => {
@@ -135,9 +164,9 @@ export default function GameHistoryDetailsPage() {
 
       {/* Back Button */}
       <div className="flex justify-center mb-4 sm:mb-6 md:mb-8">
-        <Button 
-          variant="outline" 
-          size="lg" 
+        <Button
+          variant="outline"
+          size="lg"
           onClick={() => navigate(localizedPath('/history'))}
         >
           <ArrowLeft className="w-4 h-4 sm:mr-2" />
@@ -154,86 +183,84 @@ export default function GameHistoryDetailsPage() {
           <div className="md:hidden">
             <ScrollArea className="h-[calc(100vh-500px)]">
               <div className="space-y-2 pr-2">
-                {sessionData.guesses.map((result: GameSessionDetailsResponse['guesses'][0], index: number) => (
-                  <motion.div
-                    key={result.position}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-secondary/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                      <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0">{result.position}.</span>
-                      {result.isCorrect ? (
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0" />
-                      ) : (
-                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
-                        {result.userGuess && !result.isCorrect && (
-                          <span className="text-xs sm:text-sm text-muted-foreground block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
-                            (guessed: {result.userGuess})
-                          </span>
+                {allResults.map((result: typeof allResults[0], index: number) => {
+                  const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
+                  return (
+                    <motion.div
+                      key={result.position}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
+                        }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0">{result.position}.</span>
+                        {result.isCorrect ? (
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0" />
+                        ) : (
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" />
                         )}
+                        {/* Show screenshot thumbnail for unguessed games */}
+                        {isUnguessed && result.screenshot && (
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0">
+                            <img
+                              src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
+                              alt="Screenshot"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
+                          {result.userGuess && !result.isCorrect && (
+                            <span className="text-xs sm:text-sm text-muted-foreground block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
+                              (guessed: {result.userGuess})
+                            </span>
+                          )}
+                          {isUnguessed && (
+                            <span className="text-xs sm:text-sm text-destructive block mt-0.5">
+                              {t('game.notFound') || 'Not Found'}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end sm:text-right gap-2 sm:gap-0">
-                      {result.isCorrect && result.scoreEarned > 0 ? (
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge variant="success" className="text-xs sm:text-sm font-bold">
+                      <div className="flex items-center justify-between sm:justify-end sm:text-right gap-2 sm:gap-0">
+                        {result.isCorrect && result.scoreEarned > 0 ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant="success" className="text-xs sm:text-sm font-bold">
+                              +{result.scoreEarned}
+                            </Badge>
+                            {(() => {
+                              const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
+                              if (multiplier > 1.0) {
+                                return (
+                                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
+                                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    <span className="whitespace-nowrap">
+                                      100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
+                          </div>
+                        ) : isUnguessed ? (
+                          <Badge variant="destructive" className="text-xs sm:text-sm font-bold">
+                            {result.scoreEarned}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs sm:text-sm">
                             +{result.scoreEarned}
                           </Badge>
-                          {(() => {
-                            const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                            if (multiplier > 1.0) {
-                              return (
-                                <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
-                                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                  <span className="whitespace-nowrap">
-                                    100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                  </span>
-                                </div>
-                              )
-                            }
-                            return null
-                          })()}
-                        </div>
-                      ) : (
-                        <Badge variant="outline" className="text-xs sm:text-sm">
-                          +{result.scoreEarned}
-                        </Badge>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+                        )}
+                      </div>
+                    </motion.div>
+                  )
+                })}
 
-                {/* Show total penalty for unguessed games in red */}
-                {unguessedCount > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: sessionData.guesses.length * 0.05 + 0.1 }}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-destructive/10 border border-destructive/20 mt-3 sm:mt-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" />
-                      <span className="font-medium text-muted-foreground text-sm sm:text-base">
-                        {unguessedCount === 1 
-                          ? t('game.unguessedGame', { count: unguessedCount })
-                          : t('game.unguessedGames', { count: unguessedCount })
-                        }
-                      </span>
-                    </div>
-                    <div className="text-right sm:text-left">
-                      <Badge variant="destructive" className="text-sm sm:text-base font-bold">
-                        -{totalPenalty}
-                      </Badge>
-                    </div>
-                  </motion.div>
-                )}
-
-                {sessionData.guesses.length === 0 && sessionData.totalScreenshots === 0 && (
+                {allResults.length === 0 && sessionData.totalScreenshots === 0 && (
                   <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
                     {t('game.noResults')}
                   </p>
@@ -244,86 +271,84 @@ export default function GameHistoryDetailsPage() {
           {/* Full list on desktop - no scroll */}
           <div className="hidden md:block">
             <div className="space-y-3">
-              {sessionData.guesses.map((result: GameSessionDetailsResponse['guesses'][0], index: number) => (
-                <motion.div
-                  key={result.position}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-muted-foreground text-base w-6 shrink-0">{result.position}.</span>
-                    {result.isCorrect ? (
-                      <CheckCircle className="w-5 h-5 text-success shrink-0" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-error shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium text-base block truncate">{result.correctGame.name}</span>
-                      {result.userGuess && !result.isCorrect && (
-                        <span className="text-sm text-muted-foreground inline ml-2">
-                          (guessed: {result.userGuess})
-                        </span>
+              {allResults.map((result: typeof allResults[0], index: number) => {
+                const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
+                return (
+                  <motion.div
+                    key={result.position}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className={`flex items-center gap-3 p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="text-muted-foreground text-base w-6 shrink-0">{result.position}.</span>
+                      {result.isCorrect ? (
+                        <CheckCircle className="w-5 h-5 text-success shrink-0" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-error shrink-0" />
                       )}
+                      {/* Show screenshot thumbnail for unguessed games */}
+                      {isUnguessed && result.screenshot && (
+                        <div className="w-16 h-16 rounded overflow-hidden shrink-0">
+                          <img
+                            src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
+                            alt="Screenshot"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-base block truncate">{result.correctGame.name}</span>
+                        {result.userGuess && !result.isCorrect && (
+                          <span className="text-sm text-muted-foreground inline ml-2">
+                            (guessed: {result.userGuess})
+                          </span>
+                        )}
+                        {isUnguessed && (
+                          <span className="text-sm text-destructive block mt-0.5">
+                            {t('game.notFound') || 'Not Found'}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-end text-right gap-0">
-                    {result.isCorrect && result.scoreEarned > 0 ? (
-                      <div className="flex flex-col items-end gap-1">
-                        <Badge variant="success" className="text-sm font-bold">
+                    <div className="text-right">
+                      {result.isCorrect && result.scoreEarned > 0 ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="success" className="text-sm font-bold">
+                            +{result.scoreEarned}
+                          </Badge>
+                          {(() => {
+                            const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
+                            if (multiplier > 1.0) {
+                              return (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span className="whitespace-nowrap">
+                                    100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
+                                  </span>
+                                </div>
+                              )
+                            }
+                            return null
+                          })()}
+                        </div>
+                      ) : isUnguessed ? (
+                        <Badge variant="destructive" className="text-sm font-bold">
+                          {result.scoreEarned}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-sm">
                           +{result.scoreEarned}
                         </Badge>
-                        {(() => {
-                          const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                          if (multiplier > 1.0) {
-                            return (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span className="whitespace-nowrap">
-                                  50 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                </span>
-                              </div>
-                            )
-                          }
-                          return null
-                        })()}
-                      </div>
-                    ) : (
-                      <Badge variant="outline" className="text-sm">
-                        +{result.scoreEarned}
-                      </Badge>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
 
-              {/* Show total penalty for unguessed games in red */}
-              {unguessedCount > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: sessionData.guesses.length * 0.05 + 0.1 }}
-                  className="flex items-center justify-between gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20 mt-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-error shrink-0" />
-                    <span className="font-medium text-muted-foreground text-base">
-                      {unguessedCount === 1 
-                        ? t('game.unguessedGame', { count: unguessedCount })
-                        : t('game.unguessedGames', { count: unguessedCount })
-                      }
-                    </span>
-                  </div>
-                  <div className="text-left">
-                    <Badge variant="destructive" className="text-base font-bold">
-                      -{totalPenalty}
-                    </Badge>
-                  </div>
-                </motion.div>
-              )}
-
-              {sessionData.guesses.length === 0 && sessionData.totalScreenshots === 0 && (
+              {allResults.length === 0 && sessionData.totalScreenshots === 0 && (
                 <p className="text-center text-muted-foreground py-8 text-base">
                   {t('game.noResults')}
                 </p>

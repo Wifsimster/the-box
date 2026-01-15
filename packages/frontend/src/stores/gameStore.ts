@@ -57,9 +57,6 @@ interface GameState {
   isLoading: boolean
   lastResult: GuessResult | null
 
-  // Live leaderboard
-  liveLeaderboard: { username: string; score: number }[]
-
   // Actions
   setSessionId: (id: string, tierSessionId: string) => void
   setChallengeId: (id: number, date: string) => void
@@ -80,8 +77,6 @@ interface GameState {
   activatePowerUp: (type: PowerUpType) => void
   clearActivePowerUp: () => void
   usePowerUp: (type: PowerUpType) => void
-
-  updateLiveLeaderboard: (entries: { username: string; score: number }[]) => void
 
   // Position navigation actions
   initializePositionStates: (total: number) => void
@@ -142,7 +137,6 @@ const initialState = {
   gamePhase: 'idle' as GamePhase,
   isLoading: false,
   lastResult: null,
-  liveLeaderboard: [],
 }
 
 export const useGameStore = create<GameState>()(
@@ -212,8 +206,6 @@ export const useGameStore = create<GameState>()(
           ),
           activePowerUp: null,
         })),
-
-        updateLiveLeaderboard: (entries) => set({ liveLeaderboard: entries }),
 
         // Session restore action - restores full game state from backend data
         // Merges persisted local state with authoritative backend data
@@ -496,13 +488,31 @@ export const useGameStore = create<GameState>()(
         },
 
         endGameAction: async () => {
-          const { sessionId, updateScore, setScreenshotsFound, setGamePhase } = get()
+          const { sessionId, updateScore, setScreenshotsFound, setGamePhase, guessResults } = get()
           if (!sessionId) return
 
           try {
             const result = await gameApi.endGame(sessionId)
             updateScore(result.totalScore)
             setScreenshotsFound(result.screenshotsFound)
+
+            // Add unfound games to guessResults as unguessed entries
+            if (result.unfoundGames && result.unfoundGames.length > 0) {
+              const unfoundResults: GuessResult[] = result.unfoundGames.map(unfound => ({
+                position: unfound.position,
+                isCorrect: false,
+                correctGame: unfound.game,
+                userGuess: null,
+                timeTakenMs: 0,
+                scoreEarned: -50, // Show -50 penalty
+                screenshot: unfound.screenshot,
+              }))
+
+              // Merge with existing results and sort by position
+              const allResults = [...guessResults, ...unfoundResults].sort((a, b) => a.position - b.position)
+              set({ guessResults: allResults })
+            }
+
             setGamePhase('challenge_complete')
           } catch (err) {
             console.error('Failed to end game:', err)

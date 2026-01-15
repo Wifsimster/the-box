@@ -3,6 +3,7 @@ import {
   sessionRepository,
   screenshotRepository,
 } from '../../infrastructure/repositories/index.js'
+import { db } from '../../infrastructure/database/connection.js'
 import type {
   TodayChallengeResponse,
   StartChallengeResponse,
@@ -10,6 +11,7 @@ import type {
   GuessResponse,
   EndGameResponse,
   Game,
+  Screenshot,
 } from '@the-box/types'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import { fuzzyMatchService } from './fuzzy-match.service.js'
@@ -218,7 +220,7 @@ export const gameService = {
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
       // Cap max score per screenshot at 200 points
       scoreEarned = Math.min(scoreEarned, 200)
-      
+
       // Calculate hint penalty as 20% of earned score (after speed multiplier)
       if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher') {
         hintPenalty = Math.round(scoreEarned * 0.20)
@@ -234,7 +236,7 @@ export const gameService = {
 
     // Update session score: add earned score, subtract wrong guess penalty
     const newSessionScore = Math.max(0, tierSession.score + scoreEarned - wrongGuessPenalty)
-    
+
     // Track wrong guesses count
     const newWrongGuesses = tierSession.wrong_guesses + (isCorrect ? 0 : 1)
 
@@ -373,6 +375,65 @@ export const gameService = {
     // Calculate final score (allow negative)
     const finalScore = session.total_score - penaltyApplied
 
+    // Get unfound games with screenshot and game data
+    const unfoundGames: Array<{ position: number; game: Game; screenshot: Screenshot }> = []
+    if (unfoundCount > 0) {
+      // Get the tier for this challenge
+      const tiers = await challengeRepository.findTiersByChallenge(session.daily_challenge_id)
+      const tier = tiers[0]
+      if (tier) {
+        // Get all tier screenshots with game info
+        const allTierScreenshots = await db('tier_screenshots')
+          .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
+          .join('games', 'screenshots.game_id', 'games.id')
+          .where('tier_screenshots.tier_id', tier.id)
+          .whereNotIn('tier_screenshots.position', correctPositions.length > 0 ? correctPositions : [0])
+          .select(
+            'tier_screenshots.position',
+            'screenshots.id as screenshot_id',
+            'screenshots.image_url',
+            'screenshots.thumbnail_url',
+            'screenshots.difficulty',
+            'screenshots.location_hint',
+            'screenshots.game_id',
+            'games.id as game_id',
+            'games.name as game_name',
+            'games.slug as game_slug',
+            'games.cover_image_url',
+            'games.release_year',
+            'games.developer',
+            'games.publisher',
+            'games.metacritic'
+          )
+          .orderBy('tier_screenshots.position', 'asc')
+
+        for (const row of allTierScreenshots) {
+          unfoundGames.push({
+            position: row.position,
+            game: {
+              id: row.game_id,
+              name: row.game_name,
+              slug: row.game_slug,
+              aliases: [],
+              coverImageUrl: row.cover_image_url ?? undefined,
+              releaseYear: row.release_year ?? undefined,
+              developer: row.developer ?? undefined,
+              publisher: row.publisher ?? undefined,
+              metacritic: row.metacritic ?? undefined,
+            },
+            screenshot: {
+              id: row.screenshot_id,
+              gameId: row.game_id,
+              imageUrl: row.image_url,
+              thumbnailUrl: row.thumbnail_url ?? undefined,
+              difficulty: row.difficulty,
+              locationHint: row.location_hint ?? undefined,
+            },
+          })
+        }
+      }
+    }
+
     // Mark session as completed
     await sessionRepository.updateGameSession(sessionId, {
       totalScore: finalScore,
@@ -400,6 +461,7 @@ export const gameService = {
       penaltyApplied,
       isCompleted: true,
       completionReason: 'forfeit',
+      unfoundGames,
     }
   },
 }

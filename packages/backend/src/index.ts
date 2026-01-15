@@ -2,11 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { createServer } from 'http'
 import { toNodeHandler } from 'better-auth/node'
 import { env, validateEnv } from './config/env.js'
 import { testConnection, runMigrations } from './infrastructure/database/connection.js'
-import { initializeSocket } from './infrastructure/socket/socket.js'
 import { auth } from './infrastructure/auth/auth.js'
 import { logger } from './infrastructure/logger/logger.js'
 import { requestLogger } from './presentation/middleware/request-logger.middleware.js'
@@ -16,7 +14,6 @@ import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
 import userRoutes from './presentation/routes/user.routes.js'
-import { setSocketInstance } from './infrastructure/queue/workers/import.worker.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
 
@@ -42,15 +39,8 @@ logger.info(
 )
 
 const app = express()
-const httpServer = createServer(app)
 
-// Initialize Socket.io
-export const io = initializeSocket(httpServer)
-
-// Set socket instance for job worker
-setSocketInstance(io)
-
-// CORS middleware
+// JSON parsing middleware
 app.use(cors({
   origin: env.CORS_ORIGIN,
   credentials: true,
@@ -253,7 +243,7 @@ async function start(): Promise<void> {
     }
   }
 
-  httpServer.listen(env.PORT, () => {
+  app.listen(env.PORT, () => {
     logger.info(
       {
         port: env.PORT,
