@@ -27,7 +27,7 @@ function calculateScore(timeTakenMs: number): number {
 }
 
 export async function seed(knex: Knex): Promise<void> {
-  // Get test users
+  // Get test users and admin user
   const testUsers = await knex('user')
     .whereIn('email', [
       'testuser1@test.local',
@@ -36,6 +36,7 @@ export async function seed(knex: Knex): Promise<void> {
       'testuser4@test.local',
       'testuser5@test.local',
       'testadmin@test.local',
+      'admin@thebox.local', // Main admin user
     ])
     .select('id', 'email', 'username')
 
@@ -112,6 +113,12 @@ export async function seed(knex: Knex): Promise<void> {
     {
       userEmail: 'testadmin@test.local',
       challengeIndices: [0, 1, 2, 3, 4, 5, 6], // Plays all 7 days
+      performance: 'high',
+      playAllDays: true,
+    },
+    {
+      userEmail: 'admin@thebox.local',
+      challengeIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], // Plays all 17 days (full history)
       performance: 'high',
       playAllDays: true,
     },
@@ -406,10 +413,13 @@ export async function seed(knex: Knex): Promise<void> {
     )
   }
 
-  // Add 10 additional history entries specifically for admin user
-  const adminUser = testUsers.find((u) => u.email === 'testadmin@test.local')
-  if (adminUser) {
-    console.log('Creating 10 additional history entries for admin user...')
+  // Add additional history entries for admin users (testadmin and main admin)
+  const adminUsers = testUsers.filter((u) => 
+    u.email === 'testadmin@test.local' || u.email === 'admin@thebox.local'
+  )
+  
+  for (const adminUser of adminUsers) {
+    console.log(`Creating additional history entries for ${adminUser.email}...`)
     
     // Get challenges from 7-16 days ago (beyond the initial 7 days)
     const olderChallenges = await knex('daily_challenges')
@@ -428,7 +438,7 @@ export async function seed(knex: Knex): Promise<void> {
 
         if (existingSession) {
           console.log(
-            `Game session already exists for testadmin@test.local on ${challenge.challenge_date}, skipping`
+            `Game session already exists for ${adminUser.email} on ${challenge.challenge_date}, skipping`
           )
           continue
         }
@@ -621,12 +631,80 @@ export async function seed(knex: Knex): Promise<void> {
         }
 
         console.log(
-          `Created additional admin history for ${challengeDateStr}: ` +
+          `Created additional admin history for ${adminUser.email} on ${challengeDateStr}: ` +
             `${correctCount} correct, ${wrongCount} wrong, score: ${totalScore}, completed: ${completed}`
         )
       }
     } else {
-      console.warn('No older challenges found for additional admin history')
+      console.warn(`No older challenges found for additional admin history for ${adminUser.email}`)
+    }
+  }
+
+  // Update admin user stats to reflect all game sessions
+  const mainAdminUser = testUsers.find((u) => u.email === 'admin@thebox.local')
+  if (mainAdminUser) {
+    // Calculate total stats from all sessions
+    const allAdminSessions = await knex('game_sessions')
+      .where('user_id', mainAdminUser.id)
+      .where('is_completed', true)
+      .select('total_score', 'completed_at')
+      .orderBy('completed_at', 'asc')
+
+    if (allAdminSessions.length > 0) {
+      const totalScore = allAdminSessions.reduce((sum, s) => sum + s.total_score, 0)
+      
+      // Calculate streak (consecutive days with completed sessions)
+      let currentStreak = 0
+      let longestStreak = 0
+      let tempStreak = 0
+      let lastDate: Date | null = null
+
+      for (const session of allAdminSessions) {
+        const sessionDate = new Date(session.completed_at)
+        sessionDate.setHours(0, 0, 0, 0)
+        
+        if (lastDate) {
+          const daysDiff = Math.floor((sessionDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+          if (daysDiff === 1) {
+            tempStreak++
+          } else {
+            longestStreak = Math.max(longestStreak, tempStreak)
+            tempStreak = 1
+          }
+        } else {
+          tempStreak = 1
+        }
+        
+        lastDate = sessionDate
+      }
+      longestStreak = Math.max(longestStreak, tempStreak)
+      
+      // Calculate current streak (from most recent session)
+      const mostRecentSession = allAdminSessions[allAdminSessions.length - 1]
+      if (mostRecentSession) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const mostRecentDate = new Date(mostRecentSession.completed_at)
+        mostRecentDate.setHours(0, 0, 0, 0)
+        const daysSinceLastPlay = Math.floor((today.getTime() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24))
+        
+        if (daysSinceLastPlay === 0 || daysSinceLastPlay === 1) {
+          currentStreak = tempStreak
+        }
+      }
+
+      await knex('user')
+        .where('id', mainAdminUser.id)
+        .update({
+          total_score: totalScore,
+          current_streak: currentStreak,
+          longest_streak: longestStreak,
+          last_played_at: allAdminSessions[allAdminSessions.length - 1]?.completed_at || null,
+        })
+
+      console.log(
+        `Updated admin user stats: total_score=${totalScore}, current_streak=${currentStreak}, longest_streak=${longestStreak}`
+      )
     }
   }
 
