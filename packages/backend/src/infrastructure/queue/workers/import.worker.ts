@@ -6,6 +6,7 @@ import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-l
 import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
+import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 
 const log = queueLogger
 
@@ -261,6 +262,22 @@ export const importWorker = new Worker<JobData, JobResult>(
         } else {
           log.info({ jobId: id, nextBatch: result.currentBatch + 1 }, 'Sync batch completed, next batch scheduled')
         }
+        return jobResult
+      }
+
+      if (name === 'cleanup-anonymous-users') {
+        const result = await cleanupAnonymousUsers((current, total, message) => {
+          const progress = Math.round((current / total) * 100)
+          job.updateProgress(progress)
+          emitProgress(id!, progress, current, total, message)
+        })
+
+        const jobResult: JobResult = {
+          usersDeleted: result.usersDeleted,
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'cleanup-anonymous-users job completed')
         return jobResult
       }
 

@@ -236,6 +236,21 @@ async function start(): Promise<void> {
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring sync-all-games job')
     }
+
+    // Schedule recurring cleanup-anonymous-users job (daily at 1 AM UTC)
+    try {
+      await importQueue.add(
+        'cleanup-anonymous-users',
+        {},
+        {
+          repeat: { pattern: '0 1 * * *' }, // Cron: 1 AM UTC daily
+          jobId: 'cleanup-anonymous-users-recurring',
+        }
+      )
+      logger.info('scheduled recurring cleanup-anonymous-users job (daily at 1 AM UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring cleanup-anonymous-users job')
+    }
   }
 
   httpServer.listen(env.PORT, () => {

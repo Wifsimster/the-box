@@ -476,7 +476,7 @@ export interface PartyDisbandedEvent {
 // Job Management (Admin)
 // ============================================
 
-export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge' | 'sync-all-games'
+export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge' | 'sync-all-games' | 'cleanup-anonymous-users'
 export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
 
 // Import State for batch processing
@@ -565,6 +565,8 @@ export interface JobResult {
   // For sync-all-games
   gamesUpdated?: number
   syncStateId?: number
+  // For cleanup-anonymous-users
+  usersDeleted?: number
 }
 
 // Job Socket Events
