@@ -9,8 +9,8 @@ import { calculateSpeedMultiplier } from '../lib/utils'
 
 // Constants matching backend
 const BASE_SCORE = 100
-const WRONG_GUESS_PENALTY = 30
-const UNFOUND_PENALTY = 50
+const WRONG_GUESS_PENALTY = 0
+const UNFOUND_PENALTY = 0
 const HINT_PENALTY_PERCENTAGE = 0.20
 
 /**
@@ -20,12 +20,12 @@ function calculateScoreEarned(timeTakenMs: number, usedHint: boolean = false): n
   const speedMultiplier = calculateSpeedMultiplier(timeTakenMs)
   let scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
   scoreEarned = Math.min(scoreEarned, 200) // Cap at 200
-  
+
   if (usedHint) {
     const hintPenalty = Math.round(scoreEarned * HINT_PENALTY_PERCENTAGE)
     scoreEarned -= hintPenalty
   }
-  
+
   return scoreEarned
 }
 
@@ -37,7 +37,7 @@ export function testSpeedMultiplierBoundaries(): {
   failures: string[]
 } {
   const failures: string[] = []
-  
+
   // Test boundary conditions
   const testCases = [
     { timeMs: 0, expected: 2.0, description: '0 seconds (instant)' },
@@ -52,7 +52,7 @@ export function testSpeedMultiplierBoundaries(): {
     { timeMs: 21000, expected: 1.0, description: '21 seconds (20+ s)' },
     { timeMs: 60000, expected: 1.0, description: '60 seconds (long time)' },
   ]
-  
+
   for (const testCase of testCases) {
     const result = calculateSpeedMultiplier(testCase.timeMs)
     if (result !== testCase.expected) {
@@ -61,7 +61,7 @@ export function testSpeedMultiplierBoundaries(): {
       )
     }
   }
-  
+
   return {
     passed: failures.length === 0,
     failures,
@@ -76,7 +76,7 @@ export function testScoreCalculation(): {
   failures: string[]
 } {
   const failures: string[] = []
-  
+
   const testCases = [
     {
       timeMs: 2000,
@@ -104,7 +104,7 @@ export function testScoreCalculation(): {
       description: 'Slow (20+ s): 100 × 1.0 = 100',
     },
   ]
-  
+
   for (const testCase of testCases) {
     const result = calculateScoreEarned(testCase.timeMs, false)
     if (result !== testCase.expected) {
@@ -113,7 +113,7 @@ export function testScoreCalculation(): {
       )
     }
   }
-  
+
   return {
     passed: failures.length === 0,
     failures,
@@ -128,7 +128,7 @@ export function testHintPenalty(): {
   failures: string[]
 } {
   const failures: string[] = []
-  
+
   // Test hint penalty: 20% of earned score
   const testCases = [
     {
@@ -157,7 +157,7 @@ export function testHintPenalty(): {
       description: 'Slow with hint: 100 - 20 = 80',
     },
   ]
-  
+
   for (const testCase of testCases) {
     const result = calculateScoreEarned(testCase.timeMs, true)
     if (result !== testCase.expected) {
@@ -166,7 +166,7 @@ export function testHintPenalty(): {
       )
     }
   }
-  
+
   return {
     passed: failures.length === 0,
     failures,
@@ -184,7 +184,7 @@ export function testPerfectGame(): {
   // All 10 screenshots correct, all under 3 seconds, no hints, no wrong guesses
   const scorePerScreenshot = calculateScoreEarned(2000, false) // 200 points
   const totalScore = scorePerScreenshot * 10
-  
+
   return {
     passed: totalScore === 2000,
     totalScore,
@@ -205,7 +205,7 @@ export function testAllWrongGuesses(): {
   // But this is a theoretical calculation - actual implementation prevents negative during gameplay
   const wrongGuesses = 10
   const theoreticalScore = -(wrongGuesses * WRONG_GUESS_PENALTY)
-  
+
   return {
     passed: true, // This is expected behavior - negative prevented during gameplay
     totalScore: Math.max(0, theoreticalScore), // Actual behavior
@@ -241,7 +241,7 @@ export function testEarlyEndGame(): {
       expectedFinalScore: 1200 - (2 * UNFOUND_PENALTY), // 1200 - 100 = 1100
     },
   ]
-  
+
   return {
     passed: true, // These are expected calculations
     scenarios,
@@ -266,13 +266,13 @@ export function runAllVerificationTests(): {
   const perfectGame = testPerfectGame()
   const allWrong = testAllWrongGuesses()
   const earlyEnd = testEarlyEndGame()
-  
+
   const allPassed =
     speedMultiplier.passed &&
     scoreCalculation.passed &&
     hintPenalty.passed &&
     perfectGame.passed
-  
+
   return {
     speedMultiplier,
     scoreCalculation,
@@ -286,7 +286,7 @@ export function runAllVerificationTests(): {
 
 // Export for use in browser console or test runner
 if (typeof window !== 'undefined') {
-  ;(window as any).scoringVerification = {
+  ; (window as any).scoringVerification = {
     runAllVerificationTests,
     testSpeedMultiplierBoundaries,
     testScoreCalculation,

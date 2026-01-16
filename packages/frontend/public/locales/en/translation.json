@@ -106,6 +106,7 @@
     "errorLoadingChallenge": "Failed to load challenge",
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",
+    "alreadyCompleted": "You have already completed today's challenge! Come back tomorrow for a new one.",
     "noChallenge": "No challenge available",
     "noChallengeAvailable": "No challenge available for {{date}}. Please check back later!",
     "guestWarning": "You are not logged in. Your score will not be saved.",

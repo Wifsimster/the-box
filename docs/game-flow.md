@@ -68,13 +68,13 @@ scoreEarned = Math.min(200, Math.round(100 * calculateSpeedMultiplier(timeTakenM
 
 ### Penalty System
 
-Players can guess unlimited times, but penalties apply:
+Players can guess unlimited times:
 
-- **Wrong guess penalty**: -30 points per incorrect attempt (deducted from session score)
+- **Wrong guess penalty**: 0 points (no penalty for incorrect attempts)
 - **Hint penalty**: -20% of earned score (percentage-based, applied after speed multiplier)
-- **Unfound penalty**: -100 points per unfound screenshot (applied when ending game early)
+- **Unfound penalty**: 0 points (no penalty for unfound screenshots when ending game early)
 
-The penalty system encourages careful guessing while allowing multiple attempts.
+The system allows unlimited guessing attempts without penalties, encouraging players to try different answers.
 
 ### Maximum Score
 

@@ -79,6 +79,7 @@ interface AdminState {
   fetchRecurringJobs: () => Promise<void>
   triggerDailyChallengeJob: () => Promise<void>
   triggerSyncAllJob: () => Promise<void>
+  triggerCleanupAnonymousUsersJob: () => Promise<void>
   triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
   triggerImportScreenshots: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number, minMetacritic?: number) => Promise<Job>
@@ -227,6 +228,17 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger sync-all job:', err)
+          throw err
+        }
+      },
+
+      triggerCleanupAnonymousUsersJob: async () => {
+        try {
+          await adminApi.triggerCleanupAnonymousUsers()
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger cleanup anonymous users job:', err)
           throw err
         }
       },

@@ -106,6 +106,7 @@
     "errorLoadingChallenge": "Impossible de charger le défi",
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",
+    "alreadyCompleted": "Vous avez déjà terminé le défi d'aujourd'hui ! Revenez demain pour un nouveau.",
     "noChallenge": "Aucun défi disponible",
     "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Revenez plus tard !",
     "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",

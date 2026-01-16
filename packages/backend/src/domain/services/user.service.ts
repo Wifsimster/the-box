@@ -3,7 +3,7 @@ import { db } from '../../infrastructure/database/connection.js'
 import type { GameHistoryResponse, GameSessionDetailsResponse, Game, Screenshot } from '@the-box/types'
 
 const TOTAL_SCREENSHOTS = 10
-const WRONG_GUESS_PENALTY = 30
+const WRONG_GUESS_PENALTY = 0
 
 export const userService = {
   async getGameHistory(userId: string): Promise<GameHistoryResponse> {
@@ -117,6 +117,7 @@ export const userService = {
             scoreEarned: correctGuess.scoreEarned,
             hintPenalty,
             tryNumber: correctGuess.tryNumber,
+            screenshot: screenshotMap.get(position)!,
           }
         } else {
           // No correct guess - use the last guess for display
@@ -145,6 +146,7 @@ export const userService = {
             scoreEarned: 0,
             wrongGuessPenalty: WRONG_GUESS_PENALTY,
             tryNumber: lastGuess.tryNumber,
+            screenshot: screenshotMap.get(position)!,
           }
         }
       })

@@ -157,6 +157,20 @@ export const adminApi = {
   },
 
   /**
+   * Start cleanup-anonymous-users job (manual trigger)
+   */
+  async triggerCleanupAnonymousUsers(): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/cleanup-anonymous-users', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
    * Start sync-all-games job (manual trigger)
    */
   async startSyncAll(config?: {

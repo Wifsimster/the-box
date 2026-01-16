@@ -34,7 +34,7 @@ The scoring system has been verified across all pages. **One display bug was fou
 
 **Fix**: Updated comment to accurately reflect the scoring system:
 - Base score: 100 points
-- Wrong guesses: -30 points per incorrect attempt
+- Wrong guesses: 0 points (no penalty)
 - Hint penalty: -20% of earned score
 
 **Status**: ✅ Fixed
@@ -49,15 +49,15 @@ The scoring system has been verified across all pages. **One display bug was fou
 - ✅ Base score: 100 points
 - ✅ Score capping at 200 points works correctly
 - ✅ Hint penalty: 20% of earned score (after speed multiplier)
-- ✅ Wrong guess penalty: -30 points per incorrect attempt
-- ✅ Unfound penalty: -50 points per unfound screenshot (on early end)
+- ✅ Wrong guess penalty: 0 points (no penalty for incorrect attempts)
+- ✅ Unfound penalty: 0 points (no penalty for unfound screenshots)
 - ✅ Score accumulation: Uses `game_total_score` from game session
-- ⚠️ **Note**: During gameplay, scores cannot go negative (`Math.max(0, ...)`), but when ending game early, negative scores are allowed
+- ⚠️ **Note**: Scores are kept at or above 0 using `Math.max(0, ...)`
 
 **Constants Verified**:
 - `BASE_SCORE = 100`
-- `UNFOUND_PENALTY = 50`
-- `WRONG_GUESS_PENALTY = 30`
+- `UNFOUND_PENALTY = 0`
+- `WRONG_GUESS_PENALTY = 0`
 
 ### Frontend Calculations ✅
 
@@ -104,7 +104,7 @@ The scoring system has been verified across all pages. **One display bug was fou
 - ✅ Total score matches backend value (`backendTotalScore`)
 - ✅ Per-screenshot score breakdown correct
 - ✅ Speed multiplier display shows "100 pts × multiplier" (FIXED)
-- ✅ Unfound penalty calculation: 50 × unguessed count
+- ✅ Unfound penalty calculation: 0 × unguessed count
 - ✅ Score breakdown accuracy verified
 
 #### GameHistoryDetailsPage
@@ -138,9 +138,9 @@ The scoring system has been verified across all pages. **One display bug was fou
 #### EndGameButton
 **File**: `packages/frontend/src/components/game/EndGameButton.tsx`
 
-- ✅ Preview calculation: `totalScore - (unfoundCount × 50)`
+- ✅ Preview calculation: `totalScore - (unfoundCount × 0)`
 - ✅ Final score after end game matches preview
-- ✅ Unfound penalty constant: 50 (matches backend)
+- ✅ Unfound penalty constant: 0 (matches backend)
 
 ### Consistency Checks ✅
 

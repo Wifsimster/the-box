@@ -16,7 +16,7 @@ import { db } from '../../database/connection.js'
 const log = queueLogger.child({ module: 'daily-challenge' })
 
 const TOTAL_SCREENSHOTS = 10
-const UNFOUND_PENALTY = 50
+const UNFOUND_PENALTY = 0
 
 export type ProgressCallback = (current: number, total: number, message: string) => void
 
@@ -101,7 +101,7 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
  */
 async function endAllInProgressGames(): Promise<{ ended: number; failed: number }> {
   log.info('Starting to end all in-progress games')
-  
+
   let ended = 0
   let failed = 0
 

@@ -551,6 +551,20 @@ router.post('/jobs/create-daily-challenge', async (_req, res, next) => {
   }
 })
 
+// Shortcut: Start cleanup-anonymous-users job
+router.post('/jobs/cleanup-anonymous-users', async (_req, res, next) => {
+  try {
+    const job = await jobService.createJob('cleanup-anonymous-users', {})
+
+    res.status(201).json({
+      success: true,
+      data: { job },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Manual trigger: Import games
 router.post('/jobs/import-games/trigger', async (req, res, next) => {
   try {

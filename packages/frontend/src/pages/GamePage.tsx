@@ -137,8 +137,17 @@ export default function GamePage() {
         // Store total screenshots from challenge
         useGameStore.setState({ totalScreenshots: data.totalScreenshots })
 
-        // If user has an existing incomplete session, restore and resume
-        if (data.userSession && !data.userSession.isCompleted) {
+        // If user has an existing session
+        if (data.userSession) {
+          // Check if it's already completed
+          if (data.userSession.isCompleted) {
+            setGamePhase('daily_intro')
+            setError(t('game.alreadyCompleted'))
+            setLoading(false)
+            return
+          }
+
+          // Resume incomplete session
           setSessionId(data.userSession.sessionId, data.userSession.tierSessionId)
 
           // Restore full session state from backend (merges with persisted local state)
@@ -327,7 +336,12 @@ export default function GamePage() {
       })
     } catch (err) {
       console.error('Failed to start game:', err)
-      setError(t('game.errorStarting'))
+      // Check if it's the "already completed" error
+      if (err instanceof Error && err.message.includes('already completed')) {
+        setError(t('game.alreadyCompleted'))
+      } else {
+        setError(t('game.errorStarting'))
+      }
       setLoading(false)
     }
   }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, prefetchAllScreenshots, t])
@@ -439,16 +453,28 @@ export default function GamePage() {
             className="flex flex-col items-center justify-center w-full h-full gap-4"
           >
             <p className="text-destructive">{error}</p>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               <Button variant="gaming" asChild>
                 <Link to={localizedPath('/')}>
                   <Home className="w-4 h-4 mr-2" />
                   {t('common.home')}
                 </Link>
               </Button>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                {t('common.retry')}
-              </Button>
+              {/* Show History button if challenge is already completed and user is authenticated */}
+              {error.includes(t('game.alreadyCompleted')) && session && session.user && session.user.id && (
+                <Button variant="outline" asChild>
+                  <Link to={localizedPath('/history')}>
+                    <History className="w-4 h-4 mr-2" />
+                    {t('common.history')}
+                  </Link>
+                </Button>
+              )}
+              {/* Only show retry button if it's not the "already completed" error */}
+              {!error.includes(t('game.alreadyCompleted')) && (
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  {t('common.retry')}
+                </Button>
+              )}
             </div>
           </motion.div>
         )}
@@ -580,7 +606,7 @@ export default function GamePage() {
                   aria-hidden="true"
                 />
                 {/* Gradient overlays for ambient effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 via-transparent to-neon-pink/10 pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-br from-neon-purple/10 via-transparent to-neon-pink/10 pointer-events-none" />
               </motion.div>
             )}
 

@@ -34,8 +34,8 @@ export class GameError extends Error {
 
 const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 100
-const UNFOUND_PENALTY = 50
-const WRONG_GUESS_PENALTY = 30
+const UNFOUND_PENALTY = 0
+const WRONG_GUESS_PENALTY = 0
 
 /**
  * Calculate speed multiplier based on time taken to find the screenshot
@@ -129,6 +129,10 @@ export const gameService = {
       })
       log.info({ sessionId: gameSession.id, challengeId, userId }, 'new game session started')
     } else {
+      // Check if session is already completed
+      if (gameSession.is_completed) {
+        throw new GameError('CHALLENGE_ALREADY_COMPLETED', 'You have already completed this challenge', 400)
+      }
       log.debug({ sessionId: gameSession.id, challengeId, userId }, 'resuming existing session')
     }
 
