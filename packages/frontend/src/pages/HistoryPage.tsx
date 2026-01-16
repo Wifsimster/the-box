@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { History, Calendar, Trophy, Loader2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, Gamepad2, Target } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -19,6 +20,11 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const hasFetched = useRef(false)
 
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [scoreRange, setScoreRange] = useState<[number, number]>([0, 2000])
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isPending && !session) {
@@ -32,7 +38,7 @@ export default function HistoryPage() {
       hasFetched.current = true
       gameApi.getGameHistory()
         .then(data => setHistory(data.entries))
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoading(false))
     }
   }, [session])
@@ -48,17 +54,39 @@ export default function HistoryPage() {
     })
   }
 
-  if (isPending) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    )
+  // Get score badge variant based on score
+  const getScoreBadgeVariant = (score: number): 'success' | 'warning' | 'destructive' => {
+    if (score >= 1200) return 'success'
+    if (score >= 600) return 'warning'
+    return 'destructive'
   }
+
+  // Calculate accuracy percentage (approximate based on score)
+  const calculateAccuracy = (score: number): number => {
+    const maxScore = 1600
+    return Math.round((score / maxScore) * 100)
+  }
+
+  // Filter history entries
+  const filteredHistory = history.filter(entry => {
+    // Status filter
+    if (statusFilter === 'completed' && !entry.isCompleted) return false
+    if (statusFilter === 'inProgress' && entry.isCompleted) return false
+
+    // Score range filter
+    if (entry.totalScore < scoreRange[0] || entry.totalScore > scoreRange[1]) return false
+
+    // Search query (matches date)
+    if (searchQuery && !formatDate(entry.challengeDate).toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+
+    return true
+  })
 
   return (
     <PageHero icon={History} iconStyle="simple" title={t('history.title')}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-8 sm:py-12">
@@ -75,57 +103,186 @@ export default function HistoryPage() {
 
         {/* History List */}
         {!loading && history.length > 0 && (
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">{t('history.yourGames')}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="space-y-2 sm:space-y-3">
-                {history.map((entry, index) => (
-                  <motion.div
-                    key={entry.sessionId}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    onClick={() => {
-                      if (entry.isCompleted) {
-                        navigate(`${localizedPath('/history')}/${entry.sessionId}`)
-                      } else {
-                        navigate(`${localizedPath('/play')}?date=${encodeURIComponent(entry.challengeDate)}`)
-                      }
-                    }}
-                    className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 transition-colors ${
-                      'hover:bg-secondary cursor-pointer hover:ring-2 hover:ring-primary/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center">
-                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                          <span className="text-sm sm:text-base font-semibold break-words">
-                            {formatDate(entry.challengeDate)}
-                          </span>
-                          {!entry.isCompleted && (
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              ({t('history.inProgress')})
-                            </span>
+          <div className="space-y-4 sm:space-y-6">
+            {/* Filters Section */}
+            <Card className="bg-card/50 border-border">
+              <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg font-bold">
+                  {t('common.filters')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="flex flex-col gap-3 sm:gap-4">
+                  {/* Search Bar */}
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder={t('history.searchPlaceholder')}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-secondary/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                    />
+                  </div>
+
+                  {/* Status Filter Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setStatusFilter('all')}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'all'
+                          ? 'bg-primary text-primary-foreground font-medium'
+                          : 'bg-secondary/50 hover:bg-secondary'
+                        }`}
+                    >
+                      {t('common.all')}
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('completed')}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'completed'
+                          ? 'bg-primary text-primary-foreground font-medium'
+                          : 'bg-secondary/50 hover:bg-secondary'
+                        }`}
+                    >
+                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                      {t('history.completed')}
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('inProgress')}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'inProgress'
+                          ? 'bg-primary text-primary-foreground font-medium'
+                          : 'bg-secondary/50 hover:bg-secondary'
+                        }`}
+                    >
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 animate-pulse" />
+                      {t('history.inProgress')}
+                    </button>
+                  </div>
+
+                  {/* Active Filters Display */}
+                  {(statusFilter !== 'all' || searchQuery) && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-border">
+                      <span className="text-xs sm:text-sm text-muted-foreground">
+                        {t('common.activeFilters')}:
+                      </span>
+                      {statusFilter !== 'all' && (
+                        <Badge variant="outline" className="text-xs">
+                          {statusFilter === 'completed' ? t('history.completed') : t('history.inProgress')}
+                        </Badge>
+                      )}
+                      {searchQuery && (
+                        <Badge variant="outline" className="text-xs">
+                          {searchQuery}
+                        </Badge>
+                      )}
+                      <button
+                        onClick={() => {
+                          setStatusFilter('all')
+                          setSearchQuery('')
+                        }}
+                        className="ml-auto text-xs sm:text-sm text-primary hover:underline"
+                      >
+                        {t('common.clearAll')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Games List */}
+            <Card className="bg-card/50 border-border">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl font-extrabold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent drop-shadow-lg">
+                  {t('history.yourGames')}
+                </CardTitle>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  {filteredHistory.length} {filteredHistory.length === 1 ? t('history.game') : t('history.games')}
+                </p>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 pt-0">
+                {filteredHistory.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    {t('history.noMatchingResults')}
+                  </div>
+                ) : (
+                  <div className="space-y-2 sm:space-y-3">
+                    {filteredHistory.map((entry, index) => (
+                      <motion.div
+                        key={entry.sessionId}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        onClick={() => {
+                          if (entry.isCompleted) {
+                            navigate(`${localizedPath('/history')}/${entry.sessionId}`)
+                          } else {
+                            navigate(`${localizedPath('/play')}?date=${encodeURIComponent(entry.challengeDate)}`)
+                          }
+                        }}
+                        className={`group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 transition-all cursor-pointer hover:bg-secondary/70 hover:scale-[1.01] hover:shadow-lg hover:ring-2 hover:ring-primary/50`}
+                      >
+                        {/* Left Section: Icon, Date, Status */}
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                          {/* Dynamic Icon based on completion status */}
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${entry.isCompleted
+                              ? 'bg-linear-to-br from-green-500 to-emerald-600'
+                              : 'bg-linear-to-br from-neon-purple to-neon-pink animate-pulse'
+                            }`}>
+                            {entry.isCompleted ? (
+                              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                            ) : (
+                              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm sm:text-base font-semibold wrap-break-word">
+                                {formatDate(entry.challengeDate)}
+                              </span>
+                              {!entry.isCompleted && (
+                                <Badge variant="outline" className="w-fit text-xs border-neon-purple/50 bg-neon-purple/10 text-neon-purple animate-pulse">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {t('history.inProgress')}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Middle Section: Additional Stats */}
+                        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span>{calculateAccuracy(entry.totalScore)}%</span>
+                          </div>
+                          {entry.isCompleted && (
+                            <div className="flex items-center gap-1.5">
+                              <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span>10</span>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end sm:justify-start gap-2 sm:gap-2 flex-shrink-0">
-                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                      <span className="text-base sm:text-lg font-bold text-primary">
-                        {entry.totalScore}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+
+                        {/* Right Section: Score & Chevron */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+                          <div className="flex items-center gap-2">
+                            <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                            <Badge
+                              variant={getScoreBadgeVariant(entry.totalScore)}
+                              className="text-base sm:text-xl font-bold px-3 sm:px-4 py-1 sm:py-1.5"
+                            >
+                              {entry.totalScore}
+                            </Badge>
+                          </div>
+                          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </PageHero>

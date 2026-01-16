@@ -10,7 +10,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { Trophy, Home, LogOut, Settings, History, Menu } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -61,24 +68,6 @@ export function Header() {
             Tournaments
           </Link>
         </Button>
-
-        {hasValidSession && (
-          <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-            <Link to={localizedPath('/history')} onClick={handleClick}>
-              <History className={`w-4 h-4 ${iconClass}`} />
-              {t('common.history')}
-            </Link>
-          </Button>
-        )}
-
-        {hasValidSession && session?.user?.role === 'admin' && (
-          <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-            <Link to={localizedPath('/admin')} onClick={handleClick}>
-              <Settings className={`w-4 h-4 ${iconClass}`} />
-              {t('common.admin')}
-            </Link>
-          </Button>
-        )}
       </>
     )
   }
@@ -184,22 +173,54 @@ export function Header() {
             </>
           )}
           {hasValidSession && !isPending && (
-            <div className="flex items-center gap-2">
-              <Link to={localizedPath('/profile')} className="hover:opacity-80 transition-opacity">
-                {session?.user?.role === 'admin' ? (
-                  <Badge variant="admin" className="cursor-pointer">
-                    {session.user?.name || session.user?.email?.split('@')[0]}
-                  </Badge>
-                ) : (
-                  <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer px-3 py-1.5 rounded-md hover:bg-secondary/50 border border-transparent hover:border-primary/20">
-                    {session.user?.name || session.user?.email?.split('@')[0]}
-                  </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2 hover:bg-primary/10 transition-all border-0"
+                >
+                  <User className="w-4 h-4 text-white" />
+                  {session?.user?.role === 'admin' ? (
+                    <Badge variant="admin" className="cursor-pointer text-xs">
+                      {session.user?.name || session.user?.email?.split('@')[0]}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm font-bold text-white">
+                      {session.user?.name || session.user?.email?.split('@')[0]}
+                    </span>
+                  )}
+                  <ChevronDown className="w-4 h-4 text-white" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to={localizedPath('/profile')} className="flex items-center gap-2 cursor-pointer">
+                    <User className="w-4 h-4" />
+                    {t('common.profile')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={localizedPath('/history')} className="flex items-center gap-2 cursor-pointer">
+                    <History className="w-4 h-4" />
+                    {t('common.history')}
+                  </Link>
+                </DropdownMenuItem>
+                {session?.user?.role === 'admin' && (
+                  <DropdownMenuItem asChild>
+                    <Link to={localizedPath('/admin')} className="flex items-center gap-2 cursor-pointer">
+                      <Settings className="w-4 h-4" />
+                      {t('common.admin')}
+                    </Link>
+                  </DropdownMenuItem>
                 )}
-              </Link>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+                  <LogOut className="w-4 h-4" />
+                  {t('common.logout')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

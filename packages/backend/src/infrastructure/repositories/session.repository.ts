@@ -39,6 +39,8 @@ export interface TierSessionWithContext extends TierSessionRow {
   user_id: string
   game_total_score: number
   game_session_started_at: Date
+  game_session_id: string
+  daily_challenge_id: number
   tier_number: number
   time_limit_seconds: number
 }
@@ -117,6 +119,7 @@ export const sessionRepository = {
         'game_sessions.total_score as game_total_score',
         'game_sessions.started_at as game_session_started_at',
         'game_sessions.id as game_session_id',
+        'game_sessions.daily_challenge_id',
         'tiers.tier_number',
         'tiers.time_limit_seconds'
       )
@@ -250,7 +253,7 @@ export const sessionRepository = {
 
     // Delete guesses from all tier sessions for this game session
     await db('guesses')
-      .whereIn('tier_session_id', function() {
+      .whereIn('tier_session_id', function () {
         this.select('id').from('tier_sessions').where('game_session_id', session.id)
       })
       .delete()
@@ -371,15 +374,15 @@ export const sessionRepository = {
         'correct_game.developer as correct_game_developer',
         'guesses.created_at'
       )
-    
+
     // Calculate try_number for each guess by counting previous guesses for the same position
     const positionCounts = new Map<number, number>()
-    
+
     const result = rows.map(row => {
       const position = row.position
       const currentCount = (positionCounts.get(position) || 0) + 1
       positionCounts.set(position, currentCount)
-      
+
       return {
         id: row.id,
         tierSessionId: row.tier_session_id,
@@ -404,7 +407,7 @@ export const sessionRepository = {
         createdAt: row.created_at,
       }
     })
-    
+
     log.debug({ gameSessionId, count: result.length }, 'findGuessesByGameSession result')
     return result
   },

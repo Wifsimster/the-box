@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Lock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface AchievementCardProps {
     achievement: AchievementWithProgress
@@ -17,18 +18,22 @@ const tierColors = {
     3: 'bg-cyan-600/10 border-cyan-600/30 text-cyan-400',
 }
 
-const tierLabels = {
-    1: 'Easy',
-    2: 'Medium',
-    3: 'Hard',
-}
-
 export function AchievementCard({ achievement, size = 'medium', className }: AchievementCardProps) {
+    const { t, i18n } = useTranslation()
     const isEarned = achievement.earned
     const isLocked = achievement.isHidden && !isEarned
     const hasProgress = achievement.progress > 0 && achievement.progressMax && achievement.progressMax > 0
 
     const tierColor = tierColors[achievement.tier as keyof typeof tierColors] || tierColors[1]
+
+    const getTierLabel = (tier: number) => {
+        const tierKey = tier === 1 ? 'easy' : tier === 2 ? 'medium' : 'hard'
+        return t(`achievements.difficulty.${tierKey}`)
+    }
+
+    const getCategoryLabel = (category: string) => {
+        return t(`achievements.categories.${category}`)
+    }
 
     if (size === 'small') {
         return (
@@ -47,7 +52,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         {isLocked ? '???' : achievement.name}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                        {isLocked ? 'Hidden achievement' : achievement.description}
+                        {isLocked ? t('achievements.status.hidden') : achievement.description}
                     </div>
                     {hasProgress && !isEarned && (
                         <Progress value={(achievement.progress / achievement.progressMax!) * 100} className="mt-1 h-1" />
@@ -75,7 +80,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
             {isEarned && (
                 <div className="absolute top-2 right-2">
                     <Badge variant="success" className="text-xs">
-                        ✓ Earned
+                        ✓ {t('achievements.status.earned')}
                     </Badge>
                 </div>
             )}
@@ -93,7 +98,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                             {isLocked ? '???' : achievement.name}
                         </CardTitle>
                         <CardDescription className="mt-1">
-                            {isLocked ? 'Hidden achievement - complete it to reveal!' : achievement.description}
+                            {isLocked ? t('achievements.status.hiddenDescription') : achievement.description}
                         </CardDescription>
                     </div>
                 </div>
@@ -103,16 +108,16 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                         <Badge variant="outline" className={cn('text-xs', tierColor)}>
-                            {tierLabels[achievement.tier as keyof typeof tierLabels]} • {achievement.points}pts
+                            {getTierLabel(achievement.tier)} • {achievement.points}pts
                         </Badge>
                         <Badge variant="outline" className="text-xs capitalize">
-                            {achievement.category}
+                            {getCategoryLabel(achievement.category)}
                         </Badge>
                     </div>
 
                     {isEarned && achievement.earnedAt && (
                         <div className="text-xs text-muted-foreground">
-                            {new Date(achievement.earnedAt).toLocaleDateString()}
+                            {new Date(achievement.earnedAt).toLocaleDateString(i18n.language, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </div>
                     )}
                 </div>

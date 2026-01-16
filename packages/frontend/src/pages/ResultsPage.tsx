@@ -56,7 +56,7 @@ export default function ResultsPage() {
 
   // Update personal bests when results are loaded
   useEffect(() => {
-    if (displayTotalScore > 0 && percentile !== undefined) {
+    if (displayTotalScore > 0 && percentile !== undefined && percentile !== null) {
       updatePersonalBests(displayTotalScore, percentile)
     }
   }, [displayTotalScore, percentile, updatePersonalBests])
@@ -140,9 +140,9 @@ export default function ResultsPage() {
             score={displayTotalScore}
             correctAnswers={correctAnswers}
             totalScreenshots={totalScreenshots}
-            percentile={percentile}
-            rank={rank}
-            totalPlayers={totalPlayers}
+            percentile={percentile ?? undefined}
+            rank={rank ?? undefined}
+            totalPlayers={totalPlayers ?? undefined}
             challengeDate={challengeDate || undefined}
             guessResults={guessResults}
           />
@@ -176,9 +176,9 @@ export default function ResultsPage() {
                 score={displayTotalScore}
                 correctAnswers={correctAnswers}
                 totalScreenshots={totalScreenshots}
-                percentile={percentile}
-                rank={rank}
-                totalPlayers={totalPlayers}
+                percentile={percentile ?? undefined}
+                rank={rank ?? undefined}
+                totalPlayers={totalPlayers ?? undefined}
                 challengeDate={challengeDate || undefined}
                 guessResults={guessResults}
                 compact={true}

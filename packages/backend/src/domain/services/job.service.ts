@@ -20,6 +20,7 @@ async function mapBullJobToJob(bullJob: any): Promise<Job> {
     type: bullJob.name as JobType,
     status: statusMap[state] || 'waiting',
     progress: typeof bullJob.progress === 'number' ? bullJob.progress : 0,
+    priority: bullJob.opts?.priority,
     data: bullJob.data,
     result: bullJob.returnvalue,
     error: bullJob.failedReason,
@@ -70,7 +71,7 @@ export const jobService = {
     }
 
     const state = await job.getState()
-    log.info({ id, state }, 'attempting to cancel job')
+    log.info({ id, state }, 'attempting to cancel/remove job')
 
     if (state === 'active') {
       // Cannot directly cancel active job, mark as failed
@@ -79,6 +80,12 @@ export const jobService = {
     }
 
     if (state === 'waiting' || state === 'delayed') {
+      await job.remove()
+      return true
+    }
+
+    if (state === 'completed' || state === 'failed') {
+      // Allow removal of completed/failed jobs
       await job.remove()
       return true
     }

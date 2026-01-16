@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createServer } from 'http'
 import { toNodeHandler } from 'better-auth/node'
 import { env, validateEnv } from './config/env.js'
 import { testConnection, runMigrations } from './infrastructure/database/connection.js'
@@ -18,6 +19,7 @@ import achievementRoutes from './presentation/routes/achievement.routes.js'
 import { tournamentRouter } from './interfaces/http/routes/tournaments.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
+import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
 // Validate environment
 validateEnv()
@@ -338,7 +340,11 @@ async function start(): Promise<void> {
     }
   }
 
-  app.listen(env.PORT, () => {
+  // Create HTTP server and initialize Socket.IO
+  const httpServer = createServer(app)
+  initializeSocketIO(httpServer)
+
+  httpServer.listen(env.PORT, () => {
     logger.info(
       {
         port: env.PORT,
@@ -346,7 +352,7 @@ async function start(): Promise<void> {
         corsOrigin: env.CORS_ORIGIN,
         logLevel: env.LOG_LEVEL,
       },
-      'server started'
+      'server started with Socket.IO'
     )
   })
 }

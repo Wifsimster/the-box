@@ -7,7 +7,7 @@ const log = serviceLogger.child({ service: 'achievement' })
 
 export interface AchievementCheckContext {
     userId: string
-    sessionId: number
+    sessionId: string
     challengeId: number
     sessionScore: number
     isComplete: boolean
@@ -23,7 +23,7 @@ export interface GuessData {
 
 export interface GameCompletionData {
     userId: string
-    sessionId: number
+    sessionId: string
     challengeId: number
     totalScore: number
     guesses: GuessData[]

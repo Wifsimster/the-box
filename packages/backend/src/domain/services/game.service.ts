@@ -102,7 +102,9 @@ export const gameService = {
 
     return {
       challengeId: challenge.id,
-      date: challenge.challenge_date,
+      date: typeof challenge.challenge_date === 'string'
+        ? challenge.challenge_date
+        : new Date(challenge.challenge_date).toISOString().split('T')[0]!,
       totalScreenshots: TOTAL_SCREENSHOTS,
       hasPlayed: !!userSession,
       userSession,
@@ -549,7 +551,7 @@ export const gameService = {
 
       await achievementService.checkAchievementsAfterGame({
         userId,
-        sessionId: parseInt(sessionId),
+        sessionId: sessionId,
         challengeId: session.daily_challenge_id,
         totalScore: finalScore,
         guesses: allGuesses.map((g: any) => ({

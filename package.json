@@ -26,5 +26,8 @@
   },
   "devDependencies": {
     "shadcn": "^3.6.3"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.11"
   }
 }

@@ -2,6 +2,7 @@ import type { AchievementWithProgress } from '@the-box/types'
 import { AchievementCard } from './AchievementCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface AchievementGridProps {
     achievements: AchievementWithProgress[]
@@ -9,6 +10,8 @@ interface AchievementGridProps {
 }
 
 export function AchievementGrid({ achievements, size = 'medium' }: AchievementGridProps) {
+    const { t } = useTranslation()
+
     const categories = useMemo(() => {
         const cats = new Set(achievements.map(a => a.category))
         return ['all', ...Array.from(cats).sort()]
@@ -26,7 +29,7 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
     }, [achievements, categories])
 
     const getCategoryLabel = (category: string) => {
-        return category.charAt(0).toUpperCase() + category.slice(1)
+        return t(`achievements.categories.${category}`)
     }
 
     const getCategoryStats = (category: string) => {
@@ -39,7 +42,7 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
     if (achievements.length === 0) {
         return (
             <div className="text-center py-12 text-muted-foreground">
-                No achievements available yet
+                {t('achievements.status.noAchievements')}
             </div>
         )
     }
@@ -67,8 +70,8 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
             {categories.map(category => (
                 <TabsContent key={category} value={category} className="mt-6">
                     <div className={`grid gap-4 ${size === 'small'
-                            ? 'grid-cols-1 md:grid-cols-2'
-                            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                        ? 'grid-cols-1 md:grid-cols-2'
+                        : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                         }`}>
                         {(achievementsByCategory[category] || []).map(achievement => (
                             <AchievementCard

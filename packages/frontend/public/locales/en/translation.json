@@ -17,6 +17,7 @@
     "register": "Register",
     "logout": "Logout",
     "guest": "Play as Guest",
+    "guestBadge": "Guest",
     "share": "Share",
     "retry": "Retry",
     "admin": "Admin",
@@ -24,7 +25,40 @@
     "save": "Save",
     "create": "Create",
     "history": "History",
-    "profile": "Profile"
+    "profile": "Profile",
+    "tournaments": "Tournaments",
+    "unknown": "Unknown",
+    "backTo": "Back to",
+    "filters": "Filters",
+    "all": "All",
+    "activeFilters": "Active filters",
+    "clearAll": "Clear all",
+    "all": "All",
+    "earned": "Earned"
+  },
+  "achievements": {
+    "categories": {
+      "all": "All",
+      "speed": "Speed",
+      "accuracy": "Accuracy",
+      "competitive": "Competitive",
+      "completion": "Completion",
+      "genre": "Genre",
+      "score": "Score",
+      "streak": "Streak"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "status": {
+      "earned": "Earned",
+      "hidden": "Hidden achievement",
+      "hiddenDescription": "Hidden achievement - complete it to reveal!",
+      "noAchievements": "No achievements available yet",
+      "progress": "Progress"
+    }
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -73,6 +107,7 @@
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",
     "noChallenge": "No challenge available",
+    "noChallengeAvailable": "No challenge available for {{date}}. Please check back later!",
     "guestWarning": "You are not logged in. Your score will not be saved.",
     "rules": {
       "title": "How to play",
@@ -165,7 +200,12 @@
     "title": "Game History",
     "yourGames": "Your Games",
     "noResults": "No games played yet. Play your first daily challenge!",
-    "inProgress": "In Progress"
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "searchPlaceholder": "Search by date...",
+    "noMatchingResults": "No games match your filters",
+    "game": "game",
+    "games": "games"
   },
   "auth": {
     "login": "Login",
@@ -279,6 +319,12 @@
       "syncRunning": "Syncing new games...",
       "createDailyChallenge": "Create Daily Challenge (Metascore ≥ 85)",
       "dailyChallengeRunning": "Creating daily challenge...",
+      "cleanupAnonymousUsersRunning": "Cleaning up anonymous users...",
+      "createWeeklyTournamentRunning": "Creating weekly tournament...",
+      "endWeeklyTournamentRunning": "Ending weekly tournament...",
+      "createMonthlyTournamentRunning": "Creating monthly tournament...",
+      "endMonthlyTournamentRunning": "Ending monthly tournament...",
+      "sendTournamentRemindersRunning": "Sending tournament reminders...",
       "atMidnight": "Midnight UTC",
       "weeklySunday2am": "Sunday 2 AM UTC (weekly)",
       "every": "Every",
@@ -286,7 +332,31 @@
       "runNow": "Run Now",
       "syncAllGames": "Full Sync",
       "syncAllRunning": "Full sync in progress...",
+      "cleanupAnonymousUsers": "Cleanup Anonymous Users",
+      "createWeeklyTournament": "Create Weekly Tournament",
+      "endWeeklyTournament": "End Weekly Tournament",
+      "createMonthlyTournament": "Create Monthly Tournament",
+      "endMonthlyTournament": "End Monthly Tournament",
+      "sendTournamentReminders": "Send Tournament Reminders",
+      "batchImportGames": "Batch Import Games",
+      "queueTitle": "Job Queue",
+      "loading": "Loading...",
+      "refresh": "Refresh",
       "maxGames": "Max games",
+      "interval": "Interval",
+      "schedule": "Schedule",
+      "running": "Running",
+      "descriptions": {
+        "createDailyChallenge": "Automatically creates a new daily challenge with high-quality games (Metascore ≥ 85). Users can participate in a new challenge every day.",
+        "syncAllGames": "Synchronizes the entire game database with the RAWG API to keep information up-to-date (ratings, screenshots, metadata).",
+        "cleanupAnonymousUsers": "Removes inactive anonymous user accounts to optimize the database and free up space.",
+        "createWeeklyTournament": "Automatically creates a new weekly tournament on Monday at midnight UTC. Players can compete throughout the week.",
+        "endWeeklyTournament": "Finalizes the weekly tournament on Sunday at 11:59 PM UTC, calculates rankings and awards prizes.",
+        "createMonthlyTournament": "Launches a new monthly tournament on the 1st of each month at midnight UTC for long-term competition.",
+        "endMonthlyTournament": "Closes the monthly tournament at month end, calculates final scores and distributes rewards to winners.",
+        "sendTournamentReminders": "Sends daily email reminders to active tournament participants to maintain engagement.",
+        "default": "Automatic system scheduled task."
+      },
       "status": {
         "waiting": "Waiting",
         "active": "Running",
@@ -557,6 +627,7 @@
     "noStreakYet": "No streak yet"
   },
   "profile": {
+    "pageTitle": "Profile",
     "totalScore": "Total Score",
     "currentStreak": "Current Streak",
     "achievements": "Achievements",
@@ -568,6 +639,13 @@
     "title": "Achievements",
     "description": "Track your progress and unlock achievements by playing The Box",
     "progressByCategory": "Progress by Category",
+    "joined": "Joined",
+    "emptyState": {
+      "totalScore": "Play your first game to start earning points!",
+      "currentStreak": "Complete daily challenges to build your streak!",
+      "achievements": "Start playing to unlock achievements!",
+      "achievementPoints": "Earn points by unlocking achievements!"
+    },
     "tabs": {
       "overview": "Overview",
       "achievements": "Achievements",
@@ -585,6 +663,7 @@
     "noUpcoming": "No upcoming tournaments scheduled",
     "liveNow": "LIVE NOW",
     "upcoming": "UPCOMING",
+    "ended": "ENDED",
     "type": "Type",
     "period": "Period",
     "starts": "Starts",
@@ -594,6 +673,20 @@
     "viewLeaderboard": "View Leaderboard",
     "viewDetails": "View Details",
     "weekly": "weekly",
-    "monthly": "monthly"
+    "monthly": "monthly",
+    "backToTournaments": "Back to Tournaments",
+    "tournamentPeriod": "Tournament Period",
+    "timeRemaining": "Time Remaining",
+    "yourRank": "Your Rank",
+    "prizes": "Prizes",
+    "participants": "Participants",
+    "highestScore": "Highest Score",
+    "averageScore": "Average Score",
+    "participation": "Participation",
+    "noParticipants": "No participants yet",
+    "rank": "Rank",
+    "player": "Player",
+    "totalScore": "Total Score",
+    "challenges": "Challenges"
   }
 }

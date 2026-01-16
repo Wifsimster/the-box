@@ -29,9 +29,11 @@ export const challengeRepository = {
   },
 
   async findByDate(date: string): Promise<ChallengeRow | null> {
-    return await db('daily_challenges')
+    const row = await db('daily_challenges')
       .where('challenge_date', date)
+      .select('id', db.raw('challenge_date::text as challenge_date'), 'created_at')
       .first<ChallengeRow>()
+    return row ?? null
   },
 
   async findTiersByChallenge(challengeId: number): Promise<TierRow[]> {

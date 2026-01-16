@@ -312,13 +312,15 @@ export async function startSyncAll(config: SyncAllConfig): Promise<{ syncState: 
   }, `Config: ${syncState.batchSize} games/batch, Metacritic >= ${syncState.minMetacritic}`)
   log.info(`Target: ${totalGamesAvailable.toLocaleString()} games across ${totalBatches} batches`)
 
-  // Create the first batch job
+  // Create the first batch job with lowest priority (runs after all other tasks)
   const job = await importQueue.add('sync-all-games', {
     syncStateId: syncState.id,
     batchSize: syncState.batchSize,
     screenshotsPerGame: syncState.screenshotsPerGame,
     minMetacritic: syncState.minMetacritic,
     updateExistingMetadata: config.updateExistingMetadata ?? true,
+  }, {
+    priority: 1000, // Lowest priority - yields to all other tasks
   })
 
   return { syncState: updatedState!, job }
@@ -614,6 +616,8 @@ export async function scheduleSyncAllNextBatch(syncStateId: number): Promise<Bul
     screenshotsPerGame: state.screenshotsPerGame,
     minMetacritic: state.minMetacritic,
     updateExistingMetadata: true,
+  }, {
+    priority: 1000, // Lowest priority - yields to all other tasks
   })
 
   return job
@@ -676,6 +680,8 @@ export async function resumeSyncAll(syncStateId: number): Promise<{ syncState: I
     minMetacritic: state.minMetacritic,
     updateExistingMetadata: true,
     isResume: true,
+  }, {
+    priority: 1000, // Lowest priority - yields to all other tasks
   })
 
   return { syncState: updated!, job }

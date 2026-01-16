@@ -18,6 +18,7 @@ import { gameRepository } from '../../repositories/game.repository.js'
 import { screenshotRepository } from '../../repositories/screenshot.repository.js'
 import { importStateRepository } from '../../repositories/import-state.repository.js'
 import { importQueue } from '../queues.js'
+import { broadcastBatchImportProgress } from '../../socket/socket.js'
 import type { ImportState, JobData } from '@the-box/types'
 
 const log = queueLogger.child({ module: 'batch-import' })
@@ -305,12 +306,14 @@ export async function startBatchImport(config: {
   }, `Config: ${importState.batchSize} games/batch, Metacritic >= ${importState.minMetacritic}, ${importState.screenshotsPerGame} screenshots/game`)
   log.info(`Target: ${totalGamesAvailable.toLocaleString()} games across ${totalBatches} batches`)
 
-  // Create the first batch job
+  // Create the first batch job with lowest priority (runs after all other tasks)
   const job = await importQueue.add('batch-import-games', {
     importStateId: importState.id,
     batchSize: importState.batchSize,
     screenshotsPerGame: importState.screenshotsPerGame,
     minMetacritic: importState.minMetacritic,
+  }, {
+    priority: 1000, // Lowest priority - yields to all other tasks
   })
 
   return { importState: updatedState!, job }
@@ -549,8 +552,28 @@ export async function processBatch(
     currentBatch: newCurrentBatch,
   })
 
-  // Check if import is complete
+  // Broadcast progress update via WebSocket
   const updatedState = await importStateRepository.findById(importStateId)
+  if (updatedState) {
+    const progress = Math.round(
+      (updatedState.gamesProcessed / (updatedState.totalGamesAvailable || 1)) * 100
+    )
+    broadcastBatchImportProgress({
+      importStateId: updatedState.id,
+      progress,
+      status: updatedState.status,
+      message: `Batch ${updatedState.currentBatch}/${updatedState.totalBatchesEstimated || 0} completed`,
+      current: updatedState.currentPage,
+      gamesImported: updatedState.gamesImported,
+      gamesSkipped: updatedState.gamesSkipped,
+      screenshotsDownloaded: updatedState.screenshotsDownloaded,
+      currentBatch: updatedState.currentBatch,
+      totalGamesAvailable: updatedState.totalGamesAvailable || 0,
+      totalBatches: updatedState.totalBatchesEstimated || 0,
+    })
+  }
+
+  // Check if import is complete
   const totalProcessed = updatedState!.gamesProcessed
   const isComplete = !hasMorePages || totalProcessed >= (updatedState!.totalGamesAvailable || 0)
 
@@ -616,6 +639,8 @@ export async function scheduleNextBatch(importStateId: number): Promise<BullJob<
     batchSize: state.batchSize,
     screenshotsPerGame: state.screenshotsPerGame,
     minMetacritic: state.minMetacritic,
+  }, {
+    priority: 1000, // Lowest priority - yields to all other tasks
   })
 
   return job
@@ -671,13 +696,15 @@ export async function resumeImport(importStateId: number): Promise<{ importState
   }, `Resuming from page ${state.currentPage} (${state.gamesProcessed} games processed, batch ${state.currentBatch})`)
   const updated = await importStateRepository.setStatus(importStateId, 'in_progress')
 
-  // Create a new batch job
+  // Create a new batch job with lowest priority (runs after all other tasks)
   const job = await importQueue.add('batch-import-games', {
     importStateId: state.id,
     batchSize: state.batchSize,
     screenshotsPerGame: state.screenshotsPerGame,
     minMetacritic: state.minMetacritic,
     isResume: true,
+  }, {
+    priority: 1000, // Lowest priority - yields to all other tasks
   })
 
   return { importState: updated!, job }

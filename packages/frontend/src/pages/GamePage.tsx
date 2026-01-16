@@ -123,44 +123,52 @@ export default function GamePage() {
         setError(null)
         const data = await gameApi.getTodayChallenge(challengeDateParam || undefined)
 
-        if (data.challengeId) {
-          setChallengeId(data.challengeId, data.date)
-          // Store total screenshots from challenge
-          useGameStore.setState({ totalScreenshots: data.totalScreenshots })
+        // Always update the challenge date to show the correct date
+        useGameStore.setState({ challengeDate: data.date })
 
-          // If user has an existing incomplete session, restore and resume
-          if (data.userSession && !data.userSession.isCompleted) {
-            setSessionId(data.userSession.sessionId, data.userSession.tierSessionId)
+        // Check if a challenge exists for this date
+        if (!data.challengeId) {
+          setError(t('game.noChallengeAvailable', { date: data.date }))
+          setLoading(false)
+          return
+        }
 
-            // Restore full session state from backend (merges with persisted local state)
-            restoreSessionState({
-              challengeId: data.challengeId,
-              correctPositions: data.userSession.correctPositions,
-              currentPosition: data.userSession.currentPosition,
-              totalScreenshots: data.totalScreenshots,
-              screenshotsFound: data.userSession.screenshotsFound,
-              totalScore: data.userSession.totalScore,
-            })
+        setChallengeId(data.challengeId, data.date)
+        // Store total screenshots from challenge
+        useGameStore.setState({ totalScreenshots: data.totalScreenshots })
 
-            // Get the restored position (may be from localStorage, not backend)
-            const restoredPosition = useGameStore.getState().currentPosition
+        // If user has an existing incomplete session, restore and resume
+        if (data.userSession && !data.userSession.isCompleted) {
+          setSessionId(data.userSession.sessionId, data.userSession.tierSessionId)
 
-            // Fetch screenshot for restored position and go directly to playing
-            const screenshotData = await gameApi.getScreenshot(
-              data.userSession.sessionId,
-              restoredPosition
-            )
-            setScreenshotData(screenshotData)
-            setGamePhase('playing')
-            setLoading(false)
+          // Restore full session state from backend (merges with persisted local state)
+          restoreSessionState({
+            challengeId: data.challengeId,
+            correctPositions: data.userSession.correctPositions,
+            currentPosition: data.userSession.currentPosition,
+            totalScreenshots: data.totalScreenshots,
+            screenshotsFound: data.userSession.screenshotsFound,
+            totalScore: data.userSession.totalScore,
+          })
 
-            // Pre-fetch all remaining screenshots in the background for smooth swiping
-            // Don't await - let it run in the background
-            prefetchAllScreenshots(data.userSession.sessionId, data.totalScreenshots).catch((err) => {
-              console.debug('Failed to pre-fetch all screenshots:', err)
-            })
-            return
-          }
+          // Get the restored position (may be from localStorage, not backend)
+          const restoredPosition = useGameStore.getState().currentPosition
+
+          // Fetch screenshot for restored position and go directly to playing
+          const screenshotData = await gameApi.getScreenshot(
+            data.userSession.sessionId,
+            restoredPosition
+          )
+          setScreenshotData(screenshotData)
+          setGamePhase('playing')
+          setLoading(false)
+
+          // Pre-fetch all remaining screenshots in the background for smooth swiping
+          // Don't await - let it run in the background
+          prefetchAllScreenshots(data.userSession.sessionId, data.totalScreenshots).catch((err) => {
+            console.debug('Failed to pre-fetch all screenshots:', err)
+          })
+          return
         }
 
         setGamePhase('daily_intro')

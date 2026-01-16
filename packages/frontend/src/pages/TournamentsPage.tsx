@@ -127,11 +127,14 @@ export default function TournamentsPage() {
                                                         <span className="text-muted-foreground">{t('tournaments.type')}:</span>
                                                         <span className="font-semibold capitalize">{t(`tournaments.${tournament.type}`)}</span>
                                                     </div>
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-muted-foreground">{t('tournaments.period')}:</span>
-                                                        <span className="font-semibold text-xs">
-                                                            {formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}
-                                                        </span>
+                                                    <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                        <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                                        <div className="flex-1">
+                                                            <p className="text-xs text-blue-900 dark:text-blue-100 font-medium">Tournament Period</p>
+                                                            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                                                                {formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                     <div className="flex justify-between items-center text-sm">
                                                         <span className="text-muted-foreground">{t('tournaments.endsIn')}:</span>
@@ -142,7 +145,7 @@ export default function TournamentsPage() {
                                                     {tournament.prizeDescription && (
                                                         <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                                                             <div className="flex items-start gap-2 text-sm">
-                                                                <Gift className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                                                <Gift className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                                                                 <span className="text-amber-900 dark:text-amber-100">
                                                                     {tournament.prizeDescription}
                                                                 </span>
@@ -198,12 +201,17 @@ export default function TournamentsPage() {
                                                         <span className="text-muted-foreground">{t('tournaments.type')}:</span>
                                                         <span className="font-semibold capitalize">{t(`tournaments.${tournament.type}`)}</span>
                                                     </div>
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-muted-foreground">{t('tournaments.starts')}:</span>
-                                                        <span className="font-semibold">{formatDate(tournament.startDate)}</span>
+                                                    <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                                        <Calendar className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                                                        <div className="flex-1">
+                                                            <p className="text-xs text-green-900 dark:text-green-100 font-medium">Starts</p>
+                                                            <p className="text-sm font-bold text-green-900 dark:text-green-100">
+                                                                {formatDate(tournament.startDate)}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                     <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-muted-foreground">{t('tournaments.duration')}:</span>
+                                                        <span className="text-muted-foreground">Duration:</span>
                                                         <span className="font-semibold text-xs">
                                                             {formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}
                                                         </span>
@@ -211,7 +219,7 @@ export default function TournamentsPage() {
                                                     {tournament.prizeDescription && (
                                                         <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                                                             <div className="flex items-start gap-2 text-sm">
-                                                                <Gift className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                                                <Gift className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                                                                 <span className="text-amber-900 dark:text-amber-100">
                                                                     {tournament.prizeDescription}
                                                                 </span>

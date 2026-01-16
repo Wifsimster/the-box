@@ -465,6 +465,7 @@ export interface Job {
   type: JobType
   status: JobStatus
   progress: number
+  priority?: number
   data: JobData
   result?: JobResult
   error?: string

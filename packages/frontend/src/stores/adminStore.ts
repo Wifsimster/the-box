@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { Job, Game, RecurringJob, ImportState, User } from '@/types'
 import { adminApi } from '@/lib/api'
+import { getAdminSocket, connectAdminSocket, disconnectAdminSocket } from '@/lib/socket'
 
 // Define missing event types locally
 interface JobProgressEvent {
@@ -89,6 +90,16 @@ interface AdminState {
   updateJobProgress: (event: JobProgressEvent) => void
   updateJobCompleted: (jobId: string, result: unknown) => void
   updateJobFailed: (jobId: string, error: string) => void
+  handleJobAdded: (jobId: string) => void
+  handleJobActive: (jobId: string) => void
+  handleJobDelayed: (jobId: string, delay: number) => void
+  handleJobWaiting: (jobId: string) => void
+  handleJobRemoved: (jobId: string) => void
+  handleJobStalled: (jobId: string) => void
+
+  // Socket connection management
+  connectSocket: () => void
+  disconnectSocket: () => void
 
   // Games Actions
   fetchGames: (params?: { page?: number; search?: string }) => Promise<void>
@@ -268,11 +279,18 @@ export const useAdminStore = create<AdminState>()(
 
       cancelJob: async (id) => {
         try {
+          // Optimistically update UI - remove job immediately
+          set({
+            jobs: get().jobs.filter((j) => j.id !== id),
+          })
+
           await adminApi.cancelJob(id)
-          // Refresh jobs list
+          // Refresh jobs list to ensure consistency
           get().fetchJobs()
         } catch (err) {
           set({ error: (err as Error).message })
+          // Refresh on error to restore accurate state
+          get().fetchJobs()
         }
       },
 
@@ -597,6 +615,135 @@ export const useAdminStore = create<AdminState>()(
           set({ usersError: (err as Error).message })
           throw err
         }
+      },
+
+      // Socket Connection Management
+      connectSocket: () => {
+        const socket = getAdminSocket()
+
+        // Set up event listeners
+        socket.on('job_progress', (data: JobProgressEvent) => {
+          get().updateJobProgress(data)
+        })
+
+        socket.on('job_completed', (data: { jobId: string; result: unknown }) => {
+          get().updateJobCompleted(data.jobId, data.result)
+        })
+
+        socket.on('job_failed', (data: { jobId: string; error: string }) => {
+          get().updateJobFailed(data.jobId, data.error)
+        })
+
+        socket.on('job_added', (data: { jobId: string }) => {
+          get().handleJobAdded(data.jobId)
+        })
+
+        socket.on('job_active', (data: { jobId: string }) => {
+          get().handleJobActive(data.jobId)
+        })
+
+        socket.on('job_delayed', (data: { jobId: string; delay: number }) => {
+          get().handleJobDelayed(data.jobId, data.delay)
+        })
+
+        socket.on('job_waiting', (data: { jobId: string }) => {
+          get().handleJobWaiting(data.jobId)
+        })
+
+        socket.on('job_removed', (data: { jobId: string }) => {
+          get().handleJobRemoved(data.jobId)
+        })
+
+        socket.on('job_stalled', (data: { jobId: string }) => {
+          get().handleJobStalled(data.jobId)
+        })
+
+        socket.on('batch_import_progress', (data: BatchImportProgressEvent) => {
+          get().updateBatchImportProgress(data)
+        })
+
+        // Connect and join admin room
+        connectAdminSocket()
+      },
+
+      disconnectSocket: () => {
+        const socket = getAdminSocket()
+
+        // Remove all event listeners
+        socket.off('job_progress')
+        socket.off('job_completed')
+        socket.off('job_failed')
+        socket.off('job_added')
+        socket.off('job_active')
+        socket.off('job_delayed')
+        socket.off('job_waiting')
+        socket.off('job_removed')
+        socket.off('job_stalled')
+        socket.off('batch_import_progress')
+
+        // Disconnect socket
+        disconnectAdminSocket()
+      },
+
+      handleJobAdded: (jobId) => {
+        // Fetch updated job list when a new job is added
+        get().fetchJobs()
+      },
+
+      handleJobActive: (jobId) => {
+        // Update job status to active
+        set({
+          jobs: get().jobs.map((j) =>
+            j.id === jobId
+              ? { ...j, status: 'active' as const, startedAt: new Date().toISOString() }
+              : j
+          ),
+        })
+      },
+
+      handleJobDelayed: (jobId, delay) => {
+        // Update job status to delayed
+        set({
+          jobs: get().jobs.map((j) =>
+            j.id === jobId
+              ? { ...j, status: 'delayed' as const }
+              : j
+          ),
+        })
+      },
+
+      handleJobWaiting: (jobId) => {
+        // Update job status to waiting
+        set({
+          jobs: get().jobs.map((j) =>
+            j.id === jobId
+              ? { ...j, status: 'waiting' as const }
+              : j
+          ),
+        })
+      },
+
+      handleJobRemoved: (jobId) => {
+        // Remove job from list
+        set({
+          jobs: get().jobs.filter((j) => j.id !== jobId),
+        })
+      },
+
+      handleJobStalled: (jobId) => {
+        // Mark job as stalled (treat as failed)
+        set({
+          jobs: get().jobs.map((j) =>
+            j.id === jobId
+              ? {
+                ...j,
+                status: 'failed' as const,
+                error: 'Job stalled and did not complete',
+                failedAt: new Date().toISOString(),
+              }
+              : j
+          ),
+        })
       },
     }),
     { name: 'AdminStore' }

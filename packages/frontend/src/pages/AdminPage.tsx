@@ -9,6 +9,7 @@ import { GameList } from '@/components/admin/GameList'
 import { ChallengeManager } from '@/components/admin/ChallengeManager'
 import { UserList } from '@/components/admin/UserList'
 import { EmailSettings } from '@/components/admin/EmailSettings'
+import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
@@ -25,7 +26,6 @@ export default function AdminPage() {
   const { data: session, isPending } = useSession()
 
   const {
-    fetchJobs,
     fetchRecurringJobs,
     fetchCurrentImport,
   } = useAdminStore()
@@ -72,25 +72,13 @@ export default function AdminPage() {
     }
   }, [session, isPending, navigate, lang])
 
-  // Fetch jobs and setup polling for updates
+  // Fetch initial data
   useEffect(() => {
     if (session?.user?.role === 'admin') {
-      fetchJobs()
       fetchRecurringJobs()
       fetchCurrentImport()
     }
-  }, [session, fetchJobs, fetchRecurringJobs, fetchCurrentImport])
-
-  // Refresh jobs periodically
-  useEffect(() => {
-    if (session?.user?.role === 'admin') {
-      const interval = setInterval(() => {
-        fetchJobs()
-        fetchRecurringJobs()
-      }, 5000) // Every 5 seconds
-      return () => clearInterval(interval)
-    }
-  }, [session, fetchJobs, fetchRecurringJobs])
+  }, [session, fetchRecurringJobs, fetchCurrentImport])
 
   if (isPending) {
     return (
@@ -114,41 +102,49 @@ export default function AdminPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="container mx-auto px-3 sm:px-4 py-4 sm:py-8"
+      className="flex min-h-screen"
     >
-      <motion.div
-        variants={fadeInLeft}
-        initial="initial"
-        animate="animate"
-        transition={{ delay: 0.1 }}
-        className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8"
-      >
-        <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-neon-purple" />
-        <h1 className="text-2xl sm:text-3xl font-bold">{t('admin.title')}</h1>
-      </motion.div>
+      {/* Main Content Area */}
+      <div className="flex-1 pr-96">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          <motion.div
+            variants={fadeInLeft}
+            initial="initial"
+            animate="animate"
+            transition={{ delay: 0.1 }}
+            className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8"
+          >
+            <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-neon-purple" />
+            <h1 className="text-2xl sm:text-3xl font-bold">{t('admin.title')}</h1>
+          </motion.div>
 
-      <AnimatedTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={handleTabChange}
-        className="mb-4 sm:mb-6"
-      />
+          <AnimatedTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onChange={handleTabChange}
+            className="mb-4 sm:mb-6"
+          />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          variants={tabContent}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
-          {activeTab === 'jobs' && <JobList />}
-          {activeTab === 'games' && <GameList />}
-          {activeTab === 'challenges' && <ChallengeManager />}
-          {activeTab === 'users' && <UserList />}
-          {activeTab === 'email' && <EmailSettings />}
-        </motion.div>
-      </AnimatePresence>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              variants={tabContent}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              {activeTab === 'jobs' && <JobList />}
+              {activeTab === 'games' && <GameList />}
+              {activeTab === 'challenges' && <ChallengeManager />}
+              {activeTab === 'users' && <UserList />}
+              {activeTab === 'email' && <EmailSettings />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Permanent Job Queue Panel */}
+      <JobQueuePanel />
     </motion.div>
   )
 }
