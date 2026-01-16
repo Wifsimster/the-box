@@ -69,8 +69,8 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/backend/package.json ./packages/backend/
 
 # Install production dependencies only + tsx for migrations + better-auth CLI
-# HUSKY=0 disables husky git hooks (not needed in production)
-RUN HUSKY=0 npm ci --omit=dev && npm install -w @the-box/backend tsx @better-auth/cli
+# --ignore-scripts skips lifecycle scripts like prepare (which runs husky)
+RUN npm ci --omit=dev --ignore-scripts && npm install -w @the-box/backend tsx @better-auth/cli
 
 # Copy built backend artifacts
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
