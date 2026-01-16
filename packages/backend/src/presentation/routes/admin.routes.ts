@@ -17,6 +17,13 @@ import {
   getActiveSyncAll,
   getSyncAllState,
 } from '../../infrastructure/queue/workers/sync-all-logic.js'
+import {
+  startRecalculateScores,
+  pauseRecalculateScores,
+  resumeRecalculateScores,
+  getActiveRecalculateScores,
+  getRecalculateScoresState,
+} from '../../infrastructure/queue/workers/recalculate-scores-logic.js'
 import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 
@@ -857,6 +864,147 @@ router.post('/jobs/sync-all/:id/resume', async (req, res, next) => {
     res.json({
       success: true,
       data: { syncState, job: { id: job.id, name: job.name } },
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+        })
+        return
+      }
+      if (error.message.includes('Cannot resume')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATE', message: error.message },
+        })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+// === Recalculate Scores ===
+
+// Start a new score recalculation job
+const startRecalculateScoresSchema = z.object({
+  batchSize: z.number().min(10).max(1000).default(100),
+  dryRun: z.boolean().default(false),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+})
+
+router.post('/jobs/recalculate-scores/start', async (req, res, next) => {
+  try {
+    // Check if there's already an active recalculation
+    const activeRecalculate = await getActiveRecalculateScores()
+    if (activeRecalculate) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'RECALCULATE_IN_PROGRESS', message: 'A score recalculation is already in progress or paused' },
+        data: { recalculateState: activeRecalculate },
+      })
+      return
+    }
+
+    const config = startRecalculateScoresSchema.parse(req.body)
+    const { recalculateState, job } = await startRecalculateScores(config)
+
+    res.status(201).json({
+      success: true,
+      data: { recalculateState, job: { id: job.id, name: job.name } },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
+// Get current active recalculation state
+router.get('/jobs/recalculate-scores/current', async (_req, res, next) => {
+  try {
+    const recalculateState = await getActiveRecalculateScores()
+
+    res.json({
+      success: true,
+      data: { recalculateState }, // null if no active recalculation
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Get recalculation state by ID
+router.get('/jobs/recalculate-scores/:id', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const recalculateState = await getRecalculateScoresState(id)
+
+    if (!recalculateState) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Recalculation state not found' },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: { recalculateState },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Pause an ongoing recalculation
+router.post('/jobs/recalculate-scores/:id/pause', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const recalculateState = await pauseRecalculateScores(id)
+
+    res.json({
+      success: true,
+      data: { recalculateState },
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+        })
+        return
+      }
+      if (error.message.includes('Cannot pause')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATE', message: error.message },
+        })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+// Resume a paused recalculation
+router.post('/jobs/recalculate-scores/:id/resume', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const { recalculateState, job } = await resumeRecalculateScores(id)
+
+    res.json({
+      success: true,
+      data: { recalculateState, job: { id: job.id, name: job.name } },
     })
   } catch (error) {
     if (error instanceof Error) {

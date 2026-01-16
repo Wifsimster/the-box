@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAdminStore } from '@/stores/adminStore'
 import { FullImportCard } from './FullImportCard'
-import { staggerContainer, listItem } from '@/lib/animations'
 import {
   Clock,
   Play,
@@ -72,6 +71,7 @@ function getJobTranslationKey(jobName: string): string {
     'create-monthly-tournament': 'admin.jobs.createMonthlyTournament',
     'end-monthly-tournament': 'admin.jobs.endMonthlyTournament',
     'send-tournament-reminders': 'admin.jobs.sendTournamentReminders',
+    'recalculate-scores': 'admin.jobs.recalculateScores',
   }
   return keyMap[jobName] || jobName
 }
@@ -86,20 +86,9 @@ function getJobRunningTranslationKey(jobName: string): string {
     'create-monthly-tournament': 'admin.jobs.createMonthlyTournamentRunning',
     'end-monthly-tournament': 'admin.jobs.endMonthlyTournamentRunning',
     'send-tournament-reminders': 'admin.jobs.sendTournamentRemindersRunning',
+    'recalculate-scores': 'admin.jobs.recalculateScoresRunning',
   }
   return keyMap[jobName] || jobName
-}
-
-function getPriorityLabel(priority: number | undefined): { label: string; color: string } {
-  if (priority === undefined || priority === 0) {
-    return { label: 'Normal', color: 'text-blue-400' }
-  } else if (priority >= 1000) {
-    return { label: 'Low', color: 'text-gray-400' }
-  } else if (priority >= 100) {
-    return { label: 'Medium', color: 'text-yellow-400' }
-  } else {
-    return { label: 'High', color: 'text-red-400' }
-  }
 }
 
 function getJobMetadata(jobName: string, t: (key: string) => string) {
@@ -147,6 +136,10 @@ function getJobMetadata(jobName: string, t: (key: string) => string) {
       description: t('admin.jobs.descriptions.sendTournamentReminders'),
       icon: <Mail className="h-4 w-4" />,
       category: 'Notification',
+    }, 'recalculate-scores': {
+      description: t('admin.jobs.descriptions.recalculateScores'),
+      icon: <RefreshCw className="h-4 w-4" />,
+      category: 'Maintenance',
     },
   }
 
@@ -165,6 +158,7 @@ export function JobList() {
     triggerDailyChallengeJob,
     triggerSyncAllJob,
     triggerCleanupAnonymousUsersJob,
+    startRecalculateScores,
   } = useAdminStore()
 
   const [recurringJobLoading, setRecurringJobLoading] = useState<string | null>(null)
@@ -192,6 +186,8 @@ export function JobList() {
         await triggerSyncAllJob()
       } else if (jobName === 'cleanup-anonymous-users') {
         await triggerCleanupAnonymousUsersJob()
+      } else if (jobName === 'recalculate-scores') {
+        await startRecalculateScores({ batchSize: 100, dryRun: false })
       }
     } finally {
       setRecurringJobLoading(null)
@@ -267,7 +263,7 @@ export function JobList() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               {/* Category Filter Tabs */}
-              <Tabs value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as any)} className="mb-4">
+              <Tabs value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as 'all' | 'Challenge' | 'Maintenance' | 'Tournament' | 'Notification')} className="mb-4">
                 <TabsList className="w-full h-9 p-1">
                   <TabsTrigger value="all" className="flex-1 text-xs">
                     {t('admin.jobs.category.all', 'All')}

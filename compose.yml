@@ -2,7 +2,7 @@ name: the-box
 
 services:
   the-box:
-    image: wifsimster/the-box:latest
+    image: wifsimster/the-box:1.1 # Pin to minor version for controlled updates
     container_name: the-box
     restart: unless-stopped
     healthcheck:

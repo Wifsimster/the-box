@@ -62,6 +62,7 @@ function getJobTranslationKey(jobName: string): string {
         'create-monthly-tournament': 'admin.jobs.createMonthlyTournament',
         'end-monthly-tournament': 'admin.jobs.endMonthlyTournament',
         'send-tournament-reminders': 'admin.jobs.sendTournamentReminders',
+        'recalculate-scores': 'admin.jobs.recalculateScores',
     }
     return keyMap[jobName] || jobName
 }

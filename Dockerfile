@@ -1,3 +1,8 @@
+# Build arguments
+ARG VERSION=dev
+ARG BUILD_DATE
+ARG VCS_REF
+
 # Stage 1: Install dependencies
 FROM node:24-alpine AS deps
 WORKDIR /app
@@ -28,11 +33,30 @@ RUN npm run build:types
 RUN npm run build:backend
 
 # Build frontend (API calls go to same origin /api)
+# Pass version to frontend build
+ARG VERSION
+ENV VITE_APP_VERSION=${VERSION}
 ENV VITE_API_URL=""
 RUN npm run build:frontend
 
 # Stage 3: Production runtime
 FROM node:24-alpine AS runner
+
+# Build arguments for labels
+ARG VERSION
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Image metadata
+LABEL org.opencontainers.image.title="The Box" \
+    org.opencontainers.image.description="Screenshot guessing game" \
+    org.opencontainers.image.version="${VERSION}" \
+    org.opencontainers.image.created="${BUILD_DATE}" \
+    org.opencontainers.image.revision="${VCS_REF}" \
+    org.opencontainers.image.source="https://github.com/wifsimster/the-box" \
+    org.opencontainers.image.vendor="wifsimster" \
+    maintainer="wifsimster"
+
 WORKDIR /app
 
 # Create non-root user for node app

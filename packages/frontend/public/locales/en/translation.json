@@ -163,7 +163,7 @@
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Guess games from screenshots. Daily challenges, multiplayer battles, and live leaderboards await!",
+    "subtitle": "Daily video game challenges with screenshot guessing, speed-based scoring, 21 achievements to unlock, live leaderboards, and win streaks. Play instantly as a guest or create an account.",
     "playToday": "Play Today's Challenge",
     "dailyGuess": "Daily Guess",
     "multiplayerGame": "Multiplayer Game",
@@ -367,6 +367,8 @@
       "createMonthlyTournament": "Create Monthly Tournament",
       "endMonthlyTournament": "End Monthly Tournament",
       "sendTournamentReminders": "Send Tournament Reminders",
+      "recalculateScores": "Recalculate Scores",
+      "recalculateScoresRunning": "Recalculating scores...",
       "batchImportGames": "Batch Import Games",
       "queueTitle": "Job Queue",
       "loading": "Loading...",
@@ -384,6 +386,7 @@
         "createMonthlyTournament": "Launches a new monthly tournament on the 1st of each month at midnight UTC for long-term competition.",
         "endMonthlyTournament": "Closes the monthly tournament at month end, calculates final scores and distributes rewards to winners.",
         "sendTournamentReminders": "Sends daily email reminders to active tournament participants to maintain engagement.",
+        "recalculateScores": "Recalculates scores for all completed game sessions using the current scoring algorithm. Ensures historical data reflects the latest scoring rules.",
         "default": "Automatic system scheduled task."
       },
       "status": {

@@ -464,6 +464,72 @@ export const adminApi = {
   },
 
   // ============================================
+  // Recalculate Scores
+  // ============================================
+
+  /**
+   * Start a score recalculation job
+   */
+  async startRecalculateScores(config?: {
+    batchSize?: number
+    dryRun?: boolean
+    startDate?: string
+    endDate?: string
+  }): Promise<{ recalculateState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch('/api/admin/jobs/recalculate-scores/start', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config || {}),
+    })
+    return handleResponse<{ recalculateState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  /**
+   * Get the current active recalculation state
+   */
+  async getCurrentRecalculateScores(): Promise<{ recalculateState: ImportState | null }> {
+    const response = await fetch('/api/admin/jobs/recalculate-scores/current', {
+      credentials: 'include',
+    })
+    return handleResponse<{ recalculateState: ImportState | null }>(response)
+  },
+
+  /**
+   * Get recalculation state by ID
+   */
+  async getRecalculateScoresState(id: number): Promise<{ recalculateState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/recalculate-scores/${id}`, {
+      credentials: 'include',
+    })
+    return handleResponse<{ recalculateState: ImportState }>(response)
+  },
+
+  /**
+   * Pause an ongoing score recalculation
+   */
+  async pauseRecalculateScores(id: number): Promise<{ recalculateState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/recalculate-scores/${id}/pause`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ recalculateState: ImportState }>(response)
+  },
+
+  /**
+   * Resume a paused score recalculation
+   */
+  async resumeRecalculateScores(id: number): Promise<{ recalculateState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch(`/api/admin/jobs/recalculate-scores/${id}/resume`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ recalculateState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  // ============================================
   // User Management
   // ============================================
 

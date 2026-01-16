@@ -265,6 +265,21 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to schedule recurring cleanup-anonymous-users job')
     }
 
+    // Schedule recurring recalculate-scores job (daily at 3 AM UTC)
+    try {
+      await importQueue.add(
+        'recalculate-scores',
+        { batchSize: 100, dryRun: false },
+        {
+          repeat: { pattern: '0 3 * * *' }, // Cron: 3 AM UTC daily
+          jobId: 'recalculate-scores-recurring',
+        }
+      )
+      logger.info('scheduled recurring recalculate-scores job (daily at 3 AM UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring recalculate-scores job')
+    }
+
     // Schedule weekly tournament start (Monday at midnight UTC)
     try {
       await importQueue.add(

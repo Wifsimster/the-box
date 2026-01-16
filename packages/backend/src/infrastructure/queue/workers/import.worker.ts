@@ -7,6 +7,7 @@ import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
+import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import {
   createWeeklyTournament,
   createMonthlyTournament,
@@ -261,6 +262,60 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result: jobResult }, 'send-tournament-reminders job completed')
+        return jobResult
+      }
+
+      if (name === 'recalculate-scores') {
+        const { recalculateStateId, isResume } = data
+        if (!recalculateStateId) {
+          throw new Error('recalculateStateId is required for recalculate-scores job')
+        }
+
+        log.info({
+          jobId: id,
+          recalculateStateId,
+          isResume: !!isResume,
+          dryRun: data.dryRun ?? false,
+        }, `Processing recalculate-scores job (${isResume ? 'RESUME' : 'NEW'})`)
+
+        const result = await processRecalculateScoresJob(job, (current, total, _message, _state) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0
+          job.updateProgress(progress)
+        })
+
+        const jobResult: JobResult = {
+          sessionsProcessed: result.sessionsProcessed,
+          sessionsUpdated: result.sessionsUpdated,
+          sessionsSkipped: result.sessionsSkipped,
+          totalScoreChanges: result.totalScoreChanges,
+          recalculateStateId: result.recalculateStateId,
+          batchNumber: result.currentBatch,
+          totalBatches: result.totalBatches ?? undefined,
+          isComplete: result.isComplete,
+          dryRun: result.dryRun,
+          message: result.isPaused
+            ? `Recalculation paused after ${result.sessionsProcessed} sessions`
+            : result.isComplete
+              ? result.dryRun
+                ? `[DRY RUN] Would update ${result.sessionsUpdated} sessions (${result.sessionsSkipped} unchanged, total score changes: ${result.totalScoreChanges})`
+                : `Recalculation complete! ${result.sessionsUpdated} sessions updated (${result.sessionsSkipped} unchanged, total score changes: ${result.totalScoreChanges})`
+              : result.dryRun
+                ? `[DRY RUN] Batch ${result.currentBatch}: ${result.sessionsUpdated} would be updated, ${result.sessionsSkipped} unchanged`
+                : `Batch ${result.currentBatch} complete: ${result.sessionsUpdated} updated, ${result.sessionsSkipped} unchanged`,
+        }
+
+        if (result.isPaused) {
+          log.info({ jobId: id }, 'Recalculate job stopped (paused by user)')
+        } else if (result.isComplete) {
+          log.info({
+            jobId: id,
+            sessionsUpdated: result.sessionsUpdated,
+            totalScoreChanges: result.totalScoreChanges,
+            dryRun: result.dryRun
+          }, `Score recalculation completed${result.dryRun ? ' (dry run)' : ''}!`)
+        } else {
+          log.info({ jobId: id, nextBatch: result.currentBatch + 1 }, 'Recalculate batch completed, continuing...')
+        }
         return jobResult
       }
 

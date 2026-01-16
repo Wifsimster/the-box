@@ -25,6 +25,20 @@ interface BatchImportProgressEvent {
   totalBatches: number
 }
 
+interface RecalculateScoresProgressEvent {
+  recalculateStateId: number
+  progress: number
+  status: string
+  message?: string
+  sessionsProcessed: number
+  sessionsUpdated: number
+  sessionsSkipped: number
+  totalScoreChanges: number
+  currentBatch: number
+  totalBatches: number | null
+  dryRun: boolean
+}
+
 interface GamesPagination {
   page: number
   limit: number
@@ -129,6 +143,21 @@ interface AdminState {
   resumeFullImport: () => Promise<void>
   updateBatchImportProgress: (event: BatchImportProgressEvent) => void
 
+  // Recalculate Scores
+  currentRecalculateScores: ImportState | null
+  recalculateScoresLoading: boolean
+  recalculateScoresError: string | null
+  fetchCurrentRecalculateScores: () => Promise<void>
+  startRecalculateScores: (config?: {
+    batchSize?: number
+    dryRun?: boolean
+    startDate?: string
+    endDate?: string
+  }) => Promise<ImportState>
+  pauseRecalculateScores: () => Promise<void>
+  resumeRecalculateScores: () => Promise<void>
+  updateRecalculateScoresProgress: (event: RecalculateScoresProgressEvent) => void
+
   // Users data
   users: User[]
   usersLoading: boolean
@@ -173,6 +202,11 @@ export const useAdminStore = create<AdminState>()(
       currentImport: null,
       fullImportLoading: false,
       fullImportError: null,
+
+      // Recalculate Scores initial state
+      currentRecalculateScores: null,
+      recalculateScoresLoading: false,
+      recalculateScoresError: null,
 
       // Users initial state
       users: [],
@@ -340,6 +374,8 @@ export const useAdminStore = create<AdminState>()(
               : j
           ),
         })
+        // Refresh recurring jobs list to update status
+        get().fetchRecurringJobs()
       },
 
       updateJobFailed: (jobId, error) => {
@@ -355,6 +391,8 @@ export const useAdminStore = create<AdminState>()(
               : j
           ),
         })
+        // Refresh recurring jobs list to update status
+        get().fetchRecurringJobs()
       },
 
       // Games Actions
@@ -522,6 +560,72 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
+      updateRecalculateScoresProgress: (event) => {
+        const { currentRecalculateScores } = get()
+        if (currentRecalculateScores && currentRecalculateScores.id === event.recalculateStateId) {
+          set({
+            currentRecalculateScores: {
+              ...currentRecalculateScores,
+              challengesProcessed: event.current,
+              totalChallenges: event.total,
+            },
+          })
+        }
+      },
+
+      // Recalculate Scores Actions
+      fetchCurrentRecalculateScores: async () => {
+        try {
+          const { recalculateState } = await adminApi.getCurrentRecalculateScores()
+          set({ currentRecalculateScores: recalculateState })
+        } catch (err) {
+          console.error('Failed to fetch current recalculation state:', err)
+        }
+      },
+
+      startRecalculateScores: async (config) => {
+        set({ recalculateScoresLoading: true, recalculateScoresError: null })
+        try {
+          const { recalculateState } = await adminApi.startRecalculateScores(config)
+          set({ currentRecalculateScores: recalculateState, recalculateScoresLoading: false })
+          // Refresh jobs list
+          get().fetchJobs()
+          return recalculateState
+        } catch (err) {
+          set({ recalculateScoresError: (err as Error).message, recalculateScoresLoading: false })
+          throw err
+        }
+      },
+
+      pauseRecalculateScores: async () => {
+        const { currentRecalculateScores } = get()
+        if (!currentRecalculateScores) return
+
+        set({ recalculateScoresLoading: true, recalculateScoresError: null })
+        try {
+          const { recalculateState } = await adminApi.pauseRecalculateScores(currentRecalculateScores.id)
+          set({ currentRecalculateScores: recalculateState, recalculateScoresLoading: false })
+        } catch (err) {
+          set({ recalculateScoresError: (err as Error).message, recalculateScoresLoading: false })
+          throw err
+        }
+      },
+
+      resumeRecalculateScores: async () => {
+        const { currentRecalculateScores } = get()
+        if (!currentRecalculateScores) return
+
+        set({ recalculateScoresLoading: true, recalculateScoresError: null })
+        try {
+          const { recalculateState } = await adminApi.resumeRecalculateScores(currentRecalculateScores.id)
+          set({ currentRecalculateScores: recalculateState, recalculateScoresLoading: false })
+          // Refresh jobs list
+          get().fetchJobs()
+        } catch (err) {
+          set({ recalculateScoresError: (err as Error).message, recalculateScoresLoading: false })
+          throw err
+        }
+      },
       // Users Actions
       fetchUsers: async (params) => {
         const { usersPagination, usersSearch, usersSort } = get()
@@ -674,6 +778,10 @@ export const useAdminStore = create<AdminState>()(
           get().updateBatchImportProgress(data)
         })
 
+        socket.on('recalculate_scores_progress', (data: RecalculateScoresProgressEvent) => {
+          get().updateRecalculateScoresProgress(data)
+        })
+
         // Connect and join admin room
         connectAdminSocket()
       },
@@ -692,6 +800,7 @@ export const useAdminStore = create<AdminState>()(
         socket.off('job_removed')
         socket.off('job_stalled')
         socket.off('batch_import_progress')
+        socket.off('recalculate_scores_progress')
 
         // Disconnect socket
         disconnectAdminSocket()

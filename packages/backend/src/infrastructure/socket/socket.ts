@@ -168,6 +168,31 @@ export function broadcastBatchImportProgress(data: {
 }
 
 /**
+ * Broadcast recalculate scores progress to admin clients
+ */
+export function broadcastRecalculateScoresProgress(data: {
+    recalculateStateId: number
+    progress: number
+    status: string
+    message?: string
+    sessionsProcessed: number
+    sessionsUpdated: number
+    sessionsSkipped: number
+    totalScoreChanges: number
+    currentBatch: number
+    totalBatches: number | null
+    dryRun: boolean
+}) {
+    if (!io) {
+        logger.warn('Socket.IO not initialized, cannot broadcast recalculate scores progress')
+        return
+    }
+
+    io.of('/admin').to('admin-room').emit('recalculate_scores_progress', data)
+    logger.debug({ recalculateStateId: data.recalculateStateId, progress: data.progress }, 'recalculate scores progress broadcast')
+}
+
+/**
  * Get Socket.IO instance
  */
 export function getSocketIO(): SocketIOServer | null {

@@ -163,7 +163,7 @@
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Devinez les jeux à partir de captures d'écran. Défis quotidiens, batailles multijoueur et classements en direct !",
+    "subtitle": "Devinez le jeu vidéo à partir de captures d'écran. Classements en direct, succès et séries de victoires.",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
     "multiplayerGame": "Mode Multijoueur",
@@ -367,6 +367,8 @@
       "createMonthlyTournament": "Créer un Tournoi Mensuel",
       "endMonthlyTournament": "Clôturer le Tournoi Mensuel",
       "sendTournamentReminders": "Envoyer des Rappels de Tournoi",
+      "recalculateScores": "Recalculer les Scores",
+      "recalculateScoresRunning": "Recalcul des scores en cours...",
       "batchImportGames": "Importer les Jeux en Lot",
       "queueTitle": "File de Tâches",
       "loading": "Chargement...",
@@ -384,6 +386,7 @@
         "createMonthlyTournament": "Lance un nouveau tournoi mensuel le 1er de chaque mois à minuit UTC pour une compétition longue durée.",
         "endMonthlyTournament": "Clôture le tournoi mensuel à la fin du mois, calcule les scores finaux et distribue les récompenses aux gagnants.",
         "sendTournamentReminders": "Envoie des rappels quotidiens par email aux participants actifs des tournois en cours pour maintenir l'engagement.",
+        "recalculateScores": "Recalcule les scores de toutes les sessions de jeu terminées en utilisant l'algorithme de notation actuel. Garantit que les données historiques reflètent les dernières règles de notation.",
         "default": "Tâche planifiée automatique du système."
       },
       "status": {

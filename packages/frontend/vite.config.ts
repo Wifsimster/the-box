@@ -4,9 +4,18 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import { readFileSync } from 'fs'
 
-// Read package.json to get version
-const packageJson = JSON.parse(readFileSync(path.resolve(__dirname, './package.json'), 'utf-8'))
-const appVersion = packageJson.version
+// Read version from root package.json (single source of truth)
+// Fallback to environment variable for Docker builds, then local package.json
+const getAppVersion = () => {
+  if (process.env.VITE_APP_VERSION) {
+    return process.env.VITE_APP_VERSION
+  }
+  const rootPackageJsonPath = path.resolve(__dirname, '../../package.json')
+  const packageJson = JSON.parse(readFileSync(rootPackageJsonPath, 'utf-8'))
+  return packageJson.version
+}
+
+const appVersion = getAppVersion()
 const buildTime = new Date().toISOString()
 
 // https://vite.dev/config/

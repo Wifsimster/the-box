@@ -59,6 +59,10 @@ the-box/
 Pull and run the pre-built image from Docker Hub:
 
 ```bash
+# Pull specific version (recommended for production)
+docker pull wifsimster/the-box:1.1
+
+# Or pull latest
 docker pull wifsimster/the-box:latest
 
 docker run -d \
@@ -70,7 +74,7 @@ docker run -d \
   -e RESEND_API_KEY=your-resend-key \
   -e EMAIL_FROM=noreply@yourdomain.com \
   -v thebox-uploads:/app/uploads \
-  wifsimster/the-box:latest
+  wifsimster/the-box:1.1
 
 # Run database migrations and seed admin user
 docker exec the-box npm run --workspace=@the-box/backend db:migrate
@@ -169,7 +173,95 @@ npm run build:frontend  # Build frontend
 npm run db:migrate      # Run migrations
 npm run db:rollback     # Rollback last migration
 npm run db:seed         # Seed database
+
+# Version management
+npm run version:patch   # Bump patch version (1.1.0 -> 1.1.1)
+npm run version:minor   # Bump minor version (1.1.0 -> 1.2.0)
+npm run version:major   # Bump major version (1.1.0 -> 2.0.0)
+
+# Docker
+npm run docker:build    # Build Docker image with version
+npm run docker:tag      # Tag image with semantic versions
+npm run docker:push     # Push all tags to Docker Hub
+npm run release         # Complete release (build + docker + push)
 ```
+
+## Contributing
+
+### Commit Message Convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated changelog generation. All commits must follow this format:
+
+```text
+<type>(<scope>): <subject>
+
+<body>
+```
+
+**Types:**
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, semicolons, etc.)
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `build`: Build system or dependencies
+- `ci`: CI/CD changes
+- `chore`: Other changes (maintenance, etc.)
+
+**Examples:**
+
+```bash
+feat(game): add power-up system for hints
+fix(auth): resolve session expiration issue
+docs(readme): update installation instructions
+```
+
+Commits are validated automatically via husky git hooks. Non-compliant commits will be rejected.
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+**Continuous Integration (`.github/workflows/ci.yml`)**
+
+- Runs on all pushes and pull requests
+- Linting, type checking, and building all packages
+- E2E tests with Playwright (optional, non-blocking)
+- Docker build validation
+
+**Release (`.github/workflows/release.yml`)**
+
+- Manual trigger via GitHub Actions UI
+- Select version bump: patch, minor, or major
+- Generates changelog from conventional commits
+- Builds and publishes multi-arch Docker images (amd64, arm64)
+- Creates GitHub release with notes
+- Tags: `latest`, `v1.1.0`, `1.1`, `1`
+
+### Docker Hub Setup
+
+To enable automated Docker publishing, add these secrets to your GitHub repository:
+
+1. Go to **Settings → Secrets and variables → Actions**
+2. Add the following repository secrets:
+   - `DOCKERHUB_USERNAME` - Your Docker Hub username
+   - `DOCKERHUB_TOKEN` - Docker Hub access token ([create one here](https://hub.docker.com/settings/security))
+
+### Creating a Release
+
+1. Ensure all changes are committed and pushed to `main`
+2. Go to **Actions** tab in GitHub
+3. Select **Release** workflow
+4. Click **Run workflow**
+5. Choose version bump type (patch/minor/major)
+6. The workflow will:
+   - Bump versions in all `package.json` files
+   - Generate changelog from commits
+   - Build and push Docker images with all tags
+   - Create GitHub release
 
 ## Environment Variables
 
@@ -207,13 +299,20 @@ docker run -p 80:80 -e DATABASE_URL=... the-box:latest
 
 ### Architecture
 
-The Docker image uses:
+The Docker image uses a multi-stage build and includes:
 
-- **nginx** - Serves the frontend static files and proxies API requests
-- **Node.js** - Runs the backend API on internal port 3000
-- **supervisord** - Process manager to run both services
+- **Node.js 24 Alpine** - Runs the full-stack application (frontend + backend)
+- **Single port 80** - Node.js serves both static frontend and API routes
+- **Automated migrations** - Database setup via docker-entrypoint.sh
 
-Exposed port: **80** (nginx)
+**Docker Image Tags:**
+
+- `latest` - Most recent stable release
+- `v1.1.0` - Specific version (immutable)
+- `1.1` - Minor version (receives patches)
+- `1` - Major version (receives minors and patches)
+
+Exposed port: **80**
 
 ## Documentation
 
