@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useGameStore } from '@/stores/gameStore'
-import { Flag, Loader2, Trophy, Minus, TrendingDown } from 'lucide-react'
+import { Flag, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const UNFOUND_PENALTY = 50
@@ -22,8 +22,6 @@ export function EndGameButton() {
 
   const gamePhase = useGameStore((s) => s.gamePhase)
   const positionStates = useGameStore((s) => s.positionStates)
-  const currentPosition = useGameStore((s) => s.currentPosition)
-  const totalScreenshots = useGameStore((s) => s.totalScreenshots)
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const totalScore = useGameStore((s) => s.totalScore)

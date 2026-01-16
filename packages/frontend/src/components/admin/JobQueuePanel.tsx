@@ -70,7 +70,7 @@ function getJobTranslationKey(jobName: string): string {
 export function JobQueuePanel() {
     const { t } = useTranslation()
     const { jobs, isLoading, fetchJobs, clearCompleted, cancelJob, connectSocket, disconnectSocket } = useAdminStore()
-    const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed'>('all')
+    const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed' | 'delayed'>('all')
 
     useEffect(() => {
         fetchJobs()
@@ -135,7 +135,7 @@ export function JobQueuePanel() {
                 </div>
 
                 {/* Filter Tabs */}
-                <Tabs value={filterTab} onValueChange={(value) => setFilterTab(value as any)} className="w-full">
+                <Tabs value={filterTab} onValueChange={(value) => setFilterTab(value as 'all' | 'active' | 'completed' | 'failed' | 'delayed')} className="w-full">
                     <TabsList className="w-full h-8 p-0.5">
                         <TabsTrigger value="all" className="flex-1 text-[10px] h-7 px-2">
                             {t('admin.jobs.filter.all', 'All')}

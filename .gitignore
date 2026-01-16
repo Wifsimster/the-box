@@ -44,3 +44,9 @@ uploads/*
 test-results/
 playwright-report/
 playwright/.cache/
+
+# AI Agent Tools
+.agentvibes/
+.cursor/
+_bmad/
+_bmad-output/

@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { adminApi } from '@/lib/api/admin'
-import { useSession } from '@/lib/auth-client'
 import { Mail, Loader2, CheckCircle2, XCircle, Send } from 'lucide-react'
 import { toast } from '@/lib/toast'
 
@@ -22,13 +21,7 @@ export function EmailSettings() {
   const [testing, setTesting] = useState(false)
   const [recipientEmail, setRecipientEmail] = useState('')
 
-  useEffect(() => {
-    fetchConfig()
-    // Set default email to test value
-    setRecipientEmail('battistella@proton.me')
-  }, [])
-
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       setLoading(true)
       const emailConfig = await adminApi.getEmailConfig()
@@ -39,7 +32,13 @@ export function EmailSettings() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    fetchConfig()
+    // Set default email to test value
+    setRecipientEmail('battistella@proton.me')
+  }, [fetchConfig])
 
   const handleTestEmail = async () => {
     if (!recipientEmail.trim()) {

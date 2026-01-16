@@ -52,8 +52,9 @@ export function ToastContainer() {
     // Cleanup: Clear all pending timeouts on unmount
     return () => {
       unsubscribe()
-      timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId))
-      timeoutsRef.current.clear()
+      const timeouts = timeoutsRef.current
+      timeouts.forEach((timeoutId) => clearTimeout(timeoutId))
+      timeouts.clear()
     }
   }, [])
 

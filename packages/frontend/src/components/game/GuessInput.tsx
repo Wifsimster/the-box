@@ -24,7 +24,6 @@ export function GuessInput() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [activeHint, setActiveHint] = useState<'year' | 'publisher' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auth hook for admin check
@@ -186,7 +185,7 @@ export function GuessInput() {
       <div aria-live="assertive" aria-atomic="true" className="sr-only">
         {isShaking && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
       </div>
-      
+
       {/* Input with submit button */}
       <div className="flex gap-1.5 sm:gap-2">
         {/* Previous button - shown when there are skipped positions before current */}
@@ -215,13 +214,12 @@ export function GuessInput() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
-            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] focus:border-primary focus:shadow-[0_0_30px_rgba(168,85,247,0.5)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300 ${
-              isSuccess 
-                ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse' 
-                : isShaking 
-                  ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]' 
+            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] focus:border-primary focus:shadow-[0_0_30px_rgba(168,85,247,0.5)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300 ${isSuccess
+                ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse'
+                : isShaking
+                  ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
                   : ''
-            }`}
+              }`}
             disabled={gamePhase !== 'playing'}
           />
 
@@ -232,8 +230,8 @@ export function GuessInput() {
             onClick={handleSubmit}
             disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
             className={`absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300 ${query.trim()
-                ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
-                : 'hover:bg-accent'
+              ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
+              : 'hover:bg-accent'
               }`}
           >
             {isSubmitting ? (
@@ -262,15 +260,15 @@ export function GuessInput() {
                 onClick={handleHintYear}
                 disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing' || isSubmitting}
                 className={`relative h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintYearUsed
-                    ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-                    : ''
+                  ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
+                  : ''
                   }`}
               >
                 <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintYearUsed ? 'text-yellow-400' : ''
                   }`} />
                 {!hintYearUsed && hasIncorrectGuess && yearAvailable && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
                   >
                     -25
@@ -294,15 +292,15 @@ export function GuessInput() {
                 onClick={handleHintPublisher}
                 disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing' || isSubmitting}
                 className={`relative h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintPublisherUsed
-                    ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-                    : ''
+                  ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
+                  : ''
                   }`}
               >
                 <Building2 className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintPublisherUsed ? 'text-yellow-400' : ''
                   }`} />
                 {!hintPublisherUsed && hasIncorrectGuess && publisherAvailable && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
                   >
                     -25

@@ -185,7 +185,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
     },
-    [submissionService, store]
+    [submissionService, store, achievementStore]
   )
 
   return {
