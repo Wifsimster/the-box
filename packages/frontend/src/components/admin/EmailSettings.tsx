@@ -17,7 +17,6 @@ interface EmailConfig {
 
 export function EmailSettings() {
   const { t } = useTranslation()
-  const { data: session } = useSession()
   const [config, setConfig] = useState<EmailConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)

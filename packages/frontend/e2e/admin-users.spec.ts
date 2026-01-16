@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test'
  */
 
 // Helper function to login as admin
-async function loginAsAdmin(page: any) {
+async function loginAsAdmin(page: import('@playwright/test').Page) {
   // Navigate to login page
   await page.goto('/en/login')
   await page.waitForSelector('form')

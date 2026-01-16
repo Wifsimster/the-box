@@ -10,8 +10,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Image } from 'lucide-react'
-import { tableRow, staggerContainerFast } from '@/lib/animations'
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, Image } from 'lucide-react'
+import { tableRow } from '@/lib/animations'
 
 interface GameTableProps {
   games: Game[]

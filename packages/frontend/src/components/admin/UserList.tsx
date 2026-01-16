@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
-import { Search, Loader2, ArrowUpDown, ArrowUp, Shield, ShieldOff, Trash2, Ban, Unlock } from 'lucide-react'
+import { Search, Loader2, ArrowUpDown, ArrowUp, ShieldOff, Trash2, Ban, Unlock } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { tableRow } from '@/lib/animations'

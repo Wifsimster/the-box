@@ -30,6 +30,8 @@ interface RecalculateScoresProgressEvent {
   progress: number
   status: string
   message?: string
+  current: number
+  total: number
   sessionsProcessed: number
   sessionsUpdated: number
   sessionsSkipped: number
