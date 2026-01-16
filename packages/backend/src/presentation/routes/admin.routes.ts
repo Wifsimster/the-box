@@ -462,7 +462,7 @@ router.delete('/jobs/completed', async (_req, res, next) => {
 // Remove recurring job (must be before /jobs/:id to handle repeat: prefix)
 router.delete('/jobs/repeat\\::key', async (req, res, next) => {
   try {
-    const key = `repeat:${req.params['key']!}`
+    const key = `repeat:${req.params[':key']!}`
     const removed = await jobService.removeRecurringJob(key)
 
     if (!removed) {

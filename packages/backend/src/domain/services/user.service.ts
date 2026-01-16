@@ -36,6 +36,39 @@ export const userService = {
     // Get all guesses for this session
     const guessesData = await sessionRepository.findGuessesByGameSession(sessionId)
 
+    // Get tier screenshots with game info for all positions
+    const tiers = await challengeRepository.findTiersByChallenge(gameSession.daily_challenge_id)
+    const tier = tiers[0]
+
+    // Create a map of position -> screenshot data
+    const screenshotMap = new Map<number, Screenshot>()
+    if (tier) {
+      const tierScreenshots = await db('tier_screenshots')
+        .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
+        .where('tier_screenshots.tier_id', tier.id)
+        .select(
+          'tier_screenshots.position',
+          'screenshots.id as screenshot_id',
+          'screenshots.image_url',
+          'screenshots.thumbnail_url',
+          'screenshots.difficulty',
+          'screenshots.location_hint',
+          'screenshots.game_id'
+        )
+        .orderBy('tier_screenshots.position', 'asc')
+
+      for (const row of tierScreenshots) {
+        screenshotMap.set(row.position, {
+          id: row.screenshot_id,
+          gameId: row.game_id,
+          imageUrl: row.image_url,
+          thumbnailUrl: row.thumbnail_url ?? undefined,
+          difficulty: row.difficulty,
+          locationHint: row.location_hint ?? undefined,
+        })
+      }
+    }
+
     // Group guesses by position and find the correct one for each position
     const positionMap = new Map<number, typeof guessesData>()
     for (const guess of guessesData) {

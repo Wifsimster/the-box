@@ -6,16 +6,15 @@ import { useSession } from '@/lib/auth-client'
 import { useAdminStore } from '@/stores/adminStore'
 import { JobList } from '@/components/admin/JobList'
 import { GameList } from '@/components/admin/GameList'
-import { ChallengeManager } from '@/components/admin/ChallengeManager'
 import { UserList } from '@/components/admin/UserList'
 import { EmailSettings } from '@/components/admin/EmailSettings'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, CalendarDays, Users, Mail } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail } from 'lucide-react'
 
-const VALID_TABS = ['jobs', 'games', 'challenges', 'users', 'email']
+const VALID_TABS = ['jobs', 'games', 'users', 'email']
 const DEFAULT_TAB = 'jobs'
 
 export default function AdminPage() {
@@ -33,7 +32,6 @@ export default function AdminPage() {
   const tabs = [
     { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="h-4 w-4" /> },
     { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="h-4 w-4" /> },
-    { id: 'challenges', label: t('admin.tabs.challenges'), icon: <CalendarDays className="h-4 w-4" /> },
     { id: 'users', label: t('admin.tabs.users'), icon: <Users className="h-4 w-4" /> },
     { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
   ]
@@ -135,7 +133,6 @@ export default function AdminPage() {
             >
               {activeTab === 'jobs' && <JobList />}
               {activeTab === 'games' && <GameList />}
-              {activeTab === 'challenges' && <ChallengeManager />}
               {activeTab === 'users' && <UserList />}
               {activeTab === 'email' && <EmailSettings />}
             </motion.div>

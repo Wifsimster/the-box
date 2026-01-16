@@ -409,6 +409,7 @@ export interface GameSessionDetailsResponse {
     hintPenalty?: number
     wrongGuessPenalty?: number
     tryNumber: number
+    screenshot: Screenshot
   }>
   unfoundGames: Array<{
     position: number

@@ -439,9 +439,17 @@ export default function GamePage() {
             className="flex flex-col items-center justify-center w-full h-full gap-4"
           >
             <p className="text-destructive">{error}</p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              {t('common.retry')}
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="gaming" asChild>
+                <Link to={localizedPath('/')}>
+                  <Home className="w-4 h-4 mr-2" />
+                  {t('common.home')}
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                {t('common.retry')}
+              </Button>
+            </div>
           </motion.div>
         )}
 

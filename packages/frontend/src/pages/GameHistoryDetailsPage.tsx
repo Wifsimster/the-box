@@ -201,8 +201,8 @@ export default function GameHistoryDetailsPage() {
                         ) : (
                           <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" />
                         )}
-                        {/* Show screenshot thumbnail for unguessed games */}
-                        {isUnguessed && result.screenshot && (
+                        {/* Show screenshot thumbnail for all games */}
+                        {result.screenshot && (
                           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0">
                             <img
                               src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
@@ -289,8 +289,8 @@ export default function GameHistoryDetailsPage() {
                       ) : (
                         <XCircle className="w-5 h-5 text-error shrink-0" />
                       )}
-                      {/* Show screenshot thumbnail for unguessed games */}
-                      {isUnguessed && result.screenshot && (
+                      {/* Show screenshot thumbnail for all games */}
+                      {result.screenshot && (
                         <div className="w-16 h-16 rounded overflow-hidden shrink-0">
                           <img
                             src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
