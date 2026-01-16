@@ -112,7 +112,7 @@
     "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",
     "rules": {
       "title": "Comment jouer",
-      "screenshots": "{{count}} captures à deviner en temps limité",
+      "screenshots": "{{count}} captures à deviner",
       "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
       "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
@@ -121,8 +121,8 @@
     },
     "scoring": {
       "title": "Comment le score fonctionne",
-      "basePoints": "50 points par bonne réponse",
-      "speedMultiplier": "Multiplicateur de vitesse : <5s = 2.0x (100pts), 5-15s = 1.5x (75pts), 15-30s = 1.2x (60pts), >30s = 1.0x (50pts)",
+      "basePoints": "100 points par bonne réponse",
+      "speedMultiplier": "Multiplicateur de vitesse : <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Essais illimités - les mauvaises réponses n'affectent pas le score",
       "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
     },
@@ -178,6 +178,33 @@
       "dailyDesc": "Même défi pour tous. Affrontez le monde entier et grimpez au classement !",
       "multiplayer": "Mode Multijoueur",
       "multiplayerDesc": "Défiez vos amis en temps réel avec scoring en direct"
+    },
+    "completionMessages": {
+      "perfect": [
+        "Perfection absolue ! Tu es une légende vivante ! 🏆",
+        "Score parfait ! Les autres joueurs tremblent devant ta maîtrise ! 👑",
+        "INCROYABLE ! Tu as atteint le nirvana du gaming ! 🎮✨"
+      ],
+      "excellent": [
+        "Impressionnant ! Tu maîtrises vraiment ton sujet ! 🌟",
+        "Excellent score ! Tu es sur la bonne voie pour la gloire ! 🚀",
+        "Bravo champion ! Ce score mérite le respect ! 💪"
+      ],
+      "good": [
+        "Pas mal du tout ! Un score très respectable ! 👍",
+        "Bien joué ! Tu as prouvé que tu connais tes classiques ! 🎯",
+        "Solide performance ! Continue comme ça ! ⭐"
+      ],
+      "average": [
+        "C'était... intéressant ! La prochaine fois sera la bonne ! 😅",
+        "Bon, disons que tu as essayé ! L'important c'est de participer, non ? 🤷",
+        "Tu as fait des choix... créatifs ! Revenez demain pour la revanche ! 🎲"
+      ],
+      "low": [
+        "Euh... tu as au moins reconnu un jeu ? Demain sera forcément mieux ! 😬",
+        "On dirait que tu as joué les yeux fermés ! Un peu d'entraînement s'impose ! 🙈",
+        "Courage ! Même les pros ont commencé quelque part... très bas ! 💀"
+      ]
     }
   },
   "leaderboard": {

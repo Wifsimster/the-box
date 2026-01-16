@@ -112,7 +112,7 @@
     "guestWarning": "You are not logged in. Your score will not be saved.",
     "rules": {
       "title": "How to play",
-      "screenshots": "{{count}} screenshots to guess in limited time",
+      "screenshots": "{{count}} screenshots to guess",
       "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
       "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
@@ -121,8 +121,8 @@
     },
     "scoring": {
       "title": "How scoring works",
-      "basePoints": "50 points per correct guess",
-      "speedMultiplier": "Speed multiplier: <5s = 2.0x (100pts), 5-15s = 1.5x (75pts), 15-30s = 1.2x (60pts), >30s = 1.0x (50pts)",
+      "basePoints": "100 points per correct guess",
+      "speedMultiplier": "Speed multiplier: <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Unlimited tries - wrong guesses don't affect score",
       "penalty": "-50 points per game not found when ending early"
     },
@@ -178,6 +178,33 @@
       "dailyDesc": "Same challenge for everyone. Compete globally and climb the leaderboard!",
       "multiplayer": "Multiplayer Mode",
       "multiplayerDesc": "Challenge friends in real-time battles with live scoring"
+    },
+    "completionMessages": {
+      "perfect": [
+        "Absolute perfection! You're a living legend! 🏆",
+        "Perfect score! Other players tremble before your mastery! 👑",
+        "AMAZING! You've reached gaming nirvana! 🎮✨"
+      ],
+      "excellent": [
+        "Impressive! You really know your stuff! 🌟",
+        "Excellent score! You're on the path to glory! 🚀",
+        "Well done champion! This score deserves respect! 💪"
+      ],
+      "good": [
+        "Not bad at all! A very respectable score! 👍",
+        "Well played! You've proven you know your classics! 🎯",
+        "Solid performance! Keep it up! ⭐"
+      ],
+      "average": [
+        "That was... interesting! Next time will be the one! 😅",
+        "Well, you tried! It's the taking part that counts, right? 🤷",
+        "You made some... creative choices! Come back tomorrow for revenge! 🎲"
+      ],
+      "low": [
+        "Uh... did you recognize at least one game? Tomorrow will definitely be better! 😬",
+        "Looks like you played with your eyes closed! Some training is needed! 🙈",
+        "Courage! Even the pros started somewhere... very low! 💀"
+      ]
     }
   },
   "leaderboard": {

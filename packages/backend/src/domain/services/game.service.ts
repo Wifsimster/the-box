@@ -58,6 +58,55 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
   }
 }
 
+/**
+ * Calculate and update user's play streak based on last played date
+ * @param userId User ID
+ * @param user Current user data (can be null/undefined)
+ * @returns Updated streak values
+ */
+async function calculateAndUpdateStreak(
+  userId: string,
+  user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: Date } | null
+): Promise<{ currentStreak: number; longestStreak: number }> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Default values if user not found
+  let currentStreak = user?.currentStreak || 0
+  let longestStreak = user?.longestStreak || 0
+  const lastPlayedAt = user?.lastPlayedAt
+
+  if (!lastPlayedAt) {
+    // First time playing
+    currentStreak = 1
+    longestStreak = Math.max(1, longestStreak)
+  } else {
+    const lastPlayed = new Date(lastPlayedAt)
+    lastPlayed.setHours(0, 0, 0, 0)
+
+    const daysDiff = Math.floor((today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysDiff === 0) {
+      // Playing again today - no change to streak
+      log.debug({ userId, currentStreak }, 'Same day play - streak unchanged')
+    } else if (daysDiff === 1) {
+      // Consecutive day - increment streak
+      currentStreak += 1
+      longestStreak = Math.max(currentStreak, longestStreak)
+      log.info({ userId, currentStreak, longestStreak }, 'Streak continued')
+    } else {
+      // Missed days - reset streak
+      currentStreak = 1
+      log.info({ userId, daysMissed: daysDiff, newStreak: currentStreak }, 'Streak reset')
+    }
+  }
+
+  // Update database
+  await userRepository.updateStreak(userId, currentStreak, longestStreak)
+
+  return { currentStreak, longestStreak }
+}
+
 export const gameService = {
   async getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse> {
     const targetDate = date || new Date().toISOString().split('T')[0]!
@@ -326,18 +375,21 @@ export const gameService = {
         // Get user info for streak data
         const user = await userRepository.findById(data.userId)
 
+        // Calculate and update streak
+        const updatedStreak = await calculateAndUpdateStreak(data.userId, user)
+
         // Get all guesses for this session
-        const allGuesses = await db('user_guesses')
-          .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+        const allGuesses = await db('guesses')
+          .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
           .where('tier_sessions.game_session_id', tierSession.game_session_id)
           .select(
-            'user_guesses.position',
-            'user_guesses.is_correct',
-            'user_guesses.round_time_taken_ms',
-            'user_guesses.power_up_used',
-            'user_guesses.screenshot_id'
+            'guesses.position',
+            'guesses.is_correct',
+            'guesses.time_taken_ms as round_time_taken_ms',
+            'guesses.power_up_used',
+            'guesses.screenshot_id'
           )
-          .orderBy('user_guesses.position')
+          .orderBy('guesses.position')
 
         // Get game genres
         const gameData = await db('games')
@@ -358,8 +410,8 @@ export const gameService = {
             screenshotId: g.screenshot_id,
           })),
           gameGenres: gameData?.genres || [],
-          currentStreak: user?.currentStreak || 0,
-          longestStreak: user?.longestStreak || 0,
+          currentStreak: updatedStreak.currentStreak,
+          longestStreak: updatedStreak.longestStreak,
         })
       } catch (error) {
         log.error({ error, userId: data.userId }, 'Failed to check achievements')
@@ -534,17 +586,20 @@ export const gameService = {
     try {
       const user = await userRepository.findById(userId)
 
-      const allGuesses = await db('user_guesses')
-        .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+      // Calculate and update streak
+      const updatedStreak = await calculateAndUpdateStreak(userId, user)
+
+      const allGuesses = await db('guesses')
+        .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
         .where('tier_sessions.game_session_id', sessionId)
         .select(
-          'user_guesses.position',
-          'user_guesses.is_correct',
-          'user_guesses.round_time_taken_ms',
-          'user_guesses.power_up_used',
-          'user_guesses.screenshot_id'
+          'guesses.position',
+          'guesses.is_correct',
+          'guesses.time_taken_ms as round_time_taken_ms',
+          'guesses.power_up_used',
+          'guesses.screenshot_id'
         )
-        .orderBy('user_guesses.position')
+        .orderBy('guesses.position')
 
       // Get first screenshot to determine game genre
       const firstScreenshot = await db('screenshots')
@@ -566,8 +621,8 @@ export const gameService = {
           screenshotId: g.screenshot_id,
         })),
         gameGenres: firstScreenshot?.genres || [],
-        currentStreak: user?.currentStreak || 0,
-        longestStreak: user?.longestStreak || 0,
+        currentStreak: updatedStreak.currentStreak,
+        longestStreak: updatedStreak.longestStreak,
       })
     } catch (error) {
       log.error({ error, userId }, 'Failed to check achievements on forfeit')

@@ -166,8 +166,8 @@ export default function LeaderboardPage() {
             {/* Top 3 Podium */}
             {!loading && leaderboard.length >= 3 && (
               <div className="flex justify-center gap-4 mb-8">
-                {leaderboard.slice(0, 3).map((entry, index) => {
-                  const order = [1, 0, 2][index] // Silver, Gold, Bronze order
+                {[leaderboard[1], leaderboard[0], leaderboard[2]].map((entry, displayIndex) => {
+                  // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
                   const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
 
@@ -176,15 +176,15 @@ export default function LeaderboardPage() {
                       key={entry.rank}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: order! * 0.1 }}
-                      className={`flex flex-col items-center ${index === 1 ? 'order-first' : ''}`}
+                      transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
+                      className="flex flex-col items-center"
                     >
                       <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
                         {entry.displayName[0]}
                       </div>
                       <span className="font-semibold mb-1">{entry.displayName}</span>
                       <span className="text-primary font-bold">{entry.totalScore}</span>
-                      <div className={`w-20 ${heights[index]} bg-linear-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
+                      <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
                         <span className="text-2xl font-bold text-white">{entry.rank}</span>
                       </div>
                     </motion.div>
@@ -249,19 +249,19 @@ export default function LeaderboardPage() {
             {/* Top 3 Podium */}
             {!achievementLoading && achievementLeaderboard.length >= 3 && (
               <div className="flex justify-center gap-4 mb-8">
-                {achievementLeaderboard.slice(0, 3).map((entry, index) => {
-                  const order = [1, 0, 2][index] // Silver, Gold, Bronze order
+                {[achievementLeaderboard[1], achievementLeaderboard[0], achievementLeaderboard[2]].map((entry, displayIndex) => {
+                  // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
                   const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
-                  const rank = index + 1
+                  const rank = displayIndex === 0 ? 2 : displayIndex === 1 ? 1 : 3
 
                   return (
                     <motion.div
                       key={entry.userId}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: order! * 0.1 }}
-                      className={`flex flex-col items-center ${index === 1 ? 'order-first' : ''}`}
+                      transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
+                      className="flex flex-col items-center"
                     >
                       <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
                         {entry.displayName[0]}
@@ -271,7 +271,7 @@ export default function LeaderboardPage() {
                         {entry.achievementCount} {t('leaderboard.achievements')}
                       </Badge>
                       <span className="text-primary font-bold">{entry.totalPoints} {t('leaderboard.points')}</span>
-                      <div className={`w-20 ${heights[index]} bg-linear-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
+                      <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
                         <span className="text-2xl font-bold text-white">{rank}</span>
                       </div>
                     </motion.div>

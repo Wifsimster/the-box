@@ -189,12 +189,12 @@ export class AchievementService {
      */
     private async checkTotalSpeed(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
         // Get historical count from database
-        const result = await db('user_guesses')
-            .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+        const result = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
             .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
             .where('game_sessions.user_id', data.userId)
-            .where('user_guesses.is_correct', true)
-            .where('user_guesses.round_time_taken_ms', '<=', criteria.max_time_ms)
+            .where('guesses.is_correct', true)
+            .where('guesses.time_taken_ms', '<=', criteria.max_time_ms)
             .count('* as count')
             .first()
 
@@ -257,12 +257,12 @@ export class AchievementService {
      */
     private async checkConsecutiveCorrect(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
         // Get all user guesses ordered by time
-        const allGuesses = await db('user_guesses')
-            .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+        const allGuesses = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
             .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
             .where('game_sessions.user_id', data.userId)
-            .select('user_guesses.is_correct', 'user_guesses.created_at')
-            .orderBy('user_guesses.created_at', 'desc')
+            .select('guesses.is_correct', 'guesses.created_at')
+            .orderBy('guesses.created_at', 'desc')
             .limit(criteria.count)
 
         let consecutiveCorrect = 0
@@ -300,13 +300,13 @@ export class AchievementService {
         const targetGenre = criteria.genre
 
         // Count correct guesses for this genre
-        const result = await db('user_guesses')
-            .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+        const result = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
             .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
-            .join('screenshots', 'user_guesses.screenshot_id', 'screenshots.id')
+            .join('screenshots', 'guesses.screenshot_id', 'screenshots.id')
             .join('games', 'screenshots.game_id', 'games.id')
             .where('game_sessions.user_id', data.userId)
-            .where('user_guesses.is_correct', true)
+            .where('guesses.is_correct', true)
             .whereRaw('? = ANY(games.genres)', [targetGenre])
             .count('* as count')
             .first()

@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, Gamepad2, Target } from 'lucide-react'
+import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, Gamepad2, Target, RefreshCw } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -18,12 +18,11 @@ export default function HistoryPage() {
   const { session, isPending } = useAuth()
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const hasFetched = useRef(false)
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [scoreRange, setScoreRange] = useState<[number, number]>([0, 2000])
+  const [scoreRange, setScoreRange] = useState<[number, number]>([-1000, 2000])
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -32,16 +31,32 @@ export default function HistoryPage() {
     }
   }, [isPending, session, navigate, localizedPath])
 
-  // Fetch history only once when session is available
-  useEffect(() => {
-    if (session && !hasFetched.current) {
-      hasFetched.current = true
-      gameApi.getGameHistory()
-        .then(data => setHistory(data.entries))
-        .catch(() => { })
-        .finally(() => setLoading(false))
-    }
+  // Fetch history when session is available
+  const fetchHistory = useCallback(() => {
+    if (!session) return
+    setLoading(true)
+    gameApi.getGameHistory()
+      .then(data => setHistory(data.entries))
+      .catch(() => { })
+      .finally(() => setLoading(false))
   }, [session])
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchHistory()
+  }, [fetchHistory])
+
+  // Refetch when page becomes visible (user returns from game)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && session) {
+        fetchHistory()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [session, fetchHistory])
 
   // Format date for display
   const formatDate = (dateStr: string) => {
@@ -107,9 +122,19 @@ export default function HistoryPage() {
             {/* Filters Section */}
             <Card className="bg-card/50 border-border">
               <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
-                <CardTitle className="text-base sm:text-lg font-bold">
-                  {t('common.filters')}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base sm:text-lg font-bold">
+                    {t('common.filters')}
+                  </CardTitle>
+                  <button
+                    onClick={fetchHistory}
+                    disabled={loading}
+                    className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    title={t('common.refresh')}
+                  >
+                    <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
                 <div className="flex flex-col gap-3 sm:gap-4">
@@ -129,8 +154,8 @@ export default function HistoryPage() {
                     <button
                       onClick={() => setStatusFilter('all')}
                       className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'all'
-                          ? 'bg-primary text-primary-foreground font-medium'
-                          : 'bg-secondary/50 hover:bg-secondary'
+                        ? 'bg-primary text-primary-foreground font-medium'
+                        : 'bg-secondary/50 hover:bg-secondary'
                         }`}
                     >
                       {t('common.all')}
@@ -138,8 +163,8 @@ export default function HistoryPage() {
                     <button
                       onClick={() => setStatusFilter('completed')}
                       className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'completed'
-                          ? 'bg-primary text-primary-foreground font-medium'
-                          : 'bg-secondary/50 hover:bg-secondary'
+                        ? 'bg-primary text-primary-foreground font-medium'
+                        : 'bg-secondary/50 hover:bg-secondary'
                         }`}
                     >
                       <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
@@ -148,8 +173,8 @@ export default function HistoryPage() {
                     <button
                       onClick={() => setStatusFilter('inProgress')}
                       className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'inProgress'
-                          ? 'bg-primary text-primary-foreground font-medium'
-                          : 'bg-secondary/50 hover:bg-secondary'
+                        ? 'bg-primary text-primary-foreground font-medium'
+                        : 'bg-secondary/50 hover:bg-secondary'
                         }`}
                     >
                       <Clock className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 animate-pulse" />
@@ -224,8 +249,8 @@ export default function HistoryPage() {
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           {/* Dynamic Icon based on completion status */}
                           <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${entry.isCompleted
-                              ? 'bg-linear-to-br from-green-500 to-emerald-600'
-                              : 'bg-linear-to-br from-neon-purple to-neon-pink animate-pulse'
+                            ? 'bg-linear-to-br from-green-500 to-emerald-600'
+                            : 'bg-linear-to-br from-neon-purple to-neon-pink animate-pulse'
                             }`}>
                             {entry.isCompleted ? (
                               <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
