@@ -568,8 +568,8 @@ export const useAdminStore = create<AdminState>()(
           set({
             currentRecalculateScores: {
               ...currentRecalculateScores,
-              challengesProcessed: event.current,
-              totalChallenges: event.total,
+              gamesProcessed: event.sessionsProcessed,
+              currentBatch: event.currentBatch,
             },
           })
         }

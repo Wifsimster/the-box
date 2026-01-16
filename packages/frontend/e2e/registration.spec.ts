@@ -21,15 +21,15 @@ test.describe('Registration Form', () => {
     test('should display the registration form with all required fields', async ({ page }) => {
         // Wait for form to be fully loaded
         await page.waitForSelector('form');
-        
+
         // Verify the form elements are present using placeholders and roles
         await expect(page.getByPlaceholder(/your_username|username/i)).toBeVisible();
         await expect(page.getByPlaceholder(/you@example.com|email/i)).toBeVisible();
-        
+
         // Check for password fields by name attribute
         await expect(page.locator('input[name="password"]')).toBeVisible();
         await expect(page.locator('input[name="confirmPassword"]')).toBeVisible();
-        
+
         // Verify submit button is present
         await expect(page.getByRole('button', { name: /register|sign up|create account/i })).toBeVisible();
     });
@@ -37,7 +37,7 @@ test.describe('Registration Form', () => {
     test('should successfully register a new user with valid data', async ({ page }) => {
         // Wait for form to be fully loaded
         await page.waitForSelector('form');
-        
+
         // Generate unique user data to avoid conflicts
         const timestamp = Date.now();
         const username = `testuser${timestamp}`;
@@ -47,9 +47,8 @@ test.describe('Registration Form', () => {
         // Fill in the registration form using placeholders
         await page.getByPlaceholder(/your_username/i).fill(username);
         await page.getByPlaceholder(/you@example.com/i).fill(email);
-        
+
         // Get password fields by role and filter by type
-        const passwordFields = page.getByRole('textbox', { name: /password/i }).filter({ has: page.locator('input[type="password"]') });
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill(password);
         await passwordInputs.nth(1).fill(password);
@@ -61,16 +60,16 @@ test.describe('Registration Form', () => {
         // Note: This test assumes the backend is running and registration works
         // If registration fails, we'll see an error message on the page
         await page.waitForTimeout(2000); // Give time for async operations
-        
+
         // Check if we're redirected or if there's an error
         const currentUrl = page.url();
         const hasError = await page.locator('[role="alert"], p.text-destructive').first().isVisible().catch(() => false);
-        
+
         if (hasError) {
             const errorText = await page.locator('[role="alert"], p.text-destructive').first().textContent();
             throw new Error(`Registration failed with error: ${errorText}`);
         }
-        
+
         // If still on register page after 2 seconds, registration likely failed silently
         if (currentUrl.includes('/register')) {
             // Wait a bit more for potential redirect
@@ -79,7 +78,7 @@ test.describe('Registration Form', () => {
                 throw new Error('Registration did not redirect - likely failed silently');
             }
         }
-        
+
         // If we got here, we should be redirected
         await expect(page).toHaveURL(/\/(en\/)?$/, { timeout: 5000 });
 
@@ -90,12 +89,12 @@ test.describe('Registration Form', () => {
 
     test('should show error for username that is too short', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         const shortUsername = 'ab'; // Less than 3 characters
 
         await page.getByPlaceholder(/your_username/i).fill(shortUsername);
         await page.getByPlaceholder(/you@example.com/i).fill('test@example.com');
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');
@@ -109,12 +108,12 @@ test.describe('Registration Form', () => {
 
     test('should show error for username that is too long', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         const longUsername = 'a'.repeat(51); // More than 50 characters
 
         await page.getByPlaceholder(/your_username/i).fill(longUsername);
         await page.getByPlaceholder(/you@example.com/i).fill('test@example.com');
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');
@@ -127,10 +126,10 @@ test.describe('Registration Form', () => {
 
     test('should show error for invalid email format', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         await page.getByPlaceholder(/your_username/i).fill('validusername');
         await page.getByPlaceholder(/you@example.com/i).fill('invalid-email');
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');
@@ -144,10 +143,10 @@ test.describe('Registration Form', () => {
 
     test('should show error for password that is too short', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         await page.getByPlaceholder(/your_username/i).fill('validusername');
         await page.getByPlaceholder(/you@example.com/i).fill('test@example.com');
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('short'); // Less than 8 characters
         await passwordInputs.nth(1).fill('short');
@@ -160,10 +159,10 @@ test.describe('Registration Form', () => {
 
     test('should show error when passwords do not match', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         await page.getByPlaceholder(/your_username/i).fill('validusername');
         await page.getByPlaceholder(/you@example.com/i).fill('test@example.com');
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('DifferentPass123!');
@@ -176,7 +175,7 @@ test.describe('Registration Form', () => {
 
     test('should show error when trying to register with existing username', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         // This test assumes you have a user already registered
         // You might need to seed your test database or create a user first
 
@@ -198,7 +197,7 @@ test.describe('Registration Form', () => {
         // Try to register with the same username but different email
         await page.getByPlaceholder(/your_username/i).fill(existingUsername);
         await page.getByPlaceholder(/you@example.com/i).fill(`different${timestamp}@example.com`);
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');
@@ -212,7 +211,7 @@ test.describe('Registration Form', () => {
 
     test('should show error when trying to register with existing email', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         // This test assumes you have a user already registered
         const timestamp = Date.now();
         const existingEmail = 'existing@example.com';
@@ -220,7 +219,7 @@ test.describe('Registration Form', () => {
         // Try to register with the same email but different username
         await page.getByPlaceholder(/your_username/i).fill(`newuser${timestamp}`);
         await page.getByPlaceholder(/you@example.com/i).fill(existingEmail);
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');
@@ -234,7 +233,7 @@ test.describe('Registration Form', () => {
 
     test('should not submit form when required fields are empty', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         // Try to submit without filling any fields
         await page.getByRole('button', { name: /register|sign up|create account/i }).click();
 
@@ -249,7 +248,7 @@ test.describe('Registration Form', () => {
 
     test('should trim whitespace from username and email', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         const timestamp = Date.now();
         const username = `trimtest${timestamp}`;
         const email = `trimtest${timestamp}@example.com`;
@@ -257,7 +256,7 @@ test.describe('Registration Form', () => {
         // Fill fields with leading/trailing spaces
         await page.getByPlaceholder(/your_username/i).fill(`  ${username}  `);
         await page.getByPlaceholder(/you@example.com/i).fill(`  ${email}  `);
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');
@@ -267,16 +266,16 @@ test.describe('Registration Form', () => {
         // Should succeed - whitespace should be trimmed
         // Note: This test assumes the backend is running and registration works
         await page.waitForTimeout(2000); // Give time for async operations
-        
+
         // Check if we're redirected or if there's an error
         const currentUrl = page.url();
         const hasError = await page.locator('[role="alert"], p.text-destructive').first().isVisible().catch(() => false);
-        
+
         if (hasError) {
             const errorText = await page.locator('[role="alert"], p.text-destructive').first().textContent();
             throw new Error(`Registration failed with error: ${errorText}`);
         }
-        
+
         // If still on register page after 2 seconds, registration likely failed silently
         if (currentUrl.includes('/register')) {
             // Wait a bit more for potential redirect
@@ -285,19 +284,19 @@ test.describe('Registration Form', () => {
                 throw new Error('Registration did not redirect - likely failed silently');
             }
         }
-        
+
         // If we got here, we should be redirected
         await expect(page).toHaveURL(/\/(en\/)?$/, { timeout: 5000 });
     });
 
     test('should disable submit button while submitting', async ({ page }) => {
         await page.waitForSelector('form');
-        
+
         const timestamp = Date.now();
 
         await page.getByPlaceholder(/your_username/i).fill(`user${timestamp}`);
         await page.getByPlaceholder(/you@example.com/i).fill(`user${timestamp}@example.com`);
-        
+
         const passwordInputs = page.locator('input[type="password"]');
         await passwordInputs.first().fill('SecurePass123!');
         await passwordInputs.nth(1).fill('SecurePass123!');

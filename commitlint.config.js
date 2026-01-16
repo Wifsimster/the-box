@@ -20,5 +20,6 @@ module.exports = {
         ],
         'subject-case': [0], // Allow any case for subject
         'subject-full-stop': [0], // Allow full stop at end
+        'header-max-length': [2, 'always', 150], // Allow up to 150 characters
     },
 }

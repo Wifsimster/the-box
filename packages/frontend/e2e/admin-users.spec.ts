@@ -31,7 +31,7 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
 
   // Wait for redirect after login
   await page.waitForTimeout(2000)
-  
+
   // Verify we're logged in (should redirect to home or show user menu)
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
@@ -49,7 +49,7 @@ test.describe('Admin User Management', () => {
   test.beforeEach(async ({ page }) => {
     // Login as admin before each test
     await loginAsAdmin(page)
-    
+
     // Navigate to admin page
     await page.goto('/en/admin')
     await page.waitForSelector('h1:has-text("Admin Panel"), h1:has-text("Administration")')
@@ -97,10 +97,10 @@ test.describe('Admin User Management', () => {
 
     // Type in search
     await searchInput.fill('test@example.com')
-    
+
     // Wait for search results (debounced, so wait a bit)
     await page.waitForTimeout(500)
-    
+
     // The table should update (either show results or empty state)
     // We can't assert specific results without knowing the data, but we can check the input value
     await expect(searchInput).toHaveValue('test@example.com')
@@ -116,13 +116,11 @@ test.describe('Admin User Management', () => {
 
     // Click on email column header to sort
     const emailHeader = page.getByRole('columnheader', { name: /email/i }).or(page.locator('th').filter({ hasText: /email/i })).first()
-    
+
     if (await emailHeader.isVisible()) {
       await emailHeader.click()
       // Wait for sort to apply
       await page.waitForTimeout(500)
-      // Sort icon should be visible
-      const sortIcon = page.locator('svg').filter({ has: page.locator('path') }).first()
       // Just verify the click worked (no error)
       await expect(page.locator('table, [data-testid="user-list"]').first()).toBeVisible()
     }
@@ -138,17 +136,17 @@ test.describe('Admin User Management', () => {
 
     // Find the first role dropdown (select element)
     const roleSelect = page.locator('select').first()
-    
+
     if (await roleSelect.isVisible()) {
       const currentValue = await roleSelect.inputValue()
       const newValue = currentValue === 'user' ? 'admin' : 'user'
-      
+
       // Change role
       await roleSelect.selectOption(newValue)
-      
+
       // Wait for API call
       await page.waitForTimeout(1000)
-      
+
       // Check for success toast or verify the value changed
       // The select should have the new value
       await expect(roleSelect).toHaveValue(newValue)
@@ -168,17 +166,17 @@ test.describe('Admin User Management', () => {
 
     // Find ban button (should be visible for non-admin users)
     const banButton = page.getByRole('button', { name: /ban/i }).or(page.locator('button[title*="ban" i]')).first()
-    
+
     if (await banButton.isVisible()) {
       await banButton.click()
-      
+
       // Wait for confirmation dialog
       await page.waitForSelector('text=/confirm.*ban|confirmer.*bannir/i', { timeout: 3000 })
-      
+
       // Check dialog is visible
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible()
-      
+
       // Cancel the dialog
       await page.getByRole('button', { name: /cancel|annuler/i }).click()
     } else {
@@ -197,17 +195,17 @@ test.describe('Admin User Management', () => {
 
     // Find delete button
     const deleteButton = page.getByRole('button', { name: /delete/i }).or(page.locator('button[title*="delete" i]')).first()
-    
+
     if (await deleteButton.isVisible()) {
       await deleteButton.click()
-      
+
       // Wait for confirmation dialog
       await page.waitForSelector('text=/confirm.*delete|confirmer.*supprimer/i', { timeout: 3000 })
-      
+
       // Check dialog is visible
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible()
-      
+
       // Cancel the dialog
       await page.getByRole('button', { name: /cancel|annuler/i }).click()
     } else {
@@ -226,10 +224,10 @@ test.describe('Admin User Management', () => {
 
     // Check if pagination exists (only if there are enough users)
     const pagination = page.locator('[data-testid="pagination"], .pagination, button:has-text("2")').first()
-    
+
     // Pagination might not exist if there are few users, so we just check if it exists or not
     const hasPagination = await pagination.isVisible().catch(() => false)
-    
+
     if (hasPagination) {
       await expect(pagination).toBeVisible()
     } else {
@@ -244,10 +242,10 @@ test.describe('Admin User Management - Access Control', () => {
   test('should redirect non-admin users away from admin page', async ({ page }) => {
     // Try to access admin page without logging in
     await page.goto('/en/admin')
-    
+
     // Should redirect to home page or login
     await page.waitForTimeout(2000)
-    
+
     const currentUrl = page.url()
     // Should not be on admin page
     expect(currentUrl).not.toContain('/admin')
@@ -258,11 +256,11 @@ test.describe('Admin User Management - Access Control', () => {
     // For now, just check that accessing /admin redirects
     await page.goto('/en/admin')
     await page.waitForTimeout(2000)
-    
+
     const currentUrl = page.url()
     // Should redirect away from admin
     expect(currentUrl).not.toContain('/admin')
-    
+
     // If somehow on admin page, users tab should not be visible
     const usersTab = page.getByRole('button', { name: /users|utilisateurs/i })
     const isVisible = await usersTab.isVisible().catch(() => false)
