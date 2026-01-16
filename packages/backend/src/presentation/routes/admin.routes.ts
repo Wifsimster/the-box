@@ -459,6 +459,29 @@ router.delete('/jobs/completed', async (_req, res, next) => {
   }
 })
 
+// Remove recurring job (must be before /jobs/:id to handle repeat: prefix)
+router.delete('/jobs/repeat\\::key', async (req, res, next) => {
+  try {
+    const key = `repeat:${req.params['key']!}`
+    const removed = await jobService.removeRecurringJob(key)
+
+    if (!removed) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Recurring job not found or could not be removed' },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: { removed: true },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Cancel a job
 router.delete('/jobs/:id', async (req, res, next) => {
   try {
@@ -872,7 +895,7 @@ router.post('/email/test', async (req, res, next) => {
   try {
     const user = req.user
     const { email } = testEmailSchema.parse(req.body)
-    
+
     // Use provided email or fallback to user's email
     const recipientEmail = email || user?.email
 
@@ -907,8 +930,8 @@ router.post('/email/test', async (req, res, next) => {
     if (error) {
       res.status(500).json({
         success: false,
-        error: { 
-          code: 'EMAIL_ERROR', 
+        error: {
+          code: 'EMAIL_ERROR',
           message: error.message || 'Failed to send email',
           details: error.name || 'unknown_error',
         },

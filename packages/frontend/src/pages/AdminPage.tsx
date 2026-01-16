@@ -105,7 +105,7 @@ export default function AdminPage() {
       className="flex min-h-screen"
     >
       {/* Main Content Area */}
-      <div className="flex-1 pr-96">
+      <div className="flex-1 pr-120">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
           <motion.div
             variants={fadeInLeft}

@@ -75,11 +75,7 @@ export function JobQueuePanel() {
         fetchJobs()
         connectSocket()
 
-        // Poll for updates every 5 seconds
-        const interval = setInterval(fetchJobs, 5000)
-
         return () => {
-            clearInterval(interval)
             disconnectSocket()
         }
     }, [fetchJobs, connectSocket, disconnectSocket])
@@ -120,17 +116,17 @@ export function JobQueuePanel() {
     const failedJobs = jobs.filter((j) => j.status === 'failed')
 
     return (
-        <div className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] w-96 border-l bg-card shadow-lg flex flex-col z-40">
+        <div className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] w-120 border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto">
             {/* Header */}
             <div className="p-4 border-b bg-muted/50">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-sm">{t('admin.jobs.queueTitle', 'Job Queue')}</h3>
                     <Button
-                        variant="ghost"
+                        variant="destructive"
                         size="sm"
                         onClick={handleClearAll}
-                        disabled={completedJobs.length === 0 && failedJobs.length === 0}
-                        className="h-7 px-2"
+                        disabled={jobs.length === 0}
+                        className="h-7 px-2 text-xs pointer-events-auto cursor-pointer"
                     >
                         <Trash2 className="h-3 w-3 mr-1" />
                         {t('admin.jobs.clearAll', 'Clear')}
@@ -181,14 +177,15 @@ export function JobQueuePanel() {
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        <AnimatePresence mode="popLayout">
+                        <AnimatePresence initial={false}>
                             {filteredJobs.map((job) => (
                                 <motion.div
                                     key={job.id}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ duration: 0.2 }}
+                                    transition={{ duration: 0.2, layout: { duration: 0.2 } }}
                                     className="bg-background border rounded-lg p-3 space-y-2"
                                 >
                                     {/* Job Header */}
@@ -199,6 +196,12 @@ export function JobQueuePanel() {
                                                 <span className="text-xs font-medium truncate">
                                                     {t(getJobTranslationKey(job.type))}
                                                 </span>
+                                                {job.id.startsWith('repeat:') && (
+                                                    <Badge variant="outline" className="text-[9px] h-4 px-1">
+                                                        <RefreshCw className="h-2 w-2 mr-0.5" />
+                                                        {t('admin.jobs.recurring', 'Recurring')}
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <div className="text-[10px] text-muted-foreground">
                                                 {formatDate(job.createdAt)}
@@ -228,7 +231,7 @@ export function JobQueuePanel() {
                                     )}
 
                                     {/* Actions */}
-                                    {(job.status === 'waiting' || job.status === 'active' || job.status === 'delayed') && (
+                                    {!job.id.startsWith('repeat:') && (job.status === 'waiting' || job.status === 'active' || job.status === 'delayed') && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -239,7 +242,7 @@ export function JobQueuePanel() {
                                             {t('admin.jobs.cancel', 'Cancel')}
                                         </Button>
                                     )}
-                                    {(job.status === 'completed' || job.status === 'failed') && (
+                                    {!job.id.startsWith('repeat:') && (job.status === 'completed' || job.status === 'failed') && (
                                         <Button
                                             variant="ghost"
                                             size="sm"

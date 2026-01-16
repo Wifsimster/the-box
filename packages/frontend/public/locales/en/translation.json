@@ -314,6 +314,7 @@
       "clearCompleted": "Clear Completed",
       "clearAll": "Clear All",
       "noJobs": "No jobs yet",
+      "recurring": "Recurring",
       "recurringJobs": "Scheduled Jobs",
       "syncNewGames": "Sync New Games",
       "syncRunning": "Syncing new games...",

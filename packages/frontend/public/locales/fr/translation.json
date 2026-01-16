@@ -106,7 +106,9 @@
     "errorLoadingChallenge": "Impossible de charger le défi",
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",
-    "noChallenge": "Aucun défi disponible",    "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Revenez plus tard !",    "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",
+    "noChallenge": "Aucun défi disponible",
+    "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Revenez plus tard !",
+    "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",
     "rules": {
       "title": "Comment jouer",
       "screenshots": "{{count}} captures à deviner en temps limité",
@@ -312,6 +314,7 @@
       "clearCompleted": "Supprimer terminées",
       "clearAll": "Supprimer tout",
       "noJobs": "Aucune tâche",
+      "recurring": "Récurrente",
       "recurringJobs": "Tâches planifiées",
       "syncNewGames": "Sync nouveaux jeux",
       "syncRunning": "Synchronisation en cours...",

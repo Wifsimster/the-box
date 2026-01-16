@@ -19,6 +19,7 @@ import achievementRoutes from './presentation/routes/achievement.routes.js'
 import { tournamentRouter } from './interfaces/http/routes/tournaments.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
+import './infrastructure/queue/workers/import.worker.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
 // Validate environment

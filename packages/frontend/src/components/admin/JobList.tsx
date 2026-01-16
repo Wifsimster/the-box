@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { JobCardSkeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAdminStore } from '@/stores/adminStore'
 import { FullImportCard } from './FullImportCard'
 import { staggerContainer, listItem } from '@/lib/animations'
@@ -166,6 +168,7 @@ export function JobList() {
 
   const [recurringJobLoading, setRecurringJobLoading] = useState<string | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set())
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'Challenge' | 'Maintenance' | 'Tournament' | 'Notification'>('all')
 
   const toggleJobExpansion = (jobId: string) => {
     setExpandedJobs((prev) => {
@@ -190,6 +193,28 @@ export function JobList() {
     } finally {
       setRecurringJobLoading(null)
     }
+  }
+
+  // Filter recurring jobs by category
+  const getFilteredRecurringJobs = () => {
+    if (categoryFilter === 'all') {
+      return recurringJobs
+    }
+    return recurringJobs.filter(job => {
+      const metadata = getJobMetadata(job.name, t)
+      return metadata.category === categoryFilter
+    })
+  }
+
+  const filteredRecurringJobs = getFilteredRecurringJobs()
+
+  // Get counts for each category
+  const categoryCounts = {
+    all: recurringJobs.length,
+    Challenge: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Challenge').length,
+    Maintenance: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Maintenance').length,
+    Tournament: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Tournament').length,
+    Notification: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Notification').length,
   }
 
   if (isLoading) {
@@ -238,13 +263,47 @@ export function JobList() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
+              {/* Category Filter Tabs */}
+              <Tabs value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as any)} className="mb-4">
+                <TabsList className="w-full h-9 p-1">
+                  <TabsTrigger value="all" className="flex-1 text-xs">
+                    {t('admin.jobs.category.all', 'All')}
+                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
+                      {categoryCounts.all}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="Challenge" className="flex-1 text-xs">
+                    {t('admin.jobs.category.challenge', 'Challenge')}
+                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
+                      {categoryCounts.Challenge}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="Maintenance" className="flex-1 text-xs">
+                    {t('admin.jobs.category.maintenance', 'Maintenance')}
+                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
+                      {categoryCounts.Maintenance}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="Tournament" className="flex-1 text-xs">
+                    {t('admin.jobs.category.tournament', 'Tournament')}
+                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
+                      {categoryCounts.Tournament}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="Notification" className="flex-1 text-xs">
+                    {t('admin.jobs.category.notification', 'Notification')}
+                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
+                      {categoryCounts.Notification}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <AnimatePresence initial={false}>
               <motion.div
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
                 className="space-y-2"
               >
-                {recurringJobs.map((job) => {
+                {filteredRecurringJobs.map((job) => {
                   const isJobLoading = recurringJobLoading === job.name
                   const isExpanded = expandedJobs.has(job.id)
                   const metadata = getJobMetadata(job.name, t)
@@ -256,7 +315,11 @@ export function JobList() {
                       onOpenChange={() => toggleJobExpansion(job.id)}
                     >
                       <motion.div
-                        variants={listItem}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3, layout: { duration: 0.2 } }}
                         className="rounded-lg bg-muted/50 border border-transparent hover:border-purple-500/20 transition-all duration-200"
                       >
                         {/* Job Header */}
@@ -409,6 +472,7 @@ export function JobList() {
                   )
                 })}
               </motion.div>
+              </AnimatePresence>
             </CardContent>
           </Card>
         </motion.div>

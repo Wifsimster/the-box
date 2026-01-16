@@ -96,15 +96,17 @@ export const jobService = {
 
   async clearCompleted(): Promise<number> {
     const jobs = await importQueue.getJobs(['completed', 'failed', 'waiting', 'delayed'])
+    log.info({ total: jobs.length, states: jobs.map(j => ({ id: j.id, name: j.name, state: j.getState() })) }, 'attempting to clear jobs')
     let removed = 0
 
     for (const job of jobs) {
       try {
         await job.remove()
         removed++
+        log.debug({ jobId: job.id, name: job.name }, 'removed job')
       } catch (err) {
         // Job might already be removed or in a state that can't be removed
-        log.debug({ jobId: job.id, error: err }, 'failed to remove job, skipping')
+        log.debug({ jobId: job.id, name: job.name, error: err }, 'failed to remove job, skipping')
       }
     }
 
@@ -150,5 +152,16 @@ export const jobService = {
       nextRun: job.next ? new Date(job.next).toISOString() : null,
       isActive: activeJobNames.has(job.name),
     }))
+  },
+
+  async removeRecurringJob(key: string): Promise<boolean> {
+    try {
+      log.info({ key }, 'removing recurring job')
+      await importQueue.removeRepeatableByKey(key)
+      return true
+    } catch (error) {
+      log.error({ key, error }, 'failed to remove recurring job')
+      return false
+    }
   },
 }
