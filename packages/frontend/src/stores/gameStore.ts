@@ -48,6 +48,15 @@ interface GameState {
   correctAnswers: number
   guessResults: GuessResult[]
 
+  // Personal bests tracking
+  personalBests: {
+    highestScore: number
+    bestPercentile: number
+    longestStreak: number
+    currentStreak: number
+    lastPlayedDate: string | null
+  }
+
   // Power-ups
   availablePowerUps: PowerUp[]
   activePowerUp: PowerUpType | null
@@ -72,6 +81,9 @@ interface GameState {
   addGuessResult: (result: GuessResult) => void
   updateScore: (totalScore: number) => void
   incrementCorrectAnswers: () => void
+
+  // Personal bests actions
+  updatePersonalBests: (score: number, percentile?: number) => void
 
   addPowerUp: (powerUp: PowerUp) => void
   activatePowerUp: (type: PowerUpType) => void
@@ -132,6 +144,14 @@ const initialState = {
   totalScore: 0,
   correctAnswers: 0,
   guessResults: [],
+  // Personal bests
+  personalBests: {
+    highestScore: 0,
+    bestPercentile: 100,
+    longestStreak: 0,
+    currentStreak: 0,
+    lastPlayedDate: null,
+  },
   availablePowerUps: [],
   activePowerUp: null,
   gamePhase: 'idle' as GamePhase,
@@ -182,6 +202,37 @@ export const useGameStore = create<GameState>()(
         incrementCorrectAnswers: () => set((state) => ({
           correctAnswers: state.correctAnswers + 1,
         })),
+
+        updatePersonalBests: (score, percentile) => {
+          const state = get()
+          const today = new Date().toISOString().split('T')[0]
+          const lastPlayed = state.personalBests.lastPlayedDate
+
+          // Update streak
+          let newStreak = state.personalBests.currentStreak
+          if (lastPlayed) {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+            if (lastPlayed === yesterday) {
+              newStreak += 1
+            } else if (lastPlayed !== today) {
+              newStreak = 1
+            }
+          } else {
+            newStreak = 1
+          }
+
+          set((state) => ({
+            personalBests: {
+              highestScore: Math.max(state.personalBests.highestScore, score),
+              bestPercentile: percentile !== undefined
+                ? Math.min(state.personalBests.bestPercentile, percentile)
+                : state.personalBests.bestPercentile,
+              longestStreak: Math.max(state.personalBests.longestStreak, newStreak),
+              currentStreak: newStreak,
+              lastPlayedDate: today,
+            },
+          }))
+        },
 
         addPowerUp: (powerUp) => set((state) => ({
           availablePowerUps: [...state.availablePowerUps, powerUp],
@@ -534,6 +585,8 @@ export const useGameStore = create<GameState>()(
           screenshotsFound: state.screenshotsFound,
           // Persist guess results for results page display
           guessResults: state.guessResults,
+          // Persist personal bests
+          personalBests: state.personalBests,
         }),
         onRehydrateStorage: () => (state) => {
           state?.setHasHydrated(true)

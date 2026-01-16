@@ -155,6 +155,57 @@ export interface LiveEvent {
 }
 
 // ============================================
+// Achievement Domain
+// ============================================
+
+export interface Achievement {
+  id: number
+  key: string
+  name: string
+  description: string
+  category: string
+  iconUrl: string | null
+  points: number
+  tier: number
+  isHidden: boolean
+}
+
+export interface UserAchievement {
+  id: number
+  userId: string
+  achievementId: number
+  earnedAt: string
+  progress: number
+  progressMax: number | null
+  metadata: Record<string, any> | null
+  achievement: Achievement
+}
+
+export interface AchievementWithProgress extends Achievement {
+  earned: boolean
+  earnedAt: string | null
+  progress: number
+  progressMax: number | null
+}
+
+export interface AchievementStats {
+  totalEarned: number
+  totalPoints: number
+  byCategory: Record<string, number>
+  byTier: Record<number, number>
+}
+
+export interface NewlyEarnedAchievement {
+  key: string
+  name: string
+  description: string
+  category: string
+  iconUrl: string | null
+  points: number
+  tier: number
+}
+
+// ============================================
 // Game State (Frontend)
 // ============================================
 
@@ -289,6 +340,7 @@ export interface GuessResponse {
     year: string | null
     publisher: string | null
   }
+  newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
 // End game (forfeit) API

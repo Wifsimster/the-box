@@ -135,5 +135,55 @@ export async function seed(knex: Knex): Promise<void> {
     }
   }
 
+  // Award achievements to test admin user
+  const adminUser = await knex('user').where('email', 'testadmin@test.local').first()
+
+  if (adminUser) {
+    console.log('Awarding achievements to test admin...')
+
+    // Get achievement IDs
+    const achievementKeys = [
+      'first_win',
+      'dedicated_player',
+      'weekly_warrior',
+      'month_master',
+      'quick_draw',
+      'speed_demon',
+      'no_hints_needed',
+      'perfect_run',
+      'high_roller',
+      'rpg_expert',
+      'action_hero',
+      'top_ten',
+      'podium_finish',
+      'champion',
+    ]
+
+    const achievements = await knex('achievements')
+      .whereIn('key', achievementKeys)
+      .select('id', 'key')
+
+    const earnedDate = new Date()
+
+    for (const achievement of achievements) {
+      // Check if already awarded
+      const existing = await knex('user_achievements')
+        .where({ user_id: adminUser.id, achievement_id: achievement.id })
+        .first()
+
+      if (!existing) {
+        await knex('user_achievements').insert({
+          user_id: adminUser.id,
+          achievement_id: achievement.id,
+          earned_at: earnedDate,
+          progress: 0,
+          progress_max: null,
+          metadata: null,
+        })
+        console.log(`  ✓ Awarded: ${achievement.key}`)
+      }
+    }
+  }
+
   console.log('✓ Test users seed completed')
 }

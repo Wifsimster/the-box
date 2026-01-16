@@ -4,9 +4,12 @@ import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Medal, Award, Loader2 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { Trophy, Medal, Award, Loader2, Crown } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
+import { useAchievementStore } from '@/stores/achievementStore'
 
 interface LeaderboardEntry {
   rank: number
@@ -16,10 +19,21 @@ interface LeaderboardEntry {
   completedAt?: string
 }
 
+interface AchievementLeaderboardEntry {
+  userId: string
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  totalPoints: number
+  achievementCount: number
+}
+
 export default function LeaderboardPage() {
   const { t, i18n } = useTranslation()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [achievementLeaderboard, setAchievementLeaderboard] = useState<AchievementLeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [achievementLoading, setAchievementLoading] = useState(true)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -60,6 +74,26 @@ export default function LeaderboardPage() {
       })
   }, [selectedDate])
 
+  // Fetch achievement leaderboard (once, not date-dependent)
+  useEffect(() => {
+    setAchievementLoading(true)
+    fetch('/api/achievements/leaderboard')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setAchievementLeaderboard(data.data)
+        } else {
+          setAchievementLeaderboard([])
+        }
+      })
+      .catch(() => {
+        setAchievementLeaderboard([])
+      })
+      .finally(() => {
+        setAchievementLoading(false)
+      })
+  }, [])
+
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
   }
@@ -87,99 +121,212 @@ export default function LeaderboardPage() {
   return (
     <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
       <div className="max-w-4xl mx-auto">
-        {/* Date Picker */}
-        <div className="flex justify-center mb-8">
-          <DatePicker
-            value={selectedDate}
-            onChange={handleDateChange}
-            maxDate={today}
-            formatStr="PPP"
-            locale={getDateLocale()}
-          />
-        </div>
+        <Tabs defaultValue="game-score" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="game-score">
+              <Trophy className="w-4 h-4 mr-2" />
+              {t('leaderboard.gameScores')}
+            </TabsTrigger>
+            <TabsTrigger value="achievements">
+              <Crown className="w-4 h-4 mr-2" />
+              {t('leaderboard.achievementPoints')}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        )}
+          {/* Game Score Leaderboard */}
+          <TabsContent value="game-score">
+            {/* Date Picker */}
+            <div className="flex justify-center mb-8">
+              <DatePicker
+                value={selectedDate}
+                onChange={handleDateChange}
+                maxDate={today}
+                formatStr="PPP"
+                locale={getDateLocale()}
+              />
+            </div>
 
-        {/* Empty State */}
-        {!loading && leaderboard.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            {isToday(selectedDate)
-              ? t('leaderboard.noResults')
-              : t('leaderboard.noDataForDate')
-            }
-          </div>
-        )}
-
-        {/* Top 3 Podium */}
-        {!loading && leaderboard.length >= 3 && (
-          <div className="flex justify-center gap-4 mb-8">
-            {leaderboard.slice(0, 3).map((entry, index) => {
-              const order = [1, 0, 2][index] // Silver, Gold, Bronze order
-              const heights = ['h-24', 'h-32', 'h-20']
-              const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
-
-              return (
-                <motion.div
-                  key={entry.rank}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: order! * 0.1 }}
-                  className={`flex flex-col items-center ${index === 1 ? 'order-first' : ''}`}
-                >
-                  <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
-                    {entry.displayName[0]}
-                  </div>
-                  <span className="font-semibold mb-1">{entry.displayName}</span>
-                  <span className="text-primary font-bold">{entry.totalScore}</span>
-                  <div className={`w-20 ${heights[index]} bg-linear-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
-                    <span className="text-2xl font-bold text-white">{entry.rank}</span>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Full Leaderboard Table */}
-        {!loading && leaderboard.length > 0 && (
-          <Card className="bg-card/50 border-border">
-            <CardHeader>
-              <CardTitle>{getCardTitle()}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {leaderboard.map((entry, index) => (
-                  <motion.div
-                    key={entry.rank}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-                  >
-                    <div className="w-8 flex justify-center">
-                      {getRankIcon(entry.rank)}
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
-                      {entry.displayName[0]}
-                    </div>
-                    <div className="flex-1">
-                      <span className="font-semibold">{entry.displayName}</span>
-                      <span className="text-xs text-muted-foreground ml-2">@{entry.username}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-primary">{entry.totalScore}</div>
-                    </div>
-                  </motion.div>
-                ))}
+            {/* Loading State */}
+            {loading && (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+
+            {/* Empty State */}
+            {!loading && leaderboard.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                {isToday(selectedDate)
+                  ? t('leaderboard.noResults')
+                  : t('leaderboard.noDataForDate')
+                }
+              </div>
+            )}
+
+            {/* Top 3 Podium */}
+            {!loading && leaderboard.length >= 3 && (
+              <div className="flex justify-center gap-4 mb-8">
+                {leaderboard.slice(0, 3).map((entry, index) => {
+                  const order = [1, 0, 2][index] // Silver, Gold, Bronze order
+                  const heights = ['h-24', 'h-32', 'h-20']
+                  const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+
+                  return (
+                    <motion.div
+                      key={entry.rank}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: order! * 0.1 }}
+                      className={`flex flex-col items-center ${index === 1 ? 'order-first' : ''}`}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
+                        {entry.displayName[0]}
+                      </div>
+                      <span className="font-semibold mb-1">{entry.displayName}</span>
+                      <span className="text-primary font-bold">{entry.totalScore}</span>
+                      <div className={`w-20 ${heights[index]} bg-linear-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
+                        <span className="text-2xl font-bold text-white">{entry.rank}</span>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Full Leaderboard Table */}
+            {!loading && leaderboard.length > 0 && (
+              <Card className="bg-card/50 border-border">
+                <CardHeader>
+                  <CardTitle>{getCardTitle()}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {leaderboard.map((entry, index) => (
+                      <motion.div
+                        key={entry.rank}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                      >
+                        <div className="w-8 flex justify-center">
+                          {getRankIcon(entry.rank)}
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
+                          {entry.displayName[0]}
+                        </div>
+                        <div className="flex-1">
+                          <span className="font-semibold">{entry.displayName}</span>
+                          <span className="text-xs text-muted-foreground ml-2">@{entry.username}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-primary">{entry.totalScore}</div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Achievement Points Leaderboard */}
+          <TabsContent value="achievements">
+            {/* Loading State */}
+            {achievementLoading && (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!achievementLoading && achievementLeaderboard.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                {t('leaderboard.noAchievementData')}
+              </div>
+            )}
+
+            {/* Top 3 Podium */}
+            {!achievementLoading && achievementLeaderboard.length >= 3 && (
+              <div className="flex justify-center gap-4 mb-8">
+                {achievementLeaderboard.slice(0, 3).map((entry, index) => {
+                  const order = [1, 0, 2][index] // Silver, Gold, Bronze order
+                  const heights = ['h-24', 'h-32', 'h-20']
+                  const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+                  const rank = index + 1
+
+                  return (
+                    <motion.div
+                      key={entry.userId}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: order! * 0.1 }}
+                      className={`flex flex-col items-center ${index === 1 ? 'order-first' : ''}`}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
+                        {entry.displayName[0]}
+                      </div>
+                      <span className="font-semibold mb-1">{entry.displayName}</span>
+                      <Badge variant="secondary" className="mb-1">
+                        {entry.achievementCount} {t('leaderboard.achievements')}
+                      </Badge>
+                      <span className="text-primary font-bold">{entry.totalPoints} {t('leaderboard.points')}</span>
+                      <div className={`w-20 ${heights[index]} bg-linear-to-t ${colors[index]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
+                        <span className="text-2xl font-bold text-white">{rank}</span>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Full Achievement Leaderboard */}
+            {!achievementLoading && achievementLeaderboard.length > 0 && (
+              <Card className="bg-card/50 border-border">
+                <CardHeader>
+                  <CardTitle>{t('leaderboard.topAchievementHunters')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {achievementLeaderboard.map((entry, index) => {
+                      const rank = index + 1
+                      return (
+                        <motion.div
+                          key={entry.userId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                        >
+                          <div className="w-8 flex justify-center">
+                            {getRankIcon(rank)}
+                          </div>
+                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
+                            {entry.displayName[0]}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{entry.displayName}</span>
+                              <Badge variant="outline" className="text-xs">
+                                <Trophy className="w-3 h-3 mr-1" />
+                                {entry.achievementCount}
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">@{entry.username}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-primary">{entry.totalPoints}</div>
+                            <div className="text-xs text-muted-foreground">{t('leaderboard.points')}</div>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </PageHero>
   )

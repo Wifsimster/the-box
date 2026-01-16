@@ -58,7 +58,8 @@
       "Bash(npx vite build)",
       "Bash(ls -la \"c:\\\\git\\\\the-box\\\\packages\\\\frontend\\\\src\\\\components\\\\admin\"\" 2>&1 || echo \"Directory check \")",
       "Bash(docker build:*)",
-      "Bash(docker push:*)"
+      "Bash(docker push:*)",
+      "mcp__plugin_playwright_playwright__browser_network_requests"
     ]
   }
 }

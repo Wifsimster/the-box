@@ -23,7 +23,8 @@
     "delete": "Supprimer",
     "save": "Enregistrer",
     "create": "Créer",
-    "history": "Historique"
+    "history": "Historique",
+    "profile": "Profil"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",
@@ -121,7 +122,8 @@
       "publisherHint": "Éditeur",
       "penalty": "-25 points",
       "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
-    }
+    },
+    "notFound": "Jeu Introuvable"
   },
   "home": {
     "title": "The Box",
@@ -151,7 +153,13 @@
     "score": "Score",
     "time": "Temps",
     "noResults": "Aucun résultat",
-    "noDataForDate": "Aucune donnée pour cette date"
+    "noDataForDate": "Aucune donnée pour cette date",
+    "gameScores": "Scores de Jeu",
+    "achievementPoints": "Points de Succès",
+    "achievements": "succès",
+    "points": "points",
+    "topAchievementHunters": "Meilleurs Chasseurs de Succès",
+    "noAchievementData": "Aucune donnée de succès disponible pour le moment"
   },
   "history": {
     "title": "Historique des Parties",
@@ -555,5 +563,63 @@
       "retry": "Réessayer",
       "goHome": "Retour à l'accueil"
     }
+  },
+  "share": {
+    "twitter": "Partager sur Twitter",
+    "discord": "Partager sur Discord",
+    "copyLink": "Copier dans le presse-papiers",
+    "copied": "Copié !",
+    "copyError": "Échec de la copie dans le presse-papiers",
+    "discordCopied": "Copié pour Discord - collez dans votre serveur !"
+  },
+  "personalBests": {
+    "title": "Meilleurs Scores",
+    "highestScore": "Meilleur Score",
+    "bestRank": "Meilleur Classement",
+    "currentStreak": "Série Actuelle",
+    "longestStreak": "Plus Longue Série",
+    "days": "jours",
+    "noRankYet": "Pas encore de classement",
+    "noStreakYet": "Pas encore de série"
+  },
+  "profile": {
+    "totalScore": "Score Total",
+    "currentStreak": "Série Actuelle",
+    "achievements": "Succès",
+    "achievementPoints": "Points de Succès",
+    "total": "Total",
+    "days": "Jours",
+    "unlocked": "Débloqués",
+    "points": "Points",
+    "title": "Succès",
+    "description": "Suivez votre progression et débloquez des succès en jouant à The Box",
+    "progressByCategory": "Progression par Catégorie",
+    "tabs": {
+      "overview": "Aperçu",
+      "achievements": "Succès",
+      "stats": "Statistiques"
+    }
+  },
+  "tournaments": {
+    "title": "Tournois",
+    "subtitle": "Affrontez des joueurs du monde entier dans des défis hebdomadaires et mensuels",
+    "tabs": {
+      "active": "Tournois Actifs",
+      "upcoming": "À venir"
+    },
+    "noActive": "Aucun tournoi actif pour le moment",
+    "noUpcoming": "Aucun tournoi prévu prochainement",
+    "liveNow": "EN DIRECT",
+    "upcoming": "À VENIR",
+    "type": "Type",
+    "period": "Période",
+    "starts": "Début",
+    "endsIn": "Se termine dans",
+    "duration": "Durée",
+    "days": "jours",
+    "viewLeaderboard": "Voir le Classement",
+    "viewDetails": "Voir les Détails",
+    "weekly": "hebdomadaire",
+    "monthly": "mensuel"
   }
 }

@@ -14,6 +14,8 @@ import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
 import userRoutes from './presentation/routes/user.routes.js'
+import achievementRoutes from './presentation/routes/achievement.routes.js'
+import { tournamentRouter } from './interfaces/http/routes/tournaments.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
 
@@ -105,9 +107,25 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
   }
 })
 
-// Mount better-auth handler
+// Mount better-auth handler with error handling
 // This handles all /api/auth/* routes automatically
-app.use('/api/auth', toNodeHandler(auth))
+app.use('/api/auth', (req, res, next) => {
+  try {
+    toNodeHandler(auth)(req, res).catch((error: Error) => {
+      logger.error({ error: error.message, stack: error.stack, url: req.url }, 'better-auth error')
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'AUTH_ERROR',
+          message: env.NODE_ENV === 'development' ? error.message : 'Authentication error',
+        },
+      })
+    })
+  } catch (error) {
+    logger.error({ error: String(error), url: req.url }, 'better-auth sync error')
+    next(error)
+  }
+})
 
 // Request logging (after body parsing for potential body logging)
 app.use(requestLogger)
@@ -128,6 +146,8 @@ app.use('/api/game', gameRoutes)
 app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/user', userRoutes)
+app.use('/api/achievements', achievementRoutes)
+app.use('/api/tournaments', tournamentRouter)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
@@ -240,6 +260,81 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring cleanup-anonymous-users job (daily at 1 AM UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring cleanup-anonymous-users job')
+    }
+
+    // Schedule weekly tournament start (Monday at midnight UTC)
+    try {
+      await importQueue.add(
+        'create-weekly-tournament',
+        {},
+        {
+          repeat: { pattern: '0 0 * * 1' }, // Cron: Monday at midnight UTC
+          jobId: 'create-weekly-tournament-recurring',
+        }
+      )
+      logger.info('scheduled recurring create-weekly-tournament job (Mondays at midnight UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring weekly tournament job')
+    }
+
+    // Schedule weekly tournament end (Sunday at 11:59 PM UTC)
+    try {
+      await importQueue.add(
+        'end-weekly-tournament',
+        {},
+        {
+          repeat: { pattern: '59 23 * * 0' }, // Cron: Sunday at 11:59 PM UTC
+          jobId: 'end-weekly-tournament-recurring',
+        }
+      )
+      logger.info('scheduled recurring end-weekly-tournament job (Sundays at 11:59 PM UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring weekly tournament end job')
+    }
+
+    // Schedule monthly tournament start (1st of month at midnight UTC)
+    try {
+      await importQueue.add(
+        'create-monthly-tournament',
+        {},
+        {
+          repeat: { pattern: '0 0 1 * *' }, // Cron: 1st of month at midnight UTC
+          jobId: 'create-monthly-tournament-recurring',
+        }
+      )
+      logger.info('scheduled recurring create-monthly-tournament job (1st of month at midnight UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring monthly tournament job')
+    }
+
+    // Schedule monthly tournament end (Last day of month at 11:59 PM UTC)
+    try {
+      await importQueue.add(
+        'end-monthly-tournament',
+        {},
+        {
+          repeat: { pattern: '59 23 28-31 * *' }, // Cron: 28-31st at 11:59 PM UTC (will trigger end if tournament ended)
+          jobId: 'end-monthly-tournament-recurring',
+        }
+      )
+      logger.info('scheduled recurring end-monthly-tournament job (monthly at month end)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring monthly tournament end job')
+    }
+
+    // Schedule tournament reminders (daily at noon UTC - checks for tournaments ending within 24-48h)
+    try {
+      await importQueue.add(
+        'send-tournament-reminders',
+        {},
+        {
+          repeat: { pattern: '0 12 * * *' }, // Cron: noon UTC daily
+          jobId: 'send-tournament-reminders-recurring',
+        }
+      )
+      logger.info('scheduled recurring send-tournament-reminders job (daily at noon UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring tournament reminders job')
     }
   }
 

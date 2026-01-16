@@ -2,6 +2,7 @@ import {
   challengeRepository,
   sessionRepository,
   screenshotRepository,
+  userRepository,
 } from '../../infrastructure/repositories/index.js'
 import { db } from '../../infrastructure/database/connection.js'
 import type {
@@ -15,6 +16,7 @@ import type {
 } from '@the-box/types'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import { fuzzyMatchService } from './fuzzy-match.service.js'
+import { achievementService } from './achievement.service.js'
 
 const log = serviceLogger.child({ service: 'game' })
 
@@ -311,6 +313,87 @@ export const gameService = {
         },
         'game completed'
       )
+
+      // Check achievements after game completion
+      let newlyEarnedAchievements: any[] = []
+      try {
+        // Get user info for streak data
+        const user = await userRepository.findById(data.userId)
+
+        // Get all guesses for this session
+        const allGuesses = await db('user_guesses')
+          .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+          .where('tier_sessions.game_session_id', tierSession.game_session_id)
+          .select(
+            'user_guesses.position',
+            'user_guesses.is_correct',
+            'user_guesses.round_time_taken_ms',
+            'user_guesses.power_up_used',
+            'user_guesses.screenshot_id'
+          )
+          .orderBy('user_guesses.position')
+
+        // Get game genres
+        const gameData = await db('games')
+          .where('id', screenshot.gameId)
+          .select('genres')
+          .first()
+
+        newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
+          userId: data.userId,
+          sessionId: tierSession.game_session_id,
+          challengeId: tierSession.daily_challenge_id,
+          totalScore: newTotalScore,
+          guesses: allGuesses.map((g: any) => ({
+            position: g.position,
+            isCorrect: g.is_correct,
+            roundTimeTakenMs: g.round_time_taken_ms,
+            powerUpUsed: g.power_up_used,
+            screenshotId: g.screenshot_id,
+          })),
+          gameGenres: gameData?.genres || [],
+          currentStreak: user?.currentStreak || 0,
+          longestStreak: user?.longestStreak || 0,
+        })
+      } catch (error) {
+        log.error({ error, userId: data.userId }, 'Failed to check achievements')
+      }
+
+      // Return response with achievements
+      const correctGame: Game = {
+        id: screenshot.gameId,
+        name: gameName,
+        slug: '',
+        aliases: [],
+        coverImageUrl,
+        releaseYear,
+        metacritic,
+      }
+
+      const fullGameData = await screenshotRepository.getGameByScreenshotId(data.screenshotId)
+
+      if (fullGameData) {
+        correctGame.publisher = fullGameData.publisher ?? undefined
+        correctGame.developer = fullGameData.developer ?? undefined
+      }
+
+      return {
+        isCorrect,
+        correctGame,
+        scoreEarned,
+        totalScore: newTotalScore,
+        screenshotsFound: totalScreenshotsFound,
+        nextPosition,
+        isCompleted,
+        completionReason,
+        hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
+        wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
+        availableHints: {
+          year: releaseYear?.toString() ?? null,
+          publisher: fullGameData?.publisher ?? null,
+        },
+        newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
+      }
     }
 
     const correctGame: Game = {
@@ -440,6 +523,49 @@ export const gameService = {
       currentPosition: session.current_position,
       isCompleted: true,
     })
+
+    // Check achievements after game completion (forfeit)
+    try {
+      const user = await userRepository.findById(userId)
+
+      const allGuesses = await db('user_guesses')
+        .join('tier_sessions', 'user_guesses.tier_session_id', 'tier_sessions.id')
+        .where('tier_sessions.game_session_id', sessionId)
+        .select(
+          'user_guesses.position',
+          'user_guesses.is_correct',
+          'user_guesses.round_time_taken_ms',
+          'user_guesses.power_up_used',
+          'user_guesses.screenshot_id'
+        )
+        .orderBy('user_guesses.position')
+
+      // Get first screenshot to determine game genre
+      const firstScreenshot = await db('screenshots')
+        .join('games', 'screenshots.game_id', 'games.id')
+        .whereIn('screenshots.id', allGuesses.map((g: any) => g.screenshot_id))
+        .select('games.genres')
+        .first()
+
+      await achievementService.checkAchievementsAfterGame({
+        userId,
+        sessionId: parseInt(sessionId),
+        challengeId: session.daily_challenge_id,
+        totalScore: finalScore,
+        guesses: allGuesses.map((g: any) => ({
+          position: g.position,
+          isCorrect: g.is_correct,
+          roundTimeTakenMs: g.round_time_taken_ms,
+          powerUpUsed: g.power_up_used,
+          screenshotId: g.screenshot_id,
+        })),
+        gameGenres: firstScreenshot?.genres || [],
+        currentStreak: user?.currentStreak || 0,
+        longestStreak: user?.longestStreak || 0,
+      })
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to check achievements on forfeit')
+    }
 
     log.info(
       {

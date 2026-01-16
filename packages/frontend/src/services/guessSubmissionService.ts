@@ -1,4 +1,4 @@
-import type { Game } from '@the-box/types'
+import type { Game, NewlyEarnedAchievement } from '@the-box/types'
 import {
   fetchWithRetry,
   parseApiError,
@@ -38,6 +38,7 @@ export interface GuessSubmissionResult {
     year: string | null
     publisher: string | null
   }
+  newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
 /**

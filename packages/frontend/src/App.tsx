@@ -28,6 +28,9 @@ const ContactPage = lazy(() => import('@/pages/ContactPage'))
 const AdminPage = lazy(() => import('@/pages/AdminPage'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const GameHistoryDetailsPage = lazy(() => import('@/pages/GameHistoryDetailsPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+const TournamentsPage = lazy(() => import('@/pages/TournamentsPage'))
+const TournamentDetailPage = lazy(() => import('@/pages/TournamentDetailPage'))
 
 function LoadingSpinner() {
   return (
@@ -103,6 +106,9 @@ function App() {
           <Route path="admin" element={<AdminPage />} />
           <Route path="history/:sessionId" element={<GameHistoryDetailsPage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="tournaments" element={<TournamentsPage />} />
+          <Route path="tournaments/:id" element={<TournamentDetailPage />} />
         </Route>
 
         {/* Catch-all redirect to browser language */}

@@ -7,6 +7,13 @@ import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
+import {
+  createWeeklyTournament,
+  createMonthlyTournament,
+  endWeeklyTournament,
+  endMonthlyTournament,
+  sendTournamentReminders
+} from './tournament-logic.js'
 
 const log = queueLogger
 
@@ -199,6 +206,61 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result: jobResult }, 'cleanup-anonymous-users job completed')
+        return jobResult
+      }
+
+      if (name === 'create-weekly-tournament') {
+        const result = await createWeeklyTournament()
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'create-weekly-tournament job completed')
+        return jobResult
+      }
+
+      if (name === 'create-monthly-tournament') {
+        const result = await createMonthlyTournament()
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'create-monthly-tournament job completed')
+        return jobResult
+      }
+
+      if (name === 'end-weekly-tournament') {
+        const result = await endWeeklyTournament()
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'end-weekly-tournament job completed')
+        return jobResult
+      }
+
+      if (name === 'end-monthly-tournament') {
+        const result = await endMonthlyTournament()
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'end-monthly-tournament job completed')
+        return jobResult
+      }
+
+      if (name === 'send-tournament-reminders') {
+        const result = await sendTournamentReminders()
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'send-tournament-reminders job completed')
         return jobResult
       }
 

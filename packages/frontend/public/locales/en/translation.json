@@ -23,7 +23,8 @@
     "delete": "Delete",
     "save": "Save",
     "create": "Create",
-    "history": "History"
+    "history": "History",
+    "profile": "Profile"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",
@@ -121,7 +122,8 @@
       "publisherHint": "Publisher",
       "penalty": "-25 points",
       "penaltyApplied": "Hint penalty: -{{penalty}} points"
-    }
+    },
+    "notFound": "Not Found"
   },
   "home": {
     "title": "The Box",
@@ -151,7 +153,13 @@
     "score": "Score",
     "time": "Time",
     "noResults": "No results yet",
-    "noDataForDate": "No challenge data for this date"
+    "noDataForDate": "No challenge data for this date",
+    "gameScores": "Game Scores",
+    "achievementPoints": "Achievement Points",
+    "achievements": "achievements",
+    "points": "points",
+    "topAchievementHunters": "Top Achievement Hunters",
+    "noAchievementData": "No achievement data available yet"
   },
   "history": {
     "title": "Game History",
@@ -529,5 +537,63 @@
       "retry": "Retry",
       "goHome": "Go Home"
     }
+  },
+  "share": {
+    "twitter": "Share on Twitter",
+    "discord": "Share to Discord",
+    "copyLink": "Copy to Clipboard",
+    "copied": "Copied!",
+    "copyError": "Failed to copy to clipboard",
+    "discordCopied": "Copied for Discord - paste in your server!"
+  },
+  "personalBests": {
+    "title": "Personal Bests",
+    "highestScore": "Highest Score",
+    "bestRank": "Best Rank",
+    "currentStreak": "Current Streak",
+    "longestStreak": "Longest Streak",
+    "days": "days",
+    "noRankYet": "No rank yet",
+    "noStreakYet": "No streak yet"
+  },
+  "profile": {
+    "totalScore": "Total Score",
+    "currentStreak": "Current Streak",
+    "achievements": "Achievements",
+    "achievementPoints": "Achievement Points",
+    "total": "Total",
+    "days": "Days",
+    "unlocked": "Unlocked",
+    "points": "Points",
+    "title": "Achievements",
+    "description": "Track your progress and unlock achievements by playing The Box",
+    "progressByCategory": "Progress by Category",
+    "tabs": {
+      "overview": "Overview",
+      "achievements": "Achievements",
+      "stats": "Stats"
+    }
+  },
+  "tournaments": {
+    "title": "Tournaments",
+    "subtitle": "Compete with players worldwide in weekly and monthly challenges",
+    "tabs": {
+      "active": "Active Tournaments",
+      "upcoming": "Upcoming"
+    },
+    "noActive": "No active tournaments at the moment",
+    "noUpcoming": "No upcoming tournaments scheduled",
+    "liveNow": "LIVE NOW",
+    "upcoming": "UPCOMING",
+    "type": "Type",
+    "period": "Period",
+    "starts": "Starts",
+    "endsIn": "Ends in",
+    "duration": "Duration",
+    "days": "days",
+    "viewLeaderboard": "View Leaderboard",
+    "viewDetails": "View Details",
+    "weekly": "weekly",
+    "monthly": "monthly"
   }
 }

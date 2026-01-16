@@ -55,6 +55,13 @@ export function Header() {
           </Link>
         </Button>
 
+        <Button variant="ghost" size="sm" asChild className={mobileClasses}>
+          <Link to={localizedPath('/tournaments')} onClick={handleClick}>
+            <Trophy className={`w-4 h-4 ${iconClass}`} />
+            Tournaments
+          </Link>
+        </Button>
+
         {hasValidSession && (
           <Button variant="ghost" size="sm" asChild className={mobileClasses}>
             <Link to={localizedPath('/history')} onClick={handleClick}>
@@ -143,15 +150,17 @@ export function Header() {
         {/* Mobile Username Display - shown on mobile, hidden on md and up */}
         <div className="flex md:hidden items-center">
           {hasValidSession && !isPending && session.user?.name !== 'Anonymous' && (
-            session?.user?.role === 'admin' ? (
-              <Badge variant="admin" className="text-xs">
-                {session.user?.name || session.user?.email?.split('@')[0]}
-              </Badge>
-            ) : (
-              <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-37.5 sm:max-w-50">
-                {session.user?.name || session.user?.email?.split('@')[0]}
-              </span>
-            )
+            <Link to={localizedPath('/profile')} className="flex items-center hover:opacity-80 transition-opacity">
+              {session?.user?.role === 'admin' ? (
+                <Badge variant="admin" className="text-xs cursor-pointer">
+                  {session.user?.name || session.user?.email?.split('@')[0]}
+                </Badge>
+              ) : (
+                <span className="text-xs sm:text-sm font-semibold text-foreground truncate max-w-37.5 sm:max-w-50 underline decoration-2 decoration-primary underline-offset-4">
+                  {session.user?.name || session.user?.email?.split('@')[0]}
+                </span>
+              )}
+            </Link>
           )}
         </div>
 
@@ -176,15 +185,17 @@ export function Header() {
           )}
           {hasValidSession && !isPending && (
             <div className="flex items-center gap-2">
-              {session?.user?.role === 'admin' ? (
-                <Badge variant="admin">
-                  {session.user?.name || session.user?.email?.split('@')[0]}
-                </Badge>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  {session.user?.name || session.user?.email?.split('@')[0]}
-                </span>
-              )}
+              <Link to={localizedPath('/profile')} className="hover:opacity-80 transition-opacity">
+                {session?.user?.role === 'admin' ? (
+                  <Badge variant="admin" className="cursor-pointer">
+                    {session.user?.name || session.user?.email?.split('@')[0]}
+                  </Badge>
+                ) : (
+                  <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer px-3 py-1.5 rounded-md hover:bg-secondary/50 border border-transparent hover:border-primary/20">
+                    {session.user?.name || session.user?.email?.split('@')[0]}
+                  </span>
+                )}
+              </Link>
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="w-4 h-4" />
               </Button>

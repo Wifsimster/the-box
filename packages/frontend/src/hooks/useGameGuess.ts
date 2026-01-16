@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { Game } from '@the-box/types'
 import { useGameStore } from '@/stores/gameStore'
+import { useAchievementStore } from '@/stores/achievementStore'
 import type { GuessSubmissionService } from '@/services/guessSubmissionService'
 import {
   getUserFriendlyErrorMessage,
@@ -20,6 +21,7 @@ import {
  */
 export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
+  const achievementStore = useAchievementStore()
 
   const submitGuess = useCallback(
     async (game: Game | null, userInput: string) => {
@@ -65,6 +67,13 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           roundTimeTakenMs,
           powerUpUsed,
         })
+
+        // Handle newly earned achievements
+        if (result.newlyEarnedAchievements && result.newlyEarnedAchievements.length > 0) {
+          achievementStore.addNotifications(result.newlyEarnedAchievements)
+          // Refresh user achievements
+          achievementStore.fetchUserAchievements().catch(console.error)
+        }
 
         // Update screenshots found
         store.setScreenshotsFound(result.screenshotsFound)
@@ -123,7 +132,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           const hasMissingGames = Object.values(store.positionStates).some(
             (state) => state.status !== 'correct'
           )
-          
+
           // In daily games, only auto-complete if all games are discovered
           // Otherwise, stay on game screen to allow manual ending
           if (isDailyGame && hasMissingGames) {
