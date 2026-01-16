@@ -24,6 +24,7 @@ export function GuessInput() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [activeHint, setActiveHint] = useState<'year' | 'publisher' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auth hook for admin check
@@ -215,10 +216,10 @@ export function GuessInput() {
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
             className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] focus:border-primary focus:shadow-[0_0_30px_rgba(168,85,247,0.5)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300 ${isSuccess
-                ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse'
-                : isShaking
-                  ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                  : ''
+              ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse'
+              : isShaking
+                ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                : ''
               }`}
             disabled={gamePhase !== 'playing'}
           />

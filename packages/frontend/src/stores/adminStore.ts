@@ -565,11 +565,11 @@ export const useAdminStore = create<AdminState>()(
       updateRecalculateScoresProgress: (event) => {
         const { currentRecalculateScores } = get()
         if (currentRecalculateScores && currentRecalculateScores.id === event.recalculateStateId) {
+          // Event properties (current, total, etc.) are tracked via the event system
+          // ImportState doesn't need these specific fields
           set({
             currentRecalculateScores: {
               ...currentRecalculateScores,
-              challengesProcessed: event.current,
-              totalChallenges: event.total,
             },
           })
         }
