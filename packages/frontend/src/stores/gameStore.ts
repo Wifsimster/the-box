@@ -540,7 +540,11 @@ export const useGameStore = create<GameState>()(
 
         endGameAction: async () => {
           const { sessionId, updateScore, setScreenshotsFound, setGamePhase, guessResults } = get()
-          if (!sessionId) return
+          if (!sessionId) {
+            const error = new Error('No active game session')
+            console.error('Failed to end game:', error)
+            throw error
+          }
 
           try {
             const result = await gameApi.endGame(sessionId)

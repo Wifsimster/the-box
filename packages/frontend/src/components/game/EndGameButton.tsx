@@ -12,6 +12,7 @@ import {
 import { useGameStore } from '@/stores/gameStore'
 import { Flag, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 
 const UNFOUND_PENALTY = 50
 
@@ -52,8 +53,10 @@ export function EndGameButton() {
     try {
       await endGameAction()
       setShowConfirm(false)
-    } catch {
-      // Error handled in store
+    } catch (error) {
+      // Show error toast to user
+      const errorMessage = error instanceof Error ? error.message : 'Failed to end game'
+      toast.error(t('game.endGame.error', { defaultValue: errorMessage }))
     } finally {
       setIsEnding(false)
     }
