@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { DailyIntro } from '@/components/game/TierIntro'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
+import { HintButtons } from '@/components/game/HintButtons'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { ProgressDots } from '@/components/game/ProgressDots'
@@ -644,6 +645,8 @@ export default function GamePage() {
               transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0 }}
             >
               <div className="container mx-auto space-y-2 sm:space-y-3 md:space-y-4">
+                {/* Hint Buttons (Above Progress Dots) */}
+                <HintButtons />
                 {/* Progress Dots (Above Input) */}
                 <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4">
                   <ProgressDots />

@@ -35,13 +35,22 @@ export function GameCarousel({
 }: GameCarouselProps) {
     const [api, setApi] = useState<CarouselApi>()
     const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
+    const [hasUserInteracted, setHasUserInteracted] = useState(false)
+
+    // Track user interaction to enable haptic feedback
+    useEffect(() => {
+        const handleInteraction = () => setHasUserInteracted(true)
+        const events = ['click', 'touchstart', 'keydown']
+        events.forEach((e) => document.addEventListener(e, handleInteraction, { once: true }))
+        return () => events.forEach((e) => document.removeEventListener(e, handleInteraction))
+    }, [])
 
     // Trigger haptic feedback on navigation
     const triggerHapticFeedback = useCallback(() => {
-        if (enableHapticFeedback && 'vibrate' in navigator) {
+        if (enableHapticFeedback && hasUserInteracted && 'vibrate' in navigator) {
             navigator.vibrate(50)
         }
-    }, [enableHapticFeedback])
+    }, [enableHapticFeedback, hasUserInteracted])
 
     // Handle slide selection
     useEffect(() => {

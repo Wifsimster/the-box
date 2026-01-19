@@ -20,6 +20,7 @@ import {
 import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
+import { DailyRewardBadge } from '@/components/daily-login'
 
 /**
  * Header component
@@ -112,6 +113,8 @@ export function Header() {
                               {session.user?.name || session.user?.email?.split('@')[0]}
                             </span>
                           )}
+                          {/* Daily Reward Badge for mobile */}
+                          <DailyRewardBadge />
                         </div>
                         <Button variant="ghost" size="sm" asChild className="w-full justify-start">
                           <Link to={localizedPath('/profile')} onClick={() => setMobileMenuOpen(false)}>
@@ -186,6 +189,9 @@ export function Header() {
             </>
           )}
           {hasValidSession && !isPending && (
+            <>
+              {/* Daily Login Reward Badge */}
+              <DailyRewardBadge />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -234,6 +240,7 @@ export function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           )}
         </div>
       </div>

@@ -8,6 +8,7 @@
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",
+    "close": "Close",
     "confirm": "Confirm",
     "back": "Back",
     "home": "Home",
@@ -112,10 +113,13 @@
     "rules": {
       "title": "How to play",
       "screenshots": "{{count}} screenshots to guess",
+      "screenshotsShort": "{{count}} screenshots",
       "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
       "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
       "time": "The faster you answer, the more points you earn",
+      "speedShort": "Speed = points",
+      "hintsShort": "Daily hints",
       "quality": "All games have a Metascore of 85 or higher"
     },
     "scoring": {
@@ -123,6 +127,7 @@
       "basePoints": "100 points per correct guess",
       "speedMultiplier": "Speed multiplier: <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Unlimited tries - wrong guesses don't affect score",
+      "hints": "Hints: Free if in inventory (from daily rewards), otherwise -20% score penalty",
       "penalty": "-50 points per game not found when ending early"
     },
     "navigation": {
@@ -147,15 +152,21 @@
       "points": "points"
     },
     "hints": {
-      "yearTooltip": "Show release year (-25 pts)",
-      "publisherTooltip": "Show publisher (-25 pts)",
+      "yearTooltip": "Show release year (-20%)",
+      "publisherTooltip": "Show publisher (-20%)",
+      "developerTooltip": "Show developer (-20%)",
+      "yearTooltipFree": "Show release year ({{count}} free)",
+      "publisherTooltipFree": "Show publisher ({{count}} free)",
+      "developerTooltipFree": "Show developer ({{count}} free)",
       "lockedTooltip": "Available after first wrong guess",
       "unavailableYear": "Release year not available",
       "unavailablePublisher": "Publisher not available",
+      "unavailableDeveloper": "Developer not available",
       "alreadyUsed": "Already used",
       "yearHint": "Release Year",
       "publisherHint": "Publisher",
-      "penalty": "-25 points",
+      "developerHint": "Developer",
+      "penalty": "-20%",
       "penaltyApplied": "Hint penalty: -{{penalty}} points"
     },
     "notFound": "Not Found"
@@ -674,5 +685,24 @@
       "achievements": "Achievements",
       "stats": "Stats"
     }
+  },
+  "dailyLogin": {
+    "dailyReward": "Daily Reward",
+    "rewardClaimed": "Reward Claimed!",
+    "claimDescription": "Log in every day to earn rewards!",
+    "claimSuccessDescription": "Congratulations! Your reward has been added to your inventory.",
+    "claimReward": "Claim",
+    "claiming": "Claiming...",
+    "alreadyClaimed": "Already claimed",
+    "claimAvailable": "Reward available!",
+    "dayStreak": "day streak",
+    "streakDays": "{{count}} day streak",
+    "streakDays_one": "{{count}} day streak",
+    "onFire": "On fire!",
+    "weeklyProgress": "Weekly progress",
+    "day": "D",
+    "hintYear": "Year Hint",
+    "hintPublisher": "Publisher Hint",
+    "points": "points"
   }
 }

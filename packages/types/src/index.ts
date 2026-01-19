@@ -14,6 +14,7 @@ export interface User {
   totalScore: number
   currentStreak: number
   longestStreak?: number
+  lastPlayedAt?: string
   createdAt: string
 }
 
@@ -117,7 +118,7 @@ export interface Guess {
 // Power-up Domain
 // ============================================
 
-export type PowerUpType = 'x2_timer' | 'hint' | 'hint_year' | 'hint_publisher'
+export type PowerUpType = 'x2_timer' | 'hint' | 'hint_year' | 'hint_publisher' | 'hint_developer'
 
 export interface PowerUp {
   id: number
@@ -240,6 +241,7 @@ export interface PositionState {
   hasIncorrectGuess?: boolean
   hintYearUsed?: boolean
   hintPublisherUsed?: boolean
+  hintDeveloperUsed?: boolean
 }
 
 // ============================================
@@ -322,7 +324,7 @@ export interface GuessRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: 'hint_year' | 'hint_publisher'
+  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer'
 }
 
 export interface GuessResponse {
@@ -335,10 +337,12 @@ export interface GuessResponse {
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
   hintPenalty?: number
+  hintFromInventory?: boolean
   wrongGuessPenalty?: number
   availableHints?: {
     year: string | null
     publisher: string | null
+    developer: string | null
   }
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
@@ -563,4 +567,74 @@ export interface RecurringJob {
   every: number | null
   nextRun: string | null
   isActive: boolean
+}
+
+// ============================================
+// Daily Login Rewards Domain
+// ============================================
+
+export interface DailyReward {
+  id: number
+  dayNumber: number
+  rewardType: 'powerup' | 'points' | 'legendary'
+  rewardValue: {
+    items: Array<{ key: string; quantity: number }>
+    points: number
+  }
+  displayName: string
+  description: string | null
+  iconUrl: string | null
+}
+
+export interface UserLoginStreak {
+  id: number
+  userId: string
+  currentLoginStreak: number
+  longestLoginStreak: number
+  lastLoginDate: string | null
+  lastClaimedDate: string | null
+  currentDayInCycle: number
+}
+
+export interface UserInventoryItem {
+  id: number
+  userId: string
+  itemType: string
+  itemKey: string
+  quantity: number
+}
+
+export interface UserInventory {
+  powerups: Record<string, number>
+  totalItems: number
+}
+
+export interface DailyLoginStatus {
+  isLoggedInToday: boolean
+  canClaim: boolean
+  hasClaimedToday: boolean
+  currentStreak: number
+  longestStreak: number
+  currentDayInCycle: number
+  todayReward: DailyReward | null
+  allRewards: DailyReward[]
+}
+
+export interface ClaimRewardResponse {
+  success: boolean
+  reward: DailyReward
+  newStreak: number
+  newDayInCycle: number
+  itemsAdded: Array<{ key: string; quantity: number }>
+  pointsAdded: number
+  inventory: UserInventory
+}
+
+export interface LoginRewardClaim {
+  id: number
+  userId: string
+  rewardId: number
+  dayNumber: number
+  streakAtClaim: number
+  claimedAt: string
 }

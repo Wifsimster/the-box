@@ -128,6 +128,18 @@ export class AchievementService {
                 case 'leaderboard_rank':
                     return this.checkLeaderboardRank(achievement, data, criteria)
 
+                case 'challenges_started':
+                    return this.checkChallengesStarted(achievement, data, criteria)
+
+                case 'total_guesses':
+                    return this.checkTotalGuesses(achievement, data, criteria)
+
+                case 'total_correct_guesses':
+                    return this.checkTotalCorrectGuesses(achievement, data, criteria)
+
+                case 'correct_in_game':
+                    return this.checkCorrectInGame(achievement, data, criteria)
+
                 default:
                     log.warn({ type: criteria.type }, 'Unknown achievement criteria type')
                     return false
@@ -368,6 +380,82 @@ export class AchievementService {
                 criteria.max_rank,
                 { challengeId: data.challengeId, rank: userRank }
             )
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Check total challenges started (not necessarily completed)
+     */
+    private async checkChallengesStarted(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
+        const result = await db('game_sessions')
+            .where('user_id', data.userId)
+            .count('* as count')
+            .first()
+
+        const totalStarted = Number(result?.count || 0)
+
+        if (totalStarted >= criteria.count) {
+            await achievementRepository.awardAchievement(data.userId, achievement.key, totalStarted, criteria.count)
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Check total guesses made (correct or not)
+     */
+    private async checkTotalGuesses(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
+        const result = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', data.userId)
+            .count('* as count')
+            .first()
+
+        const totalGuesses = Number(result?.count || 0)
+
+        if (totalGuesses >= criteria.count) {
+            await achievementRepository.awardAchievement(data.userId, achievement.key, totalGuesses, criteria.count)
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Check total correct guesses across all games
+     */
+    private async checkTotalCorrectGuesses(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
+        const result = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', data.userId)
+            .where('guesses.is_correct', true)
+            .count('* as count')
+            .first()
+
+        const totalCorrect = Number(result?.count || 0)
+
+        if (totalCorrect >= criteria.count) {
+            await achievementRepository.awardAchievement(data.userId, achievement.key, totalCorrect, criteria.count)
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Check correct guesses in the current game session
+     */
+    private async checkCorrectInGame(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
+        const correctInGame = data.guesses.filter(g => g.isCorrect).length
+
+        if (correctInGame >= criteria.count) {
+            await achievementRepository.awardAchievement(data.userId, achievement.key, correctInGame, criteria.count)
             return true
         }
 

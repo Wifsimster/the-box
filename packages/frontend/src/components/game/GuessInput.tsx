@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Alert } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
-import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2 } from 'lucide-react'
+import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2 } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
@@ -24,7 +23,6 @@ export function GuessInput() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [activeHint, setActiveHint] = useState<'year' | 'publisher' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auth hook for admin check
@@ -48,14 +46,8 @@ export function GuessInput() {
     navigateToPosition,
     positionStates,
     currentScreenshotData,
-    challengeId,
     availableHints,
-    useHintYear,
-    useHintPublisher,
   } = useGameStore()
-
-  // Daily challenge game mode (party mode = daily guess game)
-  const isDailyChallenge = challengeId !== null
 
   // Focus input when playing
   useEffect(() => {
@@ -63,6 +55,13 @@ export function GuessInput() {
       inputRef.current.focus()
     }
   }, [gamePhase])
+
+  // Pre-fill input with correct answer for admin users
+  useEffect(() => {
+    if (isAdmin && currentScreenshotData?.gameName && gamePhase === 'playing') {
+      setQuery(currentScreenshotData.gameName)
+    }
+  }, [isAdmin, currentScreenshotData?.gameName, currentPosition, gamePhase])
 
   const handleSubmit = async () => {
     if (isSubmitting || !query.trim()) return
@@ -148,27 +147,11 @@ export function GuessInput() {
   // Hide skip button on last screenshot
   const isLastPosition = currentPosition === totalScreenshots
 
-  // Get current position state for hint availability
+  // Get current position state for hint display
   const currentPosState = positionStates[currentPosition]
-  const hasIncorrectGuess = currentPosState?.hasIncorrectGuess || false
   const hintYearUsed = currentPosState?.hintYearUsed || false
   const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
-
-  // Check if hints are available (data exists)
-  const yearAvailable = availableHints?.year !== null && availableHints?.year !== undefined
-  const publisherAvailable = availableHints?.publisher !== null && availableHints?.publisher !== undefined
-
-  const handleHintYear = () => {
-    if (!hasIncorrectGuess || hintYearUsed || !yearAvailable) return
-    setActiveHint('year')
-    useHintYear(currentPosition)
-  }
-
-  const handleHintPublisher = () => {
-    if (!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable) return
-    setActiveHint('publisher')
-    useHintPublisher(currentPosition)
-  }
+  const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -243,75 +226,6 @@ export function GuessInput() {
           </Button>
         </motion.div>
 
-        {/* Hint buttons - Year and Publisher */}
-        {isDailyChallenge && (
-          <>
-            <Tooltip content={
-              !hasIncorrectGuess
-                ? t('game.hints.lockedTooltip')
-                : !yearAvailable
-                  ? t('game.hints.unavailableYear')
-                  : hintYearUsed
-                    ? t('game.hints.alreadyUsed')
-                    : t('game.hints.yearTooltip', { defaultValue: 'Release Year Hint (-25 pts)' })
-            }>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleHintYear}
-                disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing' || isSubmitting}
-                className={`relative h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintYearUsed
-                  ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-                  : ''
-                  }`}
-              >
-                <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintYearUsed ? 'text-yellow-400' : ''
-                  }`} />
-                {!hintYearUsed && hasIncorrectGuess && yearAvailable && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
-                  >
-                    -25
-                  </Badge>
-                )}
-              </Button>
-            </Tooltip>
-
-            <Tooltip content={
-              !hasIncorrectGuess
-                ? t('game.hints.lockedTooltip')
-                : !publisherAvailable
-                  ? t('game.hints.unavailablePublisher')
-                  : hintPublisherUsed
-                    ? t('game.hints.alreadyUsed')
-                    : t('game.hints.publisherTooltip', { defaultValue: 'Publisher Hint (-25 pts)' })
-            }>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleHintPublisher}
-                disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing' || isSubmitting}
-                className={`relative h-12 sm:h-14 px-3 sm:px-4 min-w-12 sm:min-w-14 touch-manipulation transition-all duration-300 ${hintPublisherUsed
-                  ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-                  : ''
-                  }`}
-              >
-                <Building2 className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300 ${hintPublisherUsed ? 'text-yellow-400' : ''
-                  }`} />
-                {!hintPublisherUsed && hasIncorrectGuess && publisherAvailable && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
-                  >
-                    -25
-                  </Badge>
-                )}
-              </Button>
-            </Tooltip>
-          </>
-        )}
-
         {/* Skip/Next button - hidden on last screenshot */}
         {!isLastPosition && (
           <Tooltip content={t('game.navigation.skip')}>
@@ -333,7 +247,7 @@ export function GuessInput() {
         <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
           <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
           <span className="text-xs sm:text-sm">
-            {t('game.hints.yearHint')}: <strong>{availableHints.year}</strong> ({t('game.hints.penalty')})
+            {t('game.hints.yearHint')}: <strong>{availableHints.year}</strong>
           </span>
         </Alert>
       )}
@@ -342,16 +256,16 @@ export function GuessInput() {
         <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
           <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
           <span className="text-xs sm:text-sm">
-            {t('game.hints.publisherHint')}: <strong>{availableHints.publisher}</strong> ({t('game.hints.penalty')})
+            {t('game.hints.publisherHint')}: <strong>{availableHints.publisher}</strong>
           </span>
         </Alert>
       )}
 
-      {/* Admin hint - only shown to admin users */}
-      {isAdmin && currentScreenshotData?.gameName && (
-        <Alert variant="destructive" className="mt-1.5 sm:mt-2 py-1 sm:py-1.5">
-          <span className="text-[10px] sm:text-xs font-medium">
-            {t('game.adminHint')}: {currentScreenshotData.gameName}
+      {hintDeveloperUsed && availableHints?.developer && (
+        <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
+          <Code2 className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="text-xs sm:text-sm">
+            {t('game.hints.developerHint')}: <strong>{availableHints.developer}</strong>
           </span>
         </Alert>
       )}

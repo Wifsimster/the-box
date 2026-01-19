@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar, Home, AlertTriangle, Move, Gamepad2, Zap, Images, Lightbulb, Trophy } from 'lucide-react'
+import { Play, Calendar, Home, AlertTriangle, Zap, Images, Gift } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -89,42 +89,31 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
           <span className="text-sm sm:text-base md:text-lg">{formattedDate}</span>
         </motion.div>
 
-        {/* Game rules - Mobile-first padding and spacing */}
+        {/* Game rules - Compact grid */}
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-4 sm:mb-6 md:mb-8 p-3 sm:p-4 md:p-5 rounded-lg bg-card/50 border border-border/50 max-w-md mx-auto"
+          className="mb-4 sm:mb-6 md:mb-8 grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto"
         >
-          <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">
-            {t('game.rules.title')}
-          </h3>
-          <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground text-left">
-            <li className="flex items-start gap-2">
-              <Images className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
-              <span>{t('game.rules.screenshots', { count: totalScreenshots })}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
-              <span>{t('game.rules.explore')}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
-              <span>{t('game.rules.guess')}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
-              <span>{t('game.rules.matchingTips')}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
-              <span>{t('game.rules.time')}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-purple shrink-0 mt-0.5" />
-              <span>{t('game.rules.quality')}</span>
-            </li>
-          </ul>
+          {[
+            { icon: Images, label: t('game.rules.screenshotsShort', { count: totalScreenshots }), delay: 0 },
+            { icon: Zap, label: t('game.rules.speedShort'), delay: 0.05 },
+            { icon: Gift, label: t('game.rules.hintsShort'), delay: 0.1 },
+          ].map((rule, index) => (
+            <motion.div
+              key={index}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 + rule.delay }}
+              className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-lg bg-card/50 border border-border/50 hover:border-neon-purple/50 transition-colors"
+            >
+              <rule.icon className="w-5 h-5 sm:w-6 sm:h-6 text-neon-purple" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground text-center leading-tight">
+                {rule.label}
+              </span>
+            </motion.div>
+          ))}
         </motion.div>
 
         {/* Guest warning - Mobile-first spacing */}

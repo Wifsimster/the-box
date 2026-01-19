@@ -99,10 +99,11 @@ interface GameState {
   canNavigateTo: (position: number) => boolean
 
   // Hint actions
-  setAvailableHints: (hints: { year: string | null; publisher: string | null }) => void
+  setAvailableHints: (hints: { year: string | null; publisher: string | null; developer: string | null }) => void
   markIncorrectGuess: (position: number) => void
   useHintYear: (position: number) => void
   useHintPublisher: (position: number) => void
+  useHintDeveloper: (position: number) => void
 
   // Session restore action
   restoreSessionState: (data: {
@@ -533,6 +534,18 @@ export const useGameStore = create<GameState>()(
               [position]: {
                 ...state.positionStates[position],
                 hintPublisherUsed: true,
+              },
+            },
+          }))
+        },
+
+        useHintDeveloper: (position) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                hintDeveloperUsed: true,
               },
             },
           }))

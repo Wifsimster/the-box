@@ -5,6 +5,9 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { ToastContainer } from '@/components/ui/toast-container'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { DailyRewardModal } from '@/components/daily-login'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useSession } from '@/lib/auth-client'
 import {
   SUPPORTED_LANGUAGES,
   getBrowserLanguage,
@@ -47,6 +50,8 @@ function LanguageLayout() {
   const { lang } = useParams<{ lang: string }>()
   const { i18n } = useTranslation()
   const location = useLocation()
+  const { data: session } = useSession()
+  const { fetchStatus, reset } = useDailyLoginStore()
 
   // Sync i18n language with URL (must be before any early returns)
   useEffect(() => {
@@ -54,6 +59,16 @@ function LanguageLayout() {
       i18n.changeLanguage(lang)
     }
   }, [lang, i18n])
+
+  // Fetch daily login status when user is authenticated
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchStatus()
+    } else {
+      // Reset store when user logs out
+      reset()
+    }
+  }, [session?.user?.id, fetchStatus, reset])
 
   // Validate language parameter
   if (!lang || !SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
@@ -75,6 +90,9 @@ function LanguageLayout() {
         </LazyComponentErrorBoundary>
       </main>
       {!isFullscreen && <Footer />}
+
+      {/* Daily Login Reward Modal */}
+      <DailyRewardModal />
     </div>
   )
 }

@@ -288,7 +288,7 @@ export default function ProfilePage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Trophy className="h-5 w-5" />
-                                    {t('profile.title')}
+                                    {t('profile.title')} ({totalCount})
                                 </CardTitle>
                                 <CardDescription>
                                     {t('profile.description')}

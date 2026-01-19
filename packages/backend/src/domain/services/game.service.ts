@@ -3,6 +3,7 @@ import {
   sessionRepository,
   screenshotRepository,
   userRepository,
+  inventoryRepository,
 } from '../../infrastructure/repositories/index.js'
 import { db } from '../../infrastructure/database/connection.js'
 import type {
@@ -66,7 +67,7 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
  */
 async function calculateAndUpdateStreak(
   userId: string,
-  user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: Date } | null
+  user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: string } | null
 ): Promise<{ currentStreak: number; longestStreak: number }> {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -74,14 +75,15 @@ async function calculateAndUpdateStreak(
   // Default values if user not found
   let currentStreak = user?.currentStreak || 0
   let longestStreak = user?.longestStreak || 0
-  const lastPlayedAt = user?.lastPlayedAt
+  const lastPlayedAtStr = user?.lastPlayedAt
 
-  if (!lastPlayedAt) {
+  if (!lastPlayedAtStr) {
     // First time playing
     currentStreak = 1
     longestStreak = Math.max(1, longestStreak)
+    log.info({ userId, currentStreak, longestStreak }, 'First game - streak started')
   } else {
-    const lastPlayed = new Date(lastPlayedAt)
+    const lastPlayed = new Date(lastPlayedAtStr)
     lastPlayed.setHours(0, 0, 0, 0)
 
     const daysDiff = Math.floor((today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24))
@@ -103,6 +105,7 @@ async function calculateAndUpdateStreak(
 
   // Update database
   await userRepository.updateStreak(userId, currentStreak, longestStreak)
+  log.info({ userId, currentStreak, longestStreak }, 'Streak updated in database')
 
   return { currentStreak, longestStreak }
 }
@@ -272,16 +275,33 @@ export const gameService = {
     // Base score is 100 points, multiplied by speed factor
     let scoreEarned = 0
     let hintPenalty = 0
+    let hintFromInventory = false
     if (isCorrect) {
       const speedMultiplier = calculateSpeedMultiplier(data.roundTimeTakenMs)
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
       // Cap max score per screenshot at 200 points
       scoreEarned = Math.min(scoreEarned, 200)
 
-      // Calculate hint penalty as 20% of earned score (after speed multiplier)
-      if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher') {
-        hintPenalty = Math.round(scoreEarned * 0.20)
-        scoreEarned -= hintPenalty
+      // Check if hint was used and handle penalty/inventory
+      if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher' || data.powerUpUsed === 'hint_developer') {
+        // Check if user has hint in inventory (use it for free)
+        const hasHintInInventory = await inventoryRepository.useItems(
+          data.userId,
+          'powerup',
+          data.powerUpUsed,
+          1
+        )
+
+        if (hasHintInInventory) {
+          // Hint from inventory - no penalty
+          hintFromInventory = true
+          log.info({ userId: data.userId, hintType: data.powerUpUsed }, 'hint used from inventory (no penalty)')
+        } else {
+          // No inventory - apply 20% penalty
+          hintPenalty = Math.round(scoreEarned * 0.20)
+          scoreEarned -= hintPenalty
+          log.info({ userId: data.userId, hintType: data.powerUpUsed, penalty: hintPenalty }, 'hint used with penalty (no inventory)')
+        }
       }
     }
 
@@ -378,6 +398,10 @@ export const gameService = {
         // Calculate and update streak
         const updatedStreak = await calculateAndUpdateStreak(data.userId, user)
 
+        // Update user's total score
+        log.info({ userId: data.userId, scoreToAdd: newTotalScore }, 'Updating user total score')
+        await userRepository.updateScore(data.userId, newTotalScore)
+
         // Get all guesses for this session
         const allGuesses = await db('guesses')
           .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
@@ -445,10 +469,12 @@ export const gameService = {
         isCompleted,
         completionReason,
         hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
+        hintFromInventory: hintFromInventory || undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         availableHints: {
           year: releaseYear?.toString() ?? null,
           publisher: fullGameData?.publisher ?? null,
+          developer: fullGameData?.developer ?? null,
         },
         newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
@@ -483,10 +509,12 @@ export const gameService = {
       isCompleted,
       completionReason,
       hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
+      hintFromInventory: hintFromInventory || undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       availableHints: {
         year: releaseYear?.toString() ?? null,
         publisher: fullGameData?.publisher ?? null,
+        developer: fullGameData?.developer ?? null,
       },
     }
   },
@@ -588,6 +616,10 @@ export const gameService = {
 
       // Calculate and update streak
       const updatedStreak = await calculateAndUpdateStreak(userId, user)
+
+      // Update user's total score
+      log.info({ userId, scoreToAdd: finalScore }, 'Updating user total score (forfeit)')
+      await userRepository.updateScore(userId, finalScore)
 
       const allGuesses = await db('guesses')
         .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')

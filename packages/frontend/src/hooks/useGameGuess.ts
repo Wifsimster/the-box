@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { Game } from '@the-box/types'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import type { GuessSubmissionService } from '@/services/guessSubmissionService'
 import {
   getUserFriendlyErrorMessage,
@@ -22,6 +23,7 @@ import {
 export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
   const achievementStore = useAchievementStore()
+  const dailyLoginStore = useDailyLoginStore()
 
   const submitGuess = useCallback(
     async (game: Game | null, userInput: string) => {
@@ -44,16 +46,17 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
       const currentPosState = store.positionStates[store.currentPosition]
       const hintYearUsed = currentPosState?.hintYearUsed || false
       const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
+      const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
 
-      // Determine which power-up was used (only one can be active per guess)
-      let powerUpUsed: 'hint_year' | 'hint_publisher' | undefined
-      if (hintYearUsed && !hintPublisherUsed) {
+      // Determine which power-up was used (send one hint type for penalty calculation)
+      // Priority: developer > publisher > year (most valuable first)
+      let powerUpUsed: 'hint_year' | 'hint_publisher' | 'hint_developer' | undefined
+      if (hintDeveloperUsed) {
+        powerUpUsed = 'hint_developer'
+      } else if (hintPublisherUsed) {
+        powerUpUsed = 'hint_publisher'
+      } else if (hintYearUsed) {
         powerUpUsed = 'hint_year'
-      } else if (hintPublisherUsed && !hintYearUsed) {
-        powerUpUsed = 'hint_publisher'
-      } else if (hintYearUsed && hintPublisherUsed) {
-        // Both used - prioritize publisher as it was used second
-        powerUpUsed = 'hint_publisher'
       }
 
       try {
@@ -73,6 +76,11 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           achievementStore.addNotifications(result.newlyEarnedAchievements)
           // Refresh user achievements
           achievementStore.fetchUserAchievements().catch(console.error)
+        }
+
+        // Refresh inventory if hint was used from inventory (to update UI count)
+        if (result.hintFromInventory) {
+          dailyLoginStore.fetchInventory().catch(console.error)
         }
 
         // Update screenshots found
@@ -185,7 +193,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
     },
-    [submissionService, store, achievementStore]
+    [submissionService, store, achievementStore, dailyLoginStore]
   )
 
   return {

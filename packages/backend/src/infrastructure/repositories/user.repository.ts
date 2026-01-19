@@ -44,6 +44,7 @@ function mapRowToUser(row: UserRow): User {
     totalScore: row.total_score ?? 0,
     currentStreak: row.current_streak ?? 0,
     longestStreak: row.longest_streak ?? 0,
+    lastPlayedAt: row.last_played_at?.toISOString(),
     createdAt: row.createdAt.toISOString(),
   }
 }

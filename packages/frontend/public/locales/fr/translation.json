@@ -8,6 +8,7 @@
     "error": "Erreur",
     "success": "Succès",
     "cancel": "Annuler",
+    "close": "Fermer",
     "confirm": "Confirmer",
     "back": "Retour",
     "home": "Accueil",
@@ -112,10 +113,13 @@
     "rules": {
       "title": "Comment jouer",
       "screenshots": "{{count}} captures à deviner",
+      "screenshotsShort": "{{count}} captures",
       "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
       "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
       "time": "Plus vous répondez vite, plus vous gagnez de points",
+      "speedShort": "Vitesse = points",
+      "hintsShort": "Indices quotidiens",
       "quality": "Tous les jeux ont un Metascore d'au moins 85"
     },
     "scoring": {
@@ -123,6 +127,7 @@
       "basePoints": "100 points par bonne réponse",
       "speedMultiplier": "Multiplicateur de vitesse : <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Essais illimités - les mauvaises réponses n'affectent pas le score",
+      "hints": "Indices : Gratuits si disponibles dans l'inventaire (récompenses quotidiennes), sinon -20% du score",
       "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
     },
     "navigation": {
@@ -147,15 +152,21 @@
       "points": "points"
     },
     "hints": {
-      "yearTooltip": "Afficher l'année de sortie (-25 pts)",
-      "publisherTooltip": "Afficher l'éditeur (-25 pts)",
+      "yearTooltip": "Afficher l'année de sortie (-20%)",
+      "publisherTooltip": "Afficher l'éditeur (-20%)",
+      "developerTooltip": "Afficher le développeur (-20%)",
+      "yearTooltipFree": "Afficher l'année de sortie ({{count}} gratuit)",
+      "publisherTooltipFree": "Afficher l'éditeur ({{count}} gratuit)",
+      "developerTooltipFree": "Afficher le développeur ({{count}} gratuit)",
       "lockedTooltip": "Disponible après la première mauvaise réponse",
       "unavailableYear": "Année de sortie non disponible",
       "unavailablePublisher": "Éditeur non disponible",
+      "unavailableDeveloper": "Développeur non disponible",
       "alreadyUsed": "Déjà utilisé",
       "yearHint": "Année de sortie",
       "publisherHint": "Éditeur",
-      "penalty": "-25 points",
+      "developerHint": "Développeur",
+      "penalty": "-20%",
       "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
     },
     "notFound": "Jeu Introuvable"
@@ -700,5 +711,24 @@
       "achievements": "Succès",
       "stats": "Statistiques"
     }
+  },
+  "dailyLogin": {
+    "dailyReward": "Récompense Quotidienne",
+    "rewardClaimed": "Récompense Récupérée !",
+    "claimDescription": "Connectez-vous chaque jour pour obtenir des récompenses !",
+    "claimSuccessDescription": "Félicitations ! Votre récompense a été ajoutée à votre inventaire.",
+    "claimReward": "Récupérer",
+    "claiming": "En cours...",
+    "alreadyClaimed": "Déjà récupéré",
+    "claimAvailable": "Récompense disponible !",
+    "dayStreak": "jours de suite",
+    "streakDays": "Série de {{count}} jours",
+    "streakDays_one": "Série de {{count}} jour",
+    "onFire": "En feu !",
+    "weeklyProgress": "Progression hebdomadaire",
+    "day": "J",
+    "hintYear": "Indice Année",
+    "hintPublisher": "Indice Éditeur",
+    "points": "points"
   }
 }

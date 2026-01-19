@@ -17,12 +17,23 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
         return ['all', ...Array.from(cats).sort()]
     }, [achievements])
 
+    const sortByDifficulty = (list: AchievementWithProgress[]) => {
+        return [...list].sort((a, b) => {
+            // First sort by tier (easiest first: 1, 2, 3)
+            if (a.tier !== b.tier) {
+                return a.tier - b.tier
+            }
+            // Then by points within same tier (lowest points = easiest)
+            return a.points - b.points
+        })
+    }
+
     const achievementsByCategory = useMemo(() => {
         return categories.reduce((acc, category) => {
             if (category === 'all') {
-                acc[category] = achievements
+                acc[category] = sortByDifficulty(achievements)
             } else {
-                acc[category] = achievements.filter(a => a.category === category)
+                acc[category] = sortByDifficulty(achievements.filter(a => a.category === category))
             }
             return acc
         }, {} as Record<string, AchievementWithProgress[]>)
