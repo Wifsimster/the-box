@@ -93,6 +93,51 @@ Comprehensive test suite for the user registration flow:
 - ✅ Duplicate email
 - ✅ Submit button disabled during submission
 
+### Daily Game Tests (`daily-game.spec.ts`)
+
+Comprehensive test suite for the daily party game flow:
+
+#### Game Start Flow
+- ✅ Display daily intro screen
+- ✅ Start game when clicking start button
+- ✅ Load existing game session
+
+#### Gameplay Tests
+- ✅ Display 10 progress dots
+- ✅ Display score
+- ✅ Type guesses in input field
+- ✅ Submit guesses
+- ✅ Skip screenshots
+- ✅ Navigate between positions using progress dots
+- ✅ Show result card after guessing
+- ✅ Display hint buttons (year, publisher)
+
+#### End Game Flow
+- ✅ Show end game button after visiting all positions
+- ✅ Display confirmation dialog when ending game
+- ✅ Navigate to results page after confirming
+- ✅ Stay on game page when canceling
+- ✅ Fix for stuck state on page 10 (bug fix)
+
+#### Results Page
+- ✅ Display final score
+- ✅ Display all 10 guess results
+- ✅ Show navigation buttons (leaderboard, home)
+- ✅ Navigate to leaderboard
+- ✅ Navigate to home
+
+#### Error Handling
+- ✅ Redirect to login if not authenticated
+- ✅ Show error for invalid game data
+
+#### Mobile Responsiveness
+- ✅ Display correctly on mobile viewport
+- ✅ Interact with game on mobile
+
+### Admin User Management Tests (`admin-users.spec.ts`)
+
+Tests for admin panel user management functionality (see file for details).
+
 ## Configuration
 
 The Playwright configuration is in `playwright.config.ts`:
@@ -117,6 +162,68 @@ Tests use dynamically generated data with timestamps to avoid conflicts:
 - Username: `testuser{timestamp}`
 - Email: `testuser{timestamp}@example.com`
 - Password: `SecurePass123!`
+
+### Environment Variables
+
+Configure test credentials via environment variables:
+
+```bash
+# Test user credentials (for daily game tests)
+export TEST_USER_EMAIL="testuser@example.com"
+export TEST_USER_PASSWORD="testpass123"
+
+# Admin credentials (for admin panel tests)
+export TEST_ADMIN_EMAIL="admin@example.com"
+export TEST_ADMIN_PASSWORD="admin123"
+```
+
+Or create a `.env.test` file in `packages/frontend/`:
+
+```env
+TEST_USER_EMAIL=testuser@example.com
+TEST_USER_PASSWORD=testpass123
+TEST_ADMIN_EMAIL=admin@example.com
+TEST_ADMIN_PASSWORD=admin123
+```
+
+## Test Helpers
+
+The `helpers/game-helpers.ts` file provides reusable functions for common game operations:
+
+### Authentication Helpers
+- `loginAsUser(page)` - Login as regular user
+- `loginAsAdmin(page)` - Login as admin
+- `registerTestUser(page, username?, email?, password?)` - Register new test user
+- `logout(page)` - Logout current user
+
+### Game Flow Helpers
+- `waitForGameLoad(page)` - Wait for game to load
+- `startDailyGame(page)` - Start game from intro screen
+- `navigateToPosition(page, position)` - Navigate to specific position (1-10)
+- `visitAllPositions(page)` - Visit all 10 positions
+- `submitGuess(page, gameName)` - Submit a guess
+- `skipScreenshot(page)` - Skip current screenshot
+- `endGame(page, confirm)` - End game with optional confirmation
+
+### Utility Helpers
+- `getCurrentScore(page)` - Get current score value
+- `isOnPosition(page, position)` - Check current position
+- `clickHint(page, 'year' | 'publisher')` - Click hint button
+
+### Example Usage
+
+```typescript
+import { test } from '@playwright/test'
+import { loginAsUser, startDailyGame, submitGuess } from './helpers/game-helpers'
+
+test('should submit a guess', async ({ page }) => {
+  await loginAsUser(page)
+  await page.goto('/en/play')
+  await startDailyGame(page)
+  await submitGuess(page, 'Super Mario Bros')
+  // Assert results...
+})
+```
 
 ## Troubleshooting
 
