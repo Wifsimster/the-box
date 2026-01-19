@@ -474,6 +474,7 @@ export interface Job {
   startedAt?: string
   completedAt?: string
   failedAt?: string
+  nextRunAt?: string // For recurring jobs, when the next run is scheduled
 }
 
 export interface JobData {

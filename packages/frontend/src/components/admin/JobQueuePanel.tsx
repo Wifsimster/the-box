@@ -48,6 +48,15 @@ function formatDate(dateString: string): string {
     return date.toLocaleDateString()
 }
 
+function formatNextRunDate(dateString: string): string {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    })
+}
+
 function getJobTranslationKey(jobName: string): string {
     const keyMap: Record<string, string> = {
         'import-games': 'admin.jobs.importGames',
@@ -209,7 +218,9 @@ export function JobQueuePanel() {
                                             </div>
                                         </div>
                                         <Badge variant={statusBadgeVariants[job.status]} className="text-[10px] h-5">
-                                            {t(`admin.jobs.status.${job.status}`)}
+                                            {job.id.startsWith('repeat:') && job.status === 'delayed' && job.nextRunAt
+                                                ? formatNextRunDate(job.nextRunAt)
+                                                : t(`admin.jobs.status.${job.status}`)}
                                         </Badge>
                                     </div>
 

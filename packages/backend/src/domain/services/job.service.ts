@@ -5,7 +5,7 @@ import { serviceLogger } from '../../infrastructure/logger/logger.js'
 const log = serviceLogger.child({ service: 'job' })
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function mapBullJobToJob(bullJob: any): Promise<Job> {
+async function mapBullJobToJob(bullJob: any, nextRunMap?: Map<string, number>): Promise<Job> {
   const state = await bullJob.getState()
   const statusMap: Record<string, JobStatus> = {
     waiting: 'waiting',
@@ -13,6 +13,15 @@ async function mapBullJobToJob(bullJob: any): Promise<Job> {
     completed: 'completed',
     failed: 'failed',
     delayed: 'delayed',
+  }
+
+  // For repeatable jobs, get next run time from the map if available
+  let nextRunAt: string | undefined
+  if (bullJob.id?.startsWith('repeat:') && nextRunMap) {
+    const nextRunTime = nextRunMap.get(bullJob.name)
+    if (nextRunTime) {
+      nextRunAt = new Date(nextRunTime).toISOString()
+    }
   }
 
   return {
@@ -27,6 +36,7 @@ async function mapBullJobToJob(bullJob: any): Promise<Job> {
     createdAt: new Date(bullJob.timestamp).toISOString(),
     startedAt: bullJob.processedOn ? new Date(bullJob.processedOn).toISOString() : undefined,
     completedAt: bullJob.finishedOn ? new Date(bullJob.finishedOn).toISOString() : undefined,
+    nextRunAt,
   }
 }
 
@@ -59,8 +69,17 @@ export const jobService = {
     // Sort by creation time (newest first)
     jobs.sort((a, b) => b.timestamp - a.timestamp)
 
+    // Build a map of job name -> next run time for repeatable jobs
+    const repeatableJobs = await importQueue.getRepeatableJobs()
+    const nextRunMap = new Map<string, number>()
+    for (const repeatJob of repeatableJobs) {
+      if (repeatJob.next) {
+        nextRunMap.set(repeatJob.name, repeatJob.next)
+      }
+    }
+
     log.debug({ count: jobs.length }, 'listing jobs')
-    return Promise.all(jobs.map(mapBullJobToJob))
+    return Promise.all(jobs.map(job => mapBullJobToJob(job, nextRunMap)))
   },
 
   async cancelJob(id: string): Promise<boolean> {

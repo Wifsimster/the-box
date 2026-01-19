@@ -61,13 +61,6 @@ export function Header() {
             {t('common.leaderboard')}
           </Link>
         </Button>
-
-        <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-          <Link to={localizedPath('/tournaments')} onClick={handleClick}>
-            <Trophy className={`w-4 h-4 ${iconClass}`} />
-            Tournaments
-          </Link>
-        </Button>
       </>
     )
   }
@@ -120,6 +113,26 @@ export function Header() {
                             </span>
                           )}
                         </div>
+                        <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                          <Link to={localizedPath('/profile')} onClick={() => setMobileMenuOpen(false)}>
+                            <User className="w-4 h-4 mr-2" />
+                            {t('common.profile')}
+                          </Link>
+                        </Button>
+                        <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                          <Link to={localizedPath('/history')} onClick={() => setMobileMenuOpen(false)}>
+                            <History className="w-4 h-4 mr-2" />
+                            {t('common.history')}
+                          </Link>
+                        </Button>
+                        {session?.user?.role === 'admin' && (
+                          <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                            <Link to={localizedPath('/admin')} onClick={() => setMobileMenuOpen(false)}>
+                              <Settings className="w-4 h-4 mr-2" />
+                              {t('common.admin')}
+                            </Link>
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" onClick={() => {
                           signOut()
                           setMobileMenuOpen(false)

@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Rotate3D, History } from 'lucide-react'
+import { Play, Trophy, Rotate3D, History, Clock } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
 import { useEffect, useState } from 'react'
+import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [todayScore, setTodayScore] = useState<number>(0)
   const [screenshotsFound, setScreenshotsFound] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
+  const timeRemaining = useNextDailyCountdown()
 
   // Generate humorous message based on score
   const getHumorousMessage = (score: number, found: number): string => {
@@ -109,7 +111,7 @@ export default function HomePage() {
                 <p className="text-lg sm:text-xl font-bold text-neon-purple mb-3">
                   {getHumorousMessage(todayScore, screenshotsFound)}
                 </p>
-                <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base">
+                <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base mb-4">
                   <div className="flex items-center gap-2">
                     <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-neon-cyan" />
                     <span className="font-semibold text-neon-cyan">{todayScore} pts</span>
@@ -117,6 +119,19 @@ export default function HomePage() {
                   <div className="text-muted-foreground">
                     {screenshotsFound}/10 {t('game.screenshots')}
                   </div>
+                </div>
+
+                {/* Countdown timer */}
+                <div className="flex items-center justify-center gap-2 pt-3 border-t border-neon-purple/20">
+                  <Clock className="h-4 w-4 text-neon-pink" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {t('home.nextDailyIn')}
+                  </span>
+                  <span className="font-mono font-semibold text-neon-pink text-sm sm:text-base">
+                    {String(timeRemaining.hours).padStart(2, '0')}:
+                    {String(timeRemaining.minutes).padStart(2, '0')}:
+                    {String(timeRemaining.seconds).padStart(2, '0')}
+                  </span>
                 </div>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">

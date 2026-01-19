@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Password } from '@/components/ui/password'
 import { signIn, authClient } from '@/lib/auth-client'
 import { Lock, User, Loader2 } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
@@ -110,9 +111,8 @@ export default function LoginPage() {
                   {t('auth.password')}
                 </label>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
-                  <Input
-                    type="password"
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors z-10" />
+                  <Password
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
