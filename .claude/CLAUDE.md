@@ -1,7 +1,7 @@
 # The Box - Project Instructions
 
 ## Project Overview
-"The Box" is a gaming screenshot guessing application where players identify games from panoramic screenshots. Features include tiered difficulty, power-ups, live leaderboards, and multiplayer modes.
+"The Box" is a gaming screenshot guessing application where players identify games from panoramic screenshots. Features include daily challenges, power-ups, and live leaderboards.
 
 ## Tech Stack
 - **Frontend**: React 19 + Vite + TypeScript + TailwindCSS + Zustand + i18next
@@ -96,7 +96,7 @@ The backend follows a 3-layer clean architecture:
 - **Styling**: Dark gaming theme with neon accents (purple/pink gradients)
 - **State**: Zustand stores with persist middleware for client state
 - **API**: RESTful endpoints under `/api/` prefix
-- **Real-time**: Socket.io for live leaderboard and multiplayer
+- **Real-time**: Socket.io for live leaderboard updates
 - **Types**: All shared types in `@the-box/types` package
 
 ## Code Style

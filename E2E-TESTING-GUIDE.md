@@ -98,7 +98,13 @@ The tests use these default credentials (can be overridden with environment vari
 - **Email**: `admin@example.com`
 - **Password**: `admin123`
 
-**Note**: These users must exist in your database. You can create them through the registration page or use database seeds.
+**Note**: These users must exist in your database. Run the seed command to create them automatically:
+
+```bash
+npm run db:seed -w @the-box/backend
+```
+
+This runs the `create_test_users.ts` seed file which creates both test users with the credentials above.
 
 ## Environment Variables
 
@@ -157,8 +163,8 @@ Admin panel functionality tests.
 **Problem**: Authentication fails because test users don't exist
 
 **Solution**:
-1. Register test users manually through `/register` page
-2. Or run database seeds (if available): `npm run db:seed`
+1. Run the seed command to create test users: `npm run db:seed -w @the-box/backend`
+2. Or register test users manually through `/register` page
 3. Use different credentials via environment variables
 
 ### Tests Timeout or Hang

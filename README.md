@@ -1,6 +1,6 @@
 # The Box
 
-A gaming screenshot guessing game where players identify video games from 360° panoramic screenshots. Features tiered difficulty, power-ups, live leaderboards, and multiplayer modes.
+A gaming screenshot guessing game where players identify video games from 360° panoramic screenshots. Features daily challenges, power-ups, and live leaderboards.
 
 ## Features
 
