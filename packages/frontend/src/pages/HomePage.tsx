@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Rotate3D, History, Clock } from 'lucide-react'
+import { Play, Trophy, Brain, History, Clock } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -178,7 +178,7 @@ export default function HomePage() {
           <Card className="bg-card/50 border-border hover:border-neon-purple/50 transition-colors">
             <CardContent className="pt-4 sm:pt-5 md:pt-6 text-center">
               <div className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 rounded-lg bg-neon-purple/20 flex items-center justify-center">
-                <Rotate3D className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple" />
+                <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple" />
               </div>
               <h3 className="text-sm sm:text-base font-semibold mb-1.5 sm:mb-2">{t('home.features.panorama')}</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">

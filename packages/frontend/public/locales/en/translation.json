@@ -183,10 +183,10 @@
     "yourScore": "Your Score",
     "rank": "Rank",
     "features": {
-      "panorama": "Screenshots",
-      "panoramaDesc": "Identify games from detailed in-game screenshots",
+      "panorama": "Test Your Memory",
+      "panoramaDesc": "Can you name the game from a single screenshot? Put your gaming knowledge to the test!",
       "daily": "Daily Challenge",
-      "dailyDesc": "Same challenge for everyone. Compete globally and climb the leaderboard!",
+      "dailyDesc": "New puzzle every day. Same challenge worldwide — climb the global leaderboard!",
       "multiplayer": "Multiplayer Mode",
       "multiplayerDesc": "Challenge friends in real-time battles with live scoring"
     },

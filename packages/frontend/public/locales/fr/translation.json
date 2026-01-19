@@ -183,10 +183,10 @@
     "yourScore": "Votre Score",
     "rank": "Classement",
     "features": {
-      "panorama": "Captures d'écran",
-      "panoramaDesc": "Identifiez les jeux à partir de captures d'écran détaillées",
+      "panorama": "Testez Votre Mémoire",
+      "panoramaDesc": "Saurez-vous reconnaître le jeu en une seule image ? Prouvez votre culture gaming !",
       "daily": "Défi Quotidien",
-      "dailyDesc": "Même défi pour tous. Affrontez le monde entier et grimpez au classement !",
+      "dailyDesc": "Un nouveau puzzle chaque jour. Même défi pour tous — dominez le classement mondial !",
       "multiplayer": "Mode Multijoueur",
       "multiplayerDesc": "Défiez vos amis en temps réel avec scoring en direct"
     },
