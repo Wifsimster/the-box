@@ -379,6 +379,22 @@ export interface PercentileResponse {
   rank: number            // actual rank position
 }
 
+export interface MonthlyLeaderboardEntry {
+  rank: number
+  userId: string
+  username: string
+  displayName: string
+  avatarUrl?: string
+  totalScore: number
+  gamesPlayed: number
+}
+
+export interface MonthlyLeaderboardResponse {
+  year: number
+  month: number
+  entries: MonthlyLeaderboardEntry[]
+}
+
 // User History API
 export interface GameHistoryEntry {
   sessionId: string

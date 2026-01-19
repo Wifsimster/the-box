@@ -1,5 +1,5 @@
 import { challengeRepository, leaderboardRepository } from '../../infrastructure/repositories/index.js'
-import type { LeaderboardResponse, PercentileResponse } from '@the-box/types'
+import type { LeaderboardResponse, PercentileResponse, MonthlyLeaderboardResponse } from '@the-box/types'
 
 export const leaderboardService = {
   async getTodayLeaderboard(): Promise<LeaderboardResponse> {
@@ -58,5 +58,29 @@ export const leaderboardService = {
     }
 
     return leaderboardRepository.getPercentileForScore(challenge.id, score)
+  },
+
+  async getMonthlyLeaderboard(year: number, month: number): Promise<MonthlyLeaderboardResponse> {
+    // Validate month (1-12)
+    if (month < 1 || month > 12) {
+      throw new Error('Invalid month. Must be between 1 and 12')
+    }
+
+    // Prevent future months
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1 // getMonth() returns 0-11
+
+    if (year > currentYear || (year === currentYear && month > currentMonth)) {
+      throw new Error('Cannot request leaderboard for future months')
+    }
+
+    const entries = await leaderboardRepository.findByMonth(year, month)
+
+    return {
+      year,
+      month,
+      entries,
+    }
   },
 }

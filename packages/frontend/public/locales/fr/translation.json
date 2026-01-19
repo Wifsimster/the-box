@@ -218,11 +218,17 @@
     "noResults": "Aucun résultat",
     "noDataForDate": "Aucune donnée pour cette date",
     "gameScores": "Scores de Jeu",
+    "dailyScores": "Scores Quotidien",
+    "monthlyScores": "Scores Mensuel",
     "achievementPoints": "Points de Succès",
     "achievements": "succès",
     "points": "points",
     "topAchievementHunters": "Meilleurs Chasseurs de Succès",
-    "noAchievementData": "Aucune donnée de succès disponible pour le moment"
+    "noAchievementData": "Aucune donnée de succès disponible pour le moment",
+    "daily": "Quotidien",
+    "monthly": "Mensuel",
+    "gamesPlayed": "parties",
+    "noMonthlyData": "Aucune donnée pour ce mois"
   },
   "history": {
     "title": "Historique des Parties",

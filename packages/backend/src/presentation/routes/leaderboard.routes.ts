@@ -42,6 +42,49 @@ router.get('/today/percentile', async (req, res, next) => {
   }
 })
 
+// Get monthly leaderboard - MUST be before /:date to prevent pattern conflict
+router.get('/monthly/:year/:month', async (req, res, next) => {
+  try {
+    const { year, month } = req.params
+
+    // Validate year (4 digits, reasonable range)
+    const yearNum = Number(year)
+    if (!/^\d{4}$/.test(year!) || yearNum < 2020 || yearNum > 2100) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_YEAR', message: 'Invalid year. Must be a 4-digit year between 2020 and 2100' },
+      })
+      return
+    }
+
+    // Validate month (1-12)
+    const monthNum = Number(month)
+    if (!/^\d{1,2}$/.test(month!) || monthNum < 1 || monthNum > 12) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_MONTH', message: 'Invalid month. Must be between 1 and 12' },
+      })
+      return
+    }
+
+    const data = await leaderboardService.getMonthlyLeaderboard(yearNum, monthNum)
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('future months')) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'FUTURE_MONTH', message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
 // Get leaderboard for specific date
 router.get('/:date', async (req, res, next) => {
   try {

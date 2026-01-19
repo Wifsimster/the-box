@@ -218,11 +218,17 @@
     "noResults": "No results yet",
     "noDataForDate": "No challenge data for this date",
     "gameScores": "Game Scores",
+    "dailyScores": "Daily Scores",
+    "monthlyScores": "Monthly Scores",
     "achievementPoints": "Achievement Points",
     "achievements": "achievements",
     "points": "points",
     "topAchievementHunters": "Top Achievement Hunters",
-    "noAchievementData": "No achievement data available yet"
+    "noAchievementData": "No achievement data available yet",
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "gamesPlayed": "games",
+    "noMonthlyData": "No data for this month"
   },
   "history": {
     "title": "Game History",

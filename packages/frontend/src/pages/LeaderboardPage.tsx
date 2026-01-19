@@ -6,10 +6,10 @@ import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Medal, Award, Loader2, Crown } from 'lucide-react'
+import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
-import { useAchievementStore } from '@/stores/achievementStore'
+import { MonthPicker } from '@/components/ui/month-picker'
 
 interface LeaderboardEntry {
   rank: number
@@ -17,6 +17,16 @@ interface LeaderboardEntry {
   displayName: string
   totalScore: number
   completedAt?: string
+}
+
+interface MonthlyLeaderboardEntry {
+  rank: number
+  userId: string
+  username: string
+  displayName: string
+  avatarUrl?: string
+  totalScore: number
+  gamesPlayed: number
 }
 
 interface AchievementLeaderboardEntry {
@@ -31,14 +41,18 @@ interface AchievementLeaderboardEntry {
 export default function LeaderboardPage() {
   const { t, i18n } = useTranslation()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [monthlyLeaderboard, setMonthlyLeaderboard] = useState<MonthlyLeaderboardEntry[]>([])
   const [achievementLeaderboard, setAchievementLeaderboard] = useState<AchievementLeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [monthlyLoading, setMonthlyLoading] = useState(false)
   const [achievementLoading, setAchievementLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('daily')
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const [selectedDate, setSelectedDate] = useState<Date>(today)
+  const [selectedMonth, setSelectedMonth] = useState<Date>(today)
 
   const formatDateForApi = (date: Date) => {
     return format(date, 'yyyy-MM-dd')
@@ -94,8 +108,37 @@ export default function LeaderboardPage() {
       })
   }, [])
 
+  // Fetch monthly leaderboard when monthly tab is active or month changes
+  useEffect(() => {
+    if (activeTab !== 'monthly') return
+
+    setMonthlyLoading(true)
+    const year = selectedMonth.getFullYear()
+    const month = selectedMonth.getMonth() + 1 // getMonth() returns 0-11, API expects 1-12
+
+    fetch(`/api/leaderboard/monthly/${year}/${month}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.entries) {
+          setMonthlyLeaderboard(data.data.entries)
+        } else {
+          setMonthlyLeaderboard([])
+        }
+      })
+      .catch(() => {
+        setMonthlyLeaderboard([])
+      })
+      .finally(() => {
+        setMonthlyLoading(false)
+      })
+  }, [activeTab, selectedMonth])
+
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
+  }
+
+  const handleMonthChange = (date: Date) => {
+    setSelectedMonth(date)
   }
 
   const getRankIcon = (rank: number) => {
@@ -118,14 +161,22 @@ export default function LeaderboardPage() {
     return format(selectedDate, 'PPP', { locale: getDateLocale() })
   }
 
+  const getMonthlyCardTitle = () => {
+    return format(selectedMonth, 'MMMM yyyy', { locale: getDateLocale() })
+  }
+
   return (
     <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
       <div className="max-w-4xl mx-auto">
-        <Tabs defaultValue="game-score" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="game-score">
-              <Trophy className="w-4 h-4 mr-2" />
-              {t('leaderboard.gameScores')}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="daily">
+              <Calendar className="w-4 h-4 mr-2" />
+              {t('leaderboard.dailyScores')}
+            </TabsTrigger>
+            <TabsTrigger value="monthly">
+              <CalendarDays className="w-4 h-4 mr-2" />
+              {t('leaderboard.monthlyScores')}
             </TabsTrigger>
             <TabsTrigger value="achievements">
               <Crown className="w-4 h-4 mr-2" />
@@ -133,8 +184,8 @@ export default function LeaderboardPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Game Score Leaderboard */}
-          <TabsContent value="game-score">
+          {/* Daily Score Leaderboard */}
+          <TabsContent value="daily">
             {/* Date Picker */}
             <div className="flex justify-center mb-8">
               <DatePicker
@@ -218,6 +269,107 @@ export default function LeaderboardPage() {
                         <div className="flex-1">
                           <span className="font-semibold">{entry.displayName}</span>
                           <span className="text-xs text-muted-foreground ml-2">@{entry.username}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-primary">{entry.totalScore}</div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Monthly Score Leaderboard */}
+          <TabsContent value="monthly">
+            {/* Month Picker */}
+            <div className="flex justify-center mb-8">
+              <MonthPicker
+                value={selectedMonth}
+                onChange={handleMonthChange}
+                maxDate={today}
+                locale={getDateLocale()}
+              />
+            </div>
+
+            {/* Loading State */}
+            {monthlyLoading && (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!monthlyLoading && monthlyLeaderboard.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                {t('leaderboard.noMonthlyData')}
+              </div>
+            )}
+
+            {/* Top 3 Podium */}
+            {!monthlyLoading && monthlyLeaderboard.length >= 3 && (
+              <div className="flex justify-center gap-4 mb-8">
+                {[monthlyLeaderboard[1], monthlyLeaderboard[0], monthlyLeaderboard[2]].map((entry, displayIndex) => {
+                  // Reorder: 2nd, 1st, 3rd for visual podium effect
+                  const heights = ['h-24', 'h-32', 'h-20']
+                  const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+
+                  return (
+                    <motion.div
+                      key={entry.rank}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
+                        {entry.displayName[0]}
+                      </div>
+                      <span className="font-semibold mb-1">{entry.displayName}</span>
+                      <Badge variant="secondary" className="mb-1">
+                        {entry.gamesPlayed} {t('leaderboard.gamesPlayed')}
+                      </Badge>
+                      <span className="text-primary font-bold">{entry.totalScore}</span>
+                      <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
+                        <span className="text-2xl font-bold text-white">{entry.rank}</span>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Full Monthly Leaderboard Table */}
+            {!monthlyLoading && monthlyLeaderboard.length > 0 && (
+              <Card className="bg-card/50 border-border">
+                <CardHeader>
+                  <CardTitle>{getMonthlyCardTitle()}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {monthlyLeaderboard.map((entry, index) => (
+                      <motion.div
+                        key={entry.rank}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                      >
+                        <div className="w-8 flex justify-center">
+                          {getRankIcon(entry.rank)}
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
+                          {entry.displayName[0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{entry.displayName}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {entry.gamesPlayed} {t('leaderboard.gamesPlayed')}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-muted-foreground">@{entry.username}</span>
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-primary">{entry.totalScore}</div>
