@@ -18,7 +18,12 @@ export async function loginAsUser(page: Page) {
   const passwordInput = page.locator('input[type="password"]').first()
   await passwordInput.fill(userPassword)
 
-  await page.getByRole('button', { name: /login|sign in/i }).click()
+  // Wait for login button to be enabled (form validation)
+  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  await loginButton.waitFor({ state: 'visible', timeout: 5000 })
+  await expect(loginButton).toBeEnabled({ timeout: 5000 })
+
+  await loginButton.click()
   await page.waitForTimeout(2000)
 
   const currentUrl = page.url()
@@ -53,7 +58,12 @@ export async function loginAsAdmin(page: Page) {
   const passwordInput = page.locator('input[type="password"]').first()
   await passwordInput.fill(adminPassword)
 
-  await page.getByRole('button', { name: /login|sign in/i }).click()
+  // Wait for login button to be enabled (form validation)
+  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  await loginButton.waitFor({ state: 'visible', timeout: 5000 })
+  await expect(loginButton).toBeEnabled({ timeout: 5000 })
+
+  await loginButton.click()
   await page.waitForTimeout(2000)
 
   const currentUrl = page.url()
