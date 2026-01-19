@@ -58,7 +58,9 @@
       "hiddenDescription": "Hidden achievement - complete it to reveal!",
       "noAchievements": "No achievements available yet",
       "progress": "Progress"
-    }
+    },
+    "unlocked": "Achievement Unlocked!",
+    "unlockedWithName": "Achievement Unlocked: {{name}}"
   },
   "game": {
     "dailyChallenge": "Daily Challenge",

@@ -58,7 +58,9 @@
       "hiddenDescription": "Succès caché - complétez-le pour le révéler !",
       "noAchievements": "Aucun succès disponible pour le moment",
       "progress": "Progression"
-    }
+    },
+    "unlocked": "Succès Débloqué !",
+    "unlockedWithName": "Succès Débloqué : {{name}}"
   },
   "game": {
     "dailyChallenge": "Défi Quotidien",

@@ -15,7 +15,9 @@ import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { calculateSpeedMultiplier } from '@/lib/utils'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { toast } from '@/lib/toast'
+import { playAchievementSound } from '@/lib/audio'
 
 const UNFOUND_PENALTY = 50
 
@@ -39,6 +41,34 @@ export default function ResultsPage() {
   } = useAchievementStore()
 
   const unseenNotifications = notifications.filter(n => !n.seen)
+
+  // Track if we've already shown toasts for these achievements
+  const shownToastsRef = useRef<Set<string>>(new Set())
+
+  // Show toasts and play sound for newly unlocked achievements
+  useEffect(() => {
+    const newAchievements = unseenNotifications.filter(
+      n => !shownToastsRef.current.has(n.achievement.key)
+    )
+
+    if (newAchievements.length > 0) {
+      // Play achievement sound once for all new achievements
+      playAchievementSound()
+
+      // Show a toast for each new achievement
+      newAchievements.forEach((notification, index) => {
+        // Stagger the toasts slightly for multiple achievements
+        setTimeout(() => {
+          toast.success(
+            t('achievements.unlockedWithName', { name: notification.achievement.name })
+          )
+        }, index * 300)
+
+        // Mark as shown so we don't show again
+        shownToastsRef.current.add(notification.achievement.key)
+      })
+    }
+  }, [unseenNotifications, t])
 
   // Calculate correct answers from guess results (more reliable than store)
   const correctAnswers = guessResults.filter(r => r.isCorrect).length
