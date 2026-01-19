@@ -22,7 +22,8 @@ export const importWorker = new Worker<JobData, JobResult>(
   'import-jobs',
   async (job: BullJob<JobData>) => {
     const { id, name, data } = job
-    log.info({ jobId: id, type: name }, 'starting import job')
+    const repeatJobKey = job.repeatJobKey
+    log.info({ jobId: id, type: name, repeatJobKey, timestamp: new Date().toISOString() }, 'starting import job')
 
     try {
       if (name === 'import-games') {
@@ -328,6 +329,9 @@ export const importWorker = new Worker<JobData, JobResult>(
   {
     connection: redisConnectionOptions,
     concurrency: 1, // One job at a time due to RAWG rate limits
+    lockDuration: 300000, // 5 minutes lock (some jobs take a while)
+    stalledInterval: 30000, // Check for stalled jobs every 30 seconds
+    maxStalledCount: 2, // Allow 2 stalled attempts before failing
   }
 )
 
@@ -335,4 +339,26 @@ importWorker.on('error', (error) => {
   log.error({ error: String(error) }, 'worker error')
 })
 
-log.info('import worker initialized')
+importWorker.on('failed', (job, error) => {
+  log.error({
+    jobId: job?.id,
+    name: job?.name,
+    repeatJobKey: job?.repeatJobKey,
+    error: String(error),
+    attemptsMade: job?.attemptsMade,
+  }, 'job failed')
+})
+
+importWorker.on('stalled', (jobId) => {
+  log.warn({ jobId }, 'job stalled - worker may have lost connection')
+})
+
+importWorker.on('active', (job) => {
+  log.debug({ jobId: job.id, name: job.name, repeatJobKey: job.repeatJobKey }, 'job became active')
+})
+
+importWorker.on('completed', (job) => {
+  log.info({ jobId: job.id, name: job.name, repeatJobKey: job.repeatJobKey }, 'job completed')
+})
+
+log.info('import worker initialized with event handlers')

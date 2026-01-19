@@ -119,15 +119,17 @@ export const jobService = {
     active: number
     completed: number
     failed: number
+    delayed: number
   }> {
-    const [waiting, active, completed, failed] = await Promise.all([
+    const [waiting, active, completed, failed, delayed] = await Promise.all([
       importQueue.getWaitingCount(),
       importQueue.getActiveCount(),
       importQueue.getCompletedCount(),
       importQueue.getFailedCount(),
+      importQueue.getDelayedCount(),
     ])
 
-    return { waiting, active, completed, failed }
+    return { waiting, active, completed, failed, delayed }
   },
 
   async getRecurringJobs(): Promise<{

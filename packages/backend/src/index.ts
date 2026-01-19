@@ -215,6 +215,44 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to clean up deprecated recurring jobs')
     }
 
+    // Log delayed jobs at startup to diagnose stale scheduled jobs
+    try {
+      const delayedJobs = await importQueue.getJobs(['delayed'])
+      const waitingJobs = await importQueue.getJobs(['waiting'])
+      const repeatableJobs = await importQueue.getRepeatableJobs()
+
+      if (delayedJobs.length > 0) {
+        logger.info({
+          count: delayedJobs.length,
+          jobs: delayedJobs.map(j => ({
+            id: j.id,
+            name: j.name,
+            delay: j.delay,
+            timestamp: j.timestamp,
+            processedOn: j.processedOn,
+          }))
+        }, 'found delayed jobs at startup')
+      }
+
+      if (waitingJobs.length > 0) {
+        logger.info({
+          count: waitingJobs.length,
+          jobs: waitingJobs.map(j => ({ id: j.id, name: j.name }))
+        }, 'found waiting jobs at startup')
+      }
+
+      logger.info({
+        repeatableJobs: repeatableJobs.map(j => ({
+          name: j.name,
+          key: j.key,
+          next: j.next ? new Date(j.next).toISOString() : null,
+          pattern: j.pattern,
+        }))
+      }, 'repeatable jobs configuration at startup')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to log job queue state at startup')
+    }
+
     // Schedule recurring daily challenge creation (midnight UTC)
     try {
       await importQueue.add(
