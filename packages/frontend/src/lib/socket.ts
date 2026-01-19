@@ -1,6 +1,8 @@
 import { io, Socket } from 'socket.io-client'
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// In production, VITE_API_URL is empty string - use undefined so Socket.IO connects to same origin
+// In development, use the specified URL (e.g., http://localhost:3000)
+const SOCKET_URL = import.meta.env.VITE_API_URL || undefined
 
 let socket: Socket | null = null
 
@@ -10,7 +12,10 @@ let socket: Socket | null = null
  */
 export function getAdminSocket(): Socket {
     if (!socket) {
-        socket = io(`${SOCKET_URL}/admin`, {
+        // If SOCKET_URL is undefined, use '/admin' (same origin namespace)
+        // Otherwise use full URL like 'http://localhost:3000/admin'
+        const socketPath = SOCKET_URL ? `${SOCKET_URL}/admin` : '/admin'
+        socket = io(socketPath, {
             autoConnect: false,
             path: '/socket.io',
             transports: ['websocket', 'polling'],

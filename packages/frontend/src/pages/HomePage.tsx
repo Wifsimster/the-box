@@ -8,7 +8,7 @@ import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 
 export default function HomePage() {
@@ -22,17 +22,19 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true)
   const timeRemaining = useNextDailyCountdown()
 
-  // Generate humorous message based on score
-  const getHumorousMessage = (score: number, found: number): string => {
+  // Memoize humorous message to prevent re-selection on countdown re-renders
+  const humorousMessage = useMemo(() => {
+    if (!isTodayCompleted) return ''
+
     let category: 'perfect' | 'excellent' | 'good' | 'average' | 'low'
 
-    if (found === 10 && score >= 4500) {
+    if (screenshotsFound === 10 && todayScore >= 4500) {
       category = 'perfect'
-    } else if (score >= 3500 || found >= 8) {
+    } else if (todayScore >= 3500 || screenshotsFound >= 8) {
       category = 'excellent'
-    } else if (score >= 2000 || found >= 6) {
+    } else if (todayScore >= 2000 || screenshotsFound >= 6) {
       category = 'good'
-    } else if (score >= 1000 || found >= 4) {
+    } else if (todayScore >= 1000 || screenshotsFound >= 4) {
       category = 'average'
     } else {
       category = 'low'
@@ -40,7 +42,7 @@ export default function HomePage() {
 
     const messages = t(`home.completionMessages.${category}`, { returnObjects: true }) as string[]
     return messages[Math.floor(Math.random() * messages.length)]
-  }
+  }, [isTodayCompleted, todayScore, screenshotsFound, t])
 
   // Check if user has already completed today's challenge
   useEffect(() => {
@@ -109,7 +111,7 @@ export default function HomePage() {
             <div className="text-center max-w-xl mx-auto">
               <div className="bg-card/80 backdrop-blur-sm border border-neon-purple/30 rounded-lg p-4 sm:p-6 mb-3">
                 <p className="text-lg sm:text-xl font-bold text-neon-purple mb-3">
-                  {getHumorousMessage(todayScore, screenshotsFound)}
+                  {humorousMessage}
                 </p>
                 <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base mb-4">
                   <div className="flex items-center gap-2">

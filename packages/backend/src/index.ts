@@ -201,12 +201,21 @@ async function start(): Promise<void> {
     logger.warn('redis connection failed - job queue may not work')
   } else {
     // Clean up deprecated recurring jobs
+    const deprecatedJobs = [
+      'sync-new-games',
+      // Tournament feature was removed
+      'create-weekly-tournament',
+      'create-monthly-tournament',
+      'end-weekly-tournament',
+      'end-monthly-tournament',
+      'send-tournament-reminders',
+    ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
       for (const job of repeatableJobs) {
-        if (job.name === 'sync-new-games') {
+        if (deprecatedJobs.includes(job.name)) {
           await importQueue.removeRepeatableByKey(job.key)
-          logger.info('removed deprecated sync-new-games recurring job')
+          logger.info({ jobName: job.name }, 'removed deprecated recurring job')
         }
       }
     } catch (error) {
