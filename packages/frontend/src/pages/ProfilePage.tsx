@@ -93,7 +93,10 @@ export default function ProfilePage() {
         return null
     }
 
-    const earnedCount = stats?.totalEarned || 0
+    // Count achievements as earned if marked as earned OR if progress >= progressMax
+    const earnedCount = userAchievements.filter(a =>
+        a.earned || (a.progressMax != null && a.progress >= a.progressMax)
+    ).length
     const totalCount = userAchievements.length
     const completionPercentage = totalCount > 0 ? Math.round((earnedCount / totalCount) * 100) : 0
 

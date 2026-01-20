@@ -45,7 +45,9 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
 
     const getCategoryStats = (category: string) => {
         const categoryAchievements = achievementsByCategory[category] || []
-        const earned = categoryAchievements.filter((a: AchievementWithProgress) => a.earned).length
+        const earned = categoryAchievements.filter((a: AchievementWithProgress) =>
+            a.earned || (a.progressMax != null && a.progress >= a.progressMax)
+        ).length
         const total = categoryAchievements.length
         return { earned, total }
     }

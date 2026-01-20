@@ -22,6 +22,13 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
     const { t, i18n } = useTranslation()
     const isEarned = achievement.earned
     const isLocked = achievement.isHidden && !isEarned
+
+    // Check if achievement should be considered complete based on progress
+    const isComplete = isEarned || (
+        achievement.progressMax != null &&
+        achievement.progress >= achievement.progressMax
+    )
+
     // Show progress bar for any achievement with a progressMax, even if progress is 0
     const hasProgress = achievement.progressMax != null && achievement.progressMax > 0
 
@@ -41,8 +48,8 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
             <div
                 className={cn(
                     'relative flex items-center gap-3 rounded-lg border p-3 transition-all',
-                    isEarned
-                        ? 'border-primary/30 bg-primary/5'
+                    isComplete
+                        ? 'border-primary/40 bg-primary/10 shadow-sm'
                         : 'border-muted/30 bg-muted/5 opacity-60',
                     className
                 )}
@@ -55,7 +62,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                     <div className="text-xs text-muted-foreground truncate">
                         {isLocked ? t('achievements.status.hidden') : achievement.description}
                     </div>
-                    {hasProgress && !isEarned && (
+                    {hasProgress && !isComplete && (
                         <Progress value={(achievement.progress / achievement.progressMax!) * 100} className="mt-1 h-1" />
                     )}
                 </div>
@@ -63,6 +70,11 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                     <Badge variant="outline" className={cn('text-xs', tierColor)}>
                         {achievement.points}pts
                     </Badge>
+                    {isComplete && !isEarned && (
+                        <Badge variant="success" className="text-xs">
+                            ✓
+                        </Badge>
+                    )}
                 </div>
             </div>
         )
@@ -72,15 +84,15 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
         <Card
             className={cn(
                 'relative overflow-hidden transition-all',
-                isEarned
-                    ? 'border-primary/30 bg-primary/5 hover:border-primary/50'
+                isComplete
+                    ? 'border-primary/40 bg-primary/10 hover:border-primary/60 shadow-sm'
                     : 'border-muted/30 bg-muted/5 opacity-70 hover:opacity-85',
                 className
             )}
         >
-            {isEarned && (
+            {isComplete && (
                 <div className="absolute top-2 right-2">
-                    <Badge variant="success" className="text-xs">
+                    <Badge variant="success" className="text-xs flex items-center gap-1">
                         ✓ {t('achievements.status.earned')}
                     </Badge>
                 </div>
@@ -90,7 +102,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                 <div className="flex items-start gap-3">
                     <div className={cn(
                         'text-4xl p-2 rounded-lg',
-                        isEarned ? 'bg-primary/10' : 'bg-muted/20'
+                        isComplete ? 'bg-primary/20 ring-2 ring-primary/30' : 'bg-muted/20'
                     )}>
                         {isLocked ? <Lock className="w-10 h-10" /> : achievement.iconUrl}
                     </div>
@@ -123,7 +135,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                     )}
                 </div>
 
-                {hasProgress && !isEarned && (
+                {hasProgress && !isComplete && (
                     <div className="mt-3 space-y-1">
                         <div className="flex justify-between text-xs text-muted-foreground">
                             <span>{t('achievements.status.progress')}</span>

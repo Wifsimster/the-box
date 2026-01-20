@@ -656,7 +656,32 @@ export class AchievementService {
      * Get achievement statistics for a user
      */
     async getUserStats(userId: string) {
-        return achievementRepository.getUserStats(userId)
+        // Get all achievements with progress to determine which are truly earned
+        const achievementsWithProgress = await this.getAllAchievementsWithProgress(userId)
+
+        const stats = {
+            totalEarned: 0,
+            totalPoints: 0,
+            byCategory: {} as Record<string, number>,
+            byTier: {} as Record<number, number>,
+        }
+
+        for (const achievement of achievementsWithProgress) {
+            // Count as earned if marked as earned OR if progress >= progressMax
+            const isEarned = achievement.earned || (
+                achievement.progressMax != null &&
+                achievement.progress >= achievement.progressMax
+            )
+
+            if (isEarned) {
+                stats.totalEarned++
+                stats.totalPoints += achievement.points
+                stats.byCategory[achievement.category] = (stats.byCategory[achievement.category] || 0) + 1
+                stats.byTier[achievement.tier] = (stats.byTier[achievement.tier] || 0) + 1
+            }
+        }
+
+        return stats
     }
 
     /**
