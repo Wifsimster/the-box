@@ -365,7 +365,7 @@ export class AchievementService {
     private async checkLeaderboardRank(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
         // Get user's rank for this challenge
         const rankings = await db('game_sessions')
-            .where('challenge_id', data.challengeId)
+            .where('daily_challenge_id', data.challengeId)
             .where('is_completed', true)
             .orderBy('total_score', 'desc')
             .select('user_id', 'total_score')
