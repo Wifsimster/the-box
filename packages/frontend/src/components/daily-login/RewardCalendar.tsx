@@ -105,7 +105,7 @@ export function RewardCalendar({
                                 ) : reward.rewardValue.points > 0 ? (
                                     `+${reward.rewardValue.points}`
                                 ) : (
-                                    `x${reward.rewardValue.items.reduce((acc, i) => acc + i.quantity, 0)}`
+                                    `x${reward.rewardValue.items.reduce((acc: number, i: { quantity: number }) => acc + i.quantity, 0)}`
                                 )}
                             </span>
                         </div>

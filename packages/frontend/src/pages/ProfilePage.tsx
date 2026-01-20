@@ -331,9 +331,9 @@ export default function ProfilePage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                        {Object.entries(stats.byCategory).map(([category, count]) => (
+                                        {Object.entries(stats.byCategory).map(([category, count]: [string, number]) => (
                                             <div key={category} className="text-center">
-                                                <div className="text-2xl font-bold">{count}</div>
+                                                <div className="text-2xl font-bold">{count as number}</div>
                                                 <div className="text-xs text-muted-foreground capitalize">{category}</div>
                                             </div>
                                         ))}

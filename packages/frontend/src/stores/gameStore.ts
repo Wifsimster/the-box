@@ -567,7 +567,7 @@ export const useGameStore = create<GameState>()(
 
             // Add unfound games to guessResults as unguessed entries
             if (result.unfoundGames && result.unfoundGames.length > 0) {
-              const unfoundResults: GuessResult[] = result.unfoundGames.map(unfound => ({
+              const unfoundResults: GuessResult[] = result.unfoundGames.map((unfound: any) => ({
                 position: unfound.position,
                 isCorrect: false,
                 correctGame: unfound.game,

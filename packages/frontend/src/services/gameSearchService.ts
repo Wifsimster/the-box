@@ -53,7 +53,7 @@ export class MockGameSearchService implements GameSearchService {
     return this.mockGames.filter(
       (game) =>
         game.name.toLowerCase().includes(lowerQuery) ||
-        game.aliases.some((alias) => alias.toLowerCase().includes(lowerQuery))
+        game.aliases.some((alias: string) => alias.toLowerCase().includes(lowerQuery))
     )
   }
 }

@@ -2,13 +2,36 @@ import { test, expect } from '@playwright/test'
 
 /**
  * E2E Tests for Admin User Management
- * 
+ *
  * Prerequisites:
  * - Backend server must be running (npm run dev:backend)
  * - Frontend dev server will be started automatically by playwright.config.ts
  * - Database should have at least one admin user for testing
  * - Test admin credentials should be available (or create one in beforeEach)
  */
+
+// Helper function to close the Daily Reward modal if it appears
+async function closeDailyRewardModal(page: import('@playwright/test').Page) {
+  await page.waitForTimeout(500)
+
+  const claimButton = page.getByRole('button', { name: /claim/i })
+  if (await claimButton.isVisible().catch(() => false)) {
+    await claimButton.click()
+    await page.waitForTimeout(500)
+  }
+
+  const closeButton = page.locator('button').filter({ hasText: /close/i })
+  if (await closeButton.isVisible().catch(() => false)) {
+    await closeButton.click()
+    await page.waitForTimeout(500)
+  }
+
+  const dialogCloseButton = page.locator('[role="dialog"] button[aria-label*="close"], [role="dialog"] button:has(svg)').first()
+  if (await dialogCloseButton.isVisible().catch(() => false)) {
+    await dialogCloseButton.click()
+    await page.waitForTimeout(500)
+  }
+}
 
 // Helper function to login as admin
 async function loginAsAdmin(page: import('@playwright/test').Page) {
@@ -43,6 +66,9 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
     }
     throw new Error('Login did not redirect - check credentials')
   }
+
+  // Close Daily Reward modal if it appears
+  await closeDailyRewardModal(page)
 }
 
 test.describe('Admin User Management', () => {

@@ -5,6 +5,37 @@ import { Page, expect } from '@playwright/test'
  */
 
 /**
+ * Close the Daily Reward modal if it appears
+ */
+export async function closeDailyRewardModal(page: Page) {
+  // Wait a moment for modal to potentially appear
+  await page.waitForTimeout(500)
+
+  // Check if Daily Reward modal is visible
+  const closeButton = page.locator('button').filter({ hasText: /close/i })
+  const claimButton = page.getByRole('button', { name: /claim/i })
+
+  // Try to close the modal - first try claim, then close
+  if (await claimButton.isVisible().catch(() => false)) {
+    await claimButton.click()
+    await page.waitForTimeout(500)
+  }
+
+  // If there's still a close button, click it
+  if (await closeButton.isVisible().catch(() => false)) {
+    await closeButton.click()
+    await page.waitForTimeout(500)
+  }
+
+  // Also check for dialog close button (X button)
+  const dialogCloseButton = page.locator('[role="dialog"] button[aria-label*="close"], [role="dialog"] button:has(svg)').first()
+  if (await dialogCloseButton.isVisible().catch(() => false)) {
+    await dialogCloseButton.click()
+    await page.waitForTimeout(500)
+  }
+}
+
+/**
  * Login as a regular user
  */
 export async function loginAsUser(page: Page) {
@@ -42,6 +73,9 @@ export async function loginAsUser(page: Page) {
     }
     throw new Error('Login did not redirect - check credentials')
   }
+
+  // Close Daily Reward modal if it appears after login
+  await closeDailyRewardModal(page)
 }
 
 /**
@@ -82,6 +116,9 @@ export async function loginAsAdmin(page: Page) {
     }
     throw new Error('Login did not redirect - check credentials')
   }
+
+  // Close Daily Reward modal if it appears after login
+  await closeDailyRewardModal(page)
 }
 
 /**

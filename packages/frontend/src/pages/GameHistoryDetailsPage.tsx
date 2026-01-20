@@ -84,7 +84,7 @@ export default function GameHistoryDetailsPage() {
 
   // Add unfound games as unguessed entries
   if (sessionData.unfoundGames && sessionData.unfoundGames.length > 0) {
-    const unfoundResults = sessionData.unfoundGames.map(unfound => ({
+    const unfoundResults = sessionData.unfoundGames.map((unfound: any) => ({
       position: unfound.position,
       isCorrect: false,
       correctGame: unfound.game,

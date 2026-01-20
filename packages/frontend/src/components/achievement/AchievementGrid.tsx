@@ -45,7 +45,7 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
 
     const getCategoryStats = (category: string) => {
         const categoryAchievements = achievementsByCategory[category] || []
-        const earned = categoryAchievements.filter(a => a.earned).length
+        const earned = categoryAchievements.filter((a: AchievementWithProgress) => a.earned).length
         const total = categoryAchievements.length
         return { earned, total }
     }
@@ -84,7 +84,7 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
                         ? 'grid-cols-1 md:grid-cols-2'
                         : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                         }`}>
-                        {(achievementsByCategory[category] || []).map(achievement => (
+                        {(achievementsByCategory[category] || []).map((achievement: AchievementWithProgress) => (
                             <AchievementCard
                                 key={achievement.id}
                                 achievement={achievement}

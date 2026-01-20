@@ -100,7 +100,7 @@ export function DailyRewardModal() {
 
                         {/* Reward details */}
                         <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                            {reward.rewardValue.items.map((item, idx) => (
+                            {reward.rewardValue.items.map((item: { key: string; quantity: number }, idx: number) => (
                                 <Badge key={idx} variant="secondary" className="bg-primary/20">
                                     {item.quantity}x {item.key === 'hint_year' ? t('dailyLogin.hintYear') : t('dailyLogin.hintPublisher')}
                                 </Badge>
