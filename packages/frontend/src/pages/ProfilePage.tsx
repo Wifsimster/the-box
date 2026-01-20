@@ -43,6 +43,7 @@ export default function ProfilePage() {
     }, [isPending, session, navigate, localizedPath])
 
     // Fetch achievements and user profile when session is available
+    /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
     useEffect(() => {
         if (session && !hasFetched.current) {
             hasFetched.current = true
@@ -63,6 +64,7 @@ export default function ProfilePage() {
                 .finally(() => setLoading(false))
         }
     }, [session, fetchUserAchievements])
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (isPending || loading) {
         return (

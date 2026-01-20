@@ -839,6 +839,7 @@ export const useAdminStore = create<AdminState>()(
         disconnectAdminSocket()
       },
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- jobId available for future use
       handleJobAdded: (_jobId) => {
         // Fetch updated job list when a new job is added
         get().fetchJobs()
@@ -855,6 +856,7 @@ export const useAdminStore = create<AdminState>()(
         })
       },
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- delay available for future use
       handleJobDelayed: (jobId, _delay) => {
         // Update job status to delayed
         set({

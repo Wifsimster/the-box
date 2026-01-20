@@ -109,6 +109,7 @@ export default function RegisterPage() {
       
       // Force a page reload to ensure cookies are picked up and session state is refreshed
       // This is more reliable than relying on React state updates
+      // eslint-disable-next-line react-hooks/immutability -- Intentional page redirect after registration
       window.location.href = localizedPath('/')
     } catch (err) {
       const errorKey = mapRegisterError(err)

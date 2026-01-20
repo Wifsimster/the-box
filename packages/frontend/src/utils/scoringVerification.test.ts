@@ -286,6 +286,7 @@ export function runAllVerificationTests(): {
 
 // Export for use in browser console or test runner
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Browser console access requires any
   ; (window as any).scoringVerification = {
     runAllVerificationTests,
     testSpeedMultiplierBoundaries,

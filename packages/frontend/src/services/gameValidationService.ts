@@ -5,10 +5,12 @@ import type { GameValidationService, GuessValidation } from './types'
  * Mock game validation service for development
  */
 export class MockGameValidationService implements GameValidationService {
+  /* eslint-disable @typescript-eslint/no-unused-vars -- Required by interface, unused in mock */
   async validateGuess(
     guessedGame: Game | null,
     _screenshot: TierScreenshot | null
   ): Promise<GuessValidation> {
+    /* eslint-enable @typescript-eslint/no-unused-vars */
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 100))
 
