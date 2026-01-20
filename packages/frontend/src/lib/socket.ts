@@ -26,11 +26,11 @@ export function getAdminSocket(): Socket {
         })
 
         socket.on('connect', () => {
-            console.log('[Socket.IO] Connected to admin namespace')
+            // Connected to admin namespace
         })
 
-        socket.on('disconnect', (reason) => {
-            console.log('[Socket.IO] Disconnected:', reason)
+        socket.on('disconnect', () => {
+            // Disconnected from admin namespace
         })
 
         socket.on('connect_error', (error) => {
@@ -53,7 +53,6 @@ export function connectAdminSocket(): void {
         // Join admin room once connected
         adminSocket.once('connect', () => {
             adminSocket.emit('join_admin')
-            console.log('[Socket.IO] Joined admin room')
         })
     }
 }
@@ -65,7 +64,6 @@ export function disconnectAdminSocket(): void {
     if (socket?.connected) {
         socket.emit('leave_admin')
         socket.disconnect()
-        console.log('[Socket.IO] Left admin room and disconnected')
     }
 }
 

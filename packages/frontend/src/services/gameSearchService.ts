@@ -112,7 +112,6 @@ export function createGameSearchService(): GameSearchService {
   const useMock = import.meta.env.VITE_USE_MOCK_API === 'true'
 
   if (useMock) {
-    console.log('[GameSearch] Using mock service')
     return new MockGameSearchService()
   }
 

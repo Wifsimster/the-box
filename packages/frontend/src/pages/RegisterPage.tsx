@@ -84,19 +84,10 @@ export default function RegisterPage() {
       }
 
       // Better-auth automatically signs users in after registration
-      // Log the full response for debugging
-      console.log('Registration response:', result)
-      
-      if (result.data && 'session' in result.data && result.data.session) {
-        console.log('Registration successful, session created:', result.data.session)
-      } else if (result.data?.user) {
-        console.log('Registration successful, user created:', result.data.user)
-        console.warn('No session in response - backend may not have created session automatically')
-      }
 
       // Wait for the session cookie to be set by better-auth
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       // Refetch the session to ensure React state is updated
       // refetch() may not return a value, so we just call it and then reload
       try {
@@ -106,7 +97,7 @@ export default function RegisterPage() {
       } catch (sessionError) {
         console.error('Error refetching session:', sessionError)
       }
-      
+
       // Force a page reload to ensure cookies are picked up and session state is refreshed
       // This is more reliable than relying on React state updates
       // eslint-disable-next-line react-hooks/immutability -- Intentional page redirect after registration

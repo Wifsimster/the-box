@@ -103,9 +103,8 @@ export default function GamePage() {
             // Preload the image in browser cache
             const img = new Image()
             img.src = data.imageUrl
-          } catch (err) {
+          } catch {
             // Silently fail - pre-fetching is optional
-            console.debug(`Failed to pre-fetch screenshot at position ${position}:`, err)
           }
         })
       )
@@ -175,8 +174,8 @@ export default function GamePage() {
 
           // Pre-fetch all remaining screenshots in the background for smooth swiping
           // Don't await - let it run in the background
-          prefetchAllScreenshots(data.userSession.sessionId, data.totalScreenshots).catch((err) => {
-            console.debug('Failed to pre-fetch all screenshots:', err)
+          prefetchAllScreenshots(data.userSession.sessionId, data.totalScreenshots).catch(() => {
+            // Silently fail - pre-fetching is optional
           })
           return
         }
@@ -261,9 +260,8 @@ export default function GamePage() {
         // Preload the image in browser cache
         const img = new Image()
         img.src = nextData.imageUrl
-      } catch (err) {
+      } catch {
         // Silently fail - pre-fetching is optional
-        console.debug('Failed to pre-fetch next screenshot:', err)
       }
     }
 
@@ -274,9 +272,8 @@ export default function GamePage() {
         // Preload the image in browser cache
         const img = new Image()
         img.src = prevData.imageUrl
-      } catch (err) {
+      } catch {
         // Silently fail - pre-fetching is optional
-        console.debug('Failed to pre-fetch previous screenshot:', err)
       }
     }
   }, [gamePhase])
@@ -332,8 +329,8 @@ export default function GamePage() {
 
       // Pre-fetch all remaining screenshots in the background for smooth swiping
       // Don't await - let it run in the background
-      prefetchAllScreenshots(startData.sessionId, startData.totalScreenshots).catch((err) => {
-        console.debug('Failed to pre-fetch all screenshots:', err)
+      prefetchAllScreenshots(startData.sessionId, startData.totalScreenshots).catch(() => {
+        // Silently fail - pre-fetching is optional
       })
     } catch (err) {
       console.error('Failed to start game:', err)

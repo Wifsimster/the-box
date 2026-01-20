@@ -177,7 +177,6 @@ export function createGuessSubmissionService(): GuessSubmissionService {
   const useMock = import.meta.env.VITE_USE_MOCK_API === 'true'
 
   if (useMock) {
-    console.log('[GuessSubmission] Using mock service')
     return new MockGuessSubmissionService()
   }
 
