@@ -63,7 +63,7 @@ function LanguageLayout() {
   // Fetch daily login status when user is authenticated
   useEffect(() => {
     if (session?.user?.id) {
-      fetchStatus(session.user.role)
+      fetchStatus(session.user.role ?? undefined)
     } else {
       // Reset store when user logs out
       reset()

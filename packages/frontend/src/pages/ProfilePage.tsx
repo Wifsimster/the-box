@@ -108,7 +108,11 @@ export default function ProfilePage() {
         .slice(0, 2)
 
     const joinDate = session.user.createdAt
-        ? new Date(session.user.createdAt).toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' })
+        ? new Date(session.user.createdAt).toLocaleDateString(i18n.language, {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        })
         : t('common.unknown')
 
     return (
@@ -117,7 +121,7 @@ export default function ProfilePage() {
             <div className="min-h-screen relative z-10">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-                    {/* Enhanced User Profile Hero Card */}
+                    {/* Unified User Profile & Stats Card */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -125,7 +129,8 @@ export default function ProfilePage() {
                     >
                         <Card className="border-2 border-primary/20">
                             <CardContent className="pt-8 pb-6">
-                                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                                {/* User Info Section */}
+                                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
                                     <motion.div
                                         initial={{ scale: 0.8, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
@@ -160,128 +165,73 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Stats Section */}
+                                <Separator className="mb-6" />
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {/* Total Score */}
+                                    <div className="flex flex-col items-center text-center space-y-2">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-500/10">
+                                            <Trophy className="h-6 w-6 text-yellow-500" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-3xl font-bold bg-linear-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                                                {userProfile?.totalScore?.toLocaleString() || 0}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground font-medium">
+                                                {t('profile.totalScore')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Current Streak */}
+                                    <div className="flex flex-col items-center text-center space-y-2">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-orange-500/10">
+                                            <Flame className="h-6 w-6 text-orange-500" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-3xl font-bold bg-linear-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+                                                {userProfile?.currentStreak || 0}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground font-medium">
+                                                {t('profile.currentStreak')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Unlocked Achievements */}
+                                    <div className="flex flex-col items-center text-center space-y-2">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                                            <Award className="h-6 w-6 text-primary" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                                                {earnedCount}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground font-medium">
+                                                {t('profile.unlocked')} ({completionPercentage}%)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Achievement Points */}
+                                    <div className="flex flex-col items-center text-center space-y-2">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10">
+                                            <TrendingUp className="h-6 w-6 text-green-500" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-3xl font-bold bg-linear-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
+                                                {stats?.totalPoints || 0}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground font-medium">
+                                                {t('profile.achievementPoints')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </motion.div>
-
-                    <Separator />
-
-                    {/* Profile Stats */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                        <Trophy className="h-5 w-5 text-(--color-warning)" />
-                                        <Badge variant="secondary" className="text-xs">
-                                            {t('profile.total')}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{userProfile?.totalScore?.toLocaleString() || 0}</div>
-                                    <CardDescription className="text-xs mt-1">{t('profile.totalScore')}</CardDescription>
-                                    {(!userProfile?.totalScore || userProfile.totalScore === 0) && (
-                                        <div className="mt-3 pt-3 border-t border-border/50">
-                                            <p className="text-xs text-muted-foreground italic">
-                                                {t('profile.emptyState.totalScore')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                        <Flame className="h-5 w-5 text-orange-500" />
-                                        <Badge variant="secondary" className="text-xs">
-                                            {t('profile.days')}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{userProfile?.currentStreak || 0}</div>
-                                    <CardDescription className="text-xs mt-1">{t('profile.currentStreak')}</CardDescription>
-                                    {(!userProfile?.currentStreak || userProfile.currentStreak === 0) && (
-                                        <div className="mt-3 pt-3 border-t border-border/50">
-                                            <p className="text-xs text-muted-foreground italic">
-                                                {t('profile.emptyState.currentStreak')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                        <Award className="h-5 w-5 text-primary" />
-                                        <Badge variant="secondary" className="text-xs">
-                                            {t('profile.unlocked')}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{earnedCount}</div>
-                                    <CardDescription className="text-xs mt-1">
-                                        {t('profile.achievements')} ({completionPercentage}%)
-                                    </CardDescription>
-                                    {earnedCount === 0 && (
-                                        <div className="mt-3 pt-3 border-t border-border/50">
-                                            <p className="text-xs text-muted-foreground italic">
-                                                {t('profile.emptyState.achievements')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                        >
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                        <TrendingUp className="h-5 w-5 text-(--color-success)" />
-                                        <Badge variant="secondary" className="text-xs">
-                                            {t('profile.points')}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{stats?.totalPoints || 0}</div>
-                                    <CardDescription className="text-xs mt-1">{t('profile.achievementPoints')}</CardDescription>
-                                    {(!stats?.totalPoints || stats.totalPoints === 0) && (
-                                        <div className="mt-3 pt-3 border-t border-border/50">
-                                            <p className="text-xs text-muted-foreground italic">
-                                                {t('profile.emptyState.achievementPoints')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </div>
 
                     {/* Achievements Section */}
                     <motion.div
