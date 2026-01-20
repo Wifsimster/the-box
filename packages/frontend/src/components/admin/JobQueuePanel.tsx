@@ -84,7 +84,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const { t } = useTranslation()
     const { jobs, isLoading, fetchJobs, clearCompleted, cancelJob, connectSocket, disconnectSocket } = useAdminStore()
     const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed' | 'delayed'>('all')
-    const [isMinimized, setIsMinimized] = useState(false)
+    const [isMinimized, setIsMinimized] = useState(true)
 
     const handleToggleMinimize = () => {
         const newState = !isMinimized
@@ -93,6 +93,9 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     }
 
     useEffect(() => {
+        // Notify parent of initial state
+        onMinimizedChange?.(true)
+
         fetchJobs()
         connectSocket()
 

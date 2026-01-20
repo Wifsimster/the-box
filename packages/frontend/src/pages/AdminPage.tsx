@@ -23,7 +23,7 @@ export default function AdminPage() {
   const { lang } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: session, isPending } = useSession()
-  const [isPanelMinimized, setIsPanelMinimized] = useState(false)
+  const [isPanelMinimized, setIsPanelMinimized] = useState(true)
 
   const {
     fetchRecurringJobs,
