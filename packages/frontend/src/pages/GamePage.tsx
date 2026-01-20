@@ -381,7 +381,6 @@ export default function GamePage() {
       const {
         currentPosition,
         positionStates,
-        totalScreenshots,
         skipToNextPosition,
         navigateToPosition,
       } = useGameStore.getState()

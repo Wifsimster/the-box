@@ -42,9 +42,11 @@ export default function HistoryPage() {
   }, [session])
 
   // Fetch on mount
+  /* eslint-disable react-hooks/set-state-in-effect -- fetchHistory contains setState */
   useEffect(() => {
     fetchHistory()
   }, [fetchHistory])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Refetch when page becomes visible (user returns from game)
   useEffect(() => {

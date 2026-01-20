@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Award, TrendingUp, Flame, Loader2, Calendar } from 'lucide-react'
+import { Trophy, Award, TrendingUp, Flame, Calendar } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAchievementStore } from '@/stores/achievementStore'
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import type { User as UserType } from '@the-box/types'
 
 /**
  * ProfilePage - User profile with achievements and stats
@@ -23,7 +24,7 @@ export default function ProfilePage() {
     const { localizedPath } = useLocalizedPath()
     const { session, isPending } = useAuth()
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [, setError] = useState<string | null>(null)
     const [userProfile, setUserProfile] = useState<UserType | null>(null)
     const hasFetched = useRef(false)
 

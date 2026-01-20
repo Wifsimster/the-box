@@ -19,8 +19,6 @@ import { useEffect, useRef } from 'react'
 import { toast } from '@/lib/toast'
 import { playAchievementSound } from '@/lib/audio'
 
-const UNFOUND_PENALTY = 50
-
 export default function ResultsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -30,7 +28,6 @@ export default function ResultsPage() {
     totalScreenshots,
     guessResults,
     challengeDate,
-    resetGame,
     updatePersonalBests
   } = useGameStore()
 
@@ -97,11 +94,6 @@ export default function ResultsPage() {
       clearNotifications()
     }
   }, [clearNotifications])
-
-  const handlePlayAgain = () => {
-    resetGame()
-    navigate(localizedPath('/play'))
-  }
 
   return (
     <>

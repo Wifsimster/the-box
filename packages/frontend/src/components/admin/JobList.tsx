@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAdminStore } from '@/stores/adminStore'
-import { FullImportCard } from './FullImportCard'
 import {
   Clock,
   Play,
@@ -279,9 +278,6 @@ export function JobList() {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      {/* Full Import */}
-      <FullImportCard />
-
       {/* Jobs List */}
       {allJobs.length > 0 && (
         <motion.div

@@ -7,7 +7,7 @@ import type { GameValidationService, GuessValidation } from './types'
 export class MockGameValidationService implements GameValidationService {
   async validateGuess(
     guessedGame: Game | null,
-    screenshot: TierScreenshot | null
+    _screenshot: TierScreenshot | null
   ): Promise<GuessValidation> {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 100))

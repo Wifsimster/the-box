@@ -22,6 +22,7 @@ export default function GameHistoryDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     if (!sessionId) {
       setError('Session ID is required')
@@ -41,6 +42,7 @@ export default function GameHistoryDetailsPage() {
         setLoading(false)
       })
   }, [sessionId])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) {
     return (
@@ -82,6 +84,7 @@ export default function GameHistoryDetailsPage() {
 
   // Add unfound games as unguessed entries
   if (sessionData.unfoundGames && sessionData.unfoundGames.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Backend response shape varies
     const unfoundResults = sessionData.unfoundGames.map((unfound: any) => ({
       position: unfound.position,
       isCorrect: false,

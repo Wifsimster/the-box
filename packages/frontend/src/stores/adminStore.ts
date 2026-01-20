@@ -678,6 +678,7 @@ export const useAdminStore = create<AdminState>()(
           })
           // Transform users to ensure isAdmin is correctly set from role field
           // Better-auth returns users with a 'role' field, but our User type uses 'isAdmin'
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Backend response typing varies
           const transformedUsers = result.users.map((user: any) => {
             // Check both role field (from better-auth) and isAdmin field
             const isAdmin = user.role === 'admin' || user.isAdmin === true
@@ -838,7 +839,7 @@ export const useAdminStore = create<AdminState>()(
         disconnectAdminSocket()
       },
 
-      handleJobAdded: (jobId) => {
+      handleJobAdded: (_jobId) => {
         // Fetch updated job list when a new job is added
         get().fetchJobs()
       },
@@ -854,7 +855,7 @@ export const useAdminStore = create<AdminState>()(
         })
       },
 
-      handleJobDelayed: (jobId, delay) => {
+      handleJobDelayed: (jobId, _delay) => {
         // Update job status to delayed
         set({
           jobs: get().jobs.map((j) =>

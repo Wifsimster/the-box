@@ -566,6 +566,7 @@ export const useGameStore = create<GameState>()(
 
             // Add unfound games to guessResults as unguessed entries
             if (result.unfoundGames && result.unfoundGames.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Backend response shape varies
               const unfoundResults: GuessResult[] = result.unfoundGames.map((unfound: any) => ({
                 position: unfound.position,
                 isCorrect: false,
