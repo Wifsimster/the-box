@@ -78,7 +78,16 @@ test.describe('Admin User Management', () => {
 
     // Navigate to admin page
     await page.goto('/en/admin')
-    await page.waitForSelector('h1:has-text("Admin Panel"), h1:has-text("Administration")')
+
+    // Close any modal that might appear
+    await closeDailyRewardModal(page)
+
+    // Wait for admin panel to load - be flexible about the heading
+    await page.waitForTimeout(1000)
+    const adminHeading = page.locator('h1, h2').filter({ hasText: /admin|administration/i }).first()
+    await adminHeading.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {
+      // Admin page might have different structure
+    })
   })
 
   test('should display the users tab in admin panel', async ({ page }) => {

@@ -203,7 +203,8 @@ async function start(): Promise<void> {
   if (!redisConnected) {
     logger.warn('redis connection failed - job queue may not work')
   } else {
-    // Clean up deprecated recurring jobs
+    // Clean up deprecated and stale recurring jobs
+    // Also remove active recurring jobs so they can be re-added with correct timezone config
     const deprecatedJobs = [
       'sync-new-games',
       // Tournament feature was removed
@@ -213,54 +214,26 @@ async function start(): Promise<void> {
       'end-monthly-tournament',
       'send-tournament-reminders',
     ]
+    const activeRecurringJobs = [
+      'create-daily-challenge',
+      'sync-all-games',
+      'cleanup-anonymous-users',
+      'recalculate-scores',
+    ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
       for (const job of repeatableJobs) {
         if (deprecatedJobs.includes(job.name)) {
           await importQueue.removeRepeatableByKey(job.key)
           logger.info({ jobName: job.name }, 'removed deprecated recurring job')
+        } else if (activeRecurringJobs.includes(job.name)) {
+          // Remove active jobs so they can be re-added with updated config (e.g., timezone)
+          await importQueue.removeRepeatableByKey(job.key)
+          logger.debug({ jobName: job.name }, 'removed recurring job for re-registration')
         }
       }
     } catch (error) {
-      logger.warn({ error: String(error) }, 'failed to clean up deprecated recurring jobs')
-    }
-
-    // Log delayed jobs at startup to diagnose stale scheduled jobs
-    try {
-      const delayedJobs = await importQueue.getJobs(['delayed'])
-      const waitingJobs = await importQueue.getJobs(['waiting'])
-      const repeatableJobs = await importQueue.getRepeatableJobs()
-
-      if (delayedJobs.length > 0) {
-        logger.info({
-          count: delayedJobs.length,
-          jobs: delayedJobs.map(j => ({
-            id: j.id,
-            name: j.name,
-            delay: j.delay,
-            timestamp: j.timestamp,
-            processedOn: j.processedOn,
-          }))
-        }, 'found delayed jobs at startup')
-      }
-
-      if (waitingJobs.length > 0) {
-        logger.info({
-          count: waitingJobs.length,
-          jobs: waitingJobs.map(j => ({ id: j.id, name: j.name }))
-        }, 'found waiting jobs at startup')
-      }
-
-      logger.info({
-        repeatableJobs: repeatableJobs.map(j => ({
-          name: j.name,
-          key: j.key,
-          next: j.next ? new Date(j.next).toISOString() : null,
-          pattern: j.pattern,
-        }))
-      }, 'repeatable jobs configuration at startup')
-    } catch (error) {
-      logger.warn({ error: String(error) }, 'failed to log job queue state at startup')
+      logger.warn({ error: String(error) }, 'failed to clean up recurring jobs')
     }
 
     // Schedule recurring daily challenge creation (midnight UTC)
@@ -269,7 +242,7 @@ async function start(): Promise<void> {
         'create-daily-challenge',
         {},
         {
-          repeat: { pattern: '0 0 * * *' }, // Cron: midnight UTC daily
+          repeat: { pattern: '0 0 * * *', tz: 'UTC' }, // Cron: midnight UTC daily
           jobId: 'create-daily-challenge-recurring',
         }
       )
@@ -289,7 +262,7 @@ async function start(): Promise<void> {
           updateExistingMetadata: true,
         },
         {
-          repeat: { pattern: '0 2 * * 0' }, // Cron: 2 AM UTC every Sunday
+          repeat: { pattern: '0 2 * * 0', tz: 'UTC' }, // Cron: 2 AM UTC every Sunday
           jobId: 'sync-all-games-recurring',
         }
       )
@@ -304,7 +277,7 @@ async function start(): Promise<void> {
         'cleanup-anonymous-users',
         {},
         {
-          repeat: { pattern: '0 1 * * *' }, // Cron: 1 AM UTC daily
+          repeat: { pattern: '0 1 * * *', tz: 'UTC' }, // Cron: 1 AM UTC daily
           jobId: 'cleanup-anonymous-users-recurring',
         }
       )
@@ -319,13 +292,28 @@ async function start(): Promise<void> {
         'recalculate-scores',
         { batchSize: 100, dryRun: false },
         {
-          repeat: { pattern: '0 3 * * *' }, // Cron: 3 AM UTC daily
+          repeat: { pattern: '0 3 * * *', tz: 'UTC' }, // Cron: 3 AM UTC daily
           jobId: 'recalculate-scores-recurring',
         }
       )
       logger.info('scheduled recurring recalculate-scores job (daily at 3 AM UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring recalculate-scores job')
+    }
+
+    // Log final repeatable jobs configuration with next run times
+    try {
+      const repeatableJobs = await importQueue.getRepeatableJobs()
+      logger.info({
+        repeatableJobs: repeatableJobs.map(j => ({
+          name: j.name,
+          pattern: j.pattern,
+          tz: j.tz,
+          next: j.next ? new Date(j.next).toISOString() : null,
+        }))
+      }, 'repeatable jobs scheduled')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to log repeatable jobs state')
     }
   }
 

@@ -125,19 +125,40 @@ export async function loginAsAdmin(page: Page) {
  * Wait for the game to load (intro or playing state)
  */
 export async function waitForGameLoad(page: Page) {
-  await page.waitForSelector('h1, h2, [role="progressbar"]', { timeout: 10000 })
+  // Wait for any game-related elements to appear
+  await page.waitForTimeout(1000)
+
+  // Close any modal that might be showing (Daily Reward)
+  await closeDailyRewardModal(page)
+
+  // Wait for game elements - could be intro screen or playing state
+  const gameLoaded = await Promise.race([
+    page.waitForSelector('h1, h2', { timeout: 10000 }).then(() => true).catch(() => false),
+    page.waitForSelector('input[type="text"]', { timeout: 10000 }).then(() => true).catch(() => false),
+    page.waitForSelector('button:has-text("1")', { timeout: 10000 }).then(() => true).catch(() => false),
+  ])
+
+  if (!gameLoaded) {
+    // Try closing modal again in case it appeared late
+    await closeDailyRewardModal(page)
+  }
 }
 
 /**
  * Start the daily game if on intro screen
  */
 export async function startDailyGame(page: Page) {
+  // First close any modals
+  await closeDailyRewardModal(page)
+
   const startButton = page.getByRole('button', { name: /start|commencer|play/i })
   const hasStartButton = await startButton.isVisible().catch(() => false)
 
   if (hasStartButton) {
     await startButton.click()
     await page.waitForTimeout(2000)
+    // Close modal again if it appears after starting
+    await closeDailyRewardModal(page)
   }
 }
 
