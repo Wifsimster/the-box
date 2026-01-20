@@ -206,9 +206,20 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'recalculate-scores') {
-        const { recalculateStateId, isResume } = data
+        let { recalculateStateId } = data
+        const { isResume } = data
+
+        // For recurring jobs, recalculateStateId may not be provided - create one
         if (!recalculateStateId) {
-          throw new Error('recalculateStateId is required for recalculate-scores job')
+          const { importStateRepository } = await import('../../repositories/import-state.repository.js')
+          const newState = await importStateRepository.create({
+            importType: 'recalculate-scores',
+            batchSize: data.batchSize || 100,
+          })
+          recalculateStateId = newState.id
+          // Update job data with the new state ID for tracking
+          await job.updateData({ ...data, recalculateStateId })
+          log.info({ recalculateStateId }, 'Created new recalculate state for recurring job')
         }
 
         log.info({

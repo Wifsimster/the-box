@@ -286,10 +286,6 @@ test.describe('Registration Form', () => {
         const successMessage = page.locator('text=/success|created|verify|email sent/i').first();
         const hasSuccess = await successMessage.isVisible().catch(() => false);
 
-        // Or check for error (whitespace might cause validation issues in some implementations)
-        const errorElement = page.locator('[role="alert"], p.text-destructive, .text-red-500').first();
-        const hasError = await errorElement.isVisible().catch(() => false);
-
         // Test passes if: redirected, success message shown, or stayed on register (any outcome is OK)
         // The main thing is verifying the form handles whitespace without crashing
         expect(leftRegisterPage || hasSuccess || currentUrl.includes('/register')).toBeTruthy();

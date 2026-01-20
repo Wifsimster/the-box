@@ -3,14 +3,6 @@ import {
   loginAsUser,
   waitForGameLoad,
   startDailyGame,
-  navigateToPosition,
-  visitAllPositions,
-  submitGuess,
-  skipScreenshot,
-  endGame,
-  getCurrentScore,
-  isOnPosition,
-  clickHint,
 } from './helpers/game-helpers'
 
 /**
@@ -273,15 +265,15 @@ test.describe('Daily Game - End Game Flow', () => {
     expect(true).toBeTruthy()
   })
 
-  test.skip('should show confirmation dialog when clicking end game', async ({ page }) => {
+  test.skip('should show confirmation dialog when clicking end game', async () => {
     expect(true).toBeTruthy()
   })
 
-  test.skip('should navigate to results page after confirming end game', async ({ page }) => {
+  test.skip('should navigate to results page after confirming end game', async () => {
     expect(true).toBeTruthy()
   })
 
-  test.skip('should stay on game page when canceling end game dialog', async ({ page }) => {
+  test.skip('should stay on game page when canceling end game dialog', async () => {
     expect(true).toBeTruthy()
   })
 })
@@ -377,9 +369,6 @@ test.describe('Daily Game - Error Handling', () => {
     // Try to access game without logging in
     await page.goto('/en/play')
     await page.waitForTimeout(2000)
-
-    // The app might: redirect to login, show home, show login prompt, or allow guest play
-    const currentUrl = page.url()
 
     // Any of these outcomes is valid - the test just verifies the page loads without error
     const pageLoaded = await page.locator('body').isVisible()
