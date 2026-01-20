@@ -77,7 +77,7 @@ async function checkLeaderboardRanks() {
         const scoreStr = r.userScore.toString().padStart(6)
         const playersStr = r.totalPlayers.toString().padStart(2)
         const medal = r.rank === 1 ? '👑' : r.rank <= 3 ? '🥉' : r.rank <= 10 ? '🏆' : ''
-        
+
         console.log(`${rankStr} | ${dateStr}     | ${scoreStr} | ${playersStr} players ${medal}`)
     })
 

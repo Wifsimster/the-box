@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,6 +23,7 @@ export default function AdminPage() {
   const { lang } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: session, isPending } = useSession()
+  const [isPanelMinimized, setIsPanelMinimized] = useState(false)
 
   const {
     fetchRecurringJobs,
@@ -103,7 +104,7 @@ export default function AdminPage() {
       className="flex min-h-screen"
     >
       {/* Main Content Area */}
-      <div className="flex-1 pr-120">
+      <div className="flex-1 transition-all duration-300" style={{ paddingRight: isPanelMinimized ? '0' : '480px' }}>
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
           <motion.div
             variants={fadeInLeft}
@@ -141,7 +142,7 @@ export default function AdminPage() {
       </div>
 
       {/* Permanent Job Queue Panel */}
-      <JobQueuePanel />
+      <JobQueuePanel onMinimizedChange={setIsPanelMinimized} />
     </motion.div>
   )
 }

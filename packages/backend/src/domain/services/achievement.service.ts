@@ -654,6 +654,33 @@ export class AchievementService {
                         progress[achievement.key] = Number(genreResult?.count || 0)
                     }
                     break
+                case 'leaderboard_rank':
+                    // Check if user has achieved this rank or better
+                    if (criteria.max_rank) {
+                        // Get best rank across all challenges
+                        const userChallenges = await db('game_sessions')
+                            .where('user_id', userId)
+                            .where('is_completed', true)
+                            .select('daily_challenge_id', 'total_score')
+
+                        let bestRank = 999
+                        for (const userChallenge of userChallenges) {
+                            const rankings = await db('game_sessions')
+                                .where('daily_challenge_id', userChallenge.daily_challenge_id)
+                                .where('is_completed', true)
+                                .orderBy('total_score', 'desc')
+                                .select('user_id')
+
+                            const rank = rankings.findIndex(r => r.user_id === userId) + 1
+                            if (rank > 0 && rank < bestRank) {
+                                bestRank = rank
+                            }
+                        }
+
+                        // Progress is 1 if achieved, 0 if not
+                        progress[achievement.key] = bestRank <= criteria.max_rank ? 1 : 0
+                    }
+                    break
                 // Other types (perfect_score, min_score, consecutive_speed, etc.)
                 // are session-based and don't have meaningful cumulative progress
             }

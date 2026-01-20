@@ -23,13 +23,13 @@ async function testProgress() {
 
     const achievements = await achievementService.getAllAchievementsWithProgress(admin.id)
 
-    // Filter to genre achievements
-    const genreAchievements = achievements.filter(a =>
-        a.key === 'rpg_expert' || a.key === 'action_hero' || a.key === 'strategy_savant'
+    // Filter to leaderboard achievements
+    const leaderboardAchievements = achievements.filter(a =>
+        a.key === 'champion' || a.key === 'podium_finish' || a.key === 'top_ten'
     )
 
-    console.log('Genre Achievement Progress:\n')
-    genreAchievements.forEach(a => {
+    console.log('Leaderboard Achievement Progress:\n')
+    leaderboardAchievements.forEach(a => {
         console.log(`${a.name}:`)
         console.log(`  Key: ${a.key}`)
         console.log(`  Progress: ${a.progress} / ${a.progressMax}`)

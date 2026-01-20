@@ -76,11 +76,21 @@ function getJobTranslationKey(jobName: string): string {
     return keyMap[jobName] || jobName
 }
 
-export function JobQueuePanel() {
+interface JobQueuePanelProps {
+    onMinimizedChange?: (isMinimized: boolean) => void
+}
+
+export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const { t } = useTranslation()
     const { jobs, isLoading, fetchJobs, clearCompleted, cancelJob, connectSocket, disconnectSocket } = useAdminStore()
     const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed' | 'delayed'>('all')
     const [isMinimized, setIsMinimized] = useState(false)
+
+    const handleToggleMinimize = () => {
+        const newState = !isMinimized
+        setIsMinimized(newState)
+        onMinimizedChange?.(newState)
+    }
 
     useEffect(() => {
         fetchJobs()
@@ -131,7 +141,7 @@ export function JobQueuePanel() {
             className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
             initial={false}
             animate={{
-                width: isMinimized ? '48px' : '480px'
+                width: isMinimized ? '0px' : '480px'
             }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
         >
@@ -139,8 +149,8 @@ export function JobQueuePanel() {
             <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="absolute left-0 top-4 h-8 w-8 p-0 rounded-r-md rounded-l-none border border-l-0 bg-card hover:bg-muted z-10"
+                onClick={handleToggleMinimize}
+                className="absolute -left-8 top-4 h-8 w-8 p-0 rounded-l-md rounded-r-none border border-r-0 bg-card hover:bg-muted z-10 shadow-md"
                 title={isMinimized ? t('admin.jobs.expand', 'Expand') : t('admin.jobs.minimize', 'Minimize')}
             >
                 {isMinimized ? (
@@ -312,7 +322,8 @@ export function JobQueuePanel() {
                         </Button>
                     </div>
                 </>
-            )}
-        </motion.div>
+            )
+            }
+        </motion.div >
     )
 }
