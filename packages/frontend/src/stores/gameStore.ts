@@ -65,6 +65,7 @@ interface GameState {
   gamePhase: GamePhase
   isLoading: boolean
   lastResult: GuessResult | null
+  isSessionCompleted: boolean // Tracks if backend has marked session as complete
 
   // Actions
   setSessionId: (id: string, tierSessionId: string) => void
@@ -77,6 +78,7 @@ interface GameState {
 
   setGamePhase: (phase: GamePhase) => void
   setLoading: (loading: boolean) => void
+  setIsSessionCompleted: (completed: boolean) => void
 
   addGuessResult: (result: GuessResult) => void
   updateScore: (totalScore: number) => void
@@ -158,6 +160,7 @@ const initialState = {
   gamePhase: 'idle' as GamePhase,
   isLoading: false,
   lastResult: null,
+  isSessionCompleted: false,
 }
 
 export const useGameStore = create<GameState>()(
@@ -190,6 +193,7 @@ export const useGameStore = create<GameState>()(
         setRoundStartedAt: (timestamp) => set({ roundStartedAt: timestamp }),
 
         setGamePhase: (phase) => set({ gamePhase: phase }),
+        setIsSessionCompleted: (completed) => set({ isSessionCompleted: completed }),
 
         setLoading: (loading) => set({ isLoading: loading }),
 
@@ -552,7 +556,7 @@ export const useGameStore = create<GameState>()(
         },
 
         endGameAction: async () => {
-          const { sessionId, updateScore, setScreenshotsFound, setGamePhase, guessResults } = get()
+          const { sessionId, updateScore, setScreenshotsFound, setGamePhase, setIsSessionCompleted, guessResults } = get()
           if (!sessionId) {
             const error = new Error('No active game session')
             console.error('Failed to end game:', error)
@@ -563,6 +567,7 @@ export const useGameStore = create<GameState>()(
             const result = await gameApi.endGame(sessionId)
             updateScore(result.totalScore)
             setScreenshotsFound(result.screenshotsFound)
+            setIsSessionCompleted(true) // Mark session as completed
 
             // Add unfound games to guessResults as unguessed entries
             if (result.unfoundGames && result.unfoundGames.length > 0) {

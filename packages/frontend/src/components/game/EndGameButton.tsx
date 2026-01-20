@@ -26,9 +26,10 @@ export function EndGameButton() {
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const totalScore = useGameStore((s) => s.totalScore)
+  const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
-  // Show if playing and all positions visited (including last position)
-  const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions()
+  // Show if playing, all positions visited, and session not already completed on backend
+  const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted
 
   if (!canShowButton) return null
 

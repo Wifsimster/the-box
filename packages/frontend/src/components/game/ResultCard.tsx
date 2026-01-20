@@ -19,6 +19,7 @@ export function ResultCard() {
     navigateToPosition,
     positionStates,
     challengeId,
+    isSessionCompleted,
   } = useGameStore()
 
   // Auto-close countdown state (must be before early return)
@@ -52,7 +53,7 @@ export function ResultCard() {
       const hasMissingGames = Object.values(positionStates).some(
         (state) => state.status !== 'correct'
       )
-      
+
       // In daily games, only auto-complete if all games are discovered
       // Otherwise, stay on game screen to allow manual ending
       if (isDailyGame && hasMissingGames) {
@@ -65,9 +66,16 @@ export function ResultCard() {
     }
   }, [nextPosition, navigateToPosition, positionStates, setGamePhase, challengeId])
 
-  // Auto-close timer - only runs when there's a next position (must be before early return)
+  // Auto-close timer - only runs when there's a next position OR session is not completed yet
   useEffect(() => {
-    if (!lastResult || !nextPosition) return
+    if (!lastResult) return
+
+    // Auto-close if:
+    // 1. There's a next position to navigate to, OR
+    // 2. Session is not completed (even if on last round, user can still navigate back)
+    const shouldAutoClose = nextPosition !== null || !isSessionCompleted
+
+    if (!shouldAutoClose) return
 
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -80,14 +88,18 @@ export function ResultCard() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [lastResult, nextPosition])
+  }, [lastResult, nextPosition, isSessionCompleted])
 
   // Separate effect to handle auto-navigation when countdown reaches 0
   useEffect(() => {
-    if (countdown === 0 && lastResult && nextPosition) {
-      handleNext()
+    if (countdown === 0 && lastResult) {
+      // Only auto-navigate if there's a next position OR session is not completed
+      const shouldAutoNavigate = nextPosition !== null || !isSessionCompleted
+      if (shouldAutoNavigate) {
+        handleNext()
+      }
     }
-  }, [countdown, lastResult, nextPosition, handleNext])
+  }, [countdown, lastResult, nextPosition, isSessionCompleted, handleNext])
 
   // Early return after all hooks
   if (!lastResult) return null
@@ -125,10 +137,12 @@ export function ResultCard() {
 
   // Determine button text
   const getButtonText = () => {
-    if (!nextPosition) {
+    // Show "View Results" only when session is completed
+    if (isSessionCompleted) {
       return t('game.viewResults')
     }
-    if (hasSkippedPositions && nextPosition < currentPosition) {
+    // Otherwise, show navigation text
+    if (hasSkippedPositions && nextPosition && nextPosition < currentPosition) {
       return t('game.navigation.reviewSkipped', 'Review Skipped')
     }
     return t('game.nextRound')
@@ -382,7 +396,8 @@ export function ResultCard() {
             onClick={handleNext}
             className="w-full gap-2 font-bold"
           >
-            {nextPosition ? `${getButtonText()} (${countdown}s)` : getButtonText()}
+            {/* Show countdown only when auto-closing (session not completed or has next position) */}
+            {(nextPosition !== null || !isSessionCompleted) ? `${getButtonText()} (${countdown}s)` : getButtonText()}
             <ChevronRight className="w-5 h-5" />
           </Button>
         </motion.div>

@@ -135,6 +135,9 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Handle game phase transitions
         if (result.isCompleted) {
+          // Mark session as completed in state
+          store.setIsSessionCompleted(true)
+
           // Check if we're in a daily game and if there are still missing games
           const isDailyGame = store.challengeId !== null
           const hasMissingGames = Object.values(store.positionStates).some(
