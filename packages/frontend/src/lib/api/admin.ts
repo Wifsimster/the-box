@@ -205,6 +205,27 @@ export const adminApi = {
   },
 
   /**
+   * Get active sync-all state
+   */
+  async getActiveSyncAll(): Promise<{ syncState: ImportState | null }> {
+    const response = await fetch('/api/admin/jobs/sync-all/current', {
+      credentials: 'include',
+    })
+    return handleResponse<{ syncState: ImportState | null }>(response)
+  },
+
+  /**
+   * Cancel an active/paused sync-all job
+   */
+  async cancelSyncAll(id: number): Promise<{ syncState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/sync-all/${id}/cancel`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ syncState: ImportState }>(response)
+  },
+
+  /**
    * Manually trigger import games job
    */
   async triggerImportGames(targetGames?: number, screenshotsPerGame?: number): Promise<{ job: Job }> {

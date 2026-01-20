@@ -95,6 +95,7 @@ interface AdminState {
   fetchRecurringJobs: () => Promise<void>
   triggerDailyChallengeJob: () => Promise<void>
   triggerSyncAllJob: () => Promise<void>
+  cancelActiveSyncAll: () => Promise<void>
   triggerCleanupAnonymousUsersJob: () => Promise<void>
   triggerClearDailyDataJob: () => Promise<void>
   triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
@@ -265,6 +266,23 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger sync-all job:', err)
+          throw err
+        }
+      },
+
+      cancelActiveSyncAll: async () => {
+        try {
+          // Get active sync-all state
+          const { syncState } = await adminApi.getActiveSyncAll()
+          if (!syncState) {
+            throw new Error('No active sync-all job found')
+          }
+          // Cancel it
+          await adminApi.cancelSyncAll(syncState.id)
+          // Refresh job list
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to cancel sync-all job:', err)
           throw err
         }
       },

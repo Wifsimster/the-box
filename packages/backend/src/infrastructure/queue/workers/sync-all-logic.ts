@@ -688,6 +688,34 @@ export async function resumeSyncAll(syncStateId: number): Promise<{ syncState: I
 }
 
 /**
+ * Cancel/abort a sync (marks as failed so a new one can be started)
+ */
+export async function cancelSyncAll(syncStateId: number): Promise<ImportState> {
+  const state = await importStateRepository.findById(syncStateId)
+  if (!state) {
+    throw new Error(`Sync state ${syncStateId} not found`)
+  }
+
+  if (state.status === 'completed' || state.status === 'failed') {
+    throw new Error(`Cannot cancel sync with status: ${state.status}`)
+  }
+
+  log.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  log.info(`SYNC CANCELLED`)
+  log.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  log.info({
+    syncStateId,
+    previousStatus: state.status,
+    gamesProcessed: state.gamesProcessed,
+    gamesImported: state.gamesImported,
+    currentBatch: state.currentBatch,
+  }, `Sync cancelled after ${state.gamesProcessed} games (batch ${state.currentBatch})`)
+
+  const updated = await importStateRepository.setStatus(syncStateId, 'failed')
+  return updated!
+}
+
+/**
  * Get current active sync
  */
 export async function getActiveSyncAll(): Promise<ImportState | null> {

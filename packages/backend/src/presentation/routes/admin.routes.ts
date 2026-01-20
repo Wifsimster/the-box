@@ -14,6 +14,7 @@ import {
   startSyncAll,
   pauseSyncAll,
   resumeSyncAll,
+  cancelSyncAll,
   getActiveSyncAll,
   getSyncAllState,
 } from '../../infrastructure/queue/workers/sync-all-logic.js'
@@ -889,6 +890,37 @@ router.post('/jobs/sync-all/:id/resume', async (req, res, next) => {
         return
       }
       if (error.message.includes('Cannot resume')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATE', message: error.message },
+        })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+// Cancel a sync-all (marks as failed so a new one can be started)
+router.post('/jobs/sync-all/:id/cancel', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const syncState = await cancelSyncAll(id)
+
+    res.json({
+      success: true,
+      data: { syncState },
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+        })
+        return
+      }
+      if (error.message.includes('Cannot cancel')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATE', message: error.message },

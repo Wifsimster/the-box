@@ -163,6 +163,7 @@ export function JobList() {
     recurringJobs,
     triggerDailyChallengeJob,
     triggerSyncAllJob,
+    cancelActiveSyncAll,
     triggerCleanupAnonymousUsersJob,
     triggerClearDailyDataJob,
     startRecalculateScores,
@@ -170,6 +171,7 @@ export function JobList() {
 
   const [recurringJobLoading, setRecurringJobLoading] = useState<string | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set())
+  const [showCancelSyncDialog, setShowCancelSyncDialog] = useState(false)
 
   // Manual jobs that are not scheduled but can be triggered
   const manualJobs = [
