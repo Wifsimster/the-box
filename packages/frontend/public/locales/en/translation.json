@@ -696,6 +696,20 @@
       "overview": "Overview",
       "achievements": "Achievements",
       "stats": "Stats"
+    },
+    "avatar": {
+      "title": "Change Avatar",
+      "description": "Upload a new profile picture or remove the current one.",
+      "change": "Change avatar",
+      "selectFile": "Select image file",
+      "selectImage": "Choose an image",
+      "upload": "Upload",
+      "remove": "Remove",
+      "sizeHint": "JPEG, PNG, GIF or WebP. Max 5MB.",
+      "invalidType": "Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.",
+      "fileTooLarge": "File is too large. Maximum size is 5MB.",
+      "uploadError": "Failed to upload avatar. Please try again.",
+      "deleteError": "Failed to remove avatar. Please try again."
     }
   },
   "dailyLogin": {

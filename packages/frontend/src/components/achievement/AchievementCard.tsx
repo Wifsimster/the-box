@@ -22,7 +22,8 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
     const { t, i18n } = useTranslation()
     const isEarned = achievement.earned
     const isLocked = achievement.isHidden && !isEarned
-    const hasProgress = achievement.progress > 0 && achievement.progressMax && achievement.progressMax > 0
+    // Show progress bar for any achievement with a progressMax, even if progress is 0
+    const hasProgress = achievement.progressMax != null && achievement.progressMax > 0
 
     const tierColor = tierColors[achievement.tier as keyof typeof tierColors] || tierColors[1]
 
@@ -125,7 +126,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                 {hasProgress && !isEarned && (
                     <div className="mt-3 space-y-1">
                         <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Progress</span>
+                            <span>{t('achievements.status.progress')}</span>
                             <span>{achievement.progress} / {achievement.progressMax}</span>
                         </div>
                         <Progress value={(achievement.progress / achievement.progressMax!) * 100} />

@@ -98,4 +98,15 @@ export const userRepository = {
         last_played_at: new Date(),
       })
   },
+
+  async updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<User | null> {
+    log.info({ userId, avatarUrl }, 'updateAvatarUrl')
+    await db('user')
+      .where('id', userId)
+      .update({
+        avatar_url: avatarUrl,
+        updatedAt: new Date(),
+      })
+    return this.findById(userId)
+  },
 }

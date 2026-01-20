@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -10,9 +10,9 @@ import { useAchievementStore } from '@/stores/achievementStore'
 import { AchievementGrid } from '@/components/achievement'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { AvatarUpload } from '@/components/profile'
 import type { User as UserType } from '@the-box/types'
 
 /**
@@ -26,6 +26,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true)
     const [, setError] = useState<string | null>(null)
     const [userProfile, setUserProfile] = useState<UserType | null>(null)
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
     const hasFetched = useRef(false)
 
     const {
@@ -34,6 +35,10 @@ export default function ProfilePage() {
         fetchUserAchievements,
         isLoadingUserAchievements
     } = useAchievementStore()
+
+    const handleAvatarChange = useCallback((newAvatarUrl: string | null) => {
+        setAvatarUrl(newAvatarUrl)
+    }, [])
 
     // Redirect to login if not authenticated
     useEffect(() => {
@@ -51,11 +56,12 @@ export default function ProfilePage() {
 
             Promise.all([
                 fetchUserAchievements(),
-                fetch('/api/users/me', { credentials: 'include' })
+                fetch('/api/user/me', { credentials: 'include' })
                     .then(res => res.json())
                     .then(json => {
                         if (json.success && json.data) {
                             setUserProfile(json.data)
+                            setAvatarUrl(json.data.avatarUrl ?? session.user.image ?? null)
                         }
                     })
             ])
@@ -122,15 +128,12 @@ export default function ProfilePage() {
                                         animate={{ scale: 1, opacity: 1 }}
                                         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
                                     >
-                                        <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl">
-                                            <AvatarImage
-                                                src={(session.user.image !== null ? session.user.image : undefined) || undefined}
-                                                alt={(session.user.name !== null ? session.user.name : session.user.username) || 'User'}
-                                            />
-                                            <AvatarFallback className="text-3xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
-                                                {userInitials}
-                                            </AvatarFallback>
-                                        </Avatar>
+                                        <AvatarUpload
+                                            currentAvatarUrl={avatarUrl}
+                                            userName={session.user.name || session.user.username}
+                                            userInitials={userInitials}
+                                            onAvatarChange={handleAvatarChange}
+                                        />
                                     </motion.div>
                                     <div className="flex-1 space-y-3 text-center sm:text-left">
                                         <div>

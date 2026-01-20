@@ -722,6 +722,20 @@
       "overview": "Aperçu",
       "achievements": "Succès",
       "stats": "Statistiques"
+    },
+    "avatar": {
+      "title": "Changer l'avatar",
+      "description": "Téléchargez une nouvelle photo de profil ou supprimez l'actuelle.",
+      "change": "Changer l'avatar",
+      "selectFile": "Sélectionner un fichier image",
+      "selectImage": "Choisir une image",
+      "upload": "Télécharger",
+      "remove": "Supprimer",
+      "sizeHint": "JPEG, PNG, GIF ou WebP. Max 5 Mo.",
+      "invalidType": "Type de fichier invalide. Seuls les formats JPEG, PNG, GIF et WebP sont autorisés.",
+      "fileTooLarge": "Le fichier est trop volumineux. La taille maximum est de 5 Mo.",
+      "uploadError": "Échec du téléchargement de l'avatar. Veuillez réessayer.",
+      "deleteError": "Échec de la suppression de l'avatar. Veuillez réessayer."
     }
   },
   "dailyLogin": {

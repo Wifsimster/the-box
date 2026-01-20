@@ -133,10 +133,17 @@ app.use('/api/auth', (req, res, next) => {
 // Request logging (after body parsing for potential body logging)
 app.use(requestLogger)
 
-// Static file serving for uploads (screenshots)
+// Static file serving for uploads (screenshots and avatars)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', 'uploads')
 app.use('/uploads', express.static(uploadsPath))
+
+// Ensure avatars directory exists
+const avatarsPath = path.resolve(uploadsPath, 'avatars')
+import fs from 'fs'
+if (!fs.existsSync(avatarsPath)) {
+  fs.mkdirSync(avatarsPath, { recursive: true })
+}
 
 // Health check
 app.get('/health', (_req, res) => {

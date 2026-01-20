@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { userService } from '../../domain/services/index.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
+import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
+import { logger } from '../../infrastructure/logger/logger.js'
 
 const router = Router()
 
@@ -55,6 +57,66 @@ router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
     res.json({
       success: true,
       data,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Upload avatar
+router.post('/avatar', authMiddleware, avatarUpload.single('avatar'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'NO_FILE', message: 'No file uploaded' },
+      })
+    }
+
+    // Get current user to check for existing avatar
+    const currentUser = await userRepository.findById(req.userId!)
+    const oldAvatarUrl = currentUser?.avatarUrl
+
+    // Update user with new avatar URL
+    const avatarUrl = getAvatarUrl(req.file.filename)
+    const updatedUser = await userRepository.updateAvatarUrl(req.userId!, avatarUrl)
+
+    // Delete old avatar file if it exists and is a local upload
+    if (oldAvatarUrl) {
+      await deleteAvatarFile(oldAvatarUrl)
+    }
+
+    logger.info({ userId: req.userId, avatarUrl }, 'avatar uploaded')
+
+    res.json({
+      success: true,
+      data: updatedUser,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Delete avatar
+router.delete('/avatar', authMiddleware, async (req, res, next) => {
+  try {
+    // Get current user to check for existing avatar
+    const currentUser = await userRepository.findById(req.userId!)
+    const oldAvatarUrl = currentUser?.avatarUrl
+
+    // Remove avatar URL from user
+    const updatedUser = await userRepository.updateAvatarUrl(req.userId!, null)
+
+    // Delete old avatar file if it exists
+    if (oldAvatarUrl) {
+      await deleteAvatarFile(oldAvatarUrl)
+    }
+
+    logger.info({ userId: req.userId }, 'avatar deleted')
+
+    res.json({
+      success: true,
+      data: updatedUser,
     })
   } catch (error) {
     next(error)

@@ -248,7 +248,7 @@ export class AchievementService {
                 .leftJoin('tier_sessions', 'game_sessions.id', 'tier_sessions.game_session_id')
                 .leftJoin('user_guesses', 'tier_sessions.id', 'user_guesses.tier_session_id')
                 .where('game_sessions.user_id', data.userId)
-                .where('game_sessions.is_complete', true)
+                .where('game_sessions.is_completed', true)
                 .groupBy('game_sessions.id')
                 .havingRaw('COALESCE(MAX(CASE WHEN user_guesses.power_up_used IS NOT NULL THEN 1 ELSE 0 END), 0) = 0')
                 .count('* as count')
@@ -345,7 +345,7 @@ export class AchievementService {
     private async checkChallengesCompleted(achievement: AchievementRow, data: GameCompletionData, criteria: any): Promise<boolean> {
         const result = await db('game_sessions')
             .where('user_id', data.userId)
-            .where('is_complete', true)
+            .where('is_completed', true)
             .count('* as count')
             .first()
 
@@ -366,7 +366,7 @@ export class AchievementService {
         // Get user's rank for this challenge
         const rankings = await db('game_sessions')
             .where('challenge_id', data.challengeId)
-            .where('is_complete', true)
+            .where('is_completed', true)
             .orderBy('total_score', 'desc')
             .select('user_id', 'total_score')
 
@@ -469,16 +469,180 @@ export class AchievementService {
         const allAchievements = await achievementRepository.findAll()
         const userProgress = await achievementRepository.getUserProgress(userId)
 
+        // Calculate current progress for unearned achievements
+        const currentProgress = await this.calculateCurrentProgress(userId)
+
         return allAchievements.map(achievement => {
             const progress = userProgress[achievement.key]
+            const isEarned = !!progress
+
+            // Extract progressMax from criteria for count-based achievements
+            const criteriaMax = this.extractProgressMaxFromCriteria(achievement.criteria)
+
             return {
                 ...achievement,
-                earned: !!progress,
+                earned: isEarned,
                 earnedAt: progress?.earned_at || null,
-                progress: progress?.progress || 0,
-                progressMax: progress?.progress_max || null,
+                progress: isEarned ? (progress?.progress || 0) : (currentProgress[achievement.key] || 0),
+                progressMax: isEarned ? (progress?.progress_max || criteriaMax) : criteriaMax,
             }
         })
+    }
+
+    /**
+     * Extract the max progress value from achievement criteria
+     */
+    private extractProgressMaxFromCriteria(criteria: any): number | null {
+        if (!criteria || !criteria.type) {
+            return null
+        }
+
+        // Count-based achievements
+        if (criteria.count !== undefined) {
+            return criteria.count
+        }
+
+        // Streak-based achievements (days)
+        if (criteria.days !== undefined) {
+            return criteria.days
+        }
+
+        // Score-based achievements
+        if (criteria.score !== undefined) {
+            return criteria.score
+        }
+
+        // Rank-based achievements
+        if (criteria.max_rank !== undefined) {
+            return criteria.max_rank
+        }
+
+        return null
+    }
+
+    /**
+     * Calculate current progress for all count-based achievements
+     */
+    private async calculateCurrentProgress(userId: string): Promise<Record<string, number>> {
+        const progress: Record<string, number> = {}
+
+        // Get all achievements to know which ones to calculate
+        const allAchievements = await achievementRepository.findAll()
+
+        // Batch database queries for efficiency
+        const [
+            challengesCompleted,
+            challengesStarted,
+            totalGuesses,
+            totalCorrectGuesses,
+            currentStreak,
+            speedGuesses3s,
+            speedGuesses5s,
+            hintFreeGames,
+        ] = await Promise.all([
+            // Total challenges completed
+            db('game_sessions')
+                .where('user_id', userId)
+                .where('is_completed', true)
+                .count('* as count')
+                .first(),
+            // Total challenges started
+            db('game_sessions')
+                .where('user_id', userId)
+                .count('* as count')
+                .first(),
+            // Total guesses
+            db('guesses')
+                .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+                .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+                .where('game_sessions.user_id', userId)
+                .count('* as count')
+                .first(),
+            // Total correct guesses
+            db('guesses')
+                .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+                .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+                .where('game_sessions.user_id', userId)
+                .where('guesses.is_correct', true)
+                .count('* as count')
+                .first(),
+            // Current streak
+            db('user')
+                .where('id', userId)
+                .select('current_streak')
+                .first(),
+            // Speed guesses under 3 seconds
+            db('guesses')
+                .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+                .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+                .where('game_sessions.user_id', userId)
+                .where('guesses.is_correct', true)
+                .where('guesses.time_taken_ms', '<=', 3000)
+                .count('* as count')
+                .first(),
+            // Speed guesses under 5 seconds
+            db('guesses')
+                .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+                .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+                .where('game_sessions.user_id', userId)
+                .where('guesses.is_correct', true)
+                .where('guesses.time_taken_ms', '<=', 5000)
+                .count('* as count')
+                .first(),
+            // Hint-free completed games - count game sessions without any power-up usage
+            db.raw(`
+                SELECT COUNT(*) as count FROM (
+                    SELECT gs.id
+                    FROM game_sessions gs
+                    LEFT JOIN tier_sessions ts ON gs.id = ts.game_session_id
+                    LEFT JOIN guesses g ON ts.id = g.tier_session_id
+                    WHERE gs.user_id = ? AND gs.is_completed = true
+                    GROUP BY gs.id
+                    HAVING COALESCE(MAX(CASE WHEN g.power_up_used IS NOT NULL THEN 1 ELSE 0 END), 0) = 0
+                ) as hint_free
+            `, [userId]),
+        ])
+
+        // Map progress to achievement keys based on their criteria type
+        for (const achievement of allAchievements) {
+            const criteria = achievement.criteria
+            if (!criteria || !criteria.type) continue
+
+            switch (criteria.type) {
+                case 'challenges_completed':
+                    progress[achievement.key] = Number(challengesCompleted?.count || 0)
+                    break
+                case 'challenges_started':
+                    progress[achievement.key] = Number(challengesStarted?.count || 0)
+                    break
+                case 'total_guesses':
+                    progress[achievement.key] = Number(totalGuesses?.count || 0)
+                    break
+                case 'total_correct_guesses':
+                    progress[achievement.key] = Number(totalCorrectGuesses?.count || 0)
+                    break
+                case 'streak':
+                    progress[achievement.key] = Number(currentStreak?.current_streak || 0)
+                    break
+                case 'total_speed':
+                    // Use 3s or 5s based on criteria
+                    if (criteria.max_time_ms <= 3000) {
+                        progress[achievement.key] = Number(speedGuesses3s?.count || 0)
+                    } else {
+                        progress[achievement.key] = Number(speedGuesses5s?.count || 0)
+                    }
+                    break
+                case 'no_hints':
+                    // Raw query returns { rows: [...] } in PostgreSQL
+                    const hintFreeRows = hintFreeGames?.rows || hintFreeGames || []
+                    progress[achievement.key] = hintFreeRows.length > 0 ? Number(hintFreeRows[0]?.count || 0) : 0
+                    break
+                // Other types (perfect_score, min_score, consecutive_speed, etc.)
+                // are session-based and don't have meaningful cumulative progress
+            }
+        }
+
+        return progress
     }
 
     /**
