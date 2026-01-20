@@ -322,31 +322,6 @@ export default function ProfilePage() {
                             </CardContent>
                         </Card>
                     </motion.div>
-
-                    {/* Achievement Stats by Category */}
-                    {stats && Object.keys(stats.byCategory).length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.6 }}
-                        >
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>{t('profile.progressByCategory')}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                        {Object.entries(stats.byCategory).map(([category, count]: [string, number]) => (
-                                            <div key={category} className="text-center">
-                                                <div className="text-2xl font-bold">{count as number}</div>
-                                                <div className="text-xs text-muted-foreground capitalize">{category}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
                 </div>
             </div>
         </>

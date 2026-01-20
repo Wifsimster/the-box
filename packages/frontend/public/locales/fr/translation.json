@@ -37,6 +37,11 @@
     "earned": "Obtenu"
   },
   "achievements": {
+    "filters": {
+      "all": "Tous",
+      "unlocked": "Débloqués",
+      "locked": "Verrouillés"
+    },
     "categories": {
       "all": "Tous",
       "speed": "Vitesse",

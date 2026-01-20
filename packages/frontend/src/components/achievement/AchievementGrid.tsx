@@ -12,11 +12,6 @@ interface AchievementGridProps {
 export function AchievementGrid({ achievements, size = 'medium' }: AchievementGridProps) {
     const { t } = useTranslation()
 
-    const categories = useMemo(() => {
-        const cats = new Set(achievements.map(a => a.category))
-        return ['all', ...Array.from(cats).sort()]
-    }, [achievements])
-
     const sortByDifficulty = (list: AchievementWithProgress[]) => {
         return [...list].sort((a, b) => {
             // First sort by tier (easiest first: 1, 2, 3)
@@ -28,27 +23,32 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
         })
     }
 
-    const achievementsByCategory = useMemo(() => {
-        return categories.reduce((acc, category) => {
-            if (category === 'all') {
-                acc[category] = sortByDifficulty(achievements)
-            } else {
-                acc[category] = sortByDifficulty(achievements.filter(a => a.category === category))
-            }
-            return acc
-        }, {} as Record<string, AchievementWithProgress[]>)
-    }, [achievements, categories])
+    const achievementsByStatus = useMemo(() => {
+        const unlocked = achievements.filter(a =>
+            a.earned || (a.progressMax != null && a.progress >= a.progressMax)
+        )
+        const locked = achievements.filter(a =>
+            !a.earned && !(a.progressMax != null && a.progress >= a.progressMax)
+        )
 
-    const getCategoryLabel = (category: string) => {
-        return t(`achievements.categories.${category}`)
+        return {
+            all: sortByDifficulty(achievements),
+            unlocked: sortByDifficulty(unlocked),
+            locked: sortByDifficulty(locked)
+        }
+    }, [achievements])
+
+    const filters = ['all', 'unlocked', 'locked'] as const
+
+    const getFilterLabel = (filter: typeof filters[number]) => {
+        return t(`achievements.filters.${filter}`)
     }
 
-    const getCategoryStats = (category: string) => {
-        const categoryAchievements = achievementsByCategory[category] || []
-        const earned = categoryAchievements.filter((a: AchievementWithProgress) =>
+    const getFilterStats = (filter: typeof filters[number]) => {
+        const total = achievementsByStatus[filter].length
+        const earned = achievementsByStatus[filter].filter((a: AchievementWithProgress) =>
             a.earned || (a.progressMax != null && a.progress >= a.progressMax)
         ).length
-        const total = categoryAchievements.length
         return { earned, total }
     }
 
@@ -63,30 +63,30 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
     return (
         <Tabs defaultValue="all" className="w-full">
             <TabsList className="w-full flex-wrap h-auto gap-1">
-                {categories.map(category => {
-                    const { earned, total } = getCategoryStats(category)
+                {filters.map(filter => {
+                    const { earned, total } = getFilterStats(filter)
                     return (
                         <TabsTrigger
-                            key={category}
-                            value={category}
+                            key={filter}
+                            value={filter}
                             className="flex items-center gap-2"
                         >
-                            {getCategoryLabel(category)}
+                            {getFilterLabel(filter)}
                             <span className="text-xs opacity-70">
-                                {earned}/{total}
+                                {filter === 'all' ? `${earned}/${total}` : total}
                             </span>
                         </TabsTrigger>
                     )
                 })}
             </TabsList>
 
-            {categories.map(category => (
-                <TabsContent key={category} value={category} className="mt-6">
+            {filters.map(filter => (
+                <TabsContent key={filter} value={filter} className="mt-6">
                     <div className={`grid gap-4 ${size === 'small'
                         ? 'grid-cols-1 md:grid-cols-2'
                         : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                         }`}>
-                        {(achievementsByCategory[category] || []).map((achievement: AchievementWithProgress) => (
+                        {achievementsByStatus[filter].map((achievement: AchievementWithProgress) => (
                             <AchievementCard
                                 key={achievement.id}
                                 achievement={achievement}

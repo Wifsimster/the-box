@@ -37,6 +37,11 @@
     "earned": "Earned"
   },
   "achievements": {
+    "filters": {
+      "all": "All",
+      "unlocked": "Unlocked",
+      "locked": "Locked"
+    },
     "categories": {
       "all": "All",
       "speed": "Speed",
