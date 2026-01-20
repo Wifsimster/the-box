@@ -404,6 +404,11 @@
         "completed": "Terminé",
         "failed": "Échoué",
         "delayed": "Retardé"
+      },
+      "syncConflict": {
+        "title": "Synchronisation déjà en cours",
+        "description": "Une tâche de synchronisation est déjà en cours ou en pause. Voulez-vous l'annuler et en démarrer une nouvelle ?",
+        "cancelAndRestart": "Annuler et relancer"
       }
     },
     "games": {

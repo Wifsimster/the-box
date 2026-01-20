@@ -23,7 +23,6 @@ export function ScreenshotViewer({
     currentPosition,
     positionStates,
     totalScreenshots,
-    navigateToPosition,
     gamePhase,
     sessionId,
   } = useGameStore()
@@ -97,12 +96,14 @@ export function ScreenshotViewer({
       }
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to update images when dependencies change
     setImages(newImages)
+     
     setCurrentCarouselIndex(1) // Reset to center
   }, [imageUrl, currentPosition, sessionId, gamePhase, findPreviousPosition, findNextPosition])
 
   // Handle carousel slide change (disabled - swipe removed)
-  const handleSlideChange = (index: number) => {
+  const handleSlideChange = (_index: number) => {
     // Swipe navigation disabled
     return
   }

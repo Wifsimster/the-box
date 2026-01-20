@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type {
     DailyLoginStatus,
     ClaimRewardResponse,
-    DailyReward,
     UserInventory,
 } from '@the-box/types'
 

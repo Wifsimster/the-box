@@ -43,7 +43,6 @@ export function AnimatedProgress({
   className,
 }: AnimatedProgressProps) {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100)
-  const isComplete = percentage >= 100
   const isInProgress = percentage > 0 && percentage < 100
 
   return (

@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useGameStore } from '@/stores/gameStore'

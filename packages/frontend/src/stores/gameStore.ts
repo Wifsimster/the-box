@@ -5,7 +5,6 @@ import type {
   GuessResult,
   PowerUpType,
   PowerUp,
-  Game,
   TierScreenshot,
   ScreenshotResponse,
   PositionStatus,

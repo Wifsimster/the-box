@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +22,7 @@ export default function HistoryPage() {
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [scoreRange, setScoreRange] = useState<[number, number]>([-1000, 2000])
+  const [scoreRange, _setScoreRange] = useState<[number, number]>([-1000, 2000])
 
   // Redirect to login if not authenticated
   useEffect(() => {

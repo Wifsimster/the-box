@@ -13,8 +13,6 @@ import { gameApi } from '@/lib/api/game'
 import type { GameSessionDetailsResponse } from '@/types'
 import { calculateSpeedMultiplier } from '@/lib/utils'
 
-const UNFOUND_PENALTY = 50
-
 export default function GameHistoryDetailsPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()

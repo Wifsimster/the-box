@@ -32,6 +32,47 @@ function debounce<T extends (...args: Parameters<T>) => void>(
   }
 }
 
+function UserSortIcon({ field, sortField, sortOrder }: { field: string; sortField: string; sortOrder: 'asc' | 'desc' }) {
+  if (sortField !== field) {
+    return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+  }
+  return (
+    <motion.span
+      initial={{ rotate: 0 }}
+      animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
+      transition={{ duration: 0.2 }}
+    >
+      <ArrowUp className="ml-1 h-4 w-4" />
+    </motion.span>
+  )
+}
+
+function UserSortableHeader({
+  field,
+  children,
+  sortField,
+  sortOrder,
+  onSort,
+}: {
+  field: string
+  children: React.ReactNode
+  sortField: string
+  sortOrder: 'asc' | 'desc'
+  onSort: (field: string) => void
+}) {
+  return (
+    <TableHead>
+      <button
+        className="flex items-center font-medium hover:text-foreground transition-colors"
+        onClick={() => onSort(field)}
+      >
+        {children}
+        <UserSortIcon field={field} sortField={sortField} sortOrder={sortOrder} />
+      </button>
+    </TableHead>
+  )
+}
+
 export function UserList() {
   const { t } = useTranslation()
   const {
@@ -54,7 +95,7 @@ export function UserList() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const [banningUser, setBanningUser] = useState<User | null>(null)
   const [unbanningUser, setUnbanningUser] = useState<User | null>(null)
-  const [roleChangingUser, setRoleChangingUser] = useState<{ user: User; newRole: string } | null>(null)
+  const [_roleChangingUser, setRoleChangingUser] = useState<{ user: User; newRole: string } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchInput, setSearchInput] = useState(usersSearch)
 
@@ -152,39 +193,6 @@ export function UserList() {
 
   const totalPages = Math.ceil(usersPagination.total / usersPagination.limit)
 
-  const SortIcon = ({ field }: { field: string }) => {
-    if (usersSort.field !== field) {
-      return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
-    }
-    return (
-      <motion.span
-        initial={{ rotate: 0 }}
-        animate={{ rotate: usersSort.order === 'asc' ? 0 : 180 }}
-        transition={{ duration: 0.2 }}
-      >
-        <ArrowUp className="ml-1 h-4 w-4" />
-      </motion.span>
-    )
-  }
-
-  const SortableHeader = ({
-    field,
-    children,
-  }: {
-    field: string
-    children: React.ReactNode
-  }) => (
-    <TableHead>
-      <button
-        className="flex items-center font-medium hover:text-foreground transition-colors"
-        onClick={() => handleSort(field)}
-      >
-        {children}
-        <SortIcon field={field} />
-      </button>
-    </TableHead>
-  )
-
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString()
@@ -250,12 +258,12 @@ export function UserList() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-white/10">
-                      <SortableHeader field="email">{t('admin.users.email')}</SortableHeader>
-                      <SortableHeader field="displayName">{t('admin.users.name')}</SortableHeader>
-                      <SortableHeader field="role">{t('admin.users.roleLabel')}</SortableHeader>
-                      <SortableHeader field="totalScore">{t('admin.users.totalScore')}</SortableHeader>
-                      <SortableHeader field="currentStreak">{t('admin.users.currentStreak')}</SortableHeader>
-                      <SortableHeader field="createdAt">{t('admin.users.createdAt')}</SortableHeader>
+                      <UserSortableHeader field="email" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.email')}</UserSortableHeader>
+                      <UserSortableHeader field="displayName" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.name')}</UserSortableHeader>
+                      <UserSortableHeader field="role" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.roleLabel')}</UserSortableHeader>
+                      <UserSortableHeader field="totalScore" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.totalScore')}</UserSortableHeader>
+                      <UserSortableHeader field="currentStreak" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.currentStreak')}</UserSortableHeader>
+                      <UserSortableHeader field="createdAt" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.createdAt')}</UserSortableHeader>
                       <TableHead className="text-right">{t('admin.users.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>

@@ -46,6 +46,7 @@ export function useKeyboardHeight(): KeyboardState {
     }
 
     // Initial check
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to check keyboard state on mount
     updateKeyboardState();
 
     viewport.addEventListener('resize', updateKeyboardState);

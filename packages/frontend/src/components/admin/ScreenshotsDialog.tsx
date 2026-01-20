@@ -27,6 +27,7 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
 
   useEffect(() => {
     if (open && game) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to fetch screenshots when dialog opens
       setLoading(true)
       setCurrentIndex(0)
       adminApi

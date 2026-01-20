@@ -44,6 +44,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
 
   useEffect(() => {
     if (game) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to sync form data with game prop
       setFormData({
         name: game.name,
         slug: game.slug,
@@ -61,6 +62,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
 
   // Reset image error when URL changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to reset image error on URL change
     setImageError(false)
   }, [formData.coverImageUrl])
 

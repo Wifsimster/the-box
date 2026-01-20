@@ -3,8 +3,6 @@ import {
   fetchWithRetry,
   parseApiError,
   logError,
-  AuthenticationError,
-  NotFoundError,
 } from '@/lib/errors'
 
 /**

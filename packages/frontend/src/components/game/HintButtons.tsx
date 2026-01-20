@@ -60,16 +60,19 @@ export function HintButtons() {
 
   const handleHintYear = () => {
     if (!hasIncorrectGuess || hintYearUsed || !yearAvailable) return
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintYear is a store action, not a React hook
     useHintYear(currentPosition)
   }
 
   const handleHintPublisher = () => {
     if (!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable) return
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintPublisher is a store action, not a React hook
     useHintPublisher(currentPosition)
   }
 
   const handleHintDeveloper = () => {
     if (!hasIncorrectGuess || hintDeveloperUsed || !developerAvailable) return
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintDeveloper is a store action, not a React hook
     useHintDeveloper(currentPosition)
   }
 

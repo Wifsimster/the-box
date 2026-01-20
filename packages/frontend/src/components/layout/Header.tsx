@@ -22,6 +22,37 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
 
+interface NavigationLinksProps {
+  isMobile?: boolean
+  t: (key: string) => string
+  localizedPath: (path: string) => string
+  onMobileClick?: () => void
+}
+
+function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick }: NavigationLinksProps) {
+  const mobileClasses = isMobile ? "w-full justify-start" : ""
+  const iconClass = isMobile ? "mr-2" : "mr-1"
+  const handleClick = isMobile ? onMobileClick : undefined
+
+  return (
+    <>
+      <Button variant="ghost" size="sm" asChild className={mobileClasses}>
+        <Link to={localizedPath('/')} onClick={handleClick}>
+          <Home className={`w-4 h-4 ${iconClass}`} />
+          {t('common.home')}
+        </Link>
+      </Button>
+
+      <Button variant="ghost" size="sm" asChild className={mobileClasses}>
+        <Link to={localizedPath('/leaderboard')} onClick={handleClick}>
+          <Trophy className={`w-4 h-4 ${iconClass}`} />
+          {t('common.leaderboard')}
+        </Link>
+      </Button>
+    </>
+  )
+}
+
 /**
  * Header component
  *
@@ -42,30 +73,6 @@ export function Header() {
   const hasValidSession = session && session.user && session.user.id
   const showAuthButtons = !hasValidSession
 
-  const NavigationLinks = ({ isMobile = false }: { isMobile?: boolean }) => {
-    const mobileClasses = isMobile ? "w-full justify-start" : ""
-    const iconClass = isMobile ? "mr-2" : "mr-1"
-    const handleClick = isMobile ? () => setMobileMenuOpen(false) : undefined
-
-    return (
-      <>
-        <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-          <Link to={localizedPath('/')} onClick={handleClick}>
-            <Home className={`w-4 h-4 ${iconClass}`} />
-            {t('common.home')}
-          </Link>
-        </Button>
-
-        <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-          <Link to={localizedPath('/leaderboard')} onClick={handleClick}>
-            <Trophy className={`w-4 h-4 ${iconClass}`} />
-            {t('common.leaderboard')}
-          </Link>
-        </Button>
-      </>
-    )
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/20 bg-transparent backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md">
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4">
@@ -83,7 +90,7 @@ export function Header() {
                 <SheetTitle className="text-left">Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
-                <NavigationLinks isMobile={true} />
+                <NavigationLinks isMobile={true} t={t} localizedPath={localizedPath} onMobileClick={() => setMobileMenuOpen(false)} />
 
                 {/* Mobile Auth Section */}
                 <div className="border-t border-border pt-4 mt-4">
@@ -171,7 +178,7 @@ export function Header() {
 
         {/* Desktop Navigation - hidden on mobile, shown on md and up */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-          <NavigationLinks isMobile={false} />
+          <NavigationLinks isMobile={false} t={t} localizedPath={localizedPath} />
         </nav>
 
         {/* Auth Buttons - Desktop - hidden on mobile, shown on md and up */}

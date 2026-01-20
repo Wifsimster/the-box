@@ -23,6 +23,47 @@ interface GameTableProps {
   onSort: (field: string) => void
 }
 
+function SortIcon({ field, sortField, sortOrder }: { field: string; sortField: string; sortOrder: 'asc' | 'desc' }) {
+  if (sortField !== field) {
+    return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+  }
+  return (
+    <motion.span
+      initial={{ rotate: 0 }}
+      animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
+      transition={{ duration: 0.2 }}
+    >
+      <ArrowUp className="ml-1 h-4 w-4" />
+    </motion.span>
+  )
+}
+
+function SortableHeader({
+  field,
+  children,
+  sortField,
+  sortOrder,
+  onSort,
+}: {
+  field: string
+  children: React.ReactNode
+  sortField: string
+  sortOrder: 'asc' | 'desc'
+  onSort: (field: string) => void
+}) {
+  return (
+    <TableHead>
+      <button
+        className="flex items-center font-medium hover:text-foreground transition-colors"
+        onClick={() => onSort(field)}
+      >
+        {children}
+        <SortIcon field={field} sortField={sortField} sortOrder={sortOrder} />
+      </button>
+    </TableHead>
+  )
+}
+
 export function GameTable({
   games,
   onEdit,
@@ -34,49 +75,16 @@ export function GameTable({
 }: GameTableProps) {
   const { t } = useTranslation()
 
-  const SortIcon = ({ field }: { field: string }) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
-    }
-    return (
-      <motion.span
-        initial={{ rotate: 0 }}
-        animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
-        transition={{ duration: 0.2 }}
-      >
-        <ArrowUp className="ml-1 h-4 w-4" />
-      </motion.span>
-    )
-  }
-
-  const SortableHeader = ({
-    field,
-    children,
-  }: {
-    field: string
-    children: React.ReactNode
-  }) => (
-    <TableHead>
-      <button
-        className="flex items-center font-medium hover:text-foreground transition-colors"
-        onClick={() => onSort(field)}
-      >
-        {children}
-        <SortIcon field={field} />
-      </button>
-    </TableHead>
-  )
-
   return (
     <div className="rounded-lg border border-white/10 overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-white/10">
-            <SortableHeader field="name">{t('admin.games.table.name')}</SortableHeader>
-            <SortableHeader field="slug">{t('admin.games.table.slug')}</SortableHeader>
-            <SortableHeader field="releaseYear">{t('admin.games.table.releaseYear')}</SortableHeader>
-            <SortableHeader field="developer">{t('admin.games.table.developer')}</SortableHeader>
-            <SortableHeader field="metacritic">{t('admin.games.table.metacritic')}</SortableHeader>
+            <SortableHeader field="name" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.name')}</SortableHeader>
+            <SortableHeader field="slug" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.slug')}</SortableHeader>
+            <SortableHeader field="releaseYear" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.releaseYear')}</SortableHeader>
+            <SortableHeader field="developer" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.developer')}</SortableHeader>
+            <SortableHeader field="metacritic" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.metacritic')}</SortableHeader>
             <TableHead>{t('admin.games.table.genres')}</TableHead>
             <TableHead className="text-right">{t('admin.games.table.actions')}</TableHead>
           </TableRow>

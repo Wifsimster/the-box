@@ -5,6 +5,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { JobCardSkeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useAdminStore } from '@/stores/adminStore'
 import { FullImportCard } from './FullImportCard'
 import {
@@ -21,6 +29,7 @@ import {
   Database,
   Users,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 
 function formatRelativeTime(dateString: string): string {
@@ -218,6 +227,25 @@ export function JobList() {
       } else if (jobName === 'clear-daily-data') {
         await triggerClearDailyDataJob()
       }
+    } catch (err) {
+      // Handle conflict error for sync-all jobs
+      if (jobName === 'sync-all-games' && err instanceof Error && err.message.includes('already in progress or paused')) {
+        setShowCancelSyncDialog(true)
+      }
+    } finally {
+      setRecurringJobLoading(null)
+    }
+  }
+
+  const handleCancelAndRestartSync = async () => {
+    setShowCancelSyncDialog(false)
+    setRecurringJobLoading('sync-all-games')
+    try {
+      await cancelActiveSyncAll()
+      // Now try to start again
+      await triggerSyncAllJob()
+    } catch (err) {
+      console.error('Failed to cancel and restart sync-all:', err)
     } finally {
       setRecurringJobLoading(null)
     }
@@ -466,6 +494,35 @@ export function JobList() {
           </Card>
         </motion.div>
       )}
+
+      {/* Cancel Stuck Sync Dialog */}
+      <Dialog open={showCancelSyncDialog} onOpenChange={setShowCancelSyncDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              {t('admin.jobs.syncConflict.title', 'Sync Job Already Running')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('admin.jobs.syncConflict.description', 'A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelSyncDialog(false)}
+            >
+              {t('common.cancel', 'Cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelAndRestartSync}
+            >
+              {t('admin.jobs.syncConflict.cancelAndRestart', 'Cancel & Restart')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   )
 }

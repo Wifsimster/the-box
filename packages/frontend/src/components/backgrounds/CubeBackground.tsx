@@ -27,6 +27,7 @@ function DigitalDust() {
   const mouseInfluenceRadius = 1.5
   const mouseRepelStrength = 0.08
 
+  /* eslint-disable react-hooks/purity -- Initial particle positions need randomization, stable after mount */
   const [positions, velocities, sizes, phases] = useMemo(() => {
     const pos = new Float32Array(particleCount * 3)
     const vel = new Float32Array(particleCount * 3)
@@ -53,6 +54,7 @@ function DigitalDust() {
 
     return [pos, vel, siz, pha]
   }, [])
+  /* eslint-enable react-hooks/purity */
 
   useFrame((state) => {
     if (pointsRef.current) {

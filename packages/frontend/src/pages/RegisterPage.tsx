@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,7 +30,6 @@ type FormValues = {
 
 export default function RegisterPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const [isLoading, setIsLoading] = useState(false)
   const { refetch: refetchSession } = useSession()

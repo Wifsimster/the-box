@@ -15,6 +15,7 @@ export function useIsMobile(): boolean {
     const mediaQuery = window.matchMedia('(max-width: 767px)')
 
     // Set initial value
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to sync state with media query on mount
     setIsMobile(mediaQuery.matches)
 
     // Listen for changes

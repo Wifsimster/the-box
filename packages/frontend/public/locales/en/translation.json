@@ -404,6 +404,11 @@
         "completed": "Completed",
         "failed": "Failed",
         "delayed": "Delayed"
+      },
+      "syncConflict": {
+        "title": "Sync Job Already Running",
+        "description": "A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?",
+        "cancelAndRestart": "Cancel & Restart"
       }
     },
     "games": {
