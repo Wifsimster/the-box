@@ -11,11 +11,13 @@ import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays } from 'lu
 import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface LeaderboardEntry {
   rank: number
   username: string
   displayName: string
+  avatarUrl?: string
   totalScore: number
   completedAt?: string
 }
@@ -250,9 +252,12 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
                       className="flex flex-col items-center"
                     >
-                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
-                        {entry.displayName[0]}
-                      </div>
+                      <Avatar className="w-16 h-16 mb-2">
+                        <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
+                        <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xl font-bold">
+                          {entry.displayName[0]}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="font-semibold mb-1">{entry.displayName}</span>
                       <span className="text-primary font-bold">{entry.totalScore}</span>
                       <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
@@ -283,9 +288,12 @@ export default function LeaderboardPage() {
                         <div className="w-8 flex justify-center">
                           {getRankIcon(entry.rank)}
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
-                          {entry.displayName[0]}
-                        </div>
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
+                          <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
+                            {entry.displayName[0]}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1">
                           <span className="font-semibold">{entry.displayName}</span>
                           <span className="text-xs text-muted-foreground ml-2">@{entry.username}</span>
@@ -343,9 +351,12 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
                       className="flex flex-col items-center"
                     >
-                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
-                        {entry.displayName[0]}
-                      </div>
+                      <Avatar className="w-16 h-16 mb-2">
+                        <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
+                        <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xl font-bold">
+                          {entry.displayName[0]}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="font-semibold mb-1">{entry.displayName}</span>
                       <Badge variant="secondary" className="mb-1">
                         {entry.gamesPlayed} {t('leaderboard.gamesPlayed')}
@@ -379,9 +390,12 @@ export default function LeaderboardPage() {
                         <div className="w-8 flex justify-center">
                           {getRankIcon(entry.rank)}
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
-                          {entry.displayName[0]}
-                        </div>
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
+                          <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
+                            {entry.displayName[0]}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold">{entry.displayName}</span>
@@ -435,9 +449,12 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
                       className="flex flex-col items-center"
                     >
-                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center text-xl font-bold mb-2">
-                        {entry.displayName[0]}
-                      </div>
+                      <Avatar className="w-16 h-16 mb-2">
+                        <AvatarImage src={entry.avatarUrl ?? undefined} alt={entry.displayName} />
+                        <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xl font-bold">
+                          {entry.displayName[0]}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="font-semibold mb-1">{entry.displayName}</span>
                       <Badge variant="secondary" className="mb-1">
                         {entry.achievementCount} {t('leaderboard.achievements')}
@@ -473,9 +490,12 @@ export default function LeaderboardPage() {
                           <div className="w-8 flex justify-center">
                             {getRankIcon(rank)}
                           </div>
-                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-purple to-neon-pink flex items-center justify-center font-bold">
-                            {entry.displayName[0]}
-                          </div>
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={entry.avatarUrl ?? undefined} alt={entry.displayName} />
+                            <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
+                              {entry.displayName[0]}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold">{entry.displayName}</span>
