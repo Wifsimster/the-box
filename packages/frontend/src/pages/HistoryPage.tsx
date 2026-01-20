@@ -22,7 +22,7 @@ export default function HistoryPage() {
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [scoreRange, _setScoreRange] = useState<[number, number]>([-1000, 2000])
+  const [scoreRange] = useState<[number, number]>([-1000, 2000])
 
   // Redirect to login if not authenticated
   useEffect(() => {

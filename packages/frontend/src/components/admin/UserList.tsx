@@ -95,7 +95,7 @@ export function UserList() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const [banningUser, setBanningUser] = useState<User | null>(null)
   const [unbanningUser, setUnbanningUser] = useState<User | null>(null)
-  const [_roleChangingUser, setRoleChangingUser] = useState<{ user: User; newRole: string } | null>(null)
+  const [, setRoleChangingUser] = useState<{ user: User; newRole: string } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchInput, setSearchInput] = useState(usersSearch)
 

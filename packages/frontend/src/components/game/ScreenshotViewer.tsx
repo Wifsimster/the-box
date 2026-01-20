@@ -103,6 +103,7 @@ export function ScreenshotViewer({
   }, [imageUrl, currentPosition, sessionId, gamePhase, findPreviousPosition, findNextPosition])
 
   // Handle carousel slide change (disabled - swipe removed)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSlideChange = (_index: number) => {
     // Swipe navigation disabled
     return
