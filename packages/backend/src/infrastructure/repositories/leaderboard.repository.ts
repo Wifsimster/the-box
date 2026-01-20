@@ -77,12 +77,11 @@ export const leaderboardRepository = {
     const playersAbove = Number(higherScoreResult?.count ?? 0)
     const rank = playersAbove + 1
 
-    // Calculate percentile: what percentage of players scored lower
-    // percentile = (players with lower score / total players) * 100
-    const playersBelow = totalPlayers - rank
-    const percentile = Math.round((playersBelow / totalPlayers) * 100)
+    // Calculate top percentile: what top percentage the player is in
+    // Top 1% = best player, Top 100% = worst player
+    const topPercentile = Math.max(1, Math.round((rank / totalPlayers) * 100))
 
-    return { percentile, totalPlayers, rank }
+    return { percentile: topPercentile, totalPlayers, rank }
   },
 
   async findByMonth(year: number, month: number, limit = 100): Promise<MonthlyLeaderboardEntry[]> {

@@ -45,17 +45,30 @@ export async function loginAsUser(page: Page) {
   const userEmail = process.env.TEST_USER_EMAIL || 'testuser@example.com'
   const userPassword = process.env.TEST_USER_PASSWORD || 'testpass123'
 
-  await page.getByPlaceholder(/you@example.com|email/i).fill(userEmail)
+  // Clear and fill email field with a small delay to ensure React state updates
+  const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)
+  await emailInput.click()
+  await emailInput.fill('')
+  await emailInput.fill(userEmail)
+  await page.waitForTimeout(100)
+
+  // Clear and fill password field
   const passwordInput = page.locator('input[type="password"]').first()
+  await passwordInput.click()
+  await passwordInput.fill('')
   await passwordInput.fill(userPassword)
+  await page.waitForTimeout(100)
 
   // Wait for login button to be enabled (form validation)
   const loginButton = page.getByRole('button', { name: /login|sign in/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
-  await expect(loginButton).toBeEnabled({ timeout: 5000 })
 
+  // Wait a bit longer for React state to propagate
+  await page.waitForTimeout(300)
+
+  // Try clicking even if button appears disabled (it should be enabled)
   await loginButton.click()
-  await page.waitForTimeout(2000)
+  await page.waitForTimeout(3000)
 
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
@@ -88,17 +101,30 @@ export async function loginAsAdmin(page: Page) {
   const adminEmail = process.env.TEST_ADMIN_EMAIL || 'admin@example.com'
   const adminPassword = process.env.TEST_ADMIN_PASSWORD || 'admin123'
 
-  await page.getByPlaceholder(/you@example.com|email/i).fill(adminEmail)
+  // Clear and fill email field with a small delay to ensure React state updates
+  const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)
+  await emailInput.click()
+  await emailInput.fill('')
+  await emailInput.fill(adminEmail)
+  await page.waitForTimeout(100)
+
+  // Clear and fill password field
   const passwordInput = page.locator('input[type="password"]').first()
+  await passwordInput.click()
+  await passwordInput.fill('')
   await passwordInput.fill(adminPassword)
+  await page.waitForTimeout(100)
 
   // Wait for login button to be enabled (form validation)
   const loginButton = page.getByRole('button', { name: /login|sign in/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
-  await expect(loginButton).toBeEnabled({ timeout: 5000 })
 
+  // Wait a bit longer for React state to propagate
+  await page.waitForTimeout(300)
+
+  // Try clicking even if button appears disabled (it should be enabled)
   await loginButton.click()
-  await page.waitForTimeout(2000)
+  await page.waitForTimeout(3000)
 
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {

@@ -29,7 +29,7 @@ export function ShareCard({
     guessResults,
     compact = false,
 }: ShareCardProps) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [copied, setCopied] = useState(false)
     const [open, setOpen] = useState(false)
 
@@ -61,7 +61,7 @@ export function ShareCard({
             text += `🏆 Rank #${rank}/${totalPlayers}\n`
         }
 
-        text += `\n🔗 https://thebox.game/daily/${date}`
+        text += `\n🔗 https://the-box.battistella.ovh/${i18n.language}/leaderboard?date=${date}`
 
         return text
     }

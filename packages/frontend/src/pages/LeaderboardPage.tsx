@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
@@ -40,6 +41,7 @@ interface AchievementLeaderboardEntry {
 
 export default function LeaderboardPage() {
   const { t, i18n } = useTranslation()
+  const [searchParams] = useSearchParams()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [monthlyLeaderboard, setMonthlyLeaderboard] = useState<MonthlyLeaderboardEntry[]>([])
   const [achievementLeaderboard, setAchievementLeaderboard] = useState<AchievementLeaderboardEntry[]>([])
@@ -51,7 +53,19 @@ export default function LeaderboardPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const [selectedDate, setSelectedDate] = useState<Date>(today)
+  // Parse date from URL query param if present
+  const getInitialDate = (): Date => {
+    const dateParam = searchParams.get('date')
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const parsed = new Date(dateParam + 'T00:00:00')
+      if (!isNaN(parsed.getTime()) && parsed <= today) {
+        return parsed
+      }
+    }
+    return today
+  }
+
+  const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate)
   const [selectedMonth, setSelectedMonth] = useState<Date>(today)
 
   const formatDateForApi = (date: Date) => {
