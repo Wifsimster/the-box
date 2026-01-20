@@ -38,6 +38,7 @@ interface GameState {
   availableHints: {
     year: string | null
     publisher: string | null
+    developer: string | null
   } | null
 
   // Round timing (for per-screenshot time tracking)

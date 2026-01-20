@@ -8,6 +8,7 @@ import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.
 import { createDailyChallenge } from './daily-challenge-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
+import { clearDailyData } from './clear-daily-data-logic.js'
 
 const log = queueLogger
 
@@ -255,6 +256,23 @@ export const importWorker = new Worker<JobData, JobResult>(
         } else {
           log.info({ jobId: id, nextBatch: result.currentBatch + 1 }, 'Recalculate batch completed, continuing...')
         }
+        return jobResult
+      }
+
+      if (name === 'clear-daily-data') {
+        const result = await clearDailyData((current, total) => {
+          const progress = Math.round((current / total) * 100)
+          job.updateProgress(progress)
+        })
+
+        const jobResult: JobResult = {
+          sessionsDeleted: result.sessionsDeleted,
+          challengeId: result.challengeId ?? undefined,
+          challengeDate: result.challengeDate ?? undefined,
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'clear-daily-data job completed')
         return jobResult
       }
 

@@ -3,10 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { JobCardSkeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAdminStore } from '@/stores/adminStore'
 import { FullImportCard } from './FullImportCard'
 import {
@@ -22,6 +20,7 @@ import {
   Mail,
   Database,
   Users,
+  Trash2,
 } from 'lucide-react'
 
 function formatRelativeTime(dateString: string): string {
@@ -72,6 +71,7 @@ function getJobTranslationKey(jobName: string): string {
     'end-monthly-tournament': 'admin.jobs.endMonthlyTournament',
     'send-tournament-reminders': 'admin.jobs.sendTournamentReminders',
     'recalculate-scores': 'admin.jobs.recalculateScores',
+    'clear-daily-data': 'admin.jobs.clearDailyData',
   }
   return keyMap[jobName] || jobName
 }
@@ -87,6 +87,7 @@ function getJobRunningTranslationKey(jobName: string): string {
     'end-monthly-tournament': 'admin.jobs.endMonthlyTournamentRunning',
     'send-tournament-reminders': 'admin.jobs.sendTournamentRemindersRunning',
     'recalculate-scores': 'admin.jobs.recalculateScoresRunning',
+    'clear-daily-data': 'admin.jobs.clearDailyDataRunning',
   }
   return keyMap[jobName] || jobName
 }
@@ -141,6 +142,11 @@ function getJobMetadata(jobName: string, t: (key: string) => string) {
       icon: <RefreshCw className="h-4 w-4" />,
       category: 'Maintenance',
     },
+    'clear-daily-data': {
+      description: t('admin.jobs.descriptions.clearDailyData'),
+      icon: <Trash2 className="h-4 w-4" />,
+      category: 'Maintenance',
+    },
   }
 
   return metadata[jobName] || {
@@ -158,12 +164,31 @@ export function JobList() {
     triggerDailyChallengeJob,
     triggerSyncAllJob,
     triggerCleanupAnonymousUsersJob,
+    triggerClearDailyDataJob,
     startRecalculateScores,
   } = useAdminStore()
 
   const [recurringJobLoading, setRecurringJobLoading] = useState<string | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set())
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'Challenge' | 'Maintenance' | 'Tournament' | 'Notification'>('all')
+
+  // Manual jobs that are not scheduled but can be triggered
+  const manualJobs = [
+    {
+      id: 'manual-clear-daily-data',
+      name: 'clear-daily-data',
+      pattern: null,
+      every: null,
+      nextRun: null,
+      isActive: false,
+      isManual: true,
+    },
+  ]
+
+  // Combine recurring jobs with manual jobs
+  const allJobs = [
+    ...recurringJobs.map(job => ({ ...job, isManual: false })),
+    ...manualJobs,
+  ]
 
   const toggleJobExpansion = (jobId: string) => {
     setExpandedJobs((prev) => {
@@ -188,32 +213,12 @@ export function JobList() {
         await triggerCleanupAnonymousUsersJob()
       } else if (jobName === 'recalculate-scores') {
         await startRecalculateScores({ batchSize: 100, dryRun: false })
+      } else if (jobName === 'clear-daily-data') {
+        await triggerClearDailyDataJob()
       }
     } finally {
       setRecurringJobLoading(null)
     }
-  }
-
-  // Filter recurring jobs by category
-  const getFilteredRecurringJobs = () => {
-    if (categoryFilter === 'all') {
-      return recurringJobs
-    }
-    return recurringJobs.filter(job => {
-      const metadata = getJobMetadata(job.name, t)
-      return metadata.category === categoryFilter
-    })
-  }
-
-  const filteredRecurringJobs = getFilteredRecurringJobs()
-
-  // Get counts for each category
-  const categoryCounts = {
-    all: recurringJobs.length,
-    Challenge: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Challenge').length,
-    Maintenance: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Maintenance').length,
-    Tournament: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Tournament').length,
-    Notification: recurringJobs.filter(j => getJobMetadata(j.name, t).category === 'Notification').length,
   }
 
   if (isLoading) {
@@ -247,8 +252,8 @@ export function JobList() {
       {/* Full Import */}
       <FullImportCard />
 
-      {/* Recurring Jobs Status */}
-      {recurringJobs.length > 0 && (
+      {/* Jobs List */}
+      {allJobs.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -258,51 +263,15 @@ export function JobList() {
             <CardHeader className="pb-2 p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                 <RefreshCw className="h-4 w-4 text-neon-purple shrink-0" />
-                {t('admin.jobs.recurringJobs')}
+                {t('admin.jobs.jobList')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
-              {/* Category Filter Tabs */}
-              <Tabs value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as 'all' | 'Challenge' | 'Maintenance' | 'Tournament' | 'Notification')} className="mb-4">
-                <TabsList className="w-full h-9 p-1">
-                  <TabsTrigger value="all" className="flex-1 text-xs">
-                    {t('admin.jobs.category.all', 'All')}
-                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
-                      {categoryCounts.all}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="Challenge" className="flex-1 text-xs">
-                    {t('admin.jobs.category.challenge', 'Challenge')}
-                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
-                      {categoryCounts.Challenge}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="Maintenance" className="flex-1 text-xs">
-                    {t('admin.jobs.category.maintenance', 'Maintenance')}
-                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
-                      {categoryCounts.Maintenance}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="Tournament" className="flex-1 text-xs">
-                    {t('admin.jobs.category.tournament', 'Tournament')}
-                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
-                      {categoryCounts.Tournament}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="Notification" className="flex-1 text-xs">
-                    {t('admin.jobs.category.notification', 'Notification')}
-                    <Badge variant="secondary" className="ml-1.5 h-5 min-w-4 px-1.5 text-[10px]">
-                      {categoryCounts.Notification}
-                    </Badge>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
               <AnimatePresence initial={false}>
                 <motion.div
                   className="space-y-2"
                 >
-                  {filteredRecurringJobs.map((job) => {
+                  {allJobs.map((job) => {
                     const isJobLoading = recurringJobLoading === job.name
                     const isExpanded = expandedJobs.has(job.id)
                     const metadata = getJobMetadata(job.name, t)
@@ -367,11 +336,15 @@ export function JobList() {
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:shrink-0">
                               {!isExpanded && (
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
-                                  {job.nextRun && !job.isActive && (
+                                  {job.isManual ? (
+                                    <span className="text-orange-400 whitespace-nowrap">
+                                      {t('admin.jobs.manual', 'Manual')}
+                                    </span>
+                                  ) : job.nextRun && !job.isActive ? (
                                     <span className="text-neon-purple whitespace-nowrap">
                                       {formatRelativeTime(job.nextRun)}
                                     </span>
-                                  )}
+                                  ) : null}
                                 </div>
                               )}
                               <Button
@@ -435,7 +408,7 @@ export function JobList() {
                                 )}
 
                                 {/* Next Run */}
-                                {job.nextRun && !job.isActive && (
+                                {job.nextRun && !job.isActive && !job.isManual && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                                     <Calendar className="h-3.5 w-3.5 text-neon-purple shrink-0" />
                                     <div className="flex flex-col">
@@ -444,6 +417,21 @@ export function JobList() {
                                       </span>
                                       <span className="text-xs font-medium text-neon-purple">
                                         {formatRelativeTime(job.nextRun)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Manual Job Indicator */}
+                                {job.isManual && !job.isActive && (
+                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-orange-500/10">
+                                    <Play className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                        {t('admin.jobs.schedule')}
+                                      </span>
+                                      <span className="text-xs font-medium text-orange-400">
+                                        {t('admin.jobs.manual')}
                                       </span>
                                     </div>
                                   </div>

@@ -442,7 +442,7 @@ export interface GameSessionDetailsResponse {
 // Job Management (Admin)
 // ============================================
 
-export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge' | 'sync-all-games' | 'cleanup-anonymous-users' | 'recalculate-scores'
+export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge' | 'sync-all-games' | 'cleanup-anonymous-users' | 'recalculate-scores' | 'clear-daily-data'
 export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
 
 // Import State for batch processing
@@ -547,6 +547,10 @@ export interface JobResult {
   totalScoreChanges?: number
   recalculateStateId?: number
   dryRun?: boolean
+  // For clear-daily-data
+  sessionsDeleted?: number
+  challengeId?: number
+  challengeDate?: string
 }
 
 // Job API Types

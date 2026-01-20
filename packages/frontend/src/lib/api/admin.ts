@@ -171,6 +171,20 @@ export const adminApi = {
   },
 
   /**
+   * Start clear-daily-data job (manual trigger)
+   */
+  async triggerClearDailyData(): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/clear-daily-data', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
    * Start sync-all-games job (manual trigger)
    */
   async startSyncAll(config?: {

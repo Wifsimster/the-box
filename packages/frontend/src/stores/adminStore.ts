@@ -96,6 +96,7 @@ interface AdminState {
   triggerDailyChallengeJob: () => Promise<void>
   triggerSyncAllJob: () => Promise<void>
   triggerCleanupAnonymousUsersJob: () => Promise<void>
+  triggerClearDailyDataJob: () => Promise<void>
   triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
   triggerImportScreenshots: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number, minMetacritic?: number) => Promise<Job>
@@ -275,6 +276,17 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger cleanup anonymous users job:', err)
+          throw err
+        }
+      },
+
+      triggerClearDailyDataJob: async () => {
+        try {
+          await adminApi.triggerClearDailyData()
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger clear daily data job:', err)
           throw err
         }
       },

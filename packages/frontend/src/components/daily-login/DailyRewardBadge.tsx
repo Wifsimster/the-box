@@ -2,9 +2,9 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-    Tooltip,
-    TooltipContent,
     TooltipProvider,
+    TooltipRoot,
+    TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
@@ -27,7 +27,7 @@ export function DailyRewardBadge({ className }: DailyRewardBadgeProps) {
 
     return (
         <TooltipProvider>
-            <Tooltip>
+            <TooltipRoot>
                 <TooltipTrigger asChild>
                     <Button
                         variant="ghost"
@@ -68,7 +68,7 @@ export function DailyRewardBadge({ className }: DailyRewardBadgeProps) {
                         <p>{t('dailyLogin.streakDays', { count: streak })}</p>
                     )}
                 </TooltipContent>
-            </Tooltip>
+            </TooltipRoot>
         </TooltipProvider>
     )
 }
