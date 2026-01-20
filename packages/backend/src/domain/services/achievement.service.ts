@@ -246,11 +246,11 @@ export class AchievementService {
             // Count total hint-free games
             const result = await db('game_sessions')
                 .leftJoin('tier_sessions', 'game_sessions.id', 'tier_sessions.game_session_id')
-                .leftJoin('user_guesses', 'tier_sessions.id', 'user_guesses.tier_session_id')
+                .leftJoin('guesses', 'tier_sessions.id', 'guesses.tier_session_id')
                 .where('game_sessions.user_id', data.userId)
                 .where('game_sessions.is_completed', true)
                 .groupBy('game_sessions.id')
-                .havingRaw('COALESCE(MAX(CASE WHEN user_guesses.power_up_used IS NOT NULL THEN 1 ELSE 0 END), 0) = 0')
+                .havingRaw('COALESCE(MAX(CASE WHEN guesses.power_up_used IS NOT NULL THEN 1 ELSE 0 END), 0) = 0')
                 .count('* as count')
 
             const totalHintFreeGames = Number(result[0]?.count || 0)
