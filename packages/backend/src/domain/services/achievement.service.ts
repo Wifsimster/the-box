@@ -469,7 +469,7 @@ export class AchievementService {
         const allAchievements = await achievementRepository.findAll()
         const userProgress = await achievementRepository.getUserProgress(userId)
 
-        // Calculate current progress for unearned achievements
+        // Calculate current progress for all achievements (both earned and unearned)
         const currentProgress = await this.calculateCurrentProgress(userId)
 
         return allAchievements.map(achievement => {
@@ -483,8 +483,9 @@ export class AchievementService {
                 ...achievement,
                 earned: isEarned,
                 earnedAt: progress?.earned_at || null,
-                progress: isEarned ? (progress?.progress || 0) : (currentProgress[achievement.key] || 0),
-                progressMax: isEarned ? (progress?.progress_max || criteriaMax) : criteriaMax,
+                // Always show current progress (not the progress when earned)
+                progress: currentProgress[achievement.key] || 0,
+                progressMax: criteriaMax,
             }
         })
     }
@@ -636,6 +637,22 @@ export class AchievementService {
                     // Raw query returns { rows: [...] } in PostgreSQL
                     const hintFreeRows = hintFreeGames?.rows || hintFreeGames || []
                     progress[achievement.key] = hintFreeRows.length > 0 ? Number(hintFreeRows[0]?.count || 0) : 0
+                    break
+                case 'genre_master':
+                    // Query genre-specific progress
+                    if (criteria.genre) {
+                        const genreResult = await db('guesses')
+                            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+                            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+                            .join('screenshots', 'guesses.screenshot_id', 'screenshots.id')
+                            .join('games', 'screenshots.game_id', 'games.id')
+                            .where('game_sessions.user_id', userId)
+                            .where('guesses.is_correct', true)
+                            .whereRaw('? = ANY(games.genres)', [criteria.genre])
+                            .count('* as count')
+                            .first()
+                        progress[achievement.key] = Number(genreResult?.count || 0)
+                    }
                     break
                 // Other types (perfect_score, min_score, consecutive_speed, etc.)
                 // are session-based and don't have meaningful cumulative progress

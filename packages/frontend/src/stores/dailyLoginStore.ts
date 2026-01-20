@@ -21,7 +21,7 @@ interface DailyLoginState {
     justClaimed: ClaimRewardResponse | null
 
     // Actions
-    fetchStatus: () => Promise<void>
+    fetchStatus: (userRole?: string) => Promise<void>
     fetchInventory: () => Promise<void>
     claimReward: () => Promise<ClaimRewardResponse | null>
     openModal: () => void
@@ -38,7 +38,7 @@ export const useDailyLoginStore = create<DailyLoginState>((set, get) => ({
     isModalOpen: false,
     justClaimed: null,
 
-    fetchStatus: async () => {
+    fetchStatus: async (userRole?: string) => {
         set({ isLoading: true })
         try {
             const response = await fetch('/api/daily-login/status', {
@@ -53,7 +53,8 @@ export const useDailyLoginStore = create<DailyLoginState>((set, get) => ({
             set({ status: json.data, isLoading: false })
 
             // Auto-open modal if there's a reward to claim
-            if (json.data.canClaim && json.data.todayReward) {
+            // But skip for admin users
+            if (json.data.canClaim && json.data.todayReward && userRole !== 'admin') {
                 set({ isModalOpen: true })
             }
         } catch (error) {

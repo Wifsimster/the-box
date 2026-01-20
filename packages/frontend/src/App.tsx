@@ -63,12 +63,12 @@ function LanguageLayout() {
   // Fetch daily login status when user is authenticated
   useEffect(() => {
     if (session?.user?.id) {
-      fetchStatus()
+      fetchStatus(session.user.role)
     } else {
       // Reset store when user logs out
       reset()
     }
-  }, [session?.user?.id, fetchStatus, reset])
+  }, [session?.user?.id, session?.user?.role, fetchStatus, reset])
 
   // Validate language parameter
   if (!lang || !SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
