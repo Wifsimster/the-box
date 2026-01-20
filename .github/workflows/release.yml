@@ -46,6 +46,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run linter
+        run: npm run lint
+
+      - name: Type check
+        run: npm run build:types
+
       - name: Determine version bump type
         id: version_type
         run: |
