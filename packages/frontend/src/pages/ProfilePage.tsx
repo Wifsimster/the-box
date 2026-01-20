@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Trophy, Award, TrendingUp, Flame, Calendar } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -128,105 +129,143 @@ export default function ProfilePage() {
                         transition={{ delay: 0.05 }}
                     >
                         <Card className="border-2 border-primary/20">
-                            <CardContent className="pt-8 pb-6">
-                                {/* User Info Section */}
-                                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
-                                    <motion.div
-                                        initial={{ scale: 0.8, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                                    >
-                                        <AvatarUpload
-                                            currentAvatarUrl={avatarUrl}
-                                            userName={session.user.name || session.user.username}
-                                            userInitials={userInitials}
-                                            onAvatarChange={handleAvatarChange}
-                                        />
-                                    </motion.div>
-                                    <div className="flex-1 space-y-3 text-center sm:text-left">
-                                        <div>
-                                            <h2 className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            <CardContent className="pt-6 pb-5">
+                                {/* Compact User Info & Stats Layout */}
+                                <div className="flex flex-col lg:flex-row gap-6">
+                                    {/* Left: Avatar & User Info */}
+                                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 lg:min-w-[280px]">
+                                        <motion.div
+                                            initial={{ scale: 0.8, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                                        >
+                                            <AvatarUpload
+                                                currentAvatarUrl={avatarUrl}
+                                                userName={session.user.name || session.user.username}
+                                                userInitials={userInitials}
+                                                onAvatarChange={handleAvatarChange}
+                                            />
+                                        </motion.div>
+                                        <div className="flex-1 space-y-2 text-center sm:text-left">
+                                            <h2 className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                                                 {session.user.name || session.user.username}
                                             </h2>
-                                            {session.user.email && (
-                                                <p className="text-sm text-muted-foreground mt-1">{session.user.email}</p>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm text-muted-foreground">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="h-4 w-4" />
-                                                <span>{t('profile.joined')} {joinDate}</span>
-                                            </div>
-                                            {!session.user.emailVerified && (
-                                                <Badge variant="outline" className="text-xs">
-                                                    {t('common.guestBadge')}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Stats Section */}
-                                <Separator className="mb-6" />
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {/* Total Score */}
-                                    <div className="flex flex-col items-center text-center space-y-2">
-                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-500/10">
-                                            <Trophy className="h-6 w-6 text-yellow-500" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="text-3xl font-bold bg-linear-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                                                {userProfile?.totalScore?.toLocaleString() || 0}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground font-medium">
-                                                {t('profile.totalScore')}
+                                            <div className="space-y-1 text-xs text-muted-foreground">
+                                                {session.user.email && <div>{session.user.email}</div>}
+                                                <div className="flex items-center justify-center sm:justify-start gap-1.5">
+                                                    <Calendar className="h-3 w-3" />
+                                                    <span>{joinDate}</span>
+                                                    {!session.user.emailVerified && (
+                                                        <Badge variant="outline" className="text-xs ml-2">
+                                                            {t('common.guestBadge')}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Current Streak */}
-                                    <div className="flex flex-col items-center text-center space-y-2">
-                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-orange-500/10">
-                                            <Flame className="h-6 w-6 text-orange-500" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="text-3xl font-bold bg-linear-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                                                {userProfile?.currentStreak || 0}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground font-medium">
-                                                {t('profile.currentStreak')}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {/* Right: Compact Stats Grid */}
+                                    <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-3">
+                                        {/* Total Score */}
+                                        <TooltipProvider delayDuration={200}>
+                                            <TooltipRoot>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10">
+                                                            <Trophy className="h-5 w-5 text-yellow-500" />
+                                                        </div>
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                                                            {userProfile?.totalScore?.toLocaleString() || 0}
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+                                                            {t('profile.total')}
+                                                        </div>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <div className="text-center">
+                                                        <p className="font-semibold">{t('profile.totalScore')}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">Cumul de tous vos scores de jeu</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </TooltipRoot>
+                                        </TooltipProvider>
 
-                                    {/* Unlocked Achievements */}
-                                    <div className="flex flex-col items-center text-center space-y-2">
-                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
-                                            <Award className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                                                {earnedCount}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground font-medium">
-                                                {t('profile.unlocked')} ({completionPercentage}%)
-                                            </div>
-                                        </div>
-                                    </div>
+                                        {/* Current Streak */}
+                                        <TooltipProvider delayDuration={200}>
+                                            <TooltipRoot>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10">
+                                                            <Flame className="h-5 w-5 text-orange-500" />
+                                                        </div>
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+                                                            {userProfile?.currentStreak || 0}
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+                                                            {t('profile.days')}
+                                                        </div>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <div className="text-center">
+                                                        <p className="font-semibold">{t('profile.currentStreak')}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">Jours consécutifs de jeu</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </TooltipRoot>
+                                        </TooltipProvider>
 
-                                    {/* Achievement Points */}
-                                    <div className="flex flex-col items-center text-center space-y-2">
-                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10">
-                                            <TrendingUp className="h-6 w-6 text-green-500" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="text-3xl font-bold bg-linear-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
-                                                {stats?.totalPoints || 0}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground font-medium">
-                                                {t('profile.achievementPoints')}
-                                            </div>
-                                        </div>
+                                        {/* Unlocked Achievements */}
+                                        <TooltipProvider delayDuration={200}>
+                                            <TooltipRoot>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                                                            <Award className="h-5 w-5 text-primary" />
+                                                        </div>
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                                                            {earnedCount}
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+                                                            {completionPercentage}%
+                                                        </div>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <div className="text-center">
+                                                        <p className="font-semibold">Succès débloqués</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">{earnedCount}/{totalCount} succès obtenus</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </TooltipRoot>
+                                        </TooltipProvider>
+
+                                        {/* Achievement Points */}
+                                        <TooltipProvider delayDuration={200}>
+                                            <TooltipRoot>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10">
+                                                            <TrendingUp className="h-5 w-5 text-green-500" />
+                                                        </div>
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
+                                                            {stats?.totalPoints || 0}
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+                                                            {t('profile.points')}
+                                                        </div>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <div className="text-center">
+                                                        <p className="font-semibold">{t('profile.achievementPoints')}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">Points gagnés en débloquant des succès</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </TooltipRoot>
+                                        </TooltipProvider>
                                     </div>
                                 </div>
                             </CardContent>
