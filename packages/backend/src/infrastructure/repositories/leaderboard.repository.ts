@@ -3,6 +3,7 @@ import type { LeaderboardEntry, PercentileResponse, MonthlyLeaderboardEntry } fr
 
 interface LeaderboardRow {
   user_id: string
+  session_id: string
   total_score: number
   completed_at: Date
   username: string | null
@@ -29,6 +30,7 @@ export const leaderboardRepository = {
       .orderBy('game_sessions.total_score', 'desc')
       .limit(limit)
       .select<LeaderboardRow[]>(
+        'game_sessions.id as session_id',
         'game_sessions.user_id',
         'game_sessions.total_score',
         'game_sessions.completed_at',
@@ -40,6 +42,7 @@ export const leaderboardRepository = {
     return sessions.map((session, index) => ({
       rank: index + 1,
       userId: session.user_id,
+      sessionId: session.session_id,
       username: session.username ?? 'Anonymous',
       displayName: session.display_name ?? session.username ?? 'Anonymous',
       avatarUrl: session.avatar_url ?? undefined,

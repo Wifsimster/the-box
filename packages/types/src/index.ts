@@ -143,6 +143,7 @@ export interface LeaderboardEntry {
   correctAnswers?: number
   totalTimeMs?: number
   completedAt?: string
+  sessionId?: string
 }
 
 // Live event types

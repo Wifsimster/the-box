@@ -66,6 +66,16 @@ export const sessionRepository = {
     return row ?? null
   },
 
+  async findCompletedGameSessionById(sessionId: string): Promise<GameSessionRow | null> {
+    log.debug({ sessionId }, 'findCompletedGameSessionById')
+    const row = await db('game_sessions')
+      .where('id', sessionId)
+      .andWhere('is_completed', true)
+      .first<GameSessionRow>()
+    log.debug({ sessionId, found: !!row }, 'findCompletedGameSessionById result')
+    return row ?? null
+  },
+
   async findLatestTierSession(gameSessionId: string): Promise<TierSessionRow | null> {
     log.debug({ gameSessionId }, 'findLatestTierSession')
     const row = await db('tier_sessions')
