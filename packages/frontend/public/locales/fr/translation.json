@@ -176,7 +176,15 @@
       "penalty": "-20%",
       "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
     },
-    "notFound": "Jeu Introuvable"
+    "notFound": "Jeu Introuvable",
+    "completionChoice": {
+      "title": "Bien joué !",
+      "description": "Vous avez visité toutes les positions et trouvé un jeu. Voulez-vous continuer ou voir vos résultats ?",
+      "gamesRemaining": "{{count}} jeu restant à deviner",
+      "gamesRemaining_other": "{{count}} jeux restants à deviner",
+      "continuePlaying": "Continuer à jouer",
+      "seeResults": "Voir les résultats"
+    }
   },
   "home": {
     "title": "The Box",
@@ -246,7 +254,16 @@
     "daily": "Quotidien",
     "monthly": "Mensuel",
     "gamesPlayed": "parties",
-    "noMonthlyData": "Aucune donnée pour ce mois"
+    "noMonthlyData": "Aucune donnée pour ce mois",
+    "viewAnswers": "Voir les réponses",
+    "playerAnswers": "Réponses de {{name}}",
+    "loading": "Chargement...",
+    "position": "Position",
+    "answer": "Réponse",
+    "correct": "Correct",
+    "skipped": "Passé",
+    "errorLoading": "Impossible de charger les réponses",
+    "clickToView": "Cliquez pour voir les réponses de ce joueur"
   },
   "history": {
     "title": "Historique des Parties",
