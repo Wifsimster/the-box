@@ -156,8 +156,19 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             store.setGamePhase('challenge_complete')
           }
         } else if (shouldAdvance) {
-          // Show result screen before advancing to next screenshot
-          store.setGamePhase('result')
+          // Check if we should show the completion choice modal
+          // Trigger conditions: visited all positions, made a correct guess, and still have skipped positions
+          const hasVisitedAll = store.hasVisitedAllPositions()
+          const hasSkipped = store.hasSkippedPositions()
+
+          if (result.isCorrect && hasVisitedAll && hasSkipped) {
+            // Show completion choice modal instead of auto-navigating
+            store.setGamePhase('result')
+            store.setShowCompletionChoice(true)
+          } else {
+            // Show result screen before advancing to next screenshot
+            store.setGamePhase('result')
+          }
         }
         // If not advancing (wrong guess, tries remaining), stay in playing phase
 
