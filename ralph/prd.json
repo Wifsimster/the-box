@@ -1,0 +1,179 @@
+{
+  "project": "The Box",
+  "branchName": "ralph/daily-game-completion-choice",
+  "description": "Daily Game Completion Choice - Give players control over when to end their daily challenge by showing a choice modal after visiting all positions and making a correct guess",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add hasSkippedPositions selector to game store",
+      "description": "As a developer, I need a selector to check if any positions have 'skipped' status so the completion choice logic can determine when to show the modal.",
+      "acceptanceCriteria": [
+        "Add hasSkippedPositions() selector to gameStore that returns true if any position has status 'skipped'",
+        "Selector iterates through positionStates and checks for status === 'skipped'",
+        "Returns false if no positions are skipped",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add showCompletionChoice state to game store",
+      "description": "As a developer, I need state to control when the completion choice modal is visible.",
+      "acceptanceCriteria": [
+        "Add showCompletionChoice boolean to gameStore state (default: false)",
+        "Add setShowCompletionChoice(value: boolean) action to update the state",
+        "State resets to false when game session resets",
+        "State should NOT be persisted to localStorage",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add findFirstSkipped selector to game store",
+      "description": "As a developer, I need a selector to find the first skipped position for navigation after the player chooses to continue.",
+      "acceptanceCriteria": [
+        "Add findFirstSkipped() selector to gameStore",
+        "Returns the position number of the first position with status 'skipped'",
+        "Returns null if no skipped positions exist",
+        "Searches positions 1-10 in order",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create CompletionChoiceModal component",
+      "description": "As a player, I want to see a modal with options to continue playing or see results when I've visited all positions and made a correct guess.",
+      "acceptanceCriteria": [
+        "Create CompletionChoiceModal component in packages/frontend/src/components/game/",
+        "Modal uses existing Dialog component from shadcn/ui",
+        "Displays count of remaining unguessed games (e.g., 'You have 3 games left to guess')",
+        "Shows 'Continue Playing' button with primary purple gradient style",
+        "Shows 'See Results' button with secondary outline style",
+        "Modal cannot be dismissed by clicking outside (no onOpenChange that allows closing)",
+        "Modal matches dark gaming theme with purple/pink accents",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implement Continue Playing action in modal",
+      "description": "As a player, I want clicking 'Continue Playing' to close the modal and navigate me to the first skipped position.",
+      "acceptanceCriteria": [
+        "Clicking 'Continue Playing' sets showCompletionChoice to false",
+        "Navigates to the first skipped position using findFirstSkipped() and navigateToPosition()",
+        "Sets gamePhase back to 'playing' if needed",
+        "Player can make guess attempts on the navigated position",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Implement See Results action in modal",
+      "description": "As a player, I want clicking 'See Results' to end the game and show my final results.",
+      "acceptanceCriteria": [
+        "Clicking 'See Results' calls existing endGameAction() from useEndGame hook",
+        "Sets showCompletionChoice to false",
+        "Game transitions to challenge_complete phase",
+        "Final score is calculated and displayed",
+        "Unfound games are revealed in results view",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Trigger completion choice modal in useGameGuess hook",
+      "description": "As a player, I want the completion choice modal to appear automatically when I make a correct guess after visiting all positions.",
+      "acceptanceCriteria": [
+        "Modify useGameGuess hook to check trigger conditions after correct guess",
+        "Trigger conditions: hasVisitedAllPositions() === true AND isCorrect === true AND hasSkippedPositions() === true",
+        "When conditions met, set showCompletionChoice to true instead of auto-navigating",
+        "Modal does NOT appear if there are no skipped positions (all games already found)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Pause ResultCard countdown when modal is visible",
+      "description": "As a player, I don't want the ResultCard to auto-navigate while the completion choice modal is showing.",
+      "acceptanceCriteria": [
+        "ResultCard reads showCompletionChoice from game store",
+        "Countdown timer pauses when showCompletionChoice is true",
+        "Auto-navigation does not occur while modal is visible",
+        "Countdown resumes if player chooses 'Continue Playing' (though ResultCard may be hidden by then)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Render CompletionChoiceModal in DailyChallengePage",
+      "description": "As a player, I want the completion choice modal to be rendered on the daily challenge page.",
+      "acceptanceCriteria": [
+        "Import and render CompletionChoiceModal in DailyChallengePage (or appropriate game container)",
+        "Modal visibility controlled by showCompletionChoice state from game store",
+        "Modal appears above other game UI elements",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Re-trigger modal after continuing and making another correct guess",
+      "description": "As a player who chose to continue, I want the modal to reappear when I make another correct guess if skipped positions still remain.",
+      "acceptanceCriteria": [
+        "After choosing 'Continue Playing' and making a correct guess, trigger logic re-evaluates",
+        "Modal reappears if hasSkippedPositions() is still true after the new correct guess",
+        "If all games are now found (no more skipped), game completes normally without modal",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Hide EndGameButton when completion choice flow is active",
+      "description": "As a player, I want the UI to be consistent by hiding the manual End Game button once the completion choice modal becomes the primary way to end.",
+      "acceptanceCriteria": [
+        "EndGameButton reads showCompletionChoice and hasVisitedAllPositions from game store",
+        "EndGameButton is hidden when hasVisitedAllPositions() is true AND hasSkippedPositions() is true",
+        "EndGameButton reappears if player skips all remaining positions (no more skipped, only correct/not_visited)",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

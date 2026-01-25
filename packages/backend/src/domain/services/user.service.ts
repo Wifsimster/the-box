@@ -20,12 +20,27 @@ export const userService = {
     }
   },
 
+  async getPublicGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse> {
+    // Only allow viewing completed sessions (for public access)
+    const gameSession = await sessionRepository.findCompletedGameSessionById(sessionId)
+    if (!gameSession) {
+      throw new Error('Session not found or not completed')
+    }
+
+    return this.buildSessionDetailsResponse(gameSession)
+  },
+
   async getGameSessionDetails(sessionId: string, userId: string): Promise<GameSessionDetailsResponse> {
     // Verify the session belongs to the user
     const gameSession = await sessionRepository.findGameSessionById(sessionId, userId)
     if (!gameSession) {
       throw new Error('Session not found')
     }
+
+    return this.buildSessionDetailsResponse(gameSession)
+  },
+
+  async buildSessionDetailsResponse(gameSession: Awaited<ReturnType<typeof sessionRepository.findGameSessionById>> & object): Promise<GameSessionDetailsResponse> {
 
     // Get challenge date
     const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
@@ -34,7 +49,7 @@ export const userService = {
     }
 
     // Get all guesses for this session
-    const guessesData = await sessionRepository.findGuessesByGameSession(sessionId)
+    const guessesData = await sessionRepository.findGuessesByGameSession(gameSession.id)
 
     // Get tier screenshots with game info for all positions
     const tiers = await challengeRepository.findTiersByChallenge(gameSession.daily_challenge_id)

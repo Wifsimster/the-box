@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -7,14 +7,18 @@ import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays } from 'lucide-react'
+import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays, Check, X, Eye, Minus } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import type { GameSessionDetailsResponse } from '@the-box/types'
 
 interface LeaderboardEntry {
   rank: number
+  userId: string
+  sessionId?: string
   username: string
   displayName: string
   avatarUrl?: string
@@ -51,6 +55,10 @@ export default function LeaderboardPage() {
   const [monthlyLoading, setMonthlyLoading] = useState(false)
   const [achievementLoading, setAchievementLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('daily')
+  const [selectedPlayer, setSelectedPlayer] = useState<LeaderboardEntry | null>(null)
+  const [playerSession, setPlayerSession] = useState<GameSessionDetailsResponse | null>(null)
+  const [sessionLoading, setSessionLoading] = useState(false)
+  const [sessionError, setSessionError] = useState<string | null>(null)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -162,6 +170,35 @@ export default function LeaderboardPage() {
   const handleMonthChange = (date: Date) => {
     setSelectedMonth(date)
   }
+
+  const handlePlayerClick = useCallback(async (entry: LeaderboardEntry) => {
+    if (!entry.sessionId) return
+
+    setSelectedPlayer(entry)
+    setSessionLoading(true)
+    setSessionError(null)
+    setPlayerSession(null)
+
+    try {
+      const res = await fetch(`/api/leaderboard/session/${entry.sessionId}`)
+      const data = await res.json()
+      if (data.success && data.data) {
+        setPlayerSession(data.data)
+      } else {
+        setSessionError(t('leaderboard.errorLoading'))
+      }
+    } catch {
+      setSessionError(t('leaderboard.errorLoading'))
+    } finally {
+      setSessionLoading(false)
+    }
+  }, [t])
+
+  const handleCloseDialog = useCallback(() => {
+    setSelectedPlayer(null)
+    setPlayerSession(null)
+    setSessionError(null)
+  }, [])
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -283,7 +320,11 @@ export default function LeaderboardPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                        className={`flex items-center gap-4 p-3 rounded-lg bg-secondary/50 transition-colors ${
+                          entry.sessionId ? 'hover:bg-secondary cursor-pointer' : 'hover:bg-secondary/70'
+                        }`}
+                        onClick={() => entry.sessionId && handlePlayerClick(entry)}
+                        title={entry.sessionId ? t('leaderboard.clickToView') : undefined}
                       >
                         <div className="w-8 flex justify-center">
                           {getRankIcon(entry.rank)}
@@ -298,8 +339,11 @@ export default function LeaderboardPage() {
                           <span className="font-semibold">{entry.displayName}</span>
                           <span className="text-xs text-muted-foreground ml-2">@{entry.username}</span>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex items-center gap-2">
                           <div className="font-bold text-primary">{entry.totalScore}</div>
+                          {entry.sessionId && (
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          )}
                         </div>
                       </motion.div>
                     ))}
@@ -519,6 +563,101 @@ export default function LeaderboardPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Player Answers Dialog */}
+        <Dialog open={!!selectedPlayer} onOpenChange={(open) => !open && handleCloseDialog()}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                {selectedPlayer && (
+                  <>
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={selectedPlayer.avatarUrl} alt={selectedPlayer.displayName} />
+                      <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-sm font-bold">
+                        {selectedPlayer.displayName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {t('leaderboard.playerAnswers', { name: selectedPlayer.displayName })}
+                  </>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+
+            {sessionLoading && (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            )}
+
+            {sessionError && (
+              <div className="text-center py-8 text-destructive">
+                {sessionError}
+              </div>
+            )}
+
+            {playerSession && !sessionLoading && (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
+                  <span className="text-muted-foreground">{t('game.totalScore')}</span>
+                  <span className="font-bold text-primary text-xl">{playerSession.totalScore}</span>
+                </div>
+
+                {/* Guesses List */}
+                <div className="space-y-2">
+                  {/* Render guesses (positions player interacted with) */}
+                  {playerSession.guesses.map((guess) => (
+                    <div
+                      key={guess.position}
+                      className={`flex items-center gap-3 p-3 rounded-lg ${
+                        guess.isCorrect ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                        {guess.position}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{guess.correctGame.name}</div>
+                        {guess.userGuess && (
+                          <div className="text-sm text-muted-foreground truncate">
+                            {t('game.yourGuess')}: {guess.userGuess}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {guess.isCorrect ? (
+                          <>
+                            <span className="text-green-500 font-bold">+{guess.scoreEarned}</span>
+                            <Check className="w-5 h-5 text-green-500" />
+                          </>
+                        ) : (
+                          <X className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Render unfound games (positions player skipped/didn't guess) */}
+                  {playerSession.unfoundGames.map((unfound) => (
+                    <div
+                      key={unfound.position}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                        {unfound.position}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate text-muted-foreground">{unfound.game.name}</div>
+                        <div className="text-sm text-muted-foreground">{t('leaderboard.skipped')}</div>
+                      </div>
+                      <Minus className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </PageHero>
   )

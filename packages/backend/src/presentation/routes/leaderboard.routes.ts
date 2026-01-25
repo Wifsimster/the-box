@@ -1,7 +1,38 @@
 import { Router } from 'express'
-import { leaderboardService } from '../../domain/services/index.js'
+import { leaderboardService, userService } from '../../domain/services/index.js'
 
 const router = Router()
+
+// Get public session details (for viewing other players' answers)
+router.get('/session/:sessionId', async (req, res, next) => {
+  try {
+    const { sessionId } = req.params
+
+    if (!sessionId) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_SESSION_ID', message: 'Session ID is required' },
+      })
+      return
+    }
+
+    const data = await userService.getPublicGameSessionDetails(sessionId)
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'SESSION_NOT_FOUND', message: 'Session not found or not completed' },
+      })
+      return
+    }
+    next(error)
+  }
+})
 
 // Get today's leaderboard
 router.get('/today', async (_req, res, next) => {

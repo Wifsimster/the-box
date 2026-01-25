@@ -176,7 +176,15 @@
       "penalty": "-20%",
       "penaltyApplied": "Hint penalty: -{{penalty}} points"
     },
-    "notFound": "Not Found"
+    "notFound": "Not Found",
+    "completionChoice": {
+      "title": "Nice Work!",
+      "description": "You've visited all positions and found a game. Would you like to continue or see your results?",
+      "gamesRemaining": "{{count}} game left to guess",
+      "gamesRemaining_other": "{{count}} games left to guess",
+      "continuePlaying": "Continue Playing",
+      "seeResults": "See Results"
+    }
   },
   "home": {
     "title": "The Box",
@@ -246,7 +254,16 @@
     "daily": "Daily",
     "monthly": "Monthly",
     "gamesPlayed": "games",
-    "noMonthlyData": "No data for this month"
+    "noMonthlyData": "No data for this month",
+    "viewAnswers": "View Answers",
+    "playerAnswers": "{{name}}'s Answers",
+    "loading": "Loading...",
+    "position": "Position",
+    "answer": "Answer",
+    "correct": "Correct",
+    "skipped": "Skipped",
+    "errorLoading": "Failed to load player answers",
+    "clickToView": "Click to view this player's answers"
   },
   "history": {
     "title": "Game History",

@@ -1,0 +1,39 @@
+# Ralph Progress Log
+Started: Sun Jan 25 16:55:40 CET 2026
+---
+
+## Codebase Patterns
+- Position status values: 'not_visited' | 'in_progress' | 'skipped' | 'correct'
+- Use gameStore selectors for computed state (hasVisitedAllPositions, hasSkippedPositions, findNextUnfinished)
+- Zustand partialize controls what persists to localStorage
+---
+
+## 2026-01-25 - US-001: Add hasSkippedPositions selector to game store
+- Already implemented in packages/frontend/src/stores/gameStore.ts (lines 508-517)
+- Selector iterates through positionStates and returns true if any status === 'skipped'
+- Interface defined at line 126, implementation at lines 508-517
+- Files: packages/frontend/src/stores/gameStore.ts (no changes needed)
+- **Learnings for future iterations:**
+  - Selector pattern: iterate totalScreenshots from 1 to N, check positionStates[i]
+  - hasVisitedAllPositions and hasSkippedPositions are both declared in interface and implemented
+---
+
+## 2026-01-25 - US-002: Add showCompletionChoice state to game store
+- Added showCompletionChoice boolean to GameState interface
+- Added setShowCompletionChoice(value: boolean) action
+- Added to initialState with default false
+- State NOT in partialize, so NOT persisted to localStorage
+- Resets to false when resetGame() is called (spreads initialState)
+- Files changed: packages/frontend/src/stores/gameStore.ts
+- **Learnings for future iterations:**
+  - To prevent persistence, simply don't include in partialize object
+  - resetGame spreads initialState, so new state fields auto-reset
+---
+
+## 2026-01-25 - US-003: Add findFirstSkipped selector to game store
+- Added findFirstSkipped() selector that returns first skipped position number or null
+- Iterates 1 to totalScreenshots, returns first i where positionStates[i].status === 'skipped'
+- Files changed: packages/frontend/src/stores/gameStore.ts
+- **Learnings for future iterations:**
+  - Similar pattern to hasSkippedPositions but returns position number instead of boolean
+---

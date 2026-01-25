@@ -66,6 +66,7 @@ interface GameState {
   isLoading: boolean
   lastResult: GuessResult | null
   isSessionCompleted: boolean // Tracks if backend has marked session as complete
+  showCompletionChoice: boolean // Controls visibility of the completion choice modal
 
   // Actions
   setSessionId: (id: string, tierSessionId: string) => void
@@ -79,6 +80,7 @@ interface GameState {
   setGamePhase: (phase: GamePhase) => void
   setLoading: (loading: boolean) => void
   setIsSessionCompleted: (completed: boolean) => void
+  setShowCompletionChoice: (value: boolean) => void
 
   addGuessResult: (result: GuessResult) => void
   updateScore: (totalScore: number) => void
@@ -123,6 +125,8 @@ interface GameState {
 
   // End game actions
   hasVisitedAllPositions: () => boolean
+  hasSkippedPositions: () => boolean
+  findFirstSkipped: () => number | null
   endGameAction: () => Promise<void>
 }
 
@@ -161,6 +165,7 @@ const initialState = {
   isLoading: false,
   lastResult: null,
   isSessionCompleted: false,
+  showCompletionChoice: false,
 }
 
 export const useGameStore = create<GameState>()(
@@ -194,6 +199,7 @@ export const useGameStore = create<GameState>()(
 
         setGamePhase: (phase) => set({ gamePhase: phase }),
         setIsSessionCompleted: (completed) => set({ isSessionCompleted: completed }),
+        setShowCompletionChoice: (value) => set({ showCompletionChoice: value }),
 
         setLoading: (loading) => set({ isLoading: loading }),
 
@@ -502,6 +508,28 @@ export const useGameStore = create<GameState>()(
             }
           }
           return true
+        },
+
+        hasSkippedPositions: () => {
+          const { positionStates, totalScreenshots } = get()
+          for (let i = 1; i <= totalScreenshots; i++) {
+            const state = positionStates[i]
+            if (state?.status === 'skipped') {
+              return true
+            }
+          }
+          return false
+        },
+
+        findFirstSkipped: () => {
+          const { positionStates, totalScreenshots } = get()
+          for (let i = 1; i <= totalScreenshots; i++) {
+            const state = positionStates[i]
+            if (state?.status === 'skipped') {
+              return i
+            }
+          }
+          return null
         },
 
         // Hint actions
