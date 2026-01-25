@@ -49,7 +49,8 @@ the-box/
 │           └── lib/
 ├── docs/               # Feature documentation
 ├── uploads/            # Screenshot storage
-└── docker-compose.yml
+├── docker-compose.yml            # Dev: PostgreSQL + Redis
+└── docker-compose.production.yml # Full stack example
 ```
 
 ## Quick Start
@@ -81,24 +82,28 @@ docker exec the-box npm run --workspace=@the-box/backend db:migrate
 docker exec the-box npm run --workspace=@the-box/backend db:seed
 ```
 
-Or use Docker Compose for a complete stack:
+Or use Docker Compose for a complete stack (see `docker compose.production.yml` for a ready-to-use example):
 
 ```yaml
-version: '3.8'
 services:
   app:
     image: wifsimster/the-box:latest
     ports:
       - "80:80"
     environment:
-      - DATABASE_URL=postgresql://thebox:thebox_secret@postgres:5432/thebox
-      - REDIS_URL=redis://redis:6379
-      - BETTER_AUTH_SECRET=your-secret-min-32-chars
+      DATABASE_URL: postgresql://thebox:thebox_secret@postgres:5432/thebox
+      REDIS_URL: redis://redis:6379
+      BETTER_AUTH_SECRET: your-secret-min-32-chars-here
+      RESEND_API_KEY: your-resend-api-key
+      EMAIL_FROM: noreply@yourdomain.com
     volumes:
       - uploads:/app/uploads
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
@@ -108,11 +113,23 @@ services:
       POSTGRES_DB: thebox
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thebox -d thebox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
   uploads:
@@ -140,8 +157,8 @@ npm install
 # Copy environment variables
 cp .env.example .env
 
-# Start PostgreSQL and Redis
-docker-compose up -d
+# Start PostgreSQL and Redis (uses docker compose.yml)
+docker compose up -d
 
 # Run database migrations
 npm run db:migrate

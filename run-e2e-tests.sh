@@ -15,12 +15,12 @@ fi
 
 # Start PostgreSQL if not running
 echo "📦 Starting PostgreSQL..."
-docker-compose up -d postgres
+docker compose up -d postgres
 sleep 3
 
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL to be ready..."
-until docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
+until docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
     echo "   Still waiting..."
     sleep 2
 done

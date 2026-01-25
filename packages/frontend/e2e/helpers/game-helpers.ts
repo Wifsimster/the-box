@@ -4,6 +4,12 @@ import { Page, expect } from '@playwright/test'
  * Test helpers for daily game E2E tests
  */
 
+// E2E Test User Credentials (must match e2e-seed.ts)
+export const E2E_USER_EMAIL = 'e2e_user@test.local'
+export const E2E_USER_PASSWORD = 'test123'
+export const E2E_ADMIN_EMAIL = 'e2e_admin@test.local'
+export const E2E_ADMIN_PASSWORD = 'test123'
+
 /**
  * Close the Daily Reward modal if it appears
  */
@@ -42,8 +48,8 @@ export async function loginAsUser(page: Page) {
   await page.goto('/en/login')
   await page.waitForSelector('form')
 
-  const userEmail = process.env.TEST_USER_EMAIL || 'testuser@example.com'
-  const userPassword = process.env.TEST_USER_PASSWORD || 'testpass123'
+  const userEmail = process.env.TEST_USER_EMAIL || E2E_USER_EMAIL
+  const userPassword = process.env.TEST_USER_PASSWORD || E2E_USER_PASSWORD
 
   // Clear and fill email field with a small delay to ensure React state updates
   const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)
@@ -98,8 +104,8 @@ export async function loginAsAdmin(page: Page) {
   await page.goto('/en/login')
   await page.waitForSelector('form')
 
-  const adminEmail = process.env.TEST_ADMIN_EMAIL || 'admin@example.com'
-  const adminPassword = process.env.TEST_ADMIN_PASSWORD || 'admin123'
+  const adminEmail = process.env.TEST_ADMIN_EMAIL || E2E_ADMIN_EMAIL
+  const adminPassword = process.env.TEST_ADMIN_PASSWORD || E2E_ADMIN_PASSWORD
 
   // Clear and fill email field with a small delay to ensure React state updates
   const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)

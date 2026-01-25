@@ -20,6 +20,7 @@ export function ResultCard() {
     positionStates,
     challengeId,
     isSessionCompleted,
+    showCompletionChoice,
   } = useGameStore()
 
   // Auto-close countdown state (must be before early return)
@@ -67,8 +68,12 @@ export function ResultCard() {
   }, [nextPosition, navigateToPosition, positionStates, setGamePhase, challengeId])
 
   // Auto-close timer - only runs when there's a next position OR session is not completed yet
+  // Timer is paused when completion choice modal is visible
   useEffect(() => {
     if (!lastResult) return
+
+    // Pause countdown when completion choice modal is visible
+    if (showCompletionChoice) return
 
     // Auto-close if:
     // 1. There's a next position to navigate to, OR
@@ -88,18 +93,22 @@ export function ResultCard() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [lastResult, nextPosition, isSessionCompleted])
+  }, [lastResult, nextPosition, isSessionCompleted, showCompletionChoice])
 
   // Separate effect to handle auto-navigation when countdown reaches 0
+  // Auto-navigation is blocked when completion choice modal is visible
   useEffect(() => {
     if (countdown === 0 && lastResult) {
+      // Block auto-navigation while completion choice modal is visible
+      if (showCompletionChoice) return
+
       // Only auto-navigate if there's a next position OR session is not completed
       const shouldAutoNavigate = nextPosition !== null || !isSessionCompleted
       if (shouldAutoNavigate) {
         handleNext()
       }
     }
-  }, [countdown, lastResult, nextPosition, isSessionCompleted, handleNext])
+  }, [countdown, lastResult, nextPosition, isSessionCompleted, handleNext, showCompletionChoice])
 
   // Early return after all hooks
   if (!lastResult) return null

@@ -39,12 +39,12 @@ If you prefer to manually control each service:
 ### Step 1: Start PostgreSQL
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Verify it's running:
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### Step 2: Start Backend (Terminal 1)
@@ -153,8 +153,8 @@ Admin panel functionality tests.
 **Problem**: Backend can't connect to PostgreSQL
 
 **Solution**:
-1. Start PostgreSQL: `docker-compose up -d`
-2. Verify it's running: `docker-compose ps`
+1. Start PostgreSQL: `docker compose up -d`
+2. Verify it's running: `docker compose ps`
 3. Check connection settings in `packages/backend/.env`
 4. Run migrations: `npm run db:migrate`
 
@@ -196,11 +196,11 @@ For continuous integration environments:
 ```yaml
 # Example GitHub Actions workflow
 - name: Start PostgreSQL
-  run: docker-compose up -d postgres
+  run: docker compose up -d postgres
 
 - name: Wait for PostgreSQL
   run: |
-    until docker-compose exec -T postgres pg_isready; do
+    until docker compose exec -T postgres pg_isready; do
       echo "Waiting for PostgreSQL..."
       sleep 2
     done

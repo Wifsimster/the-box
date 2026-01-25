@@ -24,12 +24,14 @@ export function EndGameButton() {
   const gamePhase = useGameStore((s) => s.gamePhase)
   const positionStates = useGameStore((s) => s.positionStates)
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
+  const hasSkippedPositions = useGameStore((s) => s.hasSkippedPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const totalScore = useGameStore((s) => s.totalScore)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
-  // Show if playing, all positions visited, and session not already completed on backend
-  const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted
+  // Show if playing, all positions visited, session not completed, and no skipped positions
+  // When there are skipped positions, the completion choice modal handles ending the game
+  const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted && !hasSkippedPositions()
 
   if (!canShowButton) return null
 

@@ -20,9 +20,12 @@ This directory contains end-to-end tests for The Box application using Playwrigh
 ### Prerequisites
 
 Before running the tests, ensure:
+- Database is running: `docker-compose up -d`
 - Backend server is running: `npm run dev:backend` (in root directory)
-- Database is seeded with test data if needed
+- Database is seeded: `npm run e2e:seed -w @the-box/backend`
 - Port 5173 is available (or update `playwright.config.ts`)
+
+The frontend dev server is started automatically by Playwright.
 
 ### Run All Tests
 
@@ -156,34 +159,58 @@ Edit `playwright.config.ts` to:
 - Configure screenshots and traces
 - Update reporter settings
 
-## Test Data
+## Test Users
 
-Tests use dynamically generated data with timestamps to avoid conflicts:
-- Username: `testuser{timestamp}`
-- Email: `testuser{timestamp}@example.com`
-- Password: `SecurePass123!`
+E2E tests use two seeded accounts (created by `npm run e2e:seed`):
 
-### Environment Variables
+| Role  | Email                    | Password |
+|-------|--------------------------|----------|
+| User  | e2e_user@test.local      | test123  |
+| Admin | e2e_admin@test.local     | test123  |
 
-Configure test credentials via environment variables:
+These credentials are defined in:
+- `packages/backend/scripts/e2e-seed.ts` - Creates the accounts
+- `e2e/helpers/game-helpers.ts` - Helper constants
+- `e2e/fixtures/auth.fixture.ts` - User fixture
+- `e2e/fixtures/admin.fixture.ts` - Admin fixture
+
+### Environment Variable Overrides
+
+You can override test credentials via environment variables:
 
 ```bash
-# Test user credentials (for daily game tests)
-export TEST_USER_EMAIL="testuser@example.com"
-export TEST_USER_PASSWORD="testpass123"
-
-# Admin credentials (for admin panel tests)
+export TEST_USER_EMAIL="custom@example.com"
+export TEST_USER_PASSWORD="custompass"
 export TEST_ADMIN_EMAIL="admin@example.com"
 export TEST_ADMIN_PASSWORD="admin123"
 ```
 
-Or create a `.env.test` file in `packages/frontend/`:
+## Fixtures
 
-```env
-TEST_USER_EMAIL=testuser@example.com
-TEST_USER_PASSWORD=testpass123
-TEST_ADMIN_EMAIL=admin@example.com
-TEST_ADMIN_PASSWORD=admin123
+Use Playwright fixtures for tests that require authentication.
+
+### Authenticated User Fixture
+
+```typescript
+import { test, expect } from './fixtures/auth.fixture'
+
+test('my authenticated test', async ({ authenticatedPage }) => {
+  // authenticatedPage is already logged in as e2e_user@test.local
+  await authenticatedPage.goto('/en/profile')
+  await expect(authenticatedPage.locator('h1')).toBeVisible()
+})
+```
+
+### Admin User Fixture
+
+```typescript
+import { test, expect } from './fixtures/admin.fixture'
+
+test('my admin test', async ({ adminPage }) => {
+  // adminPage is already logged in as e2e_admin@test.local
+  await adminPage.goto('/en/admin')
+  await expect(adminPage.locator('h1')).toBeVisible()
+})
 ```
 
 ## Test Helpers
