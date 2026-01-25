@@ -51,3 +51,5 @@ playwright/.cache/
 _bmad/
 _bmad-output/
 packages/frontend/test-output.txt
+.claude/
+ralph/

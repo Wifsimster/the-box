@@ -68,10 +68,24 @@ jobs:
                   retention-days: 7
 
     test-e2e:
-        name: E2E Tests (Optional)
+        name: E2E Tests
         runs-on: ubuntu-latest
         needs: build
-        continue-on-error: true
+
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: the_box_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
 
         steps:
             - name: Checkout code
@@ -86,19 +100,30 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Install Playwright browsers
-              run: npx playwright install --with-deps chromium
-
             - name: Download build artifacts
               uses: actions/download-artifact@v4
               with:
                   name: build-artifacts
                   path: packages
 
+            - name: Run database migrations
+              run: npm run db:migrate -w @the-box/backend
+              env:
+                  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+
+            - name: Seed E2E test data
+              run: npm run e2e:seed -w @the-box/backend
+              env:
+                  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium
+
             - name: Run E2E tests
               run: npm run test:e2e -w @the-box/frontend
               env:
                   CI: true
+                  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
 
             - name: Upload test results
               if: always()
