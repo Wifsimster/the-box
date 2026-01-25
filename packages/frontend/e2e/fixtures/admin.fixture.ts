@@ -69,6 +69,7 @@ export const test = base.extend<{ adminPage: Page }>({
     await loginAsE2EAdmin(page)
 
     // Provide the admin page to the test
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page)
   },
 })

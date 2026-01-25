@@ -69,6 +69,7 @@ export const test = base.extend<{ authenticatedPage: Page }>({
     await loginAsE2EUser(page)
 
     // Provide the authenticated page to the test
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page)
   },
 })
