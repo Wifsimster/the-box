@@ -17,12 +17,12 @@ if errorlevel 1 (
 
 REM Start PostgreSQL
 echo 📦 Starting PostgreSQL...
-docker-compose up -d postgres
+docker compose up -d postgres
 timeout /t 3 /nobreak >nul
 
 echo ⏳ Waiting for PostgreSQL to be ready...
 :wait_postgres
-docker-compose exec -T postgres pg_isready -U postgres >nul 2>&1
+docker compose exec -T postgres pg_isready -U postgres >nul 2>&1
 if errorlevel 1 (
     echo    Still waiting...
     timeout /t 2 /nobreak >nul

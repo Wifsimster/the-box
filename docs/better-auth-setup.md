@@ -4,7 +4,7 @@ This guide covers the remaining steps to complete the better-auth migration.
 
 ## Prerequisites
 
-- PostgreSQL running (via Docker: `docker-compose up -d`)
+- PostgreSQL running (via Docker: `docker compose up -d`)
 - Node.js 18+
 - npm workspaces installed (`npm install` from root)
 
@@ -144,7 +144,7 @@ npx playwright install chromium
 - Ensure your domain is verified in Resend dashboard
 
 ### Database connection errors
-- Ensure PostgreSQL is running: `docker-compose up -d`
+- Ensure PostgreSQL is running: `docker compose up -d`
 - Check `DATABASE_URL` matches your Docker configuration
 
 ## Migration from Existing Users
