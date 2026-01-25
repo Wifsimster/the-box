@@ -11,6 +11,7 @@ import { GuessInput } from '@/components/game/GuessInput'
 import { HintButtons } from '@/components/game/HintButtons'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
+import { CompletionChoiceModal } from '@/components/game/CompletionChoiceModal'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
 import { Button } from '@/components/ui/button'
@@ -655,6 +656,9 @@ export default function GamePage() {
             <AnimatePresence>
               {gamePhase === 'result' && <ResultCard />}
             </AnimatePresence>
+
+            {/* Completion Choice Modal */}
+            <CompletionChoiceModal />
           </motion.div>
         )}
 
