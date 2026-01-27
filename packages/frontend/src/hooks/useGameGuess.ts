@@ -138,23 +138,8 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           // Mark session as completed in state
           store.setIsSessionCompleted(true)
 
-          // Check if we're in a daily game and if there are still missing games
-          const isDailyGame = store.challengeId !== null
-          const hasMissingGames = Object.values(store.positionStates).some(
-            (state) => state.status !== 'correct'
-          )
-
-          // In daily games, only auto-complete if all games are discovered
-          // Otherwise, stay on game screen to allow manual ending
-          if (isDailyGame && hasMissingGames) {
-            // Stay in result phase to show the result, but don't auto-complete
-            if (shouldAdvance) {
-              store.setGamePhase('result')
-            }
-          } else {
-            // Show completion (all games found or not a daily game)
-            store.setGamePhase('challenge_complete')
-          }
+          // Session is done - go directly to results page
+          store.setGamePhase('challenge_complete')
         } else if (shouldAdvance) {
           // Check if we should show the completion choice modal
           // Trigger conditions: visited all positions, made a correct guess, and still have skipped positions
