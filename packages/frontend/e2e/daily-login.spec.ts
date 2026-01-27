@@ -7,7 +7,7 @@ import { E2E_USER_EMAIL, E2E_USER_PASSWORD } from './helpers/game-helpers'
  * Prerequisites:
  * - Backend server must be running
  * - Database must be seeded with npm run e2e:seed
- * - The e2e-seed script clears daily_login_claims for test users
+ * - The e2e-seed script clears login_reward_claims for test users
  */
 
 test.describe('Daily Login Rewards', () => {

@@ -178,7 +178,7 @@ async function createTodayChallenge(): Promise<void> {
  * Clear daily login claims for e2e test users so fresh login tests work
  */
 async function clearDailyLoginClaims(userIds: string[]): Promise<void> {
-  const deleted = await db('daily_login_claims')
+  const deleted = await db('login_reward_claims')
     .whereIn('user_id', userIds)
     .del()
 
