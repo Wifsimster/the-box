@@ -33,8 +33,11 @@ export function DailyRewardModal() {
     const handleClaim = async () => {
         setIsAnimating(true)
         await claimReward()
-        // Keep animation a bit longer for effect
-        setTimeout(() => setIsAnimating(false), 1000)
+        // Brief delay to show success feedback, then auto-close
+        setTimeout(() => {
+            setIsAnimating(false)
+            handleClose()
+        }, 800)
     }
 
     const handleClose = () => {
