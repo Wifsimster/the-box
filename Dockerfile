@@ -97,6 +97,11 @@ EXPOSE 80
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Copy backup scripts
+COPY scripts/db-backup.sh /scripts/db-backup.sh
+COPY scripts/db-backup-cron /etc/crontabs/root
+RUN chmod +x /scripts/db-backup.sh
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1

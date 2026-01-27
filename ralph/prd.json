@@ -1,179 +1,208 @@
 {
   "project": "The Box",
-  "branchName": "ralph/daily-game-completion-choice",
-  "description": "Daily Game Completion Choice - Give players control over when to end their daily challenge by showing a choice modal after visiting all positions and making a correct guess",
+  "branchName": "ralph/e2e-test-coverage",
+  "description": "E2E Test Coverage for Regression Prevention - Add comprehensive Playwright tests for critical user paths, database seeding scripts, and CI pipeline improvements to prevent regressions on main features.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add hasSkippedPositions selector to game store",
-      "description": "As a developer, I need a selector to check if any positions have 'skipped' status so the completion choice logic can determine when to show the modal.",
+      "title": "Create E2E database seeding script",
+      "description": "As a developer, I need a script to reset and seed the database with test data so that E2E tests run in a predictable environment.",
       "acceptanceCriteria": [
-        "Add hasSkippedPositions() selector to gameStore that returns true if any position has status 'skipped'",
-        "Selector iterates through positionStates and checks for status === 'skipped'",
-        "Returns false if no positions are skipped",
+        "Create packages/backend/scripts/e2e-seed.ts script",
+        "Script creates test users: e2e_user@test.local (password: test123) and e2e_admin@test.local (password: test123, role: admin)",
+        "Script creates a daily challenge for today with at least 10 screenshots (reuse existing games from database)",
+        "Script can be run via npm run e2e:seed from backend package (add script to package.json)",
+        "Script is idempotent (can run multiple times safely - uses INSERT ON CONFLICT DO NOTHING or similar)",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "Reference existing seed files in packages/backend/seeds/ for patterns. Use the hashPassword function from 001_test_users.ts for password hashing."
     },
     {
       "id": "US-002",
-      "title": "Add showCompletionChoice state to game store",
-      "description": "As a developer, I need state to control when the completion choice modal is visible.",
+      "title": "Add shared test fixtures and update helpers",
+      "description": "As a developer, I need shared fixtures so that tests are DRY and maintainable.",
       "acceptanceCriteria": [
-        "Add showCompletionChoice boolean to gameStore state (default: false)",
-        "Add setShowCompletionChoice(value: boolean) action to update the state",
-        "State resets to false when game session resets",
-        "State should NOT be persisted to localStorage",
+        "Create packages/frontend/e2e/fixtures/auth.fixture.ts with authenticated page fixture using Playwright's test.extend",
+        "Fixture logs in as e2e_user@test.local and provides authenticated page",
+        "Create packages/frontend/e2e/fixtures/admin.fixture.ts with admin authenticated fixture using e2e_admin@test.local",
+        "Update helpers/game-helpers.ts to use E2E_USER_EMAIL and E2E_USER_PASSWORD constants (e2e_user@test.local / test123)",
+        "Create packages/frontend/e2e/README.md documenting fixtures, helpers, and how to run tests",
         "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": ""
+      "notes": "Use Playwright's test.extend() pattern for fixtures. See https://playwright.dev/docs/test-fixtures"
     },
     {
       "id": "US-003",
-      "title": "Add findFirstSkipped selector to game store",
-      "description": "As a developer, I need a selector to find the first skipped position for navigation after the player chooses to continue.",
+      "title": "Add authentication E2E tests - login flow",
+      "description": "As a QA engineer, I want login flow tests so that authentication regressions are caught automatically.",
       "acceptanceCriteria": [
-        "Add findFirstSkipped() selector to gameStore",
-        "Returns the position number of the first position with status 'skipped'",
-        "Returns null if no skipped positions exist",
-        "Searches positions 1-10 in order",
+        "Create packages/frontend/e2e/auth.spec.ts",
+        "Test: displays login form with email and password fields",
+        "Test: successful login with valid credentials redirects away from login page",
+        "Test: shows error message for invalid password",
+        "Test: shows error message for non-existent user email",
+        "Test: logout button clears session and user can no longer access protected pages",
+        "All tests use seeded e2e_user@test.local account from fixtures",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": ""
+      "notes": "Use the auth.fixture.ts for tests requiring authentication. Login page is at /en/login"
     },
     {
       "id": "US-004",
-      "title": "Create CompletionChoiceModal component",
-      "description": "As a player, I want to see a modal with options to continue playing or see results when I've visited all positions and made a correct guess.",
+      "title": "Add authentication E2E tests - password reset flow",
+      "description": "As a QA engineer, I want password reset flow tests so that forgot password functionality is verified.",
       "acceptanceCriteria": [
-        "Create CompletionChoiceModal component in packages/frontend/src/components/game/",
-        "Modal uses existing Dialog component from shadcn/ui",
-        "Displays count of remaining unguessed games (e.g., 'You have 3 games left to guess')",
-        "Shows 'Continue Playing' button with primary purple gradient style",
-        "Shows 'See Results' button with secondary outline style",
-        "Modal cannot be dismissed by clicking outside (no onOpenChange that allows closing)",
-        "Modal matches dark gaming theme with purple/pink accents",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Add tests to packages/frontend/e2e/auth.spec.ts in a new describe block",
+        "Test: forgot password page at /en/forgot-password displays email input field",
+        "Test: submitting valid email format shows success message (email sent)",
+        "Test: submitting invalid email format shows validation error",
+        "Test: page has link back to login page",
+        "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Cannot test actual password reset without email access, just verify the UI flow works"
     },
     {
       "id": "US-005",
-      "title": "Implement Continue Playing action in modal",
-      "description": "As a player, I want clicking 'Continue Playing' to close the modal and navigate me to the first skipped position.",
+      "title": "Add leaderboard E2E tests",
+      "description": "As a QA engineer, I want leaderboard tests so that ranking display regressions are caught.",
       "acceptanceCriteria": [
-        "Clicking 'Continue Playing' sets showCompletionChoice to false",
-        "Navigates to the first skipped position using findFirstSkipped() and navigateToPosition()",
-        "Sets gamePhase back to 'playing' if needed",
-        "Player can make guess attempts on the navigated position",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create packages/frontend/e2e/leaderboard.spec.ts",
+        "Test: leaderboard page at /en/leaderboard loads without authentication",
+        "Test: page displays player rankings in a table or list format",
+        "Test: can switch between daily and monthly tabs/views",
+        "Test: each ranking entry shows rank number, username, and score",
+        "Test: authenticated user sees their own entry highlighted (if on leaderboard)",
+        "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Leaderboard page is at /en/leaderboard. Use auth fixture for the highlighted user test."
     },
     {
       "id": "US-006",
-      "title": "Implement See Results action in modal",
-      "description": "As a player, I want clicking 'See Results' to end the game and show my final results.",
+      "title": "Add achievements E2E tests",
+      "description": "As a QA engineer, I want achievement display tests so that the achievements page works correctly.",
       "acceptanceCriteria": [
-        "Clicking 'See Results' calls existing endGameAction() from useEndGame hook",
-        "Sets showCompletionChoice to false",
-        "Game transitions to challenge_complete phase",
-        "Final score is calculated and displayed",
-        "Unfound games are revealed in results view",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create packages/frontend/e2e/achievements.spec.ts",
+        "Test: achievements page requires authentication (redirects to login if not logged in)",
+        "Test: achievements page loads for authenticated user",
+        "Test: displays achievement cards with name and description",
+        "Test: shows visual distinction between locked and unlocked achievements",
+        "Test: page shows achievement progress or count summary",
+        "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Use auth fixture for authenticated tests. Check existing achievement components in packages/frontend/src/components/achievement/"
     },
     {
       "id": "US-007",
-      "title": "Trigger completion choice modal in useGameGuess hook",
-      "description": "As a player, I want the completion choice modal to appear automatically when I make a correct guess after visiting all positions.",
+      "title": "Add daily login rewards E2E tests",
+      "description": "As a QA engineer, I want daily login reward tests so that the reward claim flow works correctly.",
       "acceptanceCriteria": [
-        "Modify useGameGuess hook to check trigger conditions after correct guess",
-        "Trigger conditions: hasVisitedAllPositions() === true AND isCorrect === true AND hasSkippedPositions() === true",
-        "When conditions met, set showCompletionChoice to true instead of auto-navigating",
-        "Modal does NOT appear if there are no skipped positions (all games already found)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create packages/frontend/e2e/daily-login.spec.ts",
+        "Test: daily reward modal appears after fresh login (use new session or cleared cookies)",
+        "Test: modal displays current streak information",
+        "Test: clicking claim button closes modal and shows success feedback",
+        "Test: modal can be closed via close button without claiming",
+        "Test: modal does not reappear on same day after claiming",
+        "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Daily login components are in packages/frontend/src/components/daily-login/. May need to clear daily_login_claims for test user in seed script."
     },
     {
       "id": "US-008",
-      "title": "Pause ResultCard countdown when modal is visible",
-      "description": "As a player, I don't want the ResultCard to auto-navigate while the completion choice modal is showing.",
+      "title": "Add user profile E2E tests",
+      "description": "As a QA engineer, I want profile page tests so that user stats display correctly.",
       "acceptanceCriteria": [
-        "ResultCard reads showCompletionChoice from game store",
-        "Countdown timer pauses when showCompletionChoice is true",
-        "Auto-navigation does not occur while modal is visible",
-        "Countdown resumes if player chooses 'Continue Playing' (though ResultCard may be hidden by then)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create packages/frontend/e2e/profile.spec.ts",
+        "Test: profile page requires authentication (redirects to login if not logged in)",
+        "Test: profile page at /en/profile loads for authenticated user",
+        "Test: displays username and/or display name",
+        "Test: displays total score statistic",
+        "Test: displays streak information (current or longest)",
+        "Test: displays achievement count or summary",
+        "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Profile page is at /en/profile. Use auth fixture."
     },
     {
       "id": "US-009",
-      "title": "Render CompletionChoiceModal in DailyChallengePage",
-      "description": "As a player, I want the completion choice modal to be rendered on the daily challenge page.",
+      "title": "Add game history E2E tests",
+      "description": "As a QA engineer, I want game history tests so that past game display works correctly.",
       "acceptanceCriteria": [
-        "Import and render CompletionChoiceModal in DailyChallengePage (or appropriate game container)",
-        "Modal visibility controlled by showCompletionChoice state from game store",
-        "Modal appears above other game UI elements",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create packages/frontend/e2e/history.spec.ts",
+        "Test: history page requires authentication",
+        "Test: history page at /en/history loads for authenticated user",
+        "Test: displays list of past games with dates",
+        "Test: each history entry shows score achieved",
+        "Test: clicking on a history entry navigates to detail page",
+        "Test: shows appropriate empty state when user has no history",
+        "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "History page is at /en/history. GameHistoryDetailsPage exists for individual game details."
     },
     {
       "id": "US-010",
-      "title": "Re-trigger modal after continuing and making another correct guess",
-      "description": "As a player who chose to continue, I want the modal to reappear when I make another correct guess if skipped positions still remain.",
+      "title": "Update CI workflow for mandatory E2E tests",
+      "description": "As a developer, I want E2E tests to be required to pass on PRs so that regressions are blocked.",
       "acceptanceCriteria": [
-        "After choosing 'Continue Playing' and making a correct guess, trigger logic re-evaluates",
-        "Modal reappears if hasSkippedPositions() is still true after the new correct guess",
-        "If all games are now found (no more skipped), game completes normally without modal",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Update .github/workflows/ci.yml to remove continue-on-error: true from test-e2e job",
+        "Add step to run database seeding before E2E tests (npm run e2e:seed -w @the-box/backend)",
+        "E2E tests run with Chromium only (already configured)",
+        "E2E job fails the entire workflow if tests fail",
+        "Typecheck passes (run npm run build to verify)"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CI workflow is at .github/workflows/ci.yml. Seeding step needs PostgreSQL service container."
     },
     {
       "id": "US-011",
-      "title": "Hide EndGameButton when completion choice flow is active",
-      "description": "As a player, I want the UI to be consistent by hiding the manual End Game button once the completion choice modal becomes the primary way to end.",
+      "title": "Add PostgreSQL service to CI for E2E tests",
+      "description": "As a developer, I need a database available in CI so that E2E tests can run with seeded data.",
       "acceptanceCriteria": [
-        "EndGameButton reads showCompletionChoice and hasVisitedAllPositions from game store",
-        "EndGameButton is hidden when hasVisitedAllPositions() is true AND hasSkippedPositions() is true",
-        "EndGameButton reappears if player skips all remaining positions (no more skipped, only correct/not_visited)",
+        "Add PostgreSQL service container to test-e2e job in .github/workflows/ci.yml",
+        "Configure service with test database credentials (postgres/postgres/the_box_test)",
+        "Add step to run migrations before seeding (npm run db:migrate -w @the-box/backend)",
+        "Add environment variables for database connection (DATABASE_URL or individual vars)",
+        "Verify E2E tests can connect to database",
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Use GitHub Actions service containers: https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers"
+    },
+    {
+      "id": "US-012",
+      "title": "Add full browser matrix workflow for releases",
+      "description": "As a developer, I want full browser coverage on release branches so that cross-browser issues are caught before release.",
+      "acceptanceCriteria": [
+        "Create .github/workflows/e2e-full.yml for full browser matrix testing",
+        "Workflow triggers on push to main branch and release/* branches",
+        "Tests run on Chromium, Firefox, and WebKit browsers using matrix strategy",
+        "Each browser uploads its own test artifacts (playwright-report-{browser})",
+        "Workflow includes PostgreSQL service and database seeding",
+        "All browsers must pass for workflow to succeed",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Use Playwright's project configuration to run specific browsers. Reference existing ci.yml for structure."
     }
   ]
 }

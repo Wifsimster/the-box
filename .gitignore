@@ -53,3 +53,6 @@ _bmad-output/
 packages/frontend/test-output.txt
 .claude/
 ralph/
+
+# Database backups
+backups/
