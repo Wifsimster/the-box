@@ -30,6 +30,16 @@ jobs:
                     --health-timeout 5s
                     --health-retries 5
 
+            redis:
+                image: redis:7
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -64,6 +74,26 @@ jobs:
 
             - name: Install Playwright browsers
               run: npx playwright install --with-deps ${{ matrix.browser }}
+
+            - name: Start backend server
+              run: |
+                  npm run start -w @the-box/backend &
+                  echo "Waiting for backend to be ready..."
+                  for i in {1..30}; do
+                    if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+                      echo "Backend is ready!"
+                      break
+                    fi
+                    echo "Waiting... ($i/30)"
+                    sleep 2
+                  done
+              env:
+                  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+                  REDIS_URL: redis://localhost:6379
+                  NODE_ENV: production
+                  PORT: 3000
+                  BETTER_AUTH_SECRET: e2e-test-secret-key-for-ci-testing
+                  BETTER_AUTH_URL: http://localhost:3000
 
             - name: Run E2E tests
               run: npx playwright test --project=${{ matrix.browser }}
