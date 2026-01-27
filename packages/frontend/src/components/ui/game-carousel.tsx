@@ -48,6 +48,7 @@ export function GameCarousel({
 
     // Reset zoom when image changes
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset zoom when navigating to a new image
         setZoomLevelIndex(0)
     }, [currentIndex])
 
