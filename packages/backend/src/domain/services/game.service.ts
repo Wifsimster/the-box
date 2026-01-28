@@ -37,6 +37,7 @@ const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 100
 const UNFOUND_PENALTY = 0
 const WRONG_GUESS_PENALTY = 0
+const CATCH_UP_DAYS = 7
 
 /**
  * Calculate speed multiplier based on time taken to find the screenshot
@@ -204,22 +205,23 @@ export const gameService = {
     // Determine if this is a catch-up session
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+
+    // Calculate the oldest allowed date (CATCH_UP_DAYS days ago)
+    const oldestAllowed = new Date(today)
+    oldestAllowed.setDate(oldestAllowed.getDate() - CATCH_UP_DAYS)
 
     const challengeDate = new Date(challenge.challenge_date)
     challengeDate.setHours(0, 0, 0, 0)
 
     const todayStr = today.toISOString().split('T')[0]
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
     const challengeDateStr = typeof challenge.challenge_date === 'string'
       ? challenge.challenge_date
       : challengeDate.toISOString().split('T')[0]
 
-    // Check if challenge is from the past (not today and not yesterday)
+    // Check if challenge is from the past (not today and older than CATCH_UP_DAYS)
     const isCatchUp = challengeDateStr !== todayStr
-    if (isCatchUp && challengeDateStr !== yesterdayStr) {
-      throw new GameError('CHALLENGE_TOO_OLD', 'This challenge is no longer available. You can only play today\'s or yesterday\'s challenge.', 400)
+    if (isCatchUp && challengeDate < oldestAllowed) {
+      throw new GameError('CHALLENGE_TOO_OLD', `This challenge is no longer available. You can only play challenges from the last ${CATCH_UP_DAYS} days.`, 400)
     }
 
     let gameSession = await sessionRepository.findGameSession(userId, challengeId)

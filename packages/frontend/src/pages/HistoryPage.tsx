@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, Gamepad2, Target, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, Gamepad2, Target, RefreshCw, Calendar, Play } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
-import type { GameHistoryEntry } from '@/types'
+import type { GameHistoryEntry, MissedChallenge } from '@/types'
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation()
@@ -17,6 +18,7 @@ export default function HistoryPage() {
   const { localizedPath } = useLocalizedPath()
   const { session, isPending } = useAuth()
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
+  const [missedChallenges, setMissedChallenges] = useState<MissedChallenge[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filter states
@@ -36,7 +38,10 @@ export default function HistoryPage() {
     if (!session) return
     setLoading(true)
     gameApi.getGameHistory()
-      .then(data => setHistory(data.entries))
+      .then(data => {
+        setHistory(data.entries)
+        setMissedChallenges(data.missedChallenges || [])
+      })
       .catch(() => { })
       .finally(() => setLoading(false))
   }, [session])
@@ -214,6 +219,63 @@ export default function HistoryPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Missed Challenges Section */}
+            {missedChallenges.length > 0 && (
+              <Card className="bg-card/50 border-border border-amber-500/30">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-lg sm:text-xl font-extrabold flex items-center gap-2">
+                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+                    <span className="bg-linear-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+                      {t('history.missedChallenges')} ({missedChallenges.length})
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 pt-0">
+                  <div className="space-y-2 sm:space-y-3">
+                    {missedChallenges.map((challenge, index) => (
+                      <motion.div
+                        key={challenge.challengeId}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-amber-500/10 border border-amber-500/20"
+                      >
+                        {/* Left Section: Icon and Date */}
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-amber-500 to-orange-600">
+                            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm sm:text-base font-semibold wrap-break-word">
+                              {formatDate(challenge.date)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right Section: Badge and Play Button */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+                          <Badge variant="outline" className="text-xs border-amber-500/50 bg-amber-500/10 text-amber-400">
+                            {t('history.catchUpBadge')}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
+                            className="bg-linear-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                          >
+                            <Play className="w-4 h-4 mr-1" />
+                            {t('history.playCatchUp')}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-3 text-center">
+                    {t('history.scoreWontCount')}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Games List */}
             <Card className="bg-card/50 border-border">

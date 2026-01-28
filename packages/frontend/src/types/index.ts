@@ -36,6 +36,7 @@ export type {
   GameSearchResult,
   LeaderboardResponse,
   GameHistoryEntry,
+  MissedChallenge,
   GameHistoryResponse,
   GameSessionDetailsResponse,
 

@@ -296,7 +296,11 @@
     "searchPlaceholder": "Rechercher par date...",
     "noMatchingResults": "Aucune partie ne correspond à vos filtres",
     "game": "partie",
-    "games": "parties"
+    "games": "parties",
+    "missedChallenges": "Défis Manqués",
+    "playCatchUp": "Jouer",
+    "catchUpBadge": "Rattrapage",
+    "scoreWontCount": "Les scores de rattrapage ne comptent pas au classement"
   },
   "auth": {
     "login": "Connexion",

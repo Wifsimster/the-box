@@ -113,4 +113,19 @@ export const challengeRepository = {
       .where('tier_id', tierId)
       .del()
   },
+
+  async findRecentChallenges(days: number): Promise<ChallengeRow[]> {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    const cutoffStr = cutoffDate.toISOString().split('T')[0]
+
+    const rows = await db.raw<{ rows: ChallengeRow[] }>(`
+      SELECT id, challenge_date::text as challenge_date, created_at
+      FROM daily_challenges
+      WHERE challenge_date >= ?
+      ORDER BY challenge_date DESC
+    `, [cutoffStr])
+
+    return rows.rows
+  },
 }

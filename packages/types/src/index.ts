@@ -417,8 +417,14 @@ export interface GameHistoryEntry {
   completedAt: string | null
 }
 
+export interface MissedChallenge {
+  challengeId: number
+  date: string  // YYYY-MM-DD
+}
+
 export interface GameHistoryResponse {
   entries: GameHistoryEntry[]
+  missedChallenges: MissedChallenge[]
 }
 
 export interface GameSessionDetailsResponse {

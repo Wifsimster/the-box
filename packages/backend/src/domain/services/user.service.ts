@@ -1,13 +1,35 @@
 import { sessionRepository, challengeRepository } from '../../infrastructure/repositories/index.js'
 import { db } from '../../infrastructure/database/connection.js'
-import type { GameHistoryResponse, GameSessionDetailsResponse, Game, Screenshot } from '@the-box/types'
+import type { GameHistoryResponse, GameSessionDetailsResponse, Game, Screenshot, MissedChallenge } from '@the-box/types'
 
 const TOTAL_SCREENSHOTS = 10
 const WRONG_GUESS_PENALTY = 0
+const CATCH_UP_DAYS = 7
 
 export const userService = {
   async getGameHistory(userId: string): Promise<GameHistoryResponse> {
     const entries = await sessionRepository.findUserGameHistory(userId)
+
+    // Get recent challenges (last CATCH_UP_DAYS days)
+    const recentChallenges = await challengeRepository.findRecentChallenges(CATCH_UP_DAYS)
+
+    // Get today's date to exclude it from missed challenges
+    const today = new Date().toISOString().split('T')[0]
+
+    // Get the set of dates the user has played
+    const playedDates = new Set(entries.map(entry => entry.challenge_date))
+
+    // Calculate missed challenges (challenges with no session, excluding today)
+    const missedChallenges: MissedChallenge[] = recentChallenges
+      .filter(challenge => {
+        const challengeDate = challenge.challenge_date
+        // Exclude today's challenge and challenges already played
+        return challengeDate !== today && !playedDates.has(challengeDate)
+      })
+      .map(challenge => ({
+        challengeId: challenge.id,
+        date: challenge.challenge_date,
+      }))
 
     return {
       entries: entries.map(entry => ({
@@ -17,6 +39,7 @@ export const userService = {
         isCompleted: entry.is_completed,
         completedAt: entry.completed_at?.toISOString() ?? null,
       })),
+      missedChallenges,
     }
   },
 

@@ -291,15 +291,15 @@ export const sessionRepository = {
       .join('daily_challenges', 'game_sessions.daily_challenge_id', 'daily_challenges.id')
       .where('game_sessions.user_id', userId)
       .orderBy('daily_challenges.challenge_date', 'desc')
-      .select<GameHistoryRow[]>(
+      .select(
         'game_sessions.id as session_id',
-        'daily_challenges.challenge_date',
+        db.raw('daily_challenges.challenge_date::text as challenge_date'),
         'game_sessions.total_score',
         'game_sessions.is_completed',
         'game_sessions.completed_at'
       )
     log.debug({ userId, count: rows.length }, 'findUserGameHistory result')
-    return rows
+    return rows as GameHistoryRow[]
   },
 
   async findAllInProgressSessions(): Promise<GameSessionRow[]> {

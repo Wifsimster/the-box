@@ -296,7 +296,11 @@
     "searchPlaceholder": "Search by date...",
     "noMatchingResults": "No games match your filters",
     "game": "game",
-    "games": "games"
+    "games": "games",
+    "missedChallenges": "Missed Challenges",
+    "playCatchUp": "Play",
+    "catchUpBadge": "Catch-up",
+    "scoreWontCount": "Catch-up scores won't count on leaderboard"
   },
   "auth": {
     "login": "Login",
