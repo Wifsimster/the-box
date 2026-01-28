@@ -74,19 +74,27 @@ test.describe('History - Authenticated User', () => {
     await authenticatedPage.goto('/en/history')
     await authenticatedPage.waitForTimeout(1000)
 
-    // Look for score patterns
-    const scorePattern = authenticatedPage.locator('text=/\\d+.*pts|\\d+.*points|score.*\\d+|\\d+$/').first()
-    const hasScore = await scorePattern.isVisible().catch(() => false)
+    // Look for Trophy icon which indicates score area
+    const trophyIcon = authenticatedPage.locator('svg.lucide-trophy').first()
+    const hasTrophy = await trophyIcon.isVisible().catch(() => false)
 
-    // Look for score elements
-    const scoreElement = authenticatedPage.locator('[class*="score"]').first()
-    const hasScoreElement = await scoreElement.isVisible().catch(() => false)
+    // Look for Badge elements (scores are displayed in badges)
+    const badgeElement = authenticatedPage.locator('[class*="badge"], [class*="Badge"]').first()
+    const hasBadge = await badgeElement.isVisible().catch(() => false)
+
+    // Look for numeric content that could be a score (3-4 digit numbers)
+    const scoreNumber = authenticatedPage.locator('text=/^\\d{2,4}$/').first()
+    const hasScoreNumber = await scoreNumber.isVisible().catch(() => false)
+
+    // Look for percentage indicators (accuracy shown as X%)
+    const percentagePattern = authenticatedPage.locator('text=/\\d+%/').first()
+    const hasPercentage = await percentagePattern.isVisible().catch(() => false)
 
     // Or empty state
     const emptyState = authenticatedPage.locator('text=/no.*history|no.*games|empty|aucun/i').first()
     const isEmpty = await emptyState.isVisible().catch(() => false)
 
-    expect(hasScore || hasScoreElement || isEmpty).toBeTruthy()
+    expect(hasTrophy || hasBadge || hasScoreNumber || hasPercentage || isEmpty).toBeTruthy()
   })
 
   authTest('clicking on a history entry navigates to detail page', async ({ authenticatedPage }) => {

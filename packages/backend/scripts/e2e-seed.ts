@@ -53,8 +53,11 @@ async function createTestUser(data: {
 }): Promise<string> {
   const now = new Date()
 
-  // Check if user already exists
-  const existingUser = await db('user').where('email', data.email).first()
+  // Check if user already exists by email or username
+  const existingUser = await db('user')
+    .where('email', data.email)
+    .orWhere('username', data.username)
+    .first()
 
   if (existingUser) {
     console.log(`  ✓ User ${data.email} already exists (ID: ${existingUser.id})`)
