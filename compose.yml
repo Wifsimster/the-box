@@ -107,6 +107,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Database backup service (runs daily at 2am)
+  db-backup:
+    image: postgres:16-alpine
+    container_name: the-box-db-backup
+    restart: unless-stopped
+    environment:
+      - PGPASSWORD=${DB_PASSWORD:-thebox}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/db-backup.sh:/scripts/db-backup.sh:ro
+      - ./scripts/db-backup-cron:/etc/crontabs/root:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["crond", "-f", "-l", "2"]
+    networks:
+      lan:
+
 volumes:
   uploads:
   redis-data:

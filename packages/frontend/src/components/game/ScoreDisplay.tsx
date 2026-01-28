@@ -1,22 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
-import { useEffect, useState } from 'react'
 
 export function ScoreDisplay() {
   const { totalScore } = useGameStore()
-  const [prevScore, setPrevScore] = useState(totalScore)
-  const [isAnimating, setIsAnimating] = useState(false)
-
-  useEffect(() => {
-    if (totalScore !== prevScore) {
-      setIsAnimating(true)
-      const timer = setTimeout(() => {
-        setPrevScore(totalScore)
-        setIsAnimating(false)
-      }, 300)
-      return () => clearTimeout(timer)
-    }
-  }, [totalScore, prevScore])
 
   return (
     <div className="flex flex-col items-center">
