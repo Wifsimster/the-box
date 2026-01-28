@@ -553,8 +553,8 @@ export default function GamePage() {
             </div>
 
             {/* Score and End Game Button (Top Right) */}
-            <div className="absolute top-1 right-2 sm:top-2 sm:right-4 z-40 flex flex-col items-end gap-1">
-              <div className="bg-gradient-to-r from-purple-950/60 via-fuchsia-950/50 to-purple-950/60 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2 border border-purple-500/30 shadow-lg shadow-purple-500/20">
+            <div className="absolute top-2 right-2 sm:top-3 sm:right-4 z-40 flex flex-col items-stretch min-w-32 sm:min-w-36">
+              <div className="bg-black/60 backdrop-blur-md rounded-t-xl px-5 sm:px-6 py-2 sm:py-2.5 border border-white/10 shadow-2xl">
                 <ScoreDisplay />
               </div>
               <EndGameButton />

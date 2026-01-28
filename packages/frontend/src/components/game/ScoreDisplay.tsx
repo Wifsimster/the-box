@@ -1,20 +1,40 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
+import { useEffect, useState } from 'react'
 
 export function ScoreDisplay() {
   const { totalScore } = useGameStore()
+  const [prevScore, setPrevScore] = useState(totalScore)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    if (totalScore !== prevScore) {
+      setIsAnimating(true)
+      const timer = setTimeout(() => {
+        setPrevScore(totalScore)
+        setIsAnimating(false)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [totalScore, prevScore])
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2">
-      <span className="text-xs sm:text-sm md:text-base font-semibold text-purple-200/80 uppercase tracking-wider drop-shadow-lg">
+    <div className="flex flex-col items-center">
+      <span className="text-[10px] sm:text-xs font-medium text-white/50 uppercase tracking-widest">
         Score
       </span>
-      <motion.div
-        className="text-xl sm:text-2xl md:text-3xl font-extrabold tabular-nums bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(168,85,247,0.5)] tracking-tight"
-        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' }}
-      >
-        {totalScore || 0}
-      </motion.div>
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={totalScore}
+          initial={{ opacity: 0, y: -10, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.8 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          className="text-2xl sm:text-3xl font-bold tabular-nums text-white tracking-tight"
+        >
+          {totalScore || 0}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

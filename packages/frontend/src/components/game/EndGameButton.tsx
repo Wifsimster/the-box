@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,8 +36,6 @@ export function EndGameButton() {
   // When there are skipped positions, the completion choice modal handles ending the game
   const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted && !hasSkippedPositions()
 
-  if (!canShowButton) return null
-
   const handleEndGame = async () => {
     setIsEnding(true)
     try {
@@ -54,20 +53,40 @@ export function EndGameButton() {
 
   return (
     <>
-      <Button
-        variant="gaming"
-        size="sm"
-        onClick={() => setShowConfirm(true)}
-        className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-3 sm:px-4 touch-manipulation animate-pulse-gaming"
-      >
-        <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-        <span className="text-xs sm:text-sm">{t('game.endGame.button')}</span>
-      </Button>
+      <AnimatePresence>
+        {canShowButton && (
+          <motion.button
+            onClick={() => setShowConfirm(true)}
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            exit={{ opacity: 0, scaleY: 0 }}
+            style={{ originY: 0 }}
+            transition={{
+              type: 'spring',
+              stiffness: 500,
+              damping: 35,
+            }}
+            className="w-full flex items-center justify-center gap-1.5
+              h-8 sm:h-9
+              bg-linear-to-r from-primary to-purple-500
+              text-white text-xs sm:text-sm font-semibold
+              rounded-b-xl border border-t-0 border-white/10
+              shadow-lg
+              hover:brightness-110
+              active:scale-[0.98]
+              transition-all duration-150
+              touch-manipulation"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>{t('game.endGame.button')}</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="text-center sm:text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 ring-2 ring-primary/30">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-purple-500/20 ring-2 ring-primary/30">
               <Trophy className="h-8 w-8 text-primary" />
             </div>
             <DialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</DialogTitle>
