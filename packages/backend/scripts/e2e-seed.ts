@@ -24,14 +24,14 @@ export const E2E_ADMIN_PASSWORD = 'test123'
  * Matches: N=16384, r=16, p=1, dkLen=64
  * Format: salt:key (both hex encoded)
  *
- * IMPORTANT: scrypt salt must be passed as raw bytes, not hex string.
- * better-auth uses @noble/hashes which expects Uint8Array or raw string bytes.
+ * better-auth passes the hex-encoded salt STRING to scrypt (not raw bytes).
+ * See: node_modules/better-auth/dist/crypto/password.mjs
  */
 async function hashPassword(password: string): Promise<string> {
   const saltBytes = randomBytes(16)
   const salt = saltBytes.toString('hex')
-  // Pass raw salt bytes to scrypt (not hex string) to match better-auth behavior
-  const key = await scryptAsync(password.normalize('NFKC'), saltBytes, {
+  // Pass hex-encoded salt string to match better-auth's behavior
+  const key = await scryptAsync(password.normalize('NFKC'), salt, {
     N: 16384,
     r: 16,
     p: 1,

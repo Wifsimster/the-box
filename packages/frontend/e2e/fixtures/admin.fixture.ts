@@ -22,6 +22,19 @@ export const E2E_ADMIN_PASSWORD = 'test123'
  * Log in as the E2E admin user
  */
 async function loginAsE2EAdmin(page: Page): Promise<void> {
+  // Capture network responses for debugging
+  const authResponses: { url: string; status: number; body: string }[] = []
+  page.on('response', async (response) => {
+    if (response.url().includes('/api/auth')) {
+      try {
+        const body = await response.text().catch(() => 'unable to read body')
+        authResponses.push({ url: response.url(), status: response.status(), body })
+      } catch {
+        authResponses.push({ url: response.url(), status: response.status(), body: 'error reading' })
+      }
+    }
+  })
+
   await page.goto('/en/login')
   await page.waitForSelector('form')
 
@@ -49,13 +62,19 @@ async function loginAsE2EAdmin(page: Page): Promise<void> {
   // Verify login succeeded
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
-    const errorElement = page.locator('[role="alert"], p.text-destructive').first()
+    // Check for any error message - using class selector that matches the actual error div
+    const errorSelector = '[class*="text-destructive"], [class*="bg-destructive"], [role="alert"]'
+    const errorElement = page.locator(errorSelector).first()
     const errorVisible = await errorElement.isVisible().catch(() => false)
     if (errorVisible) {
       const errorText = await errorElement.textContent()
       throw new Error(`E2E admin login failed: ${errorText}`)
     }
-    throw new Error('E2E admin login did not redirect - check credentials and e2e-seed')
+    // Include captured auth responses in error message for debugging
+    const authInfo = authResponses.length > 0
+      ? `\nAuth API responses:\n${authResponses.map(r => `  ${r.status} ${r.url}\n  Body: ${r.body.slice(0, 200)}`).join('\n')}`
+      : '\nNo auth API responses captured'
+    throw new Error(`E2E admin login did not redirect - check credentials and e2e-seed${authInfo}`)
   }
 
   // Close Daily Reward modal if it appears
