@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,22 +12,18 @@ import {
 } from '@/components/ui/dialog'
 import { useGameStore } from '@/stores/gameStore'
 import { Flag, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
-
-const UNFOUND_PENALTY = 50
 
 export function EndGameButton() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEnding, setIsEnding] = useState(false)
 
   const gamePhase = useGameStore((s) => s.gamePhase)
-  const positionStates = useGameStore((s) => s.positionStates)
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
   const hasSkippedPositions = useGameStore((s) => s.hasSkippedPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
-  const totalScore = useGameStore((s) => s.totalScore)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
   // Show if playing, all positions visited, session not completed, and no skipped positions
@@ -35,27 +32,12 @@ export function EndGameButton() {
 
   if (!canShowButton) return null
 
-  // Calculate unfound count for warning message
-  const unfoundCount = Object.values(positionStates).filter(
-    (s) => s.status !== 'correct'
-  ).length
-  const penaltyPreview = unfoundCount * UNFOUND_PENALTY
-  const finalScore = totalScore - penaltyPreview
-
-  // Determine score color based on value
-  const getScoreColor = (score: number) => {
-    if (score <= 0) return 'text-error'
-    if (score >= 800) return 'text-success'
-    if (score >= 500) return 'text-yellow-400'
-    if (score >= 250) return 'text-orange-400'
-    return 'text-error'
-  }
-
   const handleEndGame = async () => {
     setIsEnding(true)
     try {
       await endGameAction()
       setShowConfirm(false)
+      navigate('/leaderboard')
     } catch (error) {
       // Show error toast to user
       const errorMessage = error instanceof Error ? error.message : 'Failed to end game'
@@ -82,30 +64,9 @@ export function EndGameButton() {
           <DialogHeader>
             <DialogTitle>{t('game.endGame.confirmTitle')}</DialogTitle>
             <DialogDescription>
-              {t('game.endGame.confirmMessage', {
-                unfound: unfoundCount,
-                penalty: penaltyPreview,
-              })}
+              {t('game.endGame.confirmDescription')}
             </DialogDescription>
           </DialogHeader>
-
-          {/* Final Score */}
-          <div className="bg-card border-2 border-border rounded-xl p-6 my-4">
-            <div className="flex flex-col items-center justify-center text-center gap-2">
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {t('game.endGame.finalScore')}
-              </div>
-              <div className={cn(
-                "text-5xl font-black tabular-nums",
-                getScoreColor(finalScore)
-              )}>
-                {finalScore}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {t('game.endGame.points')}
-              </div>
-            </div>
-          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"

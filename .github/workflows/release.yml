@@ -21,9 +21,130 @@ permissions:
   packages: write
 
 jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Type check
+        run: npm run build:types
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: the_box_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build types
+        run: npm run build:types
+
+      - name: Build backend
+        run: npm run build:backend
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Run database migrations
+        run: npm run db:migrate -w @the-box/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+
+      - name: Seed E2E test data
+        run: npm run e2e:seed -w @the-box/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend server
+        run: |
+          npm run start -w @the-box/backend &
+          echo "Waiting for backend to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: development
+          PORT: 3000
+
+      - name: Run E2E tests
+        run: npm run test:e2e -w @the-box/frontend
+        env:
+          CI: true
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/frontend/playwright-report
+          retention-days: 30
+
   release:
     name: Create Release & Publish Docker Image
     runs-on: ubuntu-latest
+    needs: e2e
 
     steps:
       - name: Checkout code
@@ -45,12 +166,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run linter
-        run: npm run lint
-
-      - name: Type check
-        run: npm run build:types
 
       - name: Determine version bump type
         id: version_type

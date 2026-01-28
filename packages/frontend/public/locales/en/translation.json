@@ -152,6 +152,15 @@
     "endGame": {
       "button": "End Game",
       "confirmTitle": "End Game?",
+      "confirmDescriptions": [
+        "Ready to see if you crushed the leaderboard?",
+        "The moment of truth awaits... 🎮",
+        "Your fingers did the work, let's see the results!",
+        "Podium material? Let's find out!",
+        "Time to shine (or not)!",
+        "Legends never back down... except to check their score.",
+        "Think you nailed it? Prove it!"
+      ],
       "confirmMessage": "You have {{unfound}} unfound screenshot(s). Ending now will apply a -{{penalty}} point penalty.",
       "confirm": "End Game",
       "currentScore": "Current Score",

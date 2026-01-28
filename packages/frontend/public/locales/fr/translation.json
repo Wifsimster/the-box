@@ -152,6 +152,15 @@
     "endGame": {
       "button": "Terminer",
       "confirmTitle": "Terminer la partie ?",
+      "confirmDescriptions": [
+        "Prêt à voir si tu as dominé le classement ?",
+        "Le moment de vérité approche... 🎮",
+        "Tes doigts ont bien travaillé, voyons le résultat !",
+        "Direction le podium ? On va voir ça !",
+        "C'est l'heure de briller (ou pas) !",
+        "Les légendes ne reculent jamais... sauf pour voir leur score.",
+        "Tu penses avoir tout déchiré ? Prouve-le !"
+      ],
       "confirmMessage": "Vous avez {{unfound}} capture(s) non trouvée(s). Cela appliquera une pénalité de -{{penalty}} points.",
       "confirm": "Terminer",
       "currentScore": "Score actuel",
