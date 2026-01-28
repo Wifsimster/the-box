@@ -95,7 +95,10 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     useEffect(() => {
         // Notify parent of initial state
         onMinimizedChange?.(true)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- onMinimizedChange is only needed for initial notification
+    }, [])
 
+    useEffect(() => {
         fetchJobs()
         connectSocket()
 

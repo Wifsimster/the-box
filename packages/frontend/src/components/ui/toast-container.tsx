@@ -49,10 +49,12 @@ export function ToastContainer() {
       }
     })
 
+    // Capture ref value for cleanup
+    const timeouts = timeoutsRef.current
+
     // Cleanup: Clear all pending timeouts on unmount
     return () => {
       unsubscribe()
-      const timeouts = timeoutsRef.current
       timeouts.forEach((timeoutId) => clearTimeout(timeoutId))
       timeouts.clear()
     }

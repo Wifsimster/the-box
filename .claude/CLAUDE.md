@@ -57,7 +57,9 @@ the-box/
 │       │   └── stores/       # Zustand stores (auth, game, achievement, dailyLogin, admin)
 │       ├── e2e/              # Playwright E2E tests
 │       └── public/locales/   # i18n translations (en, fr)
-├── docker compose.yml        # PostgreSQL + Redis containers
+├── compose.yml               # Production: Full stack with Traefik + db-backup
+├── compose.local.yml         # Development: PostgreSQL + Redis only
+├── backups/                  # Database backup storage
 └── uploads/                  # Game screenshot storage
 ```
 
@@ -77,8 +79,8 @@ the-box/
 # Install all dependencies (from root)
 npm install
 
-# Start PostgreSQL + Redis
-docker compose up -d
+# Start PostgreSQL + Redis (for local development)
+docker compose -f compose.local.yml up -d
 
 # Development (from root)
 npm run dev:backend   # Start backend server

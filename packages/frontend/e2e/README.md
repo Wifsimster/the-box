@@ -20,7 +20,7 @@ This directory contains end-to-end tests for The Box application using Playwrigh
 ### Prerequisites
 
 Before running the tests, ensure:
-- Database is running: `docker-compose up -d`
+- Database is running: `docker compose -f compose.local.yml up -d`
 - Backend server is running: `npm run dev:backend` (in root directory)
 - Database is seeded: `npm run e2e:seed -w @the-box/backend`
 - Port 5173 is available (or update `playwright.config.ts`)

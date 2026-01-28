@@ -53,8 +53,9 @@ the-box/
 │           └── lib/
 ├── docs/               # Feature documentation
 ├── uploads/            # Screenshot storage
-├── docker-compose.yml            # Dev: PostgreSQL + Redis
-└── docker-compose.production.yml # Full stack example
+├── backups/            # Database backup storage
+├── compose.yml         # Production: Full stack with Traefik
+└── compose.local.yml   # Development: PostgreSQL + Redis only
 ```
 
 ## Quick Start
@@ -86,7 +87,7 @@ docker exec the-box npm run --workspace=@the-box/backend db:migrate
 docker exec the-box npm run --workspace=@the-box/backend db:seed
 ```
 
-Or use Docker Compose for a complete stack (see `docker compose.production.yml` for a ready-to-use example):
+Or use Docker Compose for a complete stack (see `compose.yml` for a ready-to-use production example):
 
 ```yaml
 services:
@@ -161,8 +162,8 @@ npm install
 # Copy environment variables
 cp .env.example .env
 
-# Start PostgreSQL and Redis (uses docker compose.yml)
-docker compose up -d
+# Start PostgreSQL and Redis (uses compose.local.yml)
+docker compose -f compose.local.yml up -d
 
 # Run database migrations
 npm run db:migrate

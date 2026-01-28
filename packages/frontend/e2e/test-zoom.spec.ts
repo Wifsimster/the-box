@@ -28,9 +28,6 @@ test.describe('Zoom Feature', () => {
     const zoomInVisible = await zoomIn.isVisible({ timeout: 5000 }).catch(() => false)
     const zoomOutVisible = await zoomOut.isVisible({ timeout: 5000 }).catch(() => false)
 
-    console.log('Zoom In visible:', zoomInVisible)
-    console.log('Zoom Out visible:', zoomOutVisible)
-
     // Verify zoom controls exist
     expect(zoomInVisible && zoomOutVisible).toBe(true)
   })
@@ -59,9 +56,6 @@ test.describe('Zoom Feature', () => {
       // Check for reset button (appears after zooming)
       const resetButton = page.locator('button[title="Reset zoom"]')
       const hasReset = await resetButton.isVisible().catch(() => false)
-
-      console.log('Zoom percentage visible:', hasPercentage)
-      console.log('Reset button visible:', hasReset)
 
       expect(hasPercentage || hasReset).toBe(true)
     }
