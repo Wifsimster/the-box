@@ -33,17 +33,32 @@ async function closeDailyRewardModal(page: import('@playwright/test').Page) {
   }
 }
 
+// E2E Admin Credentials (must match e2e-seed.ts)
+const E2E_ADMIN_EMAIL = 'e2e_admin@test.local'
+const E2E_ADMIN_PASSWORD = 'test123'
+
 // Helper function to login as admin
 async function loginAsAdmin(page: import('@playwright/test').Page) {
+  // Capture network responses for debugging
+  const authResponses: { url: string; status: number; body: string }[] = []
+  page.on('response', async (response) => {
+    if (response.url().includes('/api/auth')) {
+      try {
+        const body = await response.text().catch(() => 'unable to read body')
+        authResponses.push({ url: response.url(), status: response.status(), body })
+      } catch {
+        authResponses.push({ url: response.url(), status: response.status(), body: 'error reading' })
+      }
+    }
+  })
+
   // Navigate to login page
   await page.goto('/en/login')
   await page.waitForSelector('form')
 
-  // Fill in admin credentials
-  // NOTE: These should be environment variables or test fixtures
-  // For now, assuming admin@example.com / admin123 exists
-  const adminEmail = process.env.TEST_ADMIN_EMAIL || 'admin@example.com'
-  const adminPassword = process.env.TEST_ADMIN_PASSWORD || 'admin123'
+  // Fill in admin credentials (from e2e-seed.ts)
+  const adminEmail = process.env.TEST_ADMIN_EMAIL || E2E_ADMIN_EMAIL
+  const adminPassword = process.env.TEST_ADMIN_PASSWORD || E2E_ADMIN_PASSWORD
 
   // Clear and fill email field with a small delay to ensure React state updates
   const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)
@@ -75,13 +90,18 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
   // Verify we're logged in (should redirect to home or show user menu)
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
-    // Check for error
-    const error = await page.locator('[role="alert"], p.text-destructive').first().isVisible().catch(() => false)
+    // Check for error message - using class selector that matches the actual error div
+    const errorSelector = '[class*="text-destructive"], [class*="bg-destructive"], [role="alert"]'
+    const error = await page.locator(errorSelector).first().isVisible().catch(() => false)
     if (error) {
-      const errorText = await page.locator('[role="alert"], p.text-destructive').first().textContent()
+      const errorText = await page.locator(errorSelector).first().textContent()
       throw new Error(`Login failed: ${errorText}`)
     }
-    throw new Error('Login did not redirect - check credentials')
+    // Include captured auth responses in error message for debugging
+    const authInfo = authResponses.length > 0
+      ? `\nAuth API responses:\n${authResponses.map(r => `  ${r.status} ${r.url}\n  Body: ${r.body.slice(0, 200)}`).join('\n')}`
+      : '\nNo auth API responses captured'
+    throw new Error(`Login did not redirect - check credentials${authInfo}`)
   }
 
   // Close Daily Reward modal if it appears
