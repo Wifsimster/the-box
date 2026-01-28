@@ -10,7 +10,6 @@ import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2 } from
 import { createGuessSubmissionService } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
-import { useAuth } from '@/hooks/useAuth'
 
 /**
  * Game guess input component with simple text input
@@ -24,10 +23,6 @@ export function GuessInput() {
   const [isShaking, setIsShaking] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Auth hook for admin check
-  const { session } = useAuth()
-  const isAdmin = session?.user?.role === 'admin'
 
   // Services (dependency injection via factory functions)
   const guessSubmissionService = useMemo(
@@ -45,7 +40,6 @@ export function GuessInput() {
     totalScreenshots,
     navigateToPosition,
     positionStates,
-    currentScreenshotData,
     availableHints,
   } = useGameStore()
 
@@ -55,13 +49,6 @@ export function GuessInput() {
       inputRef.current.focus()
     }
   }, [gamePhase])
-
-  // Pre-fill input with correct answer for admin users
-  useEffect(() => {
-    if (isAdmin && currentScreenshotData?.gameName && gamePhase === 'playing') {
-      setQuery(currentScreenshotData.gameName)
-    }
-  }, [isAdmin, currentScreenshotData?.gameName, currentPosition, gamePhase])
 
   const handleSubmit = async () => {
     if (isSubmitting || !query.trim()) return

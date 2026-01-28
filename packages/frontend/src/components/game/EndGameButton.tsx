@@ -55,16 +55,10 @@ export function EndGameButton() {
   return (
     <>
       <Button
+        variant="gaming"
         size="sm"
         onClick={() => setShowConfirm(true)}
-        className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-3 sm:px-4 touch-manipulation
-          bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500
-          text-white font-semibold
-          shadow-lg shadow-amber-500/25
-          hover:shadow-[0_0_20px_oklch(0.75_0.15_85_/_0.5)]
-          hover:scale-[1.03] active:scale-[0.98]
-          animate-pulse-subtle
-          border border-amber-400/30"
+        className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-3 sm:px-4 touch-manipulation animate-pulse-gaming"
       >
         <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         <span className="text-xs sm:text-sm">{t('game.endGame.button')}</span>

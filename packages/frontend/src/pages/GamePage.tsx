@@ -555,7 +555,7 @@ export default function GamePage() {
             {/* Score and End Game Button (Top Right) */}
             <div className="absolute top-1 right-2 sm:top-2 sm:right-4 z-40 flex items-center gap-2">
               <EndGameButton />
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2">
+              <div className="bg-gradient-to-r from-purple-950/60 via-fuchsia-950/50 to-purple-950/60 backdrop-blur-sm rounded-lg px-2 sm:px-4 py-1.5 sm:py-2 border border-purple-500/30 shadow-lg shadow-purple-500/20">
                 <ScoreDisplay />
               </div>
             </div>
