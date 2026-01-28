@@ -264,6 +264,9 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
           git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
 
+      - name: Build types first
+        run: npm run build:types
+
       - name: Build all packages
         run: npm run build
 
