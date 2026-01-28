@@ -167,7 +167,7 @@ export function GameCarousel({
 
             {/* Zoom Controls */}
             {enableZoom && (
-                <div className="absolute top-1/2 -translate-y-1/2 left-4 z-30 flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1 pointer-events-auto">
+                <div className="absolute top-1/2 -translate-y-1/2 left-4 z-30 flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 pointer-events-auto transition-all duration-200">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -188,7 +188,10 @@ export function GameCarousel({
                     >
                         <ZoomOut className="h-4 w-4" />
                     </Button>
-                    {zoomLevelIndex !== 0 && (
+                    <div className={cn(
+                        "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
+                        zoomLevelIndex !== 0 ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+                    )}>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -198,12 +201,10 @@ export function GameCarousel({
                         >
                             <RotateCcw className="h-4 w-4" />
                         </Button>
-                    )}
-                    {zoomLevelIndex !== 0 && (
                         <span className="text-xs text-white/60 px-2 tabular-nums">
                             {Math.round(currentZoom * 100)}%
                         </span>
-                    )}
+                    </div>
                 </div>
             )}
         </div>
