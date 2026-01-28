@@ -72,6 +72,13 @@ export default function GamePage() {
   // Service for leaderboard operations
   const leaderboardService = useMemo(() => createLeaderboardService(), [])
 
+  // Determine if this is a catch-up session (playing a previous day's challenge)
+  const isCatchUp = useMemo(() => {
+    if (!challengeDate) return false
+    const today = new Date().toISOString().split('T')[0]
+    return challengeDate !== today
+  }, [challengeDate])
+
   // Fetch world total score when challenge is complete
   const { worldScore } = useWorldScore(
     leaderboardService,
@@ -484,6 +491,7 @@ export default function GamePage() {
             date={challengeDate || new Date().toISOString().split('T')[0]!}
             totalScreenshots={totalScreenshots}
             onStart={handleStartGame}
+            isCatchUp={isCatchUp}
           />
         )}
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Brain, History, Clock } from 'lucide-react'
+import { Play, Trophy, Brain, History, Clock, CalendarDays } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -20,6 +20,12 @@ export default function HomePage() {
   const [todayScore, setTodayScore] = useState<number>(0)
   const [screenshotsFound, setScreenshotsFound] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [yesterdayChallenge, setYesterdayChallenge] = useState<{
+    challengeId: number
+    date: string
+    hasPlayed: boolean
+    isCompleted?: boolean
+  } | null>(null)
   const timeRemaining = useNextDailyCountdown()
 
   // Memoize humorous message to prevent re-selection on countdown re-renders
@@ -59,6 +65,10 @@ export default function HomePage() {
           setIsTodayCompleted(true)
           setTodayScore(data.userSession.totalScore)
           setScreenshotsFound(data.userSession.screenshotsFound)
+        }
+        // Set yesterday's challenge info if available
+        if (data.yesterdayChallenge) {
+          setYesterdayChallenge(data.yesterdayChallenge)
         }
       } catch (error) {
         console.error('Failed to check today challenge:', error)
@@ -165,6 +175,32 @@ export default function HomePage() {
                 {t('home.dailyGuess')}
               </Button>
             )
+          )}
+
+          {/* Show yesterday's challenge option if available and not played */}
+          {!isLoading && yesterdayChallenge && !yesterdayChallenge.hasPlayed && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-4 text-center"
+            >
+              <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                {t('home.missedYesterday')}
+              </p>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate(localizedPath(`/play?date=${yesterdayChallenge.date}`))}
+                className="gap-2 text-sm"
+              >
+                <CalendarDays className="h-4 w-4" />
+                {t('home.playYesterday')}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 opacity-70">
+                {t('home.catchUpNote')}
+              </p>
+            </motion.div>
           )}
         </motion.div>
 

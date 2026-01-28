@@ -114,6 +114,7 @@
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",
     "alreadyCompleted": "Vous avez déjà terminé le défi d'aujourd'hui ! Revenez demain pour un nouveau.",
+    "catchUpNotice": "Ceci est une session de rattrapage. Votre score n'apparaîtra pas au classement.",
     "noChallenge": "Aucun défi disponible",
     "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Revenez plus tard !",
     "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",
@@ -195,6 +196,9 @@
     "todayCompleted": "Défi du Jour Terminé",
     "comeBackTomorrow": "Revenez demain pour un nouveau défi !",
     "nextDailyIn": "Prochain défi dans :",
+    "missedYesterday": "Défi d'hier manqué ?",
+    "playYesterday": "Jouer hier",
+    "catchUpNote": "Les scores de rattrapage ne comptent pas pour le classement",
     "yourScore": "Votre Score",
     "rank": "Classement",
     "features": {

@@ -26,6 +26,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from leaderboard
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .orderBy('game_sessions.total_score', 'desc')
       .limit(limit)
@@ -52,11 +53,12 @@ export const leaderboardRepository = {
   },
 
   async getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse> {
-    // Count total completed sessions for this challenge (excluding anonymous users)
+    // Count total completed sessions for this challenge (excluding anonymous users and catch-up sessions)
     const totalResult = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .count('game_sessions.id as count')
       .first()
@@ -72,6 +74,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .andWhere('game_sessions.total_score', '>', score)
       .count('game_sessions.id as count')
@@ -92,6 +95,7 @@ export const leaderboardRepository = {
       .join('user', 'game_sessions.user_id', 'user.id')
       .join('daily_challenges', 'game_sessions.daily_challenge_id', 'daily_challenges.id')
       .where('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from monthly leaderboard
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .whereRaw('EXTRACT(YEAR FROM daily_challenges.challenge_date) = ?', [year])
       .whereRaw('EXTRACT(MONTH FROM daily_challenges.challenge_date) = ?', [month])

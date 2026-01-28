@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar, Home, AlertTriangle, Zap, Images, Gift } from 'lucide-react'
+import { Play, Calendar, Home, AlertTriangle, Zap, Images, Gift, Info } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -10,9 +10,10 @@ interface DailyIntroProps {
   date: string
   totalScreenshots: number
   onStart: () => void
+  isCatchUp?: boolean
 }
 
-export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps) {
+export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: DailyIntroProps) {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const { isAuthenticated } = useAuth()
@@ -116,12 +117,25 @@ export function DailyIntro({ date, totalScreenshots, onStart }: DailyIntroProps)
           ))}
         </motion.div>
 
+        {/* Catch-up notice - Mobile-first spacing */}
+        {isCatchUp && (
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="flex items-center justify-center gap-1.5 sm:gap-2 text-blue-400 mb-4 sm:mb-6 md:mb-8 px-4"
+          >
+            <Info className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <span className="text-xs sm:text-sm">{t('game.catchUpNotice')}</span>
+          </motion.div>
+        )}
+
         {/* Guest warning - Mobile-first spacing */}
         {!isAuthenticated && (
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
+            transition={{ duration: 0.5, delay: isCatchUp ? 0.3 : 0.25 }}
             className="flex items-center justify-center gap-1.5 sm:gap-2 text-amber-500 mb-4 sm:mb-6 md:mb-8 px-4"
           >
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />

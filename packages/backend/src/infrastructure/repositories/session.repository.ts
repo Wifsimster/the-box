@@ -11,6 +11,7 @@ export interface GameSessionRow {
   current_position: number
   total_score: number
   is_completed: boolean
+  is_catch_up: boolean
   started_at: Date
   completed_at: Date | null
 }
@@ -89,16 +90,18 @@ export const sessionRepository = {
   async createGameSession(data: {
     userId: string
     dailyChallengeId: number
+    isCatchUp?: boolean
   }): Promise<GameSessionRow> {
-    log.info({ userId: data.userId, challengeId: data.dailyChallengeId }, 'createGameSession')
+    log.info({ userId: data.userId, challengeId: data.dailyChallengeId, isCatchUp: data.isCatchUp }, 'createGameSession')
     const [row] = await db('game_sessions')
       .insert({
         user_id: data.userId,
         daily_challenge_id: data.dailyChallengeId,
         current_tier: 1,
+        is_catch_up: data.isCatchUp ?? false,
       })
       .returning<GameSessionRow[]>('*')
-    log.info({ sessionId: row!.id, userId: data.userId }, 'game session created')
+    log.info({ sessionId: row!.id, userId: data.userId, isCatchUp: row!.is_catch_up }, 'game session created')
     return row!
   },
 

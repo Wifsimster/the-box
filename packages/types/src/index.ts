@@ -295,6 +295,16 @@ export interface TodayChallengeResponse {
     screenshotsFound: number
     /** Session start time */
     sessionStartedAt: string
+    /** Whether this is a catch-up session (previous day play) */
+    isCatchUp?: boolean
+  } | null
+  /** Yesterday's challenge info if available and not yet played */
+  yesterdayChallenge?: {
+    challengeId: number
+    date: string
+    hasPlayed: boolean
+    /** If played, whether it was completed */
+    isCompleted?: boolean
   } | null
 }
 

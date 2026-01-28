@@ -114,6 +114,7 @@
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",
     "alreadyCompleted": "You have already completed today's challenge! Come back tomorrow for a new one.",
+    "catchUpNotice": "This is a catch-up session. Your score won't appear on the leaderboard.",
     "noChallenge": "No challenge available",
     "noChallengeAvailable": "No challenge available for {{date}}. Please check back later!",
     "guestWarning": "You are not logged in. Your score will not be saved.",
@@ -195,6 +196,9 @@
     "todayCompleted": "Today's Challenge Completed",
     "comeBackTomorrow": "Come back tomorrow for a new challenge!",
     "nextDailyIn": "Next daily challenge in:",
+    "missedYesterday": "Missed yesterday's challenge?",
+    "playYesterday": "Play Yesterday",
+    "catchUpNote": "Catch-up scores don't count for leaderboards",
     "yourScore": "Your Score",
     "rank": "Rank",
     "features": {

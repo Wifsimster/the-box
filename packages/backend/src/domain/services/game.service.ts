@@ -112,7 +112,8 @@ async function calculateAndUpdateStreak(
 
 export const gameService = {
   async getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse> {
-    const targetDate = date || new Date().toISOString().split('T')[0]!
+    const today = new Date().toISOString().split('T')[0]!
+    const targetDate = date || today
     log.debug({ date: targetDate, userId }, 'getTodayChallenge')
 
     const challenge = await challengeRepository.findByDate(targetDate)
@@ -146,9 +147,30 @@ export const gameService = {
             correctPositions,
             screenshotsFound: correctPositions.length,
             sessionStartedAt: session.started_at.toISOString(),
+            isCatchUp: session.is_catch_up,
           }
           log.debug({ userId, challengeId: challenge.id, tierSessionId: tierSession.id, hasPlayed: true, correctPositions }, 'user has existing session')
         }
+      }
+    }
+
+    // Get yesterday's challenge info (only when requesting today's challenge)
+    let yesterdayChallenge = null
+    if (!date && userId) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayDate = yesterday.toISOString().split('T')[0]!
+
+      const yesterdayChallengeData = await challengeRepository.findByDate(yesterdayDate)
+      if (yesterdayChallengeData) {
+        const yesterdaySession = await sessionRepository.findGameSession(userId, yesterdayChallengeData.id)
+        yesterdayChallenge = {
+          challengeId: yesterdayChallengeData.id,
+          date: yesterdayDate,
+          hasPlayed: !!yesterdaySession,
+          isCompleted: yesterdaySession?.is_completed,
+        }
+        log.debug({ userId, yesterdayDate, hasPlayed: !!yesterdaySession }, 'yesterday challenge info')
       }
     }
 
@@ -160,6 +182,7 @@ export const gameService = {
       totalScreenshots: TOTAL_SCREENSHOTS,
       hasPlayed: !!userSession,
       userSession,
+      yesterdayChallenge,
     }
   },
 
@@ -172,14 +195,42 @@ export const gameService = {
       throw new GameError('CHALLENGE_NOT_FOUND', 'Challenge not found', 404)
     }
 
+    // Get the challenge to check its date
+    const challenge = await challengeRepository.findById(challengeId)
+    if (!challenge) {
+      throw new GameError('CHALLENGE_NOT_FOUND', 'Challenge not found', 404)
+    }
+
+    // Determine if this is a catch-up session
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    const challengeDate = new Date(challenge.challenge_date)
+    challengeDate.setHours(0, 0, 0, 0)
+
+    const todayStr = today.toISOString().split('T')[0]
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    const challengeDateStr = typeof challenge.challenge_date === 'string'
+      ? challenge.challenge_date
+      : challengeDate.toISOString().split('T')[0]
+
+    // Check if challenge is from the past (not today and not yesterday)
+    const isCatchUp = challengeDateStr !== todayStr
+    if (isCatchUp && challengeDateStr !== yesterdayStr) {
+      throw new GameError('CHALLENGE_TOO_OLD', 'This challenge is no longer available. You can only play today\'s or yesterday\'s challenge.', 400)
+    }
+
     let gameSession = await sessionRepository.findGameSession(userId, challengeId)
 
     if (!gameSession) {
       gameSession = await sessionRepository.createGameSession({
         userId,
         dailyChallengeId: challengeId,
+        isCatchUp,
       })
-      log.info({ sessionId: gameSession.id, challengeId, userId }, 'new game session started')
+      log.info({ sessionId: gameSession.id, challengeId, userId, isCatchUp }, 'new game session started')
     } else {
       // Check if session is already completed
       if (gameSession.is_completed) {
