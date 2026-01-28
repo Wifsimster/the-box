@@ -167,7 +167,7 @@ export function GameCarousel({
 
             {/* Zoom Controls */}
             {enableZoom && (
-                <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1 pointer-events-auto">
+                <div className="absolute top-1/2 -translate-y-1/2 left-4 z-30 flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1 pointer-events-auto">
                     <Button
                         variant="ghost"
                         size="icon"
