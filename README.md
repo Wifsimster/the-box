@@ -7,6 +7,7 @@ A gaming screenshot guessing game where players identify video games from 360° 
 - **360° Panoramic Screenshots** - Immersive game identification using Pannellum viewer
 - **Tiered Difficulty** - 3 tiers with increasing challenge levels
 - **Daily Challenges** - New challenges every day
+- **Catch-Up Mode** - Play missed challenges from the last 7 days (scores don't count for leaderboard)
 - **Power-ups & Hints** - Timer extension (x2) and reveal hints (year, publisher, developer)
 - **Live Leaderboard** - Real-time daily and monthly rankings via Socket.io
 - **Achievements** - Unlockable achievements for various accomplishments
