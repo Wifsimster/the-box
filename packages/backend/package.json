@@ -1,6 +1,6 @@
 {
   "name": "@the-box/backend",
-  "version": "1.5.9",
+  "version": "1.5.10",
   "description": "Backend API for The Box game",
   "type": "module",
   "main": "dist/index.js",
