@@ -114,25 +114,26 @@ async function createMockGamesAndScreenshots(): Promise<void> {
 
   // Create 3 mock games with 5 screenshots each (15 total, enough for testing)
   const mockGames = [
-    { name: 'E2E Test Game 1', slug: 'e2e-test-game-1', released: '2020-01-15', metacritic: 85 },
-    { name: 'E2E Test Game 2', slug: 'e2e-test-game-2', released: '2021-06-20', metacritic: 90 },
-    { name: 'E2E Test Game 3', slug: 'e2e-test-game-3', released: '2022-03-10', metacritic: 88 },
+    { name: 'E2E Test Game 1', slug: 'e2e-test-game-1', release_year: 2020, metacritic: 85 },
+    { name: 'E2E Test Game 2', slug: 'e2e-test-game-2', release_year: 2021, metacritic: 90 },
+    { name: 'E2E Test Game 3', slug: 'e2e-test-game-3', release_year: 2022, metacritic: 88 },
   ]
 
   for (const gameData of mockGames) {
-    // Insert game
-    const [gameId] = await db('games').insert({
+    // Insert game using correct schema columns
+    // Note: genres/platforms are text[] arrays in PostgreSQL
+    const result = await db('games').insert({
       rawg_id: Math.floor(Math.random() * 1000000) + 900000, // Random high ID to avoid conflicts
       name: gameData.name,
       slug: gameData.slug,
-      released: gameData.released,
+      release_year: gameData.release_year,
       metacritic: gameData.metacritic,
-      background_image: 'https://via.placeholder.com/1920x1080.png?text=E2E+Test',
-      platforms: JSON.stringify(['PC', 'PlayStation', 'Xbox']),
-      genres: JSON.stringify(['Action', 'Adventure']),
-      publishers: JSON.stringify(['E2E Test Publisher']),
-      is_active: true,
+      cover_image_url: 'https://via.placeholder.com/1920x1080.png?text=E2E+Test',
+      platforms: ['PC', 'PlayStation', 'Xbox'], // text[] array
+      genres: ['Action', 'Adventure'], // text[] array
+      publisher: 'E2E Test Publisher',
     }).returning('id')
+    const gameId = result[0].id
 
     // Create 5 screenshots for this game
     for (let i = 1; i <= 5; i++) {
