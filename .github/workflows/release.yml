@@ -110,7 +110,9 @@ jobs:
       # Cache Playwright browsers
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version // .devDependencies["@playwright/test"].version' 2>/dev/null || grep -o '"@playwright/test": "[^"]*"' packages/frontend/package.json | grep -o '[0-9.]*')" >> $GITHUB_OUTPUT
+        run: |
+          PLAYWRIGHT_VERSION=$(node -p "require('./packages/frontend/package.json').devDependencies['@playwright/test']" | tr -d '^~')
+          echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
