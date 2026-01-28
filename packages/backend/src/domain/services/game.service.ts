@@ -275,14 +275,17 @@ export const gameService = {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
     }
 
+    // Use proxy URL to hide the actual file path (which contains game slug)
+    const proxyImageUrl = `/api/game/image/${tierScreenshot.screenshot_id}`
+
     const response: ScreenshotResponse = {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
-      imageUrl: tierScreenshot.image_url,
+      imageUrl: proxyImageUrl,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
     }
 
-    // Include game name hint for admin users
+    // Include game name hint for admin users only
     if (isAdmin) {
       const screenshotData = await screenshotRepository.findWithGame(tierScreenshot.screenshot_id)
       if (screenshotData) {

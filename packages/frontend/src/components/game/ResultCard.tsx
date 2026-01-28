@@ -413,6 +413,7 @@ export function ResultCard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
+          className="flex flex-col items-center gap-2"
         >
           <Button
             variant="secondary"
@@ -424,6 +425,9 @@ export function ResultCard() {
             {(nextPosition !== null || !isSessionCompleted) ? `${getButtonText()} (${countdown}s)` : getButtonText()}
             <ChevronRight className="w-5 h-5" />
           </Button>
+          <span className="text-xs text-muted-foreground">
+            {t('game.pressEnterToContinue', 'Press Enter to continue')}
+          </span>
         </motion.div>
       </motion.div>
     </motion.div>

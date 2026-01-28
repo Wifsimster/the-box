@@ -1,9 +1,57 @@
 import { Router } from 'express'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { gameService, GameError } from '../../domain/services/index.js'
-import { gameRepository } from '../../infrastructure/repositories/index.js'
+import { gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()
+
+// Get uploads path for serving screenshot images
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
+
+// Serve screenshot image by ID (proxy to hide actual file path)
+router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
+  try {
+    const screenshotId = parseInt(req.params['screenshotId'] as string, 10)
+
+    if (isNaN(screenshotId)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_ID', message: 'Invalid screenshot ID' },
+      })
+      return
+    }
+
+    const screenshot = await screenshotRepository.findById(screenshotId)
+    if (!screenshot) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
+      })
+      return
+    }
+
+    // Convert /uploads/screenshots/... to absolute file path
+    const relativePath = screenshot.imageUrl.replace('/uploads/', '')
+    const filePath = path.join(uploadsPath, relativePath)
+
+    // Send the file with appropriate cache headers
+    res.sendFile(filePath, {
+      maxAge: '1d', // Cache for 1 day
+      headers: {
+        'Content-Type': 'image/jpeg',
+      },
+    }, (err) => {
+      if (err) {
+        next(err)
+      }
+    })
+  } catch (error) {
+    next(error)
+  }
+})
 
 // Get today's challenge (or challenge by date if date query param is provided)
 router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
