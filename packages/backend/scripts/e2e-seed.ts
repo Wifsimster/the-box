@@ -23,11 +23,15 @@ export const E2E_ADMIN_PASSWORD = 'test123'
  * Hash password using the same algorithm as better-auth.
  * Matches: N=16384, r=16, p=1, dkLen=64
  * Format: salt:key (both hex encoded)
+ *
+ * IMPORTANT: scrypt salt must be passed as raw bytes, not hex string.
+ * better-auth uses @noble/hashes which expects Uint8Array or raw string bytes.
  */
 async function hashPassword(password: string): Promise<string> {
   const saltBytes = randomBytes(16)
   const salt = saltBytes.toString('hex')
-  const key = await scryptAsync(password.normalize('NFKC'), salt, {
+  // Pass raw salt bytes to scrypt (not hex string) to match better-auth behavior
+  const key = await scryptAsync(password.normalize('NFKC'), saltBytes, {
     N: 16384,
     r: 16,
     p: 1,

@@ -78,14 +78,16 @@ export async function loginAsUser(page: Page) {
 
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
+    // Check for any error message - using class selector that matches the actual error div
+    const errorSelector = '[class*="text-destructive"], [class*="bg-destructive"], [role="alert"]'
     const error = await page
-      .locator('[role="alert"], p.text-destructive')
+      .locator(errorSelector)
       .first()
       .isVisible()
       .catch(() => false)
     if (error) {
       const errorText = await page
-        .locator('[role="alert"], p.text-destructive')
+        .locator(errorSelector)
         .first()
         .textContent()
       throw new Error(`Login failed: ${errorText}`)
@@ -134,14 +136,16 @@ export async function loginAsAdmin(page: Page) {
 
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
+    // Check for any error message - using class selector that matches the actual error div
+    const errorSelector = '[class*="text-destructive"], [class*="bg-destructive"], [role="alert"]'
     const error = await page
-      .locator('[role="alert"], p.text-destructive')
+      .locator(errorSelector)
       .first()
       .isVisible()
       .catch(() => false)
     if (error) {
       const errorText = await page
-        .locator('[role="alert"], p.text-destructive')
+        .locator(errorSelector)
         .first()
         .textContent()
       throw new Error(`Login failed: ${errorText}`)
