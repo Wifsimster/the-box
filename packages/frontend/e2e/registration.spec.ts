@@ -184,8 +184,8 @@ test.describe('Registration Form', () => {
     test('should show error when trying to register with existing username', async ({ page }) => {
         await page.waitForSelector('form');
 
-        // Use the test user's username which we know exists
-        const existingUsername = 'e2e_testuser';
+        // Use the E2E test user's username which we know exists (from e2e-seed.ts)
+        const existingUsername = 'e2e_user';
         const timestamp = Date.now();
 
         // Try to register with the same username but different email
@@ -200,7 +200,7 @@ test.describe('Registration Form', () => {
         await page.waitForTimeout(2000);
 
         // Check for error - could be displayed in different ways
-        const errorElement = page.locator('[role="alert"], p.text-destructive, .text-red-500, [class*="error"]').first();
+        const errorElement = page.locator('[role="alert"], p.text-destructive, .text-red-500, [class*="error"], [class*="destructive"]').first();
         const hasError = await errorElement.isVisible().catch(() => false);
 
         // Or still on register page (form didn't submit successfully)
@@ -214,9 +214,9 @@ test.describe('Registration Form', () => {
     test('should show error when trying to register with existing email', async ({ page }) => {
         await page.waitForSelector('form');
 
-        // Use the test user's email which we know exists
+        // Use the E2E test user's email which we know exists (from e2e-seed.ts)
         const timestamp = Date.now();
-        const existingEmail = 'testuser@example.com';
+        const existingEmail = 'e2e_user@test.local';
 
         // Try to register with the same email but different username
         await page.getByPlaceholder(/your_username/i).fill(`newuser${timestamp}`);
@@ -230,7 +230,7 @@ test.describe('Registration Form', () => {
         await page.waitForTimeout(2000);
 
         // Check for error - could be displayed in different ways
-        const errorElement = page.locator('[role="alert"], p.text-destructive, .text-red-500, [class*="error"]').first();
+        const errorElement = page.locator('[role="alert"], p.text-destructive, .text-red-500, [class*="error"], [class*="destructive"]').first();
         const hasError = await errorElement.isVisible().catch(() => false);
 
         // Or still on register page (form didn't submit successfully)

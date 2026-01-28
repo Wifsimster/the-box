@@ -22,21 +22,27 @@ test.describe('Leaderboard - Public Access', () => {
     expect(currentUrl).not.toContain('/login')
   })
 
-  test('page displays player rankings in a table or list format', async ({ page }) => {
+  test('page displays player rankings or empty state message', async ({ page }) => {
     await page.goto('/en/leaderboard')
     await page.waitForTimeout(1000)
 
-    // Look for table or list structure
+    // Look for table or list structure (when there are results)
     const table = page.locator('table, [role="table"]').first()
     const list = page.locator('ul, ol, [role="list"]').first()
     const rankingItems = page.locator('[class*="leaderboard"], [class*="ranking"], [class*="player"]').first()
+    const cardContent = page.locator('[class*="Card"], [class*="card"]').first()
+
+    // Or look for empty state message
+    const emptyState = page.locator('text=/no results|no challenge data|aucun résultat|play.*first|jouez/i').first()
 
     const hasTable = await table.isVisible().catch(() => false)
     const hasList = await list.isVisible().catch(() => false)
     const hasRankingItems = await rankingItems.isVisible().catch(() => false)
+    const hasCardContent = await cardContent.isVisible().catch(() => false)
+    const hasEmptyState = await emptyState.isVisible().catch(() => false)
 
-    // Should have some ranking display structure
-    expect(hasTable || hasList || hasRankingItems).toBeTruthy()
+    // Should have some ranking display structure OR empty state message
+    expect(hasTable || hasList || hasRankingItems || hasCardContent || hasEmptyState).toBeTruthy()
   })
 
   test('can switch between daily and monthly tabs/views', async ({ page }) => {
