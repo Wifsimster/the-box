@@ -159,7 +159,15 @@
         "Podium material? Let's find out!",
         "Time to shine (or not)!",
         "Legends never back down... except to check their score.",
-        "Think you nailed it? Prove it!"
+        "Think you nailed it? Prove it!",
+        "GG? Let's check the receipts!",
+        "Final boss defeated. Time for stats! 🏆",
+        "Your adventure ends here... for today!",
+        "Real gamers aren't afraid of the scoreboard.",
+        "Achievement unlocked: Game completed!",
+        "Respawn tomorrow, but first... the verdict!",
+        "Save your progress and face the music!",
+        "Game over? Nah, game DONE! 💪"
       ],
       "confirmMessage": "You have {{unfound}} unfound screenshot(s). Ending now will apply a -{{penalty}} point penalty.",
       "confirm": "End Game",

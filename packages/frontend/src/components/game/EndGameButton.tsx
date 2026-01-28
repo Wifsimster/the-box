@@ -1,17 +1,16 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useGameStore } from '@/stores/gameStore'
-import { Flag, Loader2 } from 'lucide-react'
+import { Flag, Loader2, Trophy } from 'lucide-react'
 import { toast } from '@/lib/toast'
 
 export function EndGameButton() {
@@ -25,6 +24,12 @@ export function EndGameButton() {
   const hasSkippedPositions = useGameStore((s) => s.hasSkippedPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
+
+  // Pick a random fun sentence when dialog opens
+  const funSentence = useMemo(() => {
+    const sentences = t('game.endGame.confirmDescriptions', { returnObjects: true }) as string[]
+    return sentences[Math.floor(Math.random() * sentences.length)]
+  }, [showConfirm, t]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show if playing, all positions visited, session not completed, and no skipped positions
   // When there are skipped positions, the completion choice modal handles ending the game
@@ -60,30 +65,41 @@ export function EndGameButton() {
       </Button>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('game.endGame.confirmTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('game.endGame.confirmDescription')}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center sm:text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 ring-2 ring-primary/30">
+              <Trophy className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</DialogTitle>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+
+          <div className="py-4 text-center">
+            <p className="text-muted-foreground text-base italic">
+              "{funSentence}"
+            </p>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button
-              variant="outline"
-              onClick={() => setShowConfirm(false)}
-              disabled={isEnding}
-              className="w-full sm:w-auto"
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="destructive"
+              variant="gaming"
               onClick={handleEndGame}
               disabled={isEnding}
-              className="w-full sm:w-auto"
+              className="w-full"
             >
-              {isEnding && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {isEnding ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trophy className="w-4 h-4 mr-2" />
+              )}
               {t('game.endGame.confirm')}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setShowConfirm(false)}
+              disabled={isEnding}
+              className="w-full"
+            >
+              {t('common.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>

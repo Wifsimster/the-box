@@ -159,7 +159,15 @@
         "Direction le podium ? On va voir ça !",
         "C'est l'heure de briller (ou pas) !",
         "Les légendes ne reculent jamais... sauf pour voir leur score.",
-        "Tu penses avoir tout déchiré ? Prouve-le !"
+        "Tu penses avoir tout déchiré ? Prouve-le !",
+        "GG ? On va vérifier ça ensemble !",
+        "Boss final vaincu. Place aux stats ! 🏆",
+        "Ton aventure touche à sa fin... pour aujourd'hui !",
+        "Les vrais gamers n'ont pas peur du scoreboard.",
+        "Achievement unlocked : Partie terminée !",
+        "Respawn demain, mais d'abord... le verdict !",
+        "Ctrl+S ta partie et voyons les dégâts !",
+        "Game over ? Non, game DONE ! 💪"
       ],
       "confirmMessage": "Vous avez {{unfound}} capture(s) non trouvée(s). Cela appliquera une pénalité de -{{penalty}} points.",
       "confirm": "Terminer",
