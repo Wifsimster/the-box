@@ -47,7 +47,8 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: lint
+    # Run in parallel with lint - both can start immediately
+    # needs: lint  # Removed to run in parallel
 
     services:
       postgres:
@@ -106,8 +107,25 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
 
+      # Cache Playwright browsers
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version // .devDependencies["@playwright/test"].version' 2>/dev/null || grep -o '"@playwright/test": "[^"]*"' packages/frontend/package.json | grep -o '[0-9.]*')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright dependencies (if cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Start backend server
         run: |
@@ -127,11 +145,28 @@ jobs:
           NODE_ENV: development
           PORT: 3000
 
+      # Serve the built frontend instead of dev server
+      - name: Start frontend preview server
+        run: |
+          npm run preview -w @the-box/frontend -- --port 5173 &
+          echo "Waiting for frontend to be ready..."
+          for i in {1..15}; do
+            if curl -s http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend is ready!"
+              break
+            fi
+            echo "Waiting... ($i/15)"
+            sleep 1
+          done
+
       - name: Run E2E tests
-        run: npm run test:e2e -w @the-box/frontend
+        run: npx playwright test --project=chromium
+        working-directory: packages/frontend
         env:
           CI: true
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
+          # Skip webServer since we're managing it ourselves
+          PW_SKIP_WEBSERVER: 1
 
       - name: Upload test results
         if: always()
@@ -144,7 +179,7 @@ jobs:
   release:
     name: Create Release & Publish Docker Image
     runs-on: ubuntu-latest
-    needs: e2e
+    needs: [lint, e2e]  # Wait for both lint and e2e
 
     steps:
       - name: Checkout code

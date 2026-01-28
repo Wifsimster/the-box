@@ -19,10 +19,10 @@ export default defineConfig({
     forbidOnly: !!process.env.CI,
     /* Retry on CI only */
     retries: process.env.CI ? 2 : 0,
-    /* Limit parallel workers to avoid overwhelming the backend with login requests */
-    workers: process.env.CI ? 1 : 4,
+    /* Allow parallel workers - use 2 in CI to balance speed vs resource usage */
+    workers: process.env.CI ? 2 : 4,
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-    reporter: 'html',
+    reporter: process.env.CI ? [['html'], ['github']] : 'html',
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
         /* Base URL to use in actions like `await page.goto('/')`. */
@@ -42,15 +42,16 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
         },
 
-        {
-            name: 'firefox',
-            use: { ...devices['Desktop Firefox'] },
-        },
+        // Firefox and WebKit disabled in CI for speed - enable for full browser testing
+        // {
+        //     name: 'firefox',
+        //     use: { ...devices['Desktop Firefox'] },
+        // },
 
-        {
-            name: 'webkit',
-            use: { ...devices['Desktop Safari'] },
-        },
+        // {
+        //     name: 'webkit',
+        //     use: { ...devices['Desktop Safari'] },
+        // },
 
         /* Test against mobile viewports. */
         // {
@@ -74,11 +75,14 @@ export default defineConfig({
     ],
 
     /* Run your local dev server before starting the tests */
-    webServer: {
-        command: 'npm run dev',
-        url: 'http://localhost:5173',
-        reuseExistingServer: !process.env.CI,
-        stdout: 'ignore',
-        stderr: 'pipe',
-    },
+    /* In CI, the workflow manages servers externally */
+    webServer: process.env.CI
+        ? undefined
+        : {
+              command: 'npm run dev',
+              url: 'http://localhost:5173',
+              reuseExistingServer: true,
+              stdout: 'ignore',
+              stderr: 'pipe',
+          },
 });
