@@ -2,25 +2,27 @@ import { test, expect } from '@playwright/test'
 import { test as authTest } from './fixtures/auth.fixture'
 
 /**
- * E2E Tests for Achievements Page
+ * E2E Tests for Achievements (displayed on Profile Page)
  *
  * Prerequisites:
  * - Backend server must be running
  * - Database must be seeded with npm run e2e:seed
+ *
+ * Note: Achievements are displayed on the /profile page, not a separate /achievements page
  */
 
-test.describe('Achievements - Authentication Required', () => {
-  test('achievements page requires authentication (redirects to login if not logged in)', async ({ page }) => {
-    await page.goto('/en/achievements')
+test.describe('Profile - Authentication Required', () => {
+  test('profile page requires authentication (redirects to login if not logged in)', async ({ page }) => {
+    await page.goto('/en/profile')
     await page.waitForTimeout(2000)
 
     const currentUrl = page.url()
 
     // Should redirect to login or show login required
     const redirectedToLogin = currentUrl.includes('/login')
-    const stayedOnAchievements = currentUrl.includes('/achievements')
+    const stayedOnProfile = currentUrl.includes('/profile')
 
-    if (stayedOnAchievements) {
+    if (stayedOnProfile) {
       // Check for login prompt or unauthorized message
       const loginPrompt = page.locator('text=/login|sign in|unauthorized|connexion/i').first()
       const hasPrompt = await loginPrompt.isVisible().catch(() => false)
@@ -33,15 +35,15 @@ test.describe('Achievements - Authentication Required', () => {
   })
 })
 
-test.describe('Achievements - Authenticated User', () => {
-  authTest('achievements page loads for authenticated user', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/achievements')
+test.describe('Profile Page - Achievements Section', () => {
+  authTest('profile page loads for authenticated user', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/en/profile')
     await authenticatedPage.waitForTimeout(1000)
 
     const currentUrl = authenticatedPage.url()
 
-    // Should stay on achievements page
-    expect(currentUrl).toContain('/achievements')
+    // Should stay on profile page
+    expect(currentUrl).toContain('/profile')
 
     // Page should have content
     const pageContent = authenticatedPage.locator('main, [role="main"], h1, h2').first()
@@ -49,14 +51,14 @@ test.describe('Achievements - Authenticated User', () => {
   })
 
   authTest('displays achievement cards with name and description', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/achievements')
+    await authenticatedPage.goto('/en/profile')
     await authenticatedPage.waitForTimeout(1000)
 
-    // Look for achievement cards/items
-    const achievementCard = authenticatedPage.locator('[class*="achievement"], [class*="card"], [class*="badge"]').first()
-    const hasCard = await achievementCard.isVisible().catch(() => false)
+    // Look for achievement cards/items or achievement section
+    const achievementSection = authenticatedPage.locator('[class*="achievement"], [class*="card"], [class*="badge"], text=/achievement/i').first()
+    const hasAchievementSection = await achievementSection.isVisible().catch(() => false)
 
-    // Look for achievement names
+    // Look for achievement names or titles
     const achievementName = authenticatedPage.locator('h2, h3, h4, [class*="title"], [class*="name"]').first()
     const hasName = await achievementName.isVisible().catch(() => false)
 
@@ -64,12 +66,12 @@ test.describe('Achievements - Authenticated User', () => {
     const description = authenticatedPage.locator('p, [class*="description"], [class*="desc"]').first()
     const hasDescription = await description.isVisible().catch(() => false)
 
-    // Should have achievement display elements
-    expect(hasCard || hasName || hasDescription).toBeTruthy()
+    // Should have some display elements
+    expect(hasAchievementSection || hasName || hasDescription).toBeTruthy()
   })
 
   authTest('shows visual distinction between locked and unlocked achievements', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/achievements')
+    await authenticatedPage.goto('/en/profile')
     await authenticatedPage.waitForTimeout(1000)
 
     // Look for locked indicators
@@ -94,7 +96,7 @@ test.describe('Achievements - Authenticated User', () => {
   })
 
   authTest('page shows achievement progress or count summary', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/achievements')
+    await authenticatedPage.goto('/en/profile')
     await authenticatedPage.waitForTimeout(1000)
 
     // Look for progress indicators

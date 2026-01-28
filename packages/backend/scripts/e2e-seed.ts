@@ -99,6 +99,61 @@ async function createTestUser(data: {
 }
 
 /**
+ * Create mock games and screenshots for testing
+ * This ensures there's data for daily challenges in CI
+ */
+async function createMockGamesAndScreenshots(): Promise<void> {
+  // Check if mock games already exist
+  const existingGames = await db('games').where('name', 'like', 'E2E Test Game%').first()
+  if (existingGames) {
+    console.log('  ✓ Mock games already exist')
+    return
+  }
+
+  console.log('  Creating mock games and screenshots...')
+
+  // Create 3 mock games with 5 screenshots each (15 total, enough for testing)
+  const mockGames = [
+    { name: 'E2E Test Game 1', slug: 'e2e-test-game-1', released: '2020-01-15', metacritic: 85 },
+    { name: 'E2E Test Game 2', slug: 'e2e-test-game-2', released: '2021-06-20', metacritic: 90 },
+    { name: 'E2E Test Game 3', slug: 'e2e-test-game-3', released: '2022-03-10', metacritic: 88 },
+  ]
+
+  for (const gameData of mockGames) {
+    // Insert game
+    const [gameId] = await db('games').insert({
+      rawg_id: Math.floor(Math.random() * 1000000) + 900000, // Random high ID to avoid conflicts
+      name: gameData.name,
+      slug: gameData.slug,
+      released: gameData.released,
+      metacritic: gameData.metacritic,
+      background_image: 'https://via.placeholder.com/1920x1080.png?text=E2E+Test',
+      platforms: JSON.stringify(['PC', 'PlayStation', 'Xbox']),
+      genres: JSON.stringify(['Action', 'Adventure']),
+      publishers: JSON.stringify(['E2E Test Publisher']),
+      is_active: true,
+    }).returning('id')
+
+    // Create 5 screenshots for this game
+    for (let i = 1; i <= 5; i++) {
+      await db('screenshots').insert({
+        game_id: gameId,
+        image_url: `https://via.placeholder.com/1920x1080.png?text=${encodeURIComponent(gameData.name)}+Screenshot+${i}`,
+        thumbnail_url: `https://via.placeholder.com/400x225.png?text=${encodeURIComponent(gameData.name)}+Thumb+${i}`,
+        haov: 180,
+        vaov: 90,
+        difficulty: Math.floor(Math.random() * 3) + 1,
+        is_active: true,
+        times_used: 0,
+        correct_guesses: 0,
+      })
+    }
+
+    console.log(`  ✓ Created game "${gameData.name}" with 5 screenshots`)
+  }
+}
+
+/**
  * Select random screenshots from the database
  */
 async function selectRandomScreenshots(count: number): Promise<number[]> {
@@ -216,11 +271,15 @@ async function seed(): Promise<void> {
       password: E2E_ADMIN_PASSWORD,
     })
 
-    // Step 2: Create today's daily challenge
+    // Step 2: Create mock games and screenshots for CI
+    console.log('\nCreating mock games and screenshots...')
+    await createMockGamesAndScreenshots()
+
+    // Step 3: Create today's daily challenge
     console.log('\nCreating daily challenge...')
     await createTodayChallenge()
 
-    // Step 3: Clear daily login claims for fresh login tests
+    // Step 4: Clear daily login claims for fresh login tests
     console.log('\nClearing daily login claims...')
     await clearDailyLoginClaims([e2eUserId, e2eAdminId])
 
