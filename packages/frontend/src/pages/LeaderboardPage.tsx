@@ -92,7 +92,6 @@ export default function LeaderboardPage() {
     return todayStr === dateStr
   }
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     setLoading(true)
     const dateStr = formatDateForApi(selectedDate)
@@ -112,10 +111,8 @@ export default function LeaderboardPage() {
         setLoading(false)
       })
   }, [selectedDate])
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Fetch achievement leaderboard (once, not date-dependent)
-  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     setAchievementLoading(true)
     fetch('/api/achievements/leaderboard')
@@ -134,10 +131,8 @@ export default function LeaderboardPage() {
         setAchievementLoading(false)
       })
   }, [])
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Fetch monthly leaderboard when monthly tab is active or month changes
-  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     if (activeTab !== 'monthly') return
 
@@ -161,7 +156,6 @@ export default function LeaderboardPage() {
         setMonthlyLoading(false)
       })
   }, [activeTab, selectedMonth])
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
