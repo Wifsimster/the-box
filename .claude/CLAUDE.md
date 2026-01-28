@@ -66,6 +66,7 @@ the-box/
 ## Features
 
 - **Daily Challenges**: New challenge each day with tiered difficulty (Easy → Hard)
+- **Catch-Up Mode**: Play missed challenges from the last 7 days (scores don't count for leaderboard)
 - **Hint System**: Players can use power-ups to reveal hints (release year, genre, first letter)
 - **Achievements**: Unlockable achievements for various accomplishments
 - **Daily Login Rewards**: Streak-based rewards for returning players
