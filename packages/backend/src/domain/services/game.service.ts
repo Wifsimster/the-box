@@ -255,8 +255,7 @@ export const gameService = {
   async getScreenshot(
     sessionId: string,
     position: number,
-    userId: string,
-    isAdmin: boolean = false
+    userId: string
   ): Promise<ScreenshotResponse> {
     const session = await sessionRepository.findGameSessionById(sessionId, userId)
     if (!session) {
@@ -278,22 +277,12 @@ export const gameService = {
     // Use proxy URL to hide the actual file path (which contains game slug)
     const proxyImageUrl = `/api/game/image/${tierScreenshot.screenshot_id}`
 
-    const response: ScreenshotResponse = {
+    return {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: proxyImageUrl,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
     }
-
-    // Include game name hint for admin users only
-    if (isAdmin) {
-      const screenshotData = await screenshotRepository.findWithGame(tierScreenshot.screenshot_id)
-      if (screenshotData) {
-        response.gameName = screenshotData.gameName
-      }
-    }
-
-    return response
   },
 
   async submitGuess(data: {

@@ -106,8 +106,7 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
     const data = await gameService.getScreenshot(
       sessionId as string,
       parseInt(position as string, 10),
-      req.userId!,
-      req.user?.role === 'admin'
+      req.userId!
     )
 
     res.json({

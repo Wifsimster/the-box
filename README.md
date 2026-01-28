@@ -65,7 +65,7 @@ Pull and run the pre-built image from Docker Hub:
 
 ```bash
 # Pull specific version (recommended for production)
-docker pull wifsimster/the-box:1.1
+docker pull wifsimster/the-box:1.6
 
 # Or pull latest
 docker pull wifsimster/the-box:latest
@@ -79,7 +79,7 @@ docker run -d \
   -e RESEND_API_KEY=your-resend-key \
   -e EMAIL_FROM=noreply@yourdomain.com \
   -v thebox-uploads:/app/uploads \
-  wifsimster/the-box:1.1
+  wifsimster/the-box:1.6
 
 # Run database migrations and seed admin user
 docker exec the-box npm run --workspace=@the-box/backend db:migrate
@@ -196,9 +196,9 @@ npm run db:rollback     # Rollback last migration
 npm run db:seed         # Seed database
 
 # Version management
-npm run version:patch   # Bump patch version (1.1.0 -> 1.1.1)
-npm run version:minor   # Bump minor version (1.1.0 -> 1.2.0)
-npm run version:major   # Bump major version (1.1.0 -> 2.0.0)
+npm run version:patch   # Bump patch version (1.6.0 -> 1.6.1)
+npm run version:minor   # Bump minor version (1.6.0 -> 1.7.0)
+npm run version:major   # Bump major version (1.6.0 -> 2.0.0)
 
 # Docker
 npm run docker:build    # Build Docker image with version
@@ -260,7 +260,7 @@ Commits are validated automatically via husky git hooks. Non-compliant commits w
 - Generates changelog from conventional commits
 - Builds and publishes multi-arch Docker images (amd64, arm64)
 - Creates GitHub release with notes
-- Tags: `latest`, `v1.1.0`, `1.1`, `1`
+- Tags: `latest`, `v1.6.0`, `1.6`, `1`
 
 ### Docker Hub Setup
 
@@ -329,8 +329,8 @@ The Docker image uses a multi-stage build and includes:
 **Docker Image Tags:**
 
 - `latest` - Most recent stable release
-- `v1.1.0` - Specific version (immutable)
-- `1.1` - Minor version (receives patches)
+- `v1.6.0` - Specific version (immutable)
+- `1.6` - Minor version (receives patches)
 - `1` - Major version (receives minors and patches)
 
 Exposed port: **80**

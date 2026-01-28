@@ -323,8 +323,6 @@ export interface ScreenshotResponse {
   position: number
   imageUrl: string
   bonusMultiplier?: number
-  /** Game name hint - only returned for admin users */
-  gameName?: string
 }
 
 // Guess API
