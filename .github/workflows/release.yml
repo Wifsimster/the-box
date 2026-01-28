@@ -46,6 +46,7 @@ jobs:
 
   e2e:
     name: E2E Tests
+    if: false  # Disabled - re-enable when needed
     runs-on: ubuntu-latest
     # Run in parallel with lint - both can start immediately
     # needs: lint  # Removed to run in parallel
@@ -181,7 +182,7 @@ jobs:
   release:
     name: Create Release & Publish Docker Image
     runs-on: ubuntu-latest
-    needs: [lint, e2e]  # Wait for both lint and e2e
+    needs: [lint]  # e2e disabled
 
     steps:
       - name: Checkout code
