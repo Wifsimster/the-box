@@ -110,6 +110,21 @@ export function ResultCard() {
     }
   }, [countdown, lastResult, nextPosition, isSessionCompleted, handleNext, showCompletionChoice])
 
+  // Handle Enter key to close dialog
+  useEffect(() => {
+    if (!lastResult) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        handleNext()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [lastResult, handleNext])
+
   // Early return after all hooks
   if (!lastResult) return null
 

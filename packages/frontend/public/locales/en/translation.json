@@ -139,9 +139,9 @@
       "penalty": "-50 points per game not found when ending early"
     },
     "navigation": {
-      "previous": "Previous (Ctrl+←)",
-      "next": "Next (Ctrl+→)",
-      "skip": "Skip (Ctrl+→)",
+      "previous": "Previous",
+      "next": "Next",
+      "skip": "Skip",
       "finish": "Finish",
       "reviewSkipped": "Review Skipped"
     },

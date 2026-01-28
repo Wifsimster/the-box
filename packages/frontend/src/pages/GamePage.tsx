@@ -374,43 +374,6 @@ export default function GamePage() {
     }
   }, [gamePhase, sessionId, currentScreenshotData?.imageUrl, currentScreenshotData?.position, prefetchAdjacentScreenshots])
 
-  // Keyboard shortcuts for navigation (Ctrl+Arrow Left/Right)
-  // Uses Ctrl+Arrow to avoid interfering with text cursor navigation
-  useEffect(() => {
-    if (gamePhase !== 'playing') return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only trigger on Ctrl+Arrow (or Cmd+Arrow on Mac)
-      if (!e.ctrlKey && !e.metaKey) return
-
-      const {
-        currentPosition,
-        positionStates,
-        skipToNextPosition,
-        navigateToPosition,
-      } = useGameStore.getState()
-
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        // Find previous navigable position (include skipped, not_visited, and correct)
-        for (let i = currentPosition - 1; i >= 1; i--) {
-          const state = positionStates[i]
-          if (state?.status === 'skipped' || state?.status === 'not_visited' || state?.status === 'correct') {
-            navigateToPosition(i)
-            return
-          }
-        }
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        // Skip to next position (includes correct positions)
-        skipToNextPosition()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [gamePhase])
-
   // Handle resetting the daily session (admin only)
   const handleResetSession = useCallback(async () => {
     if (!isAdmin) return

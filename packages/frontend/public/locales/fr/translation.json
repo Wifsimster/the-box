@@ -139,9 +139,9 @@
       "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
     },
     "navigation": {
-      "previous": "Précédent (Ctrl+←)",
-      "next": "Suivant (Ctrl+→)",
-      "skip": "Passer (Ctrl+→)",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "skip": "Passer",
       "finish": "Terminer",
       "reviewSkipped": "Voir les Passées"
     },
