@@ -121,6 +121,7 @@ interface GameState {
 
   nextRound: () => void
   resetGame: () => void
+  resetGameSession: () => void
   setHasHydrated: (hydrated: boolean) => void
 
   // End game actions
@@ -495,6 +496,17 @@ export const useGameStore = create<GameState>()(
         },
 
         resetGame: () => set({ ...initialState, _hasHydrated: true }),
+
+        // Reset session state without clearing personal bests
+        // Used when switching between challenges (e.g. today → catch-up)
+        resetGameSession: () => {
+          const { personalBests } = get()
+          set({
+            ...initialState,
+            _hasHydrated: true,
+            personalBests,
+          })
+        },
 
         setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 

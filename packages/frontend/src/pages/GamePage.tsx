@@ -119,6 +119,25 @@ export default function GamePage() {
     }
   }, [])
 
+  // Reset game session when the URL date param changes (e.g. switching from today to catch-up)
+  // This ensures stale session state doesn't prevent loading a different challenge
+  useEffect(() => {
+    if (!_hasHydrated) return
+    const storeDate = useGameStore.getState().challengeDate
+    const targetDate = challengeDateParam || null
+
+    // If we have a URL date that differs from the store, or if the store has a stale
+    // catch-up date but we're navigating to today (no date param), reset the session
+    if (targetDate && storeDate && targetDate !== storeDate) {
+      useGameStore.getState().resetGameSession()
+    } else if (!targetDate && storeDate) {
+      const today = new Date().toISOString().split('T')[0]
+      if (storeDate !== today && gamePhase !== 'idle') {
+        useGameStore.getState().resetGameSession()
+      }
+    }
+  }, [_hasHydrated, challengeDateParam]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch today's challenge on mount (after hydration completes)
   useEffect(() => {
     // Wait for Zustand to hydrate from localStorage before fetching
