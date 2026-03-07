@@ -110,6 +110,8 @@ function stripEditionKeywords(text: string): string {
   for (const keyword of EDITION_KEYWORDS) {
     result = result.replace(new RegExp(`\\s*[-–—]?\\s*${keyword}\\s*`, 'gi'), ' ')
   }
+  // General pattern: "game of the <word(s)> edition" (e.g., "Game of the YoRHa Edition")
+  result = result.replace(/\s*[-–—]?\s*game of the \w+ edition\s*/gi, ' ')
   return result.replace(/\s+/g, ' ').trim()
 }
 
@@ -142,8 +144,10 @@ function stripCommonPrefixes(text: string): string {
 function parseGameTitle(title: string): ParsedGameTitle {
   const strippedEdition = stripEditionKeywords(title)
 
-  // Split on colon to get series:subtitle
-  const colonIndex = strippedEdition.indexOf(':')
+  // Split on colon ONLY if followed by a space (e.g., "The Witcher 3: Wild Hunt")
+  // Colons without spaces (e.g., "NieR:Automata") are treated as part of the word
+  const colonMatch = strippedEdition.match(/:\s/)
+  const colonIndex = colonMatch?.index ?? -1
 
   let seriesPart: string
   let subtitlePart: string | null = null
