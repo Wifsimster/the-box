@@ -32,8 +32,7 @@ the-box/
 ├── commitlint.config.js      # Conventional commits rules
 ├── .husky/                   # commit-msg validation
 ├── .github/workflows/        # release.yml (manual release + multi-arch docker)
-├── .claude/                  # Gitignored local Claude Code config
-├── ralph/prd.json            # Ralph automation PRD (see bottom of file)
+├── .claude/                  # Local Claude Code config
 ├── tasks/                    # Task PRDs (markdown)
 ├── docs/                     # architecture, api, authentication, game-flow,
 │                             # database, realtime, better-auth-setup
@@ -282,77 +281,3 @@ Detailed docs live in `docs/`:
 3. `npm test` – unit tests
 4. For UI changes: `npm run test:e2e` (dev servers up + `npm run e2e:seed`)
 5. Commit via Conventional Commits (husky enforces this)
-
----
-
-# Ralph Automation Workflow
-
-The `ralph/` directory holds a PRD-driven automation workflow. When invoked under Ralph, follow the steps below. Otherwise, treat the sections above as the authoritative project guide.
-
-## Your Task (Ralph mode)
-
-1. Read the PRD at `ralph/prd.json`
-2. Read the progress log at `progress.txt` (check Codebase Patterns section first)
-3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
-4. Pick the **highest priority** user story where `passes: false`
-5. Implement that single user story
-6. Run quality checks (typecheck, lint, test)
-7. Update CLAUDE.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
-9. Update the PRD to set `passes: true` for the completed story
-10. Append your progress to `progress.txt`
-
-## Progress Report Format
-
-APPEND to `progress.txt` (never replace):
-
-```
-## [Date/Time] - [Story ID]
-- What was implemented
-- Files changed
-- **Learnings for future iterations:**
-  - Patterns discovered
-  - Gotchas encountered
-  - Useful context
----
-```
-
-## Consolidate Patterns
-
-If you discover a **reusable pattern** that future iterations should know, add it to the `## Codebase Patterns` section at the TOP of `progress.txt`. Only add patterns that are **general and reusable**, not story-specific.
-
-## Update CLAUDE.md Files
-
-Before committing, check if any edited files have learnings worth preserving in nearby CLAUDE.md files. Add only **genuinely reusable knowledge**:
-
-- API patterns or conventions specific to that module
-- Gotchas or non-obvious requirements
-- Dependencies between files
-- Testing approaches for that area
-- Configuration / environment requirements
-
-Do **not** add: story-specific details, temporary debugging notes, or information already in `progress.txt`.
-
-## Quality Requirements
-
-- ALL commits must pass typecheck, lint, and tests
-- Keep changes focused and minimal
-- Follow existing code patterns
-
-## Browser Testing
-
-For UI changes, verify in a browser if you have browser tools (e.g., via MCP). Take a screenshot if useful. If no browser tools, note that manual verification is needed.
-
-## Stop Condition
-
-After completing a story, check if ALL stories have `passes: true`.
-
-- If all pass: reply with `<promise>COMPLETE</promise>`
-- Otherwise: end normally so the next iteration picks up the next story
-
-## Important
-
-- Work on ONE story per iteration
-- Commit frequently
-- Keep CI green
-- Read the Codebase Patterns section in `progress.txt` before starting

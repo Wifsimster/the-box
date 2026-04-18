@@ -35,7 +35,6 @@ the-box/
 ├── .husky/                   # Git hooks (commit-msg validation)
 ├── .github/workflows/        # release.yml (manual release + multi-arch docker)
 ├── .claude/                  # Project-specific Claude Code config + this file
-├── ralph/                    # Ralph automation PRD (prd.json)
 ├── tasks/                    # Task PRDs (markdown)
 ├── docs/                     # Architecture / API / feature docs
 ├── scripts/                  # db-backup helpers
@@ -297,10 +296,6 @@ Detailed docs live in `docs/`:
 3. `npm test` — unit tests
 4. For UI changes, run `npm run test:e2e` (requires dev servers + seeded DB via `npm run e2e:seed`)
 5. Commits go through commitlint via husky — use Conventional Commits
-
-## Ralph Automation Workflow
-
-The root-level `CLAUDE.md` contains Ralph agent instructions that drive iterative automation from `ralph/prd.json` and `progress.txt`. If you are NOT running Ralph, ignore that workflow and treat this file as the authoritative project guide.
 
 <claude-mem-context>
 # Recent Activity
