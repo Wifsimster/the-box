@@ -46,6 +46,10 @@ logger.info(
 
 const app = express()
 
+// Trust the first proxy hop (Traefik in production, Vite proxy in dev)
+// so `req.ip` reflects the real client address for rate limiting.
+app.set('trust proxy', 1)
+
 // JSON parsing middleware
 app.use(cors({
   origin: env.CORS_ORIGIN,
