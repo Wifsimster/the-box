@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Share2, Twitter, MessageSquare, Copy, Check } from 'lucide-react'
 import type { GuessResult } from '@/types'
 import { toast } from '@/lib/toast'
+import { useSession } from '@/lib/auth-client'
 
 interface ShareCardProps {
     score: number
@@ -30,8 +31,10 @@ export function ShareCard({
     compact = false,
 }: ShareCardProps) {
     const { t, i18n } = useTranslation()
+    const { data: session } = useSession()
     const [copied, setCopied] = useState(false)
     const [open, setOpen] = useState(false)
+    const referralCode = session?.user?.id
 
     // Generate emoji grid (Wordle-style)
     const generateEmojiGrid = (): string => {
@@ -61,7 +64,9 @@ export function ShareCard({
             text += `🏆 Rank #${rank}/${totalPlayers}\n`
         }
 
-        text += `\n🔗 https://the-box.battistella.ovh/${i18n.language}/leaderboard?date=${date}`
+        const params = new URLSearchParams({ date })
+        if (referralCode) params.set('ref', referralCode)
+        text += `\n🔗 https://the-box.battistella.ovh/${i18n.language}/leaderboard?${params.toString()}`
 
         return text
     }

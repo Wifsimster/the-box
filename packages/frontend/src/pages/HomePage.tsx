@@ -165,15 +165,22 @@ export default function HomePage() {
                 {t('common.history')}
               </Button>
             ) : (
-              <Button
-                variant="gaming"
-                size="xl"
-                onClick={() => navigate(localizedPath('/play'))}
-                className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
-              >
-                <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                {t('home.dailyGuess')}
-              </Button>
+              <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="gaming"
+                  size="xl"
+                  onClick={() => navigate(localizedPath('/play'))}
+                  className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
+                >
+                  <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                  {t('home.dailyGuess')}
+                </Button>
+                {!session && (
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {t('home.guestHint')}
+                  </p>
+                )}
+              </div>
             )
           )}
 
