@@ -97,6 +97,34 @@ router.post('/avatar', authMiddleware, avatarUpload.single('avatar'), async (req
   }
 })
 
+// Update email marketing consent. Opt-in only — the checkbox on
+// signup/settings posts here to record the user's explicit choice.
+router.put('/email-consent', authMiddleware, async (req, res, next) => {
+  try {
+    const { consent } = req.body ?? {}
+    if (typeof consent !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_CONSENT', message: 'consent must be a boolean' },
+      })
+    }
+
+    const updated = await userRepository.updateEmailMarketingConsent(req.userId!, consent)
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    logger.info({ userId: req.userId, consent }, 'email consent updated')
+
+    res.json({ success: true, data: updated })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Delete avatar
 router.delete('/avatar', authMiddleware, async (req, res, next) => {
   try {

@@ -16,6 +16,8 @@ export interface User {
   longestStreak?: number
   lastPlayedAt?: string
   createdAt: string
+  emailMarketingConsent: boolean
+  emailConsentUpdatedAt?: string
 }
 
 // Game catalog types

@@ -22,6 +22,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapRegisterError } from '@/lib/auth-errors'
 import { readStoredReferral, clearStoredReferral } from '@/hooks/useReferralCapture'
 import { referralApi } from '@/lib/api/referral'
+import { userApi } from '@/lib/api/user'
 
 type FormValues = {
   username: string
@@ -34,6 +35,7 @@ export default function RegisterPage() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const [isLoading, setIsLoading] = useState(false)
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const { refetch: refetchSession } = useSession()
 
   const formSchema = useMemo(() => z.object({
@@ -110,6 +112,16 @@ export default function RegisterPage() {
           console.warn('Referral claim failed:', refErr)
         }
         clearStoredReferral()
+      }
+
+      // Persist the explicit marketing consent choice. Default is opt-out,
+      // so only POST when the user ticked the box — keeps audit logs clean.
+      if (marketingConsent) {
+        try {
+          await userApi.updateEmailConsent(true)
+        } catch (consentErr) {
+          console.warn('Email consent update failed:', consentErr)
+        }
       }
 
       // Force a page reload to ensure cookies are picked up and session state is refreshed
@@ -251,6 +263,18 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
+
+                <label className="flex items-start gap-3 cursor-pointer select-none group">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer"
+                  />
+                  <span className="text-xs text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors">
+                    {t('auth.marketingConsent')}
+                  </span>
+                </label>
 
                 {form.formState.errors.root && (
                   <motion.div
