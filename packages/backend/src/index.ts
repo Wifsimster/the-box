@@ -228,6 +228,7 @@ async function start(): Promise<void> {
       'sync-all-games',
       'cleanup-anonymous-users',
       'recalculate-scores',
+      'streak-risk-email',
     ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
@@ -308,6 +309,22 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring recalculate-scores job (daily at 3 AM UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring recalculate-scores job')
+    }
+
+    // Schedule recurring streak-risk win-back email (daily at 19:00 UTC ~ evening Europe)
+    // Runs in the window where users can still salvage their streak before midnight UTC.
+    try {
+      await importQueue.add(
+        'streak-risk-email',
+        {},
+        {
+          repeat: { pattern: '0 19 * * *', tz: 'UTC' },
+          jobId: 'streak-risk-email-recurring',
+        }
+      )
+      logger.info('scheduled recurring streak-risk-email job (daily at 19:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring streak-risk-email job')
     }
 
     // Log final repeatable jobs configuration with next run times
