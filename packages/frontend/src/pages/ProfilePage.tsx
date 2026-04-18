@@ -12,7 +12,7 @@ import { AchievementGrid } from '@/components/achievement'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
-import { AvatarUpload, ReferralCard } from '@/components/profile'
+import { AvatarUpload, ReferralCard, EmailConsentCard } from '@/components/profile'
 import type { User as UserType } from '@the-box/types'
 
 /**
@@ -279,6 +279,20 @@ export default function ProfilePage() {
                             transition={{ delay: 0.3 }}
                         >
                             <ReferralCard userId={userProfile.id} language={i18n.language} />
+                        </motion.div>
+                    )}
+
+                    {/* Email consent toggle — CNIL requires withdrawal to be as easy as opt-in */}
+                    {userProfile && !userProfile.isGuest && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <EmailConsentCard
+                                initialConsent={userProfile.emailMarketingConsent}
+                                updatedAt={userProfile.emailConsentUpdatedAt}
+                            />
                         </motion.div>
                     )}
 

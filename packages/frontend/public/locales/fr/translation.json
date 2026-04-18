@@ -749,6 +749,15 @@
     "claimedNote": "Vous avez été parrainé par un ami — merci !",
     "rewardHint": "Récompense : vous recevez chacun 3 indices Année + 2 indices Éditeur."
   },
+  "emailConsent": {
+    "title": "Préférences e-mail",
+    "description": "Contrôlez l'envoi d'e-mails marketing. Les e-mails transactionnels (compte, réinitialisation de mot de passe) sont toujours envoyés.",
+    "label": "Recevoir des e-mails occasionnels sur les nouveaux défis, les rappels de série et les récompenses.",
+    "updatedOn": "Dernière mise à jour le {{date}}",
+    "optedIn": "Vous recevrez des actualités occasionnelles — merci !",
+    "optedOut": "Vous ne recevrez plus d'e-mails marketing.",
+    "updateError": "Échec de la mise à jour. Veuillez réessayer."
+  },
   "personalBests": {
     "title": "Meilleurs Scores",
     "highestScore": "Meilleur Score",

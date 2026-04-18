@@ -723,6 +723,15 @@
     "claimedNote": "You were referred by a friend — thanks!",
     "rewardHint": "Reward: both of you get 3 Year hints + 2 Publisher hints."
   },
+  "emailConsent": {
+    "title": "Email Preferences",
+    "description": "Control whether we can send you marketing emails. Transactional emails (account, password reset) always go through.",
+    "label": "Send me occasional emails about new challenges, streak reminders and rewards.",
+    "updatedOn": "Last updated on {{date}}",
+    "optedIn": "You'll receive occasional updates — thanks!",
+    "optedOut": "You won't receive marketing emails.",
+    "updateError": "Failed to update preference. Please try again."
+  },
   "personalBests": {
     "title": "Personal Bests",
     "highestScore": "Highest Score",
