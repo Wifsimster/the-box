@@ -20,6 +20,8 @@ import { Mail, Lock, User, Loader2 } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapRegisterError } from '@/lib/auth-errors'
+import { readStoredReferral, clearStoredReferral } from '@/hooks/useReferralCapture'
+import { referralApi } from '@/lib/api/referral'
 
 type FormValues = {
   username: string
@@ -96,6 +98,18 @@ export default function RegisterPage() {
         await new Promise(resolve => setTimeout(resolve, 300))
       } catch (sessionError) {
         console.error('Error refetching session:', sessionError)
+      }
+
+      // Claim any stored referral code now that the user is authenticated.
+      // Failures here are non-fatal — don't block the signup completion.
+      const pendingReferral = readStoredReferral()
+      if (pendingReferral) {
+        try {
+          await referralApi.claim(pendingReferral.code)
+        } catch (refErr) {
+          console.warn('Referral claim failed:', refErr)
+        }
+        clearStoredReferral()
       }
 
       // Force a page reload to ensure cookies are picked up and session state is refreshed

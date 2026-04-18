@@ -23,6 +23,14 @@ export function readStoredReferral(): StoredReferral | null {
   }
 }
 
+export function clearStoredReferral(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 // Captures a `?ref=<code>` query param on page load and persists it in
 // localStorage so later signup attribution can read it. Only the first
 // referral is stored — re-landing with a new ref does not overwrite.

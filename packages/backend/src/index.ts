@@ -17,6 +17,7 @@ import adminRoutes from './presentation/routes/admin.routes.js'
 import userRoutes from './presentation/routes/user.routes.js'
 import achievementRoutes from './presentation/routes/achievement.routes.js'
 import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
+import referralRoutes from './presentation/routes/referral.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
@@ -159,6 +160,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/achievements', achievementRoutes)
 app.use('/api/daily-login', dailyLoginRoutes)
 app.use('/api/inventory', dailyLoginRoutes)
+app.use('/api/referral', referralRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
