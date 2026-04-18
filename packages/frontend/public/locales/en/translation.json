@@ -711,6 +711,17 @@
     "copyError": "Failed to copy to clipboard",
     "discordCopied": "Copied for Discord - paste in your server!"
   },
+  "referral": {
+    "title": "Invite Friends",
+    "description": "Share your personal invite link. When a friend signs up, you both get bonus hints.",
+    "copyLink": "Copy invite link",
+    "copied": "Copied!",
+    "copyError": "Failed to copy to clipboard",
+    "stat_one": "{{count}} friend joined",
+    "stat_other": "{{count}} friends joined",
+    "claimedNote": "You were referred by a friend — thanks!",
+    "rewardHint": "Reward: both of you get 3 Year hints + 2 Publisher hints."
+  },
   "personalBests": {
     "title": "Personal Bests",
     "highestScore": "Highest Score",

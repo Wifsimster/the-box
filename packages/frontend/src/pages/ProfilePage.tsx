@@ -12,7 +12,7 @@ import { AchievementGrid } from '@/components/achievement'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
-import { AvatarUpload } from '@/components/profile'
+import { AvatarUpload, ReferralCard } from '@/components/profile'
 import type { User as UserType } from '@the-box/types'
 
 /**
@@ -270,6 +270,17 @@ export default function ProfilePage() {
                             </CardContent>
                         </Card>
                     </motion.div>
+
+                    {/* Referral Card — hidden for guest accounts since they cannot claim or share */}
+                    {userProfile && !userProfile.isGuest && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <ReferralCard userId={userProfile.id} language={i18n.language} />
+                        </motion.div>
+                    )}
 
                     {/* Achievements Section */}
                     <motion.div

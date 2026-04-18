@@ -737,6 +737,17 @@
     "copyError": "Échec de la copie dans le presse-papiers",
     "discordCopied": "Copié pour Discord - collez dans votre serveur !"
   },
+  "referral": {
+    "title": "Inviter des amis",
+    "description": "Partagez votre lien d'invitation personnel. Quand un ami s'inscrit, vous recevez tous les deux des indices bonus.",
+    "copyLink": "Copier le lien",
+    "copied": "Copié !",
+    "copyError": "Échec de la copie dans le presse-papiers",
+    "stat_one": "{{count}} ami inscrit",
+    "stat_other": "{{count}} amis inscrits",
+    "claimedNote": "Vous avez été parrainé par un ami — merci !",
+    "rewardHint": "Récompense : vous recevez chacun 3 indices Année + 2 indices Éditeur."
+  },
   "personalBests": {
     "title": "Meilleurs Scores",
     "highestScore": "Meilleur Score",

@@ -10,6 +10,12 @@ export interface ReferralClaimResult {
   referrerId: string
 }
 
+export interface ReferralStats {
+  hasClaimed: boolean
+  referredBy: string | null
+  referralsMade: number
+}
+
 export const referralApi = {
   async claim(code: string): Promise<ReferralClaimResult> {
     const response = await fetch('/api/referral/claim', {
@@ -24,6 +30,20 @@ export const referralApi = {
       throw new ReferralApiError(
         json.error?.code || 'CLAIM_ERROR',
         json.error?.message || 'Failed to claim referral'
+      )
+    }
+    return json.data
+  },
+
+  async getStats(): Promise<ReferralStats> {
+    const response = await fetch('/api/referral/stats', {
+      credentials: 'include',
+    })
+    const json = await response.json()
+    if (!response.ok) {
+      throw new ReferralApiError(
+        json.error?.code || 'FETCH_ERROR',
+        json.error?.message || 'Failed to fetch referral stats'
       )
     }
     return json.data
