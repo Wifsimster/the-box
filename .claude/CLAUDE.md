@@ -1,78 +1,129 @@
 # The Box - Project Instructions
 
 ## Project Overview
-"The Box" is a gaming screenshot guessing application where players identify games from panoramic screenshots. Features include daily challenges, tiered difficulty, power-ups/hints, achievements, daily login rewards, and live leaderboards.
+
+"The Box" is a gaming screenshot guessing application where players identify games from 360° panoramic screenshots. Features include daily challenges with tiered difficulty, power-ups/hints, achievements, daily login rewards, and live leaderboards with real-time updates.
 
 ## Tech Stack
-- **Frontend**: React 19 + Vite + TypeScript + TailwindCSS + Zustand + i18next
-- **Backend**: Node.js + Express 5 + Knex.js + Socket.io (Clean Architecture)
-- **Database**: PostgreSQL (via Docker)
-- **Authentication**: Better Auth (session-based)
+
+- **Frontend**: React 19 + Vite 7 + TypeScript + TailwindCSS v4 + Zustand + i18next + react-router-dom 7
+- **Backend**: Node.js 24 + Express 5 + Knex.js + Kysely + Socket.io 4 (Clean Architecture)
+- **Database**: PostgreSQL 16 (via Docker)
+- **Authentication**: Better Auth (session-based, email/password)
 - **Job Queue**: BullMQ + Redis for background tasks
-- **Email**: Resend for transactional emails
-- **Viewer**: Pannellum for 360° panorama display
+- **Email**: Resend for transactional emails (password reset)
+- **Panorama Viewer**: Three.js / React Three Fiber for 360° display
+- **3D/Animation**: Framer Motion, Embla Carousel
+- **Forms**: React Hook Form + Zod validation
+- **UI Primitives**: Radix UI + Shadcn components, Lucide icons
 - **Testing**: Playwright for E2E tests
 - **Monorepo**: npm workspaces
+- **Logging**: Pino (with pino-pretty in dev)
+- **Validation**: Zod (both frontend and backend)
 
 ## Project Structure (Monorepo)
+
 ```
 the-box/
 ├── package.json              # Root workspace config
-├── packages/
-│   ├── types/                # @the-box/types - Shared TypeScript types
-│   │   └── src/index.ts
-│   ├── backend/              # @the-box/backend - Express API (Clean Architecture)
-│   │   ├── src/
-│   │   │   ├── config/       # Environment configuration
-│   │   │   ├── domain/       # Business logic layer
-│   │   │   │   └── services/ # Game, auth, achievement, leaderboard, daily-login services
-│   │   │   ├── infrastructure/
-│   │   │   │   ├── auth/     # Better Auth setup
-│   │   │   │   ├── database/ # Database connection
-│   │   │   │   ├── logger/   # Pino logger
-│   │   │   │   ├── queue/    # BullMQ workers (import, sync, daily-challenge, cleanup)
-│   │   │   │   ├── repositories/ # Data access (game, user, achievement, leaderboard, inventory, daily-login)
-│   │   │   │   └── socket/   # Socket.io setup
-│   │   │   ├── presentation/ # HTTP layer
-│   │   │   │   ├── routes/   # Route definitions (game, auth, user, admin, leaderboard, achievement, daily-login)
-│   │   │   │   └── middleware/
-│   │   │   └── tools/        # CLI tools (screenshot-fetcher)
-│   │   ├── migrations/       # Knex database migrations
-│   │   ├── scripts/          # Utility scripts
-│   │   └── data/             # JSON seed data
-│   └── frontend/             # @the-box/frontend - React SPA
-│       ├── src/
-│       │   ├── components/
-│       │   │   ├── achievement/  # Achievement cards, grid, notifications
-│       │   │   ├── admin/        # Admin panels (games, users, jobs, challenges)
-│       │   │   ├── backgrounds/  # Visual backgrounds
-│       │   │   ├── daily-login/  # Daily reward modal, calendar, badge
-│       │   │   ├── game/         # Game UI (viewer, hints, input, results)
-│       │   │   ├── layout/       # Header, Footer, PageHero
-│       │   │   └── ui/           # Shadcn/Radix UI components
-│       │   ├── hooks/        # Custom React hooks
-│       │   ├── lib/          # Utilities, API client, i18n
-│       │   ├── pages/        # Route pages
-│       │   ├── services/     # Frontend services (scoring, validation, search)
-│       │   └── stores/       # Zustand stores (auth, game, achievement, dailyLogin, admin)
-│       ├── e2e/              # Playwright E2E tests
-│       └── public/locales/   # i18n translations (en, fr)
 ├── compose.yml               # Production: Full stack with Traefik + db-backup
 ├── compose.local.yml         # Development: PostgreSQL + Redis only
-├── backups/                  # Database backup storage
-└── uploads/                  # Game screenshot storage
+├── Dockerfile                # Multi-stage Alpine build (port 80)
+├── docker-entrypoint.sh      # Runs migrations then starts app
+├── tsconfig.json             # Root TS config
+├── commitlint.config.js      # Conventional commits rules
+├── .husky/                   # Git hooks (commit-msg validation)
+├── .github/workflows/        # release.yml (manual release + multi-arch docker)
+├── .claude/                  # Project-specific Claude Code config + this file
+├── tasks/                    # Task PRDs (markdown)
+├── docs/                     # Architecture / API / feature docs
+├── scripts/                  # db-backup helpers
+├── backups/                  # DB backup storage (gitignored volume)
+├── uploads/                  # Game screenshot storage (gitignored volume)
+└── packages/
+    ├── types/                # @the-box/types - Shared TypeScript types
+    │   └── src/index.ts      # All domain types exported here
+    ├── backend/              # @the-box/backend - Express API (Clean Architecture)
+    │   ├── src/
+    │   │   ├── index.ts            # Entrypoint (boots HTTP + Socket + workers)
+    │   │   ├── config/             # Environment/config loading
+    │   │   ├── domain/services/    # Business logic (no infra deps)
+    │   │   │   ├── achievement.service.ts
+    │   │   │   ├── admin.service.ts
+    │   │   │   ├── auth.service.ts
+    │   │   │   ├── daily-login.service.ts
+    │   │   │   ├── fuzzy-match.service.ts  # Game name matching
+    │   │   │   ├── game.service.ts
+    │   │   │   ├── job.service.ts
+    │   │   │   ├── leaderboard.service.ts
+    │   │   │   └── user.service.ts
+    │   │   ├── infrastructure/
+    │   │   │   ├── auth/          # Better Auth setup
+    │   │   │   ├── database/      # Knex + Kysely connection
+    │   │   │   ├── logger/        # Pino logger
+    │   │   │   ├── queue/         # BullMQ connection + queues + workers/
+    │   │   │   ├── repositories/  # achievement, challenge, daily-login,
+    │   │   │   │                  # game, import-state, inventory,
+    │   │   │   │                  # leaderboard, screenshot, session, user
+    │   │   │   └── socket/        # Socket.io setup
+    │   │   ├── presentation/
+    │   │   │   ├── routes/        # achievement, admin, auth, daily-login,
+    │   │   │   │                  # game, leaderboard, user
+    │   │   │   └── middleware/    # auth, validation, request logging
+    │   │   └── tools/             # CLI (screenshot-fetcher via RAWG API)
+    │   ├── migrations/            # Knex TS migrations (date-prefixed)
+    │   ├── seeds/                 # DB seed files
+    │   ├── scripts/               # e2e-seed.ts and utilities
+    │   ├── data/                  # JSON seed data
+    │   └── knexfile.ts            # Knex config
+    └── frontend/                  # @the-box/frontend - React SPA
+        ├── src/
+        │   ├── main.tsx           # App bootstrap
+        │   ├── App.tsx            # Router + providers
+        │   ├── components/
+        │   │   ├── achievement/   # Cards, grid, notifications
+        │   │   ├── admin/         # Admin panels (games, users, jobs, challenges)
+        │   │   ├── backgrounds/   # Visual backgrounds
+        │   │   ├── daily-login/   # Reward modal, calendar, badge
+        │   │   ├── game/          # Viewer, hints, input, results
+        │   │   ├── layout/        # Header, Footer, PageHero
+        │   │   ├── profile/       # Profile UI
+        │   │   ├── ui/            # Shadcn/Radix primitives
+        │   │   └── ErrorBoundary.tsx
+        │   ├── pages/             # 17 route pages (Home, Game, Leaderboard,
+        │   │                      # Profile, Admin, History, Legal, Auth...)
+        │   ├── hooks/             # useAuth, useGameGuess, useIsMobile,
+        │   │                      # useKeyboardHeight, useLocalizedPath,
+        │   │                      # useNextDailyCountdown, usePercentileRank,
+        │   │                      # useWorldScore
+        │   ├── lib/               # Utilities, API client, i18n setup
+        │   ├── services/          # scoring, validation, search, submission,
+        │   │                      # leaderboard (client-side logic)
+        │   ├── stores/            # Zustand: auth, game, achievement,
+        │   │                      # dailyLogin, admin
+        │   ├── utils/             # Helpers
+        │   └── types/             # Frontend-only types
+        ├── e2e/                   # Playwright specs (achievements, admin-users,
+        │                          # auth, daily-game, daily-login, history,
+        │                          # leaderboard, profile, registration)
+        ├── public/locales/        # i18n translations (en, fr)
+        ├── vite.config.ts
+        ├── playwright.config.ts
+        └── components.json        # shadcn config
 ```
 
 ## Features
 
 - **Daily Challenges**: New challenge each day with tiered difficulty (Easy → Hard)
 - **Catch-Up Mode**: Play missed challenges from the last 7 days (scores don't count for leaderboard)
-- **Hint System**: Players can use power-ups to reveal hints (release year, genre, first letter)
-- **Achievements**: Unlockable achievements for various accomplishments
-- **Daily Login Rewards**: Streak-based rewards for returning players
+- **Hint System**: Power-ups reveal hints (release year, developer, publisher) and timer extensions
+- **Achievements**: Unlockable achievements including beginner-tier entries
+- **Daily Login Rewards**: Streak-based rewards with calendar display
 - **Leaderboards**: Daily and monthly rankings with Socket.io live updates
-- **User Profiles**: Stats, history, achievements display
-- **Admin Panel**: Game management, user management, job queue monitoring
+- **User Profiles**: Stats, game history, achievement display
+- **Admin Panel**: Game management, user management, job queue monitoring, challenge management
+- **i18n**: French (default) + English, translations under `public/locales/`
+- **Tournaments**: Tournament-style competition (migration `20260115_add_tournaments.ts`)
 
 ## Development Commands
 
@@ -80,114 +131,174 @@ the-box/
 # Install all dependencies (from root)
 npm install
 
-# Start PostgreSQL + Redis (for local development)
+# Start PostgreSQL + Redis (local dev only)
 docker compose -f compose.local.yml up -d
 
-# Development (from root)
-npm run dev:backend   # Start backend server
-npm run dev:frontend  # Start frontend dev server
-
-# Or run both together
+# Run both servers (backend :3000, frontend :5173)
 npm run dev
 
-# Build all packages
-npm run build
+# Individual services
+npm run dev:backend
+npm run dev:frontend
 
-# Build specific package
-npm run build:types
+# Build
+npm run build           # All packages
+npm run build:types     # @the-box/types (build first if changed)
 npm run build:backend
 npm run build:frontend
 
-# Linting
-npm run lint
+# Quality
+npm run lint            # Frontend ESLint
+npm test                # All package tests
 ```
 
 ## Database Commands
 
 ```bash
-npm run db:migrate              # Run migrations
-npm run db:rollback             # Rollback migrations
+# From root
+npm run db:migrate              # Run all pending migrations
+npm run db:rollback             # Rollback last migration
 npm run db:seed                 # Run seeds
 
-# Backend-specific (from packages/backend)
-npm run db:make-migration name  # Create new migration
+# From packages/backend
+npm run db:make-migration name  # Create new .ts migration
+npm run e2e:seed                # Seed DB for Playwright runs
 ```
 
 ## Testing Commands
 
 ```bash
-# Run all tests
-npm test
+# Root
+npm test                        # Run tests in all workspaces
 
-# E2E tests (from packages/frontend)
-npx playwright test
-npx playwright test --ui       # Interactive mode
+# Playwright (from packages/frontend)
+npm run test:e2e                # Headless
+npm run test:e2e:ui             # Interactive UI mode
+npm run test:e2e:headed         # Headed browser
+npm run test:e2e:debug          # Debug mode
 ```
 
-## Docker/Release Commands
+E2E specs cover: `achievements`, `admin-users`, `auth`, `daily-game`, `daily-login`, `history`, `leaderboard`, `profile`, `registration`.
+
+## Docker / Release Commands
 
 ```bash
-npm run docker:build   # Build Docker image
-npm run docker:tag     # Tag with semver
-npm run docker:push    # Push to registry
-npm run release        # Build + Docker build + tag + push
+npm run docker:build   # Build tagged image (uses package version)
+npm run docker:tag     # Tag semver variants (latest, 1.6, 1)
+npm run docker:push    # Push all tags
+npm run release        # build + docker:build + docker:tag + docker:push
+
+# Version bumps (all workspaces + root)
+npm run version:patch
+npm run version:minor
+npm run version:major
 ```
+
+Release workflow (`.github/workflows/release.yml`) is triggered manually and publishes multi-arch (amd64, arm64) images to Docker Hub.
 
 ## Screenshot Fetcher Tool
 
 ```bash
-# From packages/backend
-npm run fetch:games     # Fetch game metadata
+# From packages/backend (requires RAWG_API_KEY)
+npm run fetch:games     # Fetch game metadata from RAWG
 npm run fetch:download  # Download screenshots
-npm run fetch:all       # Fetch and download
+npm run fetch:all       # Fetch + download in one pass
 ```
 
 ## Clean Architecture (Backend)
 
-The backend follows a 3-layer clean architecture:
+The backend follows a 3-layer architecture with strict dependency direction (presentation → domain → infrastructure, domain has no outward deps):
 
 1. **Domain Layer** (`src/domain/services/`)
-   - Business logic: scoring, fuzzy matching, achievements, daily login
-   - No external dependencies (pure functions)
+   - Pure business logic: scoring, fuzzy matching, achievement evaluation, daily login streak logic
+   - No DB, HTTP, or external-service imports
 
 2. **Infrastructure Layer** (`src/infrastructure/`)
-   - Repositories: game, user, achievement, leaderboard, inventory, daily-login, session
-   - External services: Socket.io, BullMQ workers, Better Auth, Pino logger
+   - Repositories (Knex/Kysely) for all data access
+   - Better Auth, Socket.io server, BullMQ workers, Pino logger
+   - Queues under `queue/queues.ts`; workers under `queue/workers/` (import, sync, daily-challenge, cleanup)
 
 3. **Presentation Layer** (`src/presentation/`)
-   - Express routes (thin controllers)
-   - Middleware (auth, validation, request logging)
-   - HTTP request/response handling
+   - Thin Express controllers in `routes/*.routes.ts`
+   - Middleware: auth (session check), validation (Zod), request logging
+   - All routes mounted under `/api/` prefix
 
 ## Key Conventions
 
-- **Language**: French is the primary language (UI defaults to French)
+- **Primary Language**: French (UI defaults to `fr`; `en` also supported)
 - **Styling**: Dark gaming theme with neon accents (purple/pink gradients)
-- **State**: Zustand stores with persist middleware for client state
-- **API**: RESTful endpoints under `/api/` prefix
-- **Real-time**: Socket.io for live leaderboard updates
-- **Types**: All shared types in `@the-box/types` package
-- **Validation**: Zod for schema validation
+- **Client State**: Zustand stores with `persist` middleware where needed
+- **Shared Types**: All cross-package types live in `@the-box/types/src/index.ts` — rebuild the types package after edits so other packages see them
+- **API**: REST under `/api/`, JSON responses
+- **Real-time**: Socket.io for live leaderboard updates; events documented in `docs/realtime.md`
+- **Validation**: Zod schemas both server-side (middleware) and client-side (forms)
+- **Migrations**: Date-prefixed TS files (`YYYYMMDD_name.ts`) under `packages/backend/migrations/`. Migrations run automatically in Docker via `docker-entrypoint.sh`.
+- **Auth Bootstrap**: First registered user becomes admin automatically
 
 ## Code Style
 
-- TypeScript strict mode
+- TypeScript strict mode throughout
 - Functional React components with hooks
-- Path aliases: `@/` maps to `src/`
+- Path alias `@/` maps to `src/` (both packages)
 - Use `cn()` utility for conditional Tailwind classes
-- Conventional commits (enforced via commitlint + husky)
+- Conventional Commits enforced by commitlint + husky `commit-msg` hook
+- ESLint (flat config) on frontend
 
-## Testing
+### Commit Format
 
-- Run `npm test` before committing
-- Ensure TypeScript compiles: `npm run build`
-- E2E tests cover: registration, daily game flow, admin user management
+```
+<type>(<scope>): <subject>
+```
 
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+
+## Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string (BullMQ) |
+| `BETTER_AUTH_SECRET` | Auth secret (min 32 chars; `openssl rand -base64 32`) |
+| `API_URL` | Public backend URL (used by Better Auth callbacks) |
+| `CORS_ORIGIN` | Allowed frontend origin |
+| `PORT` | Backend port (default 3000) |
+| `RESEND_API_KEY` | Resend email API key (optional, for password reset) |
+| `EMAIL_FROM` | Sender address |
+| `RAWG_API_KEY` | Optional, for screenshot-fetcher + admin game imports |
+| `VITE_API_URL` | Frontend API base URL |
+| `VITE_USE_MOCK_API` | If `true`, frontend uses mock services |
+
+See `.env.example` for defaults. In production (single Docker image) the Node server serves the built frontend on port 80 and exposes the API under `/api/`.
+
+## Ports
+
+- **3000** — backend dev server
+- **5173** — frontend Vite dev server
+- **5432** — PostgreSQL (dev, from `compose.local.yml`)
+- **6379** — Redis (dev, from `compose.local.yml`)
+- **80** — production container (serves both UI and API)
+
+## Feature Documentation
+
+Detailed docs live in `docs/`:
+
+- `architecture.md` — Clean architecture overview
+- `authentication.md`, `better-auth-setup.md` — Auth flow
+- `game-flow.md` — Scoring, tiers, challenge mechanics
+- `api.md` — REST endpoint reference
+- `database.md` — Schema
+- `realtime.md` — Socket.io events
+
+## Testing & Quality Before Committing
+
+1. `npm run build` — ensures all packages typecheck
+2. `npm run lint` — ESLint on frontend
+3. `npm test` — unit tests
+4. For UI changes, run `npm run test:e2e` (requires dev servers + seeded DB via `npm run e2e:seed`)
+5. Commits go through commitlint via husky — use Conventional Commits
 
 <claude-mem-context>
 # Recent Activity
-
-<!-- This section is auto-generated by claude-mem. Edit content outside the tags. -->
 
 *No recent activity*
 </claude-mem-context>
