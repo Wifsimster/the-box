@@ -150,6 +150,15 @@ export const gameApi = {
     })
     return handleResponse<GameSessionDetailsResponse>(response)
   },
+
+  /**
+   * Public preview: metadata for today's first screenshot so anonymous
+   * visitors can see the challenge before signing up.
+   */
+  async getPreview(): Promise<{ challengeDate: string; imageUrl: string }> {
+    const response = await fetch('/api/game/preview')
+    return handleResponse<{ challengeDate: string; imageUrl: string }>(response)
+  },
 }
 
 export { GameApiError }
