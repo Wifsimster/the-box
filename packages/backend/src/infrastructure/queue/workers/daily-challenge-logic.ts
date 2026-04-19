@@ -36,10 +36,27 @@ function getTodayDateUTC(): string {
   return now.toISOString().split('T')[0]!
 }
 
+interface ScreenshotPick {
+  id: number
+  difficulty: number
+}
+
+/**
+ * Order picks so that easier screenshots come first.
+ * Ties are broken by a small random jitter to keep ordering varied day-to-day.
+ */
+function orderByDifficultyAscending(picks: ScreenshotPick[]): number[] {
+  return [...picks]
+    .sort((a, b) => a.difficulty - b.difficulty || Math.random() - 0.5)
+    .map((p) => p.id)
+}
+
 /**
  * Select N random screenshots from the database.
  * Only selects screenshots from games with metacritic >= 85.
  * If fewer than N unique screenshots are available, allows reuse.
+ * Returns screenshot IDs ordered by ascending difficulty so early positions
+ * (1..3) are warm-up rounds and the session ramps up to harder screenshots.
  */
 async function selectRandomScreenshots(count: number): Promise<number[]> {
   // Get count of available screenshots from games with metascore >= 85
@@ -65,8 +82,11 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
       .where('games.metacritic', '>=', 85)
       .orderByRaw('RANDOM()')
       .limit(count)
-      .pluck<number[]>('screenshots.id')
-    return rows
+      .select<Array<{ id: number; difficulty: number }>>(
+        'screenshots.id',
+        'screenshots.difficulty'
+      )
+    return orderByDifficultyAscending(rows)
   }
 
   // Not enough unique screenshots - allow reuse
@@ -76,22 +96,24 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
   )
 
   // Get all screenshot IDs from games with metascore >= 85
-  const allIds = await db('screenshots')
+  const all = await db('screenshots')
     .join('games', 'screenshots.game_id', 'games.id')
     .where('screenshots.is_active', true)
     .where('games.metacritic', '>=', 85)
-    .pluck<number[]>('screenshots.id')
+    .select<Array<{ id: number; difficulty: number }>>(
+      'screenshots.id',
+      'screenshots.difficulty'
+    )
 
   // Build selection with reuse
-  const selected: number[] = []
+  const selected: ScreenshotPick[] = []
   while (selected.length < count) {
-    // Shuffle for randomness
-    const shuffled = [...allIds].sort(() => Math.random() - 0.5)
+    const shuffled = [...all].sort(() => Math.random() - 0.5)
     const needed = count - selected.length
     selected.push(...shuffled.slice(0, needed))
   }
 
-  return selected.slice(0, count)
+  return orderByDifficultyAscending(selected.slice(0, count))
 }
 
 /**

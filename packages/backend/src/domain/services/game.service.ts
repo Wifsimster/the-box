@@ -15,6 +15,7 @@ import type {
   UserRepository,
   InventoryRepository,
   GameRepository,
+  FunnelEventRepository,
 } from '../ports/repositories.js'
 import type { FuzzyMatchService } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
@@ -57,6 +58,8 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
   }
 }
 
+const STREAK_GRACE_COOLDOWN_DAYS = 7
+
 export interface GameServiceDeps {
   logger: DomainLogger
   fuzzyMatchService: FuzzyMatchService
@@ -67,6 +70,7 @@ export interface GameServiceDeps {
   userRepository: UserRepository
   inventoryRepository: InventoryRepository
   gameRepository: GameRepository
+  funnelEventRepository: FunnelEventRepository
 }
 
 export interface GameService {
@@ -96,6 +100,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     userRepository,
     inventoryRepository,
     gameRepository,
+    funnelEventRepository,
   } = deps
   const log = deps.logger.child({ service: 'game' })
 
@@ -126,6 +131,21 @@ export function createGameService(deps: GameServiceDeps): GameService {
         currentStreak += 1
         longestStreak = Math.max(currentStreak, longestStreak)
         log.info({ userId, currentStreak, longestStreak }, 'Streak continued')
+      } else if (daysDiff === 2 && currentStreak > 0) {
+        // Exactly one missed day — consume streak grace if available.
+        const lastGrace = await userRepository.getStreakGraceUsedAt(userId)
+        const graceAvailable =
+          !lastGrace ||
+          (today.getTime() - lastGrace.getTime()) / (1000 * 60 * 60 * 24) >= STREAK_GRACE_COOLDOWN_DAYS
+        if (graceAvailable) {
+          currentStreak += 1
+          longestStreak = Math.max(currentStreak, longestStreak)
+          await userRepository.markStreakGraceUsed(userId)
+          log.info({ userId, currentStreak, longestStreak }, 'Streak continued via grace (1 missed day)')
+        } else {
+          currentStreak = 1
+          log.info({ userId, daysMissed: daysDiff, lastGrace }, 'Streak reset - grace on cooldown')
+        }
       } else {
         currentStreak = 1
         log.info({ userId, daysMissed: daysDiff, newStreak: currentStreak }, 'Streak reset')
@@ -260,6 +280,12 @@ export function createGameService(deps: GameServiceDeps): GameService {
         isCatchUp,
       })
       log.info({ sessionId: gameSession.id, challengeId, userId, isCatchUp }, 'new game session started')
+      void funnelEventRepository.record({
+        eventName: 'session_started',
+        userId,
+        sessionId: gameSession.id,
+        payload: { challengeId, isCatchUp },
+      })
     } else {
       // Check if session is already completed
       if (gameSession.is_completed) {
@@ -414,6 +440,18 @@ export function createGameService(deps: GameServiceDeps): GameService {
       scoreEarned,
     })
 
+    void funnelEventRepository.record({
+      eventName: 'guess_submitted',
+      userId: data.userId,
+      sessionId: tierSession.game_session_id,
+      payload: {
+        position: data.position,
+        isCorrect,
+        roundTimeTakenMs: data.roundTimeTakenMs,
+        powerUpUsed: data.powerUpUsed ?? null,
+      },
+    })
+
     await sessionRepository.updateTierSession(data.tierSessionId, {
       score: newSessionScore,
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
@@ -460,6 +498,17 @@ export function createGameService(deps: GameServiceDeps): GameService {
         },
         'game completed'
       )
+
+      void funnelEventRepository.record({
+        eventName: 'session_completed',
+        userId: data.userId,
+        sessionId: tierSession.game_session_id,
+        payload: {
+          finalScore: newTotalScore,
+          screenshotsFound: totalScreenshotsFound,
+          completionReason,
+        },
+      })
 
       // Check achievements after game completion
       let newlyEarnedAchievements: any[] = []
@@ -660,6 +709,13 @@ export function createGameService(deps: GameServiceDeps): GameService {
       },
       'game ended by user (forfeit)'
     )
+
+    void funnelEventRepository.record({
+      eventName: 'session_abandoned',
+      userId,
+      sessionId,
+      payload: { finalScore, screenshotsFound, unfoundCount },
+    })
 
     return {
       totalScore: finalScore,

@@ -13,8 +13,10 @@ export class ReferralError extends Error {
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// Reward table -- kept flat so the viral loop stays predictable. Both sides
-// receive hints; the referrer gets a smaller bundle to avoid farming.
+// Reward table — kept flat so the viral loop stays predictable. Both sides
+// receive hints; the referrer additionally earns an "ambassador" cosmetic
+// badge that shows up on their public profile — brag-worthy social proof
+// is a stronger loop driver than the soft hint currency alone.
 const REFEREE_REWARDS = [
   { itemType: 'powerup', itemKey: 'hint_year', quantity: 3 },
   { itemType: 'powerup', itemKey: 'hint_publisher', quantity: 2 },
@@ -23,6 +25,7 @@ const REFEREE_REWARDS = [
 const REFERRER_REWARDS = [
   { itemType: 'powerup', itemKey: 'hint_year', quantity: 2 },
   { itemType: 'powerup', itemKey: 'hint_publisher', quantity: 1 },
+  { itemType: 'badge', itemKey: 'ambassador', quantity: 1 },
 ]
 
 export interface ReferralClaimResult {

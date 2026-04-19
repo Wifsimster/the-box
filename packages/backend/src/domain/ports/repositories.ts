@@ -55,6 +55,8 @@ export interface UserRepository {
   linkReferral(refereeId: string, referrerId: string, claimedAt: Date): Promise<boolean>
   countReferralsMade(referrerId: string): Promise<number>
   getCurrentStreak(userId: string): Promise<number>
+  getStreakGraceUsedAt(userId: string): Promise<Date | null>
+  markStreakGraceUsed(userId: string): Promise<void>
 }
 
 // ---------- Game ----------
@@ -551,4 +553,23 @@ export interface ImportStateRepository {
   ): Promise<ImportState | null>
   setStatus(id: number, status: ImportStatus): Promise<ImportState | null>
   delete(id: number): Promise<void>
+}
+
+// ---------- Funnel Event ----------
+
+export type FunnelEventName =
+  | 'session_started'
+  | 'guess_submitted'
+  | 'session_completed'
+  | 'session_abandoned'
+
+export interface FunnelEventInput {
+  eventName: FunnelEventName
+  userId?: string | null
+  sessionId?: string | null
+  payload?: Record<string, unknown>
+}
+
+export interface FunnelEventRepository {
+  record(event: FunnelEventInput): Promise<void>
 }

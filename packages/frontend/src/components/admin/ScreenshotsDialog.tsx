@@ -108,18 +108,20 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
               {screenshots.length > 1 && (
                 <>
                   <Button
-                    variant="ghost"
+                    variant="overlay"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white h-10 w-10"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10"
                     onClick={goToPrevious}
+                    aria-label={t('admin.games.screenshotsDialog.previous')}
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="overlay"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white h-10 w-10"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10"
                     onClick={goToNext}
+                    aria-label={t('admin.games.screenshotsDialog.next')}
                   >
                     <ChevronRight className="h-6 w-6" />
                   </Button>

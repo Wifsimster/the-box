@@ -3,6 +3,12 @@ import { username, anonymous, admin } from "better-auth/plugins";
 import { Pool } from "pg";
 import { Resend } from "resend";
 import { env } from "../../config/env.js";
+import { inventoryRepository } from "../repositories/inventory.repository.js";
+
+const STARTER_INVENTORY: Array<{ itemType: string; itemKey: string; quantity: number }> = [
+  { itemType: "powerup", itemKey: "hint_year", quantity: 2 },
+  { itemType: "powerup", itemKey: "hint_publisher", quantity: 1 },
+];
 
 export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
@@ -130,6 +136,19 @@ function createAuth() {
               // Better-auth will handle the user creation, we just won't assign admin role
               console.error("[AUTH] Error in user creation hook:", error);
               return { data: user };
+            }
+          },
+          after: async (user) => {
+            // Grant starter inventory to real registrations (skip anonymous guests)
+            // so first-timers have hints available on their first session.
+            if ((user as { isAnonymous?: boolean }).isAnonymous) {
+              return;
+            }
+            try {
+              await inventoryRepository.addMultipleItems(user.id, STARTER_INVENTORY);
+              console.log(`[AUTH] Granted starter inventory to user ${user.id}`);
+            } catch (error) {
+              console.error("[AUTH] Failed to grant starter inventory:", error);
             }
           },
         },

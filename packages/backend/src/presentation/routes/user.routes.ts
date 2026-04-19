@@ -4,8 +4,91 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
+import { db } from '../../infrastructure/database/connection.js'
+import type { PublicProfile } from '@the-box/types'
 
 const router = Router()
+
+// Public profile — no auth. Exposes a deliberately minimal subset of user
+// data plus recent completed sessions so players can link-share their profile
+// (and their friends can visit it without logging in).
+router.get('/public/:username', async (req, res, next) => {
+  try {
+    const username = req.params.username
+    if (!username || username.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_USERNAME', message: 'Invalid username' },
+      })
+    }
+
+    const user = await userRepository.findByUsername(username)
+    if (!user || user.isGuest) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    const recentRows = await db('game_sessions')
+      .where('user_id', user.id)
+      .andWhere('is_completed', true)
+      .orderBy('completed_at', 'desc')
+      .limit(5)
+      .select<Array<{
+        id: string
+        total_score: number
+        completed_at: Date | null
+        daily_challenge_id: number
+      }>>('id', 'total_score', 'completed_at', 'daily_challenge_id')
+
+    const challengeIds = recentRows.map((r) => r.daily_challenge_id)
+    const challengeRows = challengeIds.length
+      ? await db('daily_challenges')
+          .whereIn('id', challengeIds)
+          .select<Array<{ id: number; challenge_date: string }>>(
+            'id',
+            db.raw('challenge_date::text as challenge_date')
+          )
+      : []
+    const dateById = new Map(challengeRows.map((c) => [c.id, c.challenge_date]))
+
+    const gamesPlayedRow = await db('game_sessions')
+      .where('user_id', user.id)
+      .andWhere('is_completed', true)
+      .count<{ count: string }[]>('id as count')
+      .first()
+    const gamesPlayed = Number(gamesPlayedRow?.count ?? 0)
+
+    const badgeRows = await db('user_inventory')
+      .where('user_id', user.id)
+      .andWhere('item_type', 'badge')
+      .andWhere('quantity', '>', 0)
+      .select<Array<{ item_key: string; quantity: number }>>('item_key', 'quantity')
+
+    const profile: PublicProfile = {
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt,
+      totalScore: user.totalScore,
+      currentStreak: user.currentStreak,
+      longestStreak: user.longestStreak ?? 0,
+      gamesPlayed,
+      badges: badgeRows.map((r) => ({ key: r.item_key, quantity: r.quantity })),
+      recentSessions: recentRows.map((r) => ({
+        sessionId: r.id,
+        challengeDate: dateById.get(r.daily_challenge_id) ?? '',
+        totalScore: r.total_score,
+        completedAt: r.completed_at ? r.completed_at.toISOString() : null,
+      })),
+    }
+
+    res.json({ success: true, data: profile })
+  } catch (error) {
+    next(error)
+  }
+})
 
 // Get current user's profile with stats
 router.get('/me', authMiddleware, async (req, res, next) => {

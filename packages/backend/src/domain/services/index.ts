@@ -48,6 +48,7 @@ import {
   achievementRepository,
   challengeRepository,
   dailyLoginRepository,
+  funnelEventRepository,
   gameRepository,
   inventoryRepository,
   leaderboardRepository,
@@ -112,4 +113,5 @@ export const gameService = createGameService({
   userRepository,
   inventoryRepository,
   gameRepository,
+  funnelEventRepository,
 })
