@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
-import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
 import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2 } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
@@ -148,6 +148,11 @@ export function GuessInput() {
     }
   }
 
+  const hasRevealedHints =
+    (hintYearUsed && availableHints?.year) ||
+    (hintPublisherUsed && availableHints?.publisher) ||
+    (hintDeveloperUsed && availableHints?.developer)
+
   return (
     <div className="relative">
       {/* Screen reader announcements */}
@@ -158,6 +163,43 @@ export function GuessInput() {
         {isShaking && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
       </div>
 
+      {/* Revealed hint chips - compact inline display above input */}
+      <AnimatePresence>
+        {hasRevealedHints && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-wrap justify-center gap-1.5 pb-2">
+              {hintYearUsed && availableHints?.year && (
+                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium">
+                  <Calendar className="h-3 w-3" aria-hidden="true" />
+                  <span className="sr-only">{t('game.hints.yearHint')}: </span>
+                  <span>{availableHints.year}</span>
+                </Badge>
+              )}
+              {hintPublisherUsed && availableHints?.publisher && (
+                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
+                  <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="sr-only">{t('game.hints.publisherHint')}: </span>
+                  <span className="truncate">{availableHints.publisher}</span>
+                </Badge>
+              )}
+              {hintDeveloperUsed && availableHints?.developer && (
+                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
+                  <Code2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="sr-only">{t('game.hints.developerHint')}: </span>
+                  <span className="truncate">{availableHints.developer}</span>
+                </Badge>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input with submit button */}
       <div className="flex gap-1.5 sm:gap-2">
         {/* Previous button - shown when there are skipped positions before current */}
@@ -165,11 +207,11 @@ export function GuessInput() {
           <Tooltip content={t('game.navigation.previous')}>
             <Button
               variant="outline"
-              size="lg"
+              size="icon"
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.previous')}
-              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-12 sm:min-w-14 touch-manipulation"
+              className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 touch-manipulation"
             >
               <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
@@ -177,7 +219,7 @@ export function GuessInput() {
         )}
 
         <motion.div
-          className="relative flex-1"
+          className="relative flex-1 min-w-0"
           animate={isShaking ? { x: [-10, 10, -10, 10, 0] } : {}}
           transition={{ duration: 0.4 }}
         >
@@ -187,8 +229,12 @@ export function GuessInput() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
+            enterKeyHint="send"
+            autoCapitalize="words"
+            autoCorrect="off"
+            spellCheck={false}
             className={cn(
-              'h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[var(--glow-md)] focus:border-primary focus:shadow-[var(--glow-lg)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300',
+              'h-12 sm:h-14 text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[var(--glow-md)] focus:border-primary focus:shadow-[var(--glow-lg)] pl-3 sm:pl-4 pr-12 sm:pr-14 transition-all duration-300',
               isSuccess && 'border-success shadow-[var(--glow-success)] animate-pulse',
               !isSuccess && isShaking && 'border-error shadow-[var(--glow-error)]'
             )}
@@ -198,12 +244,12 @@ export function GuessInput() {
           {/* Submit button inside input */}
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={handleSubmit}
             disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
             aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
             className={cn(
-              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300',
+              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300',
               query.trim()
                 ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
                 : 'hover:bg-accent'
@@ -222,46 +268,17 @@ export function GuessInput() {
           <Tooltip content={t('game.navigation.skip')}>
             <Button
               variant="outline"
-              size="lg"
+              size="icon"
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.skip')}
-              className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-12 sm:min-w-14 touch-manipulation"
+              className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 touch-manipulation"
             >
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </Tooltip>
         )}
       </div>
-
-      {/* Hint displays - shown when hints are used */}
-      {hintYearUsed && availableHints?.year && (
-        <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
-          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm">
-            {t('game.hints.yearHint')}: <strong>{availableHints.year}</strong>
-          </span>
-        </Alert>
-      )}
-
-      {hintPublisherUsed && availableHints?.publisher && (
-        <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
-          <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm">
-            {t('game.hints.publisherHint')}: <strong>{availableHints.publisher}</strong>
-          </span>
-        </Alert>
-      )}
-
-      {hintDeveloperUsed && availableHints?.developer && (
-        <Alert className="mt-1.5 sm:mt-2 py-1.5 sm:py-2">
-          <Code2 className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm">
-            {t('game.hints.developerHint')}: <strong>{availableHints.developer}</strong>
-          </span>
-        </Alert>
-      )}
-
     </div>
   )
 }
