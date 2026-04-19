@@ -3,6 +3,7 @@ import { username, anonymous, admin } from "better-auth/plugins";
 import { Pool } from "pg";
 import { Resend } from "resend";
 import { env } from "../../config/env.js";
+import { authLogger } from "../logger/logger.js";
 import { inventoryRepository } from "../repositories/inventory.repository.js";
 
 const STARTER_INVENTORY: Array<{ itemType: string; itemKey: string; quantity: number }> = [
@@ -42,12 +43,12 @@ function createAuth() {
           `,
           });
           if (error) {
-            console.error(`[AUTH] Failed to send password reset email to ${user.email}:`, error.message);
+            authLogger.error({ email: user.email, err: error.message }, "failed to send password reset email");
           } else {
-            console.log(`[AUTH] Password reset email sent to ${user.email}, id: ${data?.id}`);
+            authLogger.info({ email: user.email, emailId: data?.id }, "password reset email sent");
           }
         } else {
-          console.log(`[DEV] Password reset for ${user.email}: ${url}`);
+          authLogger.info({ email: user.email, url }, "dev password reset link");
         }
       },
     },
@@ -66,12 +67,12 @@ function createAuth() {
           `,
           });
           if (error) {
-            console.error(`[AUTH] Failed to send verification email to ${user.email}:`, error.message);
+            authLogger.error({ email: user.email, err: error.message }, "failed to send verification email");
           } else {
-            console.log(`[AUTH] Verification email sent to ${user.email}, id: ${data?.id}`);
+            authLogger.info({ email: user.email, emailId: data?.id }, "verification email sent");
           }
         } else {
-          console.log(`[DEV] Email verification for ${user.email}: ${url}`);
+          authLogger.info({ email: user.email, url }, "dev email verification link");
         }
       },
     },
@@ -125,7 +126,7 @@ function createAuth() {
               const userCount = parseInt(result.rows[0].count, 10);
 
               if (userCount === 0) {
-                console.log("[AUTH] First user registration - assigning admin role");
+                authLogger.info("first user registration - assigning admin role");
                 return {
                   data: { ...user, role: "admin" },
                 };
@@ -134,7 +135,7 @@ function createAuth() {
             } catch (error) {
               // Log the error but don't fail the registration
               // Better-auth will handle the user creation, we just won't assign admin role
-              console.error("[AUTH] Error in user creation hook:", error);
+              authLogger.error({ err: error }, "error in user creation hook");
               return { data: user };
             }
           },
@@ -146,9 +147,9 @@ function createAuth() {
             }
             try {
               await inventoryRepository.addMultipleItems(user.id, STARTER_INVENTORY);
-              console.log(`[AUTH] Granted starter inventory to user ${user.id}`);
+              authLogger.info({ userId: user.id }, "granted starter inventory");
             } catch (error) {
-              console.error("[AUTH] Failed to grant starter inventory:", error);
+              authLogger.error({ err: error }, "failed to grant starter inventory");
             }
           },
         },
