@@ -64,7 +64,7 @@ export function RewardCalendar({
                             className={cn(
                                 'relative flex flex-col items-center justify-center p-1 sm:p-2 rounded-lg border transition-all',
                                 isToday && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
-                                isClaimed && 'bg-green-500/10 border-green-500/30',
+                                isClaimed && 'bg-success/10 border-success/30',
                                 isAvailable && 'bg-primary/10 border-primary/30 animate-pulse',
                                 isLocked && 'bg-muted/20 border-muted/30 opacity-50'
                             )}
@@ -72,7 +72,7 @@ export function RewardCalendar({
                             {/* Day number */}
                             <span className={cn(
                                 'text-[10px] sm:text-xs font-medium',
-                                isClaimed && 'text-green-400',
+                                isClaimed && 'text-success',
                                 isAvailable && 'text-primary',
                                 isLocked && 'text-muted-foreground'
                             )}>
@@ -85,7 +85,7 @@ export function RewardCalendar({
                                 isLocked && 'grayscale'
                             )}>
                                 {isClaimed ? (
-                                    <Check className="w-4 h-4 sm:w-6 sm:h-6 text-green-400" />
+                                    <Check className="w-4 h-4 sm:w-6 sm:h-6 text-success" />
                                 ) : isLocked ? (
                                     <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                                 ) : (
@@ -96,7 +96,7 @@ export function RewardCalendar({
                             {/* Reward preview */}
                             <span className={cn(
                                 'text-[8px] sm:text-[10px] text-center leading-tight truncate max-w-full px-0.5',
-                                isClaimed && 'text-green-400/70',
+                                isClaimed && 'text-success/70',
                                 isAvailable && 'text-primary/80',
                                 isLocked && 'text-muted-foreground/50'
                             )}>

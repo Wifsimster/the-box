@@ -12,10 +12,11 @@ interface AchievementNotificationProps {
     autoCloseDuration?: number
 }
 
+// Tier gradients map to semantic tokens; see AchievementCard for the palette rationale.
 const tierColors = {
-    1: 'from-amber-600/20 to-amber-900/20 border-amber-600/50',
-    2: 'from-purple-600/20 to-purple-900/20 border-purple-600/50',
-    3: 'from-cyan-600/20 to-cyan-900/20 border-cyan-600/50',
+    1: 'from-warning/20 to-warning/5 border-warning/50',
+    2: 'from-primary/20 to-primary/5 border-primary/50',
+    3: 'from-neon-cyan/20 to-neon-cyan/5 border-neon-cyan/50',
 }
 
 export function AchievementNotification({
@@ -75,9 +76,9 @@ export function AchievementNotification({
                                         repeatDelay: 2,
                                     }}
                                 >
-                                    <Trophy className="h-5 w-5 text-yellow-400" />
+                                    <Trophy className="h-5 w-5 text-warning" />
                                 </motion.div>
-                                <span className="text-sm font-semibold text-yellow-400 flex items-center gap-1">
+                                <span className="text-sm font-semibold text-warning flex items-center gap-1">
                                     <Sparkles className="h-4 w-4" />
                                     Achievement Unlocked!
                                 </span>

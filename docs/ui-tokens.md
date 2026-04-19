@@ -203,3 +203,16 @@ Powered by `class-variance-authority`. Prefer variants over raw border/shadow cl
 ```
 
 Adding new variants: update `cardVariants` in `src/components/ui/card.tsx`, document here, and prefer composition over inline overrides in consumers.
+
+### `Alert` (`@/components/ui/alert`)
+
+| `variant` | When to use |
+|---|---|
+| `default` (default) | Generic neutral notices |
+| `destructive` | Errors, destructive action confirmations |
+| `warning` | Caution, reversible risk |
+| `success` | Positive confirmation |
+| `info` | Informational callouts, tutorial prompts (neon-blue accent) |
+| `neon` | Gaming hype moments — streak-risk banner, limited-time nudges (neon-pink/purple gradient) |
+
+Use `AlertTitle` + `AlertDescription` for structure; the banner must still render a visible title for a11y even when the title doubles as the main copy.
