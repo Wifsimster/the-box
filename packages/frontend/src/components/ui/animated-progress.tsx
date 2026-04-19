@@ -14,16 +14,16 @@ interface AnimatedProgressProps {
 
 const variantColors = {
   default: 'from-neon-purple to-neon-pink',
-  success: 'from-green-500 to-emerald-400',
-  warning: 'from-yellow-500 to-orange-400',
-  error: 'from-red-500 to-rose-400',
+  success: 'from-success to-success/80',
+  warning: 'from-warning to-warning/80',
+  error: 'from-error to-error/80',
 }
 
 const variantGlows = {
-  default: '0 0 15px oklch(0.7 0.25 300 / 0.5)',
-  success: '0 0 15px oklch(0.7 0.2 145 / 0.5)',
-  warning: '0 0 15px oklch(0.8 0.15 85 / 0.5)',
-  error: '0 0 15px oklch(0.65 0.25 25 / 0.5)',
+  default: 'var(--glow-md)',
+  success: 'var(--glow-success)',
+  warning: 'var(--glow-warning)',
+  error: 'var(--glow-error)',
 }
 
 const sizeClasses = {

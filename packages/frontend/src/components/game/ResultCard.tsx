@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
 import { CheckCircle, XCircle, ChevronRight, Clock, Zap, Target } from 'lucide-react'
 import { cn, calculateSpeedMultiplier } from '@/lib/utils'
@@ -152,9 +153,9 @@ export function ResultCard() {
   // Determine speed feedback
   const getSpeedFeedback = () => {
     if (!isCorrect) return null
-    if (timeTakenSeconds <= 5) return { key: 'lightning', icon: Zap, color: 'text-yellow-400' }
-    if (timeTakenSeconds <= 15) return { key: 'fast', icon: Clock, color: 'text-green-400' }
-    return { key: 'good', icon: Target, color: 'text-blue-400' }
+    if (timeTakenSeconds <= 5) return { key: 'lightning', icon: Zap, color: 'text-score-mid' }
+    if (timeTakenSeconds <= 15) return { key: 'fast', icon: Clock, color: 'text-score-high' }
+    return { key: 'good', icon: Target, color: 'text-neon-blue' }
   }
 
   const speedFeedback = getSpeedFeedback()
@@ -195,11 +196,12 @@ export function ResultCard() {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className={cn(
-          "relative bg-card border-2 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl",
-          isCorrect ? "border-success/50" : "border-error/50"
-        )}
+        className="relative max-w-sm w-full mx-4"
       >
+        <Card
+          variant={isCorrect ? 'success' : 'error'}
+          className="relative border-2 rounded-2xl p-6 shadow-2xl"
+        >
         {/* Round Progress Badge */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -283,9 +285,9 @@ export function ResultCard() {
             {correctGame.metacritic != null && (
               <span className={cn(
                 "font-medium",
-                correctGame.metacritic >= 75 ? "text-green-400" :
-                  correctGame.metacritic >= 50 ? "text-yellow-400" :
-                    "text-orange-400"
+                correctGame.metacritic >= 75 ? "text-score-high" :
+                  correctGame.metacritic >= 50 ? "text-score-mid" :
+                    "text-score-low"
               )}>
                 {t('game.metascore')}: {correctGame.metacritic}
               </span>
@@ -338,8 +340,8 @@ export function ResultCard() {
                     scorePercentage >= 80
                       ? "text-success"
                       : scorePercentage >= 50
-                        ? "text-yellow-400"
-                        : "text-orange-400"
+                        ? "text-score-mid"
+                        : "text-score-low"
                   )}
                 >
                   +100
@@ -351,8 +353,8 @@ export function ResultCard() {
                     scorePercentage >= 80
                       ? "text-success"
                       : scorePercentage >= 50
-                        ? "text-yellow-400"
-                        : "text-orange-400"
+                        ? "text-score-mid"
+                        : "text-score-low"
                   )}
                 >
                   {calculateSpeedMultiplier(timeTakenMs).toFixed(2)}
@@ -375,7 +377,7 @@ export function ResultCard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
-              className="mt-2 text-orange-400 text-sm font-medium"
+              className="mt-2 text-score-low text-sm font-medium"
             >
               {t('game.hints.penaltyApplied', { penalty: hintPenalty })} ({t('game.hints.percentagePenalty', '20% penalty')})
             </motion.div>
@@ -429,6 +431,7 @@ export function ResultCard() {
             {t('game.pressEnterToContinue', 'Press Enter to continue')}
           </span>
         </motion.div>
+        </Card>
       </motion.div>
     </motion.div>
   )

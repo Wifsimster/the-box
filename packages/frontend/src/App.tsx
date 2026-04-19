@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { ToastContainer } from '@/components/ui/toast-container'
+import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
@@ -134,8 +134,8 @@ function App() {
         <Route path="*" element={<LanguageRedirect />} />
       </Routes>
 
-      {/* Global toast notifications */}
-      <ToastContainer />
+      {/* Global toast notifications (sonner) */}
+      <Toaster />
     </ErrorBoundary>
   )
 }

@@ -12,10 +12,11 @@ interface AchievementCardProps {
     className?: string
 }
 
+// Tier colors map to semantic tokens: easy=warning (amber), medium=primary (violet), hard=neon-cyan
 const tierColors = {
-    1: 'bg-amber-600/10 border-amber-600/30 text-amber-400',
-    2: 'bg-purple-600/10 border-purple-600/30 text-purple-400',
-    3: 'bg-cyan-600/10 border-cyan-600/30 text-cyan-400',
+    1: 'bg-warning/10 border-warning/30 text-warning',
+    2: 'bg-primary/10 border-primary/30 text-primary',
+    3: 'bg-neon-cyan/10 border-neon-cyan/30 text-neon-cyan',
 }
 
 export function AchievementCard({ achievement, size = 'medium', className }: AchievementCardProps) {

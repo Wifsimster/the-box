@@ -54,7 +54,7 @@ export function AnimatedTabs({
               <motion.div
                 layoutId="activeTab"
                 className="absolute inset-0 bg-linear-to-r from-neon-purple/20 to-neon-pink/20 rounded-lg border border-neon-purple/40"
-                style={{ boxShadow: '0 0 20px oklch(0.7 0.25 300 / 0.2)' }}
+                style={{ boxShadow: 'var(--glow-sm)' }}
                 transition={springConfig.snappy}
               />
             )}
@@ -62,7 +62,7 @@ export function AnimatedTabs({
               <motion.div
                 layoutId="activeTabPill"
                 className="absolute inset-0 bg-linear-to-r from-neon-purple to-neon-pink rounded-lg"
-                style={{ boxShadow: '0 0 20px oklch(0.7 0.25 300 / 0.4)' }}
+                style={{ boxShadow: 'var(--glow-md)' }}
                 transition={springConfig.snappy}
               />
             )}
@@ -70,7 +70,7 @@ export function AnimatedTabs({
               <motion.div
                 layoutId="activeTabUnderline"
                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-neon-purple to-neon-pink"
-                style={{ boxShadow: '0 0 10px oklch(0.7 0.25 300 / 0.5)' }}
+                style={{ boxShadow: 'var(--glow-sm)' }}
                 transition={springConfig.snappy}
               />
             )}

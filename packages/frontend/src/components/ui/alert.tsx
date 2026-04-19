@@ -16,6 +16,8 @@ const alertVariants = cva(
           "border-success/30 bg-success/10 text-success [&>svg]:text-success",
         info:
           "border-neon-blue/30 bg-neon-blue/10 text-neon-blue [&>svg]:text-neon-blue",
+        neon:
+          "border-neon-pink/30 bg-linear-to-r from-neon-pink/10 via-neon-purple/10 to-transparent text-foreground [&>svg]:text-neon-pink",
       },
     },
     defaultVariants: {

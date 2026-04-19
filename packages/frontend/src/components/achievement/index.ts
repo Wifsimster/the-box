@@ -1,3 +1,3 @@
 export { AchievementCard } from './AchievementCard'
 export { AchievementGrid } from './AchievementGrid'
-export { AchievementNotification, AchievementNotificationContainer } from './AchievementNotification'
+export { AchievementToastBody, showAchievementToast } from './AchievementNotification'

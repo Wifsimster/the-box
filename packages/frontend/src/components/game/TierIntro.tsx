@@ -45,16 +45,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
 
       {/* Background grid effect */}
       <div className="absolute inset-0 opacity-20">
-        <div
-          className="w-full h-full"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px',
-          }}
-        />
+        <div className="w-full h-full bg-grid-neon" />
       </div>
 
       {/* Main content container - Mobile-first padding */}
@@ -64,15 +55,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-3 sm:mb-4 tracking-wider"
-          style={{
-            textShadow: `
-              0 0 10px rgba(139, 92, 246, 0.8),
-              0 0 20px rgba(139, 92, 246, 0.6),
-              0 0 30px rgba(139, 92, 246, 0.4),
-              0 0 40px rgba(139, 92, 246, 0.2)
-            `,
-          }}
+          className="text-shadow-neon text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-3 sm:mb-4 tracking-wider"
         >
           <span className="bg-gradient-to-r from-white via-neon-purple to-white bg-clip-text text-transparent">
             {t('game.dailyChallenge')}
@@ -123,7 +106,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 text-blue-400 mb-4 sm:mb-6 md:mb-8 px-4"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 text-neon-blue mb-4 sm:mb-6 md:mb-8 px-4"
           >
             <Info className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
             <span className="text-xs sm:text-sm">{t('game.catchUpNotice')}</span>
@@ -136,7 +119,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: isCatchUp ? 0.3 : 0.25 }}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 text-amber-500 mb-4 sm:mb-6 md:mb-8 px-4"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 text-warning mb-4 sm:mb-6 md:mb-8 px-4"
           >
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
             <span className="text-xs sm:text-sm">{t('game.guestWarning')}</span>

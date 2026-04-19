@@ -171,10 +171,10 @@ export default function ProfilePage() {
                                             <TooltipRoot>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10">
-                                                            <Trophy className="h-5 w-5 text-yellow-500" />
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-warning/10">
+                                                            <Trophy className="h-5 w-5 text-warning" />
                                                         </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-warning to-warning/70 bg-clip-text text-transparent">
                                                             {userProfile?.totalScore?.toLocaleString() || 0}
                                                         </div>
                                                         <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
@@ -196,10 +196,10 @@ export default function ProfilePage() {
                                             <TooltipRoot>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10">
-                                                            <Flame className="h-5 w-5 text-orange-500" />
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-score-low/10">
+                                                            <Flame className="h-5 w-5 text-score-low" />
                                                         </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-score-low to-score-low/70 bg-clip-text text-transparent">
                                                             {userProfile?.currentStreak || 0}
                                                         </div>
                                                         <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
@@ -246,10 +246,10 @@ export default function ProfilePage() {
                                             <TooltipRoot>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10">
-                                                            <TrendingUp className="h-5 w-5 text-green-500" />
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-success/10">
+                                                            <TrendingUp className="h-5 w-5 text-success" />
                                                         </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
+                                                        <div className="text-2xl font-bold bg-linear-to-r from-success to-success/70 bg-clip-text text-transparent">
                                                             {stats?.totalPoints || 0}
                                                         </div>
                                                         <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">

@@ -282,10 +282,10 @@ export function UserList() {
                           transition={{ delay: index * 0.02 }}
                           className="border-b border-white/5 transition-colors group"
                           whileHover={{
-                            backgroundColor: 'oklch(0.25 0.04 280 / 0.3)',
+                            backgroundColor: 'var(--table-row-hover)',
                           }}
                         >
-                          <TableCell className="font-medium group-hover:text-purple-300 transition-colors">
+                          <TableCell className="font-medium group-hover:text-primary/70 transition-colors">
                             {user.email}
                             {user.isGuest && (
                               <span className="ml-2 text-xs text-muted-foreground">

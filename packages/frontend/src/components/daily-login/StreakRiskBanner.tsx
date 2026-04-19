@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Flame, X } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -88,15 +89,15 @@ export function StreakRiskBanner() {
   if (streak === null || dismissed) return null
 
   return (
-    <div className="mb-6 rounded-xl border border-neon-pink/30 bg-linear-to-r from-neon-pink/10 via-neon-purple/10 to-transparent p-4 flex items-center gap-3">
-      <Flame className="w-5 h-5 text-neon-pink shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">
+    <Alert variant="neon" className="mb-6 p-4 flex items-center gap-3">
+      <Flame className="w-5 h-5 shrink-0" />
+      <div className="flex-1 min-w-0 pl-7">
+        <AlertTitle className="text-sm font-semibold text-foreground">
           {t('streakRisk.title', { count: streak })}
-        </p>
-        <p className="text-xs text-muted-foreground">
+        </AlertTitle>
+        <AlertDescription className="text-xs text-muted-foreground">
           {t('streakRisk.subtitle')}
-        </p>
+        </AlertDescription>
       </div>
       <Button variant="gaming" size="sm" asChild>
         <Link to={localizedPath('/game')}>{t('streakRisk.cta')}</Link>
@@ -109,6 +110,6 @@ export function StreakRiskBanner() {
       >
         <X className="w-4 h-4" />
       </button>
-    </div>
+    </Alert>
   )
 }

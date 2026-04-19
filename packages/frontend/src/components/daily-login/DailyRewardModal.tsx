@@ -68,12 +68,12 @@ export function DailyRewardModal() {
 
                 {/* Streak Display */}
                 <div className="flex items-center justify-center gap-2 py-2">
-                    <Flame className="w-5 h-5 text-orange-500" />
+                    <Flame className="w-5 h-5 text-neon-pink" />
                     <span className="text-lg font-bold">
                         {justClaimed?.newStreak || status.currentStreak} {t('dailyLogin.dayStreak')}
                     </span>
                     {status.currentStreak >= 7 && (
-                        <Badge variant="outline" className="bg-orange-500/10 border-orange-500/30 text-orange-400">
+                        <Badge variant="outline" className="bg-neon-pink/10 border-neon-pink/30 text-neon-pink">
                             {t('dailyLogin.onFire')}
                         </Badge>
                     )}
@@ -84,14 +84,14 @@ export function DailyRewardModal() {
                     <div className={cn(
                         'relative flex flex-col items-center p-6 rounded-lg border border-primary/30 bg-gradient-to-b from-primary/10 to-transparent',
                         isAnimating && 'animate-pulse',
-                        showClaimSuccess && 'border-green-500/50 bg-gradient-to-b from-green-500/10 to-transparent'
+                        showClaimSuccess && 'border-success/50 bg-gradient-to-b from-success/10 to-transparent'
                     )}>
                         {/* Sparkle effect on claim */}
                         {showClaimSuccess && (
                             <div className="absolute inset-0 pointer-events-none">
-                                <Sparkles className="absolute top-2 left-4 w-4 h-4 text-yellow-400 animate-bounce" />
-                                <Sparkles className="absolute top-4 right-6 w-3 h-3 text-yellow-400 animate-bounce delay-100" />
-                                <Sparkles className="absolute bottom-4 left-8 w-3 h-3 text-yellow-400 animate-bounce delay-200" />
+                                <Sparkles className="absolute top-2 left-4 w-4 h-4 text-warning animate-bounce" />
+                                <Sparkles className="absolute top-4 right-6 w-3 h-3 text-warning animate-bounce delay-100" />
+                                <Sparkles className="absolute bottom-4 left-8 w-3 h-3 text-warning animate-bounce delay-200" />
                             </div>
                         )}
 
@@ -109,7 +109,7 @@ export function DailyRewardModal() {
                                 </Badge>
                             ))}
                             {reward.rewardValue.points > 0 && (
-                                <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300">
+                                <Badge variant="secondary" className="bg-warning/20 text-warning">
                                     +{reward.rewardValue.points} {t('dailyLogin.points')}
                                 </Badge>
                             )}

@@ -6,9 +6,9 @@ import type { PositionStatus } from '@/types'
 /**
  * ProgressDots displays the status of all screenshots in the challenge.
  * Color coding:
- * - Green: correct (guessed correctly)
- * - Gray: unguessed pages (not visited, skipped, in progress)
- * - White border: current page indicator
+ * - success: correct (guessed correctly)
+ * - muted:   unguessed (not visited, skipped, in progress)
+ * - primary: current page (with ring + glow)
  */
 export function ProgressDots() {
   const {
@@ -21,9 +21,9 @@ export function ProgressDots() {
   const getStatusColor = (status: PositionStatus) => {
     switch (status) {
       case 'correct':
-        return 'bg-green-500'
+        return 'bg-success'
       default:
-        return 'bg-gray-600'
+        return 'bg-muted'
     }
   }
 
@@ -50,16 +50,17 @@ export function ProgressDots() {
             className={cn(
               "min-w-6 min-h-6 w-6 h-6 sm:w-10 sm:h-10 md:w-7 md:h-7 rounded-full transition-all duration-300 shrink-0 touch-manipulation flex items-center justify-center font-semibold text-[10px] sm:text-sm md:text-[10px]",
               getStatusColor(status),
-              isCurrent && "bg-purple-500 ring-2 ring-white scale-110 shadow-[0_0_12px_rgba(168,85,247,0.8)]",
+              isCurrent && "bg-primary ring-2 ring-ring scale-110",
               isClickable && "cursor-pointer hover:scale-125 hover:shadow-lg active:scale-95",
               !isClickable && "cursor-default"
             )}
+            style={isCurrent ? { boxShadow: 'var(--glow-md)' } : undefined}
             animate={isCurrent ? { scale: [1, 1.08, 1] } : { scale: 1 }}
             transition={{ duration: 0.6, repeat: isCurrent ? Infinity : 0, repeatDelay: 1.5 }}
             aria-label={`Screenshot ${pos}${isCurrent ? ' (current)' : ''}: ${status}`}
             aria-current={isCurrent ? 'true' : undefined}
           >
-            <span className="text-white drop-shadow-md">{pos}</span>
+            <span className="text-primary-foreground drop-shadow-md">{pos}</span>
           </motion.button>
         )
       })}
@@ -90,12 +91,12 @@ export function ProgressDotsCompact() {
         {currentPosition}/{totalScreenshots}
       </span>
       {counts.correct > 0 && (
-        <span className="text-green-500 text-sm">
+        <span className="text-success text-sm">
           {counts.correct} found
         </span>
       )}
       {counts.skipped > 0 && (
-        <span className="text-yellow-500 text-sm">
+        <span className="text-warning text-sm">
           {counts.skipped} skipped
         </span>
       )}

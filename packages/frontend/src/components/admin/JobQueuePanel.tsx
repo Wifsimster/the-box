@@ -11,11 +11,11 @@ import { Trash2, Loader2, Clock, Play, CheckCircle2, XCircle, Pause, RefreshCw, 
 import type { JobStatus } from '@/types'
 
 const statusIcons: Record<JobStatus, React.ReactNode> = {
-    waiting: <Clock className="h-3 w-3 text-yellow-500" />,
-    active: <Play className="h-3 w-3 text-blue-500" />,
-    completed: <CheckCircle2 className="h-3 w-3 text-green-500" />,
-    failed: <XCircle className="h-3 w-3 text-red-500" />,
-    delayed: <Pause className="h-3 w-3 text-orange-500" />,
+    waiting: <Clock className="h-3 w-3 text-warning" />,
+    active: <Play className="h-3 w-3 text-neon-blue" />,
+    completed: <CheckCircle2 className="h-3 w-3 text-success" />,
+    failed: <XCircle className="h-3 w-3 text-error" />,
+    delayed: <Pause className="h-3 w-3 text-score-low" />,
 }
 
 const statusBadgeVariants: Record<JobStatus, 'success' | 'destructive' | 'info' | 'warning'> = {
@@ -279,7 +279,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
 
                                             {/* Error Message */}
                                             {job.status === 'failed' && job.error && (
-                                                <div className="text-[10px] text-red-500 truncate" title={job.error}>
+                                                <div className="text-[10px] text-error truncate" title={job.error}>
                                                     {job.error}
                                                 </div>
                                             )}

@@ -103,10 +103,10 @@ export function GameTable({
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/5 transition-colors group"
                 whileHover={{
-                  backgroundColor: 'oklch(0.25 0.04 280 / 0.3)',
+                  backgroundColor: 'var(--table-row-hover)',
                 }}
               >
-                <TableCell className="font-medium group-hover:text-purple-300 transition-colors">
+                <TableCell className="font-medium group-hover:text-primary/70 transition-colors">
                   {game.name}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{game.slug}</TableCell>
@@ -117,10 +117,10 @@ export function GameTable({
                     <span
                       className={
                         game.metacritic >= 75
-                          ? 'text-green-400'
+                          ? 'text-success/80'
                           : game.metacritic >= 50
-                            ? 'text-yellow-400'
-                            : 'text-red-400'
+                            ? 'text-warning/80'
+                            : 'text-error/80'
                       }
                     >
                       {game.metacritic}
@@ -147,7 +147,7 @@ export function GameTable({
                         size="icon"
                         onClick={() => onViewScreenshots(game)}
                         title={t('admin.games.viewScreenshots')}
-                        className="hover:bg-purple-500/20 hover:text-purple-300"
+                        className="hover:bg-primary/20 hover:text-primary/70"
                       >
                         <Image className="h-4 w-4" />
                       </Button>
@@ -158,7 +158,7 @@ export function GameTable({
                         size="icon"
                         onClick={() => onEdit(game)}
                         title={t('admin.games.editGame')}
-                        className="hover:bg-blue-500/20 hover:text-blue-300"
+                        className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -168,7 +168,7 @@ export function GameTable({
                         variant="ghost"
                         size="icon"
                         onClick={() => onDelete(game)}
-                        className="text-destructive hover:text-destructive hover:bg-red-500/20"
+                        className="text-destructive hover:text-destructive hover:bg-error/20"
                         title={t('admin.games.deleteGame')}
                       >
                         <Trash2 className="h-4 w-4" />
