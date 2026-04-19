@@ -17,6 +17,7 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
+    data-slot="sheet-overlay"
     className={cn(
       "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
@@ -58,6 +59,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      data-slot="sheet-content"
       className={cn(sheetVariants({ side }), className)}
       aria-describedby={undefined}
       {...props}
@@ -77,6 +79,7 @@ const SheetHeader = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
+    data-slot="sheet-header"
     className={cn(
       "flex flex-col space-y-2 text-center sm:text-left",
       className
@@ -91,6 +94,7 @@ const SheetFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
+    data-slot="sheet-footer"
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
       className
@@ -106,6 +110,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
+    data-slot="sheet-title"
     className={cn("text-lg font-semibold text-foreground", className)}
     {...props}
   />
@@ -118,6 +123,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
+    data-slot="sheet-description"
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />

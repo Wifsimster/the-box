@@ -11,6 +11,7 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
+      data-slot="skeleton"
       className={cn(
         'skeleton',
         variant === 'circular' && 'rounded-full',
