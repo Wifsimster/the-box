@@ -1,8 +1,8 @@
-import { db } from '../../infrastructure/database/connection.js'
-import { inventoryRepository } from '../../infrastructure/repositories/index.js'
-import { serviceLogger } from '../../infrastructure/logger/logger.js'
-
-const log = serviceLogger.child({ service: 'referral' })
+import type {
+  DomainLogger,
+  InventoryRepository,
+  UserRepository,
+} from '../ports/index.js'
 
 export class ReferralError extends Error {
   constructor(public code: string, message: string) {
@@ -28,13 +28,6 @@ const REFERRER_REWARDS = [
   { itemType: 'badge', itemKey: 'ambassador', quantity: 1 },
 ]
 
-interface ReferralUserRow {
-  id: string
-  email: string
-  referred_by: string | null
-  referral_claimed_at: Date | null
-}
-
 export interface ReferralClaimResult {
   rewards: typeof REFEREE_REWARDS
   referrerId: string
@@ -46,83 +39,81 @@ export interface ReferralStats {
   referralsMade: number
 }
 
-export const referralService = {
+export interface ReferralService {
   /**
    * Claim a referral code. Grants power-ups to both the referee (caller)
    * and the referrer. Each user may only claim once and guests cannot
-   * claim — they must register first.
+   * claim -- they must register first.
    */
-  async claim(refereeId: string, referrerCode: string): Promise<ReferralClaimResult> {
-    const code = referrerCode.trim()
-    if (!code) {
-      throw new ReferralError('INVALID_CODE', 'Referral code is empty')
-    }
-    if (code === refereeId) {
-      throw new ReferralError('SELF_REFERRAL', 'Cannot refer yourself')
-    }
+  claim(refereeId: string, referrerCode: string): Promise<ReferralClaimResult>
+  getStats(userId: string): Promise<ReferralStats>
+}
 
-    const referee = await db('user')
-      .where('id', refereeId)
-      .first<ReferralUserRow>('id', 'email', 'referred_by', 'referral_claimed_at')
-    if (!referee) {
-      throw new ReferralError('USER_NOT_FOUND', 'User not found')
-    }
-    if (referee.email.endsWith(`@${GUEST_EMAIL_DOMAIN}`)) {
-      throw new ReferralError('GUEST_NOT_ALLOWED', 'Guests cannot claim referrals')
-    }
-    if (referee.referred_by || referee.referral_claimed_at) {
-      throw new ReferralError('ALREADY_CLAIMED', 'Referral already claimed')
-    }
+export interface ReferralServiceDeps {
+  logger: DomainLogger
+  userRepository: UserRepository
+  inventoryRepository: InventoryRepository
+}
 
-    const referrer = await db('user')
-      .where('id', code)
-      .first<{ id: string; email: string }>('id', 'email')
-    if (!referrer) {
-      throw new ReferralError('REFERRER_NOT_FOUND', 'Referrer does not exist')
-    }
-    if (referrer.email.endsWith(`@${GUEST_EMAIL_DOMAIN}`)) {
-      throw new ReferralError('REFERRER_INVALID', 'Referrer account is not eligible')
-    }
+export function createReferralService(deps: ReferralServiceDeps): ReferralService {
+  const { userRepository, inventoryRepository } = deps
+  const log = deps.logger.child({ service: 'referral' })
 
-    // Persist the link first — the reward grant is idempotent per side but
-    // the `referred_by` write is the source of truth for the one-shot rule.
-    const updated = await db('user')
-      .where('id', refereeId)
-      .whereNull('referred_by')
-      .update({
-        referred_by: referrer.id,
-        referral_claimed_at: new Date(),
-      })
+  return {
+    async claim(refereeId: string, referrerCode: string): Promise<ReferralClaimResult> {
+      const code = referrerCode.trim()
+      if (!code) {
+        throw new ReferralError('INVALID_CODE', 'Referral code is empty')
+      }
+      if (code === refereeId) {
+        throw new ReferralError('SELF_REFERRAL', 'Cannot refer yourself')
+      }
 
-    if (updated === 0) {
-      throw new ReferralError('ALREADY_CLAIMED', 'Referral already claimed')
-    }
+      const referee = await userRepository.getReferralInfo(refereeId)
+      if (!referee) {
+        throw new ReferralError('USER_NOT_FOUND', 'User not found')
+      }
+      if (referee.email.endsWith(`@${GUEST_EMAIL_DOMAIN}`)) {
+        throw new ReferralError('GUEST_NOT_ALLOWED', 'Guests cannot claim referrals')
+      }
+      if (referee.referredBy || referee.referralClaimedAt) {
+        throw new ReferralError('ALREADY_CLAIMED', 'Referral already claimed')
+      }
 
-    await inventoryRepository.addMultipleItems(refereeId, REFEREE_REWARDS)
-    await inventoryRepository.addMultipleItems(referrer.id, REFERRER_REWARDS)
+      const referrer = await userRepository.getReferralIdentity(code)
+      if (!referrer) {
+        throw new ReferralError('REFERRER_NOT_FOUND', 'Referrer does not exist')
+      }
+      if (referrer.email.endsWith(`@${GUEST_EMAIL_DOMAIN}`)) {
+        throw new ReferralError('REFERRER_INVALID', 'Referrer account is not eligible')
+      }
 
-    log.info({ refereeId, referrerId: referrer.id }, 'referral claimed')
+      // Persist the link first -- the reward grant is idempotent per side
+      // but the `referred_by` write is the source of truth for the one-shot
+      // rule.
+      const linked = await userRepository.linkReferral(refereeId, referrer.id, new Date())
 
-    return { rewards: REFEREE_REWARDS, referrerId: referrer.id }
-  },
+      if (!linked) {
+        throw new ReferralError('ALREADY_CLAIMED', 'Referral already claimed')
+      }
 
-  async getStats(userId: string): Promise<ReferralStats> {
-    const me = await db('user')
-      .where('id', userId)
-      .first<{ referred_by: string | null; referral_claimed_at: Date | null }>(
-        'referred_by',
-        'referral_claimed_at'
-      )
+      await inventoryRepository.addMultipleItems(refereeId, REFEREE_REWARDS)
+      await inventoryRepository.addMultipleItems(referrer.id, REFERRER_REWARDS)
 
-    const countRow = await db('user')
-      .where('referred_by', userId)
-      .count<{ count: string }>({ count: '*' })
-      .first()
+      log.info({ refereeId, referrerId: referrer.id }, 'referral claimed')
 
-    return {
-      hasClaimed: !!(me?.referred_by || me?.referral_claimed_at),
-      referredBy: me?.referred_by ?? null,
-      referralsMade: Number(countRow?.count ?? 0),
-    }
-  },
+      return { rewards: REFEREE_REWARDS, referrerId: referrer.id }
+    },
+
+    async getStats(userId: string): Promise<ReferralStats> {
+      const me = await userRepository.getReferralInfo(userId)
+      const referralsMade = await userRepository.countReferralsMade(userId)
+
+      return {
+        hasClaimed: !!(me?.referredBy || me?.referralClaimedAt),
+        referredBy: me?.referredBy ?? null,
+        referralsMade,
+      }
+    },
+  }
 }

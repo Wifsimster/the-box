@@ -239,4 +239,29 @@ export const gameRepository = {
     log.info({ gameId: id, updated: !!row }, 'updateFromRawg result')
     return row ? mapRowToGame(row) : null
   },
+
+  async getGenresById(gameId: number): Promise<string[]> {
+    log.debug({ gameId }, 'getGenresById')
+    const row = await db('games')
+      .where('id', gameId)
+      .select<{ genres: string[] | null }>('genres')
+      .first()
+    return row?.genres ?? []
+  },
+
+  async getGenresByScreenshotIds(screenshotIds: number[]): Promise<string[]> {
+    if (screenshotIds.length === 0) return []
+    log.debug({ screenshotIds }, 'getGenresByScreenshotIds')
+    const row = await db('screenshots')
+      .join('games', 'screenshots.game_id', 'games.id')
+      .whereIn('screenshots.id', screenshotIds)
+      .select<{ genres: string[] | null }>('games.genres')
+      .first()
+    return row?.genres ?? []
+  },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { GameRepository as GameRepositoryPort } from '../../domain/ports/repositories.js'
+export const _gameRepositoryTypeCheck: GameRepositoryPort = gameRepository

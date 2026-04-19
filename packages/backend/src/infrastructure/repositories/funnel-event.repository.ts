@@ -34,3 +34,7 @@ export const funnelEventRepository = {
     }
   },
 }
+
+// Port conformance check — keep this in sync with FunnelEventRepository port.
+import type { FunnelEventRepository as FunnelEventRepositoryPort } from '../../domain/ports/repositories.js'
+export const _funnelEventRepositoryTypeCheck: FunnelEventRepositoryPort = funnelEventRepository

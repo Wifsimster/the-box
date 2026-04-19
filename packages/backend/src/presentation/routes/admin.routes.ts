@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { adminService } from '../../domain/services/index.js'
-import { jobService } from '../../domain/services/job.service.js'
+import { adminService, jobService } from '../../domain/services/index.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import {
   startBatchImport,

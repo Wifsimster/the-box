@@ -1,70 +1,44 @@
-import { sessionRepository, challengeRepository } from '../../infrastructure/repositories/index.js'
-import { db } from '../../infrastructure/database/connection.js'
-import type { GameHistoryResponse, GameSessionDetailsResponse, Game, Screenshot, MissedChallenge } from '@the-box/types'
+import type {
+  GameHistoryResponse,
+  GameSessionDetailsResponse,
+  Game,
+  Screenshot,
+  MissedChallenge,
+} from '@the-box/types'
+import type {
+  DomainLogger,
+  ChallengeRepository,
+  GameSessionRecord,
+  SessionRepository,
+} from '../ports/index.js'
 
 const TOTAL_SCREENSHOTS = 10
 const WRONG_GUESS_PENALTY = 0
 const CATCH_UP_DAYS = 7
 
-export const userService = {
-  async getGameHistory(userId: string): Promise<GameHistoryResponse> {
-    const entries = await sessionRepository.findUserGameHistory(userId)
+export interface UserService {
+  getGameHistory(userId: string): Promise<GameHistoryResponse>
+  getPublicGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse>
+  getGameSessionDetails(
+    sessionId: string,
+    userId: string
+  ): Promise<GameSessionDetailsResponse>
+}
 
-    // Get recent challenges (last CATCH_UP_DAYS days)
-    const recentChallenges = await challengeRepository.findRecentChallenges(CATCH_UP_DAYS)
+export interface UserServiceDeps {
+  logger: DomainLogger
+  sessionRepository: SessionRepository
+  challengeRepository: ChallengeRepository
+}
 
-    // Get today's date to exclude it from missed challenges
-    const today = new Date().toISOString().split('T')[0]
+export function createUserService(deps: UserServiceDeps): UserService {
+  const { sessionRepository, challengeRepository } = deps
+  // Keep a child logger for parity with other services even when unused.
+  void deps.logger.child({ service: 'user' })
 
-    // Get the set of dates the user has played
-    const playedDates = new Set(entries.map(entry => entry.challenge_date))
-
-    // Calculate missed challenges (challenges with no session, excluding today)
-    const missedChallenges: MissedChallenge[] = recentChallenges
-      .filter(challenge => {
-        const challengeDate = challenge.challenge_date
-        // Exclude today's challenge and challenges already played
-        return challengeDate !== today && !playedDates.has(challengeDate)
-      })
-      .map(challenge => ({
-        challengeId: challenge.id,
-        date: challenge.challenge_date,
-      }))
-
-    return {
-      entries: entries.map(entry => ({
-        sessionId: entry.session_id,
-        challengeDate: entry.challenge_date,
-        totalScore: entry.total_score,
-        isCompleted: entry.is_completed,
-        completedAt: entry.completed_at?.toISOString() ?? null,
-      })),
-      missedChallenges,
-    }
-  },
-
-  async getPublicGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse> {
-    // Only allow viewing completed sessions (for public access)
-    const gameSession = await sessionRepository.findCompletedGameSessionById(sessionId)
-    if (!gameSession) {
-      throw new Error('Session not found or not completed')
-    }
-
-    return this.buildSessionDetailsResponse(gameSession)
-  },
-
-  async getGameSessionDetails(sessionId: string, userId: string): Promise<GameSessionDetailsResponse> {
-    // Verify the session belongs to the user
-    const gameSession = await sessionRepository.findGameSessionById(sessionId, userId)
-    if (!gameSession) {
-      throw new Error('Session not found')
-    }
-
-    return this.buildSessionDetailsResponse(gameSession)
-  },
-
-  async buildSessionDetailsResponse(gameSession: Awaited<ReturnType<typeof sessionRepository.findGameSessionById>> & object): Promise<GameSessionDetailsResponse> {
-
+  async function buildSessionDetailsResponse(
+    gameSession: GameSessionRecord
+  ): Promise<GameSessionDetailsResponse> {
     // Get challenge date
     const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
     if (!challenge) {
@@ -81,29 +55,9 @@ export const userService = {
     // Create a map of position -> screenshot data
     const screenshotMap = new Map<number, Screenshot>()
     if (tier) {
-      const tierScreenshots = await db('tier_screenshots')
-        .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
-        .where('tier_screenshots.tier_id', tier.id)
-        .select(
-          'tier_screenshots.position',
-          'screenshots.id as screenshot_id',
-          'screenshots.image_url',
-          'screenshots.thumbnail_url',
-          'screenshots.difficulty',
-          'screenshots.location_hint',
-          'screenshots.game_id'
-        )
-        .orderBy('tier_screenshots.position', 'asc')
-
-      for (const row of tierScreenshots) {
-        screenshotMap.set(row.position, {
-          id: row.screenshot_id,
-          gameId: row.game_id,
-          imageUrl: row.image_url,
-          thumbnailUrl: row.thumbnail_url ?? undefined,
-          difficulty: row.difficulty,
-          locationHint: row.location_hint ?? undefined,
-        })
+      const tierScreenshots = await challengeRepository.findTierScreenshots(tier.id)
+      for (const entry of tierScreenshots) {
+        screenshotMap.set(entry.position, entry.screenshot)
       }
     }
 
@@ -127,11 +81,14 @@ export const userService = {
         if (correctGuess) {
           // Calculate hint penalty (20% of score if hint was used)
           let hintPenalty: number | undefined
-          if (correctGuess.powerUpUsed === 'hint_year' || correctGuess.powerUpUsed === 'hint_publisher') {
+          if (
+            correctGuess.powerUpUsed === 'hint_year' ||
+            correctGuess.powerUpUsed === 'hint_publisher'
+          ) {
             // The score_earned already has hint penalty deducted, so we need to calculate original
             // Original score = scoreEarned / 0.8, hint penalty = original * 0.2
             const originalScore = Math.round(correctGuess.scoreEarned / 0.8)
-            hintPenalty = Math.round(originalScore * 0.20)
+            hintPenalty = Math.round(originalScore * 0.2)
           }
 
           const correctGame: Game = {
@@ -195,60 +152,17 @@ export const userService = {
     const unfoundPositions = allPositions.filter(pos => !guessedPositions.includes(pos))
 
     const unfoundGames: Array<{ position: number; game: Game; screenshot: Screenshot }> = []
-    if (unfoundPositions.length > 0) {
-      // Get the tier for this challenge
-      const tiers = await challengeRepository.findTiersByChallenge(gameSession.daily_challenge_id)
-      const tier = tiers[0]
-      if (tier) {
-        // Get tier screenshots with game info for unfound positions
-        const unfoundTierScreenshots = await db('tier_screenshots')
-          .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
-          .join('games', 'screenshots.game_id', 'games.id')
-          .where('tier_screenshots.tier_id', tier.id)
-          .whereIn('tier_screenshots.position', unfoundPositions)
-          .select(
-            'tier_screenshots.position',
-            'screenshots.id as screenshot_id',
-            'screenshots.image_url',
-            'screenshots.thumbnail_url',
-            'screenshots.difficulty',
-            'screenshots.location_hint',
-            'screenshots.game_id',
-            'games.id as game_id',
-            'games.name as game_name',
-            'games.slug as game_slug',
-            'games.cover_image_url',
-            'games.release_year',
-            'games.developer',
-            'games.publisher',
-            'games.metacritic'
-          )
-          .orderBy('tier_screenshots.position', 'asc')
-
-        for (const row of unfoundTierScreenshots) {
-          unfoundGames.push({
-            position: row.position,
-            game: {
-              id: row.game_id,
-              name: row.game_name,
-              slug: row.game_slug,
-              aliases: [],
-              coverImageUrl: row.cover_image_url ?? undefined,
-              releaseYear: row.release_year ?? undefined,
-              developer: row.developer ?? undefined,
-              publisher: row.publisher ?? undefined,
-              metacritic: row.metacritic ?? undefined,
-            },
-            screenshot: {
-              id: row.screenshot_id,
-              gameId: row.game_id,
-              imageUrl: row.image_url,
-              thumbnailUrl: row.thumbnail_url ?? undefined,
-              difficulty: row.difficulty,
-              locationHint: row.location_hint ?? undefined,
-            },
-          })
-        }
+    if (unfoundPositions.length > 0 && tier) {
+      const unfoundTierScreenshots = await challengeRepository.findTierScreenshotsWithGames(
+        tier.id,
+        unfoundPositions
+      )
+      for (const entry of unfoundTierScreenshots) {
+        unfoundGames.push({
+          position: entry.position,
+          game: entry.game,
+          screenshot: entry.screenshot,
+        })
       }
     }
 
@@ -262,5 +176,64 @@ export const userService = {
       guesses,
       unfoundGames,
     }
-  },
+  }
+
+  return {
+    async getGameHistory(userId: string): Promise<GameHistoryResponse> {
+      const entries = await sessionRepository.findUserGameHistory(userId)
+
+      // Get recent challenges (last CATCH_UP_DAYS days)
+      const recentChallenges = await challengeRepository.findRecentChallenges(CATCH_UP_DAYS)
+
+      // Get today's date to exclude it from missed challenges
+      const today = new Date().toISOString().split('T')[0]
+
+      // Get the set of dates the user has played
+      const playedDates = new Set(entries.map(entry => entry.challenge_date))
+
+      // Calculate missed challenges (challenges with no session, excluding today)
+      const missedChallenges: MissedChallenge[] = recentChallenges
+        .filter(challenge => {
+          const challengeDate = challenge.challenge_date
+          // Exclude today's challenge and challenges already played
+          return challengeDate !== today && !playedDates.has(challengeDate)
+        })
+        .map(challenge => ({
+          challengeId: challenge.id,
+          date: challenge.challenge_date,
+        }))
+
+      return {
+        entries: entries.map(entry => ({
+          sessionId: entry.session_id,
+          challengeDate: entry.challenge_date,
+          totalScore: entry.total_score,
+          isCompleted: entry.is_completed,
+          completedAt: entry.completed_at?.toISOString() ?? null,
+        })),
+        missedChallenges,
+      }
+    },
+
+    async getPublicGameSessionDetails(
+      sessionId: string
+    ): Promise<GameSessionDetailsResponse> {
+      const gameSession = await sessionRepository.findCompletedGameSessionById(sessionId)
+      if (!gameSession) {
+        throw new Error('Session not found or not completed')
+      }
+      return buildSessionDetailsResponse(gameSession)
+    },
+
+    async getGameSessionDetails(
+      sessionId: string,
+      userId: string
+    ): Promise<GameSessionDetailsResponse> {
+      const gameSession = await sessionRepository.findGameSessionById(sessionId, userId)
+      if (!gameSession) {
+        throw new Error('Session not found')
+      }
+      return buildSessionDetailsResponse(gameSession)
+    },
+  }
 }

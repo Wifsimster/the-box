@@ -424,4 +424,44 @@ export const sessionRepository = {
     log.debug({ gameSessionId, count: result.length }, 'findGuessesByGameSession result')
     return result
   },
+
+  async findAchievementGuessData(gameSessionId: string): Promise<Array<{
+    position: number
+    isCorrect: boolean
+    roundTimeTakenMs: number
+    powerUpUsed: string | null
+    screenshotId: number
+  }>> {
+    log.debug({ gameSessionId }, 'findAchievementGuessData')
+    const rows = await db('guesses')
+      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+      .where('tier_sessions.game_session_id', gameSessionId)
+      .orderBy('guesses.position')
+      .select<Array<{
+        position: number
+        is_correct: boolean
+        round_time_taken_ms: number
+        power_up_used: string | null
+        screenshot_id: number
+      }>>(
+        'guesses.position',
+        'guesses.is_correct',
+        'guesses.time_taken_ms as round_time_taken_ms',
+        'guesses.power_up_used',
+        'guesses.screenshot_id'
+      )
+    log.debug({ gameSessionId, count: rows.length }, 'findAchievementGuessData result')
+    return rows.map(r => ({
+      position: r.position,
+      isCorrect: r.is_correct,
+      roundTimeTakenMs: r.round_time_taken_ms,
+      powerUpUsed: r.power_up_used,
+      screenshotId: r.screenshot_id,
+    }))
+  },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { SessionRepository as SessionRepositoryPort } from '../../domain/ports/repositories.js'
+export const _sessionRepositoryTypeCheck: SessionRepositoryPort = sessionRepository

@@ -1,41 +1,20 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
 
+// Re-export domain row types so existing modules importing these names
+// from the repository file keep working.
+export type {
+    AchievementRow,
+    UserAchievementRow,
+    UserAchievementWithDetails,
+} from '../../domain/types/achievement.types.js'
+import type {
+    AchievementRow,
+    UserAchievementRow,
+    UserAchievementWithDetails,
+} from '../../domain/types/achievement.types.js'
+
 const log = repoLogger.child({ repository: 'achievement' })
-
-export interface AchievementRow {
-    id: number
-    key: string
-    name: string
-    description: string | null
-    category: string
-    icon_url: string | null
-    points: number
-    criteria: Record<string, any> | null
-    tier: number
-    is_hidden: boolean
-    created_at: Date
-}
-
-export interface UserAchievementRow {
-    id: number
-    user_id: string
-    achievement_id: number
-    earned_at: Date
-    progress: number
-    progress_max: number | null
-    metadata: Record<string, any> | null
-}
-
-export interface UserAchievementWithDetails extends UserAchievementRow {
-    achievement_key: string
-    achievement_name: string
-    achievement_description: string | null
-    achievement_category: string
-    achievement_icon_url: string | null
-    achievement_points: number
-    achievement_tier: number
-}
 
 export class AchievementRepository {
     /**
@@ -290,6 +269,147 @@ export class AchievementRepository {
             achievementCount: Number(row.achievementCount) || 0,
         }))
     }
+
+    // ---- Aggregations used by the domain service ----
+
+    async countCompletedGameSessions(userId: string): Promise<number> {
+        const row = await db('game_sessions')
+            .where('user_id', userId)
+            .where('is_completed', true)
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
+    async countStartedGameSessions(userId: string): Promise<number> {
+        const row = await db('game_sessions')
+            .where('user_id', userId)
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
+    async countAllGuesses(userId: string): Promise<number> {
+        const row = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', userId)
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
+    async countCorrectGuesses(userId: string): Promise<number> {
+        const row = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', userId)
+            .where('guesses.is_correct', true)
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
+    async countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number> {
+        const row = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', userId)
+            .where('guesses.is_correct', true)
+            .where('guesses.time_taken_ms', '<=', maxTimeMs)
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
+    async countHintFreeCompletedGames(userId: string): Promise<number> {
+        // Count completed game sessions that have zero power-up usage across
+        // all of their guesses.
+        const rows = await db('game_sessions')
+            .leftJoin('tier_sessions', 'game_sessions.id', 'tier_sessions.game_session_id')
+            .leftJoin('guesses', 'tier_sessions.id', 'guesses.tier_session_id')
+            .where('game_sessions.user_id', userId)
+            .where('game_sessions.is_completed', true)
+            .groupBy('game_sessions.id')
+            .havingRaw('COALESCE(MAX(CASE WHEN guesses.power_up_used IS NOT NULL THEN 1 ELSE 0 END), 0) = 0')
+            .count('* as count')
+        return rows.length
+    }
+
+    async countGenreCorrectGuesses(userId: string, genre: string): Promise<number> {
+        const row = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .join('screenshots', 'guesses.screenshot_id', 'screenshots.id')
+            .join('games', 'screenshots.game_id', 'games.id')
+            .where('game_sessions.user_id', userId)
+            .where('guesses.is_correct', true)
+            .whereRaw('? = ANY(games.genres)', [genre])
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
+    async findRecentGuessCorrectness(
+        userId: string,
+        limit: number
+    ): Promise<Array<{ isCorrect: boolean; createdAt: Date }>> {
+        const rows = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', userId)
+            .orderBy('guesses.created_at', 'desc')
+            .limit(limit)
+            .select<Array<{ is_correct: boolean; created_at: Date }>>(
+                'guesses.is_correct',
+                'guesses.created_at'
+            )
+        return rows.map(r => ({ isCorrect: r.is_correct, createdAt: r.created_at }))
+    }
+
+    async findChallengeUserRanking(
+        challengeId: number
+    ): Promise<Array<{ userId: string }>> {
+        const rows = await db('game_sessions')
+            .where('daily_challenge_id', challengeId)
+            .where('is_completed', true)
+            .orderBy('total_score', 'desc')
+            .select<Array<{ user_id: string }>>('user_id')
+        return rows.map(r => ({ userId: r.user_id }))
+    }
+
+    async getUserBestChallengeRank(userId: string): Promise<number | null> {
+        const userChallenges = await db('game_sessions')
+            .where('user_id', userId)
+            .where('is_completed', true)
+            .select<Array<{ daily_challenge_id: number; total_score: number }>>(
+                'daily_challenge_id',
+                'total_score'
+            )
+
+        if (userChallenges.length === 0) return null
+
+        let bestRank: number | null = null
+        for (const userChallenge of userChallenges) {
+            const rankings = await db('game_sessions')
+                .where('daily_challenge_id', userChallenge.daily_challenge_id)
+                .where('is_completed', true)
+                .orderBy('total_score', 'desc')
+                .select<Array<{ user_id: string }>>('user_id')
+
+            const rank = rankings.findIndex(r => r.user_id === userId) + 1
+            if (rank > 0 && (bestRank === null || rank < bestRank)) {
+                bestRank = rank
+            }
+        }
+
+        return bestRank
+    }
 }
 
 export const achievementRepository = new AchievementRepository()
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { AchievementRepository as AchievementRepositoryPort } from '../../domain/ports/repositories.js'
+export const _achievementRepositoryTypeCheck: AchievementRepositoryPort = achievementRepository
