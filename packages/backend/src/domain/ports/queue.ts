@@ -7,6 +7,12 @@
  */
 import type { JobData, JobType } from '@the-box/types'
 
+/**
+ * Input-side job state union (what callers pass to queue.getJobs).
+ * Matches the subset of BullMQ's JobType that domain services actually
+ * use, deliberately excluding 'unknown' (which is only a possible output
+ * of getState()).
+ */
 export type BullJobState =
   | 'waiting'
   | 'active'
@@ -15,7 +21,12 @@ export type BullJobState =
   | 'delayed'
   | 'waiting-children'
   | 'prioritized'
-  | 'unknown'
+
+/**
+ * Output-side union (what getState() may return). Includes 'unknown' to
+ * match BullMQ's Job.getState() signature.
+ */
+export type BullJobStateResult = BullJobState | 'unknown'
 
 /**
  * Minimal shape of a BullMQ Job as used by job.service.ts.
@@ -30,16 +41,17 @@ export interface BullJobLike {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opts: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  progress: number | object
+  progress: number | object | string | boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   returnvalue: any
   failedReason?: string
   timestamp: number
   processedOn?: number
   finishedOn?: number
-  getState(): Promise<BullJobState>
+  getState(): Promise<BullJobStateResult>
   remove(): Promise<void>
-  moveToFailed(err: Error, token: string, fetchNext?: boolean): Promise<void>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  moveToFailed(err: Error, token: string, fetchNext?: boolean): Promise<void | any[]>
 }
 
 export interface RepeatableJobLike {
@@ -66,7 +78,7 @@ export interface ImportQueuePort {
   ): Promise<BullJobLike>
   getJob(id: string): Promise<BullJobLike | undefined | null>
   getJobs(
-    types: BullJobState[] | readonly BullJobState[],
+    types: BullJobState[],
     start?: number,
     end?: number,
     asc?: boolean
