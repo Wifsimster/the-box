@@ -83,6 +83,14 @@ Exposed for potential future dashboards; not for UI chrome.
 
 ---
 
+## Surface accents
+
+Ad-hoc surface tints that don't fit a semantic category.
+
+| Token | Value | When to use |
+|---|---|---|
+| `--table-row-hover` | `oklch(0.25 0.04 280 / 0.3)` | Row hover tint for admin data tables (used by `motion.tr whileHover`). |
+
 ## Shadows & glow
 
 All box-shadow values in components must reference one of these tokens.
@@ -203,7 +211,7 @@ A local ESLint rule, `design-tokens/no-raw-design-tokens` (source: `packages/fro
 
 | Scope | Severity |
 |---|---|
-| `src/components/game/**`, `src/components/daily-login/**`, `src/components/achievement/**`, `src/components/ui/**` | **error** — blocks CI |
+| `src/components/game/**`, `src/components/daily-login/**`, `src/components/achievement/**`, `src/components/admin/**`, `src/components/ui/**` | **error** — blocks CI |
 | `src/**` (everything else) | **warn** — surfaces the violation but does not block |
 | `src/components/backgrounds/**`, `src/lib/animations.ts` | disabled (three.js materials + Framer Motion presets) |
 

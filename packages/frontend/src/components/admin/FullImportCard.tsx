@@ -150,11 +150,11 @@ export function FullImportCard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.imported')}:</span>
-                <span className="text-green-500">{currentImport.gamesImported.toLocaleString()}</span>
+                <span className="text-success">{currentImport.gamesImported.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.skipped')}:</span>
-                <span className="text-yellow-500">{currentImport.gamesSkipped.toLocaleString()}</span>
+                <span className="text-warning">{currentImport.gamesSkipped.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.screenshots')}:</span>
@@ -177,8 +177,8 @@ export function FullImportCard() {
 
         {/* Completed summary */}
         {currentImport?.status === 'completed' && (
-          <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-            <p className="text-green-500 font-medium">{t('admin.fullImport.completedMessage')}</p>
+          <div className="p-4 rounded-lg bg-success/10 border border-success/30">
+            <p className="text-success font-medium">{t('admin.fullImport.completedMessage')}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {currentImport.gamesImported.toLocaleString()} {t('admin.fullImport.gamesImported')}, {currentImport.gamesSkipped.toLocaleString()} {t('admin.fullImport.gamesSkippedSuffix')}
             </p>
@@ -187,8 +187,8 @@ export function FullImportCard() {
 
         {/* Error display */}
         {fullImportError && (
-          <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-            <p className="text-red-500 text-sm">{fullImportError}</p>
+          <div className="p-4 rounded-lg bg-error/10 border border-error/30">
+            <p className="text-error text-sm">{fullImportError}</p>
           </div>
         )}
 

@@ -99,13 +99,13 @@ export function EmailSettings() {
             <div className="flex items-center gap-2">
               {config?.configured ? (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  <span className="text-sm text-green-500">{t('admin.email.configured')}</span>
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                  <span className="text-sm text-success">{t('admin.email.configured')}</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="h-5 w-5 text-red-500" />
-                  <span className="text-sm text-red-500">{t('admin.email.notConfigured')}</span>
+                  <XCircle className="h-5 w-5 text-error" />
+                  <span className="text-sm text-error">{t('admin.email.notConfigured')}</span>
                 </>
               )}
             </div>

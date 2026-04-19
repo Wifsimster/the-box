@@ -51,6 +51,7 @@ export default [
       'src/components/game/**/*.{ts,tsx}',
       'src/components/daily-login/**/*.{ts,tsx}',
       'src/components/achievement/**/*.{ts,tsx}',
+      'src/components/admin/**/*.{ts,tsx}',
       'src/components/ui/**/*.{ts,tsx}',
     ],
     rules: {
@@ -63,6 +64,7 @@ export default [
       'src/components/game/**',
       'src/components/daily-login/**',
       'src/components/achievement/**',
+      'src/components/admin/**',
       'src/components/ui/**',
       'src/components/backgrounds/**',
       'src/lib/animations.ts',

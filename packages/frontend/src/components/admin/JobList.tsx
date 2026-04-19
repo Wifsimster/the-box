@@ -314,7 +314,7 @@ export function JobList() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
                           transition={{ duration: 0.3, layout: { duration: 0.2 } }}
-                          className="rounded-lg bg-muted/50 border border-transparent hover:border-purple-500/20 transition-all duration-200"
+                          className="rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all duration-200"
                         >
                           {/* Job Header */}
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4">
@@ -335,15 +335,15 @@ export function JobList() {
 
                               {job.isActive || isJobLoading ? (
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <Loader2 className="h-4 w-4 animate-spin text-blue-500 shrink-0" />
-                                  <span className="text-xs sm:text-sm font-medium text-blue-400 truncate">
+                                  <Loader2 className="h-4 w-4 animate-spin text-neon-blue shrink-0" />
+                                  <span className="text-xs sm:text-sm font-medium text-neon-blue/80 truncate">
                                     {t(getJobRunningTranslationKey(job.name))}
                                   </span>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2 min-w-0">
                                   {metadata.icon && (
-                                    <div className="shrink-0 text-green-500">
+                                    <div className="shrink-0 text-success">
                                       {metadata.icon}
                                     </div>
                                   )}
@@ -363,7 +363,7 @@ export function JobList() {
                               {!isExpanded && (
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
                                   {job.isManual ? (
-                                    <span className="text-orange-400 whitespace-nowrap">
+                                    <span className="text-score-low/80 whitespace-nowrap">
                                       {t('admin.jobs.manual', 'Manual')}
                                     </span>
                                   ) : job.nextRun && !job.isActive ? (
@@ -450,13 +450,13 @@ export function JobList() {
 
                                 {/* Manual Job Indicator */}
                                 {job.isManual && !job.isActive && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-orange-500/10">
-                                    <Play className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-score-low/10">
+                                    <Play className="h-3.5 w-3.5 text-score-low/80 shrink-0" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.schedule')}
                                       </span>
-                                      <span className="text-xs font-medium text-orange-400">
+                                      <span className="text-xs font-medium text-score-low/80">
                                         {t('admin.jobs.manual')}
                                       </span>
                                     </div>
@@ -465,13 +465,13 @@ export function JobList() {
 
                                 {/* Status */}
                                 {job.isActive && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-blue-500/10">
-                                    <Loader2 className="h-3.5 w-3.5 text-blue-500 shrink-0 animate-spin" />
+                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-neon-blue/10">
+                                    <Loader2 className="h-3.5 w-3.5 text-neon-blue shrink-0 animate-spin" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.status')}
                                       </span>
-                                      <span className="text-xs font-medium text-blue-400">
+                                      <span className="text-xs font-medium text-neon-blue/80">
                                         {t('admin.jobs.running')}
                                       </span>
                                     </div>
@@ -496,7 +496,7 @@ export function JobList() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              <AlertTriangle className="h-5 w-5 text-warning" />
               {t('admin.jobs.syncConflict.title', 'Sync Job Already Running')}
             </DialogTitle>
             <DialogDescription>

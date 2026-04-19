@@ -48,6 +48,9 @@
   --score-high: var(--success);
   --score-mid: var(--warning);
   --score-low: #f97316;
+
+  /* Subtle hover tint for data tables (admin panels). */
+  --table-row-hover: oklch(0.25 0.04 280 / 0.3);
 }
 
 @theme inline {
