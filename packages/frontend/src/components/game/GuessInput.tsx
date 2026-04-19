@@ -10,6 +10,7 @@ import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2 } from
 import { createGuessSubmissionService } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 
 /**
  * Game guess input component with simple text input
@@ -167,6 +168,7 @@ export function GuessInput() {
               size="lg"
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
+              aria-label={t('game.navigation.previous')}
               className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-12 sm:min-w-14 touch-manipulation"
             >
               <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -185,12 +187,11 @@ export function GuessInput() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
-            className={`h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] focus:border-primary focus:shadow-[0_0_30px_rgba(168,85,247,0.5)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300 ${isSuccess
-              ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse'
-              : isShaking
-                ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                : ''
-              }`}
+            className={cn(
+              'h-12 sm:h-14 text-sm sm:text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] focus:border-primary focus:shadow-[0_0_30px_rgba(168,85,247,0.5)] pl-3 sm:pl-4 pr-11 sm:pr-14 transition-all duration-300',
+              isSuccess && 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.6)] animate-pulse',
+              !isSuccess && isShaking && 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+            )}
             disabled={gamePhase !== 'playing'}
           />
 
@@ -200,15 +201,18 @@ export function GuessInput() {
             size="sm"
             onClick={handleSubmit}
             disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
-            className={`absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300 ${query.trim()
-              ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
-              : 'hover:bg-accent'
-              }`}
+            aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
+            className={cn(
+              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300',
+              query.trim()
+                ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
+                : 'hover:bg-accent'
+            )}
           >
             {isSubmitting ? (
-              <Loader2 className={`h-4 w-4 sm:h-5 sm:w-5 animate-spin ${query.trim() ? 'text-white' : ''}`} />
+              <Loader2 className={cn('h-4 w-4 sm:h-5 sm:w-5 animate-spin', query.trim() && 'text-white')} />
             ) : (
-              <Send className={`h-4 w-4 sm:h-5 sm:w-5 ${query.trim() ? 'text-white' : ''}`} />
+              <Send className={cn('h-4 w-4 sm:h-5 sm:w-5', query.trim() && 'text-white')} />
             )}
           </Button>
         </motion.div>
@@ -221,6 +225,7 @@ export function GuessInput() {
               size="lg"
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}
+              aria-label={t('game.navigation.skip')}
               className="h-12 sm:h-14 px-3 sm:px-4 md:px-6 min-w-12 sm:min-w-14 touch-manipulation"
             >
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />

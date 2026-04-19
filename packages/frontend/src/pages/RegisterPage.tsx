@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -265,11 +266,10 @@ export default function RegisterPage() {
                 />
 
                 <label className="flex items-start gap-3 cursor-pointer select-none group">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={marketingConsent}
-                    onChange={(e) => setMarketingConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer"
+                    onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+                    className="mt-0.5"
                   />
                   <span className="text-xs text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors">
                     {t('auth.marketingConsent')}

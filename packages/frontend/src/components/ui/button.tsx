@@ -24,6 +24,18 @@ const buttonVariants = cva(
           "bg-linear-to-r from-neon-purple to-neon-pink text-white shadow-lg hover:shadow-[0_0_25px_oklch(0.7_0.25_300_/_0.5)] hover:scale-[1.03] active:scale-[0.98]",
         warning:
           "text-orange-400 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 hover:scale-[1.02] active:scale-[0.98]",
+        hintUsed:
+          "border border-yellow-500 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 hover:scale-[1.02] active:scale-[0.98]",
+        hintFree:
+          "border border-green-500/50 bg-transparent hover:border-green-500 hover:bg-muted hover:text-foreground hover:scale-[1.02] active:scale-[0.98]",
+        ban:
+          "hover:bg-orange-500/20 hover:text-orange-300 active:scale-[0.98]",
+        unban:
+          "hover:bg-green-500/20 hover:text-green-300 active:scale-[0.98]",
+        dangerGhost:
+          "text-destructive hover:bg-red-500/20 hover:text-destructive active:scale-[0.98]",
+        overlay:
+          "bg-black/50 text-white hover:bg-black/70 active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",

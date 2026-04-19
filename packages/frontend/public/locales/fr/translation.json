@@ -530,7 +530,9 @@
         "title": "Captures de {{name}}",
         "noScreenshots": "Aucune capture pour ce jeu",
         "difficulty": "Difficulté",
-        "close": "Fermer"
+        "close": "Fermer",
+        "previous": "Capture précédente",
+        "next": "Capture suivante"
       }
     },
     "users": {

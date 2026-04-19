@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -294,18 +295,22 @@ export function UserList() {
                           </TableCell>
                           <TableCell>{user.displayName || user.username}</TableCell>
                           <TableCell>
-                            <select
+                            <Select
                               value={user.isAdmin ? 'admin' : 'user'}
-                              onChange={(e) => {
-                                setRoleChangingUser({ user, newRole: e.target.value })
-                                handleRoleChange(user, e.target.value)
+                              onValueChange={(value) => {
+                                setRoleChangingUser({ user, newRole: value })
+                                handleRoleChange(user, value)
                               }}
                               disabled={isSubmitting}
-                              className="bg-background border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                             >
-                              <option value="user">{t('admin.users.role.user')}</option>
-                              <option value="admin">{t('admin.users.role.admin')}</option>
-                            </select>
+                              <SelectTrigger className="h-8 w-28" aria-label={t('admin.users.role.user')}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">{t('admin.users.role.user')}</SelectItem>
+                                <SelectItem value="admin">{t('admin.users.role.admin')}</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>{(user.totalScore ?? 0).toLocaleString()}</TableCell>
                           <TableCell>{user.currentStreak ?? 0}</TableCell>
@@ -317,11 +322,10 @@ export function UserList() {
                               {user.isAdmin ? (
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                   <Button
-                                    variant="ghost"
+                                    variant="unban"
                                     size="icon"
                                     onClick={() => setUnbanningUser(user)}
-                                    title={t('admin.users.unbanUser')}
-                                    className="hover:bg-green-500/20 hover:text-green-300"
+                                    aria-label={t('admin.users.unbanUser')}
                                   >
                                     <Unlock className="h-4 w-4" />
                                   </Button>
@@ -329,11 +333,10 @@ export function UserList() {
                               ) : (
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                   <Button
-                                    variant="ghost"
+                                    variant="ban"
                                     size="icon"
                                     onClick={() => setBanningUser(user)}
-                                    title={t('admin.users.banUser')}
-                                    className="hover:bg-orange-500/20 hover:text-orange-300"
+                                    aria-label={t('admin.users.banUser')}
                                   >
                                     <Ban className="h-4 w-4" />
                                   </Button>
@@ -341,11 +344,10 @@ export function UserList() {
                               )}
                               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                 <Button
-                                  variant="ghost"
+                                  variant="dangerGhost"
                                   size="icon"
                                   onClick={() => setDeletingUser(user)}
-                                  className="text-destructive hover:text-destructive hover:bg-red-500/20"
-                                  title={t('admin.users.deleteUser')}
+                                  aria-label={t('admin.users.deleteUser')}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>

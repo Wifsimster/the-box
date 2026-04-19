@@ -53,7 +53,7 @@ export function AnimatedTabs({
             {isActive && variant === 'default' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute inset-0 bg-linear-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/40"
+                className="absolute inset-0 bg-linear-to-r from-neon-purple/20 to-neon-pink/20 rounded-lg border border-neon-purple/40"
                 style={{ boxShadow: '0 0 20px oklch(0.7 0.25 300 / 0.2)' }}
                 transition={springConfig.snappy}
               />
@@ -61,7 +61,7 @@ export function AnimatedTabs({
             {isActive && variant === 'pills' && (
               <motion.div
                 layoutId="activeTabPill"
-                className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg"
+                className="absolute inset-0 bg-linear-to-r from-neon-purple to-neon-pink rounded-lg"
                 style={{ boxShadow: '0 0 20px oklch(0.7 0.25 300 / 0.4)' }}
                 transition={springConfig.snappy}
               />
@@ -69,7 +69,7 @@ export function AnimatedTabs({
             {isActive && variant === 'underline' && (
               <motion.div
                 layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-purple-500 to-pink-500"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-neon-purple to-neon-pink"
                 style={{ boxShadow: '0 0 10px oklch(0.7 0.25 300 / 0.5)' }}
                 transition={springConfig.snappy}
               />
