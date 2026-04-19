@@ -58,6 +58,11 @@
   --medal-gold: #fbbf24;
   --medal-silver: #94a3b8;
   --medal-bronze: #b45309;
+
+  /* Interactive accents consumed by Framer Motion presets in
+     src/lib/animations.ts. */
+  --border-interactive: oklch(0.7 0.25 300 / 0.5);
+  --shadow-lift: 0 10px 30px oklch(0 0 0 / 0.3);
 }
 
 @theme inline {

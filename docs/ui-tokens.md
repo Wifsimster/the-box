@@ -223,9 +223,8 @@ A local ESLint rule, `design-tokens/no-raw-design-tokens` (source: `packages/fro
 
 | Scope | Severity |
 |---|---|
-| `src/components/{game,daily-login,achievement,admin,profile,layout,ui}/**`, `src/pages/**` | **error** — blocks CI |
-| `src/**` (everything else) | **warn** — surfaces the violation but does not block |
-| `src/components/backgrounds/**`, `src/lib/animations.ts` | disabled (three.js materials + Framer Motion presets) |
+| `src/**` | **error** — blocks CI |
+| `src/components/backgrounds/**` | disabled (three.js materials legitimately require raw hex colors on `meshBasicMaterial` etc.) |
 
 Each future migration sprint promotes another glob from warn → error by adding it to the first config block. Do not relax a glob back to warn once it has been promoted.
 

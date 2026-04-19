@@ -133,8 +133,8 @@ export const hoverScaleSmall = {
 
 export const hoverGlow = {
   whileHover: {
-    boxShadow: '0 0 25px oklch(0.7 0.25 300 / 0.3)',
-    borderColor: 'oklch(0.7 0.25 300 / 0.5)',
+    boxShadow: 'var(--glow-md)',
+    borderColor: 'var(--border-interactive)',
   },
   transition: { duration: 0.2 },
 }
@@ -142,7 +142,7 @@ export const hoverGlow = {
 export const hoverLift = {
   whileHover: {
     y: -2,
-    boxShadow: '0 10px 30px oklch(0 0 0 / 0.3)',
+    boxShadow: 'var(--shadow-lift)',
   },
   transition: springConfig.gentle,
 }
@@ -198,9 +198,9 @@ export const pulse: Variants = {
 export const glowPulse: Variants = {
   animate: {
     boxShadow: [
-      '0 0 20px oklch(0.7 0.25 300 / 0.3)',
-      '0 0 30px oklch(0.7 0.25 300 / 0.5)',
-      '0 0 20px oklch(0.7 0.25 300 / 0.3)',
+      'var(--glow-md)',
+      'var(--glow-lg)',
+      'var(--glow-md)',
     ],
     transition: {
       duration: 2,

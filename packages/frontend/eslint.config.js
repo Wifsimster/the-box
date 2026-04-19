@@ -35,48 +35,19 @@ export default [
     },
   },
 
-  // Design-token enforcement — staged by area.
+  // Design-token enforcement — error severity across the entire src/**
+  // surface. The only opt-out is components/backgrounds/**, which hosts
+  // three.js materials that legitimately require raw hex colors (meshBasicMaterial
+  // color props etc.). Every other file, including Framer Motion presets in
+  // lib/animations.ts, must reference tokens via var(--*).
   //
-  // "error" for areas already migrated in Sprints 1-3 (game, daily-login,
-  // achievement, ui primitives) — regressions must fail CI.
-  // "warn" elsewhere in src/** so legacy code surfaces nudges without
-  // breaking the build; each follow-up sprint promotes another glob.
-  //
-  // Opted out:
-  //   - components/backgrounds/** — three.js materials need raw hex colors.
-  //   - lib/animations.ts — Framer Motion animation presets; a dedicated
-  //     pass will move these to tokens in a future sprint.
-  {
-    files: [
-      'src/components/game/**/*.{ts,tsx}',
-      'src/components/daily-login/**/*.{ts,tsx}',
-      'src/components/achievement/**/*.{ts,tsx}',
-      'src/components/admin/**/*.{ts,tsx}',
-      'src/components/profile/**/*.{ts,tsx}',
-      'src/components/layout/**/*.{ts,tsx}',
-      'src/components/ui/**/*.{ts,tsx}',
-      'src/pages/**/*.{ts,tsx}',
-    ],
-    rules: {
-      'design-tokens/no-raw-design-tokens': 'error',
-    },
-  },
+  // The migration that led here is tracked in docs/ui-tokens.md and
+  // commits on the claude/shadcn-ui-planning-NmKn3 branch.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: [
-      'src/components/game/**',
-      'src/components/daily-login/**',
-      'src/components/achievement/**',
-      'src/components/admin/**',
-      'src/components/profile/**',
-      'src/components/layout/**',
-      'src/components/ui/**',
-      'src/components/backgrounds/**',
-      'src/pages/**',
-      'src/lib/animations.ts',
-    ],
+    ignores: ['src/components/backgrounds/**'],
     rules: {
-      'design-tokens/no-raw-design-tokens': 'warn',
+      'design-tokens/no-raw-design-tokens': 'error',
     },
   },
 ]
