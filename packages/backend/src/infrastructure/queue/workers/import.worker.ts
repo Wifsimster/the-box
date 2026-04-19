@@ -10,6 +10,7 @@ import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
 import { sendStreakRiskEmails } from './streak-risk-email-logic.js'
+import { sendRelanceEmails } from './relance-email-logic.js'
 
 const log = queueLogger
 
@@ -299,6 +300,20 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result }, 'streak-risk-email job completed')
+        return jobResult
+      }
+
+      if (name === 'relance-email') {
+        const result = await sendRelanceEmails((current, total) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0
+          job.updateProgress(progress)
+        })
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result }, 'relance-email job completed')
         return jobResult
       }
 
