@@ -26,6 +26,7 @@ export default function HomePage() {
     hasPlayed: boolean
     isCompleted?: boolean
   } | null>(null)
+  const [previewAvailable, setPreviewAvailable] = useState(false)
   const timeRemaining = useNextDailyCountdown()
 
   // Memoize humorous message to prevent re-selection on countdown re-renders
@@ -49,6 +50,17 @@ export default function HomePage() {
     const messages = t(`home.completionMessages.${category}`, { returnObjects: true }) as string[]
     return messages[Math.floor(Math.random() * messages.length)]
   }, [isTodayCompleted, todayScore, screenshotsFound, t])
+
+  // Probe the public preview endpoint so we only render the teaser card
+  // when a challenge actually exists for today.
+  useEffect(() => {
+    if (session?.user?.id) return
+    let cancelled = false
+    gameApi.getPreview()
+      .then(() => { if (!cancelled) setPreviewAvailable(true) })
+      .catch(() => { if (!cancelled) setPreviewAvailable(false) })
+    return () => { cancelled = true }
+  }, [session?.user?.id])
 
   // Check if user has already completed today's challenge
   useEffect(() => {
@@ -165,16 +177,54 @@ export default function HomePage() {
                 {t('common.history')}
               </Button>
             ) : (
-              <Button
-                variant="gaming"
-                size="xl"
-                onClick={() => navigate(localizedPath('/play'))}
-                className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
-              >
-                <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                {t('home.dailyGuess')}
-              </Button>
+              <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="gaming"
+                  size="xl"
+                  onClick={() => navigate(localizedPath('/play'))}
+                  className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
+                >
+                  <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                  {t('home.dailyGuess')}
+                </Button>
+                {!session && (
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {t('home.guestHint')}
+                  </p>
+                )}
+              </div>
             )
+          )}
+
+          {/* Public teaser — renders today's first screenshot for anonymous visitors */}
+          {!isLoading && !session && previewAvailable && !isTodayCompleted && (
+            <motion.button
+              type="button"
+              onClick={() => navigate(localizedPath('/play'))}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-6 block w-full max-w-xl overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm hover:border-neon-pink/60 transition-colors text-left"
+            >
+              <div className="relative aspect-video w-full overflow-hidden bg-black/40">
+                <img
+                  src="/api/game/preview/image"
+                  alt={t('home.previewAlt')}
+                  loading="lazy"
+                  className="w-full h-full object-cover transition-transform hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent" />
+                <span className="absolute top-3 left-3 text-[10px] uppercase tracking-wide font-semibold text-neon-cyan bg-black/60 rounded px-2 py-1">
+                  {t('home.previewBadge')}
+                </span>
+                <div className="absolute bottom-3 left-3 right-3">
+                  <p className="text-sm sm:text-base font-semibold text-white">
+                    {t('home.previewHeading')}
+                  </p>
+                  <p className="text-xs text-white/80 mt-1">{t('home.previewSubtitle')}</p>
+                </div>
+              </div>
+            </motion.button>
           )}
 
           {/* Show yesterday's challenge option if available and not played */}

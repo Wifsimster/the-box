@@ -210,6 +210,11 @@
     "subtitle": "Daily video game challenges with screenshot guessing, speed-based scoring, 21 achievements to unlock, live leaderboards, and win streaks. Play instantly as a guest or create an account.",
     "playToday": "Play Today's Challenge",
     "dailyGuess": "Daily Guess",
+    "guestHint": "No account needed — play instantly as a guest",
+    "previewBadge": "Today's challenge",
+    "previewHeading": "Think you know this game?",
+    "previewSubtitle": "Click to play the full 10-screenshot challenge.",
+    "previewAlt": "Today's first challenge screenshot",
     "multiplayerGame": "Multiplayer Game",
     "todayCompleted": "Today's Challenge Completed",
     "comeBackTomorrow": "Come back tomorrow for a new challenge!",
@@ -325,6 +330,7 @@
     "sendResetLink": "Send Reset Link",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
+    "marketingConsent": "I'd like to receive occasional emails about new challenges, streak reminders and rewards. You can unsubscribe at any time.",
     "orContinueWith": "Or continue with",
     "or": "or",
     "continueAsGuest": "Continue as Guest",
@@ -373,7 +379,21 @@
       "games": "Games",
       "challenges": "Challenges",
       "users": "Users",
-      "email": "Email"
+      "email": "Email",
+      "growth": "Growth"
+    },
+    "growth": {
+      "loadError": "Failed to load growth stats",
+      "never": "Never",
+      "referralsClaimed": "Referrals Claimed",
+      "referralsClaimedHint": "Total successful referral signups",
+      "consentRate": "Email Opt-in Rate",
+      "consentHint": "{{consented}}/{{total}} non-guest accounts opted in",
+      "streakEmails": "Streak Emails (24h)",
+      "streakEmailsHint": "{{week}} in last 7 days · last sent {{last}}",
+      "topReferrers": "Top Referrers",
+      "topReferrersHint": "Players driving the most signups this period",
+      "noReferrers": "No referrals yet."
     },
     "screenshots": "Screenshots",
     "addScreenshot": "Add Screenshot",
@@ -709,6 +729,26 @@
     "copied": "Copied!",
     "copyError": "Failed to copy to clipboard",
     "discordCopied": "Copied for Discord - paste in your server!"
+  },
+  "referral": {
+    "title": "Invite Friends",
+    "description": "Share your personal invite link. When a friend signs up, you both get bonus hints.",
+    "copyLink": "Copy invite link",
+    "copied": "Copied!",
+    "copyError": "Failed to copy to clipboard",
+    "stat_one": "{{count}} friend joined",
+    "stat_other": "{{count}} friends joined",
+    "claimedNote": "You were referred by a friend — thanks!",
+    "rewardHint": "Reward: both of you get 3 Year hints + 2 Publisher hints."
+  },
+  "emailConsent": {
+    "title": "Email Preferences",
+    "description": "Control whether we can send you marketing emails. Transactional emails (account, password reset) always go through.",
+    "label": "Send me occasional emails about new challenges, streak reminders and rewards.",
+    "updatedOn": "Last updated on {{date}}",
+    "optedIn": "You'll receive occasional updates — thanks!",
+    "optedOut": "You won't receive marketing emails.",
+    "updateError": "Failed to update preference. Please try again."
   },
   "personalBests": {
     "title": "Personal Bests",

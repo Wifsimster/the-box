@@ -28,6 +28,8 @@ export interface UserRow {
   current_streak: number
   longest_streak: number
   last_played_at: Date | null
+  email_marketing_consent: boolean
+  email_consent_updated_at: Date | null
 }
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
@@ -46,6 +48,8 @@ function mapRowToUser(row: UserRow): User {
     longestStreak: row.longest_streak ?? 0,
     lastPlayedAt: row.last_played_at?.toISOString(),
     createdAt: row.createdAt.toISOString(),
+    emailMarketingConsent: row.email_marketing_consent ?? false,
+    emailConsentUpdatedAt: row.email_consent_updated_at?.toISOString(),
   }
 }
 
@@ -105,6 +109,18 @@ export const userRepository = {
       .where('id', userId)
       .update({
         avatar_url: avatarUrl,
+        updatedAt: new Date(),
+      })
+    return this.findById(userId)
+  },
+
+  async updateEmailMarketingConsent(userId: string, consent: boolean): Promise<User | null> {
+    log.info({ userId, consent }, 'updateEmailMarketingConsent')
+    await db('user')
+      .where('id', userId)
+      .update({
+        email_marketing_consent: consent,
+        email_consent_updated_at: new Date(),
         updatedAt: new Date(),
       })
     return this.findById(userId)

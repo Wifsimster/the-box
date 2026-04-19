@@ -8,6 +8,7 @@ import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBou
 import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useSession } from '@/lib/auth-client'
+import { useReferralCapture } from '@/hooks/useReferralCapture'
 import {
   SUPPORTED_LANGUAGES,
   getBrowserLanguage,
@@ -98,6 +99,8 @@ function LanguageLayout() {
 }
 
 function App() {
+  useReferralCapture()
+
   return (
     <ErrorBoundary>
       <Routes>

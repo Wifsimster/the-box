@@ -10,6 +10,7 @@ import { auth } from './infrastructure/auth/auth.js'
 import { logger } from './infrastructure/logger/logger.js'
 import { requestLogger } from './presentation/middleware/request-logger.middleware.js'
 import { adminMiddleware } from './presentation/middleware/auth.middleware.js'
+import { createRateLimiter } from './presentation/middleware/rate-limit.middleware.js'
 import { Pool } from 'pg'
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
@@ -17,6 +18,7 @@ import adminRoutes from './presentation/routes/admin.routes.js'
 import userRoutes from './presentation/routes/user.routes.js'
 import achievementRoutes from './presentation/routes/achievement.routes.js'
 import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
+import referralRoutes from './presentation/routes/referral.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
@@ -44,6 +46,10 @@ logger.info(
 )
 
 const app = express()
+
+// Trust the first proxy hop (Traefik in production, Vite proxy in dev)
+// so `req.ip` reflects the real client address for rate limiting.
+app.set('trust proxy', 1)
 
 // JSON parsing middleware
 app.use(cors({
@@ -112,6 +118,16 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
 
 // Mount better-auth handler with error handling
 // This handles all /api/auth/* routes automatically
+//
+// Targeted rate limits go first so they short-circuit before better-auth
+// sees the request. These catch the email-triggering routes that an
+// unauthenticated attacker can hit to burn Resend quota or mail-bomb
+// arbitrary addresses. High-frequency routes like /get-session are left
+// alone — they don't send email and users hit them on every page load.
+app.use('/api/auth/forgot-password', createRateLimiter({ windowMs: 15 * 60_000, max: 5 }))
+app.use('/api/auth/send-verification-email', createRateLimiter({ windowMs: 15 * 60_000, max: 5 }))
+app.use('/api/auth/sign-up', createRateLimiter({ windowMs: 15 * 60_000, max: 10 }))
+
 app.use('/api/auth', (req, res, next) => {
   try {
     toNodeHandler(auth)(req, res).catch((error: Error) => {
@@ -159,6 +175,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/achievements', achievementRoutes)
 app.use('/api/daily-login', dailyLoginRoutes)
 app.use('/api/inventory', dailyLoginRoutes)
+app.use('/api/referral', referralRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
@@ -226,6 +243,7 @@ async function start(): Promise<void> {
       'sync-all-games',
       'cleanup-anonymous-users',
       'recalculate-scores',
+      'streak-risk-email',
     ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
@@ -306,6 +324,22 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring recalculate-scores job (daily at 3 AM UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring recalculate-scores job')
+    }
+
+    // Schedule recurring streak-risk win-back email (daily at 19:00 UTC ~ evening Europe)
+    // Runs in the window where users can still salvage their streak before midnight UTC.
+    try {
+      await importQueue.add(
+        'streak-risk-email',
+        {},
+        {
+          repeat: { pattern: '0 19 * * *', tz: 'UTC' },
+          jobId: 'streak-risk-email-recurring',
+        }
+      )
+      logger.info('scheduled recurring streak-risk-email job (daily at 19:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring streak-risk-email job')
     }
 
     // Log final repeatable jobs configuration with next run times

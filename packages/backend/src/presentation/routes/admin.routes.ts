@@ -27,6 +27,17 @@ import {
 } from '../../infrastructure/queue/workers/recalculate-scores-logic.js'
 import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
+import { db } from '../../infrastructure/database/connection.js'
+import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+
+// Cap even admin-triggered sends so a mistake or compromised admin
+// account can't spray mail on Resend's dime. Keyed by user id so two
+// admins don't starve each other out.
+const testEmailLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 10,
+  key: (req) => req.userId ?? req.ip ?? 'unknown',
+})
 
 const router = Router()
 
@@ -1099,7 +1110,7 @@ const testEmailSchema = z.object({
   email: z.string().email().optional(),
 })
 
-router.post('/email/test', async (req, res, next) => {
+router.post('/email/test', testEmailLimiter, async (req, res, next) => {
   try {
     const user = req.user
     const { email } = testEmailSchema.parse(req.body)
@@ -1166,6 +1177,85 @@ router.post('/email/test', async (req, res, next) => {
       })
       return
     }
+    next(error)
+  }
+})
+
+// === Growth Stats ===
+// Aggregate view of the lead-gen surfaces: referral conversions, opt-in
+// rates for marketing emails, and how many streak-risk nudges went out
+// recently. Kept as one endpoint so the dashboard can render with a
+// single round-trip.
+router.get('/growth-stats', async (_req, res, next) => {
+  try {
+    const [
+      referralTotalsRow,
+      consentTotalsRow,
+      streakEmail24hRow,
+      streakEmail7dRow,
+      topReferrers,
+      mostRecentStreakEmailRow,
+    ] = await Promise.all([
+      db('user')
+        .count<{ count: string }>({ count: '*' })
+        .whereNotNull('referred_by')
+        .first(),
+      db('user')
+        .select<{ consented: string; total: string }>(
+          db.raw(`COUNT(*) FILTER (WHERE email_marketing_consent = true) AS consented`),
+          db.raw(`COUNT(*) AS total`)
+        )
+        .whereNot('email', 'like', '%@guest.thebox.local')
+        .first(),
+      db('user')
+        .count<{ count: string }>({ count: '*' })
+        .whereRaw(`last_streak_risk_email_at > NOW() - INTERVAL '24 hours'`)
+        .first(),
+      db('user')
+        .count<{ count: string }>({ count: '*' })
+        .whereRaw(`last_streak_risk_email_at > NOW() - INTERVAL '7 days'`)
+        .first(),
+      db.raw<{ rows: Array<{ referrer_id: string; username: string | null; name: string; count: string }> }>(
+        `SELECT u.id AS referrer_id, u.username, u.name, COUNT(*)::text AS count
+         FROM "user" r
+         JOIN "user" u ON u.id = r.referred_by
+         WHERE r.referred_by IS NOT NULL
+         GROUP BY u.id, u.username, u.name
+         ORDER BY COUNT(*) DESC
+         LIMIT 10`
+      ),
+      db('user')
+        .max<{ last: Date | null }>({ last: 'last_streak_risk_email_at' })
+        .first(),
+    ])
+
+    const totalUsers = Number(consentTotalsRow?.total ?? 0)
+    const consentedUsers = Number(consentTotalsRow?.consented ?? 0)
+
+    res.json({
+      success: true,
+      data: {
+        referrals: {
+          claimedTotal: Number(referralTotalsRow?.count ?? 0),
+          topReferrers: topReferrers.rows.map((row) => ({
+            userId: row.referrer_id,
+            displayName: row.username ?? row.name,
+            count: Number(row.count),
+          })),
+        },
+        consent: {
+          consentedUsers,
+          totalNonGuestUsers: totalUsers,
+          ratePercent: totalUsers === 0 ? 0 : Math.round((consentedUsers / totalUsers) * 1000) / 10,
+        },
+        streakRiskEmail: {
+          sentLast24h: Number(streakEmail24hRow?.count ?? 0),
+          sentLast7d: Number(streakEmail7dRow?.count ?? 0),
+          lastSentAt: mostRecentStreakEmailRow?.last?.toISOString() ?? null,
+        },
+      },
+    })
+  } catch (error) {
     next(error)
   }
 })

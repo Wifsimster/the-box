@@ -17,6 +17,9 @@ export const env = {
   RESEND_API_KEY: process.env['RESEND_API_KEY'] || '',
   EMAIL_FROM: process.env['EMAIL_FROM'] || 'no-reply@the-box.battistella.ovh',
 
+  // Public-facing frontend URL (used in marketing email CTAs)
+  FRONTEND_URL: process.env['FRONTEND_URL'] || 'https://the-box.battistella.ovh',
+
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
 

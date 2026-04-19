@@ -767,4 +767,28 @@ export const adminApi = {
     })
     return handleResponse<{ sent: boolean; to: string }>(response)
   },
+
+  async getGrowthStats(): Promise<GrowthStats> {
+    const response = await fetch('/api/admin/growth-stats', {
+      credentials: 'include',
+    })
+    return handleResponse<GrowthStats>(response)
+  },
+}
+
+export interface GrowthStats {
+  referrals: {
+    claimedTotal: number
+    topReferrers: Array<{ userId: string; displayName: string; count: number }>
+  }
+  consent: {
+    consentedUsers: number
+    totalNonGuestUsers: number
+    ratePercent: number
+  }
+  streakRiskEmail: {
+    sentLast24h: number
+    sentLast7d: number
+    lastSentAt: string | null
+  }
 }

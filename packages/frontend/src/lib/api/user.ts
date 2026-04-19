@@ -68,6 +68,19 @@ export const userApi = {
     })
     return handleResponse<User>(response)
   },
+
+  /**
+   * Update email marketing consent (opt-in / opt-out).
+   */
+  async updateEmailConsent(consent: boolean): Promise<User> {
+    const response = await fetch('/api/user/email-consent', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consent }),
+    })
+    return handleResponse<User>(response)
+  },
 }
 
 export { UserApiError }

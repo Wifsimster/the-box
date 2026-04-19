@@ -210,6 +210,11 @@
     "subtitle": "Devinez le jeu vidéo à partir de captures d'écran. Classements en direct, succès et séries de victoires.",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
+    "guestHint": "Aucun compte requis — jouez instantanément en invité",
+    "previewBadge": "Défi du jour",
+    "previewHeading": "Pensez-vous reconnaître ce jeu ?",
+    "previewSubtitle": "Cliquez pour jouer le défi complet de 10 captures.",
+    "previewAlt": "Première capture du défi du jour",
     "multiplayerGame": "Mode Multijoueur",
     "todayCompleted": "Défi du Jour Terminé",
     "comeBackTomorrow": "Revenez demain pour un nouveau défi !",
@@ -325,6 +330,7 @@
     "sendResetLink": "Envoyer le lien",
     "noAccount": "Pas de compte ?",
     "hasAccount": "Déjà un compte ?",
+    "marketingConsent": "Je souhaite recevoir des e-mails occasionnels sur les nouveaux défis, les rappels de série et les récompenses. Vous pouvez vous désabonner à tout moment.",
     "orContinueWith": "Ou continuer avec",
     "or": "ou",
     "continueAsGuest": "Continuer en tant qu'invité",
@@ -373,7 +379,21 @@
       "games": "Jeux",
       "challenges": "Défis",
       "users": "Utilisateurs",
-      "email": "Email"
+      "email": "Email",
+      "growth": "Acquisition"
+    },
+    "growth": {
+      "loadError": "Échec du chargement des statistiques",
+      "never": "Jamais",
+      "referralsClaimed": "Parrainages validés",
+      "referralsClaimedHint": "Total des inscriptions parrainées",
+      "consentRate": "Taux d'opt-in e-mail",
+      "consentHint": "{{consented}}/{{total}} comptes (hors invités) ont accepté",
+      "streakEmails": "E-mails série (24h)",
+      "streakEmailsHint": "{{week}} sur 7 jours · dernier envoi {{last}}",
+      "topReferrers": "Meilleurs parrains",
+      "topReferrersHint": "Joueurs qui génèrent le plus d'inscriptions",
+      "noReferrers": "Aucun parrainage pour le moment."
     },
     "screenshots": "Captures d'écran",
     "addScreenshot": "Ajouter une Capture",
@@ -735,6 +755,26 @@
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
     "discordCopied": "Copié pour Discord - collez dans votre serveur !"
+  },
+  "referral": {
+    "title": "Inviter des amis",
+    "description": "Partagez votre lien d'invitation personnel. Quand un ami s'inscrit, vous recevez tous les deux des indices bonus.",
+    "copyLink": "Copier le lien",
+    "copied": "Copié !",
+    "copyError": "Échec de la copie dans le presse-papiers",
+    "stat_one": "{{count}} ami inscrit",
+    "stat_other": "{{count}} amis inscrits",
+    "claimedNote": "Vous avez été parrainé par un ami — merci !",
+    "rewardHint": "Récompense : vous recevez chacun 3 indices Année + 2 indices Éditeur."
+  },
+  "emailConsent": {
+    "title": "Préférences e-mail",
+    "description": "Contrôlez l'envoi d'e-mails marketing. Les e-mails transactionnels (compte, réinitialisation de mot de passe) sont toujours envoyés.",
+    "label": "Recevoir des e-mails occasionnels sur les nouveaux défis, les rappels de série et les récompenses.",
+    "updatedOn": "Dernière mise à jour le {{date}}",
+    "optedIn": "Vous recevrez des actualités occasionnelles — merci !",
+    "optedOut": "Vous ne recevrez plus d'e-mails marketing.",
+    "updateError": "Échec de la mise à jour. Veuillez réessayer."
   },
   "personalBests": {
     "title": "Meilleurs Scores",

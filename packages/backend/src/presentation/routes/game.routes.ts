@@ -2,14 +2,103 @@ import { Router } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { gameService, GameError } from '../../domain/services/index.js'
-import { gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
+import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
+import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+
+// Public preview is cheap to compute but the image endpoint streams
+// raw files — tighter cap for the image route, more forgiving for the
+// JSON endpoint that pages may call on every homepage view.
+const previewMetaLimiter = createRateLimiter({ windowMs: 60_000, max: 60 })
+const previewImageLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
 
 const router = Router()
 
 // Get uploads path for serving screenshot images
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
+
+// Resolve today's first easy-tier screenshot. Shared by the public
+// preview endpoints so anonymous visitors can glimpse the challenge
+// before signing up without gaining access to the rest of the set.
+async function findTodayPreviewScreenshot(): Promise<{
+  challengeDate: string
+  imageUrl: string
+  screenshotId: number
+} | null> {
+  const today = new Date().toISOString().split('T')[0]!
+  const challenge = await challengeRepository.findByDate(today)
+  if (!challenge) return null
+
+  const tier = await challengeRepository.findTierByNumber(challenge.id, 1)
+  if (!tier) return null
+
+  const entry = await challengeRepository.findScreenshotAtPosition(tier.id, 1)
+  if (!entry) return null
+
+  return {
+    challengeDate: challenge.challenge_date,
+    imageUrl: entry.image_url,
+    screenshotId: entry.screenshot_id,
+  }
+}
+
+// Public preview endpoint for the landing page teaser. Exposes only
+// today's first screenshot — never the answer, never subsequent shots.
+router.get('/preview', previewMetaLimiter, async (_req, res, next) => {
+  try {
+    const preview = await findTodayPreviewScreenshot()
+    if (!preview) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NO_CHALLENGE', message: 'No challenge available today' },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: {
+        challengeDate: preview.challengeDate,
+        imageUrl: '/api/game/preview/image',
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Public image stream paired with GET /preview. Serves exactly one file
+// (today's first screenshot), bypassing the auth-gated /image/:id route
+// so anonymous visitors can see the teaser inline.
+router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
+  try {
+    const preview = await findTodayPreviewScreenshot()
+    if (!preview) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NO_CHALLENGE', message: 'No challenge available today' },
+      })
+      return
+    }
+
+    const relativePath = preview.imageUrl.replace('/uploads/', '')
+    const filePath = path.join(uploadsPath, relativePath)
+
+    res.sendFile(
+      filePath,
+      {
+        maxAge: '10m',
+        headers: { 'Content-Type': 'image/jpeg' },
+      },
+      (err) => {
+        if (err) next(err)
+      }
+    )
+  } catch (error) {
+    next(error)
+  }
+})
 
 // Serve screenshot image by ID (proxy to hide actual file path)
 router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
