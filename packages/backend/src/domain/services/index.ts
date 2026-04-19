@@ -1,4 +1,4 @@
-export { authService, AuthError } from './auth.service.js'
+export { AuthError } from './auth.service.js'
 export { createGameService, type GameService, GameError } from './game.service.js'
 export { createLeaderboardService, type LeaderboardService } from './leaderboard.service.js'
 export { createAdminService, type AdminService } from './admin.service.js'

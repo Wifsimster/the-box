@@ -1,5 +1,5 @@
-// This file is deprecated - authentication is now handled by better-auth
-// Keeping this file for backwards compatibility during migration
+// Authentication is handled by better-auth; this module keeps the shared
+// AuthError type that domain code throws when auth invariants are violated.
 
 export class AuthError extends Error {
   constructor(
@@ -10,14 +10,4 @@ export class AuthError extends Error {
     super(message)
     this.name = 'AuthError'
   }
-}
-
-// Legacy auth service - most functionality moved to better-auth
-// Only keeping utility functions that may be used elsewhere
-export const authService = {
-  // Deprecated: Use better-auth session API instead
-  verifyToken(_token: string): { userId: string; isGuest: boolean } | null {
-    console.warn('authService.verifyToken is deprecated. Use better-auth session API.')
-    return null
-  },
 }
