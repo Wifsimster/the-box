@@ -17,6 +17,11 @@ export const env = {
   RESEND_API_KEY: process.env['RESEND_API_KEY'] || '',
   EMAIL_FROM: process.env['EMAIL_FROM'] || 'no-reply@the-box.battistella.ovh',
 
+  // Relance (re-engagement) email — kill switch + cron override.
+  // Defaults to 17:00 UTC daily, two hours before the streak-risk job.
+  RELANCE_EMAIL_ENABLED: process.env['RELANCE_EMAIL_ENABLED'] || 'true',
+  RELANCE_EMAIL_CRON: process.env['RELANCE_EMAIL_CRON'] || '0 17 * * *',
+
   // Public-facing frontend URL (used in marketing email CTAs)
   FRONTEND_URL: process.env['FRONTEND_URL'] || 'https://the-box.battistella.ovh',
 

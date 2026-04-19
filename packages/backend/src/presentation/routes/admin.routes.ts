@@ -1194,6 +1194,9 @@ router.get('/growth-stats', async (_req, res, next) => {
       streakEmail7dRow,
       topReferrers,
       mostRecentStreakEmailRow,
+      relanceEmail24hRow,
+      relanceEmail7dRow,
+      mostRecentRelanceEmailRow,
     ] = await Promise.all([
       db('user')
         .count<{ count: string }>({ count: '*' })
@@ -1226,6 +1229,17 @@ router.get('/growth-stats', async (_req, res, next) => {
       db('user')
         .max<{ last: Date | null }>({ last: 'last_streak_risk_email_at' })
         .first(),
+      db('user')
+        .count<{ count: string }>({ count: '*' })
+        .whereRaw(`last_relance_email_at > NOW() - INTERVAL '24 hours'`)
+        .first(),
+      db('user')
+        .count<{ count: string }>({ count: '*' })
+        .whereRaw(`last_relance_email_at > NOW() - INTERVAL '7 days'`)
+        .first(),
+      db('user')
+        .max<{ last: Date | null }>({ last: 'last_relance_email_at' })
+        .first(),
     ])
 
     const totalUsers = Number(consentTotalsRow?.total ?? 0)
@@ -1251,6 +1265,11 @@ router.get('/growth-stats', async (_req, res, next) => {
           sentLast24h: Number(streakEmail24hRow?.count ?? 0),
           sentLast7d: Number(streakEmail7dRow?.count ?? 0),
           lastSentAt: mostRecentStreakEmailRow?.last?.toISOString() ?? null,
+        },
+        relanceEmail: {
+          sentLast24h: Number(relanceEmail24hRow?.count ?? 0),
+          sentLast7d: Number(relanceEmail7dRow?.count ?? 0),
+          lastSentAt: mostRecentRelanceEmailRow?.last?.toISOString() ?? null,
         },
       },
     })

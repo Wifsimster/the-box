@@ -294,6 +294,7 @@ async function start(): Promise<void> {
       'cleanup-anonymous-users',
       'recalculate-scores',
       'streak-risk-email',
+      'relance-email',
     ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
@@ -390,6 +391,25 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring streak-risk-email job (daily at 19:00 UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring streak-risk-email job')
+    }
+
+    // Schedule recurring relance (re-engagement) email for users with an
+    // unclaimed daily reward (daily at 17:00 UTC ~ early evening Europe).
+    // Runs two hours before the streak-risk job and the worker's eligibility
+    // query enforces mutual exclusion so the same user never gets both
+    // marketing emails inside a single calendar day.
+    try {
+      await importQueue.add(
+        'relance-email',
+        {},
+        {
+          repeat: { pattern: env.RELANCE_EMAIL_CRON, tz: 'UTC' },
+          jobId: 'relance-email-recurring',
+        }
+      )
+      logger.info({ pattern: env.RELANCE_EMAIL_CRON }, 'scheduled recurring relance-email job')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring relance-email job')
     }
 
     // Log final repeatable jobs configuration with next run times
