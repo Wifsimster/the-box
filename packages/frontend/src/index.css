@@ -41,6 +41,13 @@
   --success: #22c55e;
   --warning: #eab308;
   --error: #ef4444;
+
+  /* Quality-tier palette for score feedback (ResultCard speed/metacritic,
+     PersonalBestsCard category accents). Semantically distinct from status:
+     score-high = excellent, score-mid = fair, score-low = low. */
+  --score-high: var(--success);
+  --score-mid: var(--warning);
+  --score-low: #f97316;
 }
 
 @theme inline {
@@ -72,6 +79,9 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
+  --color-score-high: var(--score-high);
+  --color-score-mid: var(--score-mid);
+  --color-score-low: var(--score-low);
 
   /* Border radius */
   --radius-sm: calc(var(--radius) - 4px);
@@ -96,6 +106,7 @@
   --glow-md: 0 0 20px oklch(0.7 0.25 300 / 0.4);
   --glow-lg: 0 0 30px oklch(0.7 0.25 300 / 0.5);
   --glow-success: 0 0 20px oklch(0.75 0.2 145 / 0.5);
+  --glow-warning: 0 0 20px oklch(0.8 0.15 85 / 0.5);
   --glow-error: 0 0 20px oklch(0.7 0.22 25 / 0.5);
 
   /* Neon text-shadow stack for hero titles */

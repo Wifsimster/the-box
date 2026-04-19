@@ -12,8 +12,8 @@ export function PersonalBestsCard() {
             icon: Trophy,
             label: t('personalBests.highestScore'),
             value: personalBests.highestScore,
-            color: 'text-yellow-500',
-            bgColor: 'bg-yellow-500/10',
+            color: 'text-warning',
+            bgColor: 'bg-warning/10',
         },
         {
             icon: Target,
@@ -21,8 +21,8 @@ export function PersonalBestsCard() {
             value: personalBests.bestPercentile < 100
                 ? `Top ${personalBests.bestPercentile}%`
                 : t('personalBests.noRankYet'),
-            color: 'text-blue-500',
-            bgColor: 'bg-blue-500/10',
+            color: 'text-neon-blue',
+            bgColor: 'bg-neon-blue/10',
         },
         {
             icon: Flame,
@@ -30,8 +30,8 @@ export function PersonalBestsCard() {
             value: personalBests.currentStreak > 0
                 ? `${personalBests.currentStreak} ${t('personalBests.days')}`
                 : t('personalBests.noStreakYet'),
-            color: 'text-orange-500',
-            bgColor: 'bg-orange-500/10',
+            color: 'text-score-low',
+            bgColor: 'bg-score-low/10',
         },
         {
             icon: TrendingUp,
@@ -39,8 +39,8 @@ export function PersonalBestsCard() {
             value: personalBests.longestStreak > 0
                 ? `${personalBests.longestStreak} ${t('personalBests.days')}`
                 : t('personalBests.noStreakYet'),
-            color: 'text-green-500',
-            bgColor: 'bg-green-500/10',
+            color: 'text-success',
+            bgColor: 'bg-success/10',
         },
     ]
 
@@ -53,7 +53,7 @@ export function PersonalBestsCard() {
         <Card className="bg-card/50 border-border">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <Trophy className="w-5 h-5 text-yellow-500" />
+                    <Trophy className="w-5 h-5 text-warning" />
                     {t('personalBests.title')}
                 </CardTitle>
             </CardHeader>

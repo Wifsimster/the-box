@@ -21,9 +21,9 @@ const buttonVariants = cva(
         link:
           "text-primary underline-offset-4 hover:underline",
         gaming:
-          "bg-linear-to-r from-neon-purple to-neon-pink text-white shadow-lg hover:shadow-[0_0_25px_oklch(0.7_0.25_300_/_0.5)] hover:scale-[1.03] active:scale-[0.98]",
+          "bg-linear-to-r from-neon-purple to-neon-pink text-white shadow-lg hover:shadow-[var(--glow-lg)] hover:scale-[1.03] active:scale-[0.98]",
         warning:
-          "text-orange-400 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 hover:scale-[1.02] active:scale-[0.98]",
+          "text-warning bg-warning/10 border border-warning/30 hover:bg-warning/20 hover:scale-[1.02] active:scale-[0.98]",
         hintUsed:
           "border border-warning bg-warning/20 text-warning hover:bg-warning/30 hover:scale-[1.02] active:scale-[0.98]",
         hintFree:

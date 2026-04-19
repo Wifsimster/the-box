@@ -63,6 +63,16 @@ For badges, toasts, banners, achievement states.
 
 Prefer `bg-destructive` over `bg-error` for shadcn component states that already use the destructive channel (form errors, delete confirmations). `bg-error` is reserved for custom gaming surfaces (failed guess, streak broken).
 
+## Palette — score tiers
+
+For quality feedback on scoring surfaces (result cards, metacritic chips, speed badges, personal-best stat chips). Semantically distinct from status — these are tiers on a quality scale, not success/error signals.
+
+| Token | Value | Tailwind class | When to use |
+|---|---|---|---|
+| Score High | `--score-high` = `var(--success)` | `text-score-high` / `bg-score-high` | Excellent tier: ≥75 metacritic, sub-5s guess, top personal best |
+| Score Mid | `--score-mid` = `var(--warning)` | `text-score-mid` / `bg-score-mid` | Fair tier: 50–74 metacritic, 5–15s guess |
+| Score Low | `--score-low` = `#f97316` | `text-score-low` / `bg-score-low` | Low tier: <50 metacritic, slow guess, ongoing streak accent |
+
 ## Palette — chart
 
 Exposed for potential future dashboards; not for UI chrome.
@@ -83,6 +93,7 @@ All box-shadow values in components must reference one of these tokens.
 | `--glow-md` | `0 0 20px oklch(0.7 0.25 300 / 0.4)` | Default hover on interactive cards, primary CTAs |
 | `--glow-lg` | `0 0 30px oklch(0.7 0.25 300 / 0.5)` | Tier reveal, score reveal, hero moments only |
 | `--glow-success` | `0 0 20px oklch(0.75 0.2 145 / 0.5)` | Correct-guess pulse, success input state |
+| `--glow-warning` | `0 0 20px oklch(0.8 0.15 85 / 0.5)` | Cautionary progress bars, pending warnings |
 | `--glow-error` | `0 0 20px oklch(0.7 0.22 25 / 0.5)` | Wrong-guess shake, error input state |
 | `--text-shadow-neon` | stacked neon text shadow | Hero titles (TierIntro, landing heroes) |
 
@@ -180,7 +191,23 @@ Respect `@media (prefers-reduced-motion: reduce)` — `index.css` already neutra
 3. **CVA variants, not new components.** Gaming aesthetics on top of shadcn primitives are expressed via `class-variance-authority` variants, not by forking the primitive.
 4. **Migrations go through the token layer.** When replacing custom components, fold any one-off colors/shadows into a token and deprecate the raw value.
 
-A future lint rule (planned in Sprint 4 of the shadcn migration roadmap) will enforce rules 1 and 2 at CI time via `eslint-plugin-tailwindcss` + a regex check banning raw `rgba(`, `oklch(`, and Tailwind arbitrary values for `bg-[`, `text-[`, `shadow-[` in `src/components/**`. Arbitrary values referencing a CSS variable (`shadow-[var(--glow-md)]`) remain allowed — they are token-driven.
+### Lint enforcement
+
+A local ESLint rule, `design-tokens/no-raw-design-tokens` (source: `packages/frontend/eslint-local/no-raw-design-tokens.js`), enforces the above at CI time. It flags:
+
+- **Raw color literals** — `rgba(`, `oklch(`, `hsl(`, `#RRGGBB[AA]` anywhere in source string values.
+- **Tailwind palette utilities** — `bg-red-500`, `text-amber-400`, `border-cyan-600`, `from-green-500`, etc. (all raw-hue scales outside the token layer).
+- **Arbitrary Tailwind values with raw colors** — `shadow-[0_0_20px_rgba(...)]`, `bg-[#a855f7]`. Arbitrary values that reference a CSS variable (`shadow-[var(--glow-md)]`) remain allowed.
+
+**Severity is staged** in `packages/frontend/eslint.config.js`:
+
+| Scope | Severity |
+|---|---|
+| `src/components/game/**`, `src/components/daily-login/**`, `src/components/achievement/**`, `src/components/ui/**` | **error** — blocks CI |
+| `src/**` (everything else) | **warn** — surfaces the violation but does not block |
+| `src/components/backgrounds/**`, `src/lib/animations.ts` | disabled (three.js materials + Framer Motion presets) |
+
+Each future migration sprint promotes another glob from warn → error by adding it to the first config block. Do not relax a glob back to warn once it has been promoted.
 
 ---
 

@@ -68,7 +68,7 @@ export function EndGameButton() {
             }}
             className="w-full flex items-center justify-center gap-1.5
               h-8 sm:h-9
-              bg-linear-to-r from-primary to-purple-500
+              bg-linear-to-r from-primary to-neon-purple
               text-white text-xs sm:text-sm font-semibold
               rounded-b-xl border border-t-0 border-white/10
               shadow-lg
@@ -86,7 +86,7 @@ export function EndGameButton() {
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="text-center sm:text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-purple-500/20 ring-2 ring-primary/30">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
               <Trophy className="h-8 w-8 text-primary" />
             </div>
             <DialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</DialogTitle>

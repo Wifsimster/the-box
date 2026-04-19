@@ -54,7 +54,7 @@ export function LoadingSpinner({
         className="absolute inset-1 rounded-full border-2 border-transparent border-t-neon-purple"
         animate={{ rotate: 360 }}
         transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-        style={{ boxShadow: '0 0 10px oklch(0.7 0.25 300 / 0.5)' }}
+        style={{ boxShadow: 'var(--glow-sm)' }}
       />
       {/* Center pulsing glow */}
       <motion.div
