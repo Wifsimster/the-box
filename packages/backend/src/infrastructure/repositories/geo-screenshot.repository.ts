@@ -1,0 +1,190 @@
+import type { Knex } from 'knex'
+import { db } from '../database/connection.js'
+import { repoLogger } from '../logger/logger.js'
+import type { GeoScreenshotCandidate, GeoScreenshotMeta } from '@the-box/types'
+
+const log = repoLogger.child({ repository: 'geo-screenshot' })
+
+export interface GeoScreenshotCandidateRow {
+  id: number
+  game_id: number
+  geo_map_id: number
+  screenshot_id: number | null
+  image_url: string
+  thumbnail_url: string | null
+  source: 'steam' | 'rawg' | 'manual'
+  external_id: string | null
+  status: 'pending' | 'collecting' | 'promoted' | 'rejected'
+  pin_count: number
+  created_at: Date
+}
+
+export interface GeoScreenshotMetaRow {
+  id: number
+  geo_screenshot_candidate_id: number
+  geo_map_id: number
+  canonical_x: number
+  canonical_y: number
+  confidence: number
+  consensus_version: number
+  promoted_via: 'consensus' | 'admin'
+  promoted_by: string | null
+  promoted_at: Date
+}
+
+function mapCandidate(row: GeoScreenshotCandidateRow): GeoScreenshotCandidate {
+  return {
+    id: row.id,
+    gameId: row.game_id,
+    geoMapId: row.geo_map_id,
+    screenshotId: row.screenshot_id ?? undefined,
+    imageUrl: row.image_url,
+    thumbnailUrl: row.thumbnail_url ?? undefined,
+    source: row.source,
+    externalId: row.external_id ?? undefined,
+    status: row.status,
+    pinCount: row.pin_count,
+  }
+}
+
+function mapMeta(row: GeoScreenshotMetaRow): GeoScreenshotMeta {
+  return {
+    id: row.id,
+    geoScreenshotCandidateId: row.geo_screenshot_candidate_id,
+    geoMapId: row.geo_map_id,
+    canonical: { x: row.canonical_x, y: row.canonical_y },
+    confidence: row.confidence,
+    consensusVersion: row.consensus_version,
+    promotedVia: row.promoted_via,
+  }
+}
+
+export const geoScreenshotRepository = {
+  async findCandidateById(id: number): Promise<GeoScreenshotCandidate | null> {
+    const row = await db('geo_screenshot_candidate').where({ id }).first<GeoScreenshotCandidateRow>()
+    return row ? mapCandidate(row) : null
+  },
+
+  async findRandomUnlabeledForGame(gameId: number): Promise<GeoScreenshotCandidate | null> {
+    const row = await db('geo_screenshot_candidate')
+      .where({ game_id: gameId })
+      .whereIn('status', ['pending', 'collecting'])
+      .orderByRaw('RANDOM()')
+      .first<GeoScreenshotCandidateRow>()
+    return row ? mapCandidate(row) : null
+  },
+
+  async createCandidate(data: {
+    gameId: number
+    geoMapId: number
+    screenshotId?: number
+    imageUrl: string
+    thumbnailUrl?: string
+    source: 'steam' | 'rawg' | 'manual'
+    externalId?: string
+  }): Promise<GeoScreenshotCandidate> {
+    log.info({ gameId: data.gameId, source: data.source }, 'createCandidate')
+    const [row] = await db('geo_screenshot_candidate')
+      .insert({
+        game_id: data.gameId,
+        geo_map_id: data.geoMapId,
+        screenshot_id: data.screenshotId ?? null,
+        image_url: data.imageUrl,
+        thumbnail_url: data.thumbnailUrl ?? null,
+        source: data.source,
+        external_id: data.externalId ?? null,
+      })
+      .onConflict(['source', 'external_id'])
+      .ignore()
+      .returning<GeoScreenshotCandidateRow[]>('*')
+    return mapCandidate(row!)
+  },
+
+  async incrementPinCount(candidateId: number): Promise<number> {
+    const [row] = await db('geo_screenshot_candidate')
+      .where({ id: candidateId })
+      .increment('pin_count', 1)
+      .returning<Array<{ pin_count: number }>>(['pin_count'])
+    return row?.pin_count ?? 0
+  },
+
+  async setCandidateStatus(
+    candidateId: number,
+    status: GeoScreenshotCandidateRow['status'],
+  ): Promise<void> {
+    await db('geo_screenshot_candidate').where({ id: candidateId }).update({ status })
+  },
+
+  async findMetaByCandidateId(candidateId: number): Promise<GeoScreenshotMeta | null> {
+    const row = await db('geo_screenshot_meta')
+      .where({ geo_screenshot_candidate_id: candidateId })
+      .first<GeoScreenshotMetaRow>()
+    return row ? mapMeta(row) : null
+  },
+
+  async findMetaById(id: number): Promise<GeoScreenshotMeta | null> {
+    const row = await db('geo_screenshot_meta').where({ id }).first<GeoScreenshotMetaRow>()
+    return row ? mapMeta(row) : null
+  },
+
+  async promoteCandidateToMeta(data: {
+    candidateId: number
+    geoMapId: number
+    canonicalX: number
+    canonicalY: number
+    confidence: number
+    consensusVersion: number
+    promotedVia: 'consensus' | 'admin'
+    promotedBy?: string
+  }): Promise<GeoScreenshotMeta> {
+    log.info({ candidateId: data.candidateId, via: data.promotedVia }, 'promoteCandidateToMeta')
+
+    return await db.transaction(async (trx: Knex.Transaction) => {
+      const rows = (await trx('geo_screenshot_meta')
+        .insert({
+          geo_screenshot_candidate_id: data.candidateId,
+          geo_map_id: data.geoMapId,
+          canonical_x: data.canonicalX,
+          canonical_y: data.canonicalY,
+          confidence: data.confidence,
+          consensus_version: data.consensusVersion,
+          promoted_via: data.promotedVia,
+          promoted_by: data.promotedBy ?? null,
+        })
+        .returning('*')) as GeoScreenshotMetaRow[]
+
+      await trx('geo_screenshot_candidate')
+        .where({ id: data.candidateId })
+        .update({ status: 'promoted' })
+
+      return mapMeta(rows[0]!)
+    })
+  },
+
+  async countPromotedForGame(gameId: number): Promise<number> {
+    const result = await db('geo_screenshot_meta')
+      .join(
+        'geo_screenshot_candidate',
+        'geo_screenshot_meta.geo_screenshot_candidate_id',
+        'geo_screenshot_candidate.id',
+      )
+      .where('geo_screenshot_candidate.game_id', gameId)
+      .count<{ count: string }[]>('geo_screenshot_meta.id as count')
+      .first()
+    return Number(result?.count ?? 0)
+  },
+
+  async pickRandomPromotedForGame(gameId: number): Promise<GeoScreenshotMeta | null> {
+    const row = await db('geo_screenshot_meta')
+      .join(
+        'geo_screenshot_candidate',
+        'geo_screenshot_meta.geo_screenshot_candidate_id',
+        'geo_screenshot_candidate.id',
+      )
+      .where('geo_screenshot_candidate.game_id', gameId)
+      .orderByRaw('RANDOM()')
+      .select<GeoScreenshotMetaRow>('geo_screenshot_meta.*')
+      .first()
+    return row ? mapMeta(row) : null
+  },
+}
