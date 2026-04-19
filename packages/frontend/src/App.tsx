@@ -33,6 +33,7 @@ const AdminPage = lazy(() => import('@/pages/AdminPage'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const GameHistoryDetailsPage = lazy(() => import('@/pages/GameHistoryDetailsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
 
 function LoadingSpinner() {
   return (
@@ -126,6 +127,7 @@ function App() {
           <Route path="history/:sessionId" element={<GameHistoryDetailsPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="u/:username" element={<PublicProfilePage />} />
         </Route>
 
         {/* Catch-all redirect to browser language */}

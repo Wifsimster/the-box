@@ -103,6 +103,21 @@ export const userRepository = {
       })
   },
 
+  async getStreakGraceUsedAt(userId: string): Promise<Date | null> {
+    const row = await db('user')
+      .where('id', userId)
+      .select<{ streak_grace_used_at: Date | null }>('streak_grace_used_at')
+      .first()
+    return row?.streak_grace_used_at ?? null
+  },
+
+  async markStreakGraceUsed(userId: string): Promise<void> {
+    log.info({ userId }, 'markStreakGraceUsed')
+    await db('user')
+      .where('id', userId)
+      .update({ streak_grace_used_at: new Date() })
+  },
+
   async updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<User | null> {
     log.info({ userId, avatarUrl }, 'updateAvatarUrl')
     await db('user')

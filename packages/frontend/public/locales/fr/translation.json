@@ -751,6 +751,9 @@
   "share": {
     "twitter": "Partager sur Twitter",
     "discord": "Partager sur Discord",
+    "whatsapp": "Partager sur WhatsApp",
+    "sms": "Partager par SMS",
+    "native": "Partager\u2026",
     "copyLink": "Copier dans le presse-papiers",
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
@@ -867,5 +870,25 @@
     "benefitHints": "Reçois 3 indices offerts pour ton premier défi",
     "createAccount": "Créer un compte (10 s)",
     "continueGuest": "Continuer en invité"
+  },
+  "streakRisk": {
+    "title": "Ta s\u00e9rie de {{count}} jours est en danger !",
+    "subtitle": "Joue le d\u00e9fi d\u2019aujourd\u2019hui avant minuit UTC pour la prolonger.",
+    "cta": "Jouer maintenant"
+  },
+  "publicProfile": {
+    "notFound": "Profil introuvable",
+    "notFoundDescription": "Ce joueur n\u2019existe pas ou son profil est priv\u00e9.",
+    "error": "\u00c9chec du chargement du profil",
+    "memberSince": "Membre depuis {{date}}",
+    "totalScore": "Score total",
+    "currentStreak": "S\u00e9rie en cours",
+    "longestStreak": "Plus longue s\u00e9rie",
+    "gamesPlayed": "Parties jou\u00e9es",
+    "recentGames": "Parties r\u00e9centes",
+    "badges": "Badges",
+    "badgeLabels": {
+      "ambassador": "Ambassadeur"
+    }
   }
 }

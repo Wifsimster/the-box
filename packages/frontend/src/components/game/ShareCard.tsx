@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Share2, Twitter, MessageSquare, Copy, Check } from 'lucide-react'
+import { Share2, Twitter, MessageSquare, Copy, Check, Smartphone, MessageCircle } from 'lucide-react'
 import type { GuessResult } from '@/types'
 import { toast } from '@/lib/toast'
 import { useSession } from '@/lib/auth-client'
@@ -106,6 +106,39 @@ export function ShareCard({
         })
     }
 
+    // Native share sheet (iOS/Android + desktop Safari/Edge) — opens the
+    // platform share UI so users can hit WhatsApp, Messages, Mail, etc.
+    // without us maintaining one-off buttons per app.
+    const canUseNativeShare =
+        typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+    const handleNativeShare = async () => {
+        const text = generateShareText()
+        try {
+            await navigator.share({ title: 'The Box', text })
+        } catch (err) {
+            // AbortError = user cancelled — swallow silently
+            if ((err as { name?: string })?.name !== 'AbortError') {
+                console.error('Native share failed:', err)
+            }
+        }
+    }
+
+    const handleShareWhatsApp = () => {
+        const text = generateShareText()
+        const url = `https://wa.me/?text=${encodeURIComponent(text)}`
+        window.open(url, '_blank', 'noopener,noreferrer')
+    }
+
+    const handleShareSms = () => {
+        const text = generateShareText()
+        // `sms:` has patchy body-parameter support across platforms; `?&body=`
+        // is the iOS form, `?body=` works on Android. Use `?&body=` which
+        // works on both modern iOS and Android.
+        const url = `sms:?&body=${encodeURIComponent(text)}`
+        window.location.href = url
+    }
+
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
@@ -120,6 +153,20 @@ export function ShareCard({
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 p-2">
                 <div className="flex flex-col gap-1">
+                    {canUseNativeShare && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                void handleNativeShare()
+                                setOpen(false)
+                            }}
+                            className="justify-start"
+                        >
+                            <Smartphone className="w-4 h-4 mr-2" />
+                            {t('share.native')}
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -131,6 +178,30 @@ export function ShareCard({
                     >
                         <Twitter className="w-4 h-4 mr-2" />
                         {t('share.twitter')}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            handleShareWhatsApp()
+                            setOpen(false)
+                        }}
+                        className="justify-start"
+                    >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        {t('share.whatsapp')}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            handleShareSms()
+                            setOpen(false)
+                        }}
+                        className="justify-start"
+                    >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        {t('share.sms')}
                     </Button>
                     <Button
                         variant="ghost"

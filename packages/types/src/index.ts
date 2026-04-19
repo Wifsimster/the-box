@@ -20,6 +20,25 @@ export interface User {
   emailConsentUpdatedAt?: string
 }
 
+// Minimal public profile — safe to expose to unauthenticated visitors.
+export interface PublicProfile {
+  username: string
+  displayName: string
+  avatarUrl?: string
+  createdAt: string
+  totalScore: number
+  currentStreak: number
+  longestStreak: number
+  gamesPlayed: number
+  badges: Array<{ key: string; quantity: number }>
+  recentSessions: Array<{
+    sessionId: string
+    challengeDate: string
+    totalScore: number
+    completedAt: string | null
+  }>
+}
+
 // Game catalog types
 export interface Game {
   id: number

@@ -4,6 +4,7 @@ import {
   screenshotRepository,
   userRepository,
   inventoryRepository,
+  funnelEventRepository,
 } from '../../infrastructure/repositories/index.js'
 import { db } from '../../infrastructure/database/connection.js'
 import type {
@@ -60,8 +61,15 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
   }
 }
 
+const STREAK_GRACE_COOLDOWN_DAYS = 7
+
 /**
- * Calculate and update user's play streak based on last played date
+ * Calculate and update user's play streak based on last played date.
+ *
+ * Grace period: a user who misses exactly one day (daysDiff === 2) keeps
+ * their streak if they haven't used grace in the last 7 days. This
+ * reduces churn from accidental streak breaks.
+ *
  * @param userId User ID
  * @param user Current user data (can be null/undefined)
  * @returns Updated streak values
@@ -97,6 +105,21 @@ async function calculateAndUpdateStreak(
       currentStreak += 1
       longestStreak = Math.max(currentStreak, longestStreak)
       log.info({ userId, currentStreak, longestStreak }, 'Streak continued')
+    } else if (daysDiff === 2 && currentStreak > 0) {
+      // Exactly one missed day — consume streak grace if available.
+      const lastGrace = await userRepository.getStreakGraceUsedAt(userId)
+      const graceAvailable =
+        !lastGrace ||
+        (today.getTime() - lastGrace.getTime()) / (1000 * 60 * 60 * 24) >= STREAK_GRACE_COOLDOWN_DAYS
+      if (graceAvailable) {
+        currentStreak += 1
+        longestStreak = Math.max(currentStreak, longestStreak)
+        await userRepository.markStreakGraceUsed(userId)
+        log.info({ userId, currentStreak, longestStreak }, 'Streak continued via grace (1 missed day)')
+      } else {
+        currentStreak = 1
+        log.info({ userId, daysMissed: daysDiff, lastGrace }, 'Streak reset - grace on cooldown')
+      }
     } else {
       // Missed days - reset streak
       currentStreak = 1
@@ -233,6 +256,12 @@ export const gameService = {
         isCatchUp,
       })
       log.info({ sessionId: gameSession.id, challengeId, userId, isCatchUp }, 'new game session started')
+      void funnelEventRepository.record({
+        eventName: 'session_started',
+        userId,
+        sessionId: gameSession.id,
+        payload: { challengeId, isCatchUp },
+      })
     } else {
       // Check if session is already completed
       if (gameSession.is_completed) {
@@ -387,6 +416,18 @@ export const gameService = {
       scoreEarned,
     })
 
+    void funnelEventRepository.record({
+      eventName: 'guess_submitted',
+      userId: data.userId,
+      sessionId: tierSession.game_session_id,
+      payload: {
+        position: data.position,
+        isCorrect,
+        roundTimeTakenMs: data.roundTimeTakenMs,
+        powerUpUsed: data.powerUpUsed ?? null,
+      },
+    })
+
     await sessionRepository.updateTierSession(data.tierSessionId, {
       score: newSessionScore,
       correctAnswers: tierSession.correct_answers + (isCorrect ? 1 : 0),
@@ -433,6 +474,17 @@ export const gameService = {
         },
         'game completed'
       )
+
+      void funnelEventRepository.record({
+        eventName: 'session_completed',
+        userId: data.userId,
+        sessionId: tierSession.game_session_id,
+        payload: {
+          finalScore: newTotalScore,
+          screenshotsFound: totalScreenshotsFound,
+          completionReason,
+        },
+      })
 
       // Check achievements after game completion
       let newlyEarnedAchievements: any[] = []
@@ -717,6 +769,13 @@ export const gameService = {
       },
       'game ended by user (forfeit)'
     )
+
+    void funnelEventRepository.record({
+      eventName: 'session_abandoned',
+      userId,
+      sessionId,
+      payload: { finalScore, screenshotsFound, unfoundCount },
+    })
 
     return {
       totalScore: finalScore,
