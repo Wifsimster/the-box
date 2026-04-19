@@ -1,35 +1,56 @@
 import * as React from "react"
 import { motion } from "framer-motion"
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-interface CardProps extends React.ComponentProps<"div"> {
+const cardVariants = cva(
+  "rounded-xl border bg-card text-card-foreground shadow-sm",
+  {
+    variants: {
+      variant: {
+        default: "border-border",
+        neon: "border-primary/40",
+        success: "border-success/50",
+        error: "border-error/50",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+export type CardVariant = NonNullable<VariantProps<typeof cardVariants>["variant"]>
+
+interface CardProps
+  extends React.ComponentProps<"div">,
+    VariantProps<typeof cardVariants> {
   interactive?: boolean
 }
 
-function Card({ className, interactive = false, children, ...props }: CardProps) {
-  const baseClasses = "rounded-xl border border-border bg-card text-card-foreground shadow-sm"
+function Card({
+  className,
+  interactive = false,
+  variant,
+  children,
+  ...props
+}: CardProps) {
+  const classes = cn(cardVariants({ variant }), className)
 
   if (interactive) {
-    // Extract only the props we need for motion.div to avoid type conflicts
     const { onClick, onMouseEnter, onMouseLeave, style, id } = props
     return (
       <motion.div
         data-slot="card"
+        data-variant={variant ?? "default"}
         id={id}
         style={style}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        whileHover={{
-          borderColor: 'oklch(0.7 0.25 300 / 0.4)',
-          boxShadow: '0 0 25px oklch(0.7 0.25 300 / 0.15)',
-        }}
+        whileHover={{ boxShadow: "var(--glow-md)" }}
         transition={{ duration: 0.2 }}
-        className={cn(
-          baseClasses,
-          "cursor-pointer transition-colors",
-          className
-        )}
+        className={cn(classes, "cursor-pointer transition-colors")}
       >
         {children}
       </motion.div>
@@ -39,7 +60,8 @@ function Card({ className, interactive = false, children, ...props }: CardProps)
   return (
     <div
       data-slot="card"
-      className={cn(baseClasses, className)}
+      data-variant={variant ?? "default"}
+      className={classes}
       {...props}
     >
       {children}
@@ -97,4 +119,4 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants }

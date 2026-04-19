@@ -95,6 +95,15 @@
   --glow-sm: 0 0 10px oklch(0.7 0.25 300 / 0.3);
   --glow-md: 0 0 20px oklch(0.7 0.25 300 / 0.4);
   --glow-lg: 0 0 30px oklch(0.7 0.25 300 / 0.5);
+  --glow-success: 0 0 20px oklch(0.75 0.2 145 / 0.5);
+  --glow-error: 0 0 20px oklch(0.7 0.22 25 / 0.5);
+
+  /* Neon text-shadow stack for hero titles */
+  --text-shadow-neon:
+    0 0 10px oklch(0.65 0.2 293 / 0.8),
+    0 0 20px oklch(0.65 0.2 293 / 0.6),
+    0 0 30px oklch(0.65 0.2 293 / 0.4),
+    0 0 40px oklch(0.65 0.2 293 / 0.2);
 }
 
 * {
@@ -184,6 +193,19 @@ body {
 .card-interactive:hover {
   border-color: oklch(0.7 0.25 300 / 0.5);
   box-shadow: var(--glow-md);
+}
+
+/* Neon grid backdrop (TierIntro, hero backdrops) */
+.bg-grid-neon {
+  background-image:
+    linear-gradient(oklch(0.65 0.2 293 / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.65 0.2 293 / 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Neon text-shadow utility */
+.text-shadow-neon {
+  text-shadow: var(--text-shadow-neon);
 }
 
 /* Hide scrollbar utility */

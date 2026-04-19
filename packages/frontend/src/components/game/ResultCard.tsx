@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
 import { CheckCircle, XCircle, ChevronRight, Clock, Zap, Target } from 'lucide-react'
 import { cn, calculateSpeedMultiplier } from '@/lib/utils'
@@ -195,11 +196,12 @@ export function ResultCard() {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className={cn(
-          "relative bg-card border-2 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl",
-          isCorrect ? "border-success/50" : "border-error/50"
-        )}
+        className="relative max-w-sm w-full mx-4"
       >
+        <Card
+          variant={isCorrect ? 'success' : 'error'}
+          className="relative border-2 rounded-2xl p-6 shadow-2xl"
+        >
         {/* Round Progress Badge */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -429,6 +431,7 @@ export function ResultCard() {
             {t('game.pressEnterToContinue', 'Press Enter to continue')}
           </span>
         </motion.div>
+        </Card>
       </motion.div>
     </motion.div>
   )

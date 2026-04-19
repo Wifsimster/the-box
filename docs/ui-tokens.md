@@ -82,13 +82,18 @@ All box-shadow values in components must reference one of these tokens.
 | `--glow-sm` | `0 0 10px oklch(0.7 0.25 300 / 0.3)` | Subtle focus / hover on list items |
 | `--glow-md` | `0 0 20px oklch(0.7 0.25 300 / 0.4)` | Default hover on interactive cards, primary CTAs |
 | `--glow-lg` | `0 0 30px oklch(0.7 0.25 300 / 0.5)` | Tier reveal, score reveal, hero moments only |
+| `--glow-success` | `0 0 20px oklch(0.75 0.2 145 / 0.5)` | Correct-guess pulse, success input state |
+| `--glow-error` | `0 0 20px oklch(0.7 0.22 25 / 0.5)` | Wrong-guess shake, error input state |
+| `--text-shadow-neon` | stacked neon text shadow | Hero titles (TierIntro, landing heroes) |
 
 **Utility classes already wired:**
 
 - `.glow-purple` / `.glow-pink` / `.glow-blue` — legacy fixed-hue glows. **Deprecated** in favor of `--glow-*` tokens; do not use in new code.
 - `.text-glow` — text shadow at `currentColor`. Fine to use.
+- `.text-shadow-neon` — stacked neon text shadow for hero titles.
 - `.glow-hover` — animates to `--glow-md` on hover, respects `--ease-smooth`.
 - `.card-interactive` — full interactive-card treatment (border + glow transition).
+- `.bg-grid-neon` — 50×50 neon grid backdrop for hero screens.
 
 **Shadow anti-patterns to fix during migration:**
 
@@ -175,4 +180,26 @@ Respect `@media (prefers-reduced-motion: reduce)` — `index.css` already neutra
 3. **CVA variants, not new components.** Gaming aesthetics on top of shadcn primitives are expressed via `class-variance-authority` variants, not by forking the primitive.
 4. **Migrations go through the token layer.** When replacing custom components, fold any one-off colors/shadows into a token and deprecate the raw value.
 
-A future lint rule (planned in Sprint 4 of the shadcn migration roadmap) will enforce rules 1 and 2 at CI time via `eslint-plugin-tailwindcss` + a regex check banning raw `rgba(`, `oklch(`, and Tailwind arbitrary values for `bg-[`, `text-[`, `shadow-[` in `src/components/**`.
+A future lint rule (planned in Sprint 4 of the shadcn migration roadmap) will enforce rules 1 and 2 at CI time via `eslint-plugin-tailwindcss` + a regex check banning raw `rgba(`, `oklch(`, and Tailwind arbitrary values for `bg-[`, `text-[`, `shadow-[` in `src/components/**`. Arbitrary values referencing a CSS variable (`shadow-[var(--glow-md)]`) remain allowed — they are token-driven.
+
+---
+
+## Primitive variants
+
+### `Card` (`@/components/ui/card`)
+
+Powered by `class-variance-authority`. Prefer variants over raw border/shadow classes in gaming surfaces.
+
+| `variant` | When to use |
+|---|---|
+| `default` (default) | Generic surfaces: leaderboard rows, profile cards, admin panels |
+| `neon` | Gaming accents — tier reveals, score panels, onboarding cards |
+| `success` | Correct-guess result, achievement unlocked, positive outcomes |
+| `error` | Wrong-guess result, streak broken, negative outcomes |
+
+```tsx
+<Card variant={isCorrect ? 'success' : 'error'} className="p-6">…</Card>
+<Card variant="neon" interactive>…</Card>
+```
+
+Adding new variants: update `cardVariants` in `src/components/ui/card.tsx`, document here, and prefer composition over inline overrides in consumers.
