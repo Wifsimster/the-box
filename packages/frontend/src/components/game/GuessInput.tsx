@@ -44,12 +44,28 @@ export function GuessInput() {
     availableHints,
   } = useGameStore()
 
-  // Focus input when playing
+  // Focus input when playing.
+  // `preventScroll: true` stops Android Chrome from scrolling the panorama out
+  // of view when the input becomes active.
   useEffect(() => {
     if (gamePhase === 'playing' && inputRef.current) {
-      inputRef.current.focus()
+      inputRef.current.focus({ preventScroll: true })
     }
   }, [gamePhase])
+
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+  const vibrate = (pattern: number | number[]) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate(pattern)
+      } catch {
+        // ignore unsupported
+      }
+    }
+  }
 
   const handleSubmit = async () => {
     if (isSubmitting || !query.trim()) return
@@ -66,13 +82,17 @@ export function GuessInput() {
       // Trigger animations based on result
       if (result.success) {
         if (result.isCorrect) {
-          // Green glow animation for correct guess
           setIsSuccess(true)
           setTimeout(() => setIsSuccess(false), 800)
+          vibrate(15)
         } else {
-          // Red shake animation for incorrect guess
-          setIsShaking(true)
-          setTimeout(() => setIsShaking(false), 500)
+          // Skip the shake for users who prefer reduced motion; the colour
+          // change on the border still signals the error.
+          if (!prefersReducedMotion) {
+            setIsShaking(true)
+            setTimeout(() => setIsShaking(false), 500)
+          }
+          vibrate([30, 40, 30])
         }
       }
 
@@ -230,7 +250,9 @@ export function GuessInput() {
             onKeyDown={handleKeyDown}
             placeholder={t('game.guessPlaceholder')}
             enterKeyHint="send"
-            autoCapitalize="words"
+            inputMode="text"
+            autoComplete="off"
+            autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
             className={cn(
