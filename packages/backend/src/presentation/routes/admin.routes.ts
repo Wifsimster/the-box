@@ -28,6 +28,16 @@ import {
 import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
+import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+
+// Cap even admin-triggered sends so a mistake or compromised admin
+// account can't spray mail on Resend's dime. Keyed by user id so two
+// admins don't starve each other out.
+const testEmailLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 10,
+  key: (req) => req.userId ?? req.ip ?? 'unknown',
+})
 
 const router = Router()
 
@@ -1100,7 +1110,7 @@ const testEmailSchema = z.object({
   email: z.string().email().optional(),
 })
 
-router.post('/email/test', async (req, res, next) => {
+router.post('/email/test', testEmailLimiter, async (req, res, next) => {
   try {
     const user = req.user
     const { email } = testEmailSchema.parse(req.body)

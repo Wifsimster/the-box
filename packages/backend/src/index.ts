@@ -10,6 +10,7 @@ import { auth } from './infrastructure/auth/auth.js'
 import { logger } from './infrastructure/logger/logger.js'
 import { requestLogger } from './presentation/middleware/request-logger.middleware.js'
 import { adminMiddleware } from './presentation/middleware/auth.middleware.js'
+import { createRateLimiter } from './presentation/middleware/rate-limit.middleware.js'
 import { Pool } from 'pg'
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
@@ -117,6 +118,16 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
 
 // Mount better-auth handler with error handling
 // This handles all /api/auth/* routes automatically
+//
+// Targeted rate limits go first so they short-circuit before better-auth
+// sees the request. These catch the email-triggering routes that an
+// unauthenticated attacker can hit to burn Resend quota or mail-bomb
+// arbitrary addresses. High-frequency routes like /get-session are left
+// alone — they don't send email and users hit them on every page load.
+app.use('/api/auth/forgot-password', createRateLimiter({ windowMs: 15 * 60_000, max: 5 }))
+app.use('/api/auth/send-verification-email', createRateLimiter({ windowMs: 15 * 60_000, max: 5 }))
+app.use('/api/auth/sign-up', createRateLimiter({ windowMs: 15 * 60_000, max: 10 }))
+
 app.use('/api/auth', (req, res, next) => {
   try {
     toNodeHandler(auth)(req, res).catch((error: Error) => {
