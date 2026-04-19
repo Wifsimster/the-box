@@ -1,11 +1,14 @@
-import {
-  gameRepository,
-  screenshotRepository,
-  challengeRepository,
-  sessionRepository,
-} from '../../infrastructure/repositories/index.js'
 import type { Game, Screenshot } from '@the-box/types'
 import { env } from '../../config/env.js'
+import type {
+  DomainLogger,
+  ChallengeRepository,
+  GameRepository,
+  ScreenshotRepository,
+  ScreenshotWithGameRecord,
+  SessionRepository,
+  TierRecord,
+} from '../ports/index.js'
 
 // RAWG API Types
 interface RAWGGenre {
@@ -69,71 +72,24 @@ async function fetchGameFromRawg(slug: string): Promise<RAWGGame | null> {
   return (await detailResponse.json()) as RAWGGame
 }
 
-export const adminService = {
+export interface AdminService {
   // Games
-  async getAllGames(): Promise<Game[]> {
-    return await gameRepository.findAll()
-  },
-
-  async getGamesPaginated(options: {
+  getAllGames(): Promise<Game[]>
+  getGamesPaginated(options: {
     page?: number
     limit?: number
     search?: string
     sortBy?: string
     sortOrder?: 'asc' | 'desc'
-  }): Promise<{ games: Game[]; total: number; page: number; limit: number }> {
-    return await gameRepository.findPaginated(options)
-  },
-
-  async createGame(data: Partial<Game>): Promise<Game> {
-    return await gameRepository.create(data)
-  },
-
-  async updateGame(id: number, data: Partial<Game>): Promise<Game | null> {
-    return await gameRepository.update(id, data)
-  },
-
-  async deleteGame(id: number): Promise<void> {
-    await gameRepository.delete(id)
-  },
-
-  async syncGameFromRawg(id: number): Promise<Game | null> {
-    // Get the game from database
-    const game = await gameRepository.findById(id)
-    if (!game) {
-      return null
-    }
-
-    // Fetch data from RAWG using the game's slug
-    const rawgGame = await fetchGameFromRawg(game.slug)
-    if (!rawgGame) {
-      throw new Error(`Game not found on RAWG: ${game.slug}`)
-    }
-
-    // Update game with RAWG data
-    const updatedGame = await gameRepository.update(id, {
-      developer: rawgGame.developers?.[0]?.name ?? game.developer,
-      publisher: rawgGame.publishers?.[0]?.name ?? game.publisher,
-      genres: rawgGame.genres?.map((g) => g.name) ?? game.genres,
-      platforms: rawgGame.platforms?.map((p) => p.platform.name) ?? game.platforms,
-      coverImageUrl: rawgGame.background_image ?? game.coverImageUrl,
-      releaseYear: rawgGame.released ? parseInt(rawgGame.released.slice(0, 4)) : game.releaseYear,
-      metacritic: rawgGame.metacritic ?? game.metacritic,
-    })
-
-    return updatedGame
-  },
-
+  }): Promise<{ games: Game[]; total: number; page: number; limit: number }>
+  createGame(data: Partial<Game>): Promise<Game>
+  updateGame(id: number, data: Partial<Game>): Promise<Game | null>
+  deleteGame(id: number): Promise<void>
+  syncGameFromRawg(id: number): Promise<Game | null>
   // Screenshots
-  async getAllScreenshots() {
-    return await screenshotRepository.findAll()
-  },
-
-  async getScreenshotsByGameId(gameId: number) {
-    return await screenshotRepository.findByGameId(gameId)
-  },
-
-  async createScreenshot(data: {
+  getAllScreenshots(): Promise<ScreenshotWithGameRecord[]>
+  getScreenshotsByGameId(gameId: number): Promise<Screenshot[]>
+  createScreenshot(data: {
     gameId: number
     imageUrl: string
     thumbnailUrl?: string
@@ -141,114 +97,183 @@ export const adminService = {
     haov: number
     vaov: number
     locationHint?: string
-  }): Promise<Screenshot> {
-    return await screenshotRepository.create(data)
-  },
-
+  }): Promise<Screenshot>
   // Challenges
-  async getAllChallenges() {
-    const challenges = await challengeRepository.findAll()
-
-    // Get tiers for each challenge
-    const challengeIds = challenges.map(c => c.id)
-    const tiersMap = new Map<number, Awaited<ReturnType<typeof challengeRepository.findTiersByChallenge>>>()
-
-    for (const id of challengeIds) {
-      tiersMap.set(id, await challengeRepository.findTiersByChallenge(id))
-    }
-
-    return challenges.map(challenge => ({
-      ...challenge,
-      tiers: tiersMap.get(challenge.id) ?? [],
-    }))
-  },
-
-  async createChallenge(data: {
+  getAllChallenges(): Promise<
+    Array<{ id: number; challenge_date: string; created_at: Date; tiers: TierRecord[] }>
+  >
+  createChallenge(data: {
     challengeDate: string
     screenshotIds: number[]
-  }): Promise<{ challengeId: number; date: string }> {
-    const challenge = await challengeRepository.create(data.challengeDate)
+  }): Promise<{ challengeId: number; date: string }>
+  rerollDailyChallenge(
+    date?: string,
+    minMetacritic?: number
+  ): Promise<{ challengeId: number; date: string; newScreenshotCount: number }>
+  resetMyDailySession(
+    userId: string,
+    date?: string
+  ): Promise<{ challengeId: number; date: string; deleted: boolean }>
+}
 
-    // Create single "Daily Challenge" tier
-    const tier = await challengeRepository.createTier({
-      dailyChallengeId: challenge.id,
-      tierNumber: 1,
-      name: 'Daily Challenge',
-      timeLimitSeconds: 30,
-    })
+export interface AdminServiceDeps {
+  logger: DomainLogger
+  gameRepository: GameRepository
+  screenshotRepository: ScreenshotRepository
+  challengeRepository: ChallengeRepository
+  sessionRepository: SessionRepository
+}
 
-    await challengeRepository.createTierScreenshots(tier.id, data.screenshotIds)
+export function createAdminService(deps: AdminServiceDeps): AdminService {
+  const { gameRepository, screenshotRepository, challengeRepository, sessionRepository } = deps
+  void deps.logger.child({ service: 'admin' })
 
-    return {
-      challengeId: challenge.id,
-      date: challenge.challenge_date,
-    }
-  },
+  return {
+    // Games
+    async getAllGames(): Promise<Game[]> {
+      return gameRepository.findAll()
+    },
 
-  async rerollDailyChallenge(date?: string, minMetacritic?: number): Promise<{
-    challengeId: number
-    date: string
-    newScreenshotCount: number
-  }> {
-    // Default to today's date in YYYY-MM-DD format
-    const targetDate = date ?? new Date().toISOString().split('T')[0]!
-    // Default to 85 if not provided (maintain backward compatibility)
-    const minScore = minMetacritic ?? 85
+    async getGamesPaginated(options) {
+      return gameRepository.findPaginated(options)
+    },
 
-    // 1. Find the challenge for the date
-    const challenge = await challengeRepository.findByDate(targetDate)
-    if (!challenge) {
-      throw new Error(`No challenge found for date: ${targetDate}`)
-    }
+    async createGame(data: Partial<Game>): Promise<Game> {
+      return gameRepository.create(data)
+    },
 
-    // 2. Get the tier for this challenge (there should be exactly 1)
-    const tiers = await challengeRepository.findTiersByChallenge(challenge.id)
-    if (tiers.length === 0) {
-      throw new Error(`No tier found for challenge on: ${targetDate}`)
-    }
-    const tier = tiers[0]!
+    async updateGame(id: number, data: Partial<Game>): Promise<Game | null> {
+      return gameRepository.update(id, data)
+    },
 
-    // 3. Get 10 new random screenshots (not currently used in this tier, filtered by minMetacritic)
-    const newScreenshots = await screenshotRepository.findRandomNotInTier(tier.id, 10, minScore)
-    if (newScreenshots.length < 10) {
-      throw new Error(`Not enough available screenshots. Found: ${newScreenshots.length}, needed: 10`)
-    }
+    async deleteGame(id: number): Promise<void> {
+      await gameRepository.delete(id)
+    },
 
-    // 4. Delete existing tier_screenshots
-    await challengeRepository.deleteTierScreenshots(tier.id)
+    async syncGameFromRawg(id: number): Promise<Game | null> {
+      const game = await gameRepository.findById(id)
+      if (!game) {
+        return null
+      }
 
-    // 5. Create new tier_screenshots with the new random screenshots
-    const newScreenshotIds = newScreenshots.map(s => s.id)
-    await challengeRepository.createTierScreenshots(tier.id, newScreenshotIds)
+      const rawgGame = await fetchGameFromRawg(game.slug)
+      if (!rawgGame) {
+        throw new Error(`Game not found on RAWG: ${game.slug}`)
+      }
 
-    return {
-      challengeId: challenge.id,
-      date: challenge.challenge_date,
-      newScreenshotCount: newScreenshotIds.length,
-    }
-  },
+      const updatedGame = await gameRepository.update(id, {
+        developer: rawgGame.developers?.[0]?.name ?? game.developer,
+        publisher: rawgGame.publishers?.[0]?.name ?? game.publisher,
+        genres: rawgGame.genres?.map(g => g.name) ?? game.genres,
+        platforms: rawgGame.platforms?.map(p => p.platform.name) ?? game.platforms,
+        coverImageUrl: rawgGame.background_image ?? game.coverImageUrl,
+        releaseYear: rawgGame.released
+          ? parseInt(rawgGame.released.slice(0, 4))
+          : game.releaseYear,
+        metacritic: rawgGame.metacritic ?? game.metacritic,
+      })
 
-  async resetMyDailySession(userId: string, date?: string): Promise<{
-    challengeId: number
-    date: string
-    deleted: boolean
-  }> {
-    // Default to today's date in YYYY-MM-DD format
-    const targetDate = date ?? new Date().toISOString().split('T')[0]!
+      return updatedGame
+    },
 
-    // Find the challenge for the date
-    const challenge = await challengeRepository.findByDate(targetDate)
-    if (!challenge) {
-      throw new Error(`No challenge found for date: ${targetDate}`)
-    }
+    // Screenshots
+    async getAllScreenshots() {
+      return screenshotRepository.findAll()
+    },
 
-    // Delete the user's session for this challenge
-    const deleted = await sessionRepository.deleteGameSession(userId, challenge.id)
+    async getScreenshotsByGameId(gameId: number) {
+      return screenshotRepository.findByGameId(gameId)
+    },
 
-    return {
-      challengeId: challenge.id,
-      date: challenge.challenge_date,
-      deleted,
-    }
-  },
+    async createScreenshot(data): Promise<Screenshot> {
+      return screenshotRepository.create(data)
+    },
+
+    // Challenges
+    async getAllChallenges() {
+      const challenges = await challengeRepository.findAll()
+
+      const challengeIds = challenges.map(c => c.id)
+      const tiersMap = new Map<number, TierRecord[]>()
+
+      for (const id of challengeIds) {
+        tiersMap.set(id, await challengeRepository.findTiersByChallenge(id))
+      }
+
+      return challenges.map(challenge => ({
+        ...challenge,
+        tiers: tiersMap.get(challenge.id) ?? [],
+      }))
+    },
+
+    async createChallenge(data) {
+      const challenge = await challengeRepository.create(data.challengeDate)
+
+      // Create single "Daily Challenge" tier
+      const tier = await challengeRepository.createTier({
+        dailyChallengeId: challenge.id,
+        tierNumber: 1,
+        name: 'Daily Challenge',
+        timeLimitSeconds: 30,
+      })
+
+      await challengeRepository.createTierScreenshots(tier.id, data.screenshotIds)
+
+      return {
+        challengeId: challenge.id,
+        date: challenge.challenge_date,
+      }
+    },
+
+    async rerollDailyChallenge(date?: string, minMetacritic?: number) {
+      const targetDate = date ?? new Date().toISOString().split('T')[0]!
+      const minScore = minMetacritic ?? 85
+
+      const challenge = await challengeRepository.findByDate(targetDate)
+      if (!challenge) {
+        throw new Error(`No challenge found for date: ${targetDate}`)
+      }
+
+      const tiers = await challengeRepository.findTiersByChallenge(challenge.id)
+      if (tiers.length === 0) {
+        throw new Error(`No tier found for challenge on: ${targetDate}`)
+      }
+      const tier = tiers[0]!
+
+      const newScreenshots = await screenshotRepository.findRandomNotInTier(tier.id, 10, minScore)
+      if (newScreenshots.length < 10) {
+        throw new Error(
+          `Not enough available screenshots. Found: ${newScreenshots.length}, needed: 10`
+        )
+      }
+
+      await challengeRepository.deleteTierScreenshots(tier.id)
+
+      const newScreenshotIds = newScreenshots.map(s => s.id)
+      await challengeRepository.createTierScreenshots(tier.id, newScreenshotIds)
+
+      return {
+        challengeId: challenge.id,
+        date: challenge.challenge_date,
+        newScreenshotCount: newScreenshotIds.length,
+      }
+    },
+
+    async resetMyDailySession(userId: string, date?: string) {
+      const targetDate = date ?? new Date().toISOString().split('T')[0]!
+
+      const challenge = await challengeRepository.findByDate(targetDate)
+      if (!challenge) {
+        throw new Error(`No challenge found for date: ${targetDate}`)
+      }
+
+      const deleted = await sessionRepository.deleteGameSession(userId, challenge.id)
+
+      return {
+        challengeId: challenge.id,
+        date: challenge.challenge_date,
+        deleted,
+      }
+    },
+  }
 }

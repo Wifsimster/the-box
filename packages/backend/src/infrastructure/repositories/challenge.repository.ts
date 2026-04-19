@@ -1,4 +1,6 @@
 import { db } from '../database/connection.js'
+import type { Game, Screenshot } from '@the-box/types'
+import type { TierScreenshotWithGame } from '../../domain/ports/repositories.js'
 
 export interface ChallengeRow {
   id: number
@@ -127,6 +129,117 @@ export const challengeRepository = {
     `, [cutoffStr])
 
     return rows.rows
+  },
+
+  async findTierScreenshots(
+    tierId: number
+  ): Promise<Array<{ position: number; screenshot: Screenshot }>> {
+    const rows = await db('tier_screenshots')
+      .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
+      .where('tier_screenshots.tier_id', tierId)
+      .select<
+        Array<{
+          position: number
+          screenshot_id: number
+          image_url: string
+          thumbnail_url: string | null
+          difficulty: number
+          location_hint: string | null
+          game_id: number
+        }>
+      >(
+        'tier_screenshots.position',
+        'screenshots.id as screenshot_id',
+        'screenshots.image_url',
+        'screenshots.thumbnail_url',
+        'screenshots.difficulty',
+        'screenshots.location_hint',
+        'screenshots.game_id'
+      )
+      .orderBy('tier_screenshots.position', 'asc')
+
+    return rows.map(row => ({
+      position: row.position,
+      screenshot: {
+        id: row.screenshot_id,
+        gameId: row.game_id,
+        imageUrl: row.image_url,
+        thumbnailUrl: row.thumbnail_url ?? undefined,
+        difficulty: row.difficulty as 1 | 2 | 3,
+        locationHint: row.location_hint ?? undefined,
+      },
+    }))
+  },
+
+  async findTierScreenshotsWithGames(
+    tierId: number,
+    positions: number[]
+  ): Promise<TierScreenshotWithGame[]> {
+    if (positions.length === 0) return []
+    const rows = await db('tier_screenshots')
+      .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
+      .join('games', 'screenshots.game_id', 'games.id')
+      .where('tier_screenshots.tier_id', tierId)
+      .whereIn('tier_screenshots.position', positions)
+      .select<
+        Array<{
+          position: number
+          screenshot_id: number
+          image_url: string
+          thumbnail_url: string | null
+          difficulty: number
+          location_hint: string | null
+          screenshot_game_id: number
+          game_id: number
+          game_name: string
+          game_slug: string
+          cover_image_url: string | null
+          release_year: number | null
+          developer: string | null
+          publisher: string | null
+          metacritic: number | null
+        }>
+      >(
+        'tier_screenshots.position',
+        'screenshots.id as screenshot_id',
+        'screenshots.image_url',
+        'screenshots.thumbnail_url',
+        'screenshots.difficulty',
+        'screenshots.location_hint',
+        'screenshots.game_id as screenshot_game_id',
+        'games.id as game_id',
+        'games.name as game_name',
+        'games.slug as game_slug',
+        'games.cover_image_url',
+        'games.release_year',
+        'games.developer',
+        'games.publisher',
+        'games.metacritic'
+      )
+      .orderBy('tier_screenshots.position', 'asc')
+
+    return rows.map(row => {
+      const game: Game = {
+        id: row.game_id,
+        name: row.game_name,
+        slug: row.game_slug,
+        aliases: [],
+        coverImageUrl: row.cover_image_url ?? undefined,
+        releaseYear: row.release_year ?? undefined,
+        developer: row.developer ?? undefined,
+        publisher: row.publisher ?? undefined,
+        metacritic: row.metacritic ?? undefined,
+      }
+      const screenshot: Screenshot = {
+        id: row.screenshot_id,
+        gameId: row.screenshot_game_id,
+        imageUrl: row.image_url,
+        thumbnailUrl: row.thumbnail_url ?? undefined,
+        difficulty: row.difficulty as 1 | 2 | 3,
+        locationHint: row.location_hint ?? undefined,
+      }
+      return { position: row.position, screenshot, game }
+    })
   },
 }
 

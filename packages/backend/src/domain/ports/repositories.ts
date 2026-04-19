@@ -24,6 +24,18 @@ import type {
 
 // ---------- User ----------
 
+export interface ReferralUserInfo {
+  id: string
+  email: string
+  referredBy: string | null
+  referralClaimedAt: Date | null
+}
+
+export interface ReferralIdentity {
+  id: string
+  email: string
+}
+
 export interface UserRepository {
   findById(id: string): Promise<User | null>
   findByEmail(email: string): Promise<User | null>
@@ -33,6 +45,16 @@ export interface UserRepository {
   updateStreak(userId: string, currentStreak: number, longestStreak: number): Promise<void>
   updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<User | null>
   updateEmailMarketingConsent(userId: string, consent: boolean): Promise<User | null>
+  // Referral-related user queries (operate on the user table only)
+  getReferralInfo(userId: string): Promise<ReferralUserInfo | null>
+  getReferralIdentity(userId: string): Promise<ReferralIdentity | null>
+  /**
+   * Atomically link a referee to a referrer only if the referee has no
+   * existing `referred_by` value. Returns true if a row was updated.
+   */
+  linkReferral(refereeId: string, referrerId: string, claimedAt: Date): Promise<boolean>
+  countReferralsMade(referrerId: string): Promise<number>
+  getCurrentStreak(userId: string): Promise<number>
 }
 
 // ---------- Game ----------
@@ -227,42 +249,12 @@ export interface ScreenshotRepository {
 
 // ---------- Achievement ----------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface AchievementRecord {
-  id: number
-  key: string
-  name: string
-  description: string | null
-  category: string
-  icon_url: string | null
-  points: number
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  criteria: Record<string, any> | null
-  tier: number
-  is_hidden: boolean
-  created_at: Date
-}
-
-export interface UserAchievementRecord {
-  id: number
-  user_id: string
-  achievement_id: number
-  earned_at: Date
-  progress: number
-  progress_max: number | null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any> | null
-}
-
-export interface UserAchievementWithDetailsRecord extends UserAchievementRecord {
-  achievement_key: string
-  achievement_name: string
-  achievement_description: string | null
-  achievement_category: string
-  achievement_icon_url: string | null
-  achievement_points: number
-  achievement_tier: number
-}
+import type {
+  AchievementRow as AchievementRecord,
+  UserAchievementRow as UserAchievementRecord,
+  UserAchievementWithDetails as UserAchievementWithDetailsRecord,
+} from '../types/achievement.types.js'
+export type { AchievementRecord, UserAchievementRecord, UserAchievementWithDetailsRecord }
 
 export interface AchievementLeaderboardEntry {
   userId: string
@@ -303,6 +295,33 @@ export interface AchievementRepository {
     byTier: Record<number, number>
   }>
   getLeaderboard(limit?: number): Promise<AchievementLeaderboardEntry[]>
+  // ---- Aggregations used by the domain service ----
+  countCompletedGameSessions(userId: string): Promise<number>
+  countStartedGameSessions(userId: string): Promise<number>
+  countAllGuesses(userId: string): Promise<number>
+  countCorrectGuesses(userId: string): Promise<number>
+  countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number>
+  countHintFreeCompletedGames(userId: string): Promise<number>
+  countGenreCorrectGuesses(userId: string, genre: string): Promise<number>
+  /**
+   * Returns the most recent guesses for a user (newest first), up to `limit`.
+   * Only `isCorrect` and `createdAt` are exposed; used to detect streaks of
+   * consecutive correct guesses across all games.
+   */
+  findRecentGuessCorrectness(
+    userId: string,
+    limit: number
+  ): Promise<Array<{ isCorrect: boolean; createdAt: Date }>>
+  /**
+   * Returns user ids for a challenge ordered by total_score DESC. Used to
+   * compute a user's leaderboard rank.
+   */
+  findChallengeUserRanking(challengeId: number): Promise<Array<{ userId: string }>>
+  /**
+   * Returns the user's best (lowest) rank across all their completed
+   * challenges. Returns null if the user has no completed challenges.
+   */
+  getUserBestChallengeRank(userId: string): Promise<number | null>
 }
 
 // ---------- Daily Login ----------
@@ -411,6 +430,12 @@ export interface TierScreenshotRecord {
   image_url: string
 }
 
+export interface TierScreenshotWithGame {
+  position: number
+  screenshot: Screenshot
+  game: Game
+}
+
 export interface ChallengeRepository {
   findById(id: number): Promise<ChallengeRecord | null>
   findByDate(date: string): Promise<ChallengeRecord | null>
@@ -432,6 +457,21 @@ export interface ChallengeRepository {
   createTierScreenshots(tierId: number, screenshotIds: number[]): Promise<void>
   deleteTierScreenshots(tierId: number): Promise<number>
   findRecentChallenges(days: number): Promise<ChallengeRecord[]>
+  /**
+   * Returns every position in a tier with its screenshot shape only
+   * (no game info). Used by session-detail views to render already-played
+   * screenshots regardless of guess outcome.
+   */
+  findTierScreenshots(tierId: number): Promise<Array<{ position: number; screenshot: Screenshot }>>
+  /**
+   * Returns position + screenshot + full game for the given positions
+   * in a tier. Used when the caller needs to show the answer (i.e. unfound
+   * positions in a completed session).
+   */
+  findTierScreenshotsWithGames(
+    tierId: number,
+    positions: number[]
+  ): Promise<TierScreenshotWithGame[]>
 }
 
 // ---------- Import State ----------

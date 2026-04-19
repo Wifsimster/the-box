@@ -1,6 +1,10 @@
 import { db } from '../database/connection.js'
 import type { User } from '@the-box/types'
 import { repoLogger } from '../logger/logger.js'
+import type {
+  ReferralIdentity,
+  ReferralUserInfo,
+} from '../../domain/ports/repositories.js'
 
 const log = repoLogger.child({ repository: 'user' })
 
@@ -124,6 +128,67 @@ export const userRepository = {
         updatedAt: new Date(),
       })
     return this.findById(userId)
+  },
+
+  async getReferralInfo(userId: string): Promise<ReferralUserInfo | null> {
+    log.debug({ userId }, 'getReferralInfo')
+    const row = await db('user')
+      .where('id', userId)
+      .first<{
+        id: string
+        email: string
+        referred_by: string | null
+        referral_claimed_at: Date | null
+      }>('id', 'email', 'referred_by', 'referral_claimed_at')
+    if (!row) return null
+    return {
+      id: row.id,
+      email: row.email,
+      referredBy: row.referred_by,
+      referralClaimedAt: row.referral_claimed_at,
+    }
+  },
+
+  async getReferralIdentity(userId: string): Promise<ReferralIdentity | null> {
+    log.debug({ userId }, 'getReferralIdentity')
+    const row = await db('user')
+      .where('id', userId)
+      .first<{ id: string; email: string }>('id', 'email')
+    if (!row) return null
+    return { id: row.id, email: row.email }
+  },
+
+  async linkReferral(
+    refereeId: string,
+    referrerId: string,
+    claimedAt: Date
+  ): Promise<boolean> {
+    log.info({ refereeId, referrerId }, 'linkReferral')
+    const updated = await db('user')
+      .where('id', refereeId)
+      .whereNull('referred_by')
+      .update({
+        referred_by: referrerId,
+        referral_claimed_at: claimedAt,
+      })
+    return updated > 0
+  },
+
+  async countReferralsMade(referrerId: string): Promise<number> {
+    log.debug({ referrerId }, 'countReferralsMade')
+    const row = await db('user')
+      .where('referred_by', referrerId)
+      .count<{ count: string }>({ count: '*' })
+      .first()
+    return Number(row?.count ?? 0)
+  },
+
+  async getCurrentStreak(userId: string): Promise<number> {
+    log.debug({ userId }, 'getCurrentStreak')
+    const row = await db('user')
+      .where('id', userId)
+      .first<{ current_streak: number | null }>('current_streak')
+    return Number(row?.current_streak ?? 0)
   },
 }
 
