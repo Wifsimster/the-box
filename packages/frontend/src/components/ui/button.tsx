@@ -13,7 +13,7 @@ const buttonVariants = cva(
         destructive:
           "bg-error text-white shadow-sm hover:bg-error/90 hover:scale-[1.02] active:scale-[0.98]",
         outline:
-          "border border-border bg-transparent hover:bg-muted hover:text-foreground hover:border-purple-500/30 hover:scale-[1.02] active:scale-[0.98]",
+          "border border-border bg-transparent hover:bg-muted hover:text-foreground hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98]",
         secondary:
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 hover:scale-[1.02] active:scale-[0.98]",
         ghost:
@@ -25,17 +25,17 @@ const buttonVariants = cva(
         warning:
           "text-orange-400 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 hover:scale-[1.02] active:scale-[0.98]",
         hintUsed:
-          "border border-yellow-500 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 hover:scale-[1.02] active:scale-[0.98]",
+          "border border-warning bg-warning/20 text-warning hover:bg-warning/30 hover:scale-[1.02] active:scale-[0.98]",
         hintFree:
-          "border border-green-500/50 bg-transparent hover:border-green-500 hover:bg-muted hover:text-foreground hover:scale-[1.02] active:scale-[0.98]",
+          "border border-success/50 bg-transparent hover:border-success hover:bg-muted hover:text-foreground hover:scale-[1.02] active:scale-[0.98]",
         ban:
-          "hover:bg-orange-500/20 hover:text-orange-300 active:scale-[0.98]",
+          "hover:bg-warning/20 hover:text-warning active:scale-[0.98]",
         unban:
-          "hover:bg-green-500/20 hover:text-green-300 active:scale-[0.98]",
+          "hover:bg-success/20 hover:text-success active:scale-[0.98]",
         dangerGhost:
-          "text-destructive hover:bg-red-500/20 hover:text-destructive active:scale-[0.98]",
+          "text-destructive hover:bg-destructive/20 hover:text-destructive active:scale-[0.98]",
         overlay:
-          "bg-black/50 text-white hover:bg-black/70 active:scale-[0.98]",
+          "bg-background/60 text-foreground backdrop-blur-sm hover:bg-background/80 active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",

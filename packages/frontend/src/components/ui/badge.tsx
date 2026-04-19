@@ -15,13 +15,13 @@ const badgeVariants = cva(
           "border-transparent bg-error text-white hover:bg-error/80",
         outline: "text-foreground",
         success:
-          "border-green-500/30 bg-green-500/20 text-green-400",
+          "border-success/30 bg-success/20 text-success",
         warning:
-          "border-yellow-500/30 bg-yellow-500/20 text-yellow-400",
+          "border-warning/30 bg-warning/20 text-warning",
         info:
-          "border-blue-500/30 bg-blue-500/20 text-blue-400",
+          "border-neon-blue/30 bg-neon-blue/20 text-neon-blue",
         admin:
-          "border-red-500 bg-transparent text-red-400 rounded-md",
+          "border-destructive bg-transparent text-destructive rounded-md",
       },
     },
     defaultVariants: {

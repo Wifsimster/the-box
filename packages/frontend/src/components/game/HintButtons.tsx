@@ -105,12 +105,12 @@ export function HintButtons() {
           disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing'}
           className="relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300"
         >
-          <Calendar className={cn('h-4 w-4 transition-colors duration-300', hintYearUsed && 'text-yellow-400')} />
+          <Calendar className={cn('h-4 w-4 transition-colors duration-300', hintYearUsed && 'text-warning')} />
           {!hintYearUsed && hasIncorrectGuess && yearAvailable && (
             yearHintsInInventory > 0 ? (
               <Badge
-                variant="outline"
-                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold bg-green-500/20 border-green-500 text-green-400"
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {yearHintsInInventory}
               </Badge>
@@ -144,12 +144,12 @@ export function HintButtons() {
           disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing'}
           className="relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300"
         >
-          <Building2 className={cn('h-4 w-4 transition-colors duration-300', hintPublisherUsed && 'text-yellow-400')} />
+          <Building2 className={cn('h-4 w-4 transition-colors duration-300', hintPublisherUsed && 'text-warning')} />
           {!hintPublisherUsed && hasIncorrectGuess && publisherAvailable && (
             publisherHintsInInventory > 0 ? (
               <Badge
-                variant="outline"
-                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold bg-green-500/20 border-green-500 text-green-400"
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {publisherHintsInInventory}
               </Badge>
@@ -183,12 +183,12 @@ export function HintButtons() {
           disabled={!hasIncorrectGuess || hintDeveloperUsed || !developerAvailable || gamePhase !== 'playing'}
           className="relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300"
         >
-          <Code2 className={cn('h-4 w-4 transition-colors duration-300', hintDeveloperUsed && 'text-yellow-400')} />
+          <Code2 className={cn('h-4 w-4 transition-colors duration-300', hintDeveloperUsed && 'text-warning')} />
           {!hintDeveloperUsed && hasIncorrectGuess && developerAvailable && (
             developerHintsInInventory > 0 ? (
               <Badge
-                variant="outline"
-                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold bg-green-500/20 border-green-500 text-green-400"
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {developerHintsInInventory}
               </Badge>
