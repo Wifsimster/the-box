@@ -1,8 +1,14 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import { referralService, ReferralError } from '../../domain/services/index.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
+import { validateBody } from '../middleware/validation.middleware.js'
 
 const router = Router()
+
+const claimReferralSchema = z.object({
+  code: z.string().trim().min(1),
+})
 
 /**
  * POST /api/referral/claim
@@ -10,16 +16,9 @@ const router = Router()
  * Grants referral power-up rewards to both the referee (caller) and
  * the referrer identified by `code`. One-shot per account.
  */
-router.post('/claim', authMiddleware, async (req, res, next) => {
+router.post('/claim', authMiddleware, validateBody(claimReferralSchema), async (req, res, next) => {
   try {
-    const { code } = req.body ?? {}
-
-    if (typeof code !== 'string' || code.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_CODE', message: 'Referral code is required' },
-      })
-    }
+    const { code } = req.body as z.infer<typeof claimReferralSchema>
 
     const result = await referralService.claim(req.userId!, code)
 

@@ -14,9 +14,12 @@ import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
+import { logger } from '../infrastructure/logger/logger.js'
 
 // Load environment variables
 dotenv.config()
+
+const log = logger.child({ module: 'screenshot-fetcher' })
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..', '..')
@@ -119,7 +122,7 @@ class RateLimiter {
     if (this.requests.length >= this.maxRequests) {
       const oldestRequest = this.requests[0]!
       const waitTime = this.windowMs - (now - oldestRequest) + 100
-      console.log(`Rate limit reached. Waiting ${Math.round(waitTime / 1000)}s...`)
+      log.warn({ waitMs: waitTime }, 'rate limit reached; waiting')
       await sleep(waitTime)
     }
 
@@ -161,7 +164,7 @@ class RAWGClient {
 
     if (!response.ok) {
       if (response.status === 429) {
-        console.log('Rate limited by RAWG. Waiting 60s...')
+        log.warn('rate limited by RAWG; waiting 60s')
         await sleep(60000)
         return this.fetch(endpoint, params)
       }
@@ -214,7 +217,7 @@ async function downloadImage(url: string, outputPath: string, retries: number = 
       return true
     } catch (error) {
       if (attempt === retries - 1) {
-        console.error(`\nFailed to download ${url}: ${error}`)
+        log.error({ url, err: String(error) }, 'failed to download image')
         return false
       }
       await sleep(1000 * Math.pow(2, attempt)) // Exponential backoff
@@ -239,7 +242,7 @@ async function fetchGamesFromRAWG(
   let page = 1
   let screenshotIndex = 0
 
-  console.log(`Fetching ${targetCount} games from RAWG API...`)
+  log.info({ targetCount }, 'fetching games from RAWG API')
 
   while (games.length < targetCount) {
     showProgress(games.length, targetCount, `Fetching page ${page}...`)
@@ -301,13 +304,13 @@ async function fetchGamesFromRAWG(
     }
 
     if (!response.next) {
-      console.log('\nReached end of RAWG results')
+      log.info('reached end of RAWG results')
       break
     }
     page++
   }
 
-  console.log(`\nFetched ${games.length} games with ${screenshots.length} screenshots`)
+  log.info({ games: games.length, screenshots: screenshots.length }, 'fetch complete')
   return { games, screenshots }
 }
 
@@ -332,7 +335,7 @@ async function saveData(games: GameData[], screenshots: ScreenshotData[]): Promi
   // Save screenshots.json
   await fs.writeFile(path.join(DATA_DIR, 'screenshots.json'), JSON.stringify(screenshots, null, 2))
 
-  console.log(`Saved data to ${DATA_DIR}`)
+  log.info({ dir: DATA_DIR }, 'saved data')
 }
 
 async function downloadAllScreenshots(): Promise<void> {
@@ -342,7 +345,7 @@ async function downloadAllScreenshots(): Promise<void> {
     const data = await fs.readFile(screenshotsPath, 'utf-8')
     const screenshots: ScreenshotData[] = JSON.parse(data)
 
-    console.log(`Downloading ${screenshots.length} screenshots...`)
+    log.info({ count: screenshots.length }, 'downloading screenshots')
     await fs.mkdir(UPLOADS_DIR, { recursive: true })
 
     let downloaded = 0
@@ -368,10 +371,10 @@ async function downloadAllScreenshots(): Promise<void> {
       await sleep(100)
     }
 
-    console.log(`\nDownloaded ${downloaded} screenshots, ${failed} failed`)
+    log.info({ downloaded, failed }, 'downloads complete')
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      console.error('No screenshots.json found. Run "fetch" command first.')
+      log.error('no screenshots.json found; run "fetch" command first')
     } else {
       throw error
     }
@@ -398,29 +401,30 @@ async function main(): Promise<void> {
 
   switch (command) {
     case 'fetch': {
-      console.log(`\nFetching ${targetGames} games with ${screenshotsPerGame} screenshots each...`)
+      log.info({ targetGames, screenshotsPerGame }, 'starting fetch')
       const { games, screenshots } = await fetchGamesFromRAWG(targetGames, screenshotsPerGame)
       await saveData(games, screenshots)
       break
     }
 
     case 'download': {
-      console.log('\nDownloading screenshots...')
+      log.info('starting download')
       await downloadAllScreenshots()
       break
     }
 
     case 'all': {
-      console.log(`\nRunning full pipeline: ${targetGames} games, ${screenshotsPerGame} screenshots each...`)
+      log.info({ targetGames, screenshotsPerGame }, 'starting full pipeline')
       const { games, screenshots } = await fetchGamesFromRAWG(targetGames, screenshotsPerGame)
       await saveData(games, screenshots)
-      console.log('\nStarting downloads...')
+      log.info('starting downloads')
       await downloadAllScreenshots()
       break
     }
 
     default:
-      console.log(`
+      // Help text is CLI UX output, not an application log — write directly.
+      process.stdout.write(`
 Screenshot Fetcher CLI
 
 Usage:
@@ -448,6 +452,6 @@ Environment:
 }
 
 main().catch((error) => {
-  console.error('Error:', error)
+  log.error({ err: error }, 'screenshot-fetcher failed')
   process.exit(1)
 })

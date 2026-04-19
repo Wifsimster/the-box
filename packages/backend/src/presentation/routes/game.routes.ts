@@ -1,10 +1,26 @@
 import { Router } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { z } from 'zod'
 import { gameService, GameError } from '../../domain/services/index.js'
 import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+import { validateBody } from '../middleware/validation.middleware.js'
+
+const submitGuessSchema = z.object({
+  tierSessionId: z.string().min(1),
+  screenshotId: z.number().int().positive(),
+  position: z.number().int().nonnegative(),
+  gameId: z.number().int().positive().nullable(),
+  guessText: z.string(),
+  roundTimeTakenMs: z.number().int().nonnegative().optional(),
+  powerUpUsed: z.enum(['hint_year', 'hint_publisher']).optional(),
+})
+
+const endGameSchema = z.object({
+  sessionId: z.string().min(1),
+})
 
 // Public preview is cheap to compute but the image endpoint streams
 // raw files — tighter cap for the image route, more forgiving for the
@@ -215,9 +231,10 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
 })
 
 // Submit a guess
-router.post('/guess', authMiddleware, async (req, res, next) => {
+router.post('/guess', authMiddleware, validateBody(submitGuessSchema), async (req, res, next) => {
   try {
-    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs, powerUpUsed } = req.body
+    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs, powerUpUsed } =
+      req.body as z.infer<typeof submitGuessSchema>
 
     const data = await gameService.submitGuess({
       tierSessionId,
@@ -225,7 +242,7 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
       position,
       gameId,
       guessText,
-      roundTimeTakenMs: roundTimeTakenMs || 0, // Fallback for backward compatibility
+      roundTimeTakenMs: roundTimeTakenMs ?? 0, // Fallback for backward compatibility
       userId: req.userId!,
       powerUpUsed,
     })
@@ -247,17 +264,9 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
 })
 
 // End game early (forfeit)
-router.post('/end', authMiddleware, async (req, res, next) => {
+router.post('/end', authMiddleware, validateBody(endGameSchema), async (req, res, next) => {
   try {
-    const { sessionId } = req.body
-
-    if (!sessionId) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'MISSING_PARAMS', message: 'sessionId required' },
-      })
-      return
-    }
+    const { sessionId } = req.body as z.infer<typeof endGameSchema>
 
     const data = await gameService.endGame(sessionId, req.userId!)
 

@@ -1,11 +1,17 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import { userService } from '../../domain/services/index.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
+import { validateBody } from '../middleware/validation.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { db } from '../../infrastructure/database/connection.js'
 import type { PublicProfile } from '@the-box/types'
+
+const emailConsentSchema = z.object({
+  consent: z.boolean(),
+})
 
 const router = Router()
 
@@ -182,15 +188,9 @@ router.post('/avatar', authMiddleware, avatarUpload.single('avatar'), async (req
 
 // Update email marketing consent. Opt-in only — the checkbox on
 // signup/settings posts here to record the user's explicit choice.
-router.put('/email-consent', authMiddleware, async (req, res, next) => {
+router.put('/email-consent', authMiddleware, validateBody(emailConsentSchema), async (req, res, next) => {
   try {
-    const { consent } = req.body ?? {}
-    if (typeof consent !== 'boolean') {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_CONSENT', message: 'consent must be a boolean' },
-      })
-    }
+    const { consent } = req.body as z.infer<typeof emailConsentSchema>
 
     const updated = await userRepository.updateEmailMarketingConsent(req.userId!, consent)
     if (!updated) {
