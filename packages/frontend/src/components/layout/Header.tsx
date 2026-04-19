@@ -21,6 +21,7 @@ import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown } from
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
+import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
 
 interface NavigationLinksProps {
   isMobile?: boolean
@@ -251,6 +252,7 @@ export function Header() {
           )}
         </div>
       </div>
+      <KoeSupportWidget />
     </header>
   )
 }
