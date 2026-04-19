@@ -216,3 +216,16 @@ Adding new variants: update `cardVariants` in `src/components/ui/card.tsx`, docu
 | `neon` | Gaming hype moments — streak-risk banner, limited-time nudges (neon-pink/purple gradient) |
 
 Use `AlertTitle` + `AlertDescription` for structure; the banner must still render a visible title for a11y even when the title doubles as the main copy.
+
+### Toasts (`@/components/ui/sonner` + `@/lib/toast`)
+
+Toasts are powered by `sonner`. The themed `<Toaster />` is mounted once in `App.tsx`. Two call styles are supported:
+
+1. **Simple text toasts** via the existing `@/lib/toast` shim:
+   ```ts
+   import { toast } from '@/lib/toast'
+   toast.success(t('admin.games.messages.saved'))
+   ```
+2. **Rich custom toasts** — use `sonner.toast.custom((id) => <Body …/>)` directly. See `showAchievementToast` in `@/components/achievement` for the canonical gaming-styled example (Card + CVA variant + framer-motion).
+
+The previous `ToastContainer` in `@/components/ui/toast-container` has been removed. Do not reintroduce parallel toast systems — all notifications must flow through sonner so styling stays token-driven.

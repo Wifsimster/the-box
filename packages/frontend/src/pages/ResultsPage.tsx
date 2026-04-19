@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
-import { AchievementNotificationContainer } from '@/components/achievement'
+import { showAchievementToast } from '@/components/achievement'
 import { Trophy, Home, CheckCircle, XCircle, Award, Clock } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
@@ -16,7 +16,6 @@ import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { calculateSpeedMultiplier } from '@/lib/utils'
 import { useEffect, useRef } from 'react'
-import { toast } from '@/lib/toast'
 import { playAchievementSound } from '@/lib/audio'
 
 export default function ResultsPage() {
@@ -42,30 +41,26 @@ export default function ResultsPage() {
   // Track if we've already shown toasts for these achievements
   const shownToastsRef = useRef<Set<string>>(new Set())
 
-  // Show toasts and play sound for newly unlocked achievements
+  // Show rich achievement toasts and play sound for newly unlocked achievements
   useEffect(() => {
     const newAchievements = unseenNotifications.filter(
       n => !shownToastsRef.current.has(n.achievement.key)
     )
 
     if (newAchievements.length > 0) {
-      // Play achievement sound once for all new achievements
       playAchievementSound()
 
-      // Show a toast for each new achievement
       newAchievements.forEach((notification, index) => {
         // Stagger the toasts slightly for multiple achievements
         setTimeout(() => {
-          toast.success(
-            t('achievements.unlockedWithName', { name: notification.achievement.name })
-          )
+          showAchievementToast(notification.achievement)
+          markNotificationAsSeen(notification.achievement.key)
         }, index * 300)
 
-        // Mark as shown so we don't show again
         shownToastsRef.current.add(notification.achievement.key)
       })
     }
-  }, [unseenNotifications, t])
+  }, [unseenNotifications, markNotificationAsSeen])
 
   // Calculate correct answers from guess results (more reliable than store)
   const correctAnswers = guessResults.filter(r => r.isCorrect).length
@@ -97,14 +92,7 @@ export default function ResultsPage() {
 
   return (
     <>
-      {/* Achievement Notifications */}
-      {unseenNotifications.length > 0 && (
-        <AchievementNotificationContainer
-          achievements={unseenNotifications.map(n => n.achievement)}
-          onDismiss={(key) => markNotificationAsSeen(key)}
-        />
-      )}
-
+      {/* Achievement notifications render through sonner toasts — see useEffect above */}
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

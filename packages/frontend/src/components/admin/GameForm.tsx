@@ -238,7 +238,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
             <Label>{t('admin.games.form.coverImageUrl')}</Label>
             <div className="flex gap-4">
               {/* Image Preview */}
-              <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-800 border border-gray-700">
+              <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
                 {formData.coverImageUrl && !imageError ? (
                   <img
                     src={formData.coverImageUrl}
@@ -247,7 +247,7 @@ export function GameForm({ game, onSubmit, onCancel, onSyncRawg, isLoading = fal
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <ImageOff className="h-8 w-8" />
                   </div>
                 )}
