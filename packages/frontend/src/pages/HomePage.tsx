@@ -10,6 +10,8 @@ import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
 import { useEffect, useState, useMemo } from 'react'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
+import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
+import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -95,7 +97,9 @@ export default function HomePage() {
   return (
     <>
       <CubeBackground />
+      <WelcomeModal />
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
+        <StreakRiskBanner />
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
