@@ -19,6 +19,7 @@ import userRoutes from './presentation/routes/user.routes.js'
 import achievementRoutes from './presentation/routes/achievement.routes.js'
 import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
 import referralRoutes from './presentation/routes/referral.routes.js'
+import ogRoutes from './presentation/routes/og.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
@@ -176,10 +177,59 @@ app.use('/api/achievements', achievementRoutes)
 app.use('/api/daily-login', dailyLoginRoutes)
 app.use('/api/inventory', dailyLoginRoutes)
 app.use('/api/referral', referralRoutes)
+app.use('/api/og', ogRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
 app.use(express.static(frontendPath))
+
+// Share routes: serve index.html with per-challenge OG meta tags injected so
+// link previews are unique per shared day (defeats static-logo preview caching).
+function buildShareMeta(req: express.Request): { title: string; description: string; imageUrl: string; pageUrl: string } {
+  const dateParam = typeof req.query.date === 'string' ? req.query.date : ''
+  const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+  const date = isoMatch ? dateParam : new Date().toISOString().split('T')[0]!
+  const lang = (req.params.lang === 'en' ? 'en' : 'fr')
+  const locale = lang === 'en' ? 'en-US' : 'fr-FR'
+  const readable = new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, {
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+  })
+  const title = lang === 'en'
+    ? `The Box — ${readable} challenge`
+    : `The Box — défi du ${readable}`
+  const description = lang === 'en'
+    ? 'Can you beat my score on today\u2019s screenshot challenge?'
+    : 'Arriveras-tu \u00e0 battre mon score sur le d\u00e9fi du jour ?'
+  const base = env.API_URL.replace(/\/$/, '')
+  const imageUrl = `${base}/api/og/daily.svg?date=${encodeURIComponent(date)}&lang=${lang}`
+  const pageUrl = `${base}/share/daily?date=${encodeURIComponent(date)}&lang=${lang}`
+  return { title, description, imageUrl, pageUrl }
+}
+
+function escapeHtmlAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+app.get('/share/daily', (req, res, next) => {
+  try {
+    const meta = buildShareMeta(req)
+    const html = fs.readFileSync(path.join(frontendPath, 'index.html'), 'utf-8')
+    const patched = html
+      .replace(/(<meta property="og:title"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.title)}$2`)
+      .replace(/(<meta property="og:description"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.description)}$2`)
+      .replace(/(<meta property="og:image"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.imageUrl)}$2`)
+      .replace(/(<meta property="og:url"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.pageUrl)}$2`)
+      .replace(/(<meta name="twitter:title"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.title)}$2`)
+      .replace(/(<meta name="twitter:description"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.description)}$2`)
+      .replace(/(<meta name="twitter:image"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.imageUrl)}$2`)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'public, max-age=600')
+    res.send(patched)
+  } catch (error) {
+    logger.warn({ error: String(error) }, 'share meta injection failed, falling back to SPA')
+    next()
+  }
+})
 
 // SPA fallback - serve index.html for all other routes (must be after API routes and static files)
 app.use((_req, res) => {

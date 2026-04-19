@@ -10,6 +10,7 @@ import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
 import { useEffect, useState, useMemo } from 'react'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
+import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -95,6 +96,7 @@ export default function HomePage() {
   return (
     <>
       <CubeBackground />
+      <WelcomeModal />
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
         {/* Hero Section */}
         <motion.div

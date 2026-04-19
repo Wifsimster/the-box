@@ -30,6 +30,9 @@ import { useWorldScore } from '@/hooks/useWorldScore'
 import { createLeaderboardService } from '@/services'
 import { gameApi } from '@/lib/api'
 import { authClient, useSession } from '@/lib/auth-client'
+import { GuestGateModal } from '@/components/onboarding/GuestGateModal'
+
+const GUEST_OPT_IN_KEY = 'theBox.guestOptIn'
 
 export default function GamePage() {
   const { t } = useTranslation()
@@ -40,6 +43,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [guestGateOpen, setGuestGateOpen] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
 
   // Keyboard detection for mobile layout adjustment
@@ -326,8 +330,17 @@ export default function GamePage() {
         screenshotsFound: 0,
       })
 
-      // Auto-login as guest if not authenticated
+      // Unauthenticated? Show the Create-Account gate unless the user already
+      // opted into guest play in this tab. This replaces the previous silent
+      // anonymous sign-in, which was killing signup conversion.
       if (!session && !isSessionPending) {
+        const optedIn = sessionStorage.getItem(GUEST_OPT_IN_KEY) === '1'
+        if (!optedIn) {
+          setGuestGateOpen(true)
+          setLoading(false)
+          return
+        }
+
         const signInResult = await authClient.signIn.anonymous()
         if (signInResult.error) {
           console.error('Failed to sign in as guest:', signInResult.error)
@@ -414,8 +427,25 @@ export default function GamePage() {
   // Get the current image URL from screenshot data
   const currentImageUrl = currentScreenshotData?.imageUrl || null
 
+  const handleGuestContinue = useCallback(() => {
+    sessionStorage.setItem(GUEST_OPT_IN_KEY, '1')
+    setGuestGateOpen(false)
+    // Re-run start now that opt-in is recorded
+    void handleStartGame()
+  }, [handleStartGame])
+
+  const handleGuestCreateAccount = useCallback(() => {
+    setGuestGateOpen(false)
+    navigate(localizedPath('/register'))
+  }, [navigate, localizedPath])
+
   return (
     <div className="fixed inset-0 bg-background overflow-hidden">
+      <GuestGateModal
+        open={guestGateOpen}
+        onContinueAsGuest={handleGuestContinue}
+        onCreateAccount={handleGuestCreateAccount}
+      />
       <AnimatePresence mode="wait">
         {/* Loading State - also show while waiting for hydration */}
         {(isLoading || !_hasHydrated) && gamePhase === 'idle' && (

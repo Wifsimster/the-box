@@ -64,9 +64,12 @@ export function ShareCard({
             text += `🏆 Rank #${rank}/${totalPlayers}\n`
         }
 
-        const params = new URLSearchParams({ date })
+        // Point the share URL at /share/daily — the backend serves that
+        // route with per-day OG meta + dynamic image so Twitter/Discord/etc.
+        // render a unique preview for each shared challenge.
+        const params = new URLSearchParams({ date, lang: i18n.language })
         if (referralCode) params.set('ref', referralCode)
-        text += `\n🔗 https://the-box.battistella.ovh/${i18n.language}/leaderboard?${params.toString()}`
+        text += `\n🔗 https://the-box.battistella.ovh/share/daily?${params.toString()}`
 
         return text
     }

@@ -23,6 +23,7 @@ import { mapRegisterError } from '@/lib/auth-errors'
 import { readStoredReferral, clearStoredReferral } from '@/hooks/useReferralCapture'
 import { referralApi } from '@/lib/api/referral'
 import { userApi } from '@/lib/api/user'
+import { markWelcomePending } from '@/components/onboarding/welcome-storage'
 
 type FormValues = {
   username: string
@@ -123,6 +124,8 @@ export default function RegisterPage() {
           console.warn('Email consent update failed:', consentErr)
         }
       }
+
+      markWelcomePending()
 
       // Force a page reload to ensure cookies are picked up and session state is refreshed
       // This is more reliable than relying on React state updates

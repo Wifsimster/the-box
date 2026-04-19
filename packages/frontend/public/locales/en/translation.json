@@ -818,5 +818,28 @@
     "hintYear": "Year Hint",
     "hintPublisher": "Publisher Hint",
     "points": "points"
+  },
+  "onboarding": {
+    "welcomeTitle": "Welcome to The Box!",
+    "welcomeSubtitle": "Ready to prove your gaming knowledge?",
+    "welcomeGift": "Welcome gift: 3 hints added to your inventory.",
+    "welcomeRanked": "You're on the global leaderboard from your very first challenge.",
+    "howTitle": "How it works",
+    "howSubtitle": "One challenge, 10 screenshots, one ranking.",
+    "step1": "Look at the 360° panoramic screenshot.",
+    "step2": "Guess the game — the faster you are, the higher the score.",
+    "step3": "Use a hint if you need to, then move to the next screenshot.",
+    "skip": "Skip",
+    "next": "Next",
+    "start": "Let's go!"
+  },
+  "guestGate": {
+    "title": "Ready to play?",
+    "subtitle": "Create an account in 10 seconds to keep your progress.",
+    "benefitStreak": "Track your winning streak day after day",
+    "benefitLeaderboard": "Enter the global leaderboard",
+    "benefitHints": "Get 3 free hints for your first challenge",
+    "createAccount": "Create account (10s)",
+    "continueGuest": "Continue as guest"
   }
 }
