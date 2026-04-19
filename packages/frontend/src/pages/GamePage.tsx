@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/stores/gameStore'
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
-import { useIsMobile } from '@/hooks/useIsMobile'
 import { DailyIntro } from '@/components/game/TierIntro'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
@@ -46,9 +45,11 @@ export default function GamePage() {
   const [guestGateOpen, setGuestGateOpen] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
 
-  // Keyboard detection for mobile layout adjustment
+  // iOS Safari fallback: when the keyboard overlays the layout viewport we lift
+  // the whole game by keyboardHeight. Android Chrome honors
+  // `interactive-widget=resizes-content` on the viewport meta, which already
+  // shrinks the layout viewport — the hook reports ~0 there, so this is a no-op.
   const { isKeyboardOpen, keyboardHeight } = useKeyboardHeight()
-  const isMobile = useIsMobile()
 
   // Get date from query params if provided
   const challengeDateParam = searchParams.get('date')
@@ -440,7 +441,13 @@ export default function GamePage() {
   }, [navigate, localizedPath])
 
   return (
-    <div className="fixed inset-0 bg-background overflow-hidden">
+    <div
+      className="fixed inset-0 bg-background overflow-hidden h-[100dvh]"
+      style={{
+        paddingBottom: isKeyboardOpen ? keyboardHeight : 0,
+        transition: 'padding-bottom 200ms ease-out',
+      }}
+    >
       <GuestGateModal
         open={guestGateOpen}
         onContinueAsGuest={handleGuestContinue}
@@ -514,7 +521,7 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="relative w-full h-full"
+            className="relative w-full h-full flex flex-col"
           >
             {/* Mobile Menu and Home Button (Top Left) */}
             <div
@@ -634,54 +641,38 @@ export default function GamePage() {
               </motion.div>
             )}
 
-            {/* Screenshot Viewer (Full Screen) */}
-            {/* On mobile, center vertically; on desktop, full screen */}
-            {/* When keyboard is open on mobile, reduce height and shift up */}
-            <motion.div
-              className="absolute inset-0 w-full flex items-center justify-center md:block z-10"
-              initial={isMobile ? undefined : false}
-              animate={{
-                height: isKeyboardOpen ? `calc(100% - ${keyboardHeight}px - 120px)` : '100%',
-              }}
-              transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0 }}
-            >
+            {/* Screenshot Viewer — flex-1 so it fills all space above the dock. */}
+            {/* When the layout viewport shrinks (Android keyboard) or we add */}
+            {/* padding-bottom on the outer container (iOS keyboard), this area */}
+            {/* shrinks naturally and the screenshot stays visible. */}
+            <div className="relative z-10 flex-1 min-h-0 flex items-center justify-center">
               {currentImageUrl ? (
                 <ScreenshotViewer
                   imageUrl={currentImageUrl}
-                  className="w-full h-full"
+                  className="w-full h-full min-h-0"
                 />
               ) : (
-                <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               )}
-            </motion.div>
+            </div>
 
-            {/* Guess Input (Bottom Center) */}
-            {/* Slides up when keyboard is open on mobile */}
-            <motion.div
-              className="absolute left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-3 md:pt-4 px-2 sm:px-3 md:px-4"
+            {/* Guess Input Dock — normal flow, pinned at bottom via flex-col. */}
+            <div
+              className="relative z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-3 md:pt-4 px-2 sm:px-3 md:px-4"
               style={{
                 paddingBottom: isKeyboardOpen
                   ? '0.5rem'
                   : 'max(0.5rem, env(safe-area-inset-bottom))',
               }}
-              initial={isMobile ? undefined : false}
-              animate={{
-                bottom: isKeyboardOpen ? keyboardHeight : 0,
-              }}
-              transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0 }}
             >
               <div className="container mx-auto space-y-2 sm:space-y-3 md:space-y-4">
-                {/* Hint Buttons (Above Progress Dots) */}
                 <HintButtons />
-                {/* Progress Dots (Above Input) */}
                 <div className="flex justify-center items-center">
                   <ProgressDots />
                 </div>
                 <GuessInput />
               </div>
-            </motion.div>
+            </div>
 
             {/* Result Card Overlay */}
             <AnimatePresence>
