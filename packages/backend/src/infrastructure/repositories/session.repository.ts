@@ -425,3 +425,8 @@ export const sessionRepository = {
     return result
   },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { SessionRepository as SessionRepositoryPort } from '../../domain/ports/repositories.js'
+export const _sessionRepositoryTypeCheck: SessionRepositoryPort = sessionRepository

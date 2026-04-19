@@ -135,3 +135,8 @@ export const inventoryRepository = {
         })
     },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { InventoryRepository as InventoryRepositoryPort } from '../../domain/ports/repositories.js'
+export const _inventoryRepositoryTypeCheck: InventoryRepositoryPort = inventoryRepository

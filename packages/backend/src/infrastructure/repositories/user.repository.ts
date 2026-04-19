@@ -126,3 +126,8 @@ export const userRepository = {
     return this.findById(userId)
   },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { UserRepository as UserRepositoryPort } from '../../domain/ports/repositories.js'
+export const _userRepositoryTypeCheck: UserRepositoryPort = userRepository

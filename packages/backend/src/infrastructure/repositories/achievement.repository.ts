@@ -293,3 +293,8 @@ export class AchievementRepository {
 }
 
 export const achievementRepository = new AchievementRepository()
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { AchievementRepository as AchievementRepositoryPort } from '../../domain/ports/repositories.js'
+export const _achievementRepositoryTypeCheck: AchievementRepositoryPort = achievementRepository

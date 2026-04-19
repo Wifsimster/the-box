@@ -1,6 +1,4 @@
-import { serviceLogger } from '../../infrastructure/logger/logger.js'
-
-const log = serviceLogger.child({ service: 'fuzzy-match' })
+import type { DomainLogger } from '../ports/logger.js'
 
 // Matching thresholds
 const SERIES_NAME_THRESHOLD = 0.85
@@ -384,7 +382,12 @@ function isBaseNameOnlyMatch(input: string, targetParsed: ParsedGameTitle): bool
 /**
  * Enhanced game title matching with structural awareness
  */
-function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []): boolean {
+function isMatchEnhanced(
+  input: string,
+  gameName: string,
+  aliases: string[] = [],
+  log: DomainLogger
+): boolean {
   const normalizedInput = normalizeForFuzzy(input)
   const normalizedTarget = normalizeForFuzzy(gameName)
 
@@ -580,62 +583,77 @@ function isMatchEnhanced(input: string, gameName: string, aliases: string[] = []
   return false
 }
 
-export const fuzzyMatchService = {
+export interface FuzzyMatchService {
   /**
    * Calculate similarity between two strings
    */
-  calculateSimilarity(input: string, target: string): number {
-    const normalizedInput = normalizeForFuzzy(input)
-    const normalizedTarget = normalizeForFuzzy(target)
-    return jaroWinkler(normalizedInput, normalizedTarget)
-  },
-
+  calculateSimilarity(input: string, target: string): number
   /**
    * Check if input matches the game name or any alias
    * Uses enhanced structural matching algorithm
-   *
-   * @param input - User's guess text
-   * @param gameName - The correct game name
-   * @param aliases - Alternative names for the game
-   * @returns true if the input matches the game
    */
-  isMatch(input: string, gameName: string, aliases: string[] = []): boolean {
-    return isMatchEnhanced(input, gameName, aliases)
-  },
-
+  isMatch(input: string, gameName: string, aliases?: string[]): boolean
   /**
    * Get the best match score for debugging/logging
    */
   getBestMatchScore(
     input: string,
     gameName: string,
-    aliases: string[] = []
-  ): {
-    bestScore: number
-    matchedOn: string
-  } {
-    const normalizedInput = normalizeForFuzzy(input)
-    let bestScore = jaroWinkler(normalizedInput, normalizeForFuzzy(gameName))
-    let matchedOn = gameName
-
-    for (const alias of aliases) {
-      const score = jaroWinkler(normalizedInput, normalizeForFuzzy(alias))
-      if (score > bestScore) {
-        bestScore = score
-        matchedOn = alias
-      }
-    }
-
-    return { bestScore, matchedOn }
-  },
-
+    aliases?: string[]
+  ): { bestScore: number; matchedOn: string }
   /**
    * Parse a game title into structured components (exposed for testing)
    */
-  parseGameTitle,
-
+  parseGameTitle: typeof parseGameTitle
   /**
    * Check if two series numbers match (exposed for testing)
    */
-  seriesNumbersMatch,
+  seriesNumbersMatch: typeof seriesNumbersMatch
+}
+
+export interface FuzzyMatchServiceDeps {
+  logger: DomainLogger
+}
+
+/**
+ * Create a FuzzyMatchService with injected dependencies.
+ * The logger is used for debug-level tracing inside the matching algorithm.
+ */
+export function createFuzzyMatchService(deps: FuzzyMatchServiceDeps): FuzzyMatchService {
+  const log = deps.logger.child({ service: 'fuzzy-match' })
+
+  return {
+    calculateSimilarity(input: string, target: string): number {
+      const normalizedInput = normalizeForFuzzy(input)
+      const normalizedTarget = normalizeForFuzzy(target)
+      return jaroWinkler(normalizedInput, normalizedTarget)
+    },
+
+    isMatch(input: string, gameName: string, aliases: string[] = []): boolean {
+      return isMatchEnhanced(input, gameName, aliases, log)
+    },
+
+    getBestMatchScore(
+      input: string,
+      gameName: string,
+      aliases: string[] = []
+    ): { bestScore: number; matchedOn: string } {
+      const normalizedInput = normalizeForFuzzy(input)
+      let bestScore = jaroWinkler(normalizedInput, normalizeForFuzzy(gameName))
+      let matchedOn = gameName
+
+      for (const alias of aliases) {
+        const score = jaroWinkler(normalizedInput, normalizeForFuzzy(alias))
+        if (score > bestScore) {
+          bestScore = score
+          matchedOn = alias
+        }
+      }
+
+      return { bestScore, matchedOn }
+    },
+
+    parseGameTitle,
+    seriesNumbersMatch,
+  }
 }

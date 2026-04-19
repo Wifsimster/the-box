@@ -16,7 +16,7 @@ import type {
   Screenshot,
 } from '@the-box/types'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
-import { fuzzyMatchService } from './fuzzy-match.service.js'
+import { fuzzyMatchService } from './index.js'
 import { achievementService } from './achievement.service.js'
 
 const log = serviceLogger.child({ service: 'game' })

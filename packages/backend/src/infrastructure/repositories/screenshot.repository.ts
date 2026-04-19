@@ -139,3 +139,8 @@ export const screenshotRepository = {
     return rows.map(mapRowToScreenshot)
   },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { ScreenshotRepository as ScreenshotRepositoryPort } from '../../domain/ports/repositories.js'
+export const _screenshotRepositoryTypeCheck: ScreenshotRepositoryPort = screenshotRepository

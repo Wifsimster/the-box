@@ -129,3 +129,8 @@ export const challengeRepository = {
     return rows.rows
   },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { ChallengeRepository as ChallengeRepositoryPort } from '../../domain/ports/repositories.js'
+export const _challengeRepositoryTypeCheck: ChallengeRepositoryPort = challengeRepository

@@ -240,3 +240,8 @@ export const gameRepository = {
     return row ? mapRowToGame(row) : null
   },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { GameRepository as GameRepositoryPort } from '../../domain/ports/repositories.js'
+export const _gameRepositoryTypeCheck: GameRepositoryPort = gameRepository

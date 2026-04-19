@@ -205,3 +205,8 @@ export const importStateRepository = {
     log.info({ importStateId: id }, 'import state deleted')
   },
 }
+
+// Type-level check: the repository must satisfy the domain port.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { ImportStateRepository as ImportStateRepositoryPort } from '../../domain/ports/repositories.js'
+export const _importStateRepositoryTypeCheck: ImportStateRepositoryPort = importStateRepository
