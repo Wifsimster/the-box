@@ -1,11 +1,3 @@
-import {
-  challengeRepository,
-  sessionRepository,
-  screenshotRepository,
-  userRepository,
-  inventoryRepository,
-} from '../../infrastructure/repositories/index.js'
-import { db } from '../../infrastructure/database/connection.js'
 import type {
   TodayChallengeResponse,
   StartChallengeResponse,
@@ -15,10 +7,17 @@ import type {
   Game,
   Screenshot,
 } from '@the-box/types'
-import { serviceLogger } from '../../infrastructure/logger/logger.js'
-import { fuzzyMatchService, achievementService } from './index.js'
-
-const log = serviceLogger.child({ service: 'game' })
+import type { DomainLogger } from '../ports/logger.js'
+import type {
+  ChallengeRepository,
+  SessionRepository,
+  ScreenshotRepository,
+  UserRepository,
+  InventoryRepository,
+  GameRepository,
+} from '../ports/repositories.js'
+import type { FuzzyMatchService } from './fuzzy-match.service.js'
+import type { AchievementService } from './achievement.service.js'
 
 export class GameError extends Error {
   constructor(
@@ -28,7 +27,6 @@ export class GameError extends Error {
   ) {
     super(message)
     this.name = 'GameError'
-    log.warn({ code, statusCode }, message)
   }
 }
 
@@ -59,58 +57,88 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
   }
 }
 
-/**
- * Calculate and update user's play streak based on last played date
- * @param userId User ID
- * @param user Current user data (can be null/undefined)
- * @returns Updated streak values
- */
-async function calculateAndUpdateStreak(
-  userId: string,
-  user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: string } | null
-): Promise<{ currentStreak: number; longestStreak: number }> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // Default values if user not found
-  let currentStreak = user?.currentStreak || 0
-  let longestStreak = user?.longestStreak || 0
-  const lastPlayedAtStr = user?.lastPlayedAt
-
-  if (!lastPlayedAtStr) {
-    // First time playing
-    currentStreak = 1
-    longestStreak = Math.max(1, longestStreak)
-    log.info({ userId, currentStreak, longestStreak }, 'First game - streak started')
-  } else {
-    const lastPlayed = new Date(lastPlayedAtStr)
-    lastPlayed.setHours(0, 0, 0, 0)
-
-    const daysDiff = Math.floor((today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24))
-
-    if (daysDiff === 0) {
-      // Playing again today - no change to streak
-      log.debug({ userId, currentStreak }, 'Same day play - streak unchanged')
-    } else if (daysDiff === 1) {
-      // Consecutive day - increment streak
-      currentStreak += 1
-      longestStreak = Math.max(currentStreak, longestStreak)
-      log.info({ userId, currentStreak, longestStreak }, 'Streak continued')
-    } else {
-      // Missed days - reset streak
-      currentStreak = 1
-      log.info({ userId, daysMissed: daysDiff, newStreak: currentStreak }, 'Streak reset')
-    }
-  }
-
-  // Update database
-  await userRepository.updateStreak(userId, currentStreak, longestStreak)
-  log.info({ userId, currentStreak, longestStreak }, 'Streak updated in database')
-
-  return { currentStreak, longestStreak }
+export interface GameServiceDeps {
+  logger: DomainLogger
+  fuzzyMatchService: FuzzyMatchService
+  achievementService: AchievementService
+  challengeRepository: ChallengeRepository
+  sessionRepository: SessionRepository
+  screenshotRepository: ScreenshotRepository
+  userRepository: UserRepository
+  inventoryRepository: InventoryRepository
+  gameRepository: GameRepository
 }
 
-export const gameService = {
+export interface GameService {
+  getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse>
+  startChallenge(challengeId: number, userId: string): Promise<StartChallengeResponse>
+  getScreenshot(sessionId: string, position: number, userId: string): Promise<ScreenshotResponse>
+  submitGuess(data: {
+    tierSessionId: string
+    screenshotId: number
+    position: number
+    gameId: number | null
+    guessText: string
+    roundTimeTakenMs: number
+    userId: string
+    powerUpUsed?: 'hint_year' | 'hint_publisher'
+  }): Promise<GuessResponse>
+  endGame(sessionId: string, userId: string): Promise<EndGameResponse>
+}
+
+export function createGameService(deps: GameServiceDeps): GameService {
+  const {
+    fuzzyMatchService,
+    achievementService,
+    challengeRepository,
+    sessionRepository,
+    screenshotRepository,
+    userRepository,
+    inventoryRepository,
+    gameRepository,
+  } = deps
+  const log = deps.logger.child({ service: 'game' })
+
+  async function calculateAndUpdateStreak(
+    userId: string,
+    user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: string } | null
+  ): Promise<{ currentStreak: number; longestStreak: number }> {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    let currentStreak = user?.currentStreak || 0
+    let longestStreak = user?.longestStreak || 0
+    const lastPlayedAtStr = user?.lastPlayedAt
+
+    if (!lastPlayedAtStr) {
+      currentStreak = 1
+      longestStreak = Math.max(1, longestStreak)
+      log.info({ userId, currentStreak, longestStreak }, 'First game - streak started')
+    } else {
+      const lastPlayed = new Date(lastPlayedAtStr)
+      lastPlayed.setHours(0, 0, 0, 0)
+
+      const daysDiff = Math.floor((today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24))
+
+      if (daysDiff === 0) {
+        log.debug({ userId, currentStreak }, 'Same day play - streak unchanged')
+      } else if (daysDiff === 1) {
+        currentStreak += 1
+        longestStreak = Math.max(currentStreak, longestStreak)
+        log.info({ userId, currentStreak, longestStreak }, 'Streak continued')
+      } else {
+        currentStreak = 1
+        log.info({ userId, daysMissed: daysDiff, newStreak: currentStreak }, 'Streak reset')
+      }
+    }
+
+    await userRepository.updateStreak(userId, currentStreak, longestStreak)
+    log.info({ userId, currentStreak, longestStreak }, 'Streak updated in database')
+
+    return { currentStreak, longestStreak }
+  }
+
+  return {
   async getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse> {
     const today = new Date().toISOString().split('T')[0]!
     const targetDate = date || today
@@ -446,38 +474,16 @@ export const gameService = {
         log.info({ userId: data.userId, scoreToAdd: newTotalScore }, 'Updating user total score')
         await userRepository.updateScore(data.userId, newTotalScore)
 
-        // Get all guesses for this session
-        const allGuesses = await db('guesses')
-          .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
-          .where('tier_sessions.game_session_id', tierSession.game_session_id)
-          .select(
-            'guesses.position',
-            'guesses.is_correct',
-            'guesses.time_taken_ms as round_time_taken_ms',
-            'guesses.power_up_used',
-            'guesses.screenshot_id'
-          )
-          .orderBy('guesses.position')
-
-        // Get game genres
-        const gameData = await db('games')
-          .where('id', screenshot.gameId)
-          .select('genres')
-          .first()
+        const allGuesses = await sessionRepository.findAchievementGuessData(tierSession.game_session_id)
+        const gameGenres = await gameRepository.getGenresById(screenshot.gameId)
 
         newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
           userId: data.userId,
           sessionId: tierSession.game_session_id,
           challengeId: tierSession.daily_challenge_id,
           totalScore: newTotalScore,
-          guesses: allGuesses.map((g: any) => ({
-            position: g.position,
-            isCorrect: g.is_correct,
-            roundTimeTakenMs: g.round_time_taken_ms,
-            powerUpUsed: g.power_up_used,
-            screenshotId: g.screenshot_id,
-          })),
-          gameGenres: gameData?.genres || [],
+          guesses: allGuesses,
+          gameGenres,
           currentStreak: updatedStreak.currentStreak,
           longestStreak: updatedStreak.longestStreak,
         })
@@ -595,54 +601,12 @@ export const gameService = {
       const tiers = await challengeRepository.findTiersByChallenge(session.daily_challenge_id)
       const tier = tiers[0]
       if (tier) {
-        // Get all tier screenshots with game info
-        const allTierScreenshots = await db('tier_screenshots')
-          .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
-          .join('games', 'screenshots.game_id', 'games.id')
-          .where('tier_screenshots.tier_id', tier.id)
-          .whereNotIn('tier_screenshots.position', correctPositions.length > 0 ? correctPositions : [0])
-          .select(
-            'tier_screenshots.position',
-            'screenshots.id as screenshot_id',
-            'screenshots.image_url',
-            'screenshots.thumbnail_url',
-            'screenshots.difficulty',
-            'screenshots.location_hint',
-            'screenshots.game_id',
-            'games.id as game_id',
-            'games.name as game_name',
-            'games.slug as game_slug',
-            'games.cover_image_url',
-            'games.release_year',
-            'games.developer',
-            'games.publisher',
-            'games.metacritic'
-          )
-          .orderBy('tier_screenshots.position', 'asc')
-
+        const allTierScreenshots = await challengeRepository.findTierScreenshotsExcludingPositions(
+          tier.id,
+          correctPositions
+        )
         for (const row of allTierScreenshots) {
-          unfoundGames.push({
-            position: row.position,
-            game: {
-              id: row.game_id,
-              name: row.game_name,
-              slug: row.game_slug,
-              aliases: [],
-              coverImageUrl: row.cover_image_url ?? undefined,
-              releaseYear: row.release_year ?? undefined,
-              developer: row.developer ?? undefined,
-              publisher: row.publisher ?? undefined,
-              metacritic: row.metacritic ?? undefined,
-            },
-            screenshot: {
-              id: row.screenshot_id,
-              gameId: row.game_id,
-              imageUrl: row.image_url,
-              thumbnailUrl: row.thumbnail_url ?? undefined,
-              difficulty: row.difficulty,
-              locationHint: row.location_hint ?? undefined,
-            },
-          })
+          unfoundGames.push(row)
         }
       }
     }
@@ -665,38 +629,18 @@ export const gameService = {
       log.info({ userId, scoreToAdd: finalScore }, 'Updating user total score (forfeit)')
       await userRepository.updateScore(userId, finalScore)
 
-      const allGuesses = await db('guesses')
-        .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
-        .where('tier_sessions.game_session_id', sessionId)
-        .select(
-          'guesses.position',
-          'guesses.is_correct',
-          'guesses.time_taken_ms as round_time_taken_ms',
-          'guesses.power_up_used',
-          'guesses.screenshot_id'
-        )
-        .orderBy('guesses.position')
-
-      // Get first screenshot to determine game genre
-      const firstScreenshot = await db('screenshots')
-        .join('games', 'screenshots.game_id', 'games.id')
-        .whereIn('screenshots.id', allGuesses.map((g: any) => g.screenshot_id))
-        .select('games.genres')
-        .first()
+      const allGuesses = await sessionRepository.findAchievementGuessData(sessionId)
+      const gameGenres = await gameRepository.getGenresByScreenshotIds(
+        allGuesses.map(g => g.screenshotId)
+      )
 
       await achievementService.checkAchievementsAfterGame({
         userId,
         sessionId: sessionId,
         challengeId: session.daily_challenge_id,
         totalScore: finalScore,
-        guesses: allGuesses.map((g: any) => ({
-          position: g.position,
-          isCorrect: g.is_correct,
-          roundTimeTakenMs: g.round_time_taken_ms,
-          powerUpUsed: g.power_up_used,
-          screenshotId: g.screenshot_id,
-        })),
-        gameGenres: firstScreenshot?.genres || [],
+        guesses: allGuesses,
+        gameGenres,
         currentStreak: updatedStreak.currentStreak,
         longestStreak: updatedStreak.longestStreak,
       })
@@ -727,4 +671,5 @@ export const gameService = {
       unfoundGames,
     }
   },
+  }
 }

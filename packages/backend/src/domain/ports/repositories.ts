@@ -90,6 +90,19 @@ export interface GameRepository {
       lastSyncedAt?: Date
     }
   ): Promise<Game | null>
+  /**
+   * Returns just the `genres` array for a game, or `[]` if the game
+   * does not exist or has no genres set. Used by the domain when the
+   * full `Game` record is not needed (e.g. achievement evaluation).
+   */
+  getGenresById(gameId: number): Promise<string[]>
+  /**
+   * Returns the `genres` array for the first matching game joined via
+   * the given screenshot ids. Used when the caller only knows a set of
+   * screenshots and needs a representative game's genres (e.g. the
+   * forfeit achievement check). Returns `[]` if no game is found.
+   */
+  getGenresByScreenshotIds(screenshotIds: number[]): Promise<string[]>
 }
 
 // ---------- Session ----------
@@ -198,6 +211,19 @@ export interface SessionRepository {
   findUserGameHistory(userId: string): Promise<GameHistoryRecord[]>
   findAllInProgressSessions(): Promise<GameSessionRecord[]>
   findGuessesByGameSession(gameSessionId: string): Promise<GuessWithGameRecord[]>
+  /**
+   * Returns the minimal per-guess fields needed by achievement evaluation
+   * for every guess across every tier session of a given game session,
+   * ordered by position ascending. Keeps the achievement pipeline out
+   * of Knex by exposing a domain-shaped projection.
+   */
+  findAchievementGuessData(gameSessionId: string): Promise<Array<{
+    position: number
+    isCorrect: boolean
+    roundTimeTakenMs: number
+    powerUpUsed: string | null
+    screenshotId: number
+  }>>
 }
 
 // ---------- Screenshot ----------
@@ -471,6 +497,17 @@ export interface ChallengeRepository {
   findTierScreenshotsWithGames(
     tierId: number,
     positions: number[]
+  ): Promise<TierScreenshotWithGame[]>
+  /**
+   * Returns every tier screenshot whose position is NOT in the given
+   * `excludePositions` list (i.e. "unfound" screenshots for a session),
+   * joined with the full game record. Positions come back sorted
+   * ascending. If `excludePositions` is empty, all positions are
+   * returned.
+   */
+  findTierScreenshotsExcludingPositions(
+    tierId: number,
+    excludePositions: number[]
   ): Promise<TierScreenshotWithGame[]>
 }
 

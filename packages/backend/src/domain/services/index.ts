@@ -1,5 +1,5 @@
 export { authService, AuthError } from './auth.service.js'
-export { gameService, GameError } from './game.service.js'
+export { createGameService, type GameService, GameError } from './game.service.js'
 export { createLeaderboardService, type LeaderboardService } from './leaderboard.service.js'
 export { createAdminService, type AdminService } from './admin.service.js'
 export { createFuzzyMatchService, type FuzzyMatchService } from './fuzzy-match.service.js'
@@ -41,6 +41,7 @@ import { createAdminService } from './admin.service.js'
 import { createUserService } from './user.service.js'
 import { createAchievementService } from './achievement.service.js'
 import { createReferralService } from './referral.service.js'
+import { createGameService } from './game.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import { importQueue } from '../../infrastructure/queue/queues.js'
 import {
@@ -99,4 +100,16 @@ export const referralService = createReferralService({
   logger: serviceLogger,
   userRepository,
   inventoryRepository,
+})
+
+export const gameService = createGameService({
+  logger: serviceLogger,
+  fuzzyMatchService,
+  achievementService,
+  challengeRepository,
+  sessionRepository,
+  screenshotRepository,
+  userRepository,
+  inventoryRepository,
+  gameRepository,
 })

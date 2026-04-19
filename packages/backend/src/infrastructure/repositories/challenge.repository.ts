@@ -241,6 +241,80 @@ export const challengeRepository = {
       return { position: row.position, screenshot, game }
     })
   },
+
+  async findTierScreenshotsExcludingPositions(
+    tierId: number,
+    excludePositions: number[]
+  ): Promise<TierScreenshotWithGame[]> {
+    // Use a sentinel value when the exclusion list is empty so the
+    // generated SQL is still valid (`NOT IN (0)` simply excludes
+    // nothing, since positions are 1-indexed).
+    const exclusions = excludePositions.length > 0 ? excludePositions : [0]
+    const rows = await db('tier_screenshots')
+      .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
+      .join('games', 'screenshots.game_id', 'games.id')
+      .where('tier_screenshots.tier_id', tierId)
+      .whereNotIn('tier_screenshots.position', exclusions)
+      .select<
+        Array<{
+          position: number
+          screenshot_id: number
+          image_url: string
+          thumbnail_url: string | null
+          difficulty: number
+          location_hint: string | null
+          screenshot_game_id: number
+          game_id: number
+          game_name: string
+          game_slug: string
+          cover_image_url: string | null
+          release_year: number | null
+          developer: string | null
+          publisher: string | null
+          metacritic: number | null
+        }>
+      >(
+        'tier_screenshots.position',
+        'screenshots.id as screenshot_id',
+        'screenshots.image_url',
+        'screenshots.thumbnail_url',
+        'screenshots.difficulty',
+        'screenshots.location_hint',
+        'screenshots.game_id as screenshot_game_id',
+        'games.id as game_id',
+        'games.name as game_name',
+        'games.slug as game_slug',
+        'games.cover_image_url',
+        'games.release_year',
+        'games.developer',
+        'games.publisher',
+        'games.metacritic'
+      )
+      .orderBy('tier_screenshots.position', 'asc')
+
+    return rows.map(row => {
+      const game: Game = {
+        id: row.game_id,
+        name: row.game_name,
+        slug: row.game_slug,
+        aliases: [],
+        coverImageUrl: row.cover_image_url ?? undefined,
+        releaseYear: row.release_year ?? undefined,
+        developer: row.developer ?? undefined,
+        publisher: row.publisher ?? undefined,
+        metacritic: row.metacritic ?? undefined,
+      }
+      const screenshot: Screenshot = {
+        id: row.screenshot_id,
+        gameId: row.screenshot_game_id,
+        imageUrl: row.image_url,
+        thumbnailUrl: row.thumbnail_url ?? undefined,
+        difficulty: row.difficulty as 1 | 2 | 3,
+        locationHint: row.location_hint ?? undefined,
+      }
+      return { position: row.position, screenshot, game }
+    })
+  },
 }
 
 // Type-level check: the repository must satisfy the domain port.
