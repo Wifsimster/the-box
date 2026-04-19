@@ -24,6 +24,21 @@ export {
   type ReferralStats,
   ReferralError,
 } from './referral.service.js'
+export {
+  createGeoScoringService,
+  type GeoScoringService,
+  type GeoScoringResult,
+  GEO_SCORE_VERSION,
+} from './geo-scoring.service.js'
+export {
+  createGeoConsensusService,
+  type GeoConsensusService,
+  type GeoConsensusResult,
+  type GeoConsensusDecision,
+  type GeoRewardGrant,
+  GEO_CONSENSUS_VERSION,
+  GEO_CONSENSUS_THRESHOLDS,
+} from './geo-consensus.service.js'
 
 // ---------------------------------------------------------------------------
 // Composition root for domain services.
@@ -42,6 +57,8 @@ import { createUserService } from './user.service.js'
 import { createAchievementService } from './achievement.service.js'
 import { createReferralService } from './referral.service.js'
 import { createGameService } from './game.service.js'
+import { createGeoScoringService } from './geo-scoring.service.js'
+import { createGeoConsensusService } from './geo-consensus.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import { importQueue } from '../../infrastructure/queue/queues.js'
 import {
@@ -115,3 +132,7 @@ export const gameService = createGameService({
   gameRepository,
   funnelEventRepository,
 })
+
+export const geoScoringService = createGeoScoringService({ logger: serviceLogger })
+
+export const geoConsensusService = createGeoConsensusService({ logger: serviceLogger })
