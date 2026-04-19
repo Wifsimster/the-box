@@ -222,11 +222,11 @@ export default function HistoryPage() {
 
             {/* Missed Challenges Section */}
             {missedChallenges.length > 0 && (
-              <Card className="bg-card/50 border-border border-amber-500/30">
+              <Card className="bg-card/50 border-border border-warning/30">
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-lg sm:text-xl font-extrabold flex items-center gap-2">
-                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                    <span className="bg-linear-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
+                    <span className="bg-linear-to-r from-warning to-score-low bg-clip-text text-transparent">
                       {t('history.missedChallenges')} ({missedChallenges.length})
                     </span>
                   </CardTitle>
@@ -239,11 +239,11 @@ export default function HistoryPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-amber-500/10 border border-amber-500/20"
+                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-warning/10 border border-warning/20"
                       >
                         {/* Left Section: Icon and Date */}
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-amber-500 to-orange-600">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low">
                             <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -255,13 +255,13 @@ export default function HistoryPage() {
 
                         {/* Right Section: Badge and Play Button */}
                         <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                          <Badge variant="outline" className="text-xs border-amber-500/50 bg-amber-500/10 text-amber-400">
+                          <Badge variant="outline" className="text-xs border-warning/50 bg-warning/10 text-warning">
                             {t('history.catchUpBadge')}
                           </Badge>
                           <Button
                             size="sm"
                             onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
-                            className="bg-linear-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                            className="bg-linear-to-r from-warning to-score-low hover:from-warning hover:to-score-low text-white"
                           >
                             <Play className="w-4 h-4 mr-1" />
                             {t('history.playCatchUp')}
@@ -313,7 +313,7 @@ export default function HistoryPage() {
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           {/* Dynamic Icon based on completion status */}
                           <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${entry.isCompleted
-                            ? 'bg-linear-to-br from-green-500 to-emerald-600'
+                            ? 'bg-linear-to-br from-success to-success/80'
                             : 'bg-linear-to-br from-neon-purple to-neon-pink animate-pulse'
                             }`}>
                             {entry.isCompleted ? (

@@ -73,6 +73,18 @@ For quality feedback on scoring surfaces (result cards, metacritic chips, speed 
 | Score Mid | `--score-mid` = `var(--warning)` | `text-score-mid` / `bg-score-mid` | Fair tier: 50–74 metacritic, 5–15s guess |
 | Score Low | `--score-low` = `#f97316` | `text-score-low` / `bg-score-low` | Low tier: <50 metacritic, slow guess, ongoing streak accent |
 
+## Palette — medals
+
+For leaderboard podium rendering and medal-style trophy accents. Distinct from score tiers — medals are categorical (1st/2nd/3rd), not a quality scale.
+
+| Token | Value | Tailwind class | When to use |
+|---|---|---|---|
+| Medal Gold | `--medal-gold` = `#fbbf24` | `bg-medal-gold` / `text-medal-gold` / `from-medal-gold` | 1st-place podium, top achievements |
+| Medal Silver | `--medal-silver` = `#94a3b8` | `bg-medal-silver` / `text-medal-silver` / `from-medal-silver` | 2nd-place podium |
+| Medal Bronze | `--medal-bronze` = `#b45309` | `bg-medal-bronze` / `text-medal-bronze` / `from-medal-bronze` | 3rd-place podium |
+
+Do not use medal tokens to signal quality (use `score-*` for that). Do not use score tokens for podium positions.
+
 ## Palette — chart
 
 Exposed for potential future dashboards; not for UI chrome.
@@ -211,7 +223,7 @@ A local ESLint rule, `design-tokens/no-raw-design-tokens` (source: `packages/fro
 
 | Scope | Severity |
 |---|---|
-| `src/components/game/**`, `src/components/daily-login/**`, `src/components/achievement/**`, `src/components/admin/**`, `src/components/ui/**` | **error** — blocks CI |
+| `src/components/{game,daily-login,achievement,admin,profile,layout,ui}/**`, `src/pages/**` | **error** — blocks CI |
 | `src/**` (everything else) | **warn** — surfaces the violation but does not block |
 | `src/components/backgrounds/**`, `src/lib/animations.ts` | disabled (three.js materials + Framer Motion presets) |
 

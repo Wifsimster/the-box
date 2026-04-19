@@ -51,6 +51,13 @@
 
   /* Subtle hover tint for data tables (admin panels). */
   --table-row-hover: oklch(0.25 0.04 280 / 0.3);
+
+  /* Podium / medal accents — used by leaderboard top-3 and profile-stat
+     trophy gradients. Distinct from score tiers: medals are categorical
+     (gold > silver > bronze), not a quality scale. */
+  --medal-gold: #fbbf24;
+  --medal-silver: #94a3b8;
+  --medal-bronze: #b45309;
 }
 
 @theme inline {
@@ -85,6 +92,9 @@
   --color-score-high: var(--score-high);
   --color-score-mid: var(--score-mid);
   --color-score-low: var(--score-low);
+  --color-medal-gold: var(--medal-gold);
+  --color-medal-silver: var(--medal-silver);
+  --color-medal-bronze: var(--medal-bronze);
 
   /* Border radius */
   --radius-sm: calc(var(--radius) - 4px);

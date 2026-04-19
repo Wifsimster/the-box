@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
         >
           <Card className="bg-card/50 border-border">
             <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/30">
+              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-error to-score-low shadow-lg shadow-error/30">
                 <XCircle className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
@@ -137,7 +137,7 @@ export default function ResetPasswordPage() {
         >
           <Card className="bg-card/50 border-border">
             <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30">
+              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-success to-success/80 shadow-lg shadow-success/30">
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">

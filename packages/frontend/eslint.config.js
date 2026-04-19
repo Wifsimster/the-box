@@ -52,7 +52,10 @@ export default [
       'src/components/daily-login/**/*.{ts,tsx}',
       'src/components/achievement/**/*.{ts,tsx}',
       'src/components/admin/**/*.{ts,tsx}',
+      'src/components/profile/**/*.{ts,tsx}',
+      'src/components/layout/**/*.{ts,tsx}',
       'src/components/ui/**/*.{ts,tsx}',
+      'src/pages/**/*.{ts,tsx}',
     ],
     rules: {
       'design-tokens/no-raw-design-tokens': 'error',
@@ -65,8 +68,11 @@ export default [
       'src/components/daily-login/**',
       'src/components/achievement/**',
       'src/components/admin/**',
+      'src/components/profile/**',
+      'src/components/layout/**',
       'src/components/ui/**',
       'src/components/backgrounds/**',
+      'src/pages/**',
       'src/lib/animations.ts',
     ],
     rules: {

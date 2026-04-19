@@ -197,11 +197,11 @@ export default function LeaderboardPage() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy className="w-5 h-5 text-yellow-500" />
+        return <Trophy className="w-5 h-5 text-warning" />
       case 2:
-        return <Medal className="w-5 h-5 text-zinc-400" />
+        return <Medal className="w-5 h-5 text-muted-foreground" />
       case 3:
-        return <Award className="w-5 h-5 text-amber-600" />
+        return <Award className="w-5 h-5 text-warning" />
       default:
         return <span className="text-muted-foreground font-bold">{rank}</span>
     }
@@ -273,7 +273,7 @@ export default function LeaderboardPage() {
                 {[leaderboard[1], leaderboard[0], leaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
-                  const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+                  const colors = ['from-medal-silver to-medal-silver/80', 'from-medal-gold to-medal-gold/80', 'from-medal-bronze to-medal-bronze/80']
 
                   return (
                     <motion.div
@@ -379,7 +379,7 @@ export default function LeaderboardPage() {
                 {[monthlyLeaderboard[1], monthlyLeaderboard[0], monthlyLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
-                  const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+                  const colors = ['from-medal-silver to-medal-silver/80', 'from-medal-gold to-medal-gold/80', 'from-medal-bronze to-medal-bronze/80']
 
                   return (
                     <motion.div
@@ -476,7 +476,7 @@ export default function LeaderboardPage() {
                 {[achievementLeaderboard[1], achievementLeaderboard[0], achievementLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
-                  const colors = ['from-zinc-400 to-zinc-500', 'from-yellow-400 to-yellow-600', 'from-amber-600 to-amber-700']
+                  const colors = ['from-medal-silver to-medal-silver/80', 'from-medal-gold to-medal-gold/80', 'from-medal-bronze to-medal-bronze/80']
                   const rank = displayIndex === 0 ? 2 : displayIndex === 1 ? 1 : 3
 
                   return (
@@ -604,7 +604,7 @@ export default function LeaderboardPage() {
                     <div
                       key={guess.position}
                       className={`flex items-center gap-3 p-3 rounded-lg ${
-                        guess.isCorrect ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'
+                        guess.isCorrect ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'
                       }`}
                     >
                       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
@@ -621,11 +621,11 @@ export default function LeaderboardPage() {
                       <div className="flex items-center gap-2">
                         {guess.isCorrect ? (
                           <>
-                            <span className="text-green-500 font-bold">+{guess.scoreEarned}</span>
-                            <Check className="w-5 h-5 text-green-500" />
+                            <span className="text-success font-bold">+{guess.scoreEarned}</span>
+                            <Check className="w-5 h-5 text-success" />
                           </>
                         ) : (
-                          <X className="w-5 h-5 text-red-500" />
+                          <X className="w-5 h-5 text-error" />
                         )}
                       </div>
                     </div>
