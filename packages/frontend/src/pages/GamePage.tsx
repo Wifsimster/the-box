@@ -517,7 +517,10 @@ export default function GamePage() {
             className="relative w-full h-full"
           >
             {/* Mobile Menu and Home Button (Top Left) */}
-            <div className="absolute top-1 left-2 sm:top-2 sm:left-4 z-40 flex items-center gap-1 sm:gap-2">
+            <div
+              className="absolute left-2 sm:left-4 z-40 flex items-center gap-1 sm:gap-2"
+              style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+            >
               {/* Mobile Menu Button - shown on mobile, hidden on md and up */}
               <div className="md:hidden">
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -602,8 +605,11 @@ export default function GamePage() {
             </div>
 
             {/* Score and End Game Button (Top Right) */}
-            <div className="absolute top-2 right-2 sm:top-3 sm:right-4 z-40 flex flex-col items-stretch min-w-32 sm:min-w-36">
-              <div className="bg-black/60 backdrop-blur-md rounded-t-xl px-5 sm:px-6 py-2 sm:py-2.5 border border-white/10 shadow-2xl">
+            <div
+              className="absolute right-2 sm:right-4 z-40 flex flex-col items-stretch min-w-28 sm:min-w-36"
+              style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+            >
+              <div className="bg-black/60 backdrop-blur-md rounded-t-xl px-4 sm:px-6 py-1.5 sm:py-2.5 border border-white/10 shadow-2xl">
                 <ScoreDisplay />
               </div>
               <EndGameButton />
@@ -654,7 +660,12 @@ export default function GamePage() {
             {/* Guess Input (Bottom Center) */}
             {/* Slides up when keyboard is open on mobile */}
             <motion.div
-              className="absolute left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-2 sm:pt-3 md:pt-4 pb-2 sm:pb-3 md:pb-4 px-2 sm:px-3 md:px-4"
+              className="absolute left-0 right-0 z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-3 md:pt-4 px-2 sm:px-3 md:px-4"
+              style={{
+                paddingBottom: isKeyboardOpen
+                  ? '0.5rem'
+                  : 'max(0.5rem, env(safe-area-inset-bottom))',
+              }}
               initial={isMobile ? undefined : false}
               animate={{
                 bottom: isKeyboardOpen ? keyboardHeight : 0,
@@ -665,7 +676,7 @@ export default function GamePage() {
                 {/* Hint Buttons (Above Progress Dots) */}
                 <HintButtons />
                 {/* Progress Dots (Above Input) */}
-                <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4">
+                <div className="flex justify-center items-center">
                   <ProgressDots />
                 </div>
                 <GuessInput />

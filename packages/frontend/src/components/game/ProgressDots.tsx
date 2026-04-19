@@ -34,7 +34,11 @@ export function ProgressDots() {
   }
 
   return (
-    <div className="flex gap-1 sm:gap-2 md:gap-1.5 bg-black/60 backdrop-blur-md rounded-full px-2 sm:px-4 md:px-3 py-1.5 sm:py-2.5 md:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-lg">
+    <div
+      role="tablist"
+      aria-label="Screenshot progress"
+      className="flex gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-lg max-w-full"
+    >
       {Array.from({ length: totalScreenshots }, (_, i) => {
         const pos = i + 1
         const state = positionStates[pos]
@@ -45,22 +49,32 @@ export function ProgressDots() {
         return (
           <motion.button
             key={pos}
+            role="tab"
             onClick={() => handleDotClick(pos)}
             disabled={!isClickable}
             className={cn(
-              "min-w-6 min-h-6 w-6 h-6 sm:w-10 sm:h-10 md:w-7 md:h-7 rounded-full transition-all duration-300 shrink-0 touch-manipulation flex items-center justify-center font-semibold text-[10px] sm:text-sm md:text-[10px]",
-              getStatusColor(status),
-              isCurrent && "bg-primary ring-2 ring-ring scale-110",
-              isClickable && "cursor-pointer hover:scale-125 hover:shadow-lg active:scale-95",
+              // Outer tap area guarantees ~44px target on mobile without crowding the visual
+              "relative shrink-0 p-1.5 sm:p-1 -m-1 touch-manipulation rounded-full",
+              isClickable && "cursor-pointer active:scale-95",
               !isClickable && "cursor-default"
             )}
-            style={isCurrent ? { boxShadow: 'var(--glow-md)' } : undefined}
             animate={isCurrent ? { scale: [1, 1.08, 1] } : { scale: 1 }}
             transition={{ duration: 0.6, repeat: isCurrent ? Infinity : 0, repeatDelay: 1.5 }}
             aria-label={`Screenshot ${pos}${isCurrent ? ' (current)' : ''}: ${status}`}
             aria-current={isCurrent ? 'true' : undefined}
           >
-            <span className="text-primary-foreground drop-shadow-md">{pos}</span>
+            <span
+              className={cn(
+                "flex items-center justify-center rounded-full font-semibold text-[11px] sm:text-xs transition-all duration-300",
+                "h-7 w-7 sm:h-8 sm:w-8",
+                getStatusColor(status),
+                isCurrent && "bg-primary ring-2 ring-ring",
+                isClickable && "hover:brightness-125"
+              )}
+              style={isCurrent ? { boxShadow: 'var(--glow-md)' } : undefined}
+            >
+              <span className="text-primary-foreground drop-shadow-md tabular-nums">{pos}</span>
+            </span>
           </motion.button>
         )
       })}
