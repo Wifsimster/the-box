@@ -379,7 +379,21 @@
       "games": "Jeux",
       "challenges": "Défis",
       "users": "Utilisateurs",
-      "email": "Email"
+      "email": "Email",
+      "growth": "Acquisition"
+    },
+    "growth": {
+      "loadError": "Échec du chargement des statistiques",
+      "never": "Jamais",
+      "referralsClaimed": "Parrainages validés",
+      "referralsClaimedHint": "Total des inscriptions parrainées",
+      "consentRate": "Taux d'opt-in e-mail",
+      "consentHint": "{{consented}}/{{total}} comptes (hors invités) ont accepté",
+      "streakEmails": "E-mails série (24h)",
+      "streakEmailsHint": "{{week}} sur 7 jours · dernier envoi {{last}}",
+      "topReferrers": "Meilleurs parrains",
+      "topReferrersHint": "Joueurs qui génèrent le plus d'inscriptions",
+      "noReferrers": "Aucun parrainage pour le moment."
     },
     "screenshots": "Captures d'écran",
     "addScreenshot": "Ajouter une Capture",

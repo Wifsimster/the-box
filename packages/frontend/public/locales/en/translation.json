@@ -379,7 +379,21 @@
       "games": "Games",
       "challenges": "Challenges",
       "users": "Users",
-      "email": "Email"
+      "email": "Email",
+      "growth": "Growth"
+    },
+    "growth": {
+      "loadError": "Failed to load growth stats",
+      "never": "Never",
+      "referralsClaimed": "Referrals Claimed",
+      "referralsClaimedHint": "Total successful referral signups",
+      "consentRate": "Email Opt-in Rate",
+      "consentHint": "{{consented}}/{{total}} non-guest accounts opted in",
+      "streakEmails": "Streak Emails (24h)",
+      "streakEmailsHint": "{{week}} in last 7 days · last sent {{last}}",
+      "topReferrers": "Top Referrers",
+      "topReferrersHint": "Players driving the most signups this period",
+      "noReferrers": "No referrals yet."
     },
     "screenshots": "Screenshots",
     "addScreenshot": "Add Screenshot",
