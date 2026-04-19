@@ -13,7 +13,7 @@ interface AnimatedProgressProps {
 }
 
 const variantColors = {
-  default: 'from-purple-500 to-pink-500',
+  default: 'from-neon-purple to-neon-pink',
   success: 'from-green-500 to-emerald-400',
   warning: 'from-yellow-500 to-orange-400',
   error: 'from-red-500 to-rose-400',

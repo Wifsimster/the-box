@@ -7,6 +7,15 @@ import { useGameStore } from '@/stores/gameStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { Calendar, Building2, Code2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { cn } from '@/lib/utils'
+
+type HintVariant = 'outline' | 'hintUsed' | 'hintFree'
+
+function hintVariant(used: boolean, freeCount: number): HintVariant {
+  if (used) return 'hintUsed'
+  if (freeCount > 0) return 'hintFree'
+  return 'outline'
+}
 
 /**
  * Hint buttons component for daily challenge
@@ -90,23 +99,18 @@ export function HintButtons() {
                 : t('game.hints.yearTooltip', { defaultValue: 'Release Year Hint (-20%)' })
       }>
         <Button
-          variant="outline"
+          variant={hintVariant(hintYearUsed, yearHintsInInventory)}
           size="sm"
           onClick={handleHintYear}
           disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing'}
-          className={`relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300 ${hintYearUsed
-            ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-            : yearHintsInInventory > 0
-              ? 'border-green-500/50 hover:border-green-500'
-              : ''
-            }`}
+          className="relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300"
         >
-          <Calendar className={`h-4 w-4 transition-colors duration-300 ${hintYearUsed ? 'text-yellow-400' : ''}`} />
+          <Calendar className={cn('h-4 w-4 transition-colors duration-300', hintYearUsed && 'text-warning')} />
           {!hintYearUsed && hasIncorrectGuess && yearAvailable && (
             yearHintsInInventory > 0 ? (
               <Badge
-                variant="outline"
-                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold bg-green-500/20 border-green-500 text-green-400"
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {yearHintsInInventory}
               </Badge>
@@ -134,23 +138,18 @@ export function HintButtons() {
                 : t('game.hints.publisherTooltip', { defaultValue: 'Publisher Hint (-20%)' })
       }>
         <Button
-          variant="outline"
+          variant={hintVariant(hintPublisherUsed, publisherHintsInInventory)}
           size="sm"
           onClick={handleHintPublisher}
           disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing'}
-          className={`relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300 ${hintPublisherUsed
-            ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-            : publisherHintsInInventory > 0
-              ? 'border-green-500/50 hover:border-green-500'
-              : ''
-            }`}
+          className="relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300"
         >
-          <Building2 className={`h-4 w-4 transition-colors duration-300 ${hintPublisherUsed ? 'text-yellow-400' : ''}`} />
+          <Building2 className={cn('h-4 w-4 transition-colors duration-300', hintPublisherUsed && 'text-warning')} />
           {!hintPublisherUsed && hasIncorrectGuess && publisherAvailable && (
             publisherHintsInInventory > 0 ? (
               <Badge
-                variant="outline"
-                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold bg-green-500/20 border-green-500 text-green-400"
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {publisherHintsInInventory}
               </Badge>
@@ -178,23 +177,18 @@ export function HintButtons() {
                 : t('game.hints.developerTooltip', { defaultValue: 'Developer Hint (-20%)' })
       }>
         <Button
-          variant="outline"
+          variant={hintVariant(hintDeveloperUsed, developerHintsInInventory)}
           size="sm"
           onClick={handleHintDeveloper}
           disabled={!hasIncorrectGuess || hintDeveloperUsed || !developerAvailable || gamePhase !== 'playing'}
-          className={`relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300 ${hintDeveloperUsed
-            ? 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30'
-            : developerHintsInInventory > 0
-              ? 'border-green-500/50 hover:border-green-500'
-              : ''
-            }`}
+          className="relative h-9 sm:h-10 px-3 sm:px-4 touch-manipulation transition-all duration-300"
         >
-          <Code2 className={`h-4 w-4 transition-colors duration-300 ${hintDeveloperUsed ? 'text-yellow-400' : ''}`} />
+          <Code2 className={cn('h-4 w-4 transition-colors duration-300', hintDeveloperUsed && 'text-warning')} />
           {!hintDeveloperUsed && hasIncorrectGuess && developerAvailable && (
             developerHintsInInventory > 0 ? (
               <Badge
-                variant="outline"
-                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold bg-green-500/20 border-green-500 text-green-400"
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {developerHintsInInventory}
               </Badge>

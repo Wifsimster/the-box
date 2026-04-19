@@ -530,7 +530,9 @@
         "title": "Screenshots for {{name}}",
         "noScreenshots": "No screenshots for this game",
         "difficulty": "Difficulty",
-        "close": "Close"
+        "close": "Close",
+        "previous": "Previous screenshot",
+        "next": "Next screenshot"
       }
     },
     "users": {

@@ -3,6 +3,7 @@
 @custom-variant dark (&:is(.dark \*));
 
 :root {
+  color-scheme: dark;
   --radius: 0.625rem;
   /* Dark violet theme (default since dark-only) */
   --background: oklch(0.129 0.042 283.713);
