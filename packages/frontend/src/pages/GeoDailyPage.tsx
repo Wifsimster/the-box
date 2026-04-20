@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
-import { GeoMap } from '@/components/geo/GeoMap'
+import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, MapPin, Trophy } from 'lucide-react'
@@ -99,7 +99,7 @@ export default function GeoDailyPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <GeoMap
+                            <GeoMapCanvas
                                 imageUrl={map.imageUrl}
                                 widthPx={map.widthPx}
                                 heightPx={map.heightPx}
