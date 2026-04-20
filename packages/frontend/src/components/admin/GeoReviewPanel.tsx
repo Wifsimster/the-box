@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import { MapCanvas } from '@/components/geo/MapCanvas'
 import type {
     GeoMap,
@@ -45,6 +45,17 @@ async function overrideCandidate(id: number, pin: GeoPoint): Promise<void> {
     if (!res.ok) {
         const json = await res.json().catch(() => ({}))
         throw new Error(json?.error?.code ?? `override failed: ${res.status}`)
+    }
+}
+
+async function deleteMeta(metaId: number): Promise<void> {
+    const res = await fetch(`/api/admin/geo/meta/${metaId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    })
+    if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json?.error?.code ?? `delete meta failed: ${res.status}`)
     }
 }
 
@@ -93,6 +104,25 @@ export function GeoReviewPanel() {
             setPin(null)
             const rows = await fetchCandidates(statusFilter === 'all' ? undefined : statusFilter)
             setCandidates(rows)
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleDeleteMeta = async () => {
+        if (!detail?.meta) return
+        // Destructive on a public canonical — confirm explicitly.
+        if (!window.confirm('Demote this meta? It will become a collecting candidate again.')) return
+        setError(null)
+        setSaving(true)
+        try {
+            await deleteMeta(detail.meta.id)
+            // Reload the detail (now meta-less) so the admin can re-pin.
+            const fresh = await fetchCandidateDetail(detail.candidate.id)
+            setDetail(fresh)
+            setPin(null)
         } catch (e) {
             setError(String(e))
         } finally {
@@ -192,12 +222,27 @@ export function GeoReviewPanel() {
                                         disabled={!!detail.meta}
                                     />
                                     {detail.meta ? (
-                                        <p className="text-xs text-amber-400">
-                                            {t(
-                                                'admin.geo.alreadyPromoted',
-                                                'Already promoted — cannot override via UI. Delete the meta first.',
-                                            )}
-                                        </p>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <p className="text-xs text-amber-400">
+                                                {t(
+                                                    'admin.geo.alreadyPromoted',
+                                                    'Already promoted — delete to re-pin with new coords.',
+                                                )}
+                                            </p>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={handleDeleteMeta}
+                                                disabled={saving}
+                                            >
+                                                {saving ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                                ) : (
+                                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                                )}
+                                                {t('admin.geo.demote', 'Demote canonical')}
+                                            </Button>
+                                        </div>
                                     ) : (
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs text-muted-foreground">

@@ -1379,4 +1379,42 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
   }
 })
 
+// Demote a canonical meta back to an unlabeled candidate so an admin can
+// re-promote with corrected coordinates. FK RESTRICT on geo_challenge means
+// this 409s when any challenge references the meta — admins must unlink the
+// challenge(s) first rather than silently breaking an active day.
+router.delete('/geo/meta/:id', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+
+    try {
+      const result = await geoScreenshotRepository.deleteMeta(id)
+      if (!result.deleted) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+        return
+      }
+      res.json({ success: true, data: result })
+    } catch (dbErr) {
+      const msg = String(dbErr)
+      if (msg.includes('foreign key') || msg.includes('violates')) {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'META_IN_USE',
+            message: 'meta is referenced by a geo challenge — remove the challenge first',
+          },
+        })
+        return
+      }
+      throw dbErr
+    }
+  } catch (err) {
+    next(err)
+  }
+})
+
 export default router

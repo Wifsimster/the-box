@@ -198,4 +198,27 @@ export const geoScreenshotRepository = {
     const rows = await q.select<GeoScreenshotCandidateRow[]>('*')
     return rows.map(mapCandidate)
   },
+
+  /**
+   * Demote a canonical meta back to an unlabeled candidate. Fails at the DB
+   * layer (FK RESTRICT on geo_challenge) if any challenge references it —
+   * the caller should surface a 409 so admins explicitly unlink challenges
+   * before retrying rather than silently breaking an active day.
+   */
+  async deleteMeta(metaId: number): Promise<{ deleted: boolean; candidateId?: number }> {
+    log.info({ metaId }, 'deleteMeta')
+    return await db.transaction(async (trx: Knex.Transaction) => {
+      const meta = await trx('geo_screenshot_meta')
+        .where({ id: metaId })
+        .first<{ id: number; geo_screenshot_candidate_id: number }>()
+      if (!meta) return { deleted: false }
+
+      await trx('geo_screenshot_meta').where({ id: metaId }).del()
+      await trx('geo_screenshot_candidate')
+        .where({ id: meta.geo_screenshot_candidate_id })
+        .update({ status: 'collecting' })
+
+      return { deleted: true, candidateId: meta.geo_screenshot_candidate_id }
+    })
+  },
 }
