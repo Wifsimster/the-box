@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Trash2 } from 'lucide-react'
-import { MapCanvas } from '@/components/geo/MapCanvas'
+import { GeoMap } from '@/components/geo/GeoMap'
 import { GeoAdminActions } from './GeoAdminActions'
 import type {
     GeoMap,
@@ -208,7 +208,7 @@ export function GeoReviewPanel() {
                                         alt={`Candidate ${detail.candidate.id}`}
                                         className="w-full rounded border max-h-48 object-contain bg-black/20"
                                     />
-                                    <MapCanvas
+                                    <GeoMap
                                         imageUrl={detail.map.imageUrl}
                                         widthPx={detail.map.widthPx}
                                         heightPx={detail.map.heightPx}

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
-import { MapCanvas } from '@/components/geo/MapCanvas'
+import { GeoMap } from '@/components/geo/GeoMap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { HandCoins, Loader2, Lock, SkipForward } from 'lucide-react'
@@ -142,7 +142,7 @@ export default function GeoContributePage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <MapCanvas
+                            <GeoMap
                                 imageUrl={currentCandidateMap.imageUrl}
                                 widthPx={currentCandidateMap.widthPx}
                                 heightPx={currentCandidateMap.heightPx}
