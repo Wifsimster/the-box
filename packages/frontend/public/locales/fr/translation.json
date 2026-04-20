@@ -392,7 +392,15 @@
       "detailHint": "Sélectionnez un candidat dans la liste pour consulter ses épingles et éventuellement définir les coordonnées canoniques.",
       "promote": "Promouvoir en canonique",
       "demote": "Rétrograder la canonique",
-      "alreadyPromoted": "Déjà promu — supprimez pour ré-épingler avec de nouvelles coordonnées."
+      "alreadyPromoted": "Déjà promu — supprimez pour ré-épingler avec de nouvelles coordonnées.",
+      "actions": {
+        "title": "Ingestion et planification",
+        "fandom": "Importer la carte Fandom",
+        "steam": "Importer les captures Steam",
+        "schedule": "Planifier le défi quotidien",
+        "enqueue": "Lancer",
+        "queued": "Tâche en file : {{id}}"
+      }
     },
     "growth": {
       "loadError": "Échec du chargement des statistiques",

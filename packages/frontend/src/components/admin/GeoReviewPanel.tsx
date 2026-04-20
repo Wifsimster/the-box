@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Trash2 } from 'lucide-react'
 import { MapCanvas } from '@/components/geo/MapCanvas'
+import { GeoAdminActions } from './GeoAdminActions'
 import type {
     GeoMap,
     GeoPinSubmission,
@@ -132,6 +133,8 @@ export function GeoReviewPanel() {
 
     return (
         <div className="space-y-4">
+            <GeoAdminActions />
+
             <div className="flex items-center gap-2">
                 {(['collecting', 'pending', 'promoted', 'all'] as const).map((s) => (
                     <Button

@@ -34,6 +34,7 @@ import {
   geoMapRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
+import { geoQueue } from '../../infrastructure/queue/queues.js'
 
 // Cap even admin-triggered sends so a mistake or compromised admin
 // account can't spray mail on Resend's dime. Keyed by user id so two
@@ -1374,6 +1375,89 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
     })
 
     res.json({ success: true, data: meta })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Enqueue on-demand ingestion + scheduling jobs onto the geo-jobs queue.
+// Returns the BullMQ job id so the admin UI can poll for completion.
+
+const importFandomBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  wikiSubdomain: z.string().min(1).max(100),
+  pageTitle: z.string().min(1).max(200),
+})
+
+router.post('/geo/import/fandom', async (req, res, next) => {
+  try {
+    const parse = importFandomBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const job = await geoQueue.add('import-fandom-map', {
+      kind: 'import-fandom-map',
+      ...parse.data,
+    })
+    res.json({ success: true, data: { jobId: job.id } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const importSteamBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  geoMapId: z.number().int().positive(),
+  steamAppId: z.number().int().positive(),
+  maxItems: z.number().int().positive().max(200).optional(),
+})
+
+router.post('/geo/import/steam', async (req, res, next) => {
+  try {
+    const parse = importSteamBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const job = await geoQueue.add('import-steam-screenshots', {
+      kind: 'import-steam-screenshots',
+      ...parse.data,
+    })
+    res.json({ success: true, data: { jobId: job.id } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const scheduleBodySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD')
+    .optional(),
+})
+
+router.post('/geo/schedule', async (req, res, next) => {
+  try {
+    const parse = scheduleBodySchema.safeParse(req.body ?? {})
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const job = await geoQueue.add('schedule-daily-challenge', {
+      kind: 'schedule-daily-challenge',
+      date: parse.data.date,
+    })
+    res.json({ success: true, data: { jobId: job.id } })
   } catch (err) {
     next(err)
   }
