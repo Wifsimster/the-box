@@ -94,6 +94,7 @@ import {
   userRepository,
   geoChallengeRepository,
   geoContributorRepository,
+  geoMapRepository,
   geoPinRepository,
   geoScreenshotRepository,
 } from '../../infrastructure/repositories/index.js'
@@ -180,4 +181,5 @@ export const geoGameService = createGeoGameService({
   geoChallengeRepository,
   geoScreenshotRepository,
   geoPinRepository,
+  geoMapRepository,
 })

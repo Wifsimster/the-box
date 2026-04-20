@@ -8,11 +8,13 @@ import type {
   GeoChallenge,
   GeoGuessResult,
   GeoLeaderboardEntry,
+  GeoMap,
   GeoPoint,
   GeoScreenshotCandidate,
   GeoScreenshotMeta,
 } from '@the-box/types'
 import type { GeoScoringService } from './geo-scoring.service.js'
+import type { GeoMapRepository } from '../ports/repositories.js'
 
 export class GeoGameError extends Error {
   constructor(
@@ -34,6 +36,11 @@ export const GEO_CONTRIBUTE_HOURLY_LIMIT = 20
 export interface GeoDailyChallengeView {
   challenge: GeoChallenge
   meta: GeoScreenshotMeta
+  // Exposed for the frontend map renderer; avoids hand-rolling image-proxy
+  // endpoints. The candidate's own imageUrl is the screenshot; the map
+  // carries its own image + dimensions for coordinate normalization.
+  candidate: GeoScreenshotCandidate
+  map: GeoMap
   hasGuessed: boolean
 }
 
@@ -65,6 +72,7 @@ export interface GeoGameServiceDeps {
   geoChallengeRepository: GeoChallengeRepository
   geoScreenshotRepository: GeoScreenshotRepository
   geoPinRepository: GeoPinRepository
+  geoMapRepository: GeoMapRepository
 }
 
 function validPoint(p: GeoPoint): boolean {
@@ -88,6 +96,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
     geoChallengeRepository,
     geoScreenshotRepository,
     geoPinRepository,
+    geoMapRepository,
   } = deps
   const log = deps.logger.child({ service: 'geo-game' })
 
@@ -102,13 +111,27 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
         return null
       }
 
+      const candidate = await geoScreenshotRepository.findCandidateById(
+        meta.geoScreenshotCandidateId,
+      )
+      if (!candidate) {
+        log.error({ metaId: meta.id }, 'meta references missing candidate')
+        return null
+      }
+
+      const map = await geoMapRepository.findById(meta.geoMapId)
+      if (!map) {
+        log.error({ metaId: meta.id }, 'meta references missing map')
+        return null
+      }
+
       let hasGuessed = false
       if (userId) {
         const existing = await geoChallengeRepository.findGuess(userId, challenge.id)
         hasGuessed = !!existing
       }
 
-      return { challenge, meta, hasGuessed }
+      return { challenge, meta, candidate, map, hasGuessed }
     },
 
     async submitGuess({ userId, challengeId, guess, durationMs }) {

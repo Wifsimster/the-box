@@ -19,6 +19,7 @@ export default function GeoContributePage() {
     const {
         phase,
         currentCandidate,
+        currentCandidateMap,
         pendingPin,
         errorMessage,
         pickContribution,
@@ -86,7 +87,7 @@ export default function GeoContributePage() {
                 </Card>
             )}
 
-            {currentCandidate && phase === 'playing' && (
+            {currentCandidate && currentCandidateMap && phase === 'playing' && (
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                         <CardHeader className="pb-2">
@@ -111,9 +112,9 @@ export default function GeoContributePage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <MapCanvas
-                                imageUrl={`/api/geo/map/${currentCandidate.geoMapId}/image`}
-                                widthPx={1600}
-                                heightPx={900}
+                                imageUrl={currentCandidateMap.imageUrl}
+                                widthPx={currentCandidateMap.widthPx}
+                                heightPx={currentCandidateMap.heightPx}
                                 pin={pendingPin}
                                 onPin={setPendingPin}
                             />

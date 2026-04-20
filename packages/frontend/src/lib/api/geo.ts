@@ -5,6 +5,7 @@ import type {
     GeoContributorTierThreshold,
     GeoGuessResult,
     GeoLeaderboardEntry,
+    GeoMap,
     GeoPoint,
     GeoScreenshotCandidate,
     GeoScreenshotMeta,
@@ -50,6 +51,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export interface GeoDailyView {
     challenge: GeoChallenge
     meta: GeoScreenshotMeta
+    candidate: GeoScreenshotCandidate
+    map: GeoMap
     hasGuessed: boolean
 }
 
@@ -87,11 +90,16 @@ export const geoApi = {
         return request<GeoLeaderboardEntry[]>(`/api/geo/leaderboard/monthly/${period}`)
     },
 
-    pickContribution(gameId: number): Promise<{ candidate: GeoScreenshotCandidate }> {
-        return request<{ candidate: GeoScreenshotCandidate }>('/api/geo/contribute/pick', {
-            method: 'POST',
-            body: JSON.stringify({ gameId }),
-        })
+    pickContribution(
+        gameId: number,
+    ): Promise<{ candidate: GeoScreenshotCandidate; map: GeoMap }> {
+        return request<{ candidate: GeoScreenshotCandidate; map: GeoMap }>(
+            '/api/geo/contribute/pick',
+            {
+                method: 'POST',
+                body: JSON.stringify({ gameId }),
+            },
+        )
     },
 
     submitPin(input: {

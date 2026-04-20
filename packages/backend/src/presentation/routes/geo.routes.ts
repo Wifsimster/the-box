@@ -10,6 +10,7 @@ import {
   geoContributorRepository,
   geoScreenshotRepository,
   geoChallengeRepository,
+  geoMapRepository,
 } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
@@ -148,11 +149,15 @@ router.post(
       const userId = req.userId!
       const { gameId } = req.body as z.infer<typeof contributePickBodySchema>
       const candidate = await geoGameService.pickContributionTarget({ gameId, userId })
-
-      // Caller also needs the map metadata to render Leaflet properly.
-      // Fetched via the repository rather than expanding the service API.
-      const map = await geoScreenshotRepository.findCandidateById(candidate.id)
-      res.json({ success: true, data: { candidate: map ?? candidate } })
+      const map = await geoMapRepository.findById(candidate.geoMapId)
+      if (!map) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'MAP_NOT_FOUND', message: 'map for candidate not found' },
+        })
+        return
+      }
+      res.json({ success: true, data: { candidate, map } })
     } catch (err) {
       if (err instanceof GeoGameError) {
         const status = err.code === 'CONTRIBUTE_RATE_LIMIT' ? 429 : 404

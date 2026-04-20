@@ -19,6 +19,8 @@ export default function GeoDailyPage() {
         phase,
         challenge,
         meta,
+        candidate,
+        map,
         hasGuessed,
         pendingGuess,
         result,
@@ -74,7 +76,7 @@ export default function GeoDailyPage() {
                 </Card>
             )}
 
-            {challenge && meta && (phase === 'playing' || phase === 'submitting' || phase === 'result') && (
+            {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result') && (
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                         <CardHeader className="pb-2">
@@ -83,9 +85,7 @@ export default function GeoDailyPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <ScreenshotFrame
-                                metaImageUrl={inferScreenshotImage(meta)}
-                            />
+                            <ScreenshotFrame imageUrl={candidate.imageUrl} />
                         </CardContent>
                     </Card>
 
@@ -98,9 +98,9 @@ export default function GeoDailyPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <MapCanvas
-                                imageUrl={inferMapImage(meta)}
-                                widthPx={1600}
-                                heightPx={900}
+                                imageUrl={map.imageUrl}
+                                widthPx={map.widthPx}
+                                heightPx={map.heightPx}
                                 pin={pendingGuess ?? result?.guess ?? null}
                                 canonical={result?.canonical ?? null}
                                 disabled={hasGuessed || phase === 'submitting' || phase === 'result'}
@@ -153,19 +153,7 @@ function ResultBlock({
     )
 }
 
-// The panorama screenshot URL isn't exposed on the GeoScreenshotMeta type
-// yet (it lives on the candidate). For MVP we infer from a conventional
-// location or fall back to a placeholder; a follow-up can expand the API
-// to return the full candidate payload alongside meta.
-function inferScreenshotImage(meta: { id: number }): string {
-    return `/api/geo/screenshot/${meta.id}/image`
-}
-
-function inferMapImage(meta: { geoMapId: number }): string {
-    return `/api/geo/map/${meta.geoMapId}/image`
-}
-
-function ScreenshotFrame({ metaImageUrl }: { metaImageUrl: string }) {
+function ScreenshotFrame({ imageUrl }: { imageUrl: string }) {
     const [errored, setErrored] = useState(false)
     if (errored) {
         return (
@@ -176,7 +164,7 @@ function ScreenshotFrame({ metaImageUrl }: { metaImageUrl: string }) {
     }
     return (
         <img
-            src={metaImageUrl}
+            src={imageUrl}
             alt="Game screenshot"
             className="w-full rounded-lg border"
             onError={() => setErrored(true)}

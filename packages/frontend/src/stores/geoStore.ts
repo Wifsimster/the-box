@@ -3,6 +3,7 @@ import type {
     GeoChallenge,
     GeoGuessResult,
     GeoLeaderboardEntry,
+    GeoMap,
     GeoPoint,
     GeoRewardedEvent,
     GeoScreenshotCandidate,
@@ -18,6 +19,8 @@ interface GeoState {
     phase: Phase
     challenge: GeoChallenge | null
     meta: GeoScreenshotMeta | null
+    candidate: GeoScreenshotCandidate | null
+    map: GeoMap | null
     hasGuessed: boolean
     pendingGuess: GeoPoint | null
     result: GeoGuessResult | null
@@ -29,6 +32,7 @@ interface GeoState {
 
     // Crowdsource flow
     currentCandidate: GeoScreenshotCandidate | null
+    currentCandidateMap: GeoMap | null
     pendingPin: GeoPoint | null
 
     // Contributor profile block
@@ -63,6 +67,8 @@ export const useGeoStore = create<GeoState>((set, get) => ({
     phase: 'idle',
     challenge: null,
     meta: null,
+    candidate: null,
+    map: null,
     hasGuessed: false,
     pendingGuess: null,
     result: null,
@@ -70,6 +76,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
     leaderboardDaily: [],
     leaderboardMonthly: [],
     currentCandidate: null,
+    currentCandidateMap: null,
     pendingPin: null,
     contributor: null,
     recentRewards: [],
@@ -83,6 +90,8 @@ export const useGeoStore = create<GeoState>((set, get) => ({
                 phase: 'playing',
                 challenge: view.challenge,
                 meta: view.meta,
+                candidate: view.candidate,
+                map: view.map,
                 hasGuessed: view.hasGuessed,
                 result: null,
                 pendingGuess: null,
@@ -135,10 +144,11 @@ export const useGeoStore = create<GeoState>((set, get) => ({
     async pickContribution(gameId) {
         set({ phase: 'loading', errorMessage: null })
         try {
-            const { candidate } = await geoApi.pickContribution(gameId)
+            const { candidate, map } = await geoApi.pickContribution(gameId)
             set({
                 phase: 'playing',
                 currentCandidate: candidate,
+                currentCandidateMap: map,
                 pendingPin: null,
             })
         } catch (err) {
@@ -166,7 +176,12 @@ export const useGeoStore = create<GeoState>((set, get) => ({
                 geoScreenshotCandidateId: currentCandidate.id,
                 pin: pendingPin,
             })
-            set({ pendingPin: null, currentCandidate: null, phase: 'idle' })
+            set({
+                pendingPin: null,
+                currentCandidate: null,
+                currentCandidateMap: null,
+                phase: 'idle',
+            })
             return true
         } catch (err) {
             set({
@@ -213,11 +228,14 @@ export const useGeoStore = create<GeoState>((set, get) => ({
             phase: 'idle',
             challenge: null,
             meta: null,
+            candidate: null,
+            map: null,
             hasGuessed: false,
             pendingGuess: null,
             result: null,
             errorMessage: null,
             currentCandidate: null,
+            currentCandidateMap: null,
             pendingPin: null,
         })
     },
