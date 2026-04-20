@@ -187,4 +187,15 @@ export const geoScreenshotRepository = {
       .first()
     return row ? mapMeta(row) : null
   },
+
+  async listCandidatesForReview(args: {
+    status?: GeoScreenshotCandidateRow['status']
+    limit?: number
+  }): Promise<GeoScreenshotCandidate[]> {
+    const { status, limit = 50 } = args
+    const q = db('geo_screenshot_candidate').orderBy('pin_count', 'desc').limit(limit)
+    if (status) q.where('status', status)
+    const rows = await q.select<GeoScreenshotCandidateRow[]>('*')
+    return rows.map(mapCandidate)
+  },
 }

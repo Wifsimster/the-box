@@ -28,6 +28,12 @@ import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+import {
+  geoScreenshotRepository,
+  geoPinRepository,
+  geoMapRepository,
+} from '../../infrastructure/repositories/index.js'
+import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
 
 // Cap even admin-triggered sends so a mistake or compromised admin
 // account can't spray mail on Resend's dime. Keyed by user id so two
@@ -1275,6 +1281,101 @@ router.get('/growth-stats', async (_req, res, next) => {
     })
   } catch (error) {
     next(error)
+  }
+})
+
+// === Geolocation mode (admin review) ===
+
+router.get('/geo/candidates', async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined
+    const limit = req.query.limit ? Math.min(200, Number(req.query.limit)) : 50
+    const candidates = await geoScreenshotRepository.listCandidatesForReview({
+      status: status as 'pending' | 'collecting' | 'promoted' | 'rejected' | undefined,
+      limit,
+    })
+    res.json({ success: true, data: candidates })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/geo/candidates/:id', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const candidate = await geoScreenshotRepository.findCandidateById(id)
+    if (!candidate) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+      return
+    }
+    const [pins, map, meta] = await Promise.all([
+      geoPinRepository.listByCandidate(id),
+      geoMapRepository.findById(candidate.geoMapId),
+      geoScreenshotRepository.findMetaByCandidateId(id),
+    ])
+    res.json({ success: true, data: { candidate, pins, map, meta } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const overrideBodySchema = z.object({
+  canonicalX: z.number().min(0).max(1),
+  canonicalY: z.number().min(0).max(1),
+})
+
+router.post('/geo/candidates/:id/override', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = overrideBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+
+    const candidate = await geoScreenshotRepository.findCandidateById(id)
+    if (!candidate) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+      return
+    }
+
+    // If a meta already exists (consensus-promoted or previous override), the
+    // safest behaviour is to reject — admins should delete the meta explicitly
+    // rather than silently shift canonical coordinates under players.
+    const existing = await geoScreenshotRepository.findMetaByCandidateId(id)
+    if (existing) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'ALREADY_PROMOTED', message: 'candidate already promoted' },
+      })
+      return
+    }
+
+    const meta = await geoScreenshotRepository.promoteCandidateToMeta({
+      candidateId: id,
+      geoMapId: candidate.geoMapId,
+      canonicalX: parse.data.canonicalX,
+      canonicalY: parse.data.canonicalY,
+      confidence: 1.0,
+      consensusVersion: GEO_CONSENSUS_VERSION,
+      promotedVia: 'admin',
+      promotedBy: req.userId,
+    })
+
+    res.json({ success: true, data: meta })
+  } catch (err) {
+    next(err)
   }
 })
 
