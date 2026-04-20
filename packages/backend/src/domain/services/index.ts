@@ -39,6 +39,23 @@ export {
   GEO_CONSENSUS_VERSION,
   GEO_CONSENSUS_THRESHOLDS,
 } from './geo-consensus.service.js'
+export {
+  createGeoRewardService,
+  type GeoRewardService,
+  type GeoRewardSummary,
+} from './geo-reward.service.js'
+export {
+  createGeoContributorService,
+  type GeoContributorService,
+  type GeoTierEvaluation,
+} from './geo-contributor.service.js'
+export {
+  createGeoGameService,
+  type GeoGameService,
+  type GeoDailyChallengeView,
+  GeoGameError,
+  GEO_CONTRIBUTE_HOURLY_LIMIT,
+} from './geo-game.service.js'
 
 // ---------------------------------------------------------------------------
 // Composition root for domain services.
@@ -59,6 +76,9 @@ import { createReferralService } from './referral.service.js'
 import { createGameService } from './game.service.js'
 import { createGeoScoringService } from './geo-scoring.service.js'
 import { createGeoConsensusService } from './geo-consensus.service.js'
+import { createGeoRewardService } from './geo-reward.service.js'
+import { createGeoContributorService } from './geo-contributor.service.js'
+import { createGeoGameService } from './geo-game.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import { importQueue } from '../../infrastructure/queue/queues.js'
 import {
@@ -72,6 +92,10 @@ import {
   screenshotRepository,
   sessionRepository,
   userRepository,
+  geoChallengeRepository,
+  geoContributorRepository,
+  geoPinRepository,
+  geoScreenshotRepository,
 } from '../../infrastructure/repositories/index.js'
 
 export const fuzzyMatchService = createFuzzyMatchService({ logger: serviceLogger })
@@ -136,3 +160,24 @@ export const gameService = createGameService({
 export const geoScoringService = createGeoScoringService({ logger: serviceLogger })
 
 export const geoConsensusService = createGeoConsensusService({ logger: serviceLogger })
+
+export const geoContributorService = createGeoContributorService({
+  logger: serviceLogger,
+  geoContributorRepository,
+})
+
+export const geoRewardService = createGeoRewardService({
+  logger: serviceLogger,
+  inventoryRepository,
+  geoPinRepository,
+  geoContributorRepository,
+  geoScreenshotRepository,
+})
+
+export const geoGameService = createGeoGameService({
+  logger: serviceLogger,
+  geoScoringService,
+  geoChallengeRepository,
+  geoScreenshotRepository,
+  geoPinRepository,
+})

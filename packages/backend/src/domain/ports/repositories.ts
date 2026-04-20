@@ -20,6 +20,18 @@ import type {
   User,
   UserInventory,
   UserInventoryItem,
+  GeoChallenge,
+  GeoContributorStats,
+  GeoContributorTier,
+  GeoContributorTierThreshold,
+  GeoGuessResult,
+  GeoLeaderboardEntry,
+  GeoMap,
+  GeoPinStatus,
+  GeoPinSubmission,
+  GeoPoint,
+  GeoScreenshotCandidate,
+  GeoScreenshotMeta,
 } from '@the-box/types'
 
 // ---------- User ----------
@@ -572,4 +584,103 @@ export interface FunnelEventInput {
 
 export interface FunnelEventRepository {
   record(event: FunnelEventInput): Promise<void>
+}
+
+// ---------- Geolocation Mode ----------
+
+export interface GeoMapRepository {
+  findById(id: number): Promise<GeoMap | null>
+  findActiveByGameId(gameId: number): Promise<GeoMap | null>
+}
+
+export interface GeoScreenshotRepository {
+  findCandidateById(id: number): Promise<GeoScreenshotCandidate | null>
+  findRandomUnlabeledForGame(gameId: number): Promise<GeoScreenshotCandidate | null>
+  incrementPinCount(candidateId: number): Promise<number>
+  setCandidateStatus(
+    candidateId: number,
+    status: 'pending' | 'collecting' | 'promoted' | 'rejected',
+  ): Promise<void>
+  findMetaByCandidateId(candidateId: number): Promise<GeoScreenshotMeta | null>
+  findMetaById(id: number): Promise<GeoScreenshotMeta | null>
+  promoteCandidateToMeta(data: {
+    candidateId: number
+    geoMapId: number
+    canonicalX: number
+    canonicalY: number
+    confidence: number
+    consensusVersion: number
+    promotedVia: 'consensus' | 'admin'
+    promotedBy?: string
+  }): Promise<GeoScreenshotMeta>
+  countPromotedForGame(gameId: number): Promise<number>
+  pickRandomPromotedForGame(gameId: number): Promise<GeoScreenshotMeta | null>
+}
+
+export interface GeoChallengeRepository {
+  findByDate(date: string, tier?: number): Promise<GeoChallenge | null>
+  listRecent(days: number): Promise<GeoChallenge[]>
+  create(data: {
+    challengeDate: string
+    geoScreenshotMetaId: number
+    tier?: number
+  }): Promise<GeoChallenge>
+  findGuess(
+    userId: string,
+    challengeId: number,
+  ): Promise<{
+    id: number
+    user_id: string
+    geo_challenge_id: number
+    x: number
+    y: number
+    distance: number
+    score: number
+    score_version: number
+    duration_ms: number | null
+    created_at: Date
+  } | null>
+  recordGuess(data: {
+    userId: string
+    geoChallengeId: number
+    guess: GeoPoint
+    distance: number
+    score: number
+    scoreVersion: number
+    durationMs?: number
+  }): Promise<GeoGuessResult>
+  upsertDaily(args: { challengeDate: string; userId: string; score: number }): Promise<void>
+  upsertMonthly(args: { period: string; userId: string; scoreDelta: number }): Promise<void>
+  topDaily(challengeDate: string, limit?: number): Promise<GeoLeaderboardEntry[]>
+  topMonthly(period: string, limit?: number): Promise<GeoLeaderboardEntry[]>
+}
+
+export interface GeoPinRepository {
+  submit(data: {
+    userId: string
+    geoScreenshotCandidateId: number
+    pin: GeoPoint
+  }): Promise<GeoPinSubmission | null>
+  listByCandidate(candidateId: number): Promise<GeoPinSubmission[]>
+  listPendingByCandidate(candidateId: number): Promise<GeoPinSubmission[]>
+  applyDecision(args: {
+    pinId: number
+    status: GeoPinStatus
+    distanceFromCentroid: number
+  }): Promise<void>
+  countByUserInWindow(userId: string, intervalSql: string): Promise<number>
+  userRejectionRatio7d(userId: string): Promise<{ submitted: number; rejected: number }>
+}
+
+export interface GeoContributorRepository {
+  getStats(userId: string): Promise<GeoContributorStats | null>
+  bumpCounters(args: {
+    userId: string
+    submittedDelta: number
+    acceptedDelta: number
+    rejectedDelta: number
+  }): Promise<void>
+  setTier(userId: string, tier: GeoContributorTier): Promise<void>
+  setShadowBanned(userId: string, shadowBanned: boolean): Promise<void>
+  listThresholds(): Promise<GeoContributorTierThreshold[]>
 }
