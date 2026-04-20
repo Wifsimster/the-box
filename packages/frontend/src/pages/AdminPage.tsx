@@ -10,12 +10,15 @@ import { UserList } from '@/components/admin/UserList'
 import { EmailSettings } from '@/components/admin/EmailSettings'
 import { GrowthStats } from '@/components/admin/GrowthStats'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
+import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, Users, Mail, TrendingUp } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail, TrendingUp, MapPin } from 'lucide-react'
 
-const VALID_TABS = ['jobs', 'games', 'users', 'email', 'growth']
+const GEO_ENABLED = import.meta.env.VITE_GEO_ENABLED === 'true'
+
+const VALID_TABS = ['jobs', 'games', 'users', 'email', 'growth', ...(GEO_ENABLED ? ['geo'] : [])]
 const DEFAULT_TAB = 'jobs'
 
 export default function AdminPage() {
@@ -37,6 +40,9 @@ export default function AdminPage() {
     { id: 'users', label: t('admin.tabs.users'), icon: <Users className="h-4 w-4" /> },
     { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
     { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
+    ...(GEO_ENABLED
+      ? [{ id: 'geo', label: t('admin.tabs.geo', 'Geo'), icon: <MapPin className="h-4 w-4" /> }]
+      : []),
   ]
 
   // Get active tab from URL, default to 'jobs' if not present or invalid
@@ -139,6 +145,7 @@ export default function AdminPage() {
               {activeTab === 'users' && <UserList />}
               {activeTab === 'email' && <EmailSettings />}
               {activeTab === 'growth' && <GrowthStats />}
+              {activeTab === 'geo' && GEO_ENABLED && <GeoReviewPanel />}
             </motion.div>
           </AnimatePresence>
         </div>

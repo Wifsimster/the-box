@@ -34,6 +34,13 @@ const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const GameHistoryDetailsPage = lazy(() => import('@/pages/GameHistoryDetailsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
+const GeoDailyPage = lazy(() => import('@/pages/GeoDailyPage'))
+const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
+const GeoLeaderboardPage = lazy(() => import('@/pages/GeoLeaderboardPage'))
+
+// Toggle all /geo routes via env flag so the mode can be rolled back
+// without touching router code.
+const GEO_ENABLED = import.meta.env.VITE_GEO_ENABLED === 'true'
 
 function LoadingSpinner() {
   return (
@@ -128,6 +135,15 @@ function App() {
           <Route path="history" element={<HistoryPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="u/:username" element={<PublicProfilePage />} />
+
+          {GEO_ENABLED && (
+            <>
+              <Route path="geo" element={<GeoDailyPage />} />
+              <Route path="geo/daily" element={<GeoDailyPage />} />
+              <Route path="geo/contribute" element={<GeoContributePage />} />
+              <Route path="geo/leaderboard" element={<GeoLeaderboardPage />} />
+            </>
+          )}
         </Route>
 
         {/* Catch-all redirect to browser language */}

@@ -678,3 +678,130 @@ export interface LoginRewardClaim {
   streakAtClaim: number
   claimedAt: string
 }
+
+// ============================================
+// Geolocation Mode (additive — separate from the main game)
+// ============================================
+
+// Normalized [0..1] map coordinates. Both axes independent of pixel size.
+export interface GeoPoint {
+  x: number
+  y: number
+}
+
+export interface GeoMap {
+  id: number
+  gameId: number
+  source: 'fandom' | 'steam' | 'manual'
+  sourceUrl?: string
+  imageUrl: string
+  widthPx: number
+  heightPx: number
+  consensusRadius: number
+  license: string
+  attribution?: string
+}
+
+export interface GeoScreenshotCandidate {
+  id: number
+  gameId: number
+  geoMapId: number
+  screenshotId?: number
+  imageUrl: string
+  thumbnailUrl?: string
+  source: 'steam' | 'rawg' | 'manual'
+  externalId?: string
+  status: 'pending' | 'collecting' | 'promoted' | 'rejected'
+  pinCount: number
+}
+
+export interface GeoScreenshotMeta {
+  id: number
+  geoScreenshotCandidateId: number
+  geoMapId: number
+  canonical: GeoPoint
+  confidence: number
+  consensusVersion: number
+  promotedVia: 'consensus' | 'admin'
+}
+
+export interface GeoChallenge {
+  id: number
+  challengeDate: string
+  geoScreenshotMetaId: number
+  tier: number
+}
+
+export interface GeoGuessInput {
+  geoChallengeId: number
+  guess: GeoPoint
+  durationMs?: number
+}
+
+export interface GeoGuessResult {
+  guess: GeoPoint
+  canonical: GeoPoint
+  distance: number
+  score: number
+  scoreVersion: number
+}
+
+export interface GeoLeaderboardEntry {
+  userId: string
+  username: string
+  displayName: string
+  avatarUrl?: string
+  score: number
+  rank: number
+}
+
+export interface GeoPinSubmissionInput {
+  geoScreenshotCandidateId: number
+  pin: GeoPoint
+}
+
+export type GeoPinStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface GeoPinSubmission {
+  id: number
+  userId: string
+  geoScreenshotCandidateId: number
+  pin: GeoPoint
+  status: GeoPinStatus
+  distanceFromCentroid?: number
+  reviewedAt?: string
+  createdAt: string
+}
+
+export type GeoContributorTier = 'bronze' | 'silver' | 'gold' | 'diamond'
+
+export interface GeoContributorStats {
+  userId: string
+  tier: GeoContributorTier
+  totalSubmitted: number
+  totalAccepted: number
+  totalRejected: number
+  accuracy: number
+  shadowBanned: boolean
+  tierPromotedAt?: string
+}
+
+export interface GeoContributorTierThreshold {
+  tier: GeoContributorTier
+  minAccepted: number
+  minAccuracy: number
+  displayOrder: number
+}
+
+// Realtime event payloads on the `/geo` namespace (or `geo:*` prefix).
+export interface GeoRewardedEvent {
+  userId: string
+  geoScreenshotCandidateId: number
+  items: Array<{ itemType: string; itemKey: string; quantity: number }>
+}
+
+export interface GeoTierUpEvent {
+  userId: string
+  previousTier: GeoContributorTier
+  newTier: GeoContributorTier
+}

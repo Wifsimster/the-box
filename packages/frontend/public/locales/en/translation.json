@@ -380,7 +380,27 @@
       "challenges": "Challenges",
       "users": "Users",
       "email": "Email",
-      "growth": "Growth"
+      "growth": "Growth",
+      "geo": "Geo"
+    },
+    "geo": {
+      "candidates": "Candidates",
+      "empty": "No candidates match this filter.",
+      "pins": "pins",
+      "pickOne": "Pick a candidate",
+      "pickPoint": "Click the map to set canonical coordinates",
+      "detailHint": "Select a candidate from the list to review its pins and optionally set canonical coordinates.",
+      "promote": "Promote to canonical",
+      "demote": "Demote canonical",
+      "alreadyPromoted": "Already promoted — delete to re-pin with new coords.",
+      "actions": {
+        "title": "Ingestion & scheduling",
+        "fandom": "Import Fandom map",
+        "steam": "Import Steam screenshots",
+        "schedule": "Schedule daily challenge",
+        "enqueue": "Enqueue",
+        "queued": "Job queued: {{id}}"
+      }
     },
     "growth": {
       "loadError": "Failed to load growth stats",
@@ -865,6 +885,47 @@
     "badges": "Badges",
     "badgeLabels": {
       "ambassador": "Ambassador"
+    }
+  },
+  "geo": {
+    "daily": {
+      "title": "Daily Geo Challenge",
+      "subtitle": "Pin the exact spot on the map where this screenshot was taken.",
+      "screenshot": "Screenshot",
+      "map": "Map",
+      "hint": "Click the map to drop a pin",
+      "submit": "Submit guess"
+    },
+    "contribute": {
+      "title": "Tag a screenshot",
+      "subtitle": "Help the community by pinning where this scene happens. Accurate pins earn hint tokens.",
+      "screenshot": "Screenshot",
+      "map": "Pin its location",
+      "submit": "Submit pin",
+      "skip": "Skip",
+      "thanks": "Thanks — we'll let you know once other players agree on the spot.",
+      "recent": "Recent rewards",
+      "lockedTitle": "Tagging unlocks after a few daily games.",
+      "lockedProgress": "Progress"
+    },
+    "leaderboard": {
+      "title": "Geo Leaderboard",
+      "subtitle": "Ranked independently from the main game.",
+      "daily": "Daily",
+      "monthly": "Monthly"
+    },
+    "profile": {
+      "title": "Geo Crowdsourcer",
+      "accepted": "accepted pins",
+      "accuracy": "accuracy",
+      "restricted": "Restricted",
+      "nextTier": "Next tier",
+      "morePins": "more accepted pins",
+      "moreAccuracy": "accuracy",
+      "closeToPromotion": "Promotion imminent!",
+      "placeholder": "Tag screenshots to earn hint tokens and a Crowdsourcer tier.",
+      "unlockLabel": "Contribute unlocks after",
+      "unlockDays": "days played"
     }
   }
 }

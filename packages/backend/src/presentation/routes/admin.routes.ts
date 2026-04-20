@@ -28,6 +28,13 @@ import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+import {
+  geoScreenshotRepository,
+  geoPinRepository,
+  geoMapRepository,
+} from '../../infrastructure/repositories/index.js'
+import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
+import { geoQueue } from '../../infrastructure/queue/queues.js'
 
 // Cap even admin-triggered sends so a mistake or compromised admin
 // account can't spray mail on Resend's dime. Keyed by user id so two
@@ -1275,6 +1282,222 @@ router.get('/growth-stats', async (_req, res, next) => {
     })
   } catch (error) {
     next(error)
+  }
+})
+
+// === Geolocation mode (admin review) ===
+
+router.get('/geo/candidates', async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined
+    const limit = req.query.limit ? Math.min(200, Number(req.query.limit)) : 50
+    const candidates = await geoScreenshotRepository.listCandidatesForReview({
+      status: status as 'pending' | 'collecting' | 'promoted' | 'rejected' | undefined,
+      limit,
+    })
+    res.json({ success: true, data: candidates })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/geo/candidates/:id', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const candidate = await geoScreenshotRepository.findCandidateById(id)
+    if (!candidate) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+      return
+    }
+    const [pins, map, meta] = await Promise.all([
+      geoPinRepository.listByCandidate(id),
+      geoMapRepository.findById(candidate.geoMapId),
+      geoScreenshotRepository.findMetaByCandidateId(id),
+    ])
+    res.json({ success: true, data: { candidate, pins, map, meta } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const overrideBodySchema = z.object({
+  canonicalX: z.number().min(0).max(1),
+  canonicalY: z.number().min(0).max(1),
+})
+
+router.post('/geo/candidates/:id/override', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = overrideBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+
+    const candidate = await geoScreenshotRepository.findCandidateById(id)
+    if (!candidate) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+      return
+    }
+
+    // If a meta already exists (consensus-promoted or previous override), the
+    // safest behaviour is to reject — admins should delete the meta explicitly
+    // rather than silently shift canonical coordinates under players.
+    const existing = await geoScreenshotRepository.findMetaByCandidateId(id)
+    if (existing) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'ALREADY_PROMOTED', message: 'candidate already promoted' },
+      })
+      return
+    }
+
+    const meta = await geoScreenshotRepository.promoteCandidateToMeta({
+      candidateId: id,
+      geoMapId: candidate.geoMapId,
+      canonicalX: parse.data.canonicalX,
+      canonicalY: parse.data.canonicalY,
+      confidence: 1.0,
+      consensusVersion: GEO_CONSENSUS_VERSION,
+      promotedVia: 'admin',
+      promotedBy: req.userId,
+    })
+
+    res.json({ success: true, data: meta })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Enqueue on-demand ingestion + scheduling jobs onto the geo-jobs queue.
+// Returns the BullMQ job id so the admin UI can poll for completion.
+
+const importFandomBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  wikiSubdomain: z.string().min(1).max(100),
+  pageTitle: z.string().min(1).max(200),
+})
+
+router.post('/geo/import/fandom', async (req, res, next) => {
+  try {
+    const parse = importFandomBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const job = await geoQueue.add('import-fandom-map', {
+      kind: 'import-fandom-map',
+      ...parse.data,
+    })
+    res.json({ success: true, data: { jobId: job.id } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const importSteamBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  geoMapId: z.number().int().positive(),
+  steamAppId: z.number().int().positive(),
+  maxItems: z.number().int().positive().max(200).optional(),
+})
+
+router.post('/geo/import/steam', async (req, res, next) => {
+  try {
+    const parse = importSteamBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const job = await geoQueue.add('import-steam-screenshots', {
+      kind: 'import-steam-screenshots',
+      ...parse.data,
+    })
+    res.json({ success: true, data: { jobId: job.id } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const scheduleBodySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD')
+    .optional(),
+})
+
+router.post('/geo/schedule', async (req, res, next) => {
+  try {
+    const parse = scheduleBodySchema.safeParse(req.body ?? {})
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const job = await geoQueue.add('schedule-daily-challenge', {
+      kind: 'schedule-daily-challenge',
+      date: parse.data.date,
+    })
+    res.json({ success: true, data: { jobId: job.id } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Demote a canonical meta back to an unlabeled candidate so an admin can
+// re-promote with corrected coordinates. FK RESTRICT on geo_challenge means
+// this 409s when any challenge references the meta — admins must unlink the
+// challenge(s) first rather than silently breaking an active day.
+router.delete('/geo/meta/:id', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+
+    try {
+      const result = await geoScreenshotRepository.deleteMeta(id)
+      if (!result.deleted) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+        return
+      }
+      res.json({ success: true, data: result })
+    } catch (dbErr) {
+      const msg = String(dbErr)
+      if (msg.includes('foreign key') || msg.includes('violates')) {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'META_IN_USE',
+            message: 'meta is referenced by a geo challenge — remove the challenge first',
+          },
+        })
+        return
+      }
+      throw dbErr
+    }
+  } catch (err) {
+    next(err)
   }
 })
 

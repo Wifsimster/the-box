@@ -380,7 +380,27 @@
       "challenges": "Défis",
       "users": "Utilisateurs",
       "email": "Email",
-      "growth": "Acquisition"
+      "growth": "Acquisition",
+      "geo": "Géo"
+    },
+    "geo": {
+      "candidates": "Candidats",
+      "empty": "Aucun candidat ne correspond à ce filtre.",
+      "pins": "épingles",
+      "pickOne": "Choisir un candidat",
+      "pickPoint": "Cliquez sur la carte pour définir les coordonnées canoniques",
+      "detailHint": "Sélectionnez un candidat dans la liste pour consulter ses épingles et éventuellement définir les coordonnées canoniques.",
+      "promote": "Promouvoir en canonique",
+      "demote": "Rétrograder la canonique",
+      "alreadyPromoted": "Déjà promu — supprimez pour ré-épingler avec de nouvelles coordonnées.",
+      "actions": {
+        "title": "Ingestion et planification",
+        "fandom": "Importer la carte Fandom",
+        "steam": "Importer les captures Steam",
+        "schedule": "Planifier le défi quotidien",
+        "enqueue": "Lancer",
+        "queued": "Tâche en file : {{id}}"
+      }
     },
     "growth": {
       "loadError": "Échec du chargement des statistiques",
@@ -891,6 +911,47 @@
     "badges": "Badges",
     "badgeLabels": {
       "ambassador": "Ambassadeur"
+    }
+  },
+  "geo": {
+    "daily": {
+      "title": "Défi Géo Quotidien",
+      "subtitle": "Épinglez l'endroit exact où cette capture a été prise.",
+      "screenshot": "Capture d'écran",
+      "map": "Carte",
+      "hint": "Cliquez sur la carte pour placer votre épingle",
+      "submit": "Valider ma réponse"
+    },
+    "contribute": {
+      "title": "Étiqueter une capture",
+      "subtitle": "Aidez la communauté en épinglant l'emplacement de cette scène. Les épingles précises rapportent des jetons d'indice.",
+      "screenshot": "Capture d'écran",
+      "map": "Épinglez son emplacement",
+      "submit": "Envoyer l'épingle",
+      "skip": "Passer",
+      "thanks": "Merci — nous vous préviendrons quand d'autres joueurs confirmeront l'emplacement.",
+      "recent": "Récompenses récentes",
+      "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",
+      "lockedProgress": "Progression"
+    },
+    "leaderboard": {
+      "title": "Classement Géo",
+      "subtitle": "Classé indépendamment du jeu principal.",
+      "daily": "Journalier",
+      "monthly": "Mensuel"
+    },
+    "profile": {
+      "title": "Contributeur Géo",
+      "accepted": "épingles acceptées",
+      "accuracy": "précision",
+      "restricted": "Restreint",
+      "nextTier": "Prochain palier",
+      "morePins": "épingles acceptées en plus",
+      "moreAccuracy": "précision",
+      "closeToPromotion": "Promotion imminente !",
+      "placeholder": "Étiquetez des captures pour gagner des jetons et un palier Contributeur.",
+      "unlockLabel": "Contribution débloquée après",
+      "unlockDays": "jours joués"
     }
   }
 }
