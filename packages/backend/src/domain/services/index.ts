@@ -55,6 +55,7 @@ export {
   type GeoDailyChallengeView,
   GeoGameError,
   GEO_CONTRIBUTE_HOURLY_LIMIT,
+  GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
 
 // ---------------------------------------------------------------------------

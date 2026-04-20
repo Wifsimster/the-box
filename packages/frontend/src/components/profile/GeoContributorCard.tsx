@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useGeoStore } from '@/stores/geoStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, ShieldCheck, Target } from 'lucide-react'
+import { Lock, MapPin, ShieldCheck, Target } from 'lucide-react'
 import type { GeoContributorTier } from '@the-box/types'
 import { cn } from '@/lib/utils'
 
@@ -29,11 +29,15 @@ export function GeoContributorCard() {
         loadContributor()
     }, [loadContributor])
 
-    if (!contributor || contributor.stats.totalSubmitted === 0) {
+    if (!contributor) {
         return <GeoCrowdsourcerPlaceholder />
     }
 
-    const { stats, thresholds, computedTier } = contributor
+    if (contributor.stats.totalSubmitted === 0) {
+        return <GeoCrowdsourcerPlaceholder unlock={contributor.unlock} />
+    }
+
+    const { stats, thresholds, computedTier, unlock } = contributor
     const tierShown: GeoContributorTier = computedTier ?? stats.tier
     const accuracyPct = Math.round(stats.accuracy * 100)
 
@@ -70,6 +74,10 @@ export function GeoContributorCard() {
                     )}
                 </div>
 
+                {!unlock.unlocked && (
+                    <UnlockProgress unlock={unlock} />
+                )}
+
                 <NextTierHint
                     currentTier={tierShown}
                     totalAccepted={stats.totalAccepted}
@@ -78,6 +86,33 @@ export function GeoContributorCard() {
                 />
             </CardContent>
         </Card>
+    )
+}
+
+function UnlockProgress({
+    unlock,
+}: {
+    unlock: { daysPlayed: number; minRequired: number; unlocked: boolean }
+}) {
+    const { t } = useTranslation()
+    const pct = Math.min(100, Math.round((unlock.daysPlayed / unlock.minRequired) * 100))
+    return (
+        <div className="rounded-lg border bg-card/40 p-3 text-xs space-y-2">
+            <div className="flex items-center gap-2 text-foreground">
+                <Lock className="h-3.5 w-3.5" />
+                <span className="font-medium">
+                    {t('geo.profile.unlockLabel', 'Contribute unlocks after')}{' '}
+                    {unlock.daysPlayed}/{unlock.minRequired}{' '}
+                    {t('geo.profile.unlockDays', 'days played')}
+                </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                    className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 transition-all"
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+        </div>
     )
 }
 
@@ -129,7 +164,11 @@ function NextTierHint({
     )
 }
 
-function GeoCrowdsourcerPlaceholder() {
+function GeoCrowdsourcerPlaceholder({
+    unlock,
+}: {
+    unlock?: { daysPlayed: number; minRequired: number; unlocked: boolean }
+}) {
     const { t } = useTranslation()
     return (
         <Card>
@@ -139,11 +178,14 @@ function GeoCrowdsourcerPlaceholder() {
                     {t('geo.profile.title', 'Geo Crowdsourcer')}
                 </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-                {t(
-                    'geo.profile.placeholder',
-                    'Tag screenshots to earn hint tokens and a Crowdsourcer tier.',
-                )}
+            <CardContent className="text-sm text-muted-foreground space-y-3">
+                <p>
+                    {t(
+                        'geo.profile.placeholder',
+                        'Tag screenshots to earn hint tokens and a Crowdsourcer tier.',
+                    )}
+                </p>
+                {unlock && !unlock.unlocked && <UnlockProgress unlock={unlock} />}
             </CardContent>
         </Card>
     )

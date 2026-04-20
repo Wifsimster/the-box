@@ -884,7 +884,9 @@
       "submit": "Submit pin",
       "skip": "Skip",
       "thanks": "Thanks — we'll let you know once other players agree on the spot.",
-      "recent": "Recent rewards"
+      "recent": "Recent rewards",
+      "lockedTitle": "Tagging unlocks after a few daily games.",
+      "lockedProgress": "Progress"
     },
     "leaderboard": {
       "title": "Geo Leaderboard",
@@ -901,7 +903,9 @@
       "morePins": "more accepted pins",
       "moreAccuracy": "accuracy",
       "closeToPromotion": "Promotion imminent!",
-      "placeholder": "Tag screenshots to earn hint tokens and a Crowdsourcer tier."
+      "placeholder": "Tag screenshots to earn hint tokens and a Crowdsourcer tier.",
+      "unlockLabel": "Contribute unlocks after",
+      "unlockDays": "days played"
     }
   }
 }

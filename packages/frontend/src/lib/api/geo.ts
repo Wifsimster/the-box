@@ -56,10 +56,17 @@ export interface GeoDailyView {
     hasGuessed: boolean
 }
 
+export interface GeoContributorUnlock {
+    daysPlayed: number
+    minRequired: number
+    unlocked: boolean
+}
+
 export interface GeoContributorMe {
     stats: GeoContributorStats
     thresholds: GeoContributorTierThreshold[]
     computedTier: GeoContributorTier
+    unlock: GeoContributorUnlock
 }
 
 export const geoApi = {

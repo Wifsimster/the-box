@@ -4,6 +4,7 @@ import {
   geoGameService,
   geoContributorService,
   GeoGameError,
+  GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from '../../domain/services/index.js'
 import {
   geoPinRepository,
@@ -11,6 +12,7 @@ import {
   geoScreenshotRepository,
   geoChallengeRepository,
   geoMapRepository,
+  sessionRepository,
 } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
@@ -234,9 +236,10 @@ router.post(
 router.get('/contributor/me', authMiddleware, async (req, res, next) => {
   try {
     const userId = req.userId!
-    const [stats, thresholds] = await Promise.all([
+    const [stats, thresholds, daysPlayed] = await Promise.all([
       geoContributorRepository.getStats(userId),
       geoContributorRepository.listThresholds(),
+      sessionRepository.countDistinctDaysPlayed(userId),
     ])
     res.json({
       success: true,
@@ -259,6 +262,13 @@ router.get('/contributor/me', authMiddleware, async (req, res, next) => {
               thresholds,
             )
           : ('bronze' as const),
+        // Unlock progress (FR-24) so the UI can show a friendly countdown
+        // instead of waiting for the server to 403 on pick.
+        unlock: {
+          daysPlayed,
+          minRequired: GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
+          unlocked: daysPlayed >= GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
+        },
       },
     })
   } catch (err) {

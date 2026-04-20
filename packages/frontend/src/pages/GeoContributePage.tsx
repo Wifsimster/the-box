@@ -7,7 +7,7 @@ import { connectGeoSocket } from '@/lib/geo-socket'
 import { MapCanvas } from '@/components/geo/MapCanvas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, HandCoins, SkipForward } from 'lucide-react'
+import { HandCoins, Loader2, Lock, SkipForward } from 'lucide-react'
 
 export default function GeoContributePage() {
     const { t } = useTranslation()
@@ -26,6 +26,8 @@ export default function GeoContributePage() {
         setPendingPin,
         submitPin,
         recentRewards,
+        contributor,
+        loadContributor,
     } = useGeoStore()
 
     const [message, setMessage] = useState<string | null>(null)
@@ -35,8 +37,18 @@ export default function GeoContributePage() {
     }, [session?.user?.id])
 
     useEffect(() => {
-        pickContribution(gameId)
-    }, [gameId, pickContribution])
+        loadContributor()
+    }, [loadContributor])
+
+    const unlock = contributor?.unlock
+    const isLocked = !!unlock && !unlock.unlocked
+
+    useEffect(() => {
+        // Avoid the guaranteed-to-fail pick call when the user is locked —
+        // it would just return a 403 and blank the page into an error state.
+        if (!unlock) return
+        if (unlock.unlocked) pickContribution(gameId)
+    }, [gameId, pickContribution, unlock])
 
     const handleSubmit = async () => {
         const ok = await submitPin()
@@ -73,13 +85,32 @@ export default function GeoContributePage() {
                 </p>
             </header>
 
-            {phase === 'loading' && (
+            {isLocked && (
+                <Card>
+                    <CardContent className="py-10 text-center space-y-3">
+                        <Lock className="mx-auto h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm">
+                            {t(
+                                'geo.contribute.lockedTitle',
+                                'Tagging unlocks after a few daily games.',
+                            )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {t('geo.contribute.lockedProgress', 'Progress')}: {unlock?.daysPlayed}/
+                            {unlock?.minRequired}{' '}
+                            {t('geo.profile.unlockDays', 'days played')}
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {!isLocked && phase === 'loading' && (
                 <div className="flex justify-center py-20">
                     <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500" />
                 </div>
             )}
 
-            {phase === 'error' && (
+            {!isLocked && phase === 'error' && (
                 <Card>
                     <CardContent className="py-10 text-center text-sm text-destructive">
                         {errorMessage ?? t('common.error', 'Error')}
@@ -87,7 +118,7 @@ export default function GeoContributePage() {
                 </Card>
             )}
 
-            {currentCandidate && currentCandidateMap && phase === 'playing' && (
+            {!isLocked && currentCandidate && currentCandidateMap && phase === 'playing' && (
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                         <CardHeader className="pb-2">

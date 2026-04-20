@@ -910,7 +910,9 @@
       "submit": "Envoyer l'épingle",
       "skip": "Passer",
       "thanks": "Merci — nous vous préviendrons quand d'autres joueurs confirmeront l'emplacement.",
-      "recent": "Récompenses récentes"
+      "recent": "Récompenses récentes",
+      "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",
+      "lockedProgress": "Progression"
     },
     "leaderboard": {
       "title": "Classement Géo",
@@ -927,7 +929,9 @@
       "morePins": "épingles acceptées en plus",
       "moreAccuracy": "précision",
       "closeToPromotion": "Promotion imminente !",
-      "placeholder": "Étiquetez des captures pour gagner des jetons et un palier Contributeur."
+      "placeholder": "Étiquetez des captures pour gagner des jetons et un palier Contributeur.",
+      "unlockLabel": "Contribution débloquée après",
+      "unlockDays": "jours joués"
     }
   }
 }
