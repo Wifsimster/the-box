@@ -3,6 +3,7 @@ import type {
   GeoChallengeRepository,
   GeoPinRepository,
   GeoScreenshotRepository,
+  SessionRepository,
 } from '../ports/repositories.js'
 import type {
   GeoChallenge,
@@ -24,7 +25,8 @@ export class GeoGameError extends Error {
       | 'ALREADY_GUESSED'
       | 'INVALID_POINT'
       | 'NO_CANDIDATE'
-      | 'CONTRIBUTE_RATE_LIMIT',
+      | 'CONTRIBUTE_RATE_LIMIT'
+      | 'CONTRIBUTE_NOT_UNLOCKED',
   ) {
     super(message)
     this.name = 'GeoGameError'
@@ -32,6 +34,11 @@ export class GeoGameError extends Error {
 }
 
 export const GEO_CONTRIBUTE_HOURLY_LIMIT = 20
+
+// FR-24: require a minimum of 3 distinct completed daily-game days before a
+// user can submit pins. Gates spam from drive-by accounts while still being
+// low-enough that engaged players hit it fast.
+export const GEO_CONTRIBUTE_MIN_DAYS_PLAYED = 3
 
 export interface GeoDailyChallengeView {
   challenge: GeoChallenge
@@ -73,6 +80,7 @@ export interface GeoGameServiceDeps {
   geoScreenshotRepository: GeoScreenshotRepository
   geoPinRepository: GeoPinRepository
   geoMapRepository: GeoMapRepository
+  sessionRepository: SessionRepository
 }
 
 function validPoint(p: GeoPoint): boolean {
@@ -97,6 +105,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
     geoScreenshotRepository,
     geoPinRepository,
     geoMapRepository,
+    sessionRepository,
   } = deps
   const log = deps.logger.child({ service: 'geo-game' })
 
@@ -193,6 +202,16 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
     },
 
     async pickContributionTarget({ gameId, userId }) {
+      // Unlock gate first: cheaper than the rate-limit query in the hot
+      // (not-yet-unlocked) path because we hit a single indexed aggregate.
+      const daysPlayed = await sessionRepository.countDistinctDaysPlayed(userId)
+      if (daysPlayed < GEO_CONTRIBUTE_MIN_DAYS_PLAYED) {
+        throw new GeoGameError(
+          `contribute unlocks after ${GEO_CONTRIBUTE_MIN_DAYS_PLAYED} days of daily-game activity (${daysPlayed}/${GEO_CONTRIBUTE_MIN_DAYS_PLAYED})`,
+          'CONTRIBUTE_NOT_UNLOCKED',
+        )
+      }
+
       const hourly = await geoPinRepository.countByUserInWindow(userId, '1 hour')
       if (hourly >= GEO_CONTRIBUTE_HOURLY_LIMIT) {
         throw new GeoGameError(

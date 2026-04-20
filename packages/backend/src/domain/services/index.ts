@@ -182,4 +182,5 @@ export const geoGameService = createGeoGameService({
   geoScreenshotRepository,
   geoPinRepository,
   geoMapRepository,
+  sessionRepository,
 })

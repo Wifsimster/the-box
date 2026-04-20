@@ -160,7 +160,12 @@ router.post(
       res.json({ success: true, data: { candidate, map } })
     } catch (err) {
       if (err instanceof GeoGameError) {
-        const status = err.code === 'CONTRIBUTE_RATE_LIMIT' ? 429 : 404
+        const status =
+          err.code === 'CONTRIBUTE_RATE_LIMIT'
+            ? 429
+            : err.code === 'CONTRIBUTE_NOT_UNLOCKED'
+              ? 403
+              : 404
         res
           .status(status)
           .json({ success: false, error: { code: err.code, message: err.message } })

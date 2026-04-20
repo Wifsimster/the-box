@@ -238,6 +238,7 @@ export interface SessionRepository {
     powerUpUsed: string | null
     screenshotId: number
   }>>
+  countDistinctDaysPlayed(userId: string): Promise<number>
 }
 
 // ---------- Screenshot ----------

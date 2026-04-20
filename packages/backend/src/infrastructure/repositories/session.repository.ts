@@ -459,6 +459,20 @@ export const sessionRepository = {
       screenshotId: r.screenshot_id,
     }))
   },
+
+  /**
+   * Distinct calendar days (by game_sessions.completed_at) the user has
+   * completed at least one session on. Used as the unlock gate for the
+   * Geo crowdsource mini-game.
+   */
+  async countDistinctDaysPlayed(userId: string): Promise<number> {
+    const row = await db('game_sessions')
+      .where('user_id', userId)
+      .whereNotNull('completed_at')
+      .countDistinct<{ count: string }[]>(db.raw('DATE(completed_at) as count'))
+      .first()
+    return Number(row?.count ?? 0)
+  },
 }
 
 // Type-level check: the repository must satisfy the domain port.
