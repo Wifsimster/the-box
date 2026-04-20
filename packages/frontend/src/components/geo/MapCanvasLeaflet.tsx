@@ -22,12 +22,13 @@ import type { MapCanvasProps } from './MapCanvas'
 const FUCHSIA_DIVICON = createDiv('fuchsia')
 const EMERALD_DIVICON = createDiv('emerald')
 
+// Colors + box-shadow are sourced from the design tokens exposed on :root
+// in src/index.css so this stays in sync with the rest of the UI.
 function createDiv(color: 'fuchsia' | 'emerald'): L.DivIcon {
-    const ring = color === 'fuchsia' ? '#f0abfc' : '#6ee7b7'
-    const fill = color === 'fuchsia' ? '#d946ef' : '#10b981'
+    const fill = color === 'fuchsia' ? 'var(--neon-pink)' : 'var(--success)'
     return L.divIcon({
         className: 'geo-map-marker',
-        html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${fill};box-shadow:0 0 0 2px ${ring},0 4px 12px rgba(0,0,0,0.35);"></span>`,
+        html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${fill};box-shadow:var(--glow-md);"></span>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
     })
@@ -70,7 +71,7 @@ export function MapCanvasLeaflet({
                 zoomControl={!disabled}
                 scrollWheelZoom={!disabled}
                 doubleClickZoom={false}
-                style={{ height: '100%', width: '100%', background: '#0b0b10' }}
+                style={{ height: '100%', width: '100%', background: 'var(--background)' }}
             >
                 <ImageOverlay url={imageUrl} bounds={bounds} />
                 {!disabled && onPin && (
@@ -87,7 +88,7 @@ export function MapCanvasLeaflet({
                 {showGuessLine && pinLatLng && canonicalLatLng && (
                     <Polyline
                         positions={[pinLatLng, canonicalLatLng]}
-                        pathOptions={{ color: '#ffffff', weight: 2, dashArray: '6 4', opacity: 0.9 }}
+                        pathOptions={{ color: 'var(--foreground)', weight: 2, dashArray: '6 4', opacity: 0.9 }}
                     />
                 )}
             </MapContainer>

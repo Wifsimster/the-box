@@ -7,11 +7,13 @@ import { Lock, MapPin, ShieldCheck, Target } from 'lucide-react'
 import type { GeoContributorTier } from '@the-box/types'
 import { cn } from '@/lib/utils'
 
-const TIER_GRADIENT: Record<GeoContributorTier, string> = {
-    bronze: 'from-amber-600 to-amber-800',
-    silver: 'from-slate-300 to-slate-500',
-    gold: 'from-amber-300 to-yellow-500',
-    diamond: 'from-cyan-300 to-blue-500',
+// Tier badges use medal tokens where available; diamond falls back to the
+// neon-cyan scale since no medal-diamond token exists in the contract.
+const TIER_BG: Record<GeoContributorTier, string> = {
+    bronze: 'bg-medal-bronze',
+    silver: 'bg-medal-silver',
+    gold: 'bg-medal-gold',
+    diamond: 'bg-neon-cyan',
 }
 
 const TIER_LABEL: Record<GeoContributorTier, string> = {
@@ -45,7 +47,7 @@ export function GeoContributorCard() {
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-fuchsia-500" />
+                    <MapPin className="h-4 w-4 text-neon-pink" />
                     {t('geo.profile.title', 'Geo Crowdsourcer')}
                 </CardTitle>
             </CardHeader>
@@ -53,8 +55,8 @@ export function GeoContributorCard() {
                 <div className="flex items-center gap-3">
                     <div
                         className={cn(
-                            'h-12 w-12 rounded-full bg-gradient-to-br shadow-lg grid place-items-center',
-                            TIER_GRADIENT[tierShown],
+                            'h-12 w-12 rounded-full shadow-lg grid place-items-center',
+                            TIER_BG[tierShown],
                         )}
                         aria-hidden
                     >
@@ -108,7 +110,7 @@ function UnlockProgress({
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                    className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 transition-all"
+                    className="h-full bg-gradient-to-r from-neon-purple to-neon-pink transition-all"
                     style={{ width: `${pct}%` }}
                 />
             </div>
@@ -174,7 +176,7 @@ function GeoCrowdsourcerPlaceholder({
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-fuchsia-500" />
+                    <MapPin className="h-4 w-4 text-neon-pink" />
                     {t('geo.profile.title', 'Geo Crowdsourcer')}
                 </CardTitle>
             </CardHeader>

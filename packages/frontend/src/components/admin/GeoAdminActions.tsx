@@ -70,7 +70,7 @@ export function GeoAdminActions() {
             </CardHeader>
             <CardContent className="space-y-4">
                 {message && (
-                    <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-2 text-xs text-emerald-300">
+                    <div className="rounded border border-success/40 bg-success/10 p-2 text-xs text-success">
                         {message}
                     </div>
                 )}

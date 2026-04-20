@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
@@ -30,8 +30,10 @@ export default function GeoDailyPage() {
         submitGuess,
     } = useGeoStore()
 
-    const date = useMemo(todayIso, [])
-    const startedAt = useRef<number>(Date.now())
+    const [date] = useState(todayIso)
+    // useRef's initial value runs on every render; lazy-via-useState keeps
+    // Date.now() out of render while staying mount-stable.
+    const [startedAt] = useState(() => Date.now())
 
     useEffect(() => {
         loadDaily(date)
@@ -44,14 +46,14 @@ export default function GeoDailyPage() {
     const canSubmit = phase === 'playing' && !!pendingGuess && !hasGuessed
 
     const handleSubmit = async () => {
-        const duration = Date.now() - startedAt.current
+        const duration = Date.now() - startedAt
         await submitGuess(duration)
     }
 
     return (
         <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
                     {t('geo.daily.title', 'Daily Geo Challenge')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -64,7 +66,7 @@ export default function GeoDailyPage() {
 
             {phase === 'loading' && (
                 <div className="flex justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500" />
+                    <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
                 </div>
             )}
 
@@ -92,7 +94,7 @@ export default function GeoDailyPage() {
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-base flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-fuchsia-500" />
+                                <MapPin className="h-4 w-4 text-neon-pink" />
                                 {t('geo.daily.map', 'Map')}
                             </CardTitle>
                         </CardHeader>
@@ -117,7 +119,7 @@ export default function GeoDailyPage() {
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={!canSubmit}
-                                    className="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:opacity-90"
+                                    className="bg-gradient-to-r from-neon-purple to-neon-pink hover:opacity-90"
                                 >
                                     {phase === 'submitting' && (
                                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -142,7 +144,7 @@ function ResultBlock({
 }) {
     return (
         <div className="rounded-lg border bg-card/50 p-4 space-y-2">
-            <div className="flex items-center gap-2 text-fuchsia-400 font-medium">
+            <div className="flex items-center gap-2 text-neon-pink font-medium">
                 <Trophy className="h-4 w-4" />
                 <span>Score: {result.score.toLocaleString()}</span>
             </div>
