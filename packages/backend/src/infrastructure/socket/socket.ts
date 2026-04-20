@@ -3,6 +3,7 @@ import { Server as SocketIOServer } from 'socket.io'
 import { env } from '../../config/env.js'
 import { logger } from '../logger/logger.js'
 import { importQueueEvents } from '../queue/queues.js'
+import type { GeoRewardedEvent, GeoTierUpEvent } from '@the-box/types'
 
 let io: SocketIOServer | null = null
 
@@ -43,6 +44,8 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
 
     // Subscribe to BullMQ events and broadcast to admin clients
     setupQueueEventListeners(adminNamespace)
+
+    ensureGeoNamespace()
 
     logger.info('Socket.IO server initialized')
     return io
@@ -197,4 +200,49 @@ export function broadcastRecalculateScoresProgress(data: {
  */
 export function getSocketIO(): SocketIOServer | null {
     return io
+}
+
+// ---------- Geolocation mode ----------
+//
+// Geo events live under a dedicated `/geo` namespace to keep them isolated
+// from the admin namespace. Clients join a per-user room so we only broadcast
+// rewards/tier-ups to the affected user.
+
+function geoNamespace(): ReturnType<SocketIOServer['of']> | null {
+    return io ? io.of('/geo') : null
+}
+
+export function ensureGeoNamespace(): void {
+    const ns = geoNamespace()
+    if (!ns) return
+    if ((ns as unknown as { _the_box_geo_wired?: boolean })._the_box_geo_wired) return
+    ns.on('connection', (socket) => {
+        logger.debug({ socketId: socket.id }, 'geo client connected')
+        socket.on('join_user', (userId: unknown) => {
+            if (typeof userId === 'string' && userId.length > 0) {
+                socket.join(`user:${userId}`)
+            }
+        })
+    })
+    ;(ns as unknown as { _the_box_geo_wired?: boolean })._the_box_geo_wired = true
+}
+
+export function emitGeoRewarded(event: GeoRewardedEvent): void {
+    const ns = geoNamespace()
+    if (!ns) return
+    ns.to(`user:${event.userId}`).emit('geo:contribution:rewarded', event)
+}
+
+export function emitGeoTierUp(event: GeoTierUpEvent): void {
+    const ns = geoNamespace()
+    if (!ns) return
+    ns.to(`user:${event.userId}`).emit('geo:contributor:tier_up', event)
+}
+
+export function emitGeoLeaderboardUpdate(payload: {
+    challengeDate: string
+}): void {
+    const ns = geoNamespace()
+    if (!ns) return
+    ns.emit('geo:leaderboard:update', payload)
 }

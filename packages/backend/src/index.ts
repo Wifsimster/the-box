@@ -24,6 +24,7 @@ import geoRoutes from './presentation/routes/geo.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
+import './infrastructure/queue/workers/geo.worker.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
 // Validate environment

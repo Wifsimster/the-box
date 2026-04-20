@@ -14,6 +14,8 @@ import {
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
+import { geoQueue } from '../../infrastructure/queue/queues.js'
+import { emitGeoLeaderboardUpdate } from '../../infrastructure/socket/socket.js'
 
 const log = routeLogger.child({ route: 'geo' })
 
@@ -94,6 +96,14 @@ router.post('/guess', authMiddleware, validateBody(guessBodySchema), async (req,
       guess,
       durationMs,
     })
+
+    // Best-effort realtime nudge; don't fail the request if the namespace is down.
+    try {
+      emitGeoLeaderboardUpdate({ challengeDate: new Date().toISOString().slice(0, 10) })
+    } catch (e) {
+      log.warn({ err: String(e) }, 'failed to emit geo leaderboard update')
+    }
+
     res.json({ success: true, data: result })
   } catch (err) {
     if (err instanceof GeoGameError) {
@@ -190,6 +200,16 @@ router.post(
 
       if (submission) {
         await geoScreenshotRepository.incrementPinCount(geoScreenshotCandidateId)
+        // Enqueue consensus evaluation; the worker itself decides (based on
+        // threshold gates) whether this pin count warrants a full pass.
+        try {
+          await geoQueue.add('evaluate-consensus', {
+            kind: 'evaluate-consensus',
+            geoScreenshotCandidateId,
+          })
+        } catch (e) {
+          log.warn({ err: String(e) }, 'failed to enqueue geo consensus job')
+        }
       }
 
       res.json({ success: true, data: { received: true } })
