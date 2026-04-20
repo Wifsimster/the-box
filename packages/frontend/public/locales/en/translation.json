@@ -866,5 +866,42 @@
     "badgeLabels": {
       "ambassador": "Ambassador"
     }
+  },
+  "geo": {
+    "daily": {
+      "title": "Daily Geo Challenge",
+      "subtitle": "Pin the exact spot on the map where this screenshot was taken.",
+      "screenshot": "Screenshot",
+      "map": "Map",
+      "hint": "Click the map to drop a pin",
+      "submit": "Submit guess"
+    },
+    "contribute": {
+      "title": "Tag a screenshot",
+      "subtitle": "Help the community by pinning where this scene happens. Accurate pins earn hint tokens.",
+      "screenshot": "Screenshot",
+      "map": "Pin its location",
+      "submit": "Submit pin",
+      "skip": "Skip",
+      "thanks": "Thanks — we'll let you know once other players agree on the spot.",
+      "recent": "Recent rewards"
+    },
+    "leaderboard": {
+      "title": "Geo Leaderboard",
+      "subtitle": "Ranked independently from the main game.",
+      "daily": "Daily",
+      "monthly": "Monthly"
+    },
+    "profile": {
+      "title": "Geo Crowdsourcer",
+      "accepted": "accepted pins",
+      "accuracy": "accuracy",
+      "restricted": "Restricted",
+      "nextTier": "Next tier",
+      "morePins": "more accepted pins",
+      "moreAccuracy": "accuracy",
+      "closeToPromotion": "Promotion imminent!",
+      "placeholder": "Tag screenshots to earn hint tokens and a Crowdsourcer tier."
+    }
   }
 }
