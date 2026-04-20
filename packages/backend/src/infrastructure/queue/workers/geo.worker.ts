@@ -3,6 +3,9 @@ import { redisConnectionOptions } from '../connection.js'
 import { queueLogger } from '../../logger/logger.js'
 import type { GeoJobData } from '../queues.js'
 import { evaluateConsensusForCandidate } from './geo-consensus-logic.js'
+import { importFandomMap } from './geo-fandom-import-logic.js'
+import { importSteamScreenshots } from './geo-steam-import-logic.js'
+import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
 import { geoContributorService } from '../../../domain/services/index.js'
 import { emitGeoTierUp } from '../../socket/socket.js'
 
@@ -30,6 +33,27 @@ export const geoWorker = new Worker<GeoJobData>(
         })
       }
       return result
+    }
+
+    if (data.kind === 'import-fandom-map') {
+      return await importFandomMap({
+        gameId: data.gameId,
+        wikiSubdomain: data.wikiSubdomain,
+        pageTitle: data.pageTitle,
+      })
+    }
+
+    if (data.kind === 'import-steam-screenshots') {
+      return await importSteamScreenshots({
+        gameId: data.gameId,
+        geoMapId: data.geoMapId,
+        steamAppId: data.steamAppId,
+        maxItems: data.maxItems,
+      })
+    }
+
+    if (data.kind === 'schedule-daily-challenge') {
+      return await scheduleDailyGeoChallenge(data.date)
     }
 
     throw new Error(`unknown geo job kind: ${JSON.stringify(data)}`)

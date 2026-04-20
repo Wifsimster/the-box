@@ -25,6 +25,20 @@ export const importQueueEvents = new QueueEvents('import-jobs', {
 export type GeoJobData =
   | { kind: 'evaluate-consensus'; geoScreenshotCandidateId: number }
   | { kind: 'promote-contributor-tier'; userId: string }
+  | {
+      kind: 'import-fandom-map'
+      gameId: number
+      wikiSubdomain: string
+      pageTitle: string
+    }
+  | {
+      kind: 'import-steam-screenshots'
+      gameId: number
+      geoMapId: number
+      steamAppId: number
+      maxItems?: number
+    }
+  | { kind: 'schedule-daily-challenge'; date?: string }
 
 export const geoQueue = new Queue<GeoJobData>('geo-jobs', {
   connection: redisConnectionOptions,
