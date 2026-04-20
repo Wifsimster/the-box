@@ -380,7 +380,19 @@
       "challenges": "Challenges",
       "users": "Users",
       "email": "Email",
-      "growth": "Growth"
+      "growth": "Growth",
+      "geo": "Geo"
+    },
+    "geo": {
+      "candidates": "Candidates",
+      "empty": "No candidates match this filter.",
+      "pins": "pins",
+      "pickOne": "Pick a candidate",
+      "pickPoint": "Click the map to set canonical coordinates",
+      "detailHint": "Select a candidate from the list to review its pins and optionally set canonical coordinates.",
+      "promote": "Promote to canonical",
+      "demote": "Demote canonical",
+      "alreadyPromoted": "Already promoted — delete to re-pin with new coords."
     },
     "growth": {
       "loadError": "Failed to load growth stats",

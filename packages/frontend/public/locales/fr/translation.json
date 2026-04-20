@@ -380,7 +380,19 @@
       "challenges": "Défis",
       "users": "Utilisateurs",
       "email": "Email",
-      "growth": "Acquisition"
+      "growth": "Acquisition",
+      "geo": "Géo"
+    },
+    "geo": {
+      "candidates": "Candidats",
+      "empty": "Aucun candidat ne correspond à ce filtre.",
+      "pins": "épingles",
+      "pickOne": "Choisir un candidat",
+      "pickPoint": "Cliquez sur la carte pour définir les coordonnées canoniques",
+      "detailHint": "Sélectionnez un candidat dans la liste pour consulter ses épingles et éventuellement définir les coordonnées canoniques.",
+      "promote": "Promouvoir en canonique",
+      "demote": "Rétrograder la canonique",
+      "alreadyPromoted": "Déjà promu — supprimez pour ré-épingler avec de nouvelles coordonnées."
     },
     "growth": {
       "loadError": "Échec du chargement des statistiques",
