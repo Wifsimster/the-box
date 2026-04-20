@@ -110,10 +110,7 @@ function Marker({
     color: 'fuchsia' | 'emerald'
     label: string
 }) {
-    const colorClass =
-        color === 'fuchsia'
-            ? 'bg-fuchsia-500 ring-fuchsia-300 shadow-fuchsia-500/50'
-            : 'bg-emerald-500 ring-emerald-300 shadow-emerald-500/50'
+    const colorClass = color === 'fuchsia' ? 'bg-neon-pink' : 'bg-success'
     return (
         <div
             className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
@@ -121,7 +118,7 @@ function Marker({
         >
             <div
                 className={cn(
-                    'h-4 w-4 rounded-full ring-2 shadow-lg',
+                    'h-4 w-4 rounded-full ring-2 ring-white/30 shadow-lg',
                     colorClass,
                 )}
                 aria-hidden

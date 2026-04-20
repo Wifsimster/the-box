@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
@@ -24,8 +24,11 @@ export default function GeoLeaderboardPage() {
         useGeoStore()
 
     const [loading, setLoading] = useState(true)
-    const date = useMemo(todayIso, [])
-    const period = useMemo(currentMonth, [])
+    // Lazy initializers run once at mount, so date/period are effectively
+    // constants for the lifetime of the page without triggering the lint's
+    // "impure function during render" rule.
+    const [date] = useState(todayIso)
+    const [period] = useState(currentMonth)
 
     useEffect(() => {
         connectGeoSocket(session?.user?.id)
@@ -33,7 +36,6 @@ export default function GeoLeaderboardPage() {
 
     useEffect(() => {
         let cancelled = false
-        setLoading(true)
         Promise.all([
             loadLeaderboardDaily(date),
             loadLeaderboardMonthly(period),
@@ -48,7 +50,7 @@ export default function GeoLeaderboardPage() {
     return (
         <div className="container mx-auto max-w-3xl px-4 py-8 space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
                     {t('geo.leaderboard.title', 'Geo Leaderboard')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -58,7 +60,7 @@ export default function GeoLeaderboardPage() {
 
             {loading ? (
                 <div className="flex justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500" />
+                    <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
                 </div>
             ) : (
                 <Tabs defaultValue="daily">
@@ -126,8 +128,8 @@ function LeaderboardRow({ entry }: { entry: GeoLeaderboardEntry }) {
 }
 
 function RankBadge({ rank }: { rank: number }) {
-    if (rank === 1) return <Crown className="h-5 w-5 text-amber-400" aria-label="1st" />
-    if (rank === 2) return <Medal className="h-5 w-5 text-slate-300" aria-label="2nd" />
-    if (rank === 3) return <Trophy className="h-5 w-5 text-amber-700" aria-label="3rd" />
+    if (rank === 1) return <Crown className="h-5 w-5 text-medal-gold" aria-label="1st" />
+    if (rank === 2) return <Medal className="h-5 w-5 text-medal-silver" aria-label="2nd" />
+    if (rank === 3) return <Trophy className="h-5 w-5 text-medal-bronze" aria-label="3rd" />
     return <span className="w-5 text-center text-xs text-muted-foreground">{rank}</span>
 }

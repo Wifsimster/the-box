@@ -74,7 +74,7 @@ export default function GeoContributePage() {
     return (
         <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
                     {t('geo.contribute.title', 'Tag a screenshot')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -106,7 +106,7 @@ export default function GeoContributePage() {
 
             {!isLocked && phase === 'loading' && (
                 <div className="flex justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500" />
+                    <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
                 </div>
             )}
 
@@ -161,13 +161,13 @@ export default function GeoContributePage() {
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={!pendingPin}
-                                    className="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:opacity-90"
+                                    className="bg-gradient-to-r from-neon-purple to-neon-pink hover:opacity-90"
                                 >
                                     {t('geo.contribute.submit', 'Submit pin')}
                                 </Button>
                             </div>
                             {message && (
-                                <p className="text-xs text-emerald-400">{message}</p>
+                                <p className="text-xs text-success">{message}</p>
                             )}
                         </CardContent>
                     </Card>
@@ -178,7 +178,7 @@ export default function GeoContributePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <HandCoins className="h-4 w-4 text-emerald-400" />
+                            <HandCoins className="h-4 w-4 text-success" />
                             {t('geo.contribute.recent', 'Recent rewards')}
                         </CardTitle>
                     </CardHeader>

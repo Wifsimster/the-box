@@ -156,7 +156,7 @@ export function GeoReviewPanel() {
 
             {loading ? (
                 <div className="flex justify-center py-16">
-                    <Loader2 className="h-6 w-6 animate-spin text-fuchsia-500" />
+                    <Loader2 className="h-6 w-6 animate-spin text-neon-pink" />
                 </div>
             ) : (
                 <div className="grid gap-4 lg:grid-cols-3">
@@ -172,7 +172,7 @@ export function GeoReviewPanel() {
                                     key={c.id}
                                     onClick={() => openDetail(c.id)}
                                     className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 ${
-                                        detail?.candidate.id === c.id ? 'border-fuchsia-500' : ''
+                                        detail?.candidate.id === c.id ? 'border-neon-pink' : ''
                                     }`}
                                 >
                                     <div className="flex justify-between items-center">
@@ -226,7 +226,7 @@ export function GeoReviewPanel() {
                                     />
                                     {detail.meta ? (
                                         <div className="flex items-center justify-between gap-3">
-                                            <p className="text-xs text-amber-400">
+                                            <p className="text-xs text-warning">
                                                 {t(
                                                     'admin.geo.alreadyPromoted',
                                                     'Already promoted — delete to re-pin with new coords.',
@@ -260,7 +260,7 @@ export function GeoReviewPanel() {
                                                 size="sm"
                                                 onClick={applyOverride}
                                                 disabled={!pin || saving}
-                                                className="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:opacity-90"
+                                                className="bg-gradient-to-r from-neon-purple to-neon-pink hover:opacity-90"
                                             >
                                                 {saving && (
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
