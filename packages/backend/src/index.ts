@@ -298,6 +298,7 @@ async function start(): Promise<void> {
       'recalculate-scores',
       'streak-risk-email',
       'relance-email',
+      'inactive-user-reminder',
     ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
@@ -413,6 +414,28 @@ async function start(): Promise<void> {
       logger.info({ pattern: env.RELANCE_EMAIL_CRON }, 'scheduled recurring relance-email job')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring relance-email job')
+    }
+
+    // Schedule recurring inactive-user-reminder — long-horizon win-back for
+    // users who have not played AND have not refreshed an auth session in
+    // N days. Default schedule is weekly (Mondays 16:00 UTC) to avoid
+    // piling reminders on already-gone users; the worker also enforces a
+    // 30-day per-user cooldown internally.
+    try {
+      await importQueue.add(
+        'inactive-user-reminder',
+        {},
+        {
+          repeat: { pattern: env.INACTIVE_USER_REMINDER_CRON, tz: 'UTC' },
+          jobId: 'inactive-user-reminder-recurring',
+        }
+      )
+      logger.info(
+        { pattern: env.INACTIVE_USER_REMINDER_CRON, days: env.INACTIVE_USER_REMINDER_DAYS },
+        'scheduled recurring inactive-user-reminder job'
+      )
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring inactive-user-reminder job')
     }
 
     // Log final repeatable jobs configuration with next run times
