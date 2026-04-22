@@ -22,6 +22,13 @@ export const env = {
   RELANCE_EMAIL_ENABLED: process.env['RELANCE_EMAIL_ENABLED'] || 'true',
   RELANCE_EMAIL_CRON: process.env['RELANCE_EMAIL_CRON'] || '0 17 * * *',
 
+  // Long-horizon win-back email for users inactive (no play, no session
+  // refresh) for N days. Runs weekly to avoid piling reminders onto
+  // already-gone users; per-user cooldown inside the worker is 30 days.
+  INACTIVE_USER_REMINDER_ENABLED: process.env['INACTIVE_USER_REMINDER_ENABLED'] || 'true',
+  INACTIVE_USER_REMINDER_CRON: process.env['INACTIVE_USER_REMINDER_CRON'] || '0 16 * * 1',
+  INACTIVE_USER_REMINDER_DAYS: process.env['INACTIVE_USER_REMINDER_DAYS'] || '14',
+
   // Public-facing frontend URL (used in marketing email CTAs)
   FRONTEND_URL: process.env['FRONTEND_URL'] || 'https://the-box.battistella.ovh',
 
