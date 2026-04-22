@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown } from
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
 
 interface NavigationLinksProps {
@@ -67,6 +68,16 @@ export function Header() {
   const { localizedPath } = useLocalizedPath()
   const { session, isPending, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const isRewardModalOpen = useDailyLoginStore((state) => state.isModalOpen)
+  const closeRewardModal = useDailyLoginStore((state) => state.closeModal)
+
+  // Keep the mobile menu and the daily reward modal mutually exclusive so the
+  // modal can't render underneath the Sheet on small screens.
+  useEffect(() => {
+    if (mobileMenuOpen && isRewardModalOpen) {
+      closeRewardModal()
+    }
+  }, [mobileMenuOpen, isRewardModalOpen, closeRewardModal])
 
   // Show login/register buttons if there's no session
   // Also check if session is valid (has user data)
