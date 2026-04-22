@@ -122,7 +122,7 @@ export function Header() {
                             </span>
                           )}
                           {/* Daily Reward Badge for mobile */}
-                          <DailyRewardBadge />
+                          <DailyRewardBadge onClick={() => setMobileMenuOpen(false)} />
                         </div>
                         <Button variant="ghost" size="sm" asChild className="w-full justify-start">
                           <Link to={localizedPath('/profile')} onClick={() => setMobileMenuOpen(false)}>

@@ -13,9 +13,10 @@ import { Gift } from 'lucide-react'
 
 interface DailyRewardBadgeProps {
     className?: string
+    onClick?: () => void
 }
 
-export function DailyRewardBadge({ className }: DailyRewardBadgeProps) {
+export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) {
     const { t } = useTranslation()
     const { status, openModal, isLoading } = useDailyLoginStore()
 
@@ -25,6 +26,11 @@ export function DailyRewardBadge({ className }: DailyRewardBadgeProps) {
     const canClaim = status.canClaim
     const streak = status.currentStreak
 
+    const handleClick = () => {
+        onClick?.()
+        openModal()
+    }
+
     return (
         <TooltipProvider>
             <TooltipRoot>
@@ -32,7 +38,7 @@ export function DailyRewardBadge({ className }: DailyRewardBadgeProps) {
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={openModal}
+                        onClick={handleClick}
                         className={cn(
                             'relative flex items-center gap-1.5 px-2 sm:px-3',
                             className
