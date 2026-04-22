@@ -1,14 +1,11 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       version_type:
         description: "Version bump type"
-        required: false
+        required: true
         type: choice
         options:
           - patch
@@ -17,172 +14,21 @@ on:
         default: "patch"
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
-  lint:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linter
-        run: npm run lint
-
-      - name: Type check
-        run: npm run build:types
-
-  e2e:
-    name: E2E Tests
-    if: false  # Disabled - re-enable when needed
-    runs-on: ubuntu-latest
-    # Run in parallel with lint - both can start immediately
-    # needs: lint  # Removed to run in parallel
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: the_box_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build types
-        run: npm run build:types
-
-      - name: Build backend
-        run: npm run build:backend
-
-      - name: Build frontend
-        run: npm run build:frontend
-
-      - name: Run database migrations
-        run: npm run db:migrate -w @the-box/backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
-
-      - name: Seed E2E test data
-        run: npm run e2e:seed -w @the-box/backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
-
-      # Cache Playwright browsers
-      - name: Get Playwright version
-        id: playwright-version
-        run: |
-          PLAYWRIGHT_VERSION=$(node -p "require('./packages/frontend/package.json').devDependencies['@playwright/test']" | tr -d '^~')
-          echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright dependencies (if cached)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      - name: Start backend server
-        run: |
-          npm run start -w @the-box/backend &
-          echo "Waiting for backend to be ready..."
-          for i in {1..30}; do
-            if curl -s http://localhost:3000/health > /dev/null 2>&1; then
-              echo "Backend is ready!"
-              break
-            fi
-            echo "Waiting... ($i/30)"
-            sleep 2
-          done
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
-          REDIS_URL: redis://localhost:6379
-          NODE_ENV: development
-          PORT: 3000
-
-      # Serve the built frontend instead of dev server
-      - name: Start frontend preview server
-        run: |
-          npm run preview -w @the-box/frontend -- --port 5173 &
-          echo "Waiting for frontend to be ready..."
-          for i in {1..15}; do
-            if curl -s http://localhost:5173 > /dev/null 2>&1; then
-              echo "Frontend is ready!"
-              break
-            fi
-            echo "Waiting... ($i/15)"
-            sleep 1
-          done
-
-      - name: Run E2E tests
-        run: npx playwright test --project=chromium
-        working-directory: packages/frontend
-        env:
-          CI: true
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_box_test
-          # Skip webServer since we're managing it ourselves
-          PW_SKIP_WEBSERVER: 1
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: packages/frontend/playwright-report
-          retention-days: 30
-
   release:
     name: Create Release & Publish Docker Image
     runs-on: ubuntu-latest
-    needs: [lint]  # e2e disabled
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout code
@@ -205,29 +51,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Determine version bump type
-        id: version_type
-        run: |
-          # If manually triggered, use input; otherwise auto-detect from commits
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION_TYPE="${{ inputs.version_type }}"
-          else
-            # Auto-detect from conventional commits
-            if git log -1 --pretty=%B | grep -qE "^(feat|feature)(\(.+\))?!:|^BREAKING CHANGE:"; then
-              VERSION_TYPE="major"
-            elif git log -1 --pretty=%B | grep -qE "^(feat|feature)(\(.+\))?:"; then
-              VERSION_TYPE="minor"
-            else
-              VERSION_TYPE="patch"
-            fi
-          fi
-          echo "type=$VERSION_TYPE" >> $GITHUB_OUTPUT
-          echo "Version bump type: $VERSION_TYPE"
+      - name: Lint
+        run: npm run lint
+
+      - name: Build all packages
+        run: npm run build
+
+      - name: Test
+        run: npm test
 
       - name: Bump version
         id: version
         run: |
-          npm run version:${{ steps.version_type.outputs.type }}
+          npm run version:${{ inputs.version_type }}
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
@@ -235,40 +71,48 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
+          set -euo pipefail
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "## What's Changed" > CHANGELOG_TEMP.md
-            echo "" >> CHANGELOG_TEMP.md
-            git log --pretty=format:"- %s (%h)" >> CHANGELOG_TEMP.md
+          if [ -n "$PREVIOUS_TAG" ]; then
+            RANGE_ARGS=("${PREVIOUS_TAG}..HEAD")
           else
-            echo "## What's Changed" > CHANGELOG_TEMP.md
-            echo "" >> CHANGELOG_TEMP.md
-            git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG_TEMP.md
+            RANGE_ARGS=()
           fi
 
-          # Parse conventional commits
-          echo "" >> CHANGELOG_TEMP.md
-          echo "### Features" >> CHANGELOG_TEMP.md
-          git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges | grep "^feat" | sed 's/^feat/- /' >> CHANGELOG_TEMP.md || echo "No new features" >> CHANGELOG_TEMP.md
-          echo "" >> CHANGELOG_TEMP.md
-          echo "### Bug Fixes" >> CHANGELOG_TEMP.md
-          git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges | grep "^fix" | sed 's/^fix/- /' >> CHANGELOG_TEMP.md || echo "No bug fixes" >> CHANGELOG_TEMP.md
-          echo "" >> CHANGELOG_TEMP.md
+          {
+            echo "## What's Changed"
+            echo ""
+            git log "${RANGE_ARGS[@]}" --pretty=format:"- %s (%h)" --no-merges
+            echo ""
+            echo ""
+            echo "### Features"
+            FEATURES=$(git log "${RANGE_ARGS[@]}" --pretty=format:"%s (%h)" --no-merges \
+              | grep -E "^feat(\(.+\))?:" \
+              | sed -E 's/^feat(\(.+\))?:[[:space:]]*/- /' || true)
+            if [ -n "$FEATURES" ]; then
+              echo "$FEATURES"
+            else
+              echo "_No new features_"
+            fi
+            echo ""
+            echo "### Bug Fixes"
+            FIXES=$(git log "${RANGE_ARGS[@]}" --pretty=format:"%s (%h)" --no-merges \
+              | grep -E "^fix(\(.+\))?:" \
+              | sed -E 's/^fix(\(.+\))?:[[:space:]]*/- /' || true)
+            if [ -n "$FIXES" ]; then
+              echo "$FIXES"
+            else
+              echo "_No bug fixes_"
+            fi
+          } > CHANGELOG_TEMP.md
 
           cat CHANGELOG_TEMP.md
-          echo "changelog_file=CHANGELOG_TEMP.md" >> $GITHUB_OUTPUT
 
       - name: Commit version bump
         run: |
           git add package.json packages/*/package.json package-lock.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
           git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-
-      - name: Build types first
-        run: npm run build:types
-
-      - name: Build all packages
-        run: npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -283,11 +127,13 @@ jobs:
         id: version_parts
         run: |
           VERSION="${{ steps.version.outputs.new_version }}"
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f1-2)
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f1-2)
+          SHORT_SHA=$(git rev-parse --short HEAD)
           echo "major=$MAJOR" >> $GITHUB_OUTPUT
           echo "minor=$MINOR" >> $GITHUB_OUTPUT
           echo "full=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -299,6 +145,7 @@ jobs:
             wifsimster/the-box:v${{ steps.version_parts.outputs.full }}
             wifsimster/the-box:${{ steps.version_parts.outputs.minor }}
             wifsimster/the-box:${{ steps.version_parts.outputs.major }}
+            wifsimster/the-box:sha-${{ steps.version_parts.outputs.short_sha }}
           build-args: |
             VERSION=${{ steps.version.outputs.new_version }}
             BUILD_DATE=${{ github.event.repository.updated_at }}
@@ -309,25 +156,24 @@ jobs:
 
       - name: Push changes to repository
         run: |
-          git push origin main
+          git push origin HEAD:main
           git push origin "v${{ steps.version.outputs.new_version }}"
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.new_version }}
-          release_name: Release v${{ steps.version.outputs.new_version }}
-          body_path: ${{ steps.changelog.outputs.changelog_file }}
+          name: Release v${{ steps.version.outputs.new_version }}
+          body_path: CHANGELOG_TEMP.md
           draft: false
           prerelease: false
 
       - name: Notify release
         run: |
-          echo "✅ Released version ${{ steps.version.outputs.new_version }}"
-          echo "🐳 Docker images published:"
-          echo "   - wifsimster/the-box:latest"
-          echo "   - wifsimster/the-box:v${{ steps.version_parts.outputs.full }}"
-          echo "   - wifsimster/the-box:${{ steps.version_parts.outputs.minor }}"
-          echo "   - wifsimster/the-box:${{ steps.version_parts.outputs.major }}"
+          echo "Released version ${{ steps.version.outputs.new_version }}"
+          echo "Docker images published:"
+          echo "  - wifsimster/the-box:latest"
+          echo "  - wifsimster/the-box:v${{ steps.version_parts.outputs.full }}"
+          echo "  - wifsimster/the-box:${{ steps.version_parts.outputs.minor }}"
+          echo "  - wifsimster/the-box:${{ steps.version_parts.outputs.major }}"
+          echo "  - wifsimster/the-box:sha-${{ steps.version_parts.outputs.short_sha }}"
