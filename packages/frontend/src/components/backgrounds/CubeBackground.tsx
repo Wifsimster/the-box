@@ -138,6 +138,8 @@ export function CubeBackground() {
       <Canvas
         camera={{ position: [0, 0, 5], fov: 50 }}
         style={{ background: 'black' }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: false, powerPreference: 'low-power' }}
       >
         <RotatingCube />
         <DigitalDust />

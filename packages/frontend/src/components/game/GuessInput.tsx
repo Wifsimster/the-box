@@ -231,7 +231,7 @@ export function GuessInput() {
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.previous')}
-              className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 touch-manipulation"
+              className="h-12 w-12 sm:h-14 sm:w-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
             >
               <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
@@ -256,7 +256,7 @@ export function GuessInput() {
             autoCorrect="off"
             spellCheck={false}
             className={cn(
-              'h-12 sm:h-14 text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[var(--glow-md)] focus:border-primary focus:shadow-[var(--glow-lg)] pl-3 sm:pl-4 pr-12 sm:pr-14 transition-all duration-300',
+              'h-12 sm:h-14 text-base md:text-lg bg-gradient-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[var(--glow-md)] focus:border-primary focus:shadow-[var(--glow-lg)] pl-3 sm:pl-4 pr-12 sm:pr-14 max-[360px]:pr-10 transition-all duration-300',
               isSuccess && 'border-success shadow-[var(--glow-success)] animate-pulse',
               !isSuccess && isShaking && 'border-error shadow-[var(--glow-error)]'
             )}
@@ -271,7 +271,7 @@ export function GuessInput() {
             disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
             aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
             className={cn(
-              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 p-0 touch-manipulation transition-all duration-300',
+              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 max-[360px]:h-8 max-[360px]:w-8 p-0 touch-manipulation transition-all duration-300',
               query.trim()
                 ? 'bg-gradient-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
                 : 'hover:bg-accent'
@@ -294,7 +294,7 @@ export function GuessInput() {
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.skip')}
-              className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 touch-manipulation"
+              className="h-12 w-12 sm:h-14 sm:w-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
             >
               <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>

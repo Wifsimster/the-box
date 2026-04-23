@@ -115,6 +115,38 @@ test.describe('Login Flow', () => {
   })
 })
 
+test.describe('Login Flow (narrow mobile viewport)', () => {
+  // iPhone SE / Galaxy A13 class — the smallest common width we still support.
+  test.use({ viewport: { width: 375, height: 667 } })
+
+  test('login form fits 375px width without horizontal scroll', async ({ page }) => {
+    await page.goto('/en/login')
+    await page.waitForSelector('form')
+
+    const emailInput = page.getByPlaceholder(/you@example.com|email/i)
+    const passwordInput = page.locator('input[type="password"]').first()
+    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+
+    await expect(emailInput).toBeVisible()
+    await expect(passwordInput).toBeVisible()
+    await expect(loginButton).toBeVisible()
+
+    // All interactive fields must stay inside the viewport on a narrow phone.
+    for (const locator of [emailInput, passwordInput, loginButton]) {
+      const box = await locator.boundingBox()
+      expect(box, 'element has a bounding box').not.toBeNull()
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(375)
+    }
+
+    // No page-level horizontal overflow.
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    )
+    expect(hasHorizontalOverflow).toBeFalsy()
+  })
+})
+
 test.describe('Logout Flow', () => {
   authTest('logout button clears session and user can no longer access protected pages', async ({ authenticatedPage }) => {
     // Navigate to profile (protected page)
