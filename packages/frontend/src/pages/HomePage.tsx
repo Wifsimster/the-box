@@ -1,10 +1,10 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { GradientIcon } from '@/components/ui/gradient-icon'
 import { Play, Trophy, Brain, History, Clock, CalendarDays, MapPin, ArrowRight } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -118,7 +118,7 @@ export default function HomePage() {
             className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
           />
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 gradient-gaming-title">
             {t('home.title')}
           </h1>
 
@@ -138,13 +138,13 @@ export default function HomePage() {
           {isTodayCompleted && (
             <div className="text-center max-w-xl mx-auto">
               <div className="bg-card/80 backdrop-blur-sm border border-neon-purple/30 rounded-lg p-4 sm:p-6 mb-3">
-                <p className="text-lg sm:text-xl font-bold text-neon-purple mb-3">
+                <p className="text-lg sm:text-xl font-bold text-foreground mb-3">
                   {humorousMessage}
                 </p>
                 <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base mb-4">
                   <div className="flex items-center gap-2">
                     <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-neon-cyan" />
-                    <span className="font-semibold text-neon-cyan">{todayScore} pts</span>
+                    <span className="font-semibold text-foreground">{todayScore} pts</span>
                   </div>
                   <div className="text-muted-foreground">
                     {screenshotsFound}/10 {t('game.screenshots')}
@@ -157,7 +157,7 @@ export default function HomePage() {
                   <span className="text-xs sm:text-sm text-muted-foreground">
                     {t('home.nextDailyIn')}
                   </span>
-                  <span className="font-mono font-semibold text-neon-pink text-sm sm:text-base">
+                  <span className="font-mono font-semibold text-foreground text-sm sm:text-base">
                     {String(timeRemaining.hours).padStart(2, '0')}:
                     {String(timeRemaining.minutes).padStart(2, '0')}:
                     {String(timeRemaining.seconds).padStart(2, '0')}
@@ -220,7 +220,7 @@ export default function HomePage() {
                   className="w-full h-full object-cover transition-transform hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent" />
-                <span className="absolute top-3 left-3 text-[10px] uppercase tracking-wide font-semibold text-neon-cyan bg-black/60 rounded px-2 py-1">
+                <span className="absolute top-3 left-3 text-[10px] uppercase tracking-wide font-semibold text-white bg-black/60 rounded px-2 py-1">
                   {t('home.previewBadge')}
                 </span>
                 <div className="absolute bottom-3 left-3 right-3">
@@ -260,96 +260,12 @@ export default function HomePage() {
           )}
         </motion.div>
 
-        {/* Geo Daily alpha teaser — complements the main daily CTA above */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
-        >
-          {/* Outer element is a div+role=button so the secondary leaderboard link can remain focusable without nesting interactive elements. */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => navigate(localizedPath('/geo/daily'))}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                navigate(localizedPath('/geo/daily'))
-              }
-            }}
-            className={cn(
-              'group relative block w-full overflow-hidden rounded-2xl text-left cursor-pointer',
-              'border border-neon-purple/40 hover:border-neon-pink/70 transition-colors',
-              'bg-linear-to-br from-neon-purple/20 via-background/60 to-neon-pink/20 backdrop-blur-sm',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            )}
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
-            />
-            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 p-5 sm:p-6">
-              <div className="shrink-0 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-                <MapPin className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <Badge
-                    variant="outline"
-                    className="border-neon-pink/50 bg-neon-pink/15 text-neon-pink uppercase tracking-wider"
-                  >
-                    {t('home.geoAlpha.badge')}
-                  </Badge>
-                  <span className="text-[11px] sm:text-xs uppercase tracking-wide font-semibold text-neon-cyan">
-                    {t('home.geoAlpha.eyebrow')}
-                  </span>
-                </div>
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
-                  {t('home.geoAlpha.title')}
-                </h2>
-                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
-                  {t('home.geoAlpha.subtitle')}
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-3 sm:gap-4">
-                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white group-hover:text-neon-pink transition-colors">
-                    {t('home.geoAlpha.cta')}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                  <span
-                    role="link"
-                    tabIndex={0}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      navigate(localizedPath('/geo/leaderboard'))
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        navigate(localizedPath('/geo/leaderboard'))
-                      }
-                    }}
-                    className="text-xs sm:text-sm text-muted-foreground underline-offset-4 hover:text-neon-cyan hover:underline focus-visible:outline-none focus-visible:text-neon-cyan focus-visible:underline cursor-pointer"
-                  >
-                    {t('home.geoAlpha.secondary')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Features Grid */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 max-w-2xl mx-auto"
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
         >
           <Card className="bg-card/50 border-border hover:border-neon-purple/50 transition-colors">
             <CardContent className="pt-4 sm:pt-5 md:pt-6 text-center">
@@ -374,6 +290,76 @@ export default function HomePage() {
               </p>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/*
+          Geo Daily alpha teaser — sits *below* the panorama features grid
+          since it's a single-game pilot and shouldn't compete with the
+          primary daily-play CTA above the fold. The card itself is a
+          single Link covering the main CTA; the secondary leaderboard
+          link is rendered as a sibling so we never nest interactives.
+        */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="max-w-2xl mx-auto"
+        >
+          <div className="group relative overflow-hidden rounded-2xl border border-neon-purple/40 bg-linear-to-br from-neon-purple/20 via-background/60 to-neon-pink/20 backdrop-blur-sm transition-colors hover:border-neon-pink/70 focus-within:border-neon-pink/70">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+            />
+
+            {/* Primary affordance: a real <Link> wrapping the CTA region. */}
+            <Link
+              to={localizedPath('/geo/daily')}
+              className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 p-5 sm:p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-2xl"
+            >
+              <GradientIcon
+                icon={<MapPin className="h-6 w-6 sm:h-7 sm:w-7 text-white" />}
+                className="shrink-0 h-12 w-12 sm:h-14 sm:w-14"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <Badge
+                    variant="outline"
+                    className="border-neon-pink/50 bg-neon-pink/15 text-neon-pink uppercase tracking-wider"
+                  >
+                    {t('home.geoAlpha.badge')}
+                  </Badge>
+                  <span className="text-[11px] sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground">
+                    {t('home.geoAlpha.eyebrow')}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight gradient-gaming bg-clip-text text-transparent">
+                  {t('home.geoAlpha.title')}
+                </h2>
+                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
+                  {t('home.geoAlpha.subtitle')}
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground group-hover:text-neon-pink transition-colors">
+                  {t('home.geoAlpha.cta')}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </div>
+            </Link>
+
+            {/* Secondary leaderboard link — sibling to the primary <Link>
+                so we don't nest interactive elements. */}
+            <div className="relative px-5 sm:px-6 pb-5 sm:pb-6 -mt-2">
+              <Link
+                to={localizedPath('/geo/leaderboard')}
+                className="inline-block text-xs sm:text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:text-foreground focus-visible:underline"
+              >
+                {t('home.geoAlpha.secondary')}
+              </Link>
+            </div>
+          </div>
         </motion.div>
       </div>
     </>
