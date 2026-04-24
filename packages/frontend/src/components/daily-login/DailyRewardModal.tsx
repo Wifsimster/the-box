@@ -82,9 +82,9 @@ export function DailyRewardModal() {
                 {/* Reward Display */}
                 {reward && (
                     <div className={cn(
-                        'relative flex flex-col items-center p-6 rounded-lg border border-primary/30 bg-gradient-to-b from-primary/10 to-transparent',
+                        'relative flex flex-col items-center p-6 rounded-lg border border-primary/30 bg-linear-to-b from-primary/10 to-transparent',
                         isAnimating && 'animate-pulse',
-                        showClaimSuccess && 'border-success/50 bg-gradient-to-b from-success/10 to-transparent'
+                        showClaimSuccess && 'border-success/50 bg-linear-to-b from-success/10 to-transparent'
                     )}>
                         {/* Sparkle effect on claim */}
                         {showClaimSuccess && (

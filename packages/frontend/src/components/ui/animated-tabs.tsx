@@ -46,31 +46,28 @@ export function AnimatedTabs({
               'sm:flex-1',
               variant === 'underline' && 'rounded-none px-4 py-3',
               isActive
-                ? 'text-white'
-                : 'text-muted-foreground hover:text-white/80'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             {isActive && variant === 'default' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute inset-0 bg-linear-to-r from-neon-purple/20 to-neon-pink/20 rounded-lg border border-neon-purple/40"
-                style={{ boxShadow: 'var(--glow-sm)' }}
+                className="absolute inset-0 bg-linear-to-r from-neon-purple/20 to-neon-pink/20 rounded-lg border border-neon-purple/40 glow-sm"
                 transition={springConfig.snappy}
               />
             )}
             {isActive && variant === 'pills' && (
               <motion.div
                 layoutId="activeTabPill"
-                className="absolute inset-0 bg-linear-to-r from-neon-purple to-neon-pink rounded-lg"
-                style={{ boxShadow: 'var(--glow-md)' }}
+                className="absolute inset-0 bg-linear-to-r from-neon-purple to-neon-pink rounded-lg glow-md"
                 transition={springConfig.snappy}
               />
             )}
             {isActive && variant === 'underline' && (
               <motion.div
                 layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-neon-purple to-neon-pink"
-                style={{ boxShadow: 'var(--glow-sm)' }}
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-neon-purple to-neon-pink glow-sm"
                 transition={springConfig.snappy}
               />
             )}

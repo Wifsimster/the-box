@@ -55,7 +55,7 @@ export function AnimatedProgress({
       >
         <motion.div
           className={cn(
-            'h-full rounded-full bg-gradient-to-r',
+            'h-full rounded-full bg-linear-to-r',
             variantColors[variant]
           )}
           initial={animated ? { width: 0 } : false}
@@ -75,7 +75,7 @@ export function AnimatedProgress({
         {/* Animated shimmer overlay for in-progress state */}
         {animated && isInProgress && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent"
             initial={{ x: '-100%' }}
             animate={{ x: '100%' }}
             transition={{

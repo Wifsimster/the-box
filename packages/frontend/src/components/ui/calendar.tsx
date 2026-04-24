@@ -55,7 +55,7 @@ function Calendar({
         range_start: "day-range-start",
         range_end: "day-range-end",
         selected: cn(
-          "bg-gradient-to-r from-neon-purple to-neon-pink text-white",
+          "bg-linear-to-r from-neon-purple to-neon-pink text-white",
           "hover:from-neon-purple hover:to-neon-pink hover:text-white",
           "focus:from-neon-purple focus:to-neon-pink focus:text-white"
         ),
