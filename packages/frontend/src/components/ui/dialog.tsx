@@ -38,11 +38,16 @@ function DialogContent({
       <DialogPrimitive.Content
         aria-describedby={undefined}
         data-slot="dialog-content"
+        // Inline translate bypasses @wifsimster/koe's unlayered Tailwind v3
+        // preflight, whose `*,:before,:after{--tw-translate-x:0;--tw-translate-y:0}`
+        // outranks our @layer utilities and would otherwise pin the dialog's
+        // top-left corner to viewport center.
+        style={{ translate: '-50% -50%' }}
         className={cn(
           // 100dvh handles iOS Safari's shrinking viewport with the keyboard open;
           // overflow-y-auto lets dense content (e.g. the 7-day reward calendar) scroll
           // instead of pushing the close affordance off-screen on narrow phones.
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-3 sm:gap-4 border border-border bg-card p-4 sm:p-6 shadow-lg duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:zoom-out-95 motion-safe:data-[state=open]:zoom-in-95 motion-safe:data-[state=closed]:slide-out-to-left-1/2 motion-safe:data-[state=closed]:slide-out-to-top-[48%] motion-safe:data-[state=open]:slide-in-from-left-1/2 motion-safe:data-[state=open]:slide-in-from-top-[48%] rounded-lg",
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto gap-3 sm:gap-4 border border-border bg-card p-4 sm:p-6 shadow-lg duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:zoom-out-95 motion-safe:data-[state=open]:zoom-in-95 motion-safe:data-[state=closed]:slide-out-to-left-1/2 motion-safe:data-[state=closed]:slide-out-to-top-[48%] motion-safe:data-[state=open]:slide-in-from-left-1/2 motion-safe:data-[state=open]:slide-in-from-top-[48%] rounded-lg",
           className
         )}
         {...props}
