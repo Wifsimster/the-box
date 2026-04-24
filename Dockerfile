@@ -37,6 +37,7 @@ RUN npm run build:backend
 ARG VERSION
 ENV VITE_APP_VERSION=${VERSION}
 ENV VITE_API_URL=""
+ENV VITE_GEO_ENABLED="true"
 RUN npm run build:frontend
 
 # Stage 3: Production runtime
