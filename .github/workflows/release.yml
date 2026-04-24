@@ -22,6 +22,9 @@ concurrency:
   group: release-main
   cancel-in-progress: false
 
+env:
+  DOCKER_IMAGE: wifsimster/the-box
+
 jobs:
   decide:
     # Skip pushes made by the workflow's own `chore: bump version` commit.
@@ -34,6 +37,10 @@ jobs:
     outputs:
       should_release: ${{ steps.bump.outputs.should_release }}
       bump_type: ${{ steps.bump.outputs.bump_type }}
+      new_version: ${{ steps.version.outputs.new_version }}
+      major: ${{ steps.version.outputs.major }}
+      minor: ${{ steps.version.outputs.minor }}
+      short_sha: ${{ steps.version.outputs.short_sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -90,17 +97,136 @@ jobs:
           echo "bump_type=$BUMP" >> "$GITHUB_OUTPUT"
           echo "should_release=true" >> "$GITHUB_OUTPUT"
 
-  release:
-    name: Create Release & Publish Docker Image
+      - name: Compute new version
+        id: version
+        if: steps.bump.outputs.should_release == 'true'
+        run: |
+          set -euo pipefail
+          CURRENT=$(node -p "require('./package.json').version")
+          BUMP="${{ steps.bump.outputs.bump_type }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "$BUMP" in
+            patch) PATCH=$((PATCH + 1)) ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            *) echo "Unknown bump type: $BUMP" >&2; exit 1 ;;
+          esac
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "Current: $CURRENT → New: $NEW_VERSION ($BUMP)"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+  checks:
+    # Lint, build, test on the host. Duplicates ci.yml (which also runs on
+    # push to main) but keeps release gated on a fresh pass — the two run
+    # in parallel anyway so there's no wall-clock cost.
+    name: Lint, Build, Test
     needs: decide
     if: needs.decide.outputs.should_release == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build all packages
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+  build:
+    # Split the multi-arch Docker build across native runners — arm64 via
+    # QEMU emulation on an amd64 runner is roughly 5-10x slower than native
+    # and was the dominant cost of the previous single-job release. Each
+    # matrix job pushes anonymously by digest; `publish` then merges them
+    # into a single manifest list with the real version tags.
+    #
+    # Runs in parallel with `checks`; `publish` waits for both.
+    name: Build ${{ matrix.platform }}
+    needs: decide
+    if: needs.decide.outputs.should_release == 'true'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            cache_scope: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            cache_scope: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            VERSION=${{ needs.decide.outputs.new_version }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+          outputs: type=image,name=${{ env.DOCKER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.cache_scope }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    # Runs only after both platform builds pushed their digests AND checks
+    # passed. Merges the digests into one manifest list tagged with all the
+    # version variants, then bumps workspace versions, tags the repo, and
+    # publishes the GitHub release.
+    name: Publish release & manifest
+    needs: [decide, checks, build]
+    if: needs.decide.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
       packages: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -122,25 +248,44 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
 
-      - name: Build all packages
-        run: npm run build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Test
-        run: npm test
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Bump version
-        id: version
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "${{ env.DOCKER_IMAGE }}:latest" \
+            --tag "${{ env.DOCKER_IMAGE }}:v${{ needs.decide.outputs.new_version }}" \
+            --tag "${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.minor }}" \
+            --tag "${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.major }}" \
+            --tag "${{ env.DOCKER_IMAGE }}:sha-${{ needs.decide.outputs.short_sha }}" \
+            $(printf '${{ env.DOCKER_IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect "${{ env.DOCKER_IMAGE }}:v${{ needs.decide.outputs.new_version }}"
+
+      - name: Bump version files
         run: |
           npm run version:${{ needs.decide.outputs.bump_type }}
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_VERSION"
+          echo "Bumped to $(node -p "require('./package.json').version")"
 
       - name: Generate changelog
-        id: changelog
         run: |
           set -euo pipefail
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -179,72 +324,32 @@ jobs:
 
           cat CHANGELOG_TEMP.md
 
-      - name: Commit version bump
+      - name: Commit version bump and tag
         run: |
           git add package.json packages/*/package.json package-lock.json
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract version parts
-        id: version_parts
-        run: |
-          VERSION="${{ steps.version.outputs.new_version }}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f1-2)
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "major=$MAJOR" >> $GITHUB_OUTPUT
-          echo "minor=$MINOR" >> $GITHUB_OUTPUT
-          echo "full=$VERSION" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            wifsimster/the-box:latest
-            wifsimster/the-box:v${{ steps.version_parts.outputs.full }}
-            wifsimster/the-box:${{ steps.version_parts.outputs.minor }}
-            wifsimster/the-box:${{ steps.version_parts.outputs.major }}
-            wifsimster/the-box:sha-${{ steps.version_parts.outputs.short_sha }}
-          build-args: |
-            VERSION=${{ steps.version.outputs.new_version }}
-            BUILD_DATE=${{ github.event.repository.updated_at }}
-            VCS_REF=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
+          git commit -m "chore: bump version to ${{ needs.decide.outputs.new_version }}"
+          git tag -a "v${{ needs.decide.outputs.new_version }}" -m "Release v${{ needs.decide.outputs.new_version }}"
 
       - name: Push changes to repository
         run: |
           git push origin HEAD:main
-          git push origin "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ needs.decide.outputs.new_version }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.new_version }}
-          name: Release v${{ steps.version.outputs.new_version }}
+          tag_name: v${{ needs.decide.outputs.new_version }}
+          name: Release v${{ needs.decide.outputs.new_version }}
           body_path: CHANGELOG_TEMP.md
           draft: false
           prerelease: false
 
       - name: Notify release
         run: |
-          echo "Released version ${{ steps.version.outputs.new_version }}"
+          echo "Released version ${{ needs.decide.outputs.new_version }}"
           echo "Docker images published:"
-          echo "  - wifsimster/the-box:latest"
-          echo "  - wifsimster/the-box:v${{ steps.version_parts.outputs.full }}"
-          echo "  - wifsimster/the-box:${{ steps.version_parts.outputs.minor }}"
-          echo "  - wifsimster/the-box:${{ steps.version_parts.outputs.major }}"
-          echo "  - wifsimster/the-box:sha-${{ steps.version_parts.outputs.short_sha }}"
+          echo "  - ${{ env.DOCKER_IMAGE }}:latest"
+          echo "  - ${{ env.DOCKER_IMAGE }}:v${{ needs.decide.outputs.new_version }}"
+          echo "  - ${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.minor }}"
+          echo "  - ${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.major }}"
+          echo "  - ${{ env.DOCKER_IMAGE }}:sha-${{ needs.decide.outputs.short_sha }}"
