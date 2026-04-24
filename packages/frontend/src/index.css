@@ -211,6 +211,16 @@ body {
 .glow-md { box-shadow: var(--glow-md); }
 .glow-lg { box-shadow: var(--glow-lg); }
 
+/* Shared neon gradient utilities. Use `gradient-gaming` for filled
+   surfaces (icon tiles, progress bars) and `gradient-gaming-title` for
+   gradient-text headlines. Keep CVA variants (e.g. Button.gaming) inline. */
+.gradient-gaming {
+  @apply bg-linear-to-r from-neon-purple to-neon-pink;
+}
+.gradient-gaming-title {
+  @apply bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent;
+}
+
 .glow-hover {
   transition: box-shadow var(--duration-normal) var(--ease-smooth);
 }

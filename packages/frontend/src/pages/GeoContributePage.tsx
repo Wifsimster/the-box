@@ -74,7 +74,7 @@ export default function GeoContributePage() {
     return (
         <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
                     {t('geo.contribute.title', 'Tag a screenshot')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -161,7 +161,7 @@ export default function GeoContributePage() {
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={!pendingPin}
-                                    className="bg-linear-to-r from-neon-purple to-neon-pink hover:opacity-90"
+                                    className="gradient-gaming hover:opacity-90"
                                 >
                                     {t('geo.contribute.submit', 'Submit pin')}
                                 </Button>

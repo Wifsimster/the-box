@@ -50,7 +50,7 @@ export default function GeoLeaderboardPage() {
     return (
         <div className="container mx-auto max-w-3xl px-4 py-8 space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
                     {t('geo.leaderboard.title', 'Geo Leaderboard')}
                 </h1>
                 <p className="text-sm text-muted-foreground">

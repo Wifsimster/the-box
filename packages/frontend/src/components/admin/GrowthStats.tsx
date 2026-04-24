@@ -65,7 +65,7 @@ export function GrowthStats() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+            <div className="text-3xl font-bold gradient-gaming bg-clip-text text-transparent">
               {stats.referrals.claimedTotal}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
