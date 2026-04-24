@@ -50,6 +50,14 @@ const SEED_POINTS = [
 ]
 
 export async function seed(knex: Knex): Promise<void> {
+  // Pilot/dev fixture only — placeholder URLs (placehold.co) must never reach
+  // production, where they'd silently become the auto-scheduled daily
+  // challenge if no real one has been planned yet.
+  if (process.env.NODE_ENV === 'production') {
+    console.log('[geo-seed] skipped: NODE_ENV=production')
+    return
+  }
+
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
 

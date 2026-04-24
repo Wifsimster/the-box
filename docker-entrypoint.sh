@@ -12,10 +12,6 @@ npx @better-auth/cli migrate
 echo "Running database migrations..."
 npm run db:migrate
 
-# Seed geo mode pilot data (idempotent — no-op once rows exist)
-echo "Seeding geo mode data..."
-npm run db:seed:geo
-
 # Start the backend server
 echo "Starting backend server..."
 cd /app/packages/backend
