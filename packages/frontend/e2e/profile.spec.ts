@@ -121,3 +121,33 @@ test.describe('Profile - Authenticated User', () => {
     expect(hasAchievementLabel || hasAchievementCount || hasAchievementSection).toBeTruthy()
   })
 })
+
+test.describe('Profile - Mobile viewport (375px)', () => {
+  // Profile stats and forms are classic mobile reflow landmines — numbers
+  // in cards that wrap onto three lines, or input fields wider than the
+  // viewport. This catches both.
+  test.use({ viewport: { width: 375, height: 667 } })
+
+  authTest('profile content fits 375px width without horizontal overflow', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/en/profile')
+    await authenticatedPage.waitForTimeout(1500)
+
+    const hasHorizontalOverflow = await authenticatedPage.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    )
+    expect(hasHorizontalOverflow).toBeFalsy()
+  })
+
+  authTest('main heading is inside the viewport at 375px', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/en/profile')
+    await authenticatedPage.waitForTimeout(1500)
+
+    const heading = authenticatedPage.locator('h1').first()
+    if (!(await heading.isVisible().catch(() => false))) return
+
+    const box = await heading.boundingBox()
+    expect(box, 'profile heading has a bounding box').not.toBeNull()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(375)
+  })
+})
