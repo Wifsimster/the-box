@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Play, Trophy, Brain, History, Clock, CalendarDays } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Play, Trophy, Brain, History, Clock, CalendarDays, MapPin, ArrowRight } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -256,6 +258,90 @@ export default function HomePage() {
               </p>
             </motion.div>
           )}
+        </motion.div>
+
+        {/* Geo Daily alpha teaser — complements the main daily CTA above */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
+        >
+          {/* Outer element is a div+role=button so the secondary leaderboard link can remain focusable without nesting interactive elements. */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(localizedPath('/geo/daily'))}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                navigate(localizedPath('/geo/daily'))
+              }
+            }}
+            className={cn(
+              'group relative block w-full overflow-hidden rounded-2xl text-left cursor-pointer',
+              'border border-neon-purple/40 hover:border-neon-pink/70 transition-colors',
+              'bg-linear-to-br from-neon-purple/20 via-background/60 to-neon-pink/20 backdrop-blur-sm',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            )}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+            />
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 p-5 sm:p-6">
+              <div className="shrink-0 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+                <MapPin className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <Badge
+                    variant="outline"
+                    className="border-neon-pink/50 bg-neon-pink/15 text-neon-pink uppercase tracking-wider"
+                  >
+                    {t('home.geoAlpha.badge')}
+                  </Badge>
+                  <span className="text-[11px] sm:text-xs uppercase tracking-wide font-semibold text-neon-cyan">
+                    {t('home.geoAlpha.eyebrow')}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+                  {t('home.geoAlpha.title')}
+                </h2>
+                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
+                  {t('home.geoAlpha.subtitle')}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3 sm:gap-4">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white group-hover:text-neon-pink transition-colors">
+                    {t('home.geoAlpha.cta')}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                  <span
+                    role="link"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      navigate(localizedPath('/geo/leaderboard'))
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        navigate(localizedPath('/geo/leaderboard'))
+                      }
+                    }}
+                    className="text-xs sm:text-sm text-muted-foreground underline-offset-4 hover:text-neon-cyan hover:underline focus-visible:outline-none focus-visible:text-neon-cyan focus-visible:underline cursor-pointer"
+                  >
+                    {t('home.geoAlpha.secondary')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Features Grid */}

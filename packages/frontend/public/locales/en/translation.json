@@ -232,6 +232,14 @@
       "multiplayer": "Multiplayer Mode",
       "multiplayerDesc": "Challenge friends in real-time battles with live scoring"
     },
+    "geoAlpha": {
+      "badge": "Alpha",
+      "eyebrow": "New: Geo Daily",
+      "title": "Find the spot. Drop the pin.",
+      "subtitle": "A daily challenge to pinpoint where game screenshots are taken on the world map. Elden Ring is live — more worlds on the way.",
+      "cta": "Play Geo Daily",
+      "secondary": "See the geo leaderboard"
+    },
     "completionMessages": {
       "perfect": [
         "Absolute perfection! You're a living legend! 🏆",

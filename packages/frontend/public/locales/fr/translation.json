@@ -232,6 +232,14 @@
       "multiplayer": "Mode Multijoueur",
       "multiplayerDesc": "Défiez vos amis en temps réel avec scoring en direct"
     },
+    "geoAlpha": {
+      "badge": "Alpha",
+      "eyebrow": "Nouveau : Geo Daily",
+      "title": "Trouvez l'endroit. Posez l'épingle.",
+      "subtitle": "Un défi quotidien pour repérer sur la carte l'endroit exact où la capture d'écran a été prise. Elden Ring est en ligne — d'autres mondes arrivent.",
+      "cta": "Jouer Geo Daily",
+      "secondary": "Voir le classement geo"
+    },
     "completionMessages": {
       "perfect": [
         "Perfection absolue ! Tu es une légende vivante ! 🏆",
