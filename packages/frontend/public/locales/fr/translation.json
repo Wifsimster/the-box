@@ -209,7 +209,7 @@
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Devinez le jeu vidéo à partir de captures d'écran. Classements en direct, succès et séries de victoires.",
+    "subtitle": "Une capture, un jeu à reconnaître. Voyons si ta culture gaming tient encore debout.",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
     "guestHint": "Aucun compte requis — jouez instantanément en invité",
@@ -237,10 +237,10 @@
     "geoAlpha": {
       "badge": "Alpha",
       "eyebrow": "Nouveau : Geo Daily",
-      "title": "Trouvez l'endroit. Posez l'épingle.",
-      "subtitle": "Un défi quotidien pour repérer sur la carte l'endroit exact où la capture d'écran a été prise. Elden Ring est en ligne — d'autres mondes arrivent.",
+      "title": "Trouve l'endroit. Pose l'épingle.",
+      "subtitle": "Pour l'instant, c'est Elden Ring. Plante ton épingle pile où la capture a été prise — sinon ça compte pas.",
       "cta": "Jouer Geo Daily",
-      "secondary": "Voir le classement geo"
+      "secondary": "Voir le classement"
     },
     "completionMessages": {
       "perfect": [
