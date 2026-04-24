@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version_type:
@@ -21,8 +23,77 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  decide:
+    # Skip pushes made by the workflow's own `chore: bump version` commit.
+    # The bump is committed with GITHUB_TOKEN which won't re-trigger workflows,
+    # so this is belt-and-suspenders against a human/PAT pushing the same shape.
+    if: github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]'
+    name: Decide release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_release: ${{ steps.bump.outputs.should_release }}
+      bump_type: ${{ steps.bump.outputs.bump_type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine bump type from conventional commits
+        id: bump
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch: bumping ${{ inputs.version_type }}"
+            echo "bump_type=${{ inputs.version_type }}" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$PREVIOUS_TAG" ]; then
+            SUBJECTS=$(git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"%s" --no-merges)
+            BODIES=$(git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"%b" --no-merges)
+          else
+            SUBJECTS=$(git log --pretty=format:"%s" --no-merges)
+            BODIES=$(git log --pretty=format:"%b" --no-merges)
+          fi
+
+          if [ -z "$SUBJECTS" ]; then
+            echo "No commits since ${PREVIOUS_TAG:-repo start} — skipping."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Commits since ${PREVIOUS_TAG:-repo start}:"
+          echo "$SUBJECTS" | sed 's/^/  /'
+          echo ""
+
+          # Major: a conventional commit subject marked breaking with `!` or any
+          # commit body containing the BREAKING CHANGE footer.
+          if echo "$SUBJECTS" | grep -qE "^[a-z]+(\([^)]+\))?!:" \
+             || echo "$BODIES" | grep -q "BREAKING CHANGE:"; then
+            BUMP=major
+          elif echo "$SUBJECTS" | grep -qE "^feat(\([^)]+\))?:"; then
+            BUMP=minor
+          elif echo "$SUBJECTS" | grep -qE "^(fix|perf|revert)(\([^)]+\))?:"; then
+            BUMP=patch
+          else
+            echo "Only non-releasable commits (chore/docs/style/refactor/test/ci/build) — skipping."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Bump type: $BUMP"
+          echo "bump_type=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+
   release:
     name: Create Release & Publish Docker Image
+    needs: decide
+    if: needs.decide.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -63,7 +134,7 @@ jobs:
       - name: Bump version
         id: version
         run: |
-          npm run version:${{ inputs.version_type }}
+          npm run version:${{ needs.decide.outputs.bump_type }}
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
