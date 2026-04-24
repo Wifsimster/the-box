@@ -1,19 +1,26 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { motion, type MotionProps } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
 import { Play, Trophy, Brain, History, Clock, CalendarDays, MapPin, ArrowRight } from 'lucide-react'
-import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { lazy, Suspense, useEffect, useState, useMemo } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
-import { useEffect, useState, useMemo } from 'react'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
+import { prefersReducedMotion } from '@/lib/animations'
+
+// CubeBackground pulls in Three.js + react-three-fiber, so split it into
+// its own chunk and skip rendering entirely when the visitor prefers
+// reduced motion (the chunk also never gets fetched in that case).
+const CubeBackground = lazy(() =>
+  import('@/components/backgrounds/CubeBackground').then((mod) => ({ default: mod.CubeBackground })),
+)
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -32,6 +39,13 @@ export default function HomePage() {
   } | null>(null)
   const [previewAvailable, setPreviewAvailable] = useState(false)
   const timeRemaining = useNextDailyCountdown()
+
+  // Read once; entrance animations don't need to react mid-session.
+  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
+
+  // Helper: drop `initial`/`animate`/`transition` when reduced motion is
+  // preferred so motion components render statically without changing layout.
+  const motionProps = (props: MotionProps): MotionProps => (reducedMotion ? {} : props)
 
   // Memoize humorous message to prevent re-selection on countdown re-renders
   const humorousMessage = useMemo(() => {
@@ -98,23 +112,34 @@ export default function HomePage() {
 
   return (
     <>
-      <CubeBackground />
+      {reducedMotion ? (
+        // Plain dark backdrop — no Canvas, no chunk fetch.
+        <div className="fixed inset-0 z-0 bg-black" aria-hidden="true" />
+      ) : (
+        <Suspense fallback={null}>
+          <CubeBackground />
+        </Suspense>
+      )}
       <WelcomeModal />
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
         <StreakRiskBanner />
         {/* Hero Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          {...motionProps({
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.5 },
+          })}
           className="text-center mb-8 sm:mb-10 md:mb-12 lg:mb-16"
         >
           <motion.img
             src="/logo.svg"
             alt="The Box"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            {...motionProps({
+              initial: { scale: 0.8 },
+              animate: { scale: 1 },
+              transition: { duration: 0.5, delay: 0.2 },
+            })}
             className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
           />
 
@@ -129,9 +154,11 @@ export default function HomePage() {
 
         {/* CTA Button */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          {...motionProps({
+            initial: { opacity: 0, scale: 0.9 },
+            animate: { opacity: 1, scale: 1 },
+            transition: { duration: 0.5, delay: 0.4 },
+          })}
           className="flex flex-col items-center gap-4 mb-8 sm:mb-10 md:mb-12 lg:mb-16"
         >
           {/* Show completion message if today's challenge is completed */}
@@ -207,9 +234,11 @@ export default function HomePage() {
             <motion.button
               type="button"
               onClick={() => navigate(localizedPath('/play'))}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              {...motionProps({
+                initial: { opacity: 0, y: 10 },
+                animate: { opacity: 1, y: 0 },
+                transition: { delay: 0.2 },
+              })}
               className="mt-6 block w-full max-w-xl overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm hover:border-neon-pink/60 transition-colors text-left"
             >
               <div className="relative aspect-video w-full overflow-hidden bg-black/40">
@@ -236,9 +265,11 @@ export default function HomePage() {
           {/* Show yesterday's challenge option if available and not played */}
           {!isLoading && yesterdayChallenge && !yesterdayChallenge.hasPlayed && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              {...motionProps({
+                initial: { opacity: 0, y: 10 },
+                animate: { opacity: 1, y: 0 },
+                transition: { delay: 0.2 },
+              })}
               className="mt-4 text-center"
             >
               <p className="text-xs sm:text-sm text-muted-foreground mb-2">
@@ -262,9 +293,11 @@ export default function HomePage() {
 
         {/* Features Grid */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          {...motionProps({
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.5, delay: 0.5 },
+          })}
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
         >
           <Card className="bg-card/50 border-border hover:border-neon-purple/50 transition-colors">
@@ -300,9 +333,11 @@ export default function HomePage() {
           link is rendered as a sibling so we never nest interactives.
         */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
+          {...motionProps({
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.5, delay: 0.6 },
+          })}
           className="max-w-2xl mx-auto"
         >
           <div className="group relative overflow-hidden rounded-2xl border border-neon-purple/40 bg-linear-to-br from-neon-purple/20 via-background/60 to-neon-pink/20 backdrop-blur-sm transition-colors hover:border-neon-pink/70 focus-within:border-neon-pink/70">
