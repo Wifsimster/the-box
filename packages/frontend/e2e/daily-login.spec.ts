@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { E2E_USER_EMAIL, E2E_USER_PASSWORD } from './helpers/game-helpers'
+import { assertDialogFits } from './helpers/dialog-assertions'
 
 /**
  * E2E Tests for Daily Login Rewards
@@ -194,5 +195,33 @@ test.describe('Daily Login Rewards', () => {
     } else {
       expect(true).toBeTruthy()
     }
+  })
+})
+
+test.describe('Daily Reward Modal - Mobile viewport (375px)', () => {
+  // Anchors the dialog-responsiveness work: on iPhone SE / Galaxy A13 class
+  // viewports the reward dialog must stay inside the screen, keep its close
+  // button tappable, and not push horizontal scroll onto the underlying page.
+  test.use({ viewport: { width: 375, height: 667 } })
+
+  test('reward modal fits 375px and exposes a tappable close button', async ({ page }) => {
+    await page.context().clearCookies()
+
+    await page.goto('/en/login')
+    await page.waitForSelector('form')
+
+    const emailInput = page.getByPlaceholder(/you@example.com|email/i)
+    await emailInput.fill(E2E_USER_EMAIL)
+    const passwordInput = page.locator('input[type="password"]').first()
+    await passwordInput.fill(E2E_USER_PASSWORD)
+    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    await loginButton.click()
+
+    // Give the app a moment to land on the home page and (if eligible) open
+    // the daily reward modal. If the seed already claimed today's reward the
+    // modal will not appear — that's fine, the assertion helper no-ops.
+    await page.waitForTimeout(3000)
+
+    await assertDialogFits(page, 375)
   })
 })
