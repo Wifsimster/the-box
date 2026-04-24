@@ -22,7 +22,11 @@ export function getAdminSocket(): Socket {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5,
+            // Cellular networks drop and recover all day — keep trying. Default
+            // randomizationFactor (0.5) already jitters the backoff so a fleet
+            // recovering from the same outage doesn't stampede the server.
+            reconnectionAttempts: Infinity,
+            randomizationFactor: 0.5,
         })
 
         socket.on('connect', () => {
