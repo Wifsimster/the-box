@@ -110,7 +110,7 @@ function UnlockProgress({
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                    className="h-full bg-gradient-to-r from-neon-purple to-neon-pink transition-all"
+                    className="h-full bg-linear-to-r from-neon-purple to-neon-pink transition-all"
                     style={{ width: `${pct}%` }}
                 />
             </div>

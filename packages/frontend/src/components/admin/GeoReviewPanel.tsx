@@ -260,7 +260,7 @@ export function GeoReviewPanel() {
                                                 size="sm"
                                                 onClick={applyOverride}
                                                 disabled={!pin || saving}
-                                                className="bg-gradient-to-r from-neon-purple to-neon-pink hover:opacity-90"
+                                                className="bg-linear-to-r from-neon-purple to-neon-pink hover:opacity-90"
                                             >
                                                 {saving && (
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />

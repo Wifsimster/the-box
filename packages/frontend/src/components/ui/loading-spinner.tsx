@@ -51,10 +51,9 @@ export function LoadingSpinner({
       />
       {/* Inner arc - fast rotation with glow */}
       <motion.div
-        className="absolute inset-1 rounded-full border-2 border-transparent border-t-neon-purple"
+        className="absolute inset-1 rounded-full border-2 border-transparent border-t-neon-purple glow-sm"
         animate={{ rotate: 360 }}
         transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-        style={{ boxShadow: 'var(--glow-sm)' }}
       />
       {/* Center pulsing glow */}
       <motion.div

@@ -127,7 +127,7 @@ export function ScreenshotViewer({
       />
 
       {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-linear-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
 
       {/* Placeholder when no image */}
       {!imageUrl && (
@@ -136,7 +136,7 @@ export function ScreenshotViewer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neon-purple/20 to-neon-pink/20 z-20"
+            className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-neon-purple/20 to-neon-pink/20 z-20"
           >
             <p className="text-muted-foreground">Screenshot will appear here</p>
           </motion.div>

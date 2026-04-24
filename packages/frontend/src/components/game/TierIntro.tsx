@@ -31,7 +31,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-background via-card to-background h-dvh"
+      className="fixed inset-0 flex items-center justify-center bg-linear-to-b from-background via-card to-background h-dvh"
     >
       {/* Home Button - Mobile-first positioning */}
       <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20">
@@ -57,7 +57,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-shadow-neon text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-3 sm:mb-4 tracking-wider"
         >
-          <span className="bg-gradient-to-r from-white via-neon-purple to-white bg-clip-text text-transparent">
+          <span className="bg-linear-to-r from-white via-neon-purple to-white bg-clip-text text-transparent">
             {t('game.dailyChallenge')}
           </span>
         </motion.h1>

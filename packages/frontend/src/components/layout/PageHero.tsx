@@ -38,7 +38,7 @@ export function PageHero({ icon: Icon, logo, iconStyle = 'gradient', title, subt
               transition={{ duration: 0.5, delay: 0.2 }}
               className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4 sm:mb-5 md:mb-6"
             >
-              <Icon className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 text-white" />
+              <Icon className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 text-foreground" />
             </motion.div>
           ) : Icon ? (
             <motion.div

@@ -255,7 +255,7 @@ export function ResultCard() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neon-purple/30 to-neon-pink/30">
+            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-neon-purple/30 to-neon-pink/30">
               <span className="text-4xl font-bold">{correctGame.name[0]}</span>
             </div>
           )}

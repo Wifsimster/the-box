@@ -25,7 +25,7 @@ export function PercentileBanner({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
+        className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
       >
         <div className="flex items-center justify-center gap-2">
           <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-neon-purple border-t-transparent rounded-full animate-spin" />
@@ -47,12 +47,12 @@ export function PercentileBanner({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="bg-gradient-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
+      className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
     >
       <div className="flex flex-col items-center gap-1.5 sm:gap-2">
         <div className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-bold">
           <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-neon-purple shrink-0" />
-          <span className="bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
+          <span className="bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
             {t('game.results.percentileTop', { percent: topPercent })}
           </span>
         </div>

@@ -205,7 +205,12 @@ body {
   animation: shimmer 1.5s infinite ease-in-out;
 }
 
-/* Glow hover utility */
+/* Glow utility classes reuse the --glow-* tokens so components don't need
+   per-instance `style={{ boxShadow: 'var(--glow-*)' }}`. */
+.glow-sm { box-shadow: var(--glow-sm); }
+.glow-md { box-shadow: var(--glow-md); }
+.glow-lg { box-shadow: var(--glow-lg); }
+
 .glow-hover {
   transition: box-shadow var(--duration-normal) var(--ease-smooth);
 }

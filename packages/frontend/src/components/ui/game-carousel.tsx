@@ -171,7 +171,7 @@ export function GameCarousel({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20"
+                        className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                         onClick={handleZoomIn}
                         disabled={zoomLevelIndex === 0}
                         title="Zoom in"
@@ -181,7 +181,7 @@ export function GameCarousel({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20"
+                        className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                         onClick={handleZoomOut}
                         disabled={zoomLevelIndex === ZOOM_LEVELS.length - 1}
                         title="Zoom out"
@@ -195,13 +195,13 @@ export function GameCarousel({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20"
+                            className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                             onClick={handleResetZoom}
                             title="Reset zoom"
                         >
                             <RotateCcw className="h-4 w-4" />
                         </Button>
-                        <span className="text-xs text-white/60 px-2 tabular-nums">
+                        <span className="text-xs text-foreground/60 px-2 tabular-nums">
                             {Math.round(currentZoom * 100)}%
                         </span>
                     </div>
