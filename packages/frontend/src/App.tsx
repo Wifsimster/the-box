@@ -38,8 +38,8 @@ const GeoDailyPage = lazy(() => import('@/pages/GeoDailyPage'))
 const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
 const GeoLeaderboardPage = lazy(() => import('@/pages/GeoLeaderboardPage'))
 
-// Toggle all /geo routes via env flag so the mode can be rolled back
-// without touching router code.
+// Geo daily is exposed as an alpha feature to all users. Contribute remains
+// behind VITE_GEO_ENABLED so the contributor program can roll out separately.
 const GEO_ENABLED = import.meta.env.VITE_GEO_ENABLED === 'true'
 
 function LoadingSpinner() {
@@ -136,13 +136,11 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="u/:username" element={<PublicProfilePage />} />
 
+          <Route path="geo" element={<GeoDailyPage />} />
+          <Route path="geo/daily" element={<GeoDailyPage />} />
+          <Route path="geo/leaderboard" element={<GeoLeaderboardPage />} />
           {GEO_ENABLED && (
-            <>
-              <Route path="geo" element={<GeoDailyPage />} />
-              <Route path="geo/daily" element={<GeoDailyPage />} />
-              <Route path="geo/contribute" element={<GeoContributePage />} />
-              <Route path="geo/leaderboard" element={<GeoLeaderboardPage />} />
-            </>
+            <Route path="geo/contribute" element={<GeoContributePage />} />
           )}
         </Route>
 
