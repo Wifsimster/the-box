@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse } from '@/types'
 
 // Games API types
 export interface GamesListParams {
@@ -828,6 +828,24 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<GrowthStats>(response)
+  },
+
+  async listEmailLog(params?: EmailLogQuery): Promise<EmailLogResponse> {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.set('page', String(params.page))
+    if (params?.limit) queryParams.set('limit', String(params.limit))
+    if (params?.status) queryParams.set('status', params.status)
+    if (params?.type) queryParams.set('type', params.type)
+    if (params?.userId) queryParams.set('userId', params.userId)
+    if (params?.search) queryParams.set('search', params.search)
+    if (params?.dateFrom) queryParams.set('dateFrom', params.dateFrom)
+    if (params?.dateTo) queryParams.set('dateTo', params.dateTo)
+
+    const qs = queryParams.toString()
+    const response = await fetch(`/api/admin/email-log${qs ? `?${qs}` : ''}`, {
+      credentials: 'include',
+    })
+    return handleResponse<EmailLogResponse>(response)
   },
 }
 

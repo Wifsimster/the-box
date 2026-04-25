@@ -42,6 +42,7 @@ import {
   geoMapRepository,
   geoIngestFailureRepository,
   screenshotReportRepository,
+  emailLogRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
@@ -1276,10 +1277,11 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
       return
     }
 
+    const subject = 'Test Email - The Box'
     const { data, error } = await resend.emails.send({
       from: `The Box <${env.EMAIL_FROM}>`,
       to: recipientEmail,
-      subject: 'Test Email - The Box',
+      subject,
       html: `
         <h1>Test Email</h1>
         <p>This is a test email from The Box admin panel.</p>
@@ -1289,6 +1291,14 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
     })
 
     if (error) {
+      await emailLogRepository.record({
+        userId: user?.id ?? null,
+        recipient: recipientEmail,
+        type: 'admin-test',
+        subject,
+        status: 'failed',
+        errorMessage: error.message,
+      })
       res.status(500).json({
         success: false,
         error: {
@@ -1299,6 +1309,15 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
       })
       return
     }
+
+    await emailLogRepository.record({
+      userId: user?.id ?? null,
+      recipient: recipientEmail,
+      type: 'admin-test',
+      subject,
+      status: 'sent',
+      providerMessageId: data?.id ?? null,
+    })
 
     res.json({
       success: true,
@@ -1316,6 +1335,64 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
       res.status(500).json({
         success: false,
         error: { code: 'EMAIL_ERROR', message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
+// === Email Log ===
+
+const emailTypeValues = [
+  'password-reset',
+  'verification',
+  'streak-risk',
+  'relance',
+  'inactive-reminder',
+  'referral-announcement',
+  'admin-test',
+] as const
+
+const emailLogQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  status: z.enum(['sent', 'failed', 'skipped']).optional(),
+  type: z.enum(emailTypeValues).optional(),
+  userId: z.string().min(1).optional(),
+  search: z.string().min(1).max(320).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+})
+
+router.get('/email-log', async (req, res, next) => {
+  try {
+    const params = emailLogQuerySchema.parse(req.query)
+    const result = await emailLogRepository.list(params)
+    res.json({
+      success: true,
+      data: {
+        entries: result.entries.map((row) => ({
+          id: row.id,
+          userId: row.user_id,
+          recipient: row.recipient,
+          type: row.type,
+          subject: row.subject,
+          status: row.status,
+          providerMessageId: row.provider_message_id,
+          errorMessage: row.error_message,
+          sentAt: row.sent_at instanceof Date ? row.sent_at.toISOString() : String(row.sent_at),
+        })),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
       })
       return
     }

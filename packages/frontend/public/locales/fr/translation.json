@@ -421,9 +421,41 @@
       "challenges": "Défis",
       "users": "Utilisateurs",
       "email": "Email",
+      "emailLog": "Historique email",
       "growth": "Acquisition",
       "geo": "Géo",
       "reports": "Signalements"
+    },
+    "emailLog": {
+      "title": "Historique des emails",
+      "totalCount_one": "{{count}} email",
+      "totalCount_other": "{{count}} emails",
+      "searchPlaceholder": "Rechercher par destinataire…",
+      "filterType": "Tous les types",
+      "filterStatus": "Tous les statuts",
+      "empty": "Aucun email ne correspond à ces filtres.",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "table": {
+        "sentAt": "Envoyé le",
+        "recipient": "Destinataire",
+        "type": "Type",
+        "subject": "Sujet",
+        "status": "Statut"
+      },
+      "statuses": {
+        "sent": "Envoyé",
+        "failed": "Échec",
+        "skipped": "Ignoré"
+      },
+      "types": {
+        "password-reset": "Mot de passe",
+        "verification": "Vérification",
+        "streak-risk": "Série en danger",
+        "relance": "Relance",
+        "inactive-reminder": "Rappel inactif",
+        "referral-announcement": "Parrainage",
+        "admin-test": "Test admin"
+      }
     },
     "reports": {
       "title": "Captures signalées",

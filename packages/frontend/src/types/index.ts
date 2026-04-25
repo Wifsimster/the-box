@@ -53,4 +53,11 @@ export type {
   // Full Import (Batch Processing)
   ImportStatus,
   ImportState,
+
+  // Email Log (Admin)
+  EmailLogType,
+  EmailLogStatus,
+  EmailLogEntry,
+  EmailLogResponse,
+  EmailLogQuery,
 } from '@the-box/types'
