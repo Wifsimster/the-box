@@ -2,8 +2,9 @@ import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
 import { geoIngestFailureRepository } from '../../repositories/index.js'
 import {
-  defaultWikiPageTitles,
+  FANDOM_MAP_NAMESPACE,
   normalizeGameTitle,
+  scoreMapTitle,
   tombstoneRetryAfter,
   wikiSubdomainCandidates,
 } from '../../../domain/services/geo-metadata.service.js'
@@ -14,6 +15,7 @@ const DEFAULT_USER_AGENT =
   'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
 const STEAM_STORESEARCH = 'https://store.steampowered.com/api/storesearch/'
 const FANDOM_BASE = (sub: string) => `https://${sub}.fandom.com`
+const MAP_TITLE_PREFIX = 'Map:'
 
 interface CuratedGameRow {
   id: number
@@ -32,20 +34,21 @@ export interface ResolveMetadataResult {
 }
 
 /**
- * Resolve missing Steam app id, wiki subdomain, and wiki page title for
- * curated games (`geo_curated = true`, `geo_metadata_status = 'pending'`).
+ * Resolve missing Steam app id, wiki subdomain, and Fandom Interactive Map
+ * page name for curated games (`geo_curated = true`,
+ * `geo_metadata_status = 'pending'`).
  *
  * Strategy:
- *   1. Steam app id: hit Steam's `storesearch` API by game name; pick the
- *      first hit whose normalized title matches.
- *   2. Wiki subdomain + page title: try each `<slug-variant>.fandom.com`
- *      with each likely page title (Interactive_Map, World_Map, Map, …);
- *      first HEAD that returns 200 wins.
+ *   1. Steam app id — hit Steam `storesearch`, pick the first hit whose
+ *      normalized title matches the game name.
+ *   2. Wiki subdomain + Map: page name — for each `<slug-variant>.fandom.com`,
+ *      list pages in the Fandom Interactive Maps namespace
+ *      (`?action=query&list=allpages&apnamespace=2900`). The first
+ *      subdomain that returns at least one map wins; we score the returned
+ *      titles and keep the highest-scoring one (without the `Map:` prefix).
  *
- * On full success → status='resolved'. On partial (e.g. wiki found but no
- * Steam) we still mark resolved and let the per-source importers handle
- * missing inputs. On total failure → status='unresolved' + tombstone with
- * exponential backoff so we don't loop.
+ * On any success → status='resolved'. On total failure → status='unresolved'
+ * + tombstone with exponential backoff so we don't loop.
  */
 export async function resolveGeoMetadataBatch(
   batchSize = 25,
@@ -71,9 +74,10 @@ export async function resolveGeoMetadataBatch(
   for (const row of rows) {
     try {
       const steamAppId = row.steam_app_id ?? (await resolveSteamAppId(row.name))
-      const wiki = row.wiki_subdomain
-        ? { subdomain: row.wiki_subdomain, pageTitle: row.wiki_page_title ?? 'Interactive_Map' }
-        : await resolveFandomPage(row.slug)
+      const wiki =
+        row.wiki_subdomain && row.wiki_page_title
+          ? { subdomain: row.wiki_subdomain, mapName: row.wiki_page_title }
+          : await resolveFandomInteractiveMap(row.name, row.slug)
 
       const haveAnything = Boolean(steamAppId) || Boolean(wiki)
       if (!haveAnything) {
@@ -82,7 +86,7 @@ export async function resolveGeoMetadataBatch(
         await geoIngestFailureRepository.record({
           gameId: row.id,
           source: 'metadata',
-          reason: 'no Steam appid and no Fandom wiki found',
+          reason: 'no Steam appid and no Fandom interactive map found',
           retryAfter: tombstoneRetryAfter(attempt),
         })
         await db('games')
@@ -97,16 +101,13 @@ export async function resolveGeoMetadataBatch(
         .update({
           steam_app_id: steamAppId,
           wiki_subdomain: wiki?.subdomain ?? row.wiki_subdomain,
-          wiki_page_title: wiki?.pageTitle ?? row.wiki_page_title,
+          wiki_page_title: wiki?.mapName ?? row.wiki_page_title,
           geo_metadata_status: 'resolved',
           geo_metadata_resolved_at: new Date(),
         })
       await geoIngestFailureRepository.clear(row.id, 'metadata')
       resolved++
-      log.info(
-        { gameId: row.id, steamAppId, wiki },
-        'resolved geo metadata',
-      )
+      log.info({ gameId: row.id, steamAppId, wiki }, 'resolved geo metadata')
     } catch (err) {
       log.warn({ gameId: row.id, err: String(err) }, 'metadata resolution error')
       skipped++
@@ -126,7 +127,8 @@ async function resolveSteamAppId(name: string): Promise<number | null> {
     const body = (await res.json()) as { items?: Array<{ id: number; name: string }> }
     if (!body.items?.length) return null
     const target = normalizeGameTitle(name)
-    const hit = body.items.find((it) => normalizeGameTitle(it.name) === target) ?? body.items[0]
+    const hit =
+      body.items.find((it) => normalizeGameTitle(it.name) === target) ?? body.items[0]
     return hit?.id ?? null
   } catch (err) {
     log.warn({ name, err: String(err) }, 'steam storesearch failed')
@@ -134,28 +136,58 @@ async function resolveSteamAppId(name: string): Promise<number | null> {
   }
 }
 
-async function resolveFandomPage(
-  slug: string,
-): Promise<{ subdomain: string; pageTitle: string } | null> {
-  const subs = wikiSubdomainCandidates(slug)
-  const titles = defaultWikiPageTitles()
+interface AllPagesResponse {
+  query?: { allpages?: Array<{ title: string }> }
+}
 
-  for (const sub of subs) {
-    for (const title of titles) {
-      const url = `${FANDOM_BASE(sub)}/wiki/${encodeURIComponent(title)}`
-      try {
-        const res = await fetch(url, {
-          method: 'HEAD',
-          headers: { 'User-Agent': DEFAULT_USER_AGENT },
-          redirect: 'follow',
-        })
-        if (res.ok) {
-          return { subdomain: sub, pageTitle: title }
-        }
-      } catch {
-        // network glitch on a probe is fine — keep trying.
-      }
+/**
+ * Walk subdomain candidates and ask each wiki for its `Map:` namespace
+ * via `action=query&list=allpages&apnamespace=2900`. The first subdomain
+ * that returns ≥1 map wins; we then score those titles to pick the most
+ * "main" map and strip the `Map:` prefix before storing.
+ */
+async function resolveFandomInteractiveMap(
+  gameName: string,
+  slug: string,
+): Promise<{ subdomain: string; mapName: string } | null> {
+  for (const sub of wikiSubdomainCandidates(slug)) {
+    const url =
+      `${FANDOM_BASE(sub)}/api.php?action=query&format=json` +
+      `&list=allpages&apnamespace=${FANDOM_MAP_NAMESPACE}&aplimit=100`
+    let body: AllPagesResponse
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': DEFAULT_USER_AGENT, Accept: 'application/json' },
+      })
+      if (!res.ok) continue
+      body = (await res.json()) as AllPagesResponse
+    } catch {
+      continue
+    }
+
+    const pages = body.query?.allpages ?? []
+    if (!pages.length) continue
+
+    const ranked = pages
+      .map((p) => stripMapPrefix(p.title))
+      .filter((t): t is string => Boolean(t))
+      .map((title) => ({ title, score: scoreMapTitle(title, gameName, slug) }))
+      .sort((a, b) => b.score - a.score)
+
+    const best = ranked[0]
+    if (best) {
+      log.info(
+        { sub, choice: best, candidates: ranked.length },
+        'fandom map discovered',
+      )
+      return { subdomain: sub, mapName: best.title }
     }
   }
   return null
+}
+
+function stripMapPrefix(title: string): string | null {
+  if (!title.startsWith(MAP_TITLE_PREFIX)) return null
+  const stripped = title.slice(MAP_TITLE_PREFIX.length).trim()
+  return stripped || null
 }

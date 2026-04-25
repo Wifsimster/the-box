@@ -7,19 +7,24 @@ import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.servi
 
 const log = queueLogger.child({ worker: 'geo-fandom-import' })
 
-// Fandom exposes a standard MediaWiki API per wiki subdomain:
-//   https://<subdomain>.fandom.com/api.php?action=query&prop=imageinfo&...
-// We fetch a single page's primary image and record attribution under the
-// default CC-BY-SA-3.0 license that Fandom wikis publish under.
+// Fandom Interactive Maps are structured JSON exposed via the MediaWiki
+// `getmap` action on each wiki:
+//   https://<subdomain>.fandom.com/api.php?action=getmap&name=<MapPageName>
+// The response includes a `backgroundImage` (URL + width + height), the
+// map's `revisionId` (used for change detection on re-imports), and the
+// coordinate system metadata (`origin`, `coordinateOrder`).
 //
-// Rate-limit: a single request per call site; callers should not loop.
+// Fandom user-generated content is published under CC-BY-SA-3.0 by default.
 
-const DEFAULT_USER_AGENT = 'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
+const DEFAULT_USER_AGENT =
+  'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
 const FANDOM_DEFAULT_LICENSE = 'CC-BY-SA-3.0'
 
 export interface ImportFandomMapInput {
   gameId: number
   wikiSubdomain: string
+  // The Fandom Map: page name without the namespace prefix
+  // (e.g. `Avatar_world_map`, not `Map:Avatar_world_map`).
   pageTitle: string
   userAgent?: string
 }
@@ -30,31 +35,18 @@ export interface ImportFandomMapResult {
   reason?: string
 }
 
-interface MediaWikiImageInfo {
-  url?: string
-  width?: number
-  height?: number
-  descriptionshorturl?: string
-}
-
-interface MediaWikiPage {
-  pageid?: number
-  title?: string
-  imageinfo?: MediaWikiImageInfo[]
-  images?: Array<{ title: string }>
-}
-
-interface MediaWikiQueryResponse {
-  query?: {
-    pages?: Record<string, MediaWikiPage>
+interface GetMapResponse {
+  backgroundImage?: {
+    url?: string
+    width?: number
+    height?: number
   }
+  mapImage?: string
+  revisionId?: number
+  origin?: string
+  coordinateOrder?: string
 }
 
-/**
- * Resolve the primary image attached to a wiki page. We hit the page with
- * `prop=images` first to find image titles, then fetch `prop=imageinfo` on
- * the top candidate to get its URL + dimensions.
- */
 export async function importFandomMap(
   input: ImportFandomMapInput,
 ): Promise<ImportFandomMapResult> {
@@ -67,41 +59,41 @@ export async function importFandomMap(
     return { imported: false, geoMapId: existing.id, reason: 'map already exists' }
   }
 
-  const base = `https://${wikiSubdomain}.fandom.com/api.php`
-  const pageImagesUrl = `${base}?action=query&format=json&prop=images&titles=${encodeURIComponent(pageTitle)}&imlimit=20`
+  const url =
+    `https://${wikiSubdomain}.fandom.com/api.php` +
+    `?action=getmap&format=json&name=${encodeURIComponent(pageTitle)}`
 
-  log.info({ gameId, wikiSubdomain, pageTitle }, 'fetching page images')
-  const pagesRes = await fetchJson<MediaWikiQueryResponse>(pageImagesUrl, ua)
-  const page = firstPage(pagesRes)
-  const imageTitle = page?.images?.find((i) => looksLikeMap(i.title))?.title ?? page?.images?.[0]?.title
+  log.info({ gameId, wikiSubdomain, pageTitle }, 'fetching interactive map')
 
-  if (!imageTitle) {
-    await recordFandomTombstone(gameId, 'no images on page')
-    return { imported: false, reason: 'no images on page' }
+  let data: GetMapResponse
+  try {
+    data = await fetchJson<GetMapResponse>(url, ua)
+  } catch (err) {
+    await recordFandomTombstone(gameId, `getmap fetch failed: ${String(err)}`)
+    return { imported: false, reason: 'getmap fetch failed' }
   }
 
-  const infoUrl = `${base}?action=query&format=json&prop=imageinfo&iiprop=url|size|url&titles=${encodeURIComponent(imageTitle)}`
-  const infoRes = await fetchJson<MediaWikiQueryResponse>(infoUrl, ua)
-  const infoPage = firstPage(infoRes)
-  const info = infoPage?.imageinfo?.[0]
-  if (!info?.url || !info.width || !info.height) {
-    await recordFandomTombstone(gameId, 'image info missing url or dimensions')
-    return { imported: false, reason: 'image info missing url or dimensions' }
+  const bg = data.backgroundImage
+  if (!bg?.url || !bg.width || !bg.height) {
+    await recordFandomTombstone(gameId, 'getmap returned no backgroundImage')
+    return { imported: false, reason: 'getmap returned no backgroundImage' }
   }
 
   const map = await geoMapRepository.create({
     gameId,
     source: 'fandom',
-    sourceUrl: info.descriptionshorturl ?? `https://${wikiSubdomain}.fandom.com/wiki/${encodeURIComponent(pageTitle)}`,
-    imageUrl: info.url,
-    widthPx: info.width,
-    heightPx: info.height,
+    sourceUrl: `https://${wikiSubdomain}.fandom.com/wiki/Map:${encodeURIComponent(pageTitle)}`,
+    imageUrl: bg.url,
+    widthPx: bg.width,
+    heightPx: bg.height,
     license: FANDOM_DEFAULT_LICENSE,
-    attribution: `${wikiSubdomain}.fandom.com — ${imageTitle}`,
+    attribution: `${wikiSubdomain}.fandom.com — Map:${pageTitle}`,
+    wikiMapName: pageTitle,
+    wikiRevisionId: data.revisionId ?? null,
   })
 
   await geoIngestFailureRepository.clear(gameId, 'fandom')
-  log.info({ gameId, mapId: map.id }, 'imported fandom map')
+  log.info({ gameId, mapId: map.id, revisionId: data.revisionId }, 'imported fandom map')
   return { imported: true, geoMapId: map.id }
 }
 
@@ -115,20 +107,10 @@ async function recordFandomTombstone(gameId: number, reason: string): Promise<vo
   })
 }
 
-function firstPage(resp: MediaWikiQueryResponse): MediaWikiPage | undefined {
-  const pages = resp.query?.pages
-  if (!pages) return undefined
-  return Object.values(pages)[0]
-}
-
-// Heuristic: prefer files that look like a world/region map over screenshots.
-function looksLikeMap(title: string): boolean {
-  const lower = title.toLowerCase()
-  return lower.includes('map') || lower.includes('world') || lower.includes('atlas')
-}
-
 async function fetchJson<T>(url: string, userAgent: string): Promise<T> {
-  const res = await fetch(url, { headers: { 'User-Agent': userAgent, Accept: 'application/json' } })
+  const res = await fetch(url, {
+    headers: { 'User-Agent': userAgent, Accept: 'application/json' },
+  })
   if (!res.ok) {
     throw new Error(`fandom fetch failed: ${res.status} ${res.statusText}`)
   }

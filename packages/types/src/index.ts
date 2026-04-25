@@ -706,6 +706,11 @@ export interface GeoMap {
   consensusRadius: number
   license: string
   attribution?: string
+  // Fandom Interactive Maps source identity (only set for source='fandom').
+  // wikiMapName is the `Map:` page name without prefix; wikiRevisionId is
+  // the JSON revisionId at import time, used for change detection.
+  wikiMapName?: string
+  wikiRevisionId?: number
 }
 
 export interface GeoScreenshotCandidate {

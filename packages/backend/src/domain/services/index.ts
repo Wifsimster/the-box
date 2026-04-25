@@ -59,10 +59,11 @@ export {
 } from './geo-game.service.js'
 export {
   wikiSubdomainCandidates,
-  defaultWikiPageTitles,
+  scoreMapTitle,
   parseSteamAppIdFromUrl,
   normalizeGameTitle,
   tombstoneRetryAfter,
+  FANDOM_MAP_NAMESPACE,
 } from './geo-metadata.service.js'
 
 // ---------------------------------------------------------------------------
