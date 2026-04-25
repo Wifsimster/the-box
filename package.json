@@ -1,6 +1,6 @@
 {
   "name": "the-box",
-  "version": "2.16.4",
+  "version": "2.16.5",
   "private": true,
   "description": "Gaming screenshot guessing application",
   "workspaces": [
