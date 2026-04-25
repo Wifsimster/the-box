@@ -218,7 +218,22 @@ body {
   @apply bg-linear-to-r from-neon-purple to-neon-pink;
 }
 .gradient-gaming-title {
+  /* Fallback color for environments where the gradient/clip can't render
+     (print, forced-colors, missing custom-property support). The browser
+     uses this color whenever `text-transparent` / `-webkit-text-fill-color`
+     resolves to a paint that's unavailable. */
+  color: var(--color-foreground, white);
   @apply bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent;
+}
+
+/* Windows High Contrast / forced-colors mode: drop the gradient entirely
+   and let the OS pick a readable foreground/background pair. */
+@media (forced-colors: active) {
+  .gradient-gaming-title {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
 }
 
 .glow-hover {

@@ -2,10 +2,9 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, type MotionProps } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
-import { Play, Trophy, Brain, History, Clock, CalendarDays, MapPin, ArrowRight } from 'lucide-react'
+import { Play, Trophy, History, Clock, CalendarDays, MapPin, ArrowRight } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, useMemo } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -13,6 +12,7 @@ import { gameApi } from '@/lib/api/game'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
+import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { prefersReducedMotion } from '@/lib/animations'
 
 // CubeBackground pulls in Three.js + react-three-fiber, so split it into
@@ -246,6 +246,9 @@ export default function HomePage() {
                   src="/api/game/preview/image"
                   alt={t('home.previewAlt')}
                   loading="lazy"
+                  decoding="async"
+                  width={1280}
+                  height={720}
                   className="w-full h-full object-cover transition-transform hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent" />
@@ -291,39 +294,12 @@ export default function HomePage() {
           )}
         </motion.div>
 
-        {/* Features Grid */}
-        <motion.div
-          {...motionProps({
-            initial: { opacity: 0, y: 20 },
-            animate: { opacity: 1, y: 0 },
-            transition: { duration: 0.5, delay: 0.5 },
-          })}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
-        >
-          <Card className="bg-card/50 border-border hover:border-neon-purple/50 transition-colors">
-            <CardContent className="pt-4 sm:pt-5 md:pt-6 text-center">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 rounded-lg bg-neon-purple/20 flex items-center justify-center">
-                <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple" />
-              </div>
-              <h3 className="text-sm sm:text-base font-semibold mb-1.5 sm:mb-2">{t('home.features.panorama')}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {t('home.features.panoramaDesc')}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border hover:border-neon-pink/50 transition-colors">
-            <CardContent className="pt-4 sm:pt-5 md:pt-6 text-center">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 rounded-lg bg-neon-pink/20 flex items-center justify-center">
-                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-neon-pink" />
-              </div>
-              <h3 className="text-sm sm:text-base font-semibold mb-1.5 sm:mb-2">{t('home.features.daily')}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {t('home.features.dailyDesc')}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Achievement teaser — replaces the static "Panorama / Daily"
+            features grid with aspirational social proof: three locked
+            achievements pulled from the catalog (or the visitor's own
+            unearned set when authenticated). Fail-soft: renders nothing
+            if the API errors. */}
+        <HomeAchievementTeaser />
 
         {/*
           Geo Daily alpha teaser — sits *below* the panorama features grid

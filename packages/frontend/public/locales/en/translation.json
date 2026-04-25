@@ -242,31 +242,41 @@
       "cta": "Play Geo Daily",
       "secondary": "See the geo leaderboard"
     },
+    "achievements": {
+      "heading": "Achievements waiting to be unlocked",
+      "subheading": "Three trophies you don't have yet. Yet.",
+      "cta": "See all achievements"
+    },
     "completionMessages": {
       "perfect": [
         "Absolute perfection! You're a living legend! 🏆",
         "Perfect score! Other players tremble before your mastery! 👑",
-        "AMAZING! You've reached gaming nirvana! 🎮✨"
+        "AMAZING! You've reached gaming nirvana! 🎮✨",
+        "Welcome to the screenshot ninjas. We do this again tomorrow. 👑"
       ],
       "excellent": [
         "Impressive! You really know your stuff! 🌟",
         "Excellent score! You're on the path to glory! 🚀",
-        "Well done champion! This score deserves respect! 💪"
+        "Well done champion! This score deserves respect! 💪",
+        "You played with the screenshot ninjas today. 🔥"
       ],
       "good": [
         "Not bad at all! A very respectable score! 👍",
         "Well played! You've proven you know your classics! 🎯",
-        "Solid performance! Keep it up! ⭐"
+        "Solid performance! Keep it up! ⭐",
+        "Solid. The screenshot ninjas recognize their own. 🤝"
       ],
       "average": [
         "That was... interesting! Next time will be the one! 😅",
         "Well, you tried! It's the taking part that counts, right? 🤷",
-        "You made some... creative choices! Come back tomorrow for revenge! 🎲"
+        "You made some... creative choices! Come back tomorrow for revenge! 🎲",
+        "Not glorious, but even screenshot ninjas have off days. 🎲"
       ],
       "low": [
         "Uh... did you recognize at least one game? Tomorrow will definitely be better! 😬",
         "Looks like you played with your eyes closed! Some training is needed! 🙈",
-        "Courage! Even the pros started somewhere... very low! 💀"
+        "Courage! Even the pros started somewhere... very low! 💀",
+        "Even screenshot ninjas fall sometimes. See you tomorrow. 💀"
       ]
     }
   },
