@@ -271,16 +271,16 @@ export function GuessInput() {
             disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
             aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
             className={cn(
-              'absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 max-[360px]:h-8 max-[360px]:w-8 p-0 touch-manipulation transition-all duration-300',
+              'absolute right-1.5 sm:right-2 inset-y-0 my-auto size-9 sm:size-10 max-[360px]:size-8 p-0 touch-manipulation transition-all duration-300',
               query.trim()
                 ? 'bg-linear-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
                 : 'hover:bg-accent'
             )}
           >
             {isSubmitting ? (
-              <Loader2 className={cn('h-4 w-4 sm:h-5 sm:w-5 animate-spin', query.trim() && 'text-white')} />
+              <Loader2 className={cn('size-4 sm:size-5 animate-spin', query.trim() && 'text-white')} />
             ) : (
-              <Send className={cn('h-4 w-4 sm:h-5 sm:w-5', query.trim() && 'text-white')} />
+              <Send className={cn('size-4 sm:size-5', query.trim() && 'text-white')} />
             )}
           </Button>
         </motion.div>
