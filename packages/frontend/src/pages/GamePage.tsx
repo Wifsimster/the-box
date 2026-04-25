@@ -749,7 +749,7 @@ export default function GamePage() {
                     {t('common.leaderboard')}
                   </Link>
                 </Button>
-                <Button variant="gaming" size="lg" asChild>
+                <Button variant="outline" size="lg" asChild>
                   <Link to={localizedPath('/')}>
                     <Home className="w-4 h-4 mr-2" />
                     {t('common.home')}
