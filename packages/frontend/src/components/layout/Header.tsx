@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
@@ -49,6 +49,16 @@ function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick }: 
         <Link to={localizedPath('/leaderboard')} onClick={handleClick}>
           <Trophy className={`w-4 h-4 ${iconClass}`} />
           {t('common.leaderboard')}
+        </Link>
+      </Button>
+
+      <Button variant="ghost" size="sm" asChild className={mobileClasses}>
+        <Link to={localizedPath('/geo/daily')} onClick={handleClick}>
+          <MapPin className={`w-4 h-4 ${iconClass}`} />
+          {t('common.geoDaily')}
+          <Badge variant="outline" className="ml-2 h-4 px-1 text-[10px] font-semibold uppercase tracking-wide border-neon-pink/50 text-neon-pink">
+            {t('common.alpha')}
+          </Badge>
         </Link>
       </Button>
     </>

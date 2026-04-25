@@ -280,7 +280,7 @@ export default function HistoryPage() {
             {/* Games List */}
             <Card className="bg-card/50 border-border">
               <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl font-extrabold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent drop-shadow-lg">
+                <CardTitle className="text-lg sm:text-xl font-extrabold gradient-gaming bg-clip-text text-transparent drop-shadow-lg">
                   {t('history.yourGames')}
                 </CardTitle>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">

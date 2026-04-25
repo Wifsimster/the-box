@@ -134,7 +134,7 @@ export default function GameHistoryDetailsPage() {
           <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </motion.div>
 
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 gradient-gaming bg-clip-text text-transparent">
           {formatDate(sessionData.challengeDate)}
         </h1>
 

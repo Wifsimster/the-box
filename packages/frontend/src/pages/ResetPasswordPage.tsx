@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
               <KeyRound className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold gradient-gaming bg-clip-text text-transparent">
               {t('auth.resetPassword')}
             </h1>
             <p className="text-muted-foreground">

@@ -52,7 +52,7 @@ export function PercentileBanner({
       <div className="flex flex-col items-center gap-1.5 sm:gap-2">
         <div className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-bold">
           <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-neon-purple shrink-0" />
-          <span className="bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
+          <span className="gradient-gaming bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
             {t('game.results.percentileTop', { percent: topPercent })}
           </span>
         </div>

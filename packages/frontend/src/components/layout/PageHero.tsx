@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { GradientIcon } from '@/components/ui/gradient-icon'
 
 interface PageHeroProps {
   icon?: LucideIcon
@@ -45,13 +46,17 @@ export function PageHero({ icon: Icon, logo, iconStyle = 'gradient', title, subt
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4 sm:mb-5 md:mb-6 rounded-xl sm:rounded-2xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
+              className="mb-4 sm:mb-5 md:mb-6"
             >
-              <Icon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
+              <GradientIcon
+                icon={<Icon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />}
+                size="lg"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 sm:rounded-2xl"
+              />
             </motion.div>
           ) : null}
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 px-2 sm:px-0 bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 px-2 sm:px-0 gradient-gaming-title">
             {title}
           </h1>
 

@@ -53,7 +53,7 @@ export default function GeoDailyPage() {
     return (
         <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
                     {t('geo.daily.title', 'Daily Geo Challenge')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -119,7 +119,7 @@ export default function GeoDailyPage() {
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={!canSubmit}
-                                    className="bg-linear-to-r from-neon-purple to-neon-pink hover:opacity-90"
+                                    className="gradient-gaming hover:opacity-90"
                                 >
                                     {phase === 'submitting' && (
                                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
