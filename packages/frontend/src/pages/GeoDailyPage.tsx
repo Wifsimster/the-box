@@ -5,6 +5,7 @@ import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
+import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, MapPin, Trophy } from 'lucide-react'
@@ -53,98 +54,101 @@ export default function GeoDailyPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
-            <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
-                    {t('geo.daily.title', 'Daily Geo Challenge')}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                    {t(
-                        'geo.daily.subtitle',
-                        'Pin the exact spot on the map where this screenshot was taken.',
-                    )}
-                </p>
-            </header>
+        <>
+            <CubeBackground />
+            <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6 relative z-10">
+                <header className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
+                        {t('geo.daily.title', 'Daily Geo Challenge')}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        {t(
+                            'geo.daily.subtitle',
+                            'Pin the exact spot on the map where this screenshot was taken.',
+                        )}
+                    </p>
+                </header>
 
-            {phase === 'loading' && (
-                <div className="flex justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
-                </div>
-            )}
+                {phase === 'loading' && (
+                    <div className="flex justify-center py-20">
+                        <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
+                    </div>
+                )}
 
-            {phase === 'error' && (
-                <Card>
-                    <CardContent className="py-10 text-center text-sm text-destructive">
-                        {errorCode === 'NO_CHALLENGE'
-                            ? t(
-                                  'geo.daily.errors.noChallenge',
-                                  'No geo challenge is available for today yet. Please check back later.',
-                              )
-                            : (errorMessage ?? t('common.error', 'Error'))}
-                    </CardContent>
-                </Card>
-            )}
-
-            {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result') && (
-                <div className="grid gap-6 lg:grid-cols-2">
+                {phase === 'error' && (
                     <Card>
-                        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-base">
-                                {t('geo.daily.screenshot', 'Screenshot')}
-                            </CardTitle>
-                            <ReportCaptureDialog
-                                target={{ geoScreenshotCandidateId: candidate.id }}
-                                isAuthenticated={!!session?.user?.id}
-                            />
-                        </CardHeader>
-                        <CardContent>
-                            <ScreenshotFrame imageUrl={candidate.imageUrl} />
+                        <CardContent className="py-10 text-center text-sm text-destructive">
+                            {errorCode === 'NO_CHALLENGE'
+                                ? t(
+                                      'geo.daily.errors.noChallenge',
+                                      'No geo challenge is available for today yet. Please check back later.',
+                                  )
+                                : (errorMessage ?? t('common.error', 'Error'))}
                         </CardContent>
                     </Card>
+                )}
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-neon-pink" />
-                                {t('geo.daily.map', 'Map')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <GeoMapCanvas
-                                imageUrl={map.imageUrl}
-                                widthPx={map.widthPx}
-                                heightPx={map.heightPx}
-                                pin={pendingGuess ?? result?.guess ?? null}
-                                canonical={result?.canonical ?? null}
-                                disabled={hasGuessed || phase === 'submitting' || phase === 'result'}
-                                onPin={setPendingGuess}
-                                showGuessLine={phase === 'result'}
-                            />
+                {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result') && (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        <Card>
+                            <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                                <CardTitle className="text-base">
+                                    {t('geo.daily.screenshot', 'Screenshot')}
+                                </CardTitle>
+                                <ReportCaptureDialog
+                                    target={{ geoScreenshotCandidateId: candidate.id }}
+                                    isAuthenticated={!!session?.user?.id}
+                                />
+                            </CardHeader>
+                            <CardContent>
+                                <ScreenshotFrame imageUrl={candidate.imageUrl} />
+                            </CardContent>
+                        </Card>
 
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">
-                                    {pendingGuess
-                                        ? `(${pendingGuess.x.toFixed(3)}, ${pendingGuess.y.toFixed(3)})`
-                                        : t('geo.daily.hint', 'Click the map to drop a pin')}
-                                </span>
-                                <Button
-                                    onClick={handleSubmit}
-                                    disabled={!canSubmit}
-                                    className="gradient-gaming hover:opacity-90"
-                                >
-                                    {phase === 'submitting' && (
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    )}
-                                    {t('geo.daily.submit', 'Submit guess')}
-                                </Button>
-                            </div>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-neon-pink" />
+                                    {t('geo.daily.map', 'Map')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <GeoMapCanvas
+                                    imageUrl={map.imageUrl}
+                                    widthPx={map.widthPx}
+                                    heightPx={map.heightPx}
+                                    pin={pendingGuess ?? result?.guess ?? null}
+                                    canonical={result?.canonical ?? null}
+                                    disabled={hasGuessed || phase === 'submitting' || phase === 'result'}
+                                    onPin={setPendingGuess}
+                                    showGuessLine={phase === 'result'}
+                                />
 
-                            {result && <ResultBlock result={result} t={t} language={i18n.language} />}
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-        </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">
+                                        {pendingGuess
+                                            ? `(${pendingGuess.x.toFixed(3)}, ${pendingGuess.y.toFixed(3)})`
+                                            : t('geo.daily.hint', 'Click the map to drop a pin')}
+                                    </span>
+                                    <Button
+                                        onClick={handleSubmit}
+                                        disabled={!canSubmit}
+                                        className="gradient-gaming hover:opacity-90"
+                                    >
+                                        {phase === 'submitting' && (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        )}
+                                        {t('geo.daily.submit', 'Submit guess')}
+                                    </Button>
+                                </div>
+
+                                {result && <ResultBlock result={result} t={t} language={i18n.language} />}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+            </div>
+        </>
     )
 }
 
