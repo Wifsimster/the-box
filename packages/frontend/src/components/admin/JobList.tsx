@@ -80,6 +80,9 @@ function getJobTranslationKey(jobName: string): string {
     'send-tournament-reminders': 'admin.jobs.sendTournamentReminders',
     'recalculate-scores': 'admin.jobs.recalculateScores',
     'clear-daily-data': 'admin.jobs.clearDailyData',
+    'streak-risk-email': 'admin.jobs.streakRiskEmail',
+    'relance-email': 'admin.jobs.relanceEmail',
+    'inactive-user-reminder': 'admin.jobs.inactiveUserReminder',
   }
   return keyMap[jobName] || jobName
 }
@@ -96,6 +99,9 @@ function getJobRunningTranslationKey(jobName: string): string {
     'send-tournament-reminders': 'admin.jobs.sendTournamentRemindersRunning',
     'recalculate-scores': 'admin.jobs.recalculateScoresRunning',
     'clear-daily-data': 'admin.jobs.clearDailyDataRunning',
+    'streak-risk-email': 'admin.jobs.streakRiskEmailRunning',
+    'relance-email': 'admin.jobs.relanceEmailRunning',
+    'inactive-user-reminder': 'admin.jobs.inactiveUserReminderRunning',
   }
   return keyMap[jobName] || jobName
 }
@@ -154,6 +160,21 @@ function getJobMetadata(jobName: string, t: (key: string) => string) {
       description: t('admin.jobs.descriptions.clearDailyData'),
       icon: <Trash2 className="h-4 w-4" />,
       category: 'Maintenance',
+    },
+    'streak-risk-email': {
+      description: t('admin.jobs.descriptions.streakRiskEmail'),
+      icon: <Mail className="h-4 w-4" />,
+      category: 'Notification',
+    },
+    'relance-email': {
+      description: t('admin.jobs.descriptions.relanceEmail'),
+      icon: <Mail className="h-4 w-4" />,
+      category: 'Notification',
+    },
+    'inactive-user-reminder': {
+      description: t('admin.jobs.descriptions.inactiveUserReminder'),
+      icon: <Mail className="h-4 w-4" />,
+      category: 'Notification',
     },
   }
 
@@ -352,7 +373,7 @@ export function JobList() {
                                       {t(getJobTranslationKey(job.name))}
                                     </span>
                                     <span className="text-[10px] sm:text-xs text-muted-foreground">
-                                      {metadata.category}
+                                      {t(`admin.jobs.categories.${metadata.category}`)}
                                     </span>
                                   </div>
                                 </div>

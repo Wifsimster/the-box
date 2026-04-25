@@ -623,6 +623,12 @@
       "clearDailyDataRunning": "Clearing daily data...",
       "recalculateScores": "Recalculate Scores",
       "recalculateScoresRunning": "Recalculating scores...",
+      "streakRiskEmail": "Streak Risk Email",
+      "streakRiskEmailRunning": "Sending streak risk emails...",
+      "relanceEmail": "Re-engagement Email",
+      "relanceEmailRunning": "Sending re-engagement emails...",
+      "inactiveUserReminder": "Inactive User Reminder",
+      "inactiveUserReminderRunning": "Sending inactive user reminders...",
       "jobList": "List of Tasks",
       "manual": "Manual",
       "batchImportGames": "Batch Import Games",
@@ -639,7 +645,17 @@
         "cleanupAnonymousUsers": "Removes inactive anonymous user accounts to optimize the database and free up space.",
         "clearDailyData": "Clears all game session data for the current day's daily challenge. This allows users to replay the challenge.",
         "recalculateScores": "Recalculates scores for all completed game sessions using the current scoring algorithm. Ensures historical data reflects the latest scoring rules.",
+        "streakRiskEmail": "Sends an alert email to players whose daily streak is about to expire, encouraging them to come back and play.",
+        "relanceEmail": "Sends a re-engagement email to registered users who haven't played yet, encouraging them to try their first challenge.",
+        "inactiveUserReminder": "Sends a win-back email to long-inactive users to invite them back to the platform.",
         "default": "Automatic system scheduled task."
+      },
+      "categories": {
+        "Challenge": "Challenge",
+        "Maintenance": "Maintenance",
+        "Tournament": "Tournament",
+        "Notification": "Notification",
+        "Other": "Other"
       },
       "status": {
         "waiting": "Waiting",
@@ -687,6 +703,17 @@
         "completed": "Completed",
         "failed": "Failed"
       }
+    },
+    "topupScreenshots": {
+      "title": "Top-Up Screenshots",
+      "description": "Backfill existing games up to the target number of captures by pulling missing screenshots from RAWG.",
+      "targetPerGame": "Target captures per game",
+      "start": "Start top-up",
+      "completed": "Top-up complete",
+      "gamesToppedUp": "games topped up",
+      "newScreenshots": "new screenshots",
+      "candidates": "Candidates",
+      "toppedUp": "Topped up"
     },
     "games": {
       "title": "Games",
