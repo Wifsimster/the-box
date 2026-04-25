@@ -572,12 +572,12 @@
       },
       "intro": {
         "title": "Comment cette page fonctionne",
-        "step1Title": "1. Importer les sources",
-        "step1Body": "Récupérez la carte annotée d'un jeu depuis un wiki Fandom, puis importez les captures depuis Steam. Les deux opérations s'exécutent en arrière-plan — surveillez l'avancement dans l'onglet Tâches.",
-        "step2Title": "2. Planifier un défi quotidien",
-        "step2Body": "Choisissez la capture qui sera utilisée pour le défi Géo du jour. Laissez la date vide pour planifier pour demain (UTC).",
+        "step1Title": "1. Curater les jeux",
+        "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → Wikidata → Manuel) et les captures Steam en arrière-plan.",
+        "step2Title": "2. Suivre l'ingestion",
+        "step2Body": "Visualisez l'avancement niveau par niveau dans l'onglet Cartes. Relancez le pipeline ou téléversez une carte manuellement si un jeu reste sans carte.",
         "step3Title": "3. Valider les épingles",
-        "step3Body": "Les joueurs déposent des épingles pour deviner où chaque capture a été prise. Lorsqu'elles convergent, promouvez un emplacement canonique pour que la capture puisse être utilisée dans un défi quotidien."
+        "step3Body": "Les joueurs déposent des épingles pour deviner où chaque capture a été prise. Lorsqu'elles convergent, promouvez un emplacement canonique : le bouton Planifier en haut programmera la prochaine capture validée pour le défi quotidien."
       },
       "candidates": "Candidats",
       "empty": "Aucun candidat ne correspond à ce filtre.",
