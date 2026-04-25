@@ -46,6 +46,7 @@ import {
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
+import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
 
 // Cap even admin-triggered sends so a mistake or compromised admin
 // account can't spray mail on Resend's dime. Keyed by user id so two
@@ -1800,6 +1801,193 @@ router.get('/geo/games', async (req, res, next) => {
           developer: r.developer,
           metacritic: r.metacritic,
         })),
+      },
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ---------- Per-game tier diagnosis ----------
+
+// Returns the four-tier ingestion state for a single game so the admin can see
+// at a glance which tiers were tried, which tombstoned, and which would run
+// next. Drives the Maps tab's side panel.
+router.get('/geo/games/:id/sources', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+
+    const game = await db('games')
+      .where({ id })
+      .first<{
+        id: number
+        name: string
+        slug: string
+        wiki_subdomain: string | null
+        wiki_page_title: string | null
+        wikidata_qid: string | null
+      }>('id', 'name', 'slug', 'wiki_subdomain', 'wiki_page_title', 'wikidata_qid')
+    if (!game) {
+      res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+      return
+    }
+
+    const [activeMap, registryEntry, failures] = await Promise.all([
+      geoMapRepository.findActiveByGameId(id),
+      findRegistryEntryBySlug(game.slug),
+      db('geo_ingest_failure')
+        .where({ game_id: id })
+        .select<
+          Array<{
+            source: string
+            reason: string
+            attempt_count: number
+            last_attempt_at: Date
+            retry_after: Date
+          }>
+        >('source', 'reason', 'attempt_count', 'last_attempt_at', 'retry_after'),
+    ])
+
+    const failureBySource = new Map(failures.map((f) => [f.source, f]))
+    const now = Date.now()
+
+    const tier = (
+      key: 'registry' | 'fandom' | 'wikidata' | 'manual',
+      state:
+        | { status: 'matched'; via: string; license?: string; sourceUrl?: string }
+        | { status: 'tombstoned'; reason: string; attempts: number; retryAfter: Date }
+        | { status: 'untried'; reason?: string }
+        | { status: 'eligible' },
+    ) => ({ tier: key, ...state })
+
+    const sources: Array<ReturnType<typeof tier>> = []
+
+    // Tier 1 — Registry
+    if (activeMap?.source === 'registry') {
+      sources.push(
+        tier('registry', {
+          status: 'matched',
+          via: 'curated registry',
+          license: activeMap.license,
+          sourceUrl: activeMap.sourceUrl,
+        }),
+      )
+    } else if (registryEntry) {
+      const tomb = failureBySource.get('registry')
+      if (tomb && tomb.retry_after.getTime() > now) {
+        sources.push(
+          tier('registry', {
+            status: 'tombstoned',
+            reason: tomb.reason,
+            attempts: tomb.attempt_count,
+            retryAfter: tomb.retry_after,
+          }),
+        )
+      } else {
+        sources.push(tier('registry', { status: 'eligible' }))
+      }
+    } else {
+      sources.push(
+        tier('registry', { status: 'untried', reason: 'no registry entry for slug' }),
+      )
+    }
+
+    // Tier 2 — Fandom
+    if (activeMap?.source === 'fandom') {
+      sources.push(
+        tier('fandom', {
+          status: 'matched',
+          via: `${game.wiki_subdomain ?? '?'}.fandom.com`,
+          license: activeMap.license,
+          sourceUrl: activeMap.sourceUrl,
+        }),
+      )
+    } else if (game.wiki_subdomain && game.wiki_page_title) {
+      const tomb = failureBySource.get('fandom')
+      if (tomb && tomb.retry_after.getTime() > now) {
+        sources.push(
+          tier('fandom', {
+            status: 'tombstoned',
+            reason: tomb.reason,
+            attempts: tomb.attempt_count,
+            retryAfter: tomb.retry_after,
+          }),
+        )
+      } else {
+        sources.push(tier('fandom', { status: 'eligible' }))
+      }
+    } else {
+      sources.push(
+        tier('fandom', { status: 'untried', reason: 'no wiki_subdomain / Map: page resolved' }),
+      )
+    }
+
+    // Tier 3 — Wikidata
+    if (activeMap?.source === 'wikidata') {
+      sources.push(
+        tier('wikidata', {
+          status: 'matched',
+          via: game.wikidata_qid ?? 'P242',
+          license: activeMap.license,
+          sourceUrl: activeMap.sourceUrl,
+        }),
+      )
+    } else if (game.wikidata_qid) {
+      const tomb = failureBySource.get('wikidata')
+      if (tomb && tomb.retry_after.getTime() > now) {
+        sources.push(
+          tier('wikidata', {
+            status: 'tombstoned',
+            reason: tomb.reason,
+            attempts: tomb.attempt_count,
+            retryAfter: tomb.retry_after,
+          }),
+        )
+      } else {
+        sources.push(tier('wikidata', { status: 'eligible' }))
+      }
+    } else {
+      sources.push(
+        tier('wikidata', { status: 'untried', reason: 'wikidata_qid unresolved' }),
+      )
+    }
+
+    // Tier 4 — Manual
+    if (activeMap?.source === 'manual') {
+      sources.push(
+        tier('manual', {
+          status: 'matched',
+          via: 'admin upload',
+          license: activeMap.license,
+          sourceUrl: activeMap.sourceUrl,
+        }),
+      )
+    } else {
+      sources.push(tier('manual', { status: 'untried' }))
+    }
+
+    res.json({
+      success: true,
+      data: {
+        gameId: game.id,
+        gameName: game.name,
+        slug: game.slug,
+        activeMap: activeMap
+          ? {
+              id: activeMap.id,
+              source: activeMap.source,
+              imageUrl: activeMap.imageUrl,
+              license: activeMap.license,
+              attribution: activeMap.attribution,
+              widthPx: activeMap.widthPx,
+              heightPx: activeMap.heightPx,
+            }
+          : null,
+        sources,
       },
     })
   } catch (err) {

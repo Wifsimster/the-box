@@ -480,6 +480,49 @@
     "geo": {
       "title": "Modération Géo",
       "subtitle": "Curatez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
+      "tabs": {
+        "pins": "Épingles",
+        "maps": "Cartes"
+      },
+      "maps": {
+        "title": "Cartes par jeu",
+        "subtitle": "Cliquez sur un jeu pour voir quels niveaux d'ingestion ont été essayés ou seraient lancés ensuite.",
+        "refresh": "Rafraîchir",
+        "empty": "Aucun jeu curaté pour le moment. Ajoutez-en depuis la liste curatée de l'onglet Épingles.",
+        "reimportQueued": "Pipeline relancé pour « {{name}} ».",
+        "row": {
+          "hasMap": "Carte",
+          "noMap": "Sans carte",
+          "failed": "Échec"
+        },
+        "tiers": {
+          "registry": "Niveau 1 — Registre",
+          "fandom": "Niveau 2 — Fandom",
+          "wikidata": "Niveau 3 — Wikidata",
+          "steam": "Steam",
+          "manual": "Niveau 4 — Manuel"
+        },
+        "tierStatus": {
+          "matched": "Trouvé",
+          "tombstoned_one": "Tombé ({{count}} tentative)",
+          "tombstoned_other": "Tombé ({{count}} tentatives)",
+          "eligible": "Éligible",
+          "untried": "Ignoré",
+          "eligibleHint": "Sera tenté à la prochaine passe si aucun niveau précédent ne réussit.",
+          "retryAfter": "Nouvel essai après {{time}}"
+        },
+        "viewSource": "Voir la source",
+        "actions": {
+          "rerun": "Relancer le pipeline",
+          "uploadManual": "Téléverser manuellement"
+        },
+        "sidePanel": {
+          "empty": "Sélectionnez un jeu",
+          "hint": "Choisissez un jeu à gauche pour voir l'état d'ingestion niveau par niveau.",
+          "noActive": "Aucune carte active — voir l'état des niveaux ci-dessous.",
+          "activeViaTier": "Actif via {{tier}} · {{license}}"
+        }
+      },
       "intro": {
         "title": "Comment cette page fonctionne",
         "step1Title": "1. Importer les sources",
