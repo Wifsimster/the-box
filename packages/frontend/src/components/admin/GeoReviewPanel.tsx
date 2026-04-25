@@ -4,6 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -11,7 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2, Trash2, Info, MapPin } from 'lucide-react'
+import { Loader2, Trash2, Info, MapPin, ChevronDown } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoAdminActions } from './GeoAdminActions'
 import type {
@@ -81,6 +86,7 @@ export function GeoReviewPanel() {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [demoteOpen, setDemoteOpen] = useState(false)
+    const [introOpen, setIntroOpen] = useState(false)
 
     useEffect(() => {
         let cancelled = false
@@ -160,28 +166,42 @@ export function GeoReviewPanel() {
             </header>
 
             {/* Workflow explainer */}
-            <Card className="border-neon-pink/30 bg-linear-to-r from-neon-pink/5 via-neon-purple/5 to-transparent">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                        <Info className="h-4 w-4 text-neon-pink" />
-                        {t('admin.geo.intro.title')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ol className="grid gap-3 sm:grid-cols-3 text-sm">
-                        {(['step1', 'step2', 'step3'] as const).map((step) => (
-                            <li key={step} className="space-y-1">
-                                <p className="font-semibold text-foreground">
-                                    {t(`admin.geo.intro.${step}Title`)}
-                                </p>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t(`admin.geo.intro.${step}Body`)}
-                                </p>
-                            </li>
-                        ))}
-                    </ol>
-                </CardContent>
-            </Card>
+            <Collapsible open={introOpen} onOpenChange={setIntroOpen}>
+                <Card className="border-neon-pink/30 bg-linear-to-r from-neon-pink/5 via-neon-purple/5 to-transparent">
+                    <CollapsibleTrigger asChild>
+                        <button
+                            type="button"
+                            className="flex w-full items-center justify-between gap-2 px-6 py-3 text-left"
+                            aria-expanded={introOpen}
+                        >
+                            <span className="text-sm font-semibold flex items-center gap-2">
+                                <Info className="h-4 w-4 text-neon-pink" />
+                                {t('admin.geo.intro.title')}
+                            </span>
+                            <ChevronDown
+                                className={`h-4 w-4 text-muted-foreground transition-transform ${introOpen ? 'rotate-180' : ''}`}
+                                aria-hidden
+                            />
+                        </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <CardContent className="pt-0">
+                            <ol className="grid gap-3 sm:grid-cols-3 text-sm">
+                                {(['step1', 'step2', 'step3'] as const).map((step) => (
+                                    <li key={step} className="space-y-1">
+                                        <p className="font-semibold text-foreground">
+                                            {t(`admin.geo.intro.${step}Title`)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                            {t(`admin.geo.intro.${step}Body`)}
+                                        </p>
+                                    </li>
+                                ))}
+                            </ol>
+                        </CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
 
             <GeoAdminActions />
 
