@@ -197,11 +197,11 @@ export function GeoGamesTab() {
 
                 {/* Bulk action bar (only when something is selected) */}
                 {selected.size > 0 && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
                         <span className="font-medium">
                             {t('admin.geo.games.bulk.selected', { count: selected.size })}
                         </span>
-                        <div className="flex gap-1.5">
+                        <div className="flex flex-wrap gap-1.5">
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -267,7 +267,7 @@ export function GeoGamesTab() {
                                 {t('admin.geo.games.col.status')}
                             </span>
                         </div>
-                        <ul className="divide-y divide-border/40 max-h-[520px] overflow-auto">
+                        <ul className="divide-y divide-border/40 max-h-[300px] sm:max-h-[520px] overflow-auto">
                             {rows.map((row) => (
                                 <GameRowItem
                                     key={row.id}

@@ -116,7 +116,7 @@ export function GeoHeaderStrip({ onScheduleClick, scheduling }: GeoHeaderStripPr
                 <Button
                     size="sm"
                     variant="ghost"
-                    className="ml-auto h-7 text-xs"
+                    className="w-full sm:w-auto sm:ml-auto h-7 text-xs"
                     onClick={onScheduleClick}
                     disabled={scheduling}
                 >

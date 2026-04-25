@@ -514,7 +514,7 @@ export function JobList() {
 
       {/* Cancel Stuck Sync Dialog */}
       <Dialog open={showCancelSyncDialog} onOpenChange={setShowCancelSyncDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-sm sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
@@ -524,7 +524,7 @@ export function JobList() {
               {t('admin.jobs.syncConflict.description', 'A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?')}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowCancelSyncDialog(false)}

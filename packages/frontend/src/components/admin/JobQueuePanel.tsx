@@ -211,26 +211,26 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
 
                         {/* Filter Tabs */}
                         <Tabs value={filterTab} onValueChange={(value) => setFilterTab(value as 'all' | 'active' | 'completed' | 'failed' | 'delayed')} className="w-full">
-                            <TabsList className="w-full h-8 p-0.5">
-                                <TabsTrigger value="all" className="flex-1 text-[10px] h-7 px-2">
+                            <TabsList className="w-full h-auto p-0.5 grid grid-cols-2 sm:flex sm:h-8 gap-0.5">
+                                <TabsTrigger value="all" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
                                     {t('admin.jobs.filter.all', 'All')}
                                     <Badge variant="secondary" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
                                         {jobs.length}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="active" className="flex-1 text-[10px] h-7 px-2">
+                                <TabsTrigger value="active" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
                                     {t('admin.jobs.filter.active', 'Active')}
                                     <Badge variant="info" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
                                         {activeJobs.length}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="completed" className="flex-1 text-[10px] h-7 px-2">
+                                <TabsTrigger value="completed" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
                                     {t('admin.jobs.filter.completed', 'Done')}
                                     <Badge variant="success" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
                                         {completedJobs.length}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="failed" className="flex-1 text-[10px] h-7 px-2">
+                                <TabsTrigger value="failed" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
                                     {t('admin.jobs.filter.failed', 'Failed')}
                                     <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
                                         {failedJobs.length}

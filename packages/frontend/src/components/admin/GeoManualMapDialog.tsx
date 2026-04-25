@@ -125,7 +125,7 @@ export function GeoManualMapDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !submitting && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {t('admin.geo.manualMap.title', { name: game.name })}
@@ -238,7 +238,7 @@ export function GeoManualMapDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             {t('common.cancel')}
           </Button>

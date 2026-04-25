@@ -94,15 +94,15 @@ export function TopupScreenshotsCard() {
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Images className="h-6 w-6 text-neon-purple" />
-            <div>
-              <CardTitle>
+      <CardHeader className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Images className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0" />
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg">
                 {t('admin.topupScreenshots.title', 'Top-Up Screenshots')}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
                 {t(
                   'admin.topupScreenshots.description',
                   'Backfill existing games up to the target number of captures by pulling missing screenshots from RAWG.'
@@ -110,14 +110,14 @@ export function TopupScreenshotsCard() {
               </CardDescription>
             </div>
           </div>
-          {getStatusBadge()}
+          <div className="self-start sm:self-auto">{getStatusBadge()}</div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
         {currentTopupScreenshots &&
           (currentTopupScreenshots.status === 'in_progress' || currentTopupScreenshots.status === 'paused') && (
-            <div className="space-y-3 p-4 rounded-lg bg-background/50">
+            <div className="space-y-3 p-3 sm:p-4 rounded-lg bg-background/50">
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span>{t('admin.fullImport.progress', 'Progress')}</span>
@@ -126,7 +126,7 @@ export function TopupScreenshotsCard() {
                 <Progress value={progress} className="h-2" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
                     {t('admin.topupScreenshots.candidates', 'Candidates')}:
@@ -198,7 +198,7 @@ export function TopupScreenshotsCard() {
         )}
 
         {canStart && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label className="text-muted-foreground font-normal">
                 {t('admin.fullImport.batchSize', 'Batch size')}
@@ -229,7 +229,7 @@ export function TopupScreenshotsCard() {
         )}
       </CardContent>
 
-      <CardFooter className="flex gap-2">
+      <CardFooter className="flex flex-col sm:flex-row gap-2 p-4 sm:p-6 pt-0 sm:pt-0">
         {canStart && (
           <Button
             variant="gaming"
@@ -298,6 +298,7 @@ export function TopupScreenshotsCard() {
             variant="destructive"
             onClick={handleCancel}
             disabled={topupScreenshotsLoading}
+            className="w-full sm:w-auto"
           >
             <X className="h-4 w-4 mr-2" />
             {t('common.cancel', 'Cancel')}
@@ -311,6 +312,7 @@ export function TopupScreenshotsCard() {
             size="icon"
             onClick={fetchCurrentTopupScreenshots}
             disabled={topupScreenshotsLoading}
+            className="w-full sm:w-10"
           >
             <RefreshCw className={`h-4 w-4 ${topupScreenshotsLoading ? 'animate-spin' : ''}`} />
           </Button>

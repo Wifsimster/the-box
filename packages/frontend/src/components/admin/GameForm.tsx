@@ -137,8 +137,8 @@ export function GameForm({
   return (
     <Card className="border-0 shadow-none">
       <CardHeader className="px-0 pt-0 pr-8">
-        <div className="flex items-center justify-between">
-          <CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg">
             {isEditing ? t('admin.games.editGame') : t('admin.games.addGame')}
           </CardTitle>
           {isEditing && onSyncRawg && (
@@ -148,6 +148,7 @@ export function GameForm({
               size="sm"
               onClick={onSyncRawg}
               disabled={isSyncing || isLoading}
+              className="w-full sm:w-auto"
             >
               {isSyncing ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -322,9 +323,9 @@ export function GameForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('admin.games.form.coverImageUrl')}</FormLabel>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     {/* Image Preview */}
-                    <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
+                    <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-muted border border-border self-start">
                       {field.value && !imageError ? (
                         <img
                           src={field.value}
@@ -358,11 +359,11 @@ export function GameForm({
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="w-full sm:w-auto">
                 {t('common.cancel')}
               </Button>
-              <Button type="submit" variant="gaming" disabled={isLoading}>
+              <Button type="submit" variant="gaming" disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isEditing ? t('common.save') : t('common.create')}
               </Button>
