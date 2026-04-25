@@ -2041,6 +2041,62 @@ const reimportBodySchema = z.object({
   gameId: z.number().int().positive(),
 })
 
+// Bulk variant of /geo/curated for the unified Games tab. Accepts a mixed
+// batch of curate-on / curate-off operations so an operator can onboard or
+// retire dozens of games in one network round-trip. Each item is applied
+// individually inside a transaction; partial-failure behavior matches the
+// single-item route (flipping `geo_curated = true` resets metadata_status
+// and clears the metadata tombstone so the resolver picks the game up on
+// its next tick).
+const curatedBulkBodySchema = z.object({
+  items: z
+    .array(
+      z.object({
+        gameId: z.number().int().positive(),
+        curated: z.boolean(),
+      }),
+    )
+    .min(1)
+    .max(500),
+})
+
+router.post('/geo/curated/bulk', async (req, res, next) => {
+  try {
+    const parse = curatedBulkBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+
+    let updated = 0
+    let notFound = 0
+    await db.transaction(async (trx) => {
+      for (const item of parse.data.items) {
+        const update: Record<string, unknown> = { geo_curated: item.curated }
+        if (item.curated) update.geo_metadata_status = 'pending'
+        const n = await trx('games').where({ id: item.gameId }).update(update)
+        if (n === 0) {
+          notFound++
+        } else {
+          updated++
+          if (item.curated) {
+            await trx('geo_ingest_failure')
+              .where({ game_id: item.gameId, source: 'metadata' })
+              .del()
+          }
+        }
+      }
+    })
+
+    res.json({ success: true, data: { updated, notFound } })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.post('/geo/reimport', async (req, res, next) => {
   try {
     const parse = reimportBodySchema.safeParse(req.body)

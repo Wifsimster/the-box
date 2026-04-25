@@ -482,7 +482,54 @@
       "subtitle": "Curatez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
       "tabs": {
         "pins": "Épingles",
-        "maps": "Cartes"
+        "maps": "Cartes",
+        "games": "Jeux"
+      },
+      "strip": {
+        "loading": "Chargement de l'état du dataset…",
+        "error": "Impossible de charger l'état du dataset.",
+        "maps": "cartes",
+        "pins": "épingles",
+        "errors": "erreurs",
+        "nextChallenge": "prochain",
+        "scheduleNow": "Planifier"
+      },
+      "games": {
+        "title": "Jeux",
+        "subtitle": "Curatez les jeux dont les cartes et captures doivent alimenter le défi Géo quotidien. Sélectionnez-en plusieurs pour curater ou retirer en lot.",
+        "refresh": "Rafraîchir",
+        "empty": "Aucun jeu ne correspond à ce filtre.",
+        "filter": {
+          "label": "Filtre",
+          "all": "Tous",
+          "curated": "Curatés",
+          "candidates": "Candidats"
+        },
+        "select": "Sélectionner",
+        "deselect": "Désélectionner",
+        "selectAll": "Tout sélectionner",
+        "deselectAll": "Tout désélectionner",
+        "col": {
+          "name": "Jeu",
+          "score": "Score",
+          "status": "Statut"
+        },
+        "status": {
+          "curatedMapped": "Curaté · Carte",
+          "curatedNoMap": "Curaté · Sans carte",
+          "candidate": "Candidat"
+        },
+        "bulk": {
+          "selected_one": "{{count}} sélectionné",
+          "selected_other": "{{count}} sélectionnés",
+          "curate": "Curater",
+          "remove": "Retirer",
+          "clear": "Effacer",
+          "curatedMessage_one": "{{count}} jeu curaté.",
+          "curatedMessage_other": "{{count}} jeux curatés.",
+          "removedMessage_one": "{{count}} jeu retiré du set curaté.",
+          "removedMessage_other": "{{count}} jeux retirés du set curaté."
+        }
       },
       "maps": {
         "title": "Cartes par jeu",
