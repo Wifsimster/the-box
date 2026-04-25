@@ -44,18 +44,26 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
         return t(`achievements.categories.${category}`)
     }
 
+    const lockedLabel = t('achievements.status.locked')
+    const earnedLabel = t('achievements.status.earned')
+    // A non-color status hint that screen readers can use ("locked" /
+    // "earned"). We render the same cue visually as a Lock icon so users
+    // who can't perceive the purple-vs-grey delta still get the signal.
+    const statusAriaLabel = isComplete ? earnedLabel : lockedLabel
+
     if (size === 'small') {
         return (
             <div
+                aria-label={statusAriaLabel}
                 className={cn(
                     'relative flex items-center gap-3 rounded-lg border p-3 transition-all',
                     isComplete
                         ? 'border-primary/40 bg-primary/10 shadow-sm'
-                        : 'border-muted/30 bg-muted/5 opacity-60',
+                        : 'border-muted/30 bg-muted/5 opacity-80',
                     className
                 )}
             >
-                <div className="text-3xl">{isLocked ? <Lock className="w-8 h-8" /> : achievement.iconUrl}</div>
+                <div className="text-3xl">{isLocked ? <Lock className="w-8 h-8" aria-hidden="true" /> : achievement.iconUrl}</div>
                 <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm truncate">
                         {isLocked ? '???' : achievement.name}
@@ -76,6 +84,9 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                             ✓
                         </Badge>
                     )}
+                    {!isComplete && !isLocked && (
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                    )}
                 </div>
             </div>
         )
@@ -83,18 +94,29 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
 
     return (
         <Card
+            aria-label={statusAriaLabel}
             className={cn(
                 'relative overflow-hidden transition-all',
                 isComplete
                     ? 'border-primary/40 bg-primary/10 hover:border-primary/60 shadow-sm'
-                    : 'border-muted/30 bg-muted/5 opacity-70 hover:opacity-85',
+                    : 'border-muted/30 bg-muted/5 opacity-85 hover:opacity-100',
                 className
             )}
         >
-            {isComplete && (
+            {isComplete ? (
                 <div className="absolute top-2 right-2">
                     <Badge variant="success" className="text-xs flex items-center gap-1">
-                        ✓ {t('achievements.status.earned')}
+                        ✓ {earnedLabel}
+                    </Badge>
+                </div>
+            ) : (
+                <div className="absolute top-2 right-2">
+                    <Badge
+                        variant="outline"
+                        className="text-xs flex items-center gap-1 border-muted-foreground/40 text-muted-foreground"
+                    >
+                        <Lock className="h-3 w-3" aria-hidden="true" />
+                        {lockedLabel}
                     </Badge>
                 </div>
             )}
@@ -105,7 +127,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         'text-4xl p-2 rounded-lg',
                         isComplete ? 'bg-primary/20 ring-2 ring-primary/30' : 'bg-muted/20'
                     )}>
-                        {isLocked ? <Lock className="w-10 h-10" /> : achievement.iconUrl}
+                        {isLocked ? <Lock className="w-10 h-10" aria-hidden="true" /> : achievement.iconUrl}
                     </div>
                     <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg">

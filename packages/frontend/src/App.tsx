@@ -58,10 +58,16 @@ function LanguageLayout() {
   const { data: session } = useSession()
   const { fetchStatus, reset } = useDailyLoginStore()
 
-  // Sync i18n language with URL (must be before any early returns)
+  // Sync i18n language with URL (must be before any early returns).
+  // Also sync `<html lang>` so screen readers pick the right pronunciation.
   useEffect(() => {
-    if (lang && SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage) && i18n.language !== lang) {
-      i18n.changeLanguage(lang)
+    if (lang && SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
+      if (i18n.language !== lang) {
+        i18n.changeLanguage(lang)
+      }
+      if (typeof document !== 'undefined' && document.documentElement.lang !== lang) {
+        document.documentElement.lang = lang
+      }
     }
   }, [lang, i18n])
 

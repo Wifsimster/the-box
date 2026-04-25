@@ -65,6 +65,7 @@
     },
     "status": {
       "earned": "Earned",
+      "locked": "Locked",
       "hidden": "Hidden achievement",
       "hiddenDescription": "Hidden achievement - complete it to reveal!",
       "noAchievements": "No achievements available yet",
@@ -94,6 +95,11 @@
     "dailyChallenge": "Daily Challenge",
     "startChallenge": "Start Challenge",
     "challengeComplete": "Challenge Complete!",
+    "screenshotAlt": {
+      "current": "Screenshot {{position}} of {{total}}",
+      "previous": "Previous screenshot",
+      "next": "Next screenshot"
+    },
     "screenshots": "screenshots",
     "round": "Round",
     "score": "Score",

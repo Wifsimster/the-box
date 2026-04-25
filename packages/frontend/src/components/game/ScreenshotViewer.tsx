@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useGameStore } from '@/stores/gameStore'
 import { gameApi } from '@/lib/api/game'
@@ -16,6 +17,7 @@ export function ScreenshotViewer({
   className,
   onLoad,
 }: ScreenshotViewerProps) {
+  const { t } = useTranslation()
   const [images, setImages] = useState<{ url: string | null; alt?: string }[]>([])
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(1)
 
@@ -64,9 +66,16 @@ export function ScreenshotViewer({
   // Build images array: [prev, current, next]
   useEffect(() => {
     const newImages = [
-      { url: null, alt: 'Previous screenshot' },
-      { url: imageUrl, alt: `Screenshot ${currentPosition}` },
-      { url: null, alt: 'Next screenshot' },
+      { url: null, alt: t('game.screenshotAlt.previous', { defaultValue: 'Previous screenshot' }) },
+      {
+        url: imageUrl,
+        alt: t('game.screenshotAlt.current', {
+          defaultValue: 'Screenshot {{position}} of {{total}}',
+          position: currentPosition,
+          total: totalScreenshots,
+        }),
+      },
+      { url: null, alt: t('game.screenshotAlt.next', { defaultValue: 'Next screenshot' }) },
     ]
 
     // Load adjacent screenshots
@@ -76,7 +85,14 @@ export function ScreenshotViewer({
           .then((data) => {
             setImages((prev) => {
               const updated = [...prev]
-              updated[0] = { url: data.imageUrl, alt: `Screenshot ${findPreviousPosition}` }
+              updated[0] = {
+                url: data.imageUrl,
+                alt: t('game.screenshotAlt.current', {
+                  defaultValue: 'Screenshot {{position}} of {{total}}',
+                  position: findPreviousPosition,
+                  total: totalScreenshots,
+                }),
+              }
               return updated
             })
           })
@@ -88,7 +104,14 @@ export function ScreenshotViewer({
           .then((data) => {
             setImages((prev) => {
               const updated = [...prev]
-              updated[2] = { url: data.imageUrl, alt: `Screenshot ${findNextPosition}` }
+              updated[2] = {
+                url: data.imageUrl,
+                alt: t('game.screenshotAlt.current', {
+                  defaultValue: 'Screenshot {{position}} of {{total}}',
+                  position: findNextPosition,
+                  total: totalScreenshots,
+                }),
+              }
               return updated
             })
           })
@@ -100,7 +123,7 @@ export function ScreenshotViewer({
     setImages(newImages)
 
     setCurrentCarouselIndex(1) // Reset to center
-  }, [imageUrl, currentPosition, sessionId, gamePhase, findPreviousPosition, findNextPosition])
+  }, [imageUrl, currentPosition, totalScreenshots, sessionId, gamePhase, findPreviousPosition, findNextPosition, t])
 
   // Handle carousel slide change (disabled - swipe removed)
   const handleSlideChange = (_index: number) => {

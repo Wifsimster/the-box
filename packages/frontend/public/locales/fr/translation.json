@@ -65,6 +65,7 @@
     },
     "status": {
       "earned": "Obtenu",
+      "locked": "Verrouillé",
       "hidden": "Succès caché",
       "hiddenDescription": "Succès caché - complétez-le pour le révéler !",
       "noAchievements": "Aucun succès disponible pour le moment",
@@ -94,6 +95,11 @@
     "dailyChallenge": "Défi Quotidien",
     "startChallenge": "Commencer le Défi",
     "challengeComplete": "Défi Terminé !",
+    "screenshotAlt": {
+      "current": "Capture {{position}} sur {{total}}",
+      "previous": "Capture précédente",
+      "next": "Capture suivante"
+    },
     "screenshots": "captures",
     "round": "Round",
     "score": "Score",
