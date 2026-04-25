@@ -12,6 +12,7 @@ import { clearDailyData } from './clear-daily-data-logic.js'
 import { sendStreakRiskEmails } from './streak-risk-email-logic.js'
 import { sendRelanceEmails } from './relance-email-logic.js'
 import { sendInactiveUserReminderEmails } from './inactive-user-reminder-logic.js'
+import { processTopupBatch, scheduleTopupNextBatch } from './topup-screenshots-logic.js'
 
 const log = queueLogger
 
@@ -25,7 +26,7 @@ export const importWorker = new Worker<JobData, JobResult>(
     try {
       if (name === 'import-games') {
         const targetGames = data.targetGames || 200
-        const screenshotsPerGame = data.screenshotsPerGame || 3
+        const screenshotsPerGame = data.screenshotsPerGame || 5
         const minMetacritic = data.minMetacritic ?? 70
 
         const result = await fetchGamesFromRAWG(
@@ -315,6 +316,46 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result }, 'relance-email job completed')
+        return jobResult
+      }
+
+      if (name === 'topup-screenshots') {
+        const { topupStateId } = data
+        if (!topupStateId) {
+          throw new Error('topupStateId is required for topup-screenshots job')
+        }
+
+        const result = await processTopupBatch(topupStateId, (current, total) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0
+          job.updateProgress(progress)
+        })
+
+        let nextBatchScheduled = false
+        if (!result.isComplete && !result.isPaused) {
+          const nextJob = await scheduleTopupNextBatch(topupStateId)
+          nextBatchScheduled = !!nextJob
+        }
+
+        const jobResult: JobResult = {
+          gamesProcessed: result.gamesProcessed,
+          gamesToppedUp: result.gamesToppedUp,
+          gamesSkipped: result.gamesSkipped,
+          screenshotsProcessed: result.screenshotsDownloaded,
+          failedCount: result.failedCount,
+          topupStateId: result.topupStateId,
+          batchNumber: result.currentBatch,
+          totalBatches: result.totalBatches ?? undefined,
+          totalGamesAvailable: result.totalGamesAvailable ?? undefined,
+          isComplete: result.isComplete,
+          nextBatchScheduled,
+          message: result.isPaused
+            ? `Topup paused after ${result.gamesProcessed} games`
+            : result.isComplete
+              ? `Topup complete! ${result.gamesToppedUp} games topped up, +${result.screenshotsDownloaded} screenshots`
+              : `Topup batch ${result.currentBatch}: ${result.gamesToppedUp} topped up, +${result.screenshotsDownloaded} screenshots`,
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'topup-screenshots job completed')
         return jobResult
       }
 

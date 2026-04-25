@@ -340,7 +340,7 @@ async function start(): Promise<void> {
         {
           batchSize: 100,
           minMetacritic: 70,
-          screenshotsPerGame: 3,
+          screenshotsPerGame: 5,
           updateExistingMetadata: true,
         },
         {

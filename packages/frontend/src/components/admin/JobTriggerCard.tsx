@@ -18,7 +18,7 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
 
   const [isLoading, setIsLoading] = useState(false)
   const [targetGames, setTargetGames] = useState(50)
-  const [screenshotsPerGame, setScreenshotsPerGame] = useState(3)
+  const [screenshotsPerGame, setScreenshotsPerGame] = useState(5)
   const [minMetacritic, setMinMetacritic] = useState(70)
 
   const isGamesImport = type === 'import-games'
@@ -82,7 +82,7 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
               <Input
                 type="number"
                 value={screenshotsPerGame}
-                onChange={(e) => setScreenshotsPerGame(parseInt(e.target.value) || 3)}
+                onChange={(e) => setScreenshotsPerGame(parseInt(e.target.value) || 5)}
                 min={1}
                 max={10}
               />

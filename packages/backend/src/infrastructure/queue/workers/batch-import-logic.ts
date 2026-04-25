@@ -275,7 +275,7 @@ export async function startBatchImport(config: {
   const importState = await importStateRepository.create({
     batchSize: config.batchSize ?? 100,
     minMetacritic: config.minMetacritic ?? 70,
-    screenshotsPerGame: config.screenshotsPerGame ?? 3,
+    screenshotsPerGame: config.screenshotsPerGame ?? 5,
   })
 
   // Fetch total count from RAWG

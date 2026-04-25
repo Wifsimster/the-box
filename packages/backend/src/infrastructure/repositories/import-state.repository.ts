@@ -69,7 +69,7 @@ export const importStateRepository = {
         import_type: data.importType ?? 'full-import',
         batch_size: data.batchSize ?? 100,
         min_metacritic: data.minMetacritic ?? 70,
-        screenshots_per_game: data.screenshotsPerGame ?? 3,
+        screenshots_per_game: data.screenshotsPerGame ?? 5,
         status: 'pending',
       })
       .returning<ImportStateRow[]>('*')

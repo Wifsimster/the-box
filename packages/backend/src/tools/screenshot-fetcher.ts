@@ -5,9 +5,9 @@
  * and saves them locally for seeding the database.
  *
  * Usage:
- *   npx tsx src/tools/screenshot-fetcher.ts fetch --games 200 --screenshots-per-game 3
+ *   npx tsx src/tools/screenshot-fetcher.ts fetch --games 200 --screenshots-per-game 5
  *   npx tsx src/tools/screenshot-fetcher.ts download
- *   npx tsx src/tools/screenshot-fetcher.ts all --games 200 --screenshots-per-game 3
+ *   npx tsx src/tools/screenshot-fetcher.ts all --games 200 --screenshots-per-game 5
  */
 
 import fs from 'fs/promises'
@@ -394,7 +394,7 @@ async function main(): Promise<void> {
   }
 
   const targetGames = parseInt(flags['games'] || '200')
-  const screenshotsPerGame = parseInt(flags['screenshots-per-game'] || '3')
+  const screenshotsPerGame = parseInt(flags['screenshots-per-game'] || '5')
 
   switch (command) {
     case 'fetch': {
@@ -433,10 +433,10 @@ Commands:
 
 Options:
   --games <number>               Number of games to fetch (default: 200)
-  --screenshots-per-game <number> Screenshots per game (default: 3)
+  --screenshots-per-game <number> Screenshots per game (default: 5)
 
 Examples:
-  npx tsx src/tools/screenshot-fetcher.ts fetch --games 200 --screenshots-per-game 3
+  npx tsx src/tools/screenshot-fetcher.ts fetch --games 200 --screenshots-per-game 5
   npx tsx src/tools/screenshot-fetcher.ts download
   npx tsx src/tools/screenshot-fetcher.ts all --games 50 --screenshots-per-game 5
 

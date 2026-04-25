@@ -565,6 +565,61 @@ export const adminApi = {
   },
 
   // ============================================
+  // Top-Up Screenshots (Backfill)
+  // ============================================
+
+  async startTopupScreenshots(config?: {
+    batchSize?: number
+    targetScreenshotsPerGame?: number
+  }): Promise<{ topupState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch('/api/admin/jobs/topup-screenshots/start', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config || {}),
+    })
+    return handleResponse<{ topupState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  async getCurrentTopupScreenshots(): Promise<{ topupState: ImportState | null }> {
+    const response = await fetch('/api/admin/jobs/topup-screenshots/current', {
+      credentials: 'include',
+    })
+    return handleResponse<{ topupState: ImportState | null }>(response)
+  },
+
+  async getTopupScreenshotsState(id: number): Promise<{ topupState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/topup-screenshots/${id}`, {
+      credentials: 'include',
+    })
+    return handleResponse<{ topupState: ImportState }>(response)
+  },
+
+  async pauseTopupScreenshots(id: number): Promise<{ topupState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/topup-screenshots/${id}/pause`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ topupState: ImportState }>(response)
+  },
+
+  async resumeTopupScreenshots(id: number): Promise<{ topupState: ImportState; job: { id: string; name: string } }> {
+    const response = await fetch(`/api/admin/jobs/topup-screenshots/${id}/resume`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ topupState: ImportState; job: { id: string; name: string } }>(response)
+  },
+
+  async cancelTopupScreenshots(id: number): Promise<{ topupState: ImportState }> {
+    const response = await fetch(`/api/admin/jobs/topup-screenshots/${id}/cancel`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return handleResponse<{ topupState: ImportState }>(response)
+  },
+
+  // ============================================
   // User Management
   // ============================================
 

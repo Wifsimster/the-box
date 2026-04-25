@@ -280,7 +280,7 @@ export async function startSyncAll(config: SyncAllConfig): Promise<{ syncState: 
     importType: 'sync-all',
     batchSize: config.batchSize ?? 100,
     minMetacritic: config.minMetacritic ?? 70,
-    screenshotsPerGame: config.screenshotsPerGame ?? 3,
+    screenshotsPerGame: config.screenshotsPerGame ?? 5,
   })
 
   // Fetch total count from RAWG
