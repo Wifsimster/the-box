@@ -947,6 +947,27 @@
       "screenshotUnavailable": "Aperçu de la capture indisponible.",
       "errors": {
         "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard."
+      },
+      "report": {
+        "trigger": "Signaler la capture",
+        "title": "Signaler cette capture",
+        "description": "Signalez cette capture si elle ne devrait apparaître dans aucun jeu. Elle sera retirée dès que suffisamment de joueurs seront d'accord.",
+        "reasonLabel": "Raison",
+        "detailsLabel": "Précisions (optionnel)",
+        "detailsPlaceholder": "Quelque chose à ajouter ?",
+        "submit": "Envoyer le signalement",
+        "submitting": "Envoi…",
+        "successReceived": "Merci — votre signalement a été enregistré.",
+        "successDeactivated": "Merci — cette capture a été retirée du jeu.",
+        "loginRequired": "Vous devez être connecté pour signaler une capture.",
+        "errorGeneric": "Impossible d'envoyer le signalement. Réessayez plus tard.",
+        "reasons": {
+          "wrong_game": "Mauvais jeu",
+          "low_quality": "Image de mauvaise qualité",
+          "not_recognizable": "Non reconnaissable / aucun repère utile",
+          "inappropriate": "Contenu inapproprié",
+          "other": "Autre"
+        }
       }
     },
     "contribute": {

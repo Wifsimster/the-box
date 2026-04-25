@@ -120,6 +120,7 @@ export const screenshotRepository = {
 
     // Build query with optional metacritic filter
     let query = db('screenshots')
+      .where('screenshots.is_active', true)
       .whereNotIn('screenshots.id', usedIds.length > 0 ? usedIds : [0])
 
     // If minMetacritic is provided, join with games table and filter

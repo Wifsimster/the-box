@@ -4,6 +4,7 @@ import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
+import { ReportCaptureDialog } from '@/components/geo/ReportCaptureDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, MapPin, Trophy } from 'lucide-react'
@@ -87,10 +88,14 @@ export default function GeoDailyPage() {
             {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result') && (
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
-                        <CardHeader className="pb-2">
+                        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                             <CardTitle className="text-base">
                                 {t('geo.daily.screenshot', 'Screenshot')}
                             </CardTitle>
+                            <ReportCaptureDialog
+                                geoScreenshotCandidateId={candidate.id}
+                                isAuthenticated={!!session?.user?.id}
+                            />
                         </CardHeader>
                         <CardContent>
                             <ScreenshotFrame imageUrl={candidate.imageUrl} />

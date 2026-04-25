@@ -805,3 +805,33 @@ export interface GeoTierUpEvent {
   previousTier: GeoContributorTier
   newTier: GeoContributorTier
 }
+
+// Capture eligibility reporting. A user can flag a screenshot they believe
+// shouldn't be playable (wrong game, unreadable, inappropriate, etc.). After
+// enough distinct users report the same target it is auto-deactivated for
+// all game modes. The reason union is kept here as a pure type so both
+// frontend and backend agree on the wire shape; each side declares its own
+// runtime list of values (this package emits CJS and is consumed as
+// types-only).
+export type ScreenshotReportReason =
+  | 'wrong_game'
+  | 'low_quality'
+  | 'not_recognizable'
+  | 'inappropriate'
+  | 'other'
+
+export interface ScreenshotReportInput {
+  reason: ScreenshotReportReason
+  details?: string
+  // Exactly one target must be provided.
+  screenshotId?: number
+  geoScreenshotCandidateId?: number
+}
+
+export interface ScreenshotReportResult {
+  received: boolean
+  // True iff this report tipped the target past the threshold and the
+  // capture is now disabled.
+  deactivated: boolean
+  reportCount: number
+}

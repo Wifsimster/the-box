@@ -40,8 +40,8 @@ export async function scheduleDailyGeoChallenge(
     }
   }
 
-  // Global random over all promoted metas. Kept as a single query to avoid
-  // loading every row into memory; RANDOM() is fine at pilot scale.
+  // Global random over all promoted metas whose candidate is still active
+  // (i.e. not deactivated by user reports). RANDOM() is fine at pilot scale.
   type Row = { id: number; game_id: number }
   const rows = await db<Row>('geo_screenshot_meta')
     .join(
@@ -49,6 +49,7 @@ export async function scheduleDailyGeoChallenge(
       'geo_screenshot_meta.geo_screenshot_candidate_id',
       'geo_screenshot_candidate.id',
     )
+    .where('geo_screenshot_candidate.is_active', true)
     .orderByRaw('RANDOM()')
     .limit(1)
     .select<Row[]>(

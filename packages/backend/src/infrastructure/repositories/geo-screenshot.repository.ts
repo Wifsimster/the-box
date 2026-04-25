@@ -16,6 +16,7 @@ export interface GeoScreenshotCandidateRow {
   external_id: string | null
   status: 'pending' | 'collecting' | 'promoted' | 'rejected'
   pin_count: number
+  is_active: boolean
   created_at: Date
 }
 
@@ -67,7 +68,7 @@ export const geoScreenshotRepository = {
 
   async findRandomUnlabeledForGame(gameId: number): Promise<GeoScreenshotCandidate | null> {
     const row = await db('geo_screenshot_candidate')
-      .where({ game_id: gameId })
+      .where({ game_id: gameId, is_active: true })
       .whereIn('status', ['pending', 'collecting'])
       .orderByRaw('RANDOM()')
       .first<GeoScreenshotCandidateRow>()
@@ -169,6 +170,7 @@ export const geoScreenshotRepository = {
         'geo_screenshot_candidate.id',
       )
       .where('geo_screenshot_candidate.game_id', gameId)
+      .where('geo_screenshot_candidate.is_active', true)
       .count<{ count: string }[]>('geo_screenshot_meta.id as count')
       .first()
     return Number(result?.count ?? 0)
@@ -182,6 +184,7 @@ export const geoScreenshotRepository = {
         'geo_screenshot_candidate.id',
       )
       .where('geo_screenshot_candidate.game_id', gameId)
+      .where('geo_screenshot_candidate.is_active', true)
       .orderByRaw('RANDOM()')
       .select<GeoScreenshotMetaRow>('geo_screenshot_meta.*')
       .first()
