@@ -24,6 +24,14 @@ import {
   getActiveRecalculateScores,
   getRecalculateScoresState,
 } from '../../infrastructure/queue/workers/recalculate-scores-logic.js'
+import {
+  startTopupScreenshots,
+  pauseTopupScreenshots,
+  resumeTopupScreenshots,
+  cancelTopupScreenshots,
+  getActiveTopupScreenshots,
+  getTopupScreenshotsState,
+} from '../../infrastructure/queue/workers/topup-screenshots-logic.js'
 import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
@@ -536,7 +544,7 @@ router.post('/jobs/import-games', async (req, res, next) => {
   try {
     const data = {
       targetGames: req.body?.targetGames || 200,
-      screenshotsPerGame: req.body?.screenshotsPerGame || 3,
+      screenshotsPerGame: req.body?.screenshotsPerGame || 5,
       minMetacritic: req.body?.minMetacritic ?? 70,
     }
     const job = await jobService.createJob('import-games', data)
@@ -611,7 +619,7 @@ router.post('/jobs/import-games/trigger', async (req, res, next) => {
   try {
     const data = {
       targetGames: req.body?.targetGames || 50,
-      screenshotsPerGame: req.body?.screenshotsPerGame || 3,
+      screenshotsPerGame: req.body?.screenshotsPerGame || 5,
       minMetacritic: req.body?.minMetacritic ?? 70,
     }
     const job = await jobService.createJob('import-games', data)
@@ -644,7 +652,7 @@ router.post('/jobs/import-screenshots/trigger', async (_req, res, next) => {
 // Start a new full import
 const startFullImportSchema = z.object({
   batchSize: z.number().min(10).max(500).default(100),
-  screenshotsPerGame: z.number().min(1).max(10).default(3),
+  screenshotsPerGame: z.number().min(1).max(10).default(5),
   minMetacritic: z.number().min(0).max(100).default(70),
 })
 
@@ -784,7 +792,7 @@ router.post('/jobs/full-import/:id/resume', async (req, res, next) => {
 // Start a new sync-all job
 const startSyncAllSchema = z.object({
   batchSize: z.number().min(10).max(500).default(100),
-  screenshotsPerGame: z.number().min(1).max(10).default(3),
+  screenshotsPerGame: z.number().min(1).max(10).default(5),
   minMetacritic: z.number().min(0).max(100).default(70),
   updateExistingMetadata: z.boolean().default(true),
 })
@@ -1085,6 +1093,132 @@ router.post('/jobs/recalculate-scores/:id/resume', async (req, res, next) => {
           success: false,
           error: { code: 'INVALID_STATE', message: error.message },
         })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+// === Top-Up Screenshots (Backfill existing games) ===
+
+const startTopupScreenshotsSchema = z.object({
+  batchSize: z.number().min(10).max(500).default(50),
+  targetScreenshotsPerGame: z.number().min(1).max(10).default(5),
+})
+
+router.post('/jobs/topup-screenshots/start', async (req, res, next) => {
+  try {
+    const active = await getActiveTopupScreenshots()
+    if (active) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'TOPUP_IN_PROGRESS', message: 'A topup-screenshots job is already in progress or paused' },
+        data: { topupState: active },
+      })
+      return
+    }
+
+    const config = startTopupScreenshotsSchema.parse(req.body)
+    const { topupState, job } = await startTopupScreenshots(config)
+
+    res.status(201).json({
+      success: true,
+      data: { topupState, job: { id: job.id, name: job.name } },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: error.issues[0]?.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
+router.get('/jobs/topup-screenshots/current', async (_req, res, next) => {
+  try {
+    const topupState = await getActiveTopupScreenshots()
+    res.json({ success: true, data: { topupState } })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/jobs/topup-screenshots/:id', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const topupState = await getTopupScreenshotsState(id)
+
+    if (!topupState) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Topup state not found' },
+      })
+      return
+    }
+
+    res.json({ success: true, data: { topupState } })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/jobs/topup-screenshots/:id/pause', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const topupState = await pauseTopupScreenshots(id)
+    res.json({ success: true, data: { topupState } })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: error.message } })
+        return
+      }
+      if (error.message.includes('Cannot pause')) {
+        res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: error.message } })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+router.post('/jobs/topup-screenshots/:id/resume', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const { topupState, job } = await resumeTopupScreenshots(id)
+    res.json({ success: true, data: { topupState, job: { id: job.id, name: job.name } } })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: error.message } })
+        return
+      }
+      if (error.message.includes('Cannot resume')) {
+        res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: error.message } })
+        return
+      }
+    }
+    next(error)
+  }
+})
+
+router.post('/jobs/topup-screenshots/:id/cancel', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params['id']!, 10)
+    const topupState = await cancelTopupScreenshots(id)
+    res.json({ success: true, data: { topupState } })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: error.message } })
+        return
+      }
+      if (error.message.includes('Cannot cancel')) {
+        res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: error.message } })
         return
       }
     }

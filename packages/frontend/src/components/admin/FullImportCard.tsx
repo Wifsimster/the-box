@@ -23,7 +23,7 @@ export function FullImportCard() {
 
   // Configuration state
   const [batchSize, setBatchSize] = useState(100)
-  const [screenshotsPerGame, setScreenshotsPerGame] = useState(3)
+  const [screenshotsPerGame, setScreenshotsPerGame] = useState(5)
   const [minMetacritic, setMinMetacritic] = useState(70)
 
   // Fetch current import on mount
@@ -215,7 +215,7 @@ export function FullImportCard() {
                 <Input
                   type="number"
                   value={screenshotsPerGame}
-                  onChange={(e) => setScreenshotsPerGame(parseInt(e.target.value) || 3)}
+                  onChange={(e) => setScreenshotsPerGame(parseInt(e.target.value) || 5)}
                   min={1}
                   max={10}
                 />

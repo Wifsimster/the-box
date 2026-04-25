@@ -6,6 +6,7 @@ import { useSession } from '@/lib/auth-client'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useAdminStore } from '@/stores/adminStore'
 import { JobList } from '@/components/admin/JobList'
+import { TopupScreenshotsCard } from '@/components/admin/TopupScreenshotsCard'
 import { GameList } from '@/components/admin/GameList'
 import { UserList } from '@/components/admin/UserList'
 import { EmailSettings } from '@/components/admin/EmailSettings'
@@ -143,7 +144,12 @@ export default function AdminPage() {
               animate="animate"
               exit="exit"
             >
-              {activeTab === 'jobs' && <JobList />}
+              {activeTab === 'jobs' && (
+                <div className="space-y-6">
+                  <TopupScreenshotsCard />
+                  <JobList />
+                </div>
+              )}
               {activeTab === 'games' && <GameList />}
               {activeTab === 'users' && <UserList />}
               {activeTab === 'email' && <EmailSettings />}
