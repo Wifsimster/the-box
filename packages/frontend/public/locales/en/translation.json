@@ -484,30 +484,57 @@
         "confirm": "Demote",
         "cancel": "Cancel"
       },
-      "actions": {
-        "title": "Ingestion & scheduling",
-        "subtitle": "Run admin-only jobs against the Geo pipeline.",
-        "fandom": "Import Fandom map",
-        "fandomDescription": "Download a wiki's interactive-map asset and register it as a Geo map for a game.",
-        "steam": "Import Steam screenshots",
-        "steamDescription": "Pull a game's user-submitted screenshots from Steam and register them as candidates against a Geo map.",
-        "schedule": "Schedule daily challenge",
-        "scheduleDescription": "Assign one promoted candidate to a future date so it appears in the daily Geo round.",
-        "enqueue": "Enqueue job",
-        "queued": "Job queued: {{id}}",
-        "fields": {
-          "gameId": "Game ID",
-          "gameIdHint": "Numeric ID of the game in the local database.",
-          "subdomain": "Wiki subdomain",
-          "subdomainHint": "The Fandom subdomain (e.g. \"eldenring\" for eldenring.fandom.com).",
-          "pageTitle": "Wiki page title",
-          "pageTitleHint": "URL slug of the page hosting the map (e.g. \"Interactive_Map\").",
-          "geoMapId": "Geo map ID",
-          "geoMapIdHint": "ID of the existing Geo map this game's screenshots should attach to.",
-          "steamAppId": "Steam app ID",
-          "steamAppIdHint": "Numeric Steam app ID (e.g. 1245620 for Elden Ring).",
-          "scheduleDate": "Date (optional)",
-          "scheduleDateHint": "Format YYYY-MM-DD. Leave empty to schedule for tomorrow."
+      "health": {
+        "title": "Geo dataset health",
+        "subtitle": "The pipeline auto-ingests maps and screenshots for games flagged as curated. No manual action required.",
+        "loading": "Loading dataset state…",
+        "error": "Failed to load dataset state.",
+        "refresh": "Refresh",
+        "status": {
+          "healthy": "Healthy",
+          "warning": "Watch",
+          "critical": "Failing"
+        },
+        "coverage": {
+          "label": "Map coverage",
+          "value": "{{withMap}} / {{curated}} curated games have a map ({{total}} games total)"
+        },
+        "metrics": {
+          "resolved": "Resolved metadata",
+          "lastFandom": "Last Fandom map",
+          "lastSteam": "Last Steam screenshots",
+          "nextChallenge": "Next scheduled challenge",
+          "never": "Never",
+          "noScheduled": "None"
+        },
+        "queue": {
+          "title": "geo-jobs queue",
+          "active": "active",
+          "waiting": "waiting",
+          "delayed": "delayed",
+          "failed": "failed"
+        },
+        "failures": {
+          "title": "Recent failures",
+          "empty": "No active failures. 🎉",
+          "row": "Game #{{gameId}} · {{source}} · {{reason}} (attempt {{attempt}})"
+        },
+        "advanced": {
+          "title": "Advanced",
+          "subtitle": "Rare manual overrides — only if the auto-ingest gets something wrong.",
+          "curatedToggle": "Toggle curation",
+          "curatedOn": "Mark as curated",
+          "curatedOff": "Remove from curation",
+          "reimport": "Force re-ingestion",
+          "scheduleNow": "Schedule challenge now",
+          "gameIdLabel": "Game ID",
+          "gameIdHint": "Numeric ID of the game in the local database."
+        },
+        "actions": {
+          "queued": "Job queued: {{id}}",
+          "curatedSet": "Game #{{id}}: curated = {{curated}}",
+          "reimportQueued": "Re-ingestion queued for game #{{id}} (job {{jobId}})",
+          "scheduled": "Scheduling triggered (job {{id}})"
         }
       }
     },

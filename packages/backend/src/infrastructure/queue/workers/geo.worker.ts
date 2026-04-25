@@ -6,6 +6,8 @@ import { evaluateConsensusForCandidate } from './geo-consensus-logic.js'
 import { importFandomMap } from './geo-fandom-import-logic.js'
 import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
+import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
+import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
 import { geoContributorService } from '../../../domain/services/index.js'
 import { emitGeoTierUp } from '../../socket/socket.js'
 
@@ -54,6 +56,14 @@ export const geoWorker = new Worker<GeoJobData>(
 
     if (data.kind === 'schedule-daily-challenge') {
       return await scheduleDailyGeoChallenge(data.date)
+    }
+
+    if (data.kind === 'resolve-metadata') {
+      return await resolveGeoMetadataBatch(data.batchSize)
+    }
+
+    if (data.kind === 'ingest-tick') {
+      return await runGeoIngestTick(data.batchSize)
     }
 
     throw new Error(`unknown geo job kind: ${JSON.stringify(data)}`)

@@ -18,3 +18,8 @@ export {
   screenshotReportRepository,
   REPORT_DEACTIVATION_THRESHOLD,
 } from './screenshot-report.repository.js'
+export {
+  geoIngestFailureRepository,
+  type GeoIngestFailureRow,
+  type GeoIngestSource,
+} from './geo-ingest-failure.repository.js'

@@ -447,7 +447,11 @@ async function start(): Promise<void> {
     try {
       const existing = await geoQueue.getRepeatableJobs()
       for (const job of existing) {
-        if (job.name === 'schedule-daily-challenge') {
+        if (
+          job.name === 'schedule-daily-challenge' ||
+          job.name === 'resolve-metadata' ||
+          job.name === 'ingest-tick'
+        ) {
           await geoQueue.removeRepeatableByKey(job.key)
         }
       }
@@ -460,6 +464,30 @@ async function start(): Promise<void> {
         }
       )
       logger.info('scheduled recurring schedule-daily-challenge geo job (daily at 00:05 UTC)')
+
+      // Auto-resolve metadata for curated games every 30 min: HEADs Fandom +
+      // Steam storesearch and fills in steam_app_id / wiki_subdomain.
+      await geoQueue.add(
+        'resolve-metadata',
+        { kind: 'resolve-metadata' },
+        {
+          repeat: { every: 30 * 60 * 1000 },
+          jobId: 'geo-resolve-metadata-recurring',
+        }
+      )
+      logger.info('scheduled recurring resolve-metadata geo job (every 30 min)')
+
+      // Ingest tick every 15 min: enqueues per-game fandom/steam imports
+      // for curated games that are missing maps or low on candidates.
+      await geoQueue.add(
+        'ingest-tick',
+        { kind: 'ingest-tick' },
+        {
+          repeat: { every: 15 * 60 * 1000 },
+          jobId: 'geo-ingest-tick-recurring',
+        }
+      )
+      logger.info('scheduled recurring ingest-tick geo job (every 15 min)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring geo daily challenge job')
     }

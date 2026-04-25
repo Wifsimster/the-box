@@ -32,6 +32,7 @@ import {
   geoScreenshotRepository,
   geoPinRepository,
   geoMapRepository,
+  geoIngestFailureRepository,
   screenshotReportRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
@@ -1381,18 +1382,98 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
   }
 })
 
-// Enqueue on-demand ingestion + scheduling jobs onto the geo-jobs queue.
-// Returns the BullMQ job id so the admin UI can poll for completion.
+// Auto-ingestion is driven by recurring `resolve-metadata` and `ingest-tick`
+// jobs (see index.ts). The endpoints below give the admin a read-only view of
+// the dataset's health plus a small set of manual-override actions: flagging
+// games as curated (in/out of the auto pipeline) and forcing a re-import for
+// a single game when the heuristics get something wrong.
 
-const importFandomBodySchema = z.object({
-  gameId: z.number().int().positive(),
-  wikiSubdomain: z.string().min(1).max(100),
-  pageTitle: z.string().min(1).max(200),
+router.get('/geo/health', async (_req, res, next) => {
+  try {
+    const [counts, lastFandom, lastSteam, nextChallenge, queueCounts] =
+      await Promise.all([
+        db
+          .raw<{
+            rows: Array<{
+              curated: string
+              resolved: string
+              with_map: string
+              total: string
+            }>
+          }>(
+            `
+            SELECT
+              COUNT(*) FILTER (WHERE g.geo_curated)::text AS curated,
+              COUNT(*) FILTER (WHERE g.geo_curated AND g.geo_metadata_status = 'resolved')::text AS resolved,
+              COUNT(*) FILTER (
+                WHERE g.geo_curated
+                  AND EXISTS (
+                    SELECT 1 FROM geo_map m
+                    WHERE m.game_id = g.id AND m.is_active = true
+                  )
+              )::text AS with_map,
+              COUNT(*)::text AS total
+            FROM games g
+            `,
+          )
+          .then(
+            (r) => (r as unknown as { rows: Array<{ curated: string; resolved: string; with_map: string; total: string }> }).rows[0]!,
+          ),
+        db('geo_map')
+          .where('source', 'fandom')
+          .orderBy('created_at', 'desc')
+          .first<{ created_at: Date }>('created_at'),
+        db('geo_screenshot_candidate')
+          .where('source', 'steam')
+          .orderBy('created_at', 'desc')
+          .first<{ created_at: Date }>('created_at'),
+        db('geo_challenge')
+          .where('challenge_date', '>=', new Date().toISOString().slice(0, 10))
+          .orderBy('challenge_date', 'asc')
+          .first<{ id: number; challenge_date: string }>('id', 'challenge_date'),
+        geoQueue.getJobCounts('active', 'waiting', 'delayed', 'failed'),
+      ])
+
+    const failures = await geoIngestFailureRepository.listAll()
+
+    res.json({
+      success: true,
+      data: {
+        coverage: {
+          curated: Number(counts.curated),
+          resolved: Number(counts.resolved),
+          withMap: Number(counts.with_map),
+          total: Number(counts.total),
+        },
+        lastFandomImportAt: lastFandom?.created_at ?? null,
+        lastSteamImportAt: lastSteam?.created_at ?? null,
+        nextChallenge: nextChallenge
+          ? { id: nextChallenge.id, date: nextChallenge.challenge_date }
+          : null,
+        queue: queueCounts,
+        failures: failures.map((f) => ({
+          gameId: f.game_id,
+          source: f.source,
+          reason: f.reason,
+          attemptCount: f.attempt_count,
+          lastAttemptAt: f.last_attempt_at,
+          retryAfter: f.retry_after,
+        })),
+      },
+    })
+  } catch (err) {
+    next(err)
+  }
 })
 
-router.post('/geo/import/fandom', async (req, res, next) => {
+const curatedBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  curated: z.boolean(),
+})
+
+router.post('/geo/curated', async (req, res, next) => {
   try {
-    const parse = importFandomBodySchema.safeParse(req.body)
+    const parse = curatedBodySchema.safeParse(req.body)
     if (!parse.success) {
       res.status(400).json({
         success: false,
@@ -1400,9 +1481,66 @@ router.post('/geo/import/fandom', async (req, res, next) => {
       })
       return
     }
-    const job = await geoQueue.add('import-fandom-map', {
-      kind: 'import-fandom-map',
-      ...parse.data,
+
+    // Flipping curated→true also resets metadata_status so the resolver
+    // picks the game up on its next tick, even if a previous attempt left
+    // it as 'unresolved'.
+    const update: Record<string, unknown> = { geo_curated: parse.data.curated }
+    if (parse.data.curated) {
+      update.geo_metadata_status = 'pending'
+    }
+    const updated = await db('games')
+      .where({ id: parse.data.gameId })
+      .update(update)
+
+    if (updated === 0) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+      return
+    }
+
+    if (parse.data.curated) {
+      await geoIngestFailureRepository.clear(parse.data.gameId, 'metadata')
+    }
+
+    res.json({ success: true, data: { gameId: parse.data.gameId, curated: parse.data.curated } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const reimportBodySchema = z.object({
+  gameId: z.number().int().positive(),
+})
+
+router.post('/geo/reimport', async (req, res, next) => {
+  try {
+    const parse = reimportBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    // Wipe tombstones + force a metadata re-resolve. The recurring ingest
+    // tick will re-enqueue per-source imports as soon as resolution lands.
+    await Promise.all([
+      geoIngestFailureRepository.clear(parse.data.gameId, 'fandom'),
+      geoIngestFailureRepository.clear(parse.data.gameId, 'steam'),
+      geoIngestFailureRepository.clear(parse.data.gameId, 'metadata'),
+    ])
+    await db('games')
+      .where({ id: parse.data.gameId })
+      .update({
+        geo_metadata_status: 'pending',
+        wiki_subdomain: null,
+        wiki_page_title: null,
+        steam_app_id: null,
+      })
+
+    const job = await geoQueue.add('resolve-metadata', {
+      kind: 'resolve-metadata',
+      batchSize: 1,
     })
     res.json({ success: true, data: { jobId: job.id } })
   } catch (err) {
@@ -1410,53 +1548,13 @@ router.post('/geo/import/fandom', async (req, res, next) => {
   }
 })
 
-const importSteamBodySchema = z.object({
-  gameId: z.number().int().positive(),
-  geoMapId: z.number().int().positive(),
-  steamAppId: z.number().int().positive(),
-  maxItems: z.number().int().positive().max(200).optional(),
-})
-
-router.post('/geo/import/steam', async (req, res, next) => {
+router.post('/geo/schedule', async (_req, res, next) => {
+  // Manual fallback: trigger the daily-challenge scheduler immediately.
+  // The recurring 00:05 UTC job is the primary path; this is an escape
+  // hatch when ops needs to refill the calendar mid-day.
   try {
-    const parse = importSteamBodySchema.safeParse(req.body)
-    if (!parse.success) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
-      })
-      return
-    }
-    const job = await geoQueue.add('import-steam-screenshots', {
-      kind: 'import-steam-screenshots',
-      ...parse.data,
-    })
-    res.json({ success: true, data: { jobId: job.id } })
-  } catch (err) {
-    next(err)
-  }
-})
-
-const scheduleBodySchema = z.object({
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD')
-    .optional(),
-})
-
-router.post('/geo/schedule', async (req, res, next) => {
-  try {
-    const parse = scheduleBodySchema.safeParse(req.body ?? {})
-    if (!parse.success) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
-      })
-      return
-    }
     const job = await geoQueue.add('schedule-daily-challenge', {
       kind: 'schedule-daily-challenge',
-      date: parse.data.date,
     })
     res.json({ success: true, data: { jobId: job.id } })
   } catch (err) {
