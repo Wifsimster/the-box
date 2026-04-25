@@ -422,7 +422,22 @@
       "users": "Utilisateurs",
       "email": "Email",
       "growth": "Acquisition",
-      "geo": "Géo"
+      "geo": "Géo",
+      "reports": "Signalements"
+    },
+    "reports": {
+      "title": "Captures signalées",
+      "onlyDeactivated": "Afficher uniquement les désactivées",
+      "targetMain": "Quotidien",
+      "targetGeo": "Géo",
+      "deactivated": "Désactivée",
+      "count_one": "{{count}} signalement",
+      "count_other": "{{count}} signalements",
+      "lastReported": "dernier signalement {{when}}",
+      "reactivate": "Réactiver",
+      "reactivated": "Capture remise en circulation.",
+      "reactivatedNoop": "Rien à réactiver.",
+      "empty": "Aucun signalement ne correspond à ce filtre."
     },
     "geo": {
       "title": "Modération Géo",

@@ -422,7 +422,22 @@
       "users": "Users",
       "email": "Email",
       "growth": "Growth",
-      "geo": "Geo"
+      "geo": "Geo",
+      "reports": "Reports"
+    },
+    "reports": {
+      "title": "Reported captures",
+      "onlyDeactivated": "Only show deactivated",
+      "targetMain": "Daily",
+      "targetGeo": "Geo",
+      "deactivated": "Deactivated",
+      "count_one": "{{count}} report",
+      "count_other": "{{count}} reports",
+      "lastReported": "last reported {{when}}",
+      "reactivate": "Reactivate",
+      "reactivated": "Capture is back in rotation.",
+      "reactivatedNoop": "Nothing to reactivate.",
+      "empty": "No reports match this filter."
     },
     "geo": {
       "title": "Geo Moderation",
