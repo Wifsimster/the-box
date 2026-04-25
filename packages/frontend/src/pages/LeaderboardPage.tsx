@@ -597,56 +597,59 @@ export default function LeaderboardPage() {
                   <span className="font-bold text-primary text-xl">{playerSession.totalScore}</span>
                 </div>
 
-                {/* Guesses List */}
+                {/* Guesses List — merged and sorted by position ascending */}
                 <div className="space-y-2">
-                  {/* Render guesses (positions player interacted with) */}
-                  {playerSession.guesses.map((guess) => (
-                    <div
-                      key={guess.position}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        guess.isCorrect ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
-                        {guess.position}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{guess.correctGame.name}</div>
-                        {guess.userGuess && (
-                          <div className="text-sm text-muted-foreground truncate">
-                            {t('game.yourGuess')}: {guess.userGuess}
+                  {[
+                    ...playerSession.guesses.map((guess) => ({ kind: 'guess' as const, position: guess.position, guess })),
+                    ...playerSession.unfoundGames.map((unfound) => ({ kind: 'unfound' as const, position: unfound.position, unfound })),
+                  ]
+                    .sort((a, b) => a.position - b.position)
+                    .map((item) =>
+                      item.kind === 'guess' ? (
+                        <div
+                          key={`guess-${item.position}`}
+                          className={`flex items-center gap-3 p-3 rounded-lg ${
+                            item.guess.isCorrect ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                            {item.position}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {guess.isCorrect ? (
-                          <>
-                            <span className="text-success font-bold">+{guess.scoreEarned}</span>
-                            <Check className="w-5 h-5 text-success" />
-                          </>
-                        ) : (
-                          <X className="w-5 h-5 text-error" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Render unfound games (positions player skipped/didn't guess) */}
-                  {playerSession.unfoundGames.map((unfound) => (
-                    <div
-                      key={unfound.position}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
-                        {unfound.position}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate text-muted-foreground">{unfound.game.name}</div>
-                        <div className="text-sm text-muted-foreground">{t('leaderboard.skipped')}</div>
-                      </div>
-                      <Minus className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                  ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{item.guess.correctGame.name}</div>
+                            {item.guess.userGuess && (
+                              <div className="text-sm text-muted-foreground truncate">
+                                {t('game.yourGuess')}: {item.guess.userGuess}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.guess.isCorrect ? (
+                              <>
+                                <span className="text-success font-bold">+{item.guess.scoreEarned}</span>
+                                <Check className="w-5 h-5 text-success" />
+                              </>
+                            ) : (
+                              <X className="w-5 h-5 text-error" />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          key={`unfound-${item.position}`}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                            {item.position}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate text-muted-foreground">{item.unfound.game.name}</div>
+                            <div className="text-sm text-muted-foreground">{t('leaderboard.skipped')}</div>
+                          </div>
+                          <Minus className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )
+                    )}
                 </div>
               </div>
             )}
