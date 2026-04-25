@@ -572,12 +572,12 @@
       },
       "intro": {
         "title": "How this page works",
-        "step1Title": "1. Import sources",
-        "step1Body": "Pull a game's annotated map from a Fandom wiki, then bring in screenshots from Steam. Both run as background jobs — watch progress in the Jobs tab.",
-        "step2Title": "2. Schedule a daily challenge",
-        "step2Body": "Pick the screenshot that the daily Geo round should use. Leave the date blank to schedule for tomorrow (UTC).",
+        "step1Title": "1. Curate games",
+        "step1Body": "Pick the games that should feed the Geo challenge in the Games tab. The ingestion pipeline then pulls their maps (Registry → Fandom → Wikidata → Manual) and Steam screenshots in the background.",
+        "step2Title": "2. Track ingestion",
+        "step2Body": "Watch maps land tier by tier in the Maps tab. Re-run the pipeline or upload a map manually for any game still missing one.",
         "step3Title": "3. Review crowdsourced pins",
-        "step3Body": "Players drop pins guessing where each screenshot was taken. When pins converge, promote a canonical location so the screenshot can ship in a daily challenge."
+        "step3Body": "Players drop pins guessing where each screenshot was taken. When pins converge, promote a canonical location — the Schedule button at the top will then queue the next validated screenshot for the daily challenge."
       },
       "candidates": "Candidates",
       "empty": "No candidates match this filter.",
