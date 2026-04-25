@@ -45,6 +45,7 @@ import {
   emailLogRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
+import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
 
@@ -1713,6 +1714,7 @@ router.get('/geo/games', async (req, res, next) => {
           release_year: number | null
           developer: string | null
           metacritic: number | null
+          genres: string[] | null
           geo_metadata_status: string
           steam_app_id: number | null
           wiki_subdomain: string | null
@@ -1728,6 +1730,7 @@ router.get('/geo/games', async (req, res, next) => {
           g.release_year,
           g.developer,
           g.metacritic,
+          g.genres,
           g.geo_metadata_status,
           g.steam_app_id,
           g.wiki_subdomain,
@@ -1763,6 +1766,8 @@ router.get('/geo/games', async (req, res, next) => {
             releaseYear: r.release_year,
             developer: r.developer,
             metacritic: r.metacritic,
+            genres: r.genres,
+            mapEligibility: isMapEligibleByGenre(r.genres),
             metadataStatus: r.geo_metadata_status,
             steamAppId: r.steam_app_id,
             wikiSubdomain: r.wiki_subdomain,
@@ -1788,8 +1793,9 @@ router.get('/geo/games', async (req, res, next) => {
           release_year: number | null
           developer: string | null
           metacritic: number | null
+          genres: string[] | null
         }>
-      >('id', 'name', 'slug', 'release_year', 'developer', 'metacritic')
+      >('id', 'name', 'slug', 'release_year', 'developer', 'metacritic', 'genres')
 
     res.json({
       success: true,
@@ -1801,6 +1807,8 @@ router.get('/geo/games', async (req, res, next) => {
           releaseYear: r.release_year,
           developer: r.developer,
           metacritic: r.metacritic,
+          genres: r.genres,
+          mapEligibility: isMapEligibleByGenre(r.genres),
         })),
       },
     })

@@ -528,8 +528,12 @@
           "curatedMessage_one": "Curated {{count}} game.",
           "curatedMessage_other": "Curated {{count}} games.",
           "removedMessage_one": "Removed {{count}} game from the curated set.",
-          "removedMessage_other": "Removed {{count}} games from the curated set."
-        }
+          "removedMessage_other": "Removed {{count}} games from the curated set.",
+          "noMapLikely_one": "{{count}} unlikely to have a map",
+          "noMapLikely_other": "{{count}} unlikely to have a map"
+        },
+        "noMapLikely": "no map likely",
+        "noMapLikelyTooltip": "Genres ({{genres}}) suggest this game has no world map. Auto-ingestion will probably fail; consider manual upload only."
       },
       "maps": {
         "title": "Maps per game",

@@ -3,6 +3,7 @@ import { queueLogger } from '../../logger/logger.js'
 import { geoIngestFailureRepository } from '../../repositories/index.js'
 import {
   FANDOM_MAP_NAMESPACE,
+  isMapEligibleByGenre,
   normalizeGameTitle,
   scoreMapTitle,
   tombstoneRetryAfter,
@@ -23,6 +24,7 @@ interface CuratedGameRow {
   id: number
   name: string
   slug: string
+  genres: string[] | null
   steam_app_id: number | null
   wiki_subdomain: string | null
   wiki_page_title: string | null
@@ -65,6 +67,7 @@ export async function resolveGeoMetadataBatch(
       'id',
       'name',
       'slug',
+      'genres',
       'steam_app_id',
       'wiki_subdomain',
       'wiki_page_title',
@@ -82,8 +85,14 @@ export async function resolveGeoMetadataBatch(
         row.wiki_subdomain && row.wiki_page_title
           ? { subdomain: row.wiki_subdomain, mapName: row.wiki_page_title }
           : await resolveFandomInteractiveMap(row.name, row.slug)
+      // Tier 3 (Wikidata P242 locator) only meaningfully exists for
+      // open-world / exploration games. Skipping the lookup for
+      // genre-ineligible games avoids tombstoning Wikidata forever on
+      // every Puzzle/Platformer/Racing title in the catalog.
+      const genreEligible = isMapEligibleByGenre(row.genres)
       const wikidataQid =
-        row.wikidata_qid ?? (await resolveWikidataQid(row.name))
+        row.wikidata_qid ??
+        (genreEligible === false ? null : await resolveWikidataQid(row.name))
       // Tier 1 hit short-circuits the "did we find anything" check — even if
       // Steam/Fandom/Wikidata all whiff, a curated registry entry is enough
       // to mark this game `resolved` and let the tick enqueue the import.

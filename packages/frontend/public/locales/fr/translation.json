@@ -528,8 +528,12 @@
           "curatedMessage_one": "{{count}} jeu curaté.",
           "curatedMessage_other": "{{count}} jeux curatés.",
           "removedMessage_one": "{{count}} jeu retiré du set curaté.",
-          "removedMessage_other": "{{count}} jeux retirés du set curaté."
-        }
+          "removedMessage_other": "{{count}} jeux retirés du set curaté.",
+          "noMapLikely_one": "{{count}} sans carte probable",
+          "noMapLikely_other": "{{count}} sans carte probable"
+        },
+        "noMapLikely": "carte improbable",
+        "noMapLikelyTooltip": "Les genres ({{genres}}) suggèrent que ce jeu n'a pas de carte du monde. L'auto-ingestion va probablement échouer ; envisagez plutôt un téléversement manuel."
       },
       "maps": {
         "title": "Cartes par jeu",

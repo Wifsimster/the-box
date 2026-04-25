@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RefreshCw, CheckSquare, Square, Star } from 'lucide-react'
+import { Loader2, RefreshCw, CheckSquare, Square, Star, AlertTriangle } from 'lucide-react'
 
 // Unified curated-set + suggestions surface. Replaces the two stacked
 // sections in GeoAdminActions (which the new tabbed layout has otherwise
@@ -26,6 +26,11 @@ interface GameRow {
     releaseYear: number | null
     developer: string | null
     metacritic: number | null
+    genres: string[] | null
+    // true = genres signal a navigable world map (Adventure/RPG/MMO);
+    // false = genres are exclusively no-map (Puzzle, Racing…);
+    // null  = ambiguous or no genre data.
+    mapEligibility: boolean | null
     metadataStatus?: 'pending' | 'resolved' | 'unresolved'
     hasMap?: boolean
     candidateCount?: number
@@ -200,6 +205,17 @@ export function GeoGamesTab() {
                     <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
                         <span className="font-medium">
                             {t('admin.geo.games.bulk.selected', { count: selected.size })}
+                            {(() => {
+                                const noMap = rows.filter(
+                                    (r) => selected.has(r.id) && r.mapEligibility === false,
+                                ).length
+                                return noMap > 0 ? (
+                                    <span className="ml-2 inline-flex items-center gap-0.5 text-[10px] text-warning">
+                                        <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                                        {t('admin.geo.games.bulk.noMapLikely', { count: noMap })}
+                                    </span>
+                                ) : null
+                            })()}
                         </span>
                         <div className="flex flex-wrap gap-1.5">
                             <Button
@@ -302,6 +318,7 @@ function GameRowItem({
 }) {
     const score = row.metacritic
     const isTopScore = score !== null && score >= 90
+    const noMapLikely = row.mapEligibility === false
     return (
         <li
             className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
@@ -327,6 +344,17 @@ function GameRowItem({
                     {row.releaseYear && (
                         <span className="text-[10px] text-muted-foreground">
                             ({row.releaseYear})
+                        </span>
+                    )}
+                    {noMapLikely && (
+                        <span
+                            className="inline-flex items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0 text-[10px] text-warning"
+                            title={t('admin.geo.games.noMapLikelyTooltip', {
+                                genres: (row.genres ?? []).join(', '),
+                            })}
+                        >
+                            <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                            {t('admin.geo.games.noMapLikely')}
                         </span>
                     )}
                 </div>
