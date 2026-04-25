@@ -623,6 +623,12 @@
       "clearDailyDataRunning": "Effacement des données en cours...",
       "recalculateScores": "Recalculer les Scores",
       "recalculateScoresRunning": "Recalcul des scores en cours...",
+      "streakRiskEmail": "Email d'Alerte de Série",
+      "streakRiskEmailRunning": "Envoi des alertes de série...",
+      "relanceEmail": "Email de Relance",
+      "relanceEmailRunning": "Envoi des emails de relance...",
+      "inactiveUserReminder": "Rappel Utilisateurs Inactifs",
+      "inactiveUserReminderRunning": "Envoi des rappels aux utilisateurs inactifs...",
       "jobList": "Liste des Tâches",
       "manual": "Manuel",
       "batchImportGames": "Importer les Jeux en Lot",
@@ -639,7 +645,17 @@
         "cleanupAnonymousUsers": "Supprime les comptes utilisateurs anonymes inactifs pour optimiser la base de données et libérer de l'espace.",
         "clearDailyData": "Efface toutes les données de session de jeu pour le défi quotidien du jour. Permet aux utilisateurs de rejouer le défi.",
         "recalculateScores": "Recalcule les scores de toutes les sessions de jeu terminées en utilisant l'algorithme de notation actuel. Garantit que les données historiques reflètent les dernières règles de notation.",
+        "streakRiskEmail": "Envoie un email d'alerte aux joueurs dont la série quotidienne est sur le point d'expirer afin de les inciter à revenir jouer.",
+        "relanceEmail": "Envoie un email de relance aux utilisateurs inscrits qui n'ont pas encore joué pour les encourager à essayer leur premier défi.",
+        "inactiveUserReminder": "Envoie un email de réactivation aux utilisateurs inactifs depuis longtemps pour les inviter à revenir sur la plateforme.",
         "default": "Tâche planifiée automatique du système."
+      },
+      "categories": {
+        "Challenge": "Défi",
+        "Maintenance": "Maintenance",
+        "Tournament": "Tournoi",
+        "Notification": "Notification",
+        "Other": "Autre"
       },
       "status": {
         "waiting": "En attente",
@@ -781,6 +797,17 @@
         "completed": "Termine",
         "failed": "Echoue"
       }
+    },
+    "topupScreenshots": {
+      "title": "Compléter les Captures",
+      "description": "Compléter les jeux existants jusqu'au nombre cible de captures en récupérant les captures manquantes depuis RAWG.",
+      "targetPerGame": "Captures cibles par jeu",
+      "start": "Démarrer la complétion",
+      "completed": "Complétion terminée",
+      "gamesToppedUp": "jeux complétés",
+      "newScreenshots": "nouvelles captures",
+      "candidates": "Candidats",
+      "toppedUp": "Complétés"
     },
     "email": {
       "title": "Paramètres Email",
