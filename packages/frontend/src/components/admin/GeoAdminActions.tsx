@@ -18,6 +18,9 @@ import {
     Trash2,
     RotateCw,
     CalendarClock,
+    CheckCircle2,
+    XCircle,
+    Star,
 } from 'lucide-react'
 
 interface HealthData {
@@ -72,15 +75,28 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     return json.data as T
 }
 
-function relative(iso: string | null, neverLabel: string): string {
+function formatRelative(iso: string | null, neverLabel: string, lang: string): string {
     if (!iso) return neverLabel
     const d = new Date(iso)
     const diffMs = Date.now() - d.getTime()
     const mins = Math.round(diffMs / 60_000)
-    if (mins < 60) return `il y a ${mins} min`
+    if (mins < 1) return lang.startsWith('fr') ? "à l'instant" : 'just now'
+    if (mins < 60) return lang.startsWith('fr') ? `il y a ${mins} min` : `${mins} min ago`
     const hours = Math.round(mins / 60)
-    if (hours < 48) return `il y a ${hours} h`
-    return d.toISOString().slice(0, 10)
+    if (hours < 48)
+        return lang.startsWith('fr') ? `il y a ${hours} h` : `${hours} h ago`
+    return d.toLocaleDateString(lang, { day: '2-digit', month: 'short' })
+}
+
+function formatScheduledDate(iso: string | null, noneLabel: string, lang: string): string {
+    if (!iso) return noneLabel
+    const d = new Date(iso)
+    return d.toLocaleString(lang, {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    })
 }
 
 /**
@@ -91,7 +107,8 @@ function relative(iso: string | null, neverLabel: string): string {
  * entries — no game-id typing required.
  */
 export function GeoAdminActions() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
+    const lang = i18n.language
 
     const [health, setHealth] = useState<HealthData | null>(null)
     const [curated, setCurated] = useState<CuratedGame[] | null>(null)
@@ -235,26 +252,31 @@ export function GeoAdminActions() {
           ? 'warning'
           : 'healthy'
 
+    const StatusIcon =
+        status === 'healthy' ? CheckCircle2 : status === 'warning' ? AlertTriangle : XCircle
+
     return (
         <Card>
-            <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-2">
-                    <div>
+            <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                         <CardTitle className="text-sm">{t('admin.geo.health.title')}</CardTitle>
                         <CardDescription className="text-xs">
                             {t('admin.geo.health.subtitle')}
                         </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                         <Badge
                             variant={
                                 status === 'healthy'
-                                    ? 'default'
+                                    ? 'success'
                                     : status === 'warning'
-                                      ? 'secondary'
+                                      ? 'warning'
                                       : 'destructive'
                             }
+                            className="gap-1"
                         >
+                            <StatusIcon className="h-3 w-3" aria-hidden />
                             {t(`admin.geo.health.status.${status}`)}
                         </Badge>
                         <Button
@@ -263,6 +285,7 @@ export function GeoAdminActions() {
                             onClick={() => void reloadAll()}
                             disabled={loadingHealth || loadingCurated || loadingSuggestions}
                             aria-label={t('admin.geo.health.refresh')}
+                            className="h-7 w-7 p-0"
                         >
                             <RefreshCw
                                 className={`h-3.5 w-3.5 ${loadingHealth ? 'animate-spin' : ''}`}
@@ -285,15 +308,18 @@ export function GeoAdminActions() {
 
                 {health && (
                     <>
-                        <section className="space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="font-medium">
+                        <section className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                            <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                                     {t('admin.geo.health.coverage.label')}
                                 </span>
-                                <span className="text-muted-foreground">{coveragePct}%</span>
+                                <span className="text-2xl font-semibold tabular-nums">
+                                    {coveragePct}
+                                    <span className="text-base text-muted-foreground">%</span>
+                                </span>
                             </div>
-                            <Progress value={coveragePct} className="h-2" />
-                            <p className="text-[11px] text-muted-foreground">
+                            <Progress value={coveragePct} className="mt-2 h-2" />
+                            <p className="pt-1.5 text-[11px] text-muted-foreground">
                                 {t('admin.geo.health.coverage.value', {
                                     withMap: health.coverage.withMap,
                                     curated: health.coverage.curated,
@@ -302,55 +328,65 @@ export function GeoAdminActions() {
                             </p>
                         </section>
 
-                        <section className="grid grid-cols-2 gap-3 text-xs">
+                        <section className="grid grid-cols-2 gap-2 text-xs">
                             <Metric
                                 label={t('admin.geo.health.metrics.resolved')}
                                 value={`${health.coverage.resolved} / ${health.coverage.curated}`}
                             />
                             <Metric
                                 label={t('admin.geo.health.metrics.nextChallenge')}
-                                value={
-                                    health.nextChallenge?.date ??
-                                    t('admin.geo.health.metrics.noScheduled')
-                                }
+                                value={formatScheduledDate(
+                                    health.nextChallenge?.date ?? null,
+                                    t('admin.geo.health.metrics.noScheduled'),
+                                    lang,
+                                )}
                             />
                             <Metric
                                 label={t('admin.geo.health.metrics.lastFandom')}
-                                value={relative(
+                                value={formatRelative(
                                     health.lastFandomImportAt,
                                     t('admin.geo.health.metrics.never'),
+                                    lang,
                                 )}
                             />
                             <Metric
                                 label={t('admin.geo.health.metrics.lastSteam')}
-                                value={relative(
+                                value={formatRelative(
                                     health.lastSteamImportAt,
                                     t('admin.geo.health.metrics.never'),
+                                    lang,
                                 )}
                             />
                         </section>
 
-                        <section className="flex flex-wrap gap-2">
-                            <span className="text-[11px] text-muted-foreground">
-                                {t('admin.geo.health.queue.title')} —
-                            </span>
-                            <Badge variant="outline">
-                                {health.queue.active} {t('admin.geo.health.queue.active')}
-                            </Badge>
-                            <Badge variant="outline">
-                                {health.queue.waiting} {t('admin.geo.health.queue.waiting')}
-                            </Badge>
-                            <Badge variant="outline">
-                                {health.queue.delayed} {t('admin.geo.health.queue.delayed')}
-                            </Badge>
-                            <Badge variant={health.queue.failed ? 'destructive' : 'outline'}>
-                                {health.queue.failed} {t('admin.geo.health.queue.failed')}
-                            </Badge>
+                        <section className="space-y-2">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {t('admin.geo.health.queue.title')}
+                            </p>
+                            <div className="grid grid-cols-4 gap-1.5">
+                                <QueueTile
+                                    value={health.queue.active}
+                                    label={t('admin.geo.health.queue.active')}
+                                />
+                                <QueueTile
+                                    value={health.queue.waiting}
+                                    label={t('admin.geo.health.queue.waiting')}
+                                />
+                                <QueueTile
+                                    value={health.queue.delayed}
+                                    label={t('admin.geo.health.queue.delayed')}
+                                />
+                                <QueueTile
+                                    value={health.queue.failed}
+                                    label={t('admin.geo.health.queue.failed')}
+                                    tone={health.queue.failed > 0 ? 'danger' : 'default'}
+                                />
+                            </div>
                         </section>
 
                         {health.failures.length > 0 && (
-                            <section className="space-y-1.5">
-                                <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                            <section className="space-y-1.5 rounded border border-warning/30 bg-warning/5 p-2">
+                                <h4 className="flex items-center gap-1.5 text-xs font-semibold text-warning">
                                     <AlertTriangle className="h-3 w-3" aria-hidden />
                                     {t('admin.geo.health.failures.title')}
                                 </h4>
@@ -375,6 +411,11 @@ export function GeoAdminActions() {
                     <div className="flex items-center justify-between">
                         <h4 className="text-xs font-semibold">
                             {t('admin.geo.health.curatedList.title')}
+                            {curated && curated.length > 0 && (
+                                <span className="ml-1.5 text-muted-foreground font-normal">
+                                    ({curated.length})
+                                </span>
+                            )}
                         </h4>
                     </div>
                     {loadingCurated && curated === null ? (
@@ -434,8 +475,8 @@ export function GeoAdminActions() {
                 </section>
 
                 <section className="border-t border-border/50 pt-3">
-                    <div className="flex items-center justify-between gap-2">
-                        <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold">
                                 {t('admin.geo.health.advanced.title')}
                             </p>
@@ -465,11 +506,42 @@ export function GeoAdminActions() {
 
 function Metric({ label, value }: { label: string; value: string | number }) {
     return (
-        <div className="rounded border border-border/50 bg-muted/20 p-2">
+        <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
-            <p className="font-mono text-xs">{value}</p>
+            <p className="mt-0.5 text-sm font-medium tabular-nums leading-tight">{value}</p>
+        </div>
+    )
+}
+
+function QueueTile({
+    value,
+    label,
+    tone = 'default',
+}: {
+    value: number
+    label: string
+    tone?: 'default' | 'danger'
+}) {
+    const ring =
+        tone === 'danger' && value > 0
+            ? 'border-destructive/40 bg-destructive/10'
+            : 'border-border/50 bg-muted/20'
+    const valueClass =
+        tone === 'danger' && value > 0
+            ? 'text-destructive'
+            : value > 0
+              ? 'text-foreground'
+              : 'text-muted-foreground'
+    return (
+        <div className={`rounded-lg border ${ring} p-2 text-center`}>
+            <p className={`text-base font-semibold tabular-nums leading-none ${valueClass}`}>
+                {value}
+            </p>
+            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                {label}
+            </p>
         </div>
     )
 }
@@ -485,36 +557,39 @@ interface CuratedRowProps {
 function CuratedRow({ game, busy, onRemove, onReimport, t }: CuratedRowProps) {
     const statusKey = `admin.geo.health.curatedList.status.${game.metadataStatus}` as const
     return (
-        <li className="flex items-center justify-between gap-2 rounded border border-border/50 bg-muted/10 p-2 text-xs">
+        <li className="flex items-start justify-between gap-2 rounded-md border border-border/50 bg-muted/10 p-2.5 text-xs">
             <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                    <span className="font-medium truncate">{game.name}</span>
+                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                    <span className="font-medium break-words">{game.name}</span>
                     {game.releaseYear && (
                         <span className="text-[10px] text-muted-foreground">
                             ({game.releaseYear})
                         </span>
                     )}
                 </div>
-                <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                <div className="flex flex-wrap items-center gap-1 pt-1">
                     <Badge
                         variant={
                             game.metadataStatus === 'resolved'
-                                ? 'default'
+                                ? 'success'
                                 : game.metadataStatus === 'unresolved'
                                   ? 'destructive'
                                   : 'secondary'
                         }
-                        className="text-[10px]"
+                        className="text-[10px] px-1.5 py-0"
                     >
                         {t(statusKey)}
                     </Badge>
-                    <Badge variant={game.hasMap ? 'default' : 'outline'} className="text-[10px]">
+                    <Badge
+                        variant={game.hasMap ? 'success' : 'outline'}
+                        className="text-[10px] px-1.5 py-0"
+                    >
                         {game.hasMap
                             ? t('admin.geo.health.curatedList.hasMap')
                             : t('admin.geo.health.curatedList.noMap')}
                     </Badge>
                     {game.candidateCount > 0 && (
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="info" className="text-[10px] px-1.5 py-0">
                             {t('admin.geo.health.curatedList.candidates', {
                                 count: game.candidateCount,
                             })}
@@ -522,7 +597,7 @@ function CuratedRow({ game, busy, onRemove, onReimport, t }: CuratedRowProps) {
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-0.5">
                 <Button
                     size="sm"
                     variant="ghost"
@@ -530,6 +605,7 @@ function CuratedRow({ game, busy, onRemove, onReimport, t }: CuratedRowProps) {
                     onClick={onReimport}
                     aria-label={t('admin.geo.health.curatedList.reimport')}
                     title={t('admin.geo.health.curatedList.reimport')}
+                    className="h-7 w-7 p-0"
                 >
                     {busy === 'reimport' ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -544,6 +620,7 @@ function CuratedRow({ game, busy, onRemove, onReimport, t }: CuratedRowProps) {
                     onClick={onRemove}
                     aria-label={t('admin.geo.health.curatedList.remove')}
                     title={t('admin.geo.health.curatedList.remove')}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
                 >
                     {busy === 'remove' ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -564,29 +641,40 @@ interface SuggestionRowProps {
 }
 
 function SuggestionRow({ game, busy, onAdd, t }: SuggestionRowProps) {
+    const score = game.metacritic
+    const tone =
+        score === null ? 'muted' : score >= 95 ? 'top' : score >= 75 ? 'high' : 'neutral'
     return (
-        <li className="flex items-center justify-between gap-2 rounded border border-border/50 bg-muted/10 p-2 text-xs">
+        <li className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-muted/10 p-2.5 text-xs hover:bg-muted/20 transition-colors">
             <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                    <span className="font-medium truncate">{game.name}</span>
+                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                    <span className="font-medium break-words">{game.name}</span>
                     {game.releaseYear && (
                         <span className="text-[10px] text-muted-foreground">
                             ({game.releaseYear})
                         </span>
                     )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                    {game.developer && <span>{game.developer}</span>}
-                    {game.metacritic !== null && (
-                        <Badge variant="outline" className="text-[10px]">
-                            {t('admin.geo.health.suggestions.metacritic', {
-                                score: game.metacritic,
-                            })}
-                        </Badge>
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px] text-muted-foreground">
+                    {game.developer && <span className="truncate">{game.developer}</span>}
+                    {score !== null && (
+                        <span
+                            className={[
+                                'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 font-semibold tabular-nums',
+                                tone === 'top' || tone === 'high'
+                                    ? 'border-score-high/40 bg-score-high/15 text-score-high'
+                                    : 'border-border/60 text-muted-foreground',
+                            ].join(' ')}
+                        >
+                            {tone === 'top' && (
+                                <Star className="h-2.5 w-2.5 fill-current" aria-hidden />
+                            )}
+                            {score}
+                        </span>
                     )}
                 </div>
             </div>
-            <Button size="sm" variant="outline" disabled={busy} onClick={onAdd}>
+            <Button size="sm" variant="outline" disabled={busy} onClick={onAdd} className="shrink-0">
                 {busy ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : (
