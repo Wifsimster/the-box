@@ -13,6 +13,7 @@ import { ResultCard } from '@/components/game/ResultCard'
 import { CompletionChoiceModal } from '@/components/game/CompletionChoiceModal'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
+import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -654,6 +655,19 @@ export default function GamePage() {
                 />
               ) : (
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              )}
+              {/* Report button — overlay on the viewer; only shown while we
+                  have a real screenshot in play. Sits above the gradient
+                  overlays (z-30) so it stays clickable. */}
+              {currentScreenshotData?.screenshotId && (
+                <div className="absolute top-2 right-2 z-30">
+                  <ReportCaptureDialog
+                    target={{ screenshotId: currentScreenshotData.screenshotId }}
+                    isAuthenticated={!!session?.user?.id}
+                    iconOnly
+                    triggerClassName="h-8 w-8 p-0 rounded-full bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-background/80"
+                  />
+                </div>
               )}
             </div>
 

@@ -32,6 +32,7 @@ import {
   geoScreenshotRepository,
   geoPinRepository,
   geoMapRepository,
+  screenshotReportRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
@@ -1496,6 +1497,54 @@ router.delete('/geo/meta/:id', async (req, res, next) => {
       }
       throw dbErr
     }
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ---------- Capture report moderation ----------
+
+// Aggregated view of which captures have been reported. Defaults to all
+// reports (so admins can see brewing problems before the threshold trips);
+// pass `?onlyDeactivated=true` to focus on captures already pulled from
+// rotation. `limit` caps the queue depth — typical moderation pages won't
+// need more than a hundred at a time.
+router.get('/screenshot-reports', async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 100) || 100, 1), 500)
+    const onlyDeactivated = String(req.query.onlyDeactivated ?? '') === 'true'
+    const data = await screenshotReportRepository.listAggregated({ limit, onlyDeactivated })
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Reactivate a capture an admin reviewed and judged a false positive.
+// Body: { screenshotId } | { geoScreenshotCandidateId } — exactly one.
+// Drops the existing reports so a single 3-report wave doesn't immediately
+// re-trip the threshold; the audit log still has the request via Pino.
+router.post('/screenshot-reports/reactivate', async (req, res, next) => {
+  try {
+    const { screenshotId, geoScreenshotCandidateId } = req.body as {
+      screenshotId?: number
+      geoScreenshotCandidateId?: number
+    }
+    if (Boolean(screenshotId) === Boolean(geoScreenshotCandidateId)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_BODY',
+          message: 'exactly one of screenshotId or geoScreenshotCandidateId is required',
+        },
+      })
+      return
+    }
+    const result = await screenshotReportRepository.reactivate({
+      screenshotId,
+      geoScreenshotCandidateId,
+    })
+    res.json({ success: true, data: result })
   } catch (err) {
     next(err)
   }

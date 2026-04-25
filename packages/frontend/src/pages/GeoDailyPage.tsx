@@ -4,7 +4,7 @@ import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
-import { ReportCaptureDialog } from '@/components/geo/ReportCaptureDialog'
+import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, MapPin, Trophy } from 'lucide-react'
@@ -93,7 +93,7 @@ export default function GeoDailyPage() {
                                 {t('geo.daily.screenshot', 'Screenshot')}
                             </CardTitle>
                             <ReportCaptureDialog
-                                geoScreenshotCandidateId={candidate.id}
+                                target={{ geoScreenshotCandidateId: candidate.id }}
                                 isAuthenticated={!!session?.user?.id}
                             />
                         </CardHeader>
