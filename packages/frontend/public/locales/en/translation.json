@@ -242,6 +242,11 @@
       "cta": "Play Geo Daily",
       "secondary": "See the geo leaderboard"
     },
+    "achievements": {
+      "heading": "Achievements waiting to be unlocked",
+      "subheading": "Three trophies you don't have yet. Yet.",
+      "cta": "See all achievements"
+    },
     "completionMessages": {
       "perfect": [
         "Absolute perfection! You're a living legend! 🏆",

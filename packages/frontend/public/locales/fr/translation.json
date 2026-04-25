@@ -242,6 +242,11 @@
       "cta": "Jouer Geo Daily",
       "secondary": "Voir le classement"
     },
+    "achievements": {
+      "heading": "Des succès qui n'attendent que toi",
+      "subheading": "Trois trophées que tu n'as pas encore. Encore.",
+      "cta": "Voir tous les succès"
+    },
     "completionMessages": {
       "perfect": [
         "Perfection absolue ! Tu es une légende vivante ! 🏆",
