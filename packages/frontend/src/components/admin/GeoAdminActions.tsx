@@ -21,7 +21,9 @@ import {
     CheckCircle2,
     XCircle,
     Star,
+    Upload,
 } from 'lucide-react'
+import { GeoManualMapDialog } from './GeoManualMapDialog'
 
 interface HealthData {
     coverage: { curated: number; resolved: number; withMap: number; total: number }
@@ -124,6 +126,7 @@ export function GeoAdminActions() {
     const [busyAction, setBusyAction] = useState<
         'curate' | 'remove' | 'reimport' | 'schedule' | null
     >(null)
+    const [manualUploadFor, setManualUploadFor] = useState<CuratedGame | null>(null)
 
     const reloadHealth = useCallback(async () => {
         setLoadingHealth(true)
@@ -431,6 +434,7 @@ export function GeoAdminActions() {
                                     busy={busyId === g.id ? busyAction : null}
                                     onRemove={() => void setCuration(g, false)}
                                     onReimport={() => void reimport(g)}
+                                    onManualUpload={() => setManualUploadFor(g)}
                                     t={t}
                                 />
                             ))}
@@ -500,6 +504,26 @@ export function GeoAdminActions() {
                     </div>
                 </section>
             </CardContent>
+
+            <GeoManualMapDialog
+                isOpen={manualUploadFor !== null}
+                onClose={() => setManualUploadFor(null)}
+                game={
+                    manualUploadFor && {
+                        id: manualUploadFor.id,
+                        name: manualUploadFor.name,
+                        hasMap: manualUploadFor.hasMap,
+                    }
+                }
+                onSuccess={() => {
+                    setMessage(
+                        t('admin.geo.manualMap.success', {
+                            name: manualUploadFor?.name ?? '',
+                        }),
+                    )
+                    void Promise.all([reloadCurated(), reloadHealth()])
+                }}
+            />
         </Card>
     )
 }
@@ -551,10 +575,18 @@ interface CuratedRowProps {
     busy: 'curate' | 'remove' | 'reimport' | 'schedule' | null
     onRemove: () => void
     onReimport: () => void
+    onManualUpload: () => void
     t: ReturnType<typeof useTranslation>['t']
 }
 
-function CuratedRow({ game, busy, onRemove, onReimport, t }: CuratedRowProps) {
+function CuratedRow({
+    game,
+    busy,
+    onRemove,
+    onReimport,
+    onManualUpload,
+    t,
+}: CuratedRowProps) {
     const statusKey = `admin.geo.health.curatedList.status.${game.metadataStatus}` as const
     return (
         <li className="flex items-start justify-between gap-2 rounded-md border border-border/50 bg-muted/10 p-2.5 text-xs">
@@ -598,6 +630,17 @@ function CuratedRow({ game, busy, onRemove, onReimport, t }: CuratedRowProps) {
                 </div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy !== null}
+                    onClick={onManualUpload}
+                    aria-label={t('admin.geo.health.curatedList.manualUpload')}
+                    title={t('admin.geo.health.curatedList.manualUpload')}
+                    className="h-7 w-7 p-0"
+                >
+                    <Upload className="h-3.5 w-3.5" />
+                </Button>
                 <Button
                     size="sm"
                     variant="ghost"
