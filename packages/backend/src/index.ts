@@ -440,6 +440,26 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to schedule recurring inactive-user-reminder job')
     }
 
+    // One-shot announcement email for the new referral feature.
+    // The worker keys off `user.referral_announcement_email_sent_at`, so
+    // re-enqueueing on every boot is safe — already-mailed users are
+    // filtered out at the SQL level. The stable `jobId` prevents the
+    // queue from holding multiple pending copies between deploys.
+    try {
+      await importQueue.add(
+        'referral-announcement-email',
+        {},
+        {
+          jobId: 'referral-announcement-email-oneshot',
+          removeOnComplete: true,
+          removeOnFail: false,
+        }
+      )
+      logger.info('enqueued one-shot referral-announcement-email job')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to enqueue referral-announcement-email job')
+    }
+
     // Schedule recurring geo daily challenge creation (00:05 UTC daily — runs
     // shortly after the main create-daily-challenge cron so the new calendar
     // day has rolled over before scheduleDailyGeoChallenge() picks today's
