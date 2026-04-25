@@ -669,25 +669,6 @@
           "candidates_one": "{{count}} screenshot",
           "candidates_other": "{{count}} screenshots"
         },
-        "manualMap": {
-          "title": "Manual map for \"{{name}}\"",
-          "description": "Last-resort upload when the registry, Fandom, and Wikidata sources didn't produce a usable map. The image must be hosted on a stable URL — no upload happens here.",
-          "descriptionReplace": "Replace the active map for this game. The previous map is deactivated; existing screenshot pins remain valid because coordinates are normalized.",
-          "fields": {
-            "imageUrl": "Image URL",
-            "widthPx": "Width (px)",
-            "heightPx": "Height (px)",
-            "license": "License",
-            "attribution": "Attribution",
-            "sourceUrl": "Source page URL"
-          },
-          "submit": "Save map",
-          "submitReplace": "Replace map",
-          "errors": {
-            "required": "Image URL, width, height, and license are required."
-          },
-          "success": "Manual map saved for \"{{name}}\"."
-        },
         "suggestions": {
           "title": "Suggestions",
           "subtitle": "Popular games not yet curated (sorted by Metacritic).",
@@ -703,6 +684,25 @@
           "reimportQueued": "Re-ingestion queued for \"{{name}}\"",
           "scheduled": "Scheduling triggered (job {{id}})"
         }
+      },
+      "manualMap": {
+        "title": "Manual map for \"{{name}}\"",
+        "description": "Last-resort upload when the registry, Fandom, and Wikidata sources didn't produce a usable map. The image must be hosted on a stable URL — no upload happens here.",
+        "descriptionReplace": "Replace the active map for this game. The previous map is deactivated; existing screenshot pins remain valid because coordinates are normalized.",
+        "fields": {
+          "imageUrl": "Image URL",
+          "widthPx": "Width (px)",
+          "heightPx": "Height (px)",
+          "license": "License",
+          "attribution": "Attribution",
+          "sourceUrl": "Source page URL"
+        },
+        "submit": "Save map",
+        "submitReplace": "Replace map",
+        "errors": {
+          "required": "Image URL, width, height, and license are required."
+        },
+        "success": "Manual map saved for \"{{name}}\"."
       }
     },
     "growth": {

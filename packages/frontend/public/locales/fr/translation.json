@@ -669,25 +669,6 @@
           "candidates_one": "{{count}} capture",
           "candidates_other": "{{count}} captures"
         },
-        "manualMap": {
-          "title": "Carte manuelle pour « {{name}} »",
-          "description": "Solution de dernier recours quand les sources registry, Fandom et Wikidata n'ont rien donné. L'image doit déjà être hébergée à une URL stable — aucun fichier n'est téléversé ici.",
-          "descriptionReplace": "Remplacer la carte active de ce jeu. L'ancienne carte est désactivée ; les pins existants restent valides puisque les coordonnées sont normalisées.",
-          "fields": {
-            "imageUrl": "URL de l'image",
-            "widthPx": "Largeur (px)",
-            "heightPx": "Hauteur (px)",
-            "license": "Licence",
-            "attribution": "Attribution",
-            "sourceUrl": "URL de la page source"
-          },
-          "submit": "Enregistrer la carte",
-          "submitReplace": "Remplacer la carte",
-          "errors": {
-            "required": "L'URL de l'image, la largeur, la hauteur et la licence sont obligatoires."
-          },
-          "success": "Carte manuelle enregistrée pour « {{name}} »."
-        },
         "suggestions": {
           "title": "Suggestions",
           "subtitle": "Jeux populaires non encore curatés (triés par Metacritic).",
@@ -703,6 +684,25 @@
           "reimportQueued": "Ré-ingestion lancée pour « {{name}} »",
           "scheduled": "Planification lancée (tâche {{id}})"
         }
+      },
+      "manualMap": {
+        "title": "Carte manuelle pour « {{name}} »",
+        "description": "Solution de dernier recours quand les sources registry, Fandom et Wikidata n'ont rien donné. L'image doit déjà être hébergée à une URL stable — aucun fichier n'est téléversé ici.",
+        "descriptionReplace": "Remplacer la carte active de ce jeu. L'ancienne carte est désactivée ; les pins existants restent valides puisque les coordonnées sont normalisées.",
+        "fields": {
+          "imageUrl": "URL de l'image",
+          "widthPx": "Largeur (px)",
+          "heightPx": "Hauteur (px)",
+          "license": "Licence",
+          "attribution": "Attribution",
+          "sourceUrl": "URL de la page source"
+        },
+        "submit": "Enregistrer la carte",
+        "submitReplace": "Remplacer la carte",
+        "errors": {
+          "required": "L'URL de l'image, la largeur, la hauteur et la licence sont obligatoires."
+        },
+        "success": "Carte manuelle enregistrée pour « {{name}} »."
       }
     },
     "growth": {
