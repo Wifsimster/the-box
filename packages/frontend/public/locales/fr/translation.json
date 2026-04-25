@@ -784,6 +784,8 @@
       "totalScore": "Score Total",
       "currentStreak": "Série Actuelle",
       "createdAt": "Créé Le",
+      "lastLoginAt": "Dernière Connexion",
+      "neverLoggedIn": "Jamais",
       "actions": "Actions",
       "guest": "Invité",
       "searchPlaceholder": "Rechercher un utilisateur par email...",

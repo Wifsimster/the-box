@@ -32,6 +32,7 @@ export interface UserRow {
   current_streak: number
   longest_streak: number
   last_played_at: Date | null
+  lastLoginAt: Date | null
   email_marketing_consent: boolean
   email_consent_updated_at: Date | null
 }
@@ -51,6 +52,7 @@ function mapRowToUser(row: UserRow): User {
     currentStreak: row.current_streak ?? 0,
     longestStreak: row.longest_streak ?? 0,
     lastPlayedAt: row.last_played_at?.toISOString(),
+    lastLoginAt: row.lastLoginAt?.toISOString(),
     createdAt: row.createdAt.toISOString(),
     emailMarketingConsent: row.email_marketing_consent ?? false,
     emailConsentUpdatedAt: row.email_consent_updated_at?.toISOString(),

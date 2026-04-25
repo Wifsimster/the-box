@@ -168,6 +168,20 @@ function createAuth() {
     },
     trustedOrigins: [env.CORS_ORIGIN],
     databaseHooks: {
+      session: {
+        create: {
+          after: async (session) => {
+            try {
+              await pool.query(
+                'UPDATE "user" SET "lastLoginAt" = NOW() WHERE id = $1',
+                [session.userId]
+              );
+            } catch (error) {
+              authLogger.error({ err: error, userId: session.userId }, "failed to update last_login_at");
+            }
+          },
+        },
+      },
       user: {
         create: {
           before: async (user) => {

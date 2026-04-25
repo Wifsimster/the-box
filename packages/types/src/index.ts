@@ -15,6 +15,7 @@ export interface User {
   currentStreak: number
   longestStreak?: number
   lastPlayedAt?: string
+  lastLoginAt?: string
   createdAt: string
   emailMarketingConsent: boolean
   emailConsentUpdatedAt?: string
