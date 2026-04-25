@@ -32,11 +32,15 @@
     "unknown": "Inconnu",
     "backTo": "Retour à",
     "filters": "Filtres",
-    "all": "Tout",
+    "all": "Tous",
     "activeFilters": "Filtres actifs",
     "clearAll": "Tout effacer",
-    "all": "Tous",
-    "earned": "Obtenu"
+    "earned": "Obtenu",
+    "rankBadge": {
+      "first": "1re place",
+      "second": "2e place",
+      "third": "3e place"
+    }
   },
   "achievements": {
     "filters": {
@@ -70,6 +74,23 @@
     "unlockedWithName": "Succès Débloqué : {{name}}"
   },
   "game": {
+    "progressDots": {
+      "label": "Progression des captures",
+      "item": "Capture {{position}} : {{status}}",
+      "itemCurrent": "Capture {{position}} (actuelle) : {{status}}",
+      "status": {
+        "correct": "trouvée",
+        "skipped": "passée",
+        "in_progress": "en cours",
+        "not_visited": "non visitée"
+      },
+      "summary": {
+        "found_one": "{{count}} trouvée",
+        "found_other": "{{count}} trouvées",
+        "skipped_one": "{{count}} passée",
+        "skipped_other": "{{count}} passées"
+      }
+    },
     "dailyChallenge": "Défi Quotidien",
     "startChallenge": "Commencer le Défi",
     "challengeComplete": "Défi Terminé !",
@@ -512,6 +533,14 @@
         "completed": "Terminé",
         "failed": "Échoué",
         "delayed": "Retardé"
+      },
+      "relativeTime": {
+        "secondsAgo_one": "il y a {{count}}s",
+        "secondsAgo_other": "il y a {{count}}s",
+        "minutesAgo_one": "il y a {{count}}min",
+        "minutesAgo_other": "il y a {{count}}min",
+        "hoursAgo_one": "il y a {{count}}h",
+        "hoursAgo_other": "il y a {{count}}h"
       },
       "syncConflict": {
         "title": "Synchronisation déjà en cours",
@@ -965,7 +994,9 @@
       "title": "Classement Géo",
       "subtitle": "Classé indépendamment du jeu principal.",
       "daily": "Journalier",
-      "monthly": "Mensuel"
+      "monthly": "Mensuel",
+      "topPlayers": "Meilleurs joueurs",
+      "noEntries": "Aucune entrée pour l'instant — soyez le premier."
     },
     "profile": {
       "title": "Contributeur Géo",
@@ -980,5 +1011,34 @@
       "unlockLabel": "Contribution débloquée après",
       "unlockDays": "jours joués"
     }
+  },
+  "apiErrors": {
+    "default": "Une erreur est survenue. Veuillez réessayer.",
+    "NETWORK_ERROR": "Erreur réseau. Vérifiez votre connexion.",
+    "VALIDATION_ERROR": "Les informations saisies sont invalides.",
+    "UNAUTHORIZED": "Veuillez vous connecter pour continuer.",
+    "FORBIDDEN": "Vous n'avez pas la permission d'effectuer cette action.",
+    "NOT_FOUND": "Ressource introuvable.",
+    "INTERNAL_ERROR": "Erreur serveur. Veuillez réessayer plus tard.",
+    "NO_CHALLENGE": "Aucun défi n'est disponible aujourd'hui.",
+    "INVALID_ID": "Identifiant invalide.",
+    "MISSING_PARAMS": "Des informations requises sont manquantes.",
+    "INVALID_SESSION_ID": "Session invalide.",
+    "SESSION_NOT_FOUND": "Session introuvable ou non terminée.",
+    "SESSION_ALREADY_COMPLETED": "Vous avez déjà terminé ce défi.",
+    "CHALLENGE_ALREADY_COMPLETED": "Vous avez déjà terminé ce défi.",
+    "INVALID_SCORE": "Le score doit être un nombre valide.",
+    "INVALID_YEAR": "Année invalide. Doit être comprise entre 2020 et 2100.",
+    "INVALID_MONTH": "Mois invalide. Doit être compris entre 1 et 12.",
+    "FUTURE_MONTH": "Impossible d'afficher le classement pour des mois futurs.",
+    "INVALID_DATE": "Format de date invalide. Utilisez AAAA-MM-JJ.",
+    "INVALID_USERNAME": "Nom d'utilisateur invalide.",
+    "USER_NOT_FOUND": "Utilisateur introuvable.",
+    "NO_FILE": "Aucun fichier téléversé.",
+    "INVALID_CONSENT": "Le consentement doit être un booléen.",
+    "REFERRAL_ALREADY_CLAIMED": "Le parrainage a déjà été utilisé.",
+    "CHALLENGE_NOT_FOUND": "Défi introuvable.",
+    "SCREENSHOT_NOT_FOUND": "Capture introuvable.",
+    "CONTRIBUTE_RATE_LIMIT": "Limite horaire d'épingles atteinte — revenez plus tard."
   }
 }

@@ -375,8 +375,9 @@ export default function GamePage() {
       })
     } catch (err) {
       console.error('Failed to start game:', err)
-      // Check if it's the "already completed" error
-      if (err instanceof Error && err.message.includes('already completed')) {
+      // Check if it's the "already completed" error via the structured code
+      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
+      if (code === 'CHALLENGE_ALREADY_COMPLETED' || code === 'SESSION_ALREADY_COMPLETED') {
         setError(t('game.alreadyCompleted'))
       } else {
         setError(t('game.errorStarting'))

@@ -75,7 +75,7 @@ function UserSortableHeader({
 }
 
 export function UserList() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const {
     users,
     usersLoading,
@@ -196,7 +196,7 @@ export function UserList() {
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString()
+      return new Date(dateString).toLocaleDateString(i18n.language)
     } catch {
       return dateString
     }
@@ -312,7 +312,7 @@ export function UserList() {
                               </SelectContent>
                             </Select>
                           </TableCell>
-                          <TableCell>{(user.totalScore ?? 0).toLocaleString()}</TableCell>
+                          <TableCell>{(user.totalScore ?? 0).toLocaleString(i18n.language)}</TableCell>
                           <TableCell>{user.currentStreak ?? 0}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {formatDate(user.createdAt)}

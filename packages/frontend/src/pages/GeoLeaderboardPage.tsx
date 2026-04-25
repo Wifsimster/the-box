@@ -85,11 +85,12 @@ export default function GeoLeaderboardPage() {
 }
 
 function LeaderboardList({ entries }: { entries: GeoLeaderboardEntry[] }) {
+    const { t } = useTranslation()
     if (entries.length === 0) {
         return (
             <Card>
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                    No entries yet — be the first.
+                    {t('geo.leaderboard.noEntries')}
                 </CardContent>
             </Card>
         )
@@ -97,7 +98,7 @@ function LeaderboardList({ entries }: { entries: GeoLeaderboardEntry[] }) {
     return (
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-base">Top players</CardTitle>
+                <CardTitle className="text-base">{t('geo.leaderboard.topPlayers')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
                 {entries.map((e) => (
@@ -109,6 +110,7 @@ function LeaderboardList({ entries }: { entries: GeoLeaderboardEntry[] }) {
 }
 
 function LeaderboardRow({ entry }: { entry: GeoLeaderboardEntry }) {
+    const { i18n } = useTranslation()
     return (
         <div className="flex items-center gap-3 rounded-lg border bg-card/30 px-3 py-2">
             <RankBadge rank={entry.rank} />
@@ -121,15 +123,16 @@ function LeaderboardRow({ entry }: { entry: GeoLeaderboardEntry }) {
                 <p className="text-xs text-muted-foreground truncate">@{entry.username}</p>
             </div>
             <span className="text-sm font-semibold tabular-nums">
-                {entry.score.toLocaleString()}
+                {entry.score.toLocaleString(i18n.language)}
             </span>
         </div>
     )
 }
 
 function RankBadge({ rank }: { rank: number }) {
-    if (rank === 1) return <Crown className="h-5 w-5 text-medal-gold" aria-label="1st" />
-    if (rank === 2) return <Medal className="h-5 w-5 text-medal-silver" aria-label="2nd" />
-    if (rank === 3) return <Trophy className="h-5 w-5 text-medal-bronze" aria-label="3rd" />
+    const { t } = useTranslation()
+    if (rank === 1) return <Crown className="h-5 w-5 text-medal-gold" aria-label={t('common.rankBadge.first')} />
+    if (rank === 2) return <Medal className="h-5 w-5 text-medal-silver" aria-label={t('common.rankBadge.second')} />
+    if (rank === 3) return <Trophy className="h-5 w-5 text-medal-bronze" aria-label={t('common.rankBadge.third')} />
     return <span className="w-5 text-center text-xs text-muted-foreground">{rank}</span>
 }

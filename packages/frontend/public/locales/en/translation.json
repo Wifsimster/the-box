@@ -35,8 +35,12 @@
     "all": "All",
     "activeFilters": "Active filters",
     "clearAll": "Clear all",
-    "all": "All",
-    "earned": "Earned"
+    "earned": "Earned",
+    "rankBadge": {
+      "first": "1st place",
+      "second": "2nd place",
+      "third": "3rd place"
+    }
   },
   "achievements": {
     "filters": {
@@ -70,6 +74,23 @@
     "unlockedWithName": "Achievement Unlocked: {{name}}"
   },
   "game": {
+    "progressDots": {
+      "label": "Screenshot progress",
+      "item": "Screenshot {{position}}: {{status}}",
+      "itemCurrent": "Screenshot {{position}} (current): {{status}}",
+      "status": {
+        "correct": "correct",
+        "skipped": "skipped",
+        "in_progress": "in progress",
+        "not_visited": "not visited"
+      },
+      "summary": {
+        "found_one": "{{count}} found",
+        "found_other": "{{count}} found",
+        "skipped_one": "{{count}} skipped",
+        "skipped_other": "{{count}} skipped"
+      }
+    },
     "dailyChallenge": "Daily Challenge",
     "startChallenge": "Start Challenge",
     "challengeComplete": "Challenge Complete!",
@@ -513,10 +534,44 @@
         "failed": "Failed",
         "delayed": "Delayed"
       },
+      "relativeTime": {
+        "secondsAgo_one": "{{count}}s ago",
+        "secondsAgo_other": "{{count}}s ago",
+        "minutesAgo_one": "{{count}}m ago",
+        "minutesAgo_other": "{{count}}m ago",
+        "hoursAgo_one": "{{count}}h ago",
+        "hoursAgo_other": "{{count}}h ago"
+      },
       "syncConflict": {
         "title": "Sync Job Already Running",
         "description": "A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?",
         "cancelAndRestart": "Cancel & Restart"
+      }
+    },
+    "fullImport": {
+      "title": "Full RAWG Import",
+      "description": "Import all games with Metacritic score >= threshold (batch processing with pause/resume)",
+      "startImport": "Start full import",
+      "pause": "Pause",
+      "resume": "Resume",
+      "progress": "Progress",
+      "totalAvailable": "Available games",
+      "processed": "Processed",
+      "imported": "Imported",
+      "skipped": "Skipped",
+      "screenshots": "Screenshots",
+      "batch": "Batch",
+      "batchSize": "Batch size",
+      "estimatedTime": "Estimated time",
+      "completedMessage": "Import completed successfully!",
+      "gamesImported": "games imported",
+      "gamesSkippedSuffix": "skipped",
+      "status": {
+        "pending": "Pending",
+        "inProgress": "In progress",
+        "paused": "Paused",
+        "completed": "Completed",
+        "failed": "Failed"
       }
     },
     "games": {
@@ -939,7 +994,9 @@
       "title": "Geo Leaderboard",
       "subtitle": "Ranked independently from the main game.",
       "daily": "Daily",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "topPlayers": "Top players",
+      "noEntries": "No entries yet — be the first."
     },
     "profile": {
       "title": "Geo Crowdsourcer",
@@ -954,5 +1011,34 @@
       "unlockLabel": "Contribute unlocks after",
       "unlockDays": "days played"
     }
+  },
+  "apiErrors": {
+    "default": "Something went wrong. Please try again.",
+    "NETWORK_ERROR": "Network error. Please check your connection.",
+    "VALIDATION_ERROR": "The information you entered is invalid.",
+    "UNAUTHORIZED": "Please sign in to continue.",
+    "FORBIDDEN": "You don't have permission to do that.",
+    "NOT_FOUND": "Resource not found.",
+    "INTERNAL_ERROR": "Server error. Please try again later.",
+    "NO_CHALLENGE": "No challenge is available today.",
+    "INVALID_ID": "Invalid identifier.",
+    "MISSING_PARAMS": "Some required information is missing.",
+    "INVALID_SESSION_ID": "Invalid session.",
+    "SESSION_NOT_FOUND": "Session not found or not completed.",
+    "SESSION_ALREADY_COMPLETED": "You have already completed this challenge.",
+    "CHALLENGE_ALREADY_COMPLETED": "You have already completed this challenge.",
+    "INVALID_SCORE": "Score must be a valid number.",
+    "INVALID_YEAR": "Invalid year. Must be between 2020 and 2100.",
+    "INVALID_MONTH": "Invalid month. Must be between 1 and 12.",
+    "FUTURE_MONTH": "Cannot view leaderboard for future months.",
+    "INVALID_DATE": "Invalid date format. Use YYYY-MM-DD.",
+    "INVALID_USERNAME": "Invalid username.",
+    "USER_NOT_FOUND": "User not found.",
+    "NO_FILE": "No file uploaded.",
+    "INVALID_CONSENT": "Consent must be a boolean.",
+    "REFERRAL_ALREADY_CLAIMED": "Referral has already been claimed.",
+    "CHALLENGE_NOT_FOUND": "Challenge not found.",
+    "SCREENSHOT_NOT_FOUND": "Screenshot not found.",
+    "CONTRIBUTE_RATE_LIMIT": "Hourly pin limit reached — come back later."
   }
 }

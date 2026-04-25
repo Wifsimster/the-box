@@ -13,7 +13,7 @@ function todayIso(): string {
 }
 
 export default function GeoDailyPage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { data: session } = useSession()
     const {
         phase,
@@ -134,7 +134,7 @@ export default function GeoDailyPage() {
                                 </Button>
                             </div>
 
-                            {result && <ResultBlock result={result} t={t} />}
+                            {result && <ResultBlock result={result} t={t} language={i18n.language} />}
                         </CardContent>
                     </Card>
                 </div>
@@ -146,16 +146,18 @@ export default function GeoDailyPage() {
 function ResultBlock({
     result,
     t,
+    language,
 }: {
     result: NonNullable<ReturnType<typeof useGeoStore.getState>['result']>
     t: ReturnType<typeof useTranslation>['t']
+    language: string
 }) {
     return (
         <div className="rounded-lg border bg-card/50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-neon-pink font-medium">
                 <Trophy className="h-4 w-4" />
                 <span>
-                    {t('geo.daily.score', 'Score')}: {result.score.toLocaleString()}
+                    {t('geo.daily.score', 'Score')}: {result.score.toLocaleString(language)}
                 </span>
             </div>
             <div className="text-xs text-muted-foreground">
