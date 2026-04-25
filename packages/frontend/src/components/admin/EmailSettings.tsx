@@ -94,33 +94,35 @@ export function EmailSettings() {
 
       <CardContent className="space-y-4">
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-            <span className="text-sm font-medium">{t('admin.email.status')}</span>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
+            <span className="text-sm font-medium shrink-0">{t('admin.email.status')}</span>
+            <div className="flex items-center gap-2 min-w-0">
               {config?.configured ? (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                  <span className="text-sm text-success">{t('admin.email.configured')}</span>
+                  <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                  <span className="text-sm text-success truncate">{t('admin.email.configured')}</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="h-5 w-5 text-error" />
-                  <span className="text-sm text-error">{t('admin.email.notConfigured')}</span>
+                  <XCircle className="h-5 w-5 text-error shrink-0" />
+                  <span className="text-sm text-error truncate">{t('admin.email.notConfigured')}</span>
                 </>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-            <span className="text-sm font-medium">{t('admin.email.apiKey')}</span>
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
+            <span className="text-sm font-medium shrink-0">{t('admin.email.apiKey')}</span>
+            <span className="text-sm text-muted-foreground truncate">
               {config?.hasApiKey ? t('admin.email.apiKeySet') : t('admin.email.apiKeyNotSet')}
             </span>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-            <span className="text-sm font-medium">{t('admin.email.fromAddress')}</span>
-            <span className="text-sm font-mono text-foreground">{config?.emailFrom || '-'}</span>
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
+            <span className="text-sm font-medium shrink-0">{t('admin.email.fromAddress')}</span>
+            <span className="text-sm font-mono text-foreground truncate text-right">
+              {config?.emailFrom || '-'}
+            </span>
           </div>
         </div>
 

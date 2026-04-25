@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { AnimatedProgress } from '@/components/ui/animated-progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useAdminStore } from '@/stores/adminStore'
 import { Trash2, Loader2, Clock, Play, CheckCircle2, XCircle, Pause, RefreshCw, ChevronRight, ChevronLeft } from 'lucide-react'
 import type { JobStatus } from '@/types'
@@ -89,6 +90,10 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const { jobs, isLoading, fetchJobs, clearCompleted, cancelJob, connectSocket, disconnectSocket } = useAdminStore()
     const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed' | 'delayed'>('all')
     const [isMinimized, setIsMinimized] = useState(true)
+    const isMobile = useIsMobile()
+    // Full viewport on phones, fixed dock on tablets+. Keep as a string so the
+    // value flows straight into Framer Motion's animate config.
+    const expandedWidth = isMobile ? '100vw' : '480px'
 
     const handleToggleMinimize = () => {
         const newState = !isMinimized
@@ -147,14 +152,29 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const failedJobs = jobs.filter((j) => j.status === 'failed')
 
     return (
-        <motion.div
-            className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
-            initial={false}
-            animate={{
-                width: isMinimized ? '0px' : '480px'
-            }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-        >
+        <>
+            {/* Mobile backdrop — overlays page content when the panel is open on phones. */}
+            <AnimatePresence>
+                {!isMinimized && isMobile && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        onClick={handleToggleMinimize}
+                        className="fixed inset-0 top-14 sm:top-16 bg-background/60 backdrop-blur-sm z-40"
+                        aria-hidden="true"
+                    />
+                )}
+            </AnimatePresence>
+            <motion.div
+                className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] max-w-[100vw] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
+                initial={false}
+                animate={{
+                    width: isMinimized ? '0px' : expandedWidth
+                }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
             {/* Minimize/Expand Button */}
             <Button
                 variant="ghost"
@@ -334,6 +354,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                 </>
             )
             }
-        </motion.div >
+            </motion.div>
+        </>
     )
 }

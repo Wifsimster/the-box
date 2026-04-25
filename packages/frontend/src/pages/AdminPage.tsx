@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '@/lib/auth-client'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useAdminStore } from '@/stores/adminStore'
 import { JobList } from '@/components/admin/JobList'
 import { GameList } from '@/components/admin/GameList'
@@ -26,7 +27,11 @@ export default function AdminPage() {
   const { lang } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: session, isPending } = useSession()
+  const isMobile = useIsMobile()
   const [isPanelMinimized, setIsPanelMinimized] = useState(true)
+  // On mobile the JobQueuePanel overlays the page instead of pushing it,
+  // so only reserve right padding on viewports where the panel docks.
+  const sidebarOffset = !isMobile && !isPanelMinimized ? '480px' : '0'
 
   const {
     fetchRecurringJobs,
@@ -110,7 +115,7 @@ export default function AdminPage() {
       className="flex min-h-screen"
     >
       {/* Main Content Area */}
-      <div className="flex-1 transition-all duration-300" style={{ paddingRight: isPanelMinimized ? '0' : '480px' }}>
+      <div className="flex-1 transition-all duration-300" style={{ paddingRight: sidebarOffset }}>
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
           <motion.div
             variants={fadeInLeft}

@@ -93,12 +93,12 @@ export function ReportsModerationPanel() {
 
     return (
         <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <Flag className="h-4 w-4 text-neon-pink" />
-                    {t('admin.reports.title')}
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0">
+                <CardTitle className="flex items-center gap-2 text-base min-w-0">
+                    <Flag className="h-4 w-4 text-neon-pink shrink-0" />
+                    <span className="truncate">{t('admin.reports.title')}</span>
                 </CardTitle>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                     <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
                         <Checkbox
                             checked={onlyDeactivated}
@@ -129,7 +129,7 @@ export function ReportsModerationPanel() {
                         {reports.map((row) => (
                             <li
                                 key={rowKey(row)}
-                                className="flex items-start justify-between gap-3 py-3"
+                                className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 py-3"
                             >
                                 <div className="flex items-start gap-3 min-w-0 flex-1">
                                     <ReportThumbnail
