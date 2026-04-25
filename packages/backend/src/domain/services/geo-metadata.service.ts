@@ -2,13 +2,10 @@
 // behaviour testable without a network. The resolver worker layers
 // HTTP probes on top of these.
 
-const DEFAULT_WIKI_PAGE_TITLES = [
-  'Interactive_Map',
-  'World_Map',
-  'Map',
-  'Maps',
-  'Atlas',
-] as const
+// Fandom Interactive Maps live in namespace 2900 (`Map:`) on every wiki
+// that has the feature enabled. The resolver discovers maps by listing
+// pages in this namespace via `?action=query&list=allpages&apnamespace=2900`.
+export const FANDOM_MAP_NAMESPACE = 2900
 
 /**
  * Derive Fandom subdomain candidates from a game slug. Most Fandom wikis
@@ -34,8 +31,38 @@ export function wikiSubdomainCandidates(slug: string): string[] {
   return out
 }
 
-export function defaultWikiPageTitles(): readonly string[] {
-  return DEFAULT_WIKI_PAGE_TITLES
+/**
+ * Score a `Map:` page title against the curated game's name + slug to pick
+ * the most likely "main" map when a wiki publishes several. Higher is
+ * better. The scoring rewards titles that:
+ *   - mention the game name or its slug tokens (game-specific maps),
+ *   - mention "world" / "overworld" / "atlas" (top-level maps),
+ *   - mention "map" generically.
+ *
+ * Pure function so the resolver can be exercised without network access.
+ */
+export function scoreMapTitle(
+  mapTitle: string,
+  gameName: string,
+  slug: string,
+): number {
+  const t = mapTitle.toLowerCase().replace(/_/g, ' ')
+  const name = normalizeGameTitle(gameName)
+  const slugTokens = slug
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((tok) => tok.length >= 3)
+
+  let score = 0
+  if (name && t.includes(name)) score += 50
+  for (const tok of slugTokens) {
+    if (t.includes(tok)) score += 8
+  }
+  if (/\b(world|overworld|atlas)\b/.test(t)) score += 20
+  if (/\bmap\b/.test(t)) score += 5
+  // Penalise obvious sub-region or DLC maps when a top-level alternative exists.
+  if (/\b(zone|region|area|level|dlc|dungeon|interior|building)\b/.test(t)) score -= 6
+  return score
 }
 
 /**

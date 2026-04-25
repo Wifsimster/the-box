@@ -15,11 +15,20 @@ export interface GeoMapRow {
   consensus_radius: number
   license: string
   attribution: string | null
+  wiki_map_name: string | null
+  wiki_revision_id: string | number | null
   is_active: boolean
   created_at: Date
 }
 
 function mapRow(row: GeoMapRow): GeoMap {
+  // pg returns BIGINT as string; coerce to number when present.
+  const revision =
+    row.wiki_revision_id == null
+      ? undefined
+      : typeof row.wiki_revision_id === 'string'
+        ? Number(row.wiki_revision_id)
+        : row.wiki_revision_id
   return {
     id: row.id,
     gameId: row.game_id,
@@ -31,6 +40,8 @@ function mapRow(row: GeoMapRow): GeoMap {
     consensusRadius: row.consensus_radius,
     license: row.license,
     attribution: row.attribution ?? undefined,
+    wikiMapName: row.wiki_map_name ?? undefined,
+    wikiRevisionId: revision,
   }
 }
 
@@ -66,6 +77,8 @@ export const geoMapRepository = {
     consensusRadius?: number
     license: string
     attribution?: string
+    wikiMapName?: string | null
+    wikiRevisionId?: number | null
   }): Promise<GeoMap> {
     log.info({ gameId: data.gameId, source: data.source }, 'create')
     const [row] = await db('geo_map')
@@ -79,6 +92,8 @@ export const geoMapRepository = {
         consensus_radius: data.consensusRadius ?? 0.03,
         license: data.license,
         attribution: data.attribution ?? null,
+        wiki_map_name: data.wikiMapName ?? null,
+        wiki_revision_id: data.wikiRevisionId ?? null,
       })
       .returning<GeoMapRow[]>('*')
     return mapRow(row!)
