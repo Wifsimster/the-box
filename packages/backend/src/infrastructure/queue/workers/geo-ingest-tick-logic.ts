@@ -2,6 +2,7 @@ import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
 import { geoQueue } from '../queues.js'
 import { geoMapRepository } from '../../repositories/index.js'
+import { findRegistryEntryBySlug } from './geo-registry-import-logic.js'
 
 const log = queueLogger.child({ worker: 'geo-ingest-tick' })
 
@@ -10,31 +11,37 @@ const STEAM_TARGET_CANDIDATES = 30 // stop fetching Steam shots once we have thi
 
 interface TickRow {
   id: number
+  slug: string
   steam_app_id: number | null
   wiki_subdomain: string | null
   wiki_page_title: string | null
+  wikidata_qid: string | null
   active_map_id: number | null
   candidate_count: number
 }
 
 export interface IngestTickResult {
   scanned: number
+  registryEnqueued: number
   fandomEnqueued: number
+  wikidataEnqueued: number
   steamEnqueued: number
 }
 
 /**
- * One pass over curated, resolved games. For each:
- *   - if no active geo_map → enqueue `import-fandom-map` (skipped if a
- *     fandom tombstone is still active);
- *   - if a map exists but candidate count is below STEAM_TARGET_CANDIDATES
- *     and a steam_app_id is known → enqueue `import-steam-screenshots`
- *     (skipped if a steam tombstone is still active).
+ * One pass over curated, resolved games. For each game without an active map,
+ * try the ingestion tiers in order and enqueue the first eligible job:
+ *   1. `registry`  — curated GitHub Leaflet repo (if entry exists for slug)
+ *   2. `fandom`    — Fandom Interactive Maps (if wiki_subdomain + map page resolved)
+ *   3. `wikidata`  — Wikidata P242 locator map (if wikidata_qid resolved)
  *
- * Idempotency: the import workers themselves short-circuit on duplicates
- * (`findActiveByGameId` for fandom, `(source, external_id)` unique for
- * steam), so it's safe to enqueue every tick — at worst we waste a few
- * external HTTP calls.
+ * Tier 0 is implicit: if `geo_map` already has an active row (e.g. via
+ * `manual` upload), no map-import is enqueued at all — only the Steam
+ * screenshot top-up runs.
+ *
+ * Each tier is gated by its own tombstone, so a permanently-failing tier
+ * doesn't block the next one. Idempotency is preserved via deterministic
+ * jobIds + the importers' own `findActiveByGameId` short-circuit.
  */
 export async function runGeoIngestTick(
   batchSize = DEFAULT_BATCH,
@@ -44,9 +51,11 @@ export async function runGeoIngestTick(
       `
       SELECT
         g.id,
+        g.slug,
         g.steam_app_id,
         g.wiki_subdomain,
         g.wiki_page_title,
+        g.wikidata_qid,
         m.id AS active_map_id,
         COALESCE(c.cnt, 0) AS candidate_count
       FROM games g
@@ -71,25 +80,17 @@ export async function runGeoIngestTick(
     )
     .then((res) => (res as unknown as { rows: TickRow[] }).rows)
 
+  let registryEnqueued = 0
   let fandomEnqueued = 0
+  let wikidataEnqueued = 0
   let steamEnqueued = 0
 
   for (const row of rows) {
-    if (!row.active_map_id && row.wiki_subdomain && row.wiki_page_title) {
-      const skip = await tombstoneBlocks(row.id, 'fandom')
-      if (!skip) {
-        await geoQueue.add(
-          'import-fandom-map',
-          {
-            kind: 'import-fandom-map',
-            gameId: row.id,
-            wikiSubdomain: row.wiki_subdomain,
-            pageTitle: row.wiki_page_title,
-          },
-          { jobId: `auto-fandom:${row.id}` },
-        )
-        fandomEnqueued++
-      }
+    if (!row.active_map_id) {
+      const enqueued = await enqueueFirstAvailableMapImport(row)
+      if (enqueued === 'registry') registryEnqueued++
+      else if (enqueued === 'fandom') fandomEnqueued++
+      else if (enqueued === 'wikidata') wikidataEnqueued++
     }
 
     if (
@@ -100,7 +101,7 @@ export async function runGeoIngestTick(
       const skip = await tombstoneBlocks(row.id, 'steam')
       if (!skip) {
         // Re-fetch the active map id off the repo so we don't pass a stale
-        // value (the SELECT above can be racing a recent fandom-import).
+        // value (the SELECT above can be racing a recent map import).
         const map = await geoMapRepository.findActiveByGameId(row.id)
         if (map) {
           await geoQueue.add(
@@ -120,15 +121,75 @@ export async function runGeoIngestTick(
   }
 
   log.info(
-    { scanned: rows.length, fandomEnqueued, steamEnqueued },
+    {
+      scanned: rows.length,
+      registryEnqueued,
+      fandomEnqueued,
+      wikidataEnqueued,
+      steamEnqueued,
+    },
     'geo-ingest-tick run',
   )
-  return { scanned: rows.length, fandomEnqueued, steamEnqueued }
+  return {
+    scanned: rows.length,
+    registryEnqueued,
+    fandomEnqueued,
+    wikidataEnqueued,
+    steamEnqueued,
+  }
+}
+
+type MapTier = 'registry' | 'fandom' | 'wikidata' | null
+
+async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
+  // Tier 1 — registry
+  if (!(await tombstoneBlocks(row.id, 'registry'))) {
+    const entry = await findRegistryEntryBySlug(row.slug)
+    if (entry) {
+      await geoQueue.add(
+        'import-registry-map',
+        { kind: 'import-registry-map', gameId: row.id, entry },
+        { jobId: `auto-registry:${row.id}` },
+      )
+      return 'registry'
+    }
+  }
+
+  // Tier 2 — Fandom Interactive Maps
+  if (
+    row.wiki_subdomain &&
+    row.wiki_page_title &&
+    !(await tombstoneBlocks(row.id, 'fandom'))
+  ) {
+    await geoQueue.add(
+      'import-fandom-map',
+      {
+        kind: 'import-fandom-map',
+        gameId: row.id,
+        wikiSubdomain: row.wiki_subdomain,
+        pageTitle: row.wiki_page_title,
+      },
+      { jobId: `auto-fandom:${row.id}` },
+    )
+    return 'fandom'
+  }
+
+  // Tier 3 — Wikidata P242 fallback
+  if (row.wikidata_qid && !(await tombstoneBlocks(row.id, 'wikidata'))) {
+    await geoQueue.add(
+      'import-wikidata-map',
+      { kind: 'import-wikidata-map', gameId: row.id, wikidataQid: row.wikidata_qid },
+      { jobId: `auto-wikidata:${row.id}` },
+    )
+    return 'wikidata'
+  }
+
+  return null
 }
 
 async function tombstoneBlocks(
   gameId: number,
-  source: 'fandom' | 'steam',
+  source: 'fandom' | 'steam' | 'registry' | 'wikidata',
 ): Promise<boolean> {
   const row = await db('geo_ingest_failure')
     .where({ game_id: gameId, source })

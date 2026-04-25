@@ -125,14 +125,54 @@ The existing "guess the game" mode is **not modified**. Geolocation ships as a p
 
 ### Automated ingestion
 
-- FR-20: New BullMQ worker `geo-map-import` fetches maps from Fandom MediaWiki API; stores attribution per CC-BY-SA
-- FR-21: New BullMQ worker `geo-screenshot-import` pulls screenshots from Steam Web API (appid) and RAWG; writes to `geo_screenshot_candidate`
-- FR-22: New BullMQ worker `geo-coordinate-extract` (optimistic): OCR / minimap detection; any low-confidence hits go to the review queue (**never auto-published**)
-- FR-23: New BullMQ worker `geo-publish` promotes reviewed/consensus-verified candidates to `geo_screenshot_meta`
-- FR-24: New BullMQ worker `geo-consensus` computes centroid + σ on `geo_pin_submission` per screenshot at thresholds (5, 10, 20, 50)
-- FR-25: New BullMQ worker `geo-reward` grants tokens via `inventoryRepository.addItems()` and achievements via `achievementRepository.grant()`
-- FR-26: Existing workers (`import`, `sync`, `daily-challenge`, `cleanup`) are untouched
-- FR-27: Sources explicitly excluded: IGN, MapGenie, Nexus Mods, Reddit bulk scraping (ToS / DMCA risk)
+- FR-20: Map ingestion is layered into **four tiers**, tried in priority order per
+  curated game by the recurring `geo-ingest-tick` worker. The first tier with
+  a usable source wins; failures tombstone per-tier (exponential backoff) and
+  cascade to the next tier on the following tick:
+    - **Tier 1 — Registry (`source = 'registry'`)**: a curated JSON file
+      (`packages/backend/data/geo-map-registry.json`) maps `game.slug` to a
+      permissively-licensed image URL (typically `raw.githubusercontent.com`
+      pointing into an MIT/GPL/CC-licensed Leaflet repo). Worker:
+      `geo-registry-import-logic.ts`. Each entry declares `license`,
+      `attribution`, `sourceUrl`, and a `commercialUseOk` flag so legal can
+      filter NC entries out of any commercial tier.
+    - **Tier 2 — Fandom Interactive Maps (`source = 'fandom'`)**: structured
+      `getmap` JSON via the wiki's MediaWiki API. Worker:
+      `geo-fandom-import-logic.ts`. Stores `wikiMapName` + `wikiRevisionId`
+      for change detection. Defaults to CC-BY-SA-3.0 with explicit attribution
+      back to the wiki page.
+    - **Tier 3 — Wikidata P242 (`source = 'wikidata'`)**: the `P242` (locator
+      map image) statement on the game's Q-item is dereferenced through
+      Wikimedia Commons `imageinfo`, yielding a properly-licensed image URL
+      with declared license metadata. Worker:
+      `geo-wikidata-import-logic.ts`. Sparse coverage but bulletproof
+      provenance.
+    - **Tier 4 — Admin manual upload (`source = 'manual'`)**: last-resort
+      route (`POST /api/admin/geo/maps/manual`) for games with no machine
+      source. Admin supplies a stable image URL plus declared license,
+      attribution, and dimensions; the worker layer is bypassed entirely.
+      Manual uploads also clear all per-tier tombstones for the game so the
+      auto-pipeline doesn't keep retrying.
+- FR-20a: Sources explicitly excluded: IGN, MapGenie, Nexus Mods, Fextralife
+  interactive tile scraping, Reddit bulk scraping (ToS / DMCA / Cloudflare
+  anti-bot risk).
+- FR-20b: Each `geo_map` row preserves source provenance (`source`,
+  `source_url`, `attribution`, `license`, `wiki_map_name`, `wiki_revision_id`)
+  so a DMCA takedown or licence audit can be answered per-row.
+- FR-21: New BullMQ worker `geo-screenshot-import` pulls screenshots from
+  Steam Web API (appid) and RAWG; writes to `geo_screenshot_candidate`.
+- FR-22: New BullMQ worker `geo-coordinate-extract` (optimistic): OCR /
+  minimap detection; any low-confidence hits go to the review queue (**never
+  auto-published**).
+- FR-23: New BullMQ worker `geo-publish` promotes reviewed/consensus-verified
+  candidates to `geo_screenshot_meta`.
+- FR-24: New BullMQ worker `geo-consensus` computes centroid + σ on
+  `geo_pin_submission` per screenshot at thresholds (5, 10, 20, 50).
+- FR-25: New BullMQ worker `geo-reward` grants tokens via
+  `inventoryRepository.addItems()` and achievements via
+  `achievementRepository.grant()`.
+- FR-26: Existing workers (`import`, `sync`, `daily-challenge`, `cleanup`)
+  are untouched.
 
 ### Scoring
 
@@ -214,7 +254,7 @@ The existing "guess the game" mode is **not modified**. Geolocation ships as a p
 
 ## Open Questions
 
-- Which Fandom wiki map do we license by default for Elden Ring — the Fextralife interactive map asset, or do we commission a clean vector redraw for IP safety?
+- ~~Which Fandom wiki map do we license by default for Elden Ring — the Fextralife interactive map asset, or do we commission a clean vector redraw for IP safety?~~ **Resolved (2026-04-25)**: neither. Tier 1 registry uses `elpwc/EldenRingOnlineMap` (MIT) for the pilot. A commissioned redraw is only triggered if/when we promote Geo to a paid commercial tier, since the upstream is itself a derivative of FromSoft assets.
 - Should the Geo daily challenge share a single "daily streak" with the main game, or maintain an independent Geo streak?
 - Do we want a one-shot "explain my score" debug view on the result screen to build player trust in the distance formula?
 - Should contributor rewards (hint tokens) be redeemable **only** in Geo mode, or in the main game too? (Default proposed: usable in both — tokens are fungible — but flag this for fairness review.)

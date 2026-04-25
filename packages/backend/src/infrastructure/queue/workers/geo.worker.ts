@@ -4,6 +4,8 @@ import { queueLogger } from '../../logger/logger.js'
 import type { GeoJobData } from '../queues.js'
 import { evaluateConsensusForCandidate } from './geo-consensus-logic.js'
 import { importFandomMap } from './geo-fandom-import-logic.js'
+import { importRegistryMap } from './geo-registry-import-logic.js'
+import { importWikidataMap } from './geo-wikidata-import-logic.js'
 import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
@@ -37,11 +39,25 @@ export const geoWorker = new Worker<GeoJobData>(
       return result
     }
 
+    if (data.kind === 'import-registry-map') {
+      return await importRegistryMap({
+        gameId: data.gameId,
+        entry: data.entry,
+      })
+    }
+
     if (data.kind === 'import-fandom-map') {
       return await importFandomMap({
         gameId: data.gameId,
         wikiSubdomain: data.wikiSubdomain,
         pageTitle: data.pageTitle,
+      })
+    }
+
+    if (data.kind === 'import-wikidata-map') {
+      return await importWikidataMap({
+        gameId: data.gameId,
+        wikidataQid: data.wikidataQid,
       })
     }
 

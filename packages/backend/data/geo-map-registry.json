@@ -1,0 +1,97 @@
+{
+  "$schema": "./geo-map-registry.schema.json",
+  "version": 1,
+  "description": "Tier 1 ingestion source for geo_map. Each entry maps a game (matched by slug or aliases) to a permissively-licensed external image URL with declared license + attribution. The geo-registry-import worker fetches imageUrl, infers dimensions, and writes a geo_map row with source='registry'. Prefer raw.githubusercontent.com URLs from MIT/GPL/CC-licensed repos so we have an audit trail; commercial-incompatible NC clauses are flagged.",
+  "entries": [
+    {
+      "match": { "slug": "elden-ring" },
+      "imageUrl": "https://raw.githubusercontent.com/elpwc/EldenRingOnlineMap/main/public/img/map/full.jpg",
+      "widthPx": 4096,
+      "heightPx": 4096,
+      "license": "MIT",
+      "attribution": "elpwc/EldenRingOnlineMap (MIT)",
+      "sourceUrl": "https://github.com/elpwc/EldenRingOnlineMap",
+      "commercialUseOk": true
+    },
+    {
+      "match": { "slug": "the-witcher-3-wild-hunt" },
+      "imageUrl": "https://raw.githubusercontent.com/witcher3map/witcher3map-maps/master/Velen/0/0/0.png",
+      "widthPx": 4096,
+      "heightPx": 4096,
+      "license": "CC-BY-NC-SA-4.0",
+      "attribution": "witcher3map/witcher3map-maps (CC-BY-NC-SA, derivative of CDPR assets)",
+      "sourceUrl": "https://github.com/witcher3map/witcher3map-maps",
+      "commercialUseOk": false
+    },
+    {
+      "match": { "slug": "the-legend-of-zelda-breath-of-the-wild" },
+      "imageUrl": "https://objmap.zeldamods.org/game_files/maptex/MainField.jpg",
+      "widthPx": 6000,
+      "heightPx": 5000,
+      "license": "GPL-3.0",
+      "attribution": "zeldamods/objmap (GPL-3.0)",
+      "sourceUrl": "https://github.com/zeldamods/objmap",
+      "commercialUseOk": false
+    },
+    {
+      "match": { "slug": "grand-theft-auto-v" },
+      "imageUrl": "https://raw.githubusercontent.com/RiceaRaul/gta-v-map-leaflet/main/public/tiles/atlas/0/0/0.png",
+      "widthPx": 8192,
+      "heightPx": 8192,
+      "license": "MIT",
+      "attribution": "RiceaRaul/gta-v-map-leaflet (MIT, derivative of Rockstar assets)",
+      "sourceUrl": "https://github.com/RiceaRaul/gta-v-map-leaflet",
+      "commercialUseOk": false
+    },
+    {
+      "match": { "slug": "hollow-knight" },
+      "imageUrl": "https://raw.githubusercontent.com/iguanastin/hk-map/master/img/map.png",
+      "widthPx": 4000,
+      "heightPx": 3000,
+      "license": "MIT",
+      "attribution": "iguanastin/hk-map (MIT)",
+      "sourceUrl": "https://github.com/iguanastin/hk-map",
+      "commercialUseOk": false
+    },
+    {
+      "match": { "slug": "genshin-impact" },
+      "imageUrl": "https://raw.githubusercontent.com/Teyvat-Moe/Teyvat.moe/develop/public/textures/teyvat.png",
+      "widthPx": 8192,
+      "heightPx": 8192,
+      "license": "GPL-3.0",
+      "attribution": "Teyvat-Moe/Teyvat.moe (GPL-3.0, derivative of HoYoverse assets)",
+      "sourceUrl": "https://github.com/Teyvat-Moe/Teyvat.moe",
+      "commercialUseOk": false
+    },
+    {
+      "match": { "slug": "the-elder-scrolls-v-skyrim" },
+      "imageUrl": "https://gamemap.uesp.net/sr/zoom2/maptile-0-0.jpg",
+      "widthPx": 4096,
+      "heightPx": 4096,
+      "license": "CC-BY-SA-3.0",
+      "attribution": "UESP gamemap (CC-BY-SA-3.0)",
+      "sourceUrl": "https://gamemap.uesp.net/sr/",
+      "commercialUseOk": true
+    },
+    {
+      "match": { "slug": "red-dead-redemption-2" },
+      "imageUrl": "https://raw.githubusercontent.com/jeanropke/RDR2CollectorsMap/master/assets/images/game-map/0/0_0.png",
+      "widthPx": 8192,
+      "heightPx": 8192,
+      "license": "ISC",
+      "attribution": "jeanropke/RDR2CollectorsMap (ISC, derivative of Rockstar assets)",
+      "sourceUrl": "https://github.com/jeanropke/RDR2CollectorsMap",
+      "commercialUseOk": false
+    },
+    {
+      "match": { "slug": "rain-world" },
+      "imageUrl": "https://raw.githubusercontent.com/henpemaz/Rain-World-Interactive-Map/master/data/world.png",
+      "widthPx": 4096,
+      "heightPx": 4096,
+      "license": "MIT",
+      "attribution": "henpemaz/Rain-World-Interactive-Map (MIT)",
+      "sourceUrl": "https://github.com/henpemaz/Rain-World-Interactive-Map",
+      "commercialUseOk": true
+    }
+  ]
+}
