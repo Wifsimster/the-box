@@ -521,19 +521,38 @@
         },
         "advanced": {
           "title": "Advanced",
-          "subtitle": "Rare manual overrides — only if the auto-ingest gets something wrong.",
-          "curatedToggle": "Toggle curation",
-          "curatedOn": "Mark as curated",
-          "curatedOff": "Remove from curation",
-          "reimport": "Force re-ingestion",
-          "scheduleNow": "Schedule challenge now",
-          "gameIdLabel": "Game ID",
-          "gameIdHint": "Numeric ID of the game in the local database."
+          "subtitle": "Rare overrides — the ingester handles the rest.",
+          "scheduleNow": "Schedule challenge now"
+        },
+        "curatedList": {
+          "title": "Curated games",
+          "empty": "No games in the curated set yet. Add some from the suggestions below.",
+          "loading": "Loading curated list…",
+          "remove": "Remove",
+          "reimport": "Re-import",
+          "status": {
+            "pending": "Metadata pending",
+            "resolved": "Metadata ready",
+            "unresolved": "Unresolved"
+          },
+          "hasMap": "Map imported",
+          "noMap": "No map yet",
+          "candidates_one": "{{count}} screenshot",
+          "candidates_other": "{{count}} screenshots"
+        },
+        "suggestions": {
+          "title": "Suggestions",
+          "subtitle": "Popular games not yet curated (sorted by Metacritic).",
+          "empty": "No suggestions available.",
+          "loading": "Loading suggestions…",
+          "add": "Curate",
+          "metacritic": "Metacritic {{score}}"
         },
         "actions": {
           "queued": "Job queued: {{id}}",
-          "curatedSet": "Game #{{id}}: curated = {{curated}}",
-          "reimportQueued": "Re-ingestion queued for game #{{id}} (job {{jobId}})",
+          "curatedSet": "\"{{name}}\" is now curated",
+          "curatedRemoved": "\"{{name}}\" removed from the curated set",
+          "reimportQueued": "Re-ingestion queued for \"{{name}}\"",
           "scheduled": "Scheduling triggered (job {{id}})"
         }
       }
