@@ -12,6 +12,7 @@ import { clearDailyData } from './clear-daily-data-logic.js'
 import { sendStreakRiskEmails } from './streak-risk-email-logic.js'
 import { sendRelanceEmails } from './relance-email-logic.js'
 import { sendInactiveUserReminderEmails } from './inactive-user-reminder-logic.js'
+import { sendReferralAnnouncementEmails } from './referral-announcement-email-logic.js'
 import { processTopupBatch, scheduleTopupNextBatch } from './topup-screenshots-logic.js'
 
 const log = queueLogger
@@ -370,6 +371,20 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result }, 'inactive-user-reminder job completed')
+        return jobResult
+      }
+
+      if (name === 'referral-announcement-email') {
+        const result = await sendReferralAnnouncementEmails((current, total) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0
+          job.updateProgress(progress)
+        })
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result }, 'referral-announcement-email job completed')
         return jobResult
       }
 
