@@ -1683,11 +1683,12 @@ router.get('/geo/health', async (_req, res, next) => {
 // active map present, candidate count). With `curated=false` it proposes
 // non-curated games ranked by Metacritic (descending) — that signal correlates
 // well with "famous game with a Fandom wiki and Steam listing", which is the
-// shape the auto-ingester can actually handle. Limit is small by design; the
-// admin scrolls a curated shortlist, not the whole catalogue.
+// shape the auto-ingester can actually handle. Cap matches the bulk-curate
+// endpoint (500) so the Jeux/Cartes tabs can load the whole moderation list
+// in one shot.
 const gamesQuerySchema = z.object({
   curated: z.enum(['true', 'false']).default('true'),
-  limit: z.coerce.number().int().positive().max(50).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
 })
 
 router.get('/geo/games', async (req, res, next) => {
