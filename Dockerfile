@@ -87,6 +87,10 @@ COPY packages/backend/migrations ./packages/backend/migrations
 COPY packages/backend/seeds ./packages/backend/seeds
 COPY packages/backend/knexfile.ts ./packages/backend/knexfile.ts
 
+# Copy runtime data files (e.g. geo-map-registry.json read by the
+# Tier 1 geo ingestion path at packages/backend/data/...)
+COPY packages/backend/data ./packages/backend/data
+
 # Copy built frontend to be served by Node.js
 COPY --from=builder /app/packages/frontend/dist ./packages/frontend/dist
 
