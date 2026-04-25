@@ -110,11 +110,11 @@ export const screenshotReportRepository = {
     return Number(row?.count ?? 0)
   },
 
-  // Admin-facing aggregate: one row per reported target, with total count and
-  // most recent reason/details. Used to power the moderation queue. Filtering
-  // by `onlyDeactivated` lets admins focus on captures already pulled from
-  // rotation; the default returns everything so they can intervene before the
-  // threshold trips when needed.
+  // Admin-facing aggregate: one row per reported target, enriched with the
+  // capture preview (image + game name) and a reason breakdown so moderators
+  // can act on a report without leaving the panel. `onlyDeactivated` focuses
+  // the queue on captures already pulled from rotation; the default returns
+  // everything so admins can intervene before the threshold trips.
   async listAggregated(args: {
     limit?: number
     onlyDeactivated?: boolean
@@ -123,12 +123,19 @@ export const screenshotReportRepository = {
 
     const rows = await db('screenshot_reports as r')
       .leftJoin('screenshots as s', 's.id', 'r.screenshot_id')
+      .leftJoin('games as sg', 'sg.id', 's.game_id')
       .leftJoin('geo_screenshot_candidate as g', 'g.id', 'r.geo_screenshot_candidate_id')
+      .leftJoin('games as gg', 'gg.id', 'g.game_id')
       .select<RawAdminReportRow[]>(
         db.raw('r.screenshot_id as screenshot_id'),
         db.raw('r.geo_screenshot_candidate_id as geo_screenshot_candidate_id'),
         db.raw('s.is_active as screenshot_is_active'),
         db.raw('g.is_active as geo_candidate_is_active'),
+        // COALESCE to the geo URL when this is a geo-only candidate (no
+        // linked main screenshot row).
+        db.raw('COALESCE(s.image_url, g.image_url) as image_url'),
+        db.raw('COALESCE(s.thumbnail_url, g.thumbnail_url) as thumbnail_url'),
+        db.raw('COALESCE(sg.name, gg.name) as game_name'),
         db.raw('count(r.id)::int as count'),
         db.raw('max(r.created_at) as last_reported_at'),
       )
@@ -137,15 +144,48 @@ export const screenshotReportRepository = {
         'r.geo_screenshot_candidate_id',
         's.is_active',
         'g.is_active',
+        's.image_url',
+        'g.image_url',
+        's.thumbnail_url',
+        'g.thumbnail_url',
+        'sg.name',
+        'gg.name',
       )
       .orderBy('count', 'desc')
       .limit(limit)
+
+    // Reason breakdown is fetched in a single follow-up query and merged in
+    // memory; cheaper than a window function and keeps the SQL readable.
+    const reasonRows = await db('screenshot_reports')
+      .select<ReasonBreakdownRow[]>(
+        db.raw('screenshot_id as screenshot_id'),
+        db.raw('geo_screenshot_candidate_id as geo_screenshot_candidate_id'),
+        'reason',
+        db.raw('count(*)::int as count'),
+      )
+      .groupBy('screenshot_id', 'geo_screenshot_candidate_id', 'reason')
+
+    const reasonsByKey = new Map<string, Partial<Record<ScreenshotReportReason, number>>>()
+    for (const r of reasonRows) {
+      const reason = r.reason as ScreenshotReportReason
+      const key =
+        r.screenshot_id != null
+          ? `s:${r.screenshot_id}`
+          : `g:${r.geo_screenshot_candidate_id}`
+      const bucket = reasonsByKey.get(key) ?? {}
+      bucket[reason] = Number(r.count)
+      reasonsByKey.set(key, bucket)
+    }
 
     let summaries = rows.map<AdminReportSummary>((row) => {
       const active =
         row.screenshot_id != null
           ? !!row.screenshot_is_active
           : !!row.geo_candidate_is_active
+      const key =
+        row.screenshot_id != null
+          ? `s:${row.screenshot_id}`
+          : `g:${row.geo_screenshot_candidate_id}`
       return {
         screenshotId: row.screenshot_id ?? undefined,
         geoScreenshotCandidateId: row.geo_screenshot_candidate_id ?? undefined,
@@ -155,6 +195,10 @@ export const screenshotReportRepository = {
             ? row.last_reported_at.toISOString()
             : String(row.last_reported_at),
         isActive: active,
+        imageUrl: row.image_url ?? undefined,
+        thumbnailUrl: row.thumbnail_url ?? undefined,
+        gameName: row.game_name ?? undefined,
+        reasons: reasonsByKey.get(key) ?? {},
       }
     })
 
@@ -215,6 +259,11 @@ export interface AdminReportSummary {
   reportCount: number
   lastReportedAt: string
   isActive: boolean
+  imageUrl?: string
+  thumbnailUrl?: string
+  gameName?: string
+  // Partial map: only reasons that have at least one report appear as keys.
+  reasons: Partial<Record<ScreenshotReportReason, number>>
 }
 
 interface RawAdminReportRow {
@@ -222,8 +271,18 @@ interface RawAdminReportRow {
   geo_screenshot_candidate_id: number | null
   screenshot_is_active: boolean | null
   geo_candidate_is_active: boolean | null
+  image_url: string | null
+  thumbnail_url: string | null
+  game_name: string | null
   count: number
   last_reported_at: Date
+}
+
+interface ReasonBreakdownRow {
+  screenshot_id: number | null
+  geo_screenshot_candidate_id: number | null
+  reason: ScreenshotReportReason
+  count: number
 }
 
 // Deactivate both the geo candidate (if applicable) and any linked main
