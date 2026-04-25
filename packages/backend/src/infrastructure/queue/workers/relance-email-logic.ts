@@ -1,7 +1,7 @@
 import { db } from '../../database/connection.js'
-import { resend } from '../../auth/auth.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
+import { sendEmail } from '../../email/email-sender.js'
 
 const log = queueLogger.child({ worker: 'relance-email' })
 
@@ -126,31 +126,19 @@ async function sendOne(user: RelanceCandidate): Promise<'sent' | 'skipped' | 'fa
   const playUrl = `${env.FRONTEND_URL}/fr/play`
   const unsubscribeUrl = `${env.FRONTEND_URL}/fr/profile`
 
-  if (!resend) {
-    log.info({ userId: user.id }, '[DEV] relance email skipped — no Resend key configured')
-    return 'skipped'
-  }
+  const result = await sendEmail({
+    type: 'relance',
+    userId: user.id,
+    to: user.email,
+    subject: `Coucou, ta récompense t'attend dans la Box`,
+    html: buildHtml(displayName, user.current_day_in_cycle, playUrl, unsubscribeUrl),
+    text: buildText(displayName, user.current_day_in_cycle, playUrl, unsubscribeUrl),
+  })
 
-  try {
-    const { error } = await resend.emails.send({
-      from: `The Box <${env.EMAIL_FROM}>`,
-      to: user.email,
-      subject: `Coucou, ta récompense t'attend dans la Box`,
-      html: buildHtml(displayName, user.current_day_in_cycle, playUrl, unsubscribeUrl),
-      text: buildText(displayName, user.current_day_in_cycle, playUrl, unsubscribeUrl),
-    })
-
-    if (error) {
-      log.warn({ userId: user.id, error: error.message }, 'relance email send failed')
-      return 'failed'
-    }
-
+  if (result.status === 'sent') {
     await db('user').where('id', user.id).update({ last_relance_email_at: new Date() })
-    return 'sent'
-  } catch (err) {
-    log.error({ userId: user.id, error: String(err) }, 'relance email unexpected error')
-    return 'failed'
   }
+  return result.status
 }
 
 export async function sendRelanceEmails(

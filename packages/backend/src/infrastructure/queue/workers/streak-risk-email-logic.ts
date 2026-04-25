@@ -1,7 +1,7 @@
 import { db } from '../../database/connection.js'
-import { resend } from '../../auth/auth.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
+import { sendEmail } from '../../email/email-sender.js'
 
 const log = queueLogger.child({ worker: 'streak-risk-email' })
 
@@ -78,30 +78,18 @@ async function sendOne(user: StreakCandidate): Promise<'sent' | 'skipped' | 'fai
   const playUrl = `${env.FRONTEND_URL}/fr/play`
   const unsubscribeUrl = `${env.FRONTEND_URL}/fr/profile`
 
-  if (!resend) {
-    log.info({ userId: user.id }, '[DEV] streak-risk email skipped — no Resend key configured')
-    return 'skipped'
-  }
+  const result = await sendEmail({
+    type: 'streak-risk',
+    userId: user.id,
+    to: user.email,
+    subject: `Votre série de ${user.current_streak} jour${user.current_streak > 1 ? 's' : ''} est en danger`,
+    html: buildHtml(displayName, user.current_streak, playUrl, unsubscribeUrl),
+  })
 
-  try {
-    const { error } = await resend.emails.send({
-      from: `The Box <${env.EMAIL_FROM}>`,
-      to: user.email,
-      subject: `Votre série de ${user.current_streak} jour${user.current_streak > 1 ? 's' : ''} est en danger`,
-      html: buildHtml(displayName, user.current_streak, playUrl, unsubscribeUrl),
-    })
-
-    if (error) {
-      log.warn({ userId: user.id, error: error.message }, 'streak-risk email send failed')
-      return 'failed'
-    }
-
+  if (result.status === 'sent') {
     await db('user').where('id', user.id).update({ last_streak_risk_email_at: new Date() })
-    return 'sent'
-  } catch (err) {
-    log.error({ userId: user.id, error: String(err) }, 'streak-risk email unexpected error')
-    return 'failed'
   }
+  return result.status
 }
 
 export async function sendStreakRiskEmails(

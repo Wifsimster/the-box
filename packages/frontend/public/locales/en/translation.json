@@ -421,9 +421,41 @@
       "challenges": "Challenges",
       "users": "Users",
       "email": "Email",
+      "emailLog": "Email Log",
       "growth": "Growth",
       "geo": "Geo",
       "reports": "Reports"
+    },
+    "emailLog": {
+      "title": "Email History",
+      "totalCount_one": "{{count}} email",
+      "totalCount_other": "{{count}} emails",
+      "searchPlaceholder": "Search by recipient…",
+      "filterType": "All types",
+      "filterStatus": "All statuses",
+      "empty": "No emails match these filters.",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "table": {
+        "sentAt": "Sent at",
+        "recipient": "Recipient",
+        "type": "Type",
+        "subject": "Subject",
+        "status": "Status"
+      },
+      "statuses": {
+        "sent": "Sent",
+        "failed": "Failed",
+        "skipped": "Skipped"
+      },
+      "types": {
+        "password-reset": "Password reset",
+        "verification": "Verification",
+        "streak-risk": "Streak risk",
+        "relance": "Re-engagement",
+        "inactive-reminder": "Inactive reminder",
+        "referral-announcement": "Referral",
+        "admin-test": "Admin test"
+      }
     },
     "reports": {
       "title": "Reported captures",

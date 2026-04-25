@@ -1,7 +1,7 @@
 import { db } from '../../database/connection.js'
-import { resend } from '../../auth/auth.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
+import { sendEmail } from '../../email/email-sender.js'
 
 const log = queueLogger.child({ worker: 'inactive-user-reminder' })
 
@@ -137,31 +137,19 @@ async function sendOne(user: InactiveCandidate): Promise<'sent' | 'skipped' | 'f
   const playUrl = `${env.FRONTEND_URL}/fr/play`
   const unsubscribeUrl = `${env.FRONTEND_URL}/fr/profile`
 
-  if (!resend) {
-    log.info({ userId: user.id }, '[DEV] inactive-user-reminder email skipped — no Resend key configured')
-    return 'skipped'
-  }
+  const result = await sendEmail({
+    type: 'inactive-reminder',
+    userId: user.id,
+    to: user.email,
+    subject: `${displayName}, ça fait ${days} jours — on t'attend dans la Box`,
+    html: buildHtml(displayName, days, playUrl, unsubscribeUrl),
+    text: buildText(displayName, days, playUrl, unsubscribeUrl),
+  })
 
-  try {
-    const { error } = await resend.emails.send({
-      from: `The Box <${env.EMAIL_FROM}>`,
-      to: user.email,
-      subject: `${displayName}, ça fait ${days} jours — on t'attend dans la Box`,
-      html: buildHtml(displayName, days, playUrl, unsubscribeUrl),
-      text: buildText(displayName, days, playUrl, unsubscribeUrl),
-    })
-
-    if (error) {
-      log.warn({ userId: user.id, error: error.message }, 'inactive-user-reminder email send failed')
-      return 'failed'
-    }
-
+  if (result.status === 'sent') {
     await db('user').where('id', user.id).update({ last_inactive_reminder_email_at: new Date() })
-    return 'sent'
-  } catch (err) {
-    log.error({ userId: user.id, error: String(err) }, 'inactive-user-reminder email unexpected error')
-    return 'failed'
   }
+  return result.status
 }
 
 export async function sendInactiveUserReminderEmails(

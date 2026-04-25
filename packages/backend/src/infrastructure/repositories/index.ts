@@ -9,6 +9,15 @@ export { achievementRepository } from './achievement.repository.js'
 export { dailyLoginRepository } from './daily-login.repository.js'
 export { inventoryRepository } from './inventory.repository.js'
 export { funnelEventRepository } from './funnel-event.repository.js'
+export {
+  emailLogRepository,
+  type EmailType,
+  type EmailStatus,
+  type EmailLogInput,
+  type EmailLogRow,
+  type EmailLogQuery,
+  type EmailLogPage,
+} from './email-log.repository.js'
 export { geoMapRepository } from './geo-map.repository.js'
 export { geoScreenshotRepository } from './geo-screenshot.repository.js'
 export { geoChallengeRepository } from './geo-challenge.repository.js'

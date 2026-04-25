@@ -616,6 +616,51 @@ export interface RecurringJob {
 }
 
 // ============================================
+// Email Log (admin)
+// ============================================
+
+export type EmailLogType =
+  | 'password-reset'
+  | 'verification'
+  | 'streak-risk'
+  | 'relance'
+  | 'inactive-reminder'
+  | 'referral-announcement'
+  | 'admin-test'
+
+export type EmailLogStatus = 'sent' | 'failed' | 'skipped'
+
+export interface EmailLogEntry {
+  id: number
+  userId: string | null
+  recipient: string
+  type: EmailLogType
+  subject: string
+  status: EmailLogStatus
+  providerMessageId: string | null
+  errorMessage: string | null
+  sentAt: string
+}
+
+export interface EmailLogResponse {
+  entries: EmailLogEntry[]
+  total: number
+  page: number
+  limit: number
+}
+
+export interface EmailLogQuery {
+  page?: number
+  limit?: number
+  status?: EmailLogStatus
+  type?: EmailLogType
+  userId?: string
+  search?: string
+  dateFrom?: string
+  dateTo?: string
+}
+
+// ============================================
 // Daily Login Rewards Domain
 // ============================================
 

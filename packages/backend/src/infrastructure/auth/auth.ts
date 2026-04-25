@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import { env } from "../../config/env.js";
 import { authLogger } from "../logger/logger.js";
 import { inventoryRepository } from "../repositories/inventory.repository.js";
+import { emailLogRepository } from "../repositories/email-log.repository.js";
 
 const STARTER_INVENTORY: Array<{ itemType: string; itemKey: string; quantity: number }> = [
   { itemType: "powerup", itemKey: "hint_year", quantity: 2 },
@@ -29,11 +30,12 @@ function createAuth() {
       autoSignIn: true, // Explicitly enable automatic sign-in after registration
       minPasswordLength: 8, // OWASP recommended minimum
       sendResetPassword: async ({ user, url }) => {
+        const subject = "Réinitialiser votre mot de passe";
         if (resend) {
           const { data, error } = await resend.emails.send({
             from: `The Box <${env.EMAIL_FROM}>`,
             to: user.email,
-            subject: "Réinitialiser votre mot de passe",
+            subject,
             html: `
             <h1>Réinitialisation du mot de passe</h1>
             <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
@@ -44,21 +46,46 @@ function createAuth() {
           });
           if (error) {
             authLogger.error({ email: user.email, err: error.message }, "failed to send password reset email");
+            await emailLogRepository.record({
+              userId: user.id,
+              recipient: user.email,
+              type: "password-reset",
+              subject,
+              status: "failed",
+              errorMessage: error.message,
+            });
           } else {
             authLogger.info({ email: user.email, emailId: data?.id }, "password reset email sent");
+            await emailLogRepository.record({
+              userId: user.id,
+              recipient: user.email,
+              type: "password-reset",
+              subject,
+              status: "sent",
+              providerMessageId: data?.id ?? null,
+            });
           }
         } else {
           authLogger.info({ email: user.email, url }, "dev password reset link");
+          await emailLogRepository.record({
+            userId: user.id,
+            recipient: user.email,
+            type: "password-reset",
+            subject,
+            status: "skipped",
+            errorMessage: "RESEND_API_KEY not configured",
+          });
         }
       },
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
+        const subject = "Vérifiez votre adresse email";
         if (resend) {
           const { data, error } = await resend.emails.send({
             from: `The Box <${env.EMAIL_FROM}>`,
             to: user.email,
-            subject: "Vérifiez votre adresse email",
+            subject,
             html: `
             <h1>Bienvenue sur The Box !</h1>
             <p>Cliquez sur le lien ci-dessous pour vérifier votre adresse email :</p>
@@ -68,11 +95,35 @@ function createAuth() {
           });
           if (error) {
             authLogger.error({ email: user.email, err: error.message }, "failed to send verification email");
+            await emailLogRepository.record({
+              userId: user.id,
+              recipient: user.email,
+              type: "verification",
+              subject,
+              status: "failed",
+              errorMessage: error.message,
+            });
           } else {
             authLogger.info({ email: user.email, emailId: data?.id }, "verification email sent");
+            await emailLogRepository.record({
+              userId: user.id,
+              recipient: user.email,
+              type: "verification",
+              subject,
+              status: "sent",
+              providerMessageId: data?.id ?? null,
+            });
           }
         } else {
           authLogger.info({ email: user.email, url }, "dev email verification link");
+          await emailLogRepository.record({
+            userId: user.id,
+            recipient: user.email,
+            type: "verification",
+            subject,
+            status: "skipped",
+            errorMessage: "RESEND_API_KEY not configured",
+          });
         }
       },
     },
