@@ -8,6 +8,8 @@ import {
   tombstoneRetryAfter,
   wikiSubdomainCandidates,
 } from '../../../domain/services/geo-metadata.service.js'
+import { resolveWikidataQid } from './geo-wikidata-import-logic.js'
+import { findRegistryEntryBySlug } from './geo-registry-import-logic.js'
 
 const log = queueLogger.child({ worker: 'geo-metadata-resolve' })
 
@@ -24,6 +26,7 @@ interface CuratedGameRow {
   steam_app_id: number | null
   wiki_subdomain: string | null
   wiki_page_title: string | null
+  wikidata_qid: string | null
 }
 
 export interface ResolveMetadataResult {
@@ -65,6 +68,7 @@ export async function resolveGeoMetadataBatch(
       'steam_app_id',
       'wiki_subdomain',
       'wiki_page_title',
+      'wikidata_qid',
     )
 
   let resolved = 0
@@ -78,15 +82,23 @@ export async function resolveGeoMetadataBatch(
         row.wiki_subdomain && row.wiki_page_title
           ? { subdomain: row.wiki_subdomain, mapName: row.wiki_page_title }
           : await resolveFandomInteractiveMap(row.name, row.slug)
+      const wikidataQid =
+        row.wikidata_qid ?? (await resolveWikidataQid(row.name))
+      // Tier 1 hit short-circuits the "did we find anything" check — even if
+      // Steam/Fandom/Wikidata all whiff, a curated registry entry is enough
+      // to mark this game `resolved` and let the tick enqueue the import.
+      const hasRegistry = (await findRegistryEntryBySlug(row.slug)) !== null
 
-      const haveAnything = Boolean(steamAppId) || Boolean(wiki)
+      const haveAnything =
+        hasRegistry || Boolean(steamAppId) || Boolean(wiki) || Boolean(wikidataQid)
       if (!haveAnything) {
         const attempt =
           (await geoIngestFailureRepository.getAttemptCount(row.id, 'metadata')) + 1
         await geoIngestFailureRepository.record({
           gameId: row.id,
           source: 'metadata',
-          reason: 'no Steam appid and no Fandom interactive map found',
+          reason:
+            'no registry entry, Steam appid, Fandom map, or Wikidata Q-id found',
           retryAfter: tombstoneRetryAfter(attempt),
         })
         await db('games')
@@ -102,12 +114,16 @@ export async function resolveGeoMetadataBatch(
           steam_app_id: steamAppId,
           wiki_subdomain: wiki?.subdomain ?? row.wiki_subdomain,
           wiki_page_title: wiki?.mapName ?? row.wiki_page_title,
+          wikidata_qid: wikidataQid ?? row.wikidata_qid,
           geo_metadata_status: 'resolved',
           geo_metadata_resolved_at: new Date(),
         })
       await geoIngestFailureRepository.clear(row.id, 'metadata')
       resolved++
-      log.info({ gameId: row.id, steamAppId, wiki }, 'resolved geo metadata')
+      log.info(
+        { gameId: row.id, steamAppId, wiki, wikidataQid, hasRegistry },
+        'resolved geo metadata',
+      )
     } catch (err) {
       log.warn({ gameId: row.id, err: String(err) }, 'metadata resolution error')
       skipped++

@@ -3,7 +3,12 @@ import { repoLogger } from '../logger/logger.js'
 
 const log = repoLogger.child({ repository: 'geo-ingest-failure' })
 
-export type GeoIngestSource = 'fandom' | 'steam' | 'metadata'
+export type GeoIngestSource =
+  | 'fandom'
+  | 'steam'
+  | 'metadata'
+  | 'registry'
+  | 'wikidata'
 
 export interface GeoIngestFailureRow {
   game_id: number

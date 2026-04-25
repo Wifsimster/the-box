@@ -1866,7 +1866,9 @@ router.post('/geo/reimport', async (req, res, next) => {
     // Wipe tombstones + force a metadata re-resolve. The recurring ingest
     // tick will re-enqueue per-source imports as soon as resolution lands.
     await Promise.all([
+      geoIngestFailureRepository.clear(parse.data.gameId, 'registry'),
       geoIngestFailureRepository.clear(parse.data.gameId, 'fandom'),
+      geoIngestFailureRepository.clear(parse.data.gameId, 'wikidata'),
       geoIngestFailureRepository.clear(parse.data.gameId, 'steam'),
       geoIngestFailureRepository.clear(parse.data.gameId, 'metadata'),
     ])
@@ -1877,6 +1879,7 @@ router.post('/geo/reimport', async (req, res, next) => {
         wiki_subdomain: null,
         wiki_page_title: null,
         steam_app_id: null,
+        wikidata_qid: null,
       })
 
     const job = await geoQueue.add('resolve-metadata', {
@@ -1936,6 +1939,92 @@ router.delete('/geo/meta/:id', async (req, res, next) => {
       }
       throw dbErr
     }
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ---------- Tier 3 manual map upload ----------
+
+// Last-resort fallback when Tiers 1–2 (registry / Fandom / Wikidata) didn't
+// produce a usable map. Admin supplies a URL they've verified themselves
+// (publisher press kit, commissioned art, hand-drawn fan map with explicit
+// permission), declares license + attribution, and we record it as a
+// `source = 'manual'` row. No image processing happens server-side — the
+// admin is responsible for hosting the asset somewhere stable.
+const manualGeoMapBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  imageUrl: z.string().url().max(1000),
+  widthPx: z.number().int().positive().max(32_768),
+  heightPx: z.number().int().positive().max(32_768),
+  license: z.string().min(1).max(100),
+  attribution: z.string().max(500).optional(),
+  sourceUrl: z.string().url().max(1000).optional(),
+  consensusRadius: z.number().min(0.001).max(1).optional(),
+  // If true, the existing active map for this game is deactivated first so
+  // the new one becomes canonical without violating the unique
+  // (game_id, image_url) constraint when the URLs differ.
+  replaceActive: z.boolean().optional(),
+})
+
+router.post('/geo/maps/manual', async (req, res, next) => {
+  try {
+    const parse = manualGeoMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const data = parse.data
+
+    const game = await db('games').where({ id: data.gameId }).first<{ id: number }>()
+    if (!game) {
+      res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+      return
+    }
+
+    if (data.replaceActive) {
+      const active = await geoMapRepository.findActiveByGameId(data.gameId)
+      if (active) await geoMapRepository.deactivate(active.id)
+    } else {
+      const active = await geoMapRepository.findActiveByGameId(data.gameId)
+      if (active) {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'MAP_EXISTS',
+            message:
+              'an active geo_map already exists for this game; pass replaceActive=true to swap',
+          },
+        })
+        return
+      }
+    }
+
+    const map = await geoMapRepository.create({
+      gameId: data.gameId,
+      source: 'manual',
+      sourceUrl: data.sourceUrl,
+      imageUrl: data.imageUrl,
+      widthPx: data.widthPx,
+      heightPx: data.heightPx,
+      license: data.license,
+      attribution: data.attribution,
+      consensusRadius: data.consensusRadius,
+    })
+
+    // Also clear all ingest tombstones for this game — manual upload is the
+    // operator saying "I've solved this", so the auto-pipeline shouldn't keep
+    // re-tombstoning it.
+    await Promise.all([
+      geoIngestFailureRepository.clear(data.gameId, 'registry'),
+      geoIngestFailureRepository.clear(data.gameId, 'fandom'),
+      geoIngestFailureRepository.clear(data.gameId, 'wikidata'),
+    ])
+
+    res.json({ success: true, data: map })
   } catch (err) {
     next(err)
   }

@@ -1,6 +1,7 @@
 import { Queue, QueueEvents } from 'bullmq'
 import { redisConnectionOptions } from './connection.js'
 import type { JobData } from '@the-box/types'
+import type { RegistryEntry } from './workers/geo-registry-import-logic.js'
 
 export const importQueue = new Queue<JobData>('import-jobs', {
   connection: redisConnectionOptions,
@@ -26,10 +27,20 @@ export type GeoJobData =
   | { kind: 'evaluate-consensus'; geoScreenshotCandidateId: number }
   | { kind: 'promote-contributor-tier'; userId: string }
   | {
+      kind: 'import-registry-map'
+      gameId: number
+      entry: RegistryEntry
+    }
+  | {
       kind: 'import-fandom-map'
       gameId: number
       wikiSubdomain: string
       pageTitle: string
+    }
+  | {
+      kind: 'import-wikidata-map'
+      gameId: number
+      wikidataQid: string
     }
   | {
       kind: 'import-steam-screenshots'

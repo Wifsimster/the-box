@@ -1,13 +1,13 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
-import type { GeoMap } from '@the-box/types'
+import type { GeoMap, GeoMapSource } from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'geo-map' })
 
 export interface GeoMapRow {
   id: number
   game_id: number
-  source: 'fandom' | 'steam' | 'manual'
+  source: GeoMapSource
   source_url: string | null
   image_url: string
   width_px: number
@@ -69,7 +69,7 @@ export const geoMapRepository = {
 
   async create(data: {
     gameId: number
-    source: 'fandom' | 'steam' | 'manual'
+    source: GeoMapSource
     sourceUrl?: string
     imageUrl: string
     widthPx: number

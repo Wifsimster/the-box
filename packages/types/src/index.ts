@@ -740,10 +740,12 @@ export interface GeoPoint {
   y: number
 }
 
+export type GeoMapSource = 'registry' | 'fandom' | 'wikidata' | 'steam' | 'manual'
+
 export interface GeoMap {
   id: number
   gameId: number
-  source: 'fandom' | 'steam' | 'manual'
+  source: GeoMapSource
   sourceUrl?: string
   imageUrl: string
   widthPx: number
