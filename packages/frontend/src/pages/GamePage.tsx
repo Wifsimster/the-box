@@ -657,10 +657,10 @@ export default function GamePage() {
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               )}
               {/* Report button — overlay on the viewer; only shown while we
-                  have a real screenshot in play. Sits above the gradient
-                  overlays (z-30) so it stays clickable. */}
+                  have a real screenshot in play. Pinned to the bottom-right
+                  to avoid overlapping the score panel (z-40) at the top. */}
               {currentScreenshotData?.screenshotId && (
-                <div className="absolute top-2 right-2 z-30">
+                <div className="absolute bottom-2 right-2 z-30">
                   <ReportCaptureDialog
                     target={{ screenshotId: currentScreenshotData.screenshotId }}
                     isAuthenticated={!!session?.user?.id}
