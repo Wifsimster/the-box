@@ -47,7 +47,10 @@ interface TeaserCardProps {
 
 function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
   return (
-    <div className="group relative h-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm transition-colors hover:border-neon-pink/60">
+    <div
+      className="group relative h-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm transition-colors hover:border-neon-pink/60"
+      aria-label={`${achievement.name} — ${lockedLabel}`}
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-neon-pink/20 blur-3xl opacity-50 group-hover:opacity-70 transition-opacity"
@@ -60,10 +63,14 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
                 {achievement.iconUrl ?? '🏆'}
               </span>
             }
-            className="opacity-80 grayscale-[0.4] group-hover:grayscale-0 group-hover:opacity-100 transition"
+            className="opacity-90 grayscale-[0.3] group-hover:grayscale-0 group-hover:opacity-100 transition"
           />
-          <span className="absolute -bottom-1.5 -right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-background/90 border border-neon-purple/40 text-muted-foreground">
-            <Lock className="h-3 w-3" aria-label={lockedLabel} />
+          <span
+            className="absolute -bottom-1.5 -right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-background/90 border border-neon-purple/40 text-foreground"
+            role="img"
+            aria-label={lockedLabel}
+          >
+            <Lock className="h-3 w-3" aria-hidden="true" />
           </span>
         </div>
         <h3 className="text-sm sm:text-base font-semibold leading-tight text-foreground">
@@ -219,10 +226,10 @@ export function HomeAchievementTeaser() {
         </div>
         <Link
           to={localizedPath('/profile')}
-          className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-neon-pink transition-colors shrink-0"
+          className="hidden sm:inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 -mx-3 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {t('home.achievements.cta')}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
 
@@ -259,10 +266,10 @@ export function HomeAchievementTeaser() {
       <div className="mt-4 sm:hidden text-center">
         <Link
           to={localizedPath('/profile')}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-neon-pink transition-colors"
+          className="inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {t('home.achievements.cta')}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
     </motion.section>

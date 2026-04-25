@@ -178,9 +178,18 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Countdown timer */}
-                <div className="flex items-center justify-center gap-2 pt-3 border-t border-neon-purple/20">
-                  <Clock className="h-4 w-4 text-neon-pink" />
+                {/* Countdown timer.
+                    `role="timer"` + `aria-live="polite"` lets assistive tech
+                    announce the countdown without interrupting; `aria-atomic`
+                    re-reads the whole label rather than a stray digit. */}
+                <div
+                  role="timer"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  aria-label={`${t('home.nextDailyIn')} ${String(timeRemaining.hours).padStart(2, '0')}:${String(timeRemaining.minutes).padStart(2, '0')}:${String(timeRemaining.seconds).padStart(2, '0')}`}
+                  className="flex items-center justify-center gap-2 pt-3 border-t border-neon-purple/20"
+                >
+                  <Clock className="h-4 w-4 text-neon-pink" aria-hidden="true" />
                   <span className="text-xs sm:text-sm text-muted-foreground">
                     {t('home.nextDailyIn')}
                   </span>

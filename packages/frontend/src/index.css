@@ -17,23 +17,28 @@
   --secondary: oklch(0.279 0.041 283.713);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 283.713);
-  --muted-foreground: oklch(0.704 0.04 283.713);
+  /* Bumped from 0.704 → 0.78 so secondary text on tinted card surfaces
+     (e.g. bg-muted/5, bg-card/60) clears the WCAG AA 4.5:1 ratio. */
+  --muted-foreground: oklch(0.78 0.035 283.713);
   --accent: oklch(0.279 0.041 283.713);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.984 0.003 247.858);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 283.713);
+  /* Brighter focus ring so keyboard users see it against the dark theme. */
+  --ring: oklch(0.78 0.18 320);
   --chart-1: oklch(0.702 0.183 293.541);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 
-  /* Gaming neon colors (preserved) */
+  /* Gaming neon colors (preserved). `--neon-pink` lifted from #ec4899 →
+     #f472b6 so pink-on-dark text (countdown clock, hover links) clears the
+     4.5:1 contrast ratio. Decorative glows still read as the same pink. */
   --neon-purple: #a855f7;
-  --neon-pink: #ec4899;
+  --neon-pink: #f472b6;
   --neon-blue: #3b82f6;
   --neon-cyan: #06b6d4;
 
@@ -147,6 +152,16 @@ body {
   min-height: 100vh;
 }
 
+/* Default keyboard focus ring. Components that need a custom ring can
+   override locally with `focus-visible:` utilities; this just guarantees
+   that every interactive element shows *something* when tabbed to so we
+   don't ship a UI with no visible focus indicator. */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
@@ -252,6 +267,12 @@ body {
 .card-interactive:hover {
   border-color: oklch(0.7 0.25 300 / 0.5);
   box-shadow: var(--glow-md);
+}
+
+.card-interactive:focus-visible {
+  outline: none;
+  border-color: var(--color-ring);
+  box-shadow: 0 0 0 3px oklch(0.78 0.18 320 / 0.6), var(--glow-md);
 }
 
 /* Neon grid backdrop (TierIntro, hero backdrops) */
