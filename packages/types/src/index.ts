@@ -819,19 +819,3 @@ export type ScreenshotReportReason =
   | 'not_recognizable'
   | 'inappropriate'
   | 'other'
-
-export interface ScreenshotReportInput {
-  reason: ScreenshotReportReason
-  details?: string
-  // Exactly one target must be provided.
-  screenshotId?: number
-  geoScreenshotCandidateId?: number
-}
-
-export interface ScreenshotReportResult {
-  received: boolean
-  // True iff this report tipped the target past the threshold and the
-  // capture is now disabled.
-  deactivated: boolean
-  reportCount: number
-}

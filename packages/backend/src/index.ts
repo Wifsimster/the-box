@@ -21,6 +21,7 @@ import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
 import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
+import screenshotReportRoutes from './presentation/routes/screenshot-report.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue, geoQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
@@ -181,6 +182,7 @@ app.use('/api/inventory', dailyLoginRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
 app.use('/api/geo', geoRoutes)
+app.use('/api/screenshot-reports', screenshotReportRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')

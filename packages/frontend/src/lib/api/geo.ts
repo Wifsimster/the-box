@@ -9,8 +9,6 @@ import type {
     GeoPoint,
     GeoScreenshotCandidate,
     GeoScreenshotMeta,
-    ScreenshotReportInput,
-    ScreenshotReportResult,
 } from '@the-box/types'
 
 export class GeoApiError extends Error {
@@ -123,12 +121,5 @@ export const geoApi = {
 
     getContributorMe(): Promise<GeoContributorMe> {
         return request<GeoContributorMe>('/api/geo/contributor/me')
-    },
-
-    reportCapture(input: ScreenshotReportInput): Promise<ScreenshotReportResult> {
-        return request<ScreenshotReportResult>('/api/geo/report', {
-            method: 'POST',
-            body: JSON.stringify(input),
-        })
     },
 }

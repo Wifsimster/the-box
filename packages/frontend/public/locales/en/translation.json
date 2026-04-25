@@ -976,27 +976,6 @@
       "screenshotUnavailable": "Screenshot preview unavailable.",
       "errors": {
         "noChallenge": "No geo challenge is available for today yet. Please check back later."
-      },
-      "report": {
-        "trigger": "Report capture",
-        "title": "Report this capture",
-        "description": "Flag this screenshot if it shouldn't appear in any game. We'll remove it once enough players agree.",
-        "reasonLabel": "Reason",
-        "detailsLabel": "Details (optional)",
-        "detailsPlaceholder": "Anything else we should know?",
-        "submit": "Submit report",
-        "submitting": "Sending…",
-        "successReceived": "Thanks — your report was recorded.",
-        "successDeactivated": "Thanks — this capture has been removed from rotation.",
-        "loginRequired": "You must be signed in to report a capture.",
-        "errorGeneric": "Couldn't send the report. Please try again.",
-        "reasons": {
-          "wrong_game": "Wrong game",
-          "low_quality": "Low-quality image",
-          "not_recognizable": "Not recognizable / no usable landmark",
-          "inappropriate": "Inappropriate content",
-          "other": "Other"
-        }
       }
     },
     "contribute": {
@@ -1061,5 +1040,26 @@
     "CHALLENGE_NOT_FOUND": "Challenge not found.",
     "SCREENSHOT_NOT_FOUND": "Screenshot not found.",
     "CONTRIBUTE_RATE_LIMIT": "Hourly pin limit reached — come back later."
+  },
+  "report": {
+    "trigger": "Report capture",
+    "title": "Report this capture",
+    "description": "Flag this screenshot if it shouldn't appear in any game. We'll remove it once enough players agree.",
+    "reasonLabel": "Reason",
+    "detailsLabel": "Details (optional)",
+    "detailsPlaceholder": "Anything else we should know?",
+    "submit": "Submit report",
+    "submitting": "Sending…",
+    "successReceived": "Thanks — your report was recorded.",
+    "successDeactivated": "Thanks — this capture has been removed from rotation.",
+    "loginRequired": "You must be signed in to report a capture.",
+    "errorGeneric": "Couldn't send the report. Please try again.",
+    "reasons": {
+      "wrong_game": "Wrong game",
+      "low_quality": "Low-quality image",
+      "not_recognizable": "Not recognizable / no usable landmark",
+      "inappropriate": "Inappropriate content",
+      "other": "Other"
+    }
   }
 }

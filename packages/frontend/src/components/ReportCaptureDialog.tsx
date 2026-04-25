@@ -2,15 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flag, Loader2 } from 'lucide-react'
 import type { ScreenshotReportReason } from '@the-box/types'
-
-const REPORT_REASONS = [
-    'wrong_game',
-    'low_quality',
-    'not_recognizable',
-    'inappropriate',
-    'other',
-] as const satisfies readonly ScreenshotReportReason[]
-import { geoApi, GeoApiError } from '@/lib/api/geo'
+import { reportsApi, ReportApiError, type SubmitReportInput } from '@/lib/api/reports'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,14 +23,35 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 
+const REPORT_REASONS = [
+    'wrong_game',
+    'low_quality',
+    'not_recognizable',
+    'inappropriate',
+    'other',
+] as const satisfies readonly ScreenshotReportReason[]
+
+// Polymorphic target: callers pass exactly one of `screenshotId` (main daily
+// game / catch-up) or `geoScreenshotCandidateId` (geo pin game). The dialog
+// is otherwise identical regardless of where it's hosted.
+export type ReportCaptureTarget =
+    | { screenshotId: number; geoScreenshotCandidateId?: never }
+    | { geoScreenshotCandidateId: number; screenshotId?: never }
+
 interface ReportCaptureDialogProps {
-    geoScreenshotCandidateId: number
+    target: ReportCaptureTarget
     isAuthenticated: boolean
+    // Optional — when supplied lets the dialog render a custom trigger
+    // (e.g. an icon-only button overlaid on the screenshot viewer).
+    triggerClassName?: string
+    iconOnly?: boolean
 }
 
 export function ReportCaptureDialog({
-    geoScreenshotCandidateId,
+    target,
     isAuthenticated,
+    triggerClassName,
+    iconOnly = false,
 }: ReportCaptureDialogProps) {
     const { t } = useTranslation()
     const [open, setOpen] = useState(false)
@@ -49,7 +62,6 @@ export function ReportCaptureDialog({
 
     const handleOpenChange = (next: boolean) => {
         if (!next) {
-            // Reset on close so re-opening starts fresh.
             setReason('wrong_game')
             setDetails('')
             setSubmitted(false)
@@ -59,28 +71,37 @@ export function ReportCaptureDialog({
 
     const handleSubmit = async () => {
         if (!isAuthenticated) {
-            toast.error(t('geo.daily.report.loginRequired'))
+            toast.error(t('report.loginRequired'))
             return
         }
         setSubmitting(true)
         try {
-            const result = await geoApi.reportCapture({
-                geoScreenshotCandidateId,
-                reason,
-                details: details.trim() ? details.trim() : undefined,
-            })
+            const payload: SubmitReportInput =
+                'screenshotId' in target && target.screenshotId !== undefined
+                    ? {
+                          screenshotId: target.screenshotId,
+                          reason,
+                          details: details.trim() || undefined,
+                      }
+                    : {
+                          geoScreenshotCandidateId:
+                              target.geoScreenshotCandidateId!,
+                          reason,
+                          details: details.trim() || undefined,
+                      }
+            const result = await reportsApi.submit(payload)
             toast.success(
                 result.deactivated
-                    ? t('geo.daily.report.successDeactivated')
-                    : t('geo.daily.report.successReceived'),
+                    ? t('report.successDeactivated')
+                    : t('report.successReceived'),
             )
             setSubmitted(true)
             setOpen(false)
         } catch (err) {
             const message =
-                err instanceof GeoApiError
+                err instanceof ReportApiError
                     ? err.message
-                    : t('geo.daily.report.errorGeneric')
+                    : t('report.errorGeneric')
             toast.error(message)
         } finally {
             setSubmitting(false)
@@ -94,23 +115,28 @@ export function ReportCaptureDialog({
                     variant="ghost"
                     size="sm"
                     disabled={submitted}
-                    className="text-xs text-muted-foreground hover:text-destructive"
+                    title={t('report.trigger')}
+                    aria-label={t('report.trigger')}
+                    className={
+                        triggerClassName ??
+                        'text-xs text-muted-foreground hover:text-destructive'
+                    }
                 >
-                    <Flag className="h-3.5 w-3.5 mr-1.5" />
-                    {t('geo.daily.report.trigger')}
+                    <Flag className={iconOnly ? 'h-4 w-4' : 'h-3.5 w-3.5 mr-1.5'} />
+                    {!iconOnly && t('report.trigger')}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{t('geo.daily.report.title')}</DialogTitle>
+                    <DialogTitle>{t('report.title')}</DialogTitle>
                     <DialogDescription>
-                        {t('geo.daily.report.description')}
+                        {t('report.description')}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                     <div className="space-y-2">
                         <Label htmlFor="report-reason">
-                            {t('geo.daily.report.reasonLabel')}
+                            {t('report.reasonLabel')}
                         </Label>
                         <Select
                             value={reason}
@@ -124,7 +150,7 @@ export function ReportCaptureDialog({
                             <SelectContent>
                                 {REPORT_REASONS.map((r) => (
                                     <SelectItem key={r} value={r}>
-                                        {t(`geo.daily.report.reasons.${r}`)}
+                                        {t(`report.reasons.${r}`)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -132,7 +158,7 @@ export function ReportCaptureDialog({
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="report-details">
-                            {t('geo.daily.report.detailsLabel')}
+                            {t('report.detailsLabel')}
                         </Label>
                         <textarea
                             id="report-details"
@@ -140,7 +166,7 @@ export function ReportCaptureDialog({
                             onChange={(e) => setDetails(e.target.value)}
                             maxLength={500}
                             rows={3}
-                            placeholder={t('geo.daily.report.detailsPlaceholder')}
+                            placeholder={t('report.detailsPlaceholder')}
                             className="flex w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                         />
                     </div>
@@ -163,9 +189,7 @@ export function ReportCaptureDialog({
                         {submitting && (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         )}
-                        {submitting
-                            ? t('geo.daily.report.submitting')
-                            : t('geo.daily.report.submit')}
+                        {submitting ? t('report.submitting') : t('report.submit')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
