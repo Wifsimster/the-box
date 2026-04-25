@@ -247,7 +247,7 @@ export function UserList() {
             <p className="text-muted-foreground">{t('admin.users.noUsers')}</p>
           </div>
         ) : (
-          /* Table */
+          /* Table (md+) / Cards (mobile) */
           <>
             <div className="relative">
               {usersLoading && (
@@ -255,7 +255,109 @@ export function UserList() {
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               )}
-              <div className="rounded-lg border border-white/10 overflow-hidden">
+
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {users.map((user, index) => (
+                    <motion.div
+                      key={user.id}
+                      variants={tableRow}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      custom={index}
+                      layout
+                      transition={{ delay: index * 0.02 }}
+                      className="rounded-lg border border-white/10 bg-card/50 p-3 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-sm break-all">{user.email}</div>
+                          <div className="text-xs text-muted-foreground truncate mt-0.5">
+                            {user.displayName || user.username}
+                            {user.isGuest && (
+                              <span className="ml-2">({t('admin.users.guest')})</span>
+                            )}
+                          </div>
+                        </div>
+                        <Select
+                          value={user.isAdmin ? 'admin' : 'user'}
+                          onValueChange={(value) => {
+                            setRoleChangingUser({ user, newRole: value })
+                            handleRoleChange(user, value)
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          <SelectTrigger className="h-8 w-24 shrink-0" aria-label={t('admin.users.role.user')}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">{t('admin.users.role.user')}</SelectItem>
+                            <SelectItem value="admin">{t('admin.users.role.admin')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <dl className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="space-y-0.5">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {t('admin.users.totalScore')}
+                          </dt>
+                          <dd className="font-medium tabular-nums">
+                            {(user.totalScore ?? 0).toLocaleString(i18n.language)}
+                          </dd>
+                        </div>
+                        <div className="space-y-0.5">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {t('admin.users.currentStreak')}
+                          </dt>
+                          <dd className="font-medium tabular-nums">{user.currentStreak ?? 0}</dd>
+                        </div>
+                        <div className="space-y-0.5">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {t('admin.users.createdAt')}
+                          </dt>
+                          <dd className="text-muted-foreground">{formatDate(user.createdAt)}</dd>
+                        </div>
+                      </dl>
+
+                      <div className="flex justify-end gap-1 pt-1 border-t border-white/5">
+                        {user.isAdmin ? (
+                          <Button
+                            variant="unban"
+                            size="icon"
+                            onClick={() => setUnbanningUser(user)}
+                            aria-label={t('admin.users.unbanUser')}
+                          >
+                            <Unlock className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ban"
+                            size="icon"
+                            onClick={() => setBanningUser(user)}
+                            aria-label={t('admin.users.banUser')}
+                          >
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="dangerGhost"
+                          size="icon"
+                          onClick={() => setDeletingUser(user)}
+                          aria-label={t('admin.users.deleteUser')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* Table (md+) */}
+              <div className="hidden md:block rounded-lg border border-white/10 overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-white/10">

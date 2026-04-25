@@ -153,16 +153,16 @@ export function GameList() {
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2">
-          {t('admin.games.title')}
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <CardTitle className="flex items-center gap-2 min-w-0">
+          <span className="truncate">{t('admin.games.title')}</span>
           {gamesPagination.total > 0 && (
-            <span className="text-sm font-normal text-muted-foreground">
+            <span className="text-sm font-normal text-muted-foreground shrink-0">
               ({gamesPagination.total})
             </span>
           )}
         </CardTitle>
-        <Button variant="gaming" onClick={() => setIsFormOpen(true)}>
+        <Button variant="gaming" onClick={() => setIsFormOpen(true)} className="shrink-0">
           <Plus className="h-4 w-4" />
           {t('admin.games.addGame')}
         </Button>
