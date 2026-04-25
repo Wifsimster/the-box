@@ -821,6 +821,8 @@
       "totalScore": "Total Score",
       "currentStreak": "Current Streak",
       "createdAt": "Created At",
+      "lastLoginAt": "Last Login",
+      "neverLoggedIn": "Never",
       "actions": "Actions",
       "guest": "Guest",
       "searchPlaceholder": "Search users by email...",

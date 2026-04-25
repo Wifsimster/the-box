@@ -202,6 +202,21 @@ export function UserList() {
     }
   }
 
+  const formatDateTime = (dateString?: string | null) => {
+    if (!dateString) return t('admin.users.neverLoggedIn')
+    try {
+      return new Date(dateString).toLocaleString(i18n.language, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } catch {
+      return dateString
+    }
+  }
+
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -299,7 +314,7 @@ export function UserList() {
                         </Select>
                       </div>
 
-                      <dl className="grid grid-cols-3 gap-2 text-xs">
+                      <dl className="grid grid-cols-2 gap-2 text-xs">
                         <div className="space-y-0.5">
                           <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             {t('admin.users.totalScore')}
@@ -319,6 +334,12 @@ export function UserList() {
                             {t('admin.users.createdAt')}
                           </dt>
                           <dd className="text-muted-foreground">{formatDate(user.createdAt)}</dd>
+                        </div>
+                        <div className="space-y-0.5">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {t('admin.users.lastLoginAt')}
+                          </dt>
+                          <dd className="text-muted-foreground">{formatDateTime(user.lastLoginAt)}</dd>
                         </div>
                       </dl>
 
@@ -367,6 +388,7 @@ export function UserList() {
                       <UserSortableHeader field="totalScore" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.totalScore')}</UserSortableHeader>
                       <UserSortableHeader field="currentStreak" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.currentStreak')}</UserSortableHeader>
                       <UserSortableHeader field="createdAt" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.createdAt')}</UserSortableHeader>
+                      <UserSortableHeader field="lastLoginAt" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.lastLoginAt')}</UserSortableHeader>
                       <TableHead className="text-right">{t('admin.users.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -418,6 +440,9 @@ export function UserList() {
                           <TableCell>{user.currentStreak ?? 0}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {formatDate(user.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            {formatDateTime(user.lastLoginAt)}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
