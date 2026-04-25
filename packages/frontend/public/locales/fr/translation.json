@@ -484,30 +484,57 @@
         "confirm": "Rétrograder",
         "cancel": "Annuler"
       },
-      "actions": {
-        "title": "Ingestion et planification",
-        "subtitle": "Lancez les tâches admin du pipeline Géo.",
-        "fandom": "Importer la carte Fandom",
-        "fandomDescription": "Télécharge la carte interactive d'un wiki et l'enregistre comme carte Géo pour un jeu.",
-        "steam": "Importer les captures Steam",
-        "steamDescription": "Récupère les captures publiques d'un jeu depuis Steam et les enregistre comme candidats sur une carte Géo.",
-        "schedule": "Planifier le défi quotidien",
-        "scheduleDescription": "Assigne un candidat promu à une date future pour qu'il apparaisse dans le défi Géo quotidien.",
-        "enqueue": "Lancer la tâche",
-        "queued": "Tâche en file : {{id}}",
-        "fields": {
-          "gameId": "ID du jeu",
-          "gameIdHint": "Identifiant numérique du jeu dans la base locale.",
-          "subdomain": "Sous-domaine du wiki",
-          "subdomainHint": "Le sous-domaine Fandom (ex. « eldenring » pour eldenring.fandom.com).",
-          "pageTitle": "Titre de la page wiki",
-          "pageTitleHint": "Slug de la page qui héberge la carte (ex. « Interactive_Map »).",
-          "geoMapId": "ID de carte Géo",
-          "geoMapIdHint": "Identifiant de la carte Géo existante à laquelle rattacher les captures.",
-          "steamAppId": "App ID Steam",
-          "steamAppIdHint": "Identifiant Steam numérique du jeu (ex. 1245620 pour Elden Ring).",
-          "scheduleDate": "Date (optionnel)",
-          "scheduleDateHint": "Format AAAA-MM-JJ. Laissez vide pour planifier pour demain."
+      "health": {
+        "title": "Santé du dataset Géo",
+        "subtitle": "Le pipeline ingère automatiquement cartes et captures pour les jeux marqués comme curatés. Aucune action manuelle requise.",
+        "loading": "Chargement de l'état du dataset…",
+        "error": "Échec du chargement de l'état du dataset.",
+        "refresh": "Actualiser",
+        "status": {
+          "healthy": "Sain",
+          "warning": "À surveiller",
+          "critical": "Échec"
+        },
+        "coverage": {
+          "label": "Couverture des cartes",
+          "value": "{{withMap}} / {{curated}} jeux curatés ont une carte ({{total}} jeux au total)"
+        },
+        "metrics": {
+          "resolved": "Métadonnées résolues",
+          "lastFandom": "Dernière carte Fandom",
+          "lastSteam": "Dernières captures Steam",
+          "nextChallenge": "Prochain défi planifié",
+          "never": "Jamais",
+          "noScheduled": "Aucun"
+        },
+        "queue": {
+          "title": "File geo-jobs",
+          "active": "actifs",
+          "waiting": "en attente",
+          "delayed": "différés",
+          "failed": "échoués"
+        },
+        "failures": {
+          "title": "Échecs récents",
+          "empty": "Aucun échec actif. 🎉",
+          "row": "Jeu #{{gameId}} · {{source}} · {{reason}} (tentative {{attempt}})"
+        },
+        "advanced": {
+          "title": "Avancé",
+          "subtitle": "Actions manuelles rares — uniquement si l'auto-ingestion se trompe.",
+          "curatedToggle": "Activer/désactiver la curation",
+          "curatedOn": "Marquer comme curaté",
+          "curatedOff": "Retirer de la curation",
+          "reimport": "Forcer la ré-ingestion",
+          "scheduleNow": "Planifier le défi maintenant",
+          "gameIdLabel": "ID du jeu",
+          "gameIdHint": "Identifiant numérique du jeu dans la base locale."
+        },
+        "actions": {
+          "queued": "Tâche en file : {{id}}",
+          "curatedSet": "Jeu #{{id}} : curation = {{curated}}",
+          "reimportQueued": "Ré-ingestion lancée pour le jeu #{{id}} (tâche {{jobId}})",
+          "scheduled": "Planification lancée (tâche {{id}})"
         }
       }
     },

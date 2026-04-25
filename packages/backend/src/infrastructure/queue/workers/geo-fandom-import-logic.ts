@@ -1,5 +1,9 @@
 import { queueLogger } from '../../logger/logger.js'
-import { geoMapRepository } from '../../repositories/index.js'
+import {
+  geoIngestFailureRepository,
+  geoMapRepository,
+} from '../../repositories/index.js'
+import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.service.js'
 
 const log = queueLogger.child({ worker: 'geo-fandom-import' })
 
@@ -72,6 +76,7 @@ export async function importFandomMap(
   const imageTitle = page?.images?.find((i) => looksLikeMap(i.title))?.title ?? page?.images?.[0]?.title
 
   if (!imageTitle) {
+    await recordFandomTombstone(gameId, 'no images on page')
     return { imported: false, reason: 'no images on page' }
   }
 
@@ -80,6 +85,7 @@ export async function importFandomMap(
   const infoPage = firstPage(infoRes)
   const info = infoPage?.imageinfo?.[0]
   if (!info?.url || !info.width || !info.height) {
+    await recordFandomTombstone(gameId, 'image info missing url or dimensions')
     return { imported: false, reason: 'image info missing url or dimensions' }
   }
 
@@ -94,8 +100,19 @@ export async function importFandomMap(
     attribution: `${wikiSubdomain}.fandom.com — ${imageTitle}`,
   })
 
+  await geoIngestFailureRepository.clear(gameId, 'fandom')
   log.info({ gameId, mapId: map.id }, 'imported fandom map')
   return { imported: true, geoMapId: map.id }
+}
+
+async function recordFandomTombstone(gameId: number, reason: string): Promise<void> {
+  const attempt = (await geoIngestFailureRepository.getAttemptCount(gameId, 'fandom')) + 1
+  await geoIngestFailureRepository.record({
+    gameId,
+    source: 'fandom',
+    reason,
+    retryAfter: tombstoneRetryAfter(attempt),
+  })
 }
 
 function firstPage(resp: MediaWikiQueryResponse): MediaWikiPage | undefined {

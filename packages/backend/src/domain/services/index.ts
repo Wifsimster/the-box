@@ -57,6 +57,13 @@ export {
   GEO_CONTRIBUTE_HOURLY_LIMIT,
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
+export {
+  wikiSubdomainCandidates,
+  defaultWikiPageTitles,
+  parseSteamAppIdFromUrl,
+  normalizeGameTitle,
+  tombstoneRetryAfter,
+} from './geo-metadata.service.js'
 
 // ---------------------------------------------------------------------------
 // Composition root for domain services.

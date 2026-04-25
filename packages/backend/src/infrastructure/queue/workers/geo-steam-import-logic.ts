@@ -1,5 +1,9 @@
 import { queueLogger } from '../../logger/logger.js'
-import { geoScreenshotRepository } from '../../repositories/index.js'
+import {
+  geoIngestFailureRepository,
+  geoScreenshotRepository,
+} from '../../repositories/index.js'
+import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.service.js'
 
 const log = queueLogger.child({ worker: 'geo-steam-import' })
 
@@ -85,6 +89,19 @@ export async function importSteamScreenshots(
       log.warn({ err: String(e), externalId }, 'failed to insert candidate')
       skipped++
     }
+  }
+
+  if (shots.length === 0) {
+    const attempt =
+      (await geoIngestFailureRepository.getAttemptCount(gameId, 'steam')) + 1
+    await geoIngestFailureRepository.record({
+      gameId,
+      source: 'steam',
+      reason: 'steam appdetails returned no screenshots',
+      retryAfter: tombstoneRetryAfter(attempt),
+    })
+  } else if (inserted > 0) {
+    await geoIngestFailureRepository.clear(gameId, 'steam')
   }
 
   log.info({ gameId, steamAppId, fetched: shots.length, inserted, skipped }, 'imported steam screenshots')
