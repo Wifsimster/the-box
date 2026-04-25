@@ -246,6 +246,9 @@ export default function HomePage() {
                   src="/api/game/preview/image"
                   alt={t('home.previewAlt')}
                   loading="lazy"
+                  decoding="async"
+                  width={1280}
+                  height={720}
                   className="w-full h-full object-cover transition-transform hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent" />
