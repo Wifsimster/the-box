@@ -4,27 +4,31 @@ A gaming screenshot guessing game where players identify video games from 360° 
 
 ## Features
 
-- **360° Panoramic Screenshots** - Immersive game identification using Pannellum viewer
-- **Tiered Difficulty** - 3 tiers with increasing challenge levels
+- **360° Panoramic Screenshots** - Immersive game identification powered by Three.js / React Three Fiber
+- **Tiered Difficulty** - Daily challenges with increasing challenge levels (Easy → Hard)
 - **Daily Challenges** - New challenges every day
 - **Catch-Up Mode** - Play missed challenges from the last 7 days (scores don't count for leaderboard)
-- **Power-ups & Hints** - Timer extension (x2) and reveal hints (year, publisher, developer)
+- **Power-ups & Hints** - Timer extensions and reveal hints (release year, publisher, developer)
 - **Live Leaderboard** - Real-time daily and monthly rankings via Socket.io
-- **Achievements** - Unlockable achievements for various accomplishments
+- **Tournaments** - Tournament-style competitions
+- **Achievements** - Unlockable achievements including beginner-tier entries
 - **Daily Login Rewards** - Streak-based rewards with calendar display
 - **User Profiles** - Stats, game history, and achievements display
-- **Admin Panel** - Game management, user management, job queue monitoring
-- **Authentication** - Email/password auth with Better Auth
+- **Admin Panel** - Game management, user management, job queue monitoring, challenge management
+- **Authentication** - Session-based email/password auth with Better Auth
 - **Internationalization** - French (default) and English support
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 19, Vite, TypeScript, TailwindCSS, Zustand |
-| Backend | Node.js, Express, Better Auth, Socket.io, BullMQ |
-| Database | PostgreSQL, Knex.js |
+| Frontend | React 19, Vite 7, TypeScript, TailwindCSS v4, Zustand, react-router-dom 7, i18next |
+| 3D / UI | Three.js, React Three Fiber, Framer Motion, Radix UI, shadcn/ui, Lucide |
+| Backend | Node.js 24, Express 5, Better Auth, Socket.io 4, BullMQ, Pino |
+| Database | PostgreSQL 16, Knex.js, Kysely |
 | Cache/Queue | Redis |
+| Validation | Zod (frontend + backend) |
+| Testing | Playwright (E2E) |
 | Monorepo | npm workspaces |
 
 ## Project Structure
@@ -67,7 +71,7 @@ Pull and run the pre-built image from Docker Hub:
 
 ```bash
 # Pull specific version (recommended for production)
-docker pull wifsimster/the-box:1.6
+docker pull wifsimster/the-box:2.10
 
 # Or pull latest
 docker pull wifsimster/the-box:latest
@@ -81,10 +85,10 @@ docker run -d \
   -e RESEND_API_KEY=your-resend-key \
   -e EMAIL_FROM=noreply@yourdomain.com \
   -v thebox-uploads:/app/uploads \
-  wifsimster/the-box:1.6
+  wifsimster/the-box:2.10
 
-# Run database migrations and seed admin user
-docker exec the-box npm run --workspace=@the-box/backend db:migrate
+# Migrations run automatically on container start via docker-entrypoint.sh.
+# Seed the database (creates the first admin user) if needed:
 docker exec the-box npm run --workspace=@the-box/backend db:seed
 ```
 
@@ -196,11 +200,18 @@ npm run build:frontend  # Build frontend
 npm run db:migrate      # Run migrations
 npm run db:rollback     # Rollback last migration
 npm run db:seed         # Seed database
+npm run db:seed:geo     # Seed geographic data
+
+# Testing
+npm test                # Run unit tests across all workspaces
+# From packages/frontend:
+npm run test:e2e        # Playwright headless
+npm run test:e2e:ui     # Playwright interactive UI mode
 
 # Version management
-npm run version:patch   # Bump patch version (1.6.0 -> 1.6.1)
-npm run version:minor   # Bump minor version (1.6.0 -> 1.7.0)
-npm run version:major   # Bump major version (1.6.0 -> 2.0.0)
+npm run version:patch   # Bump patch version (2.10.0 -> 2.10.1)
+npm run version:minor   # Bump minor version (2.10.0 -> 2.11.0)
+npm run version:major   # Bump major version (2.10.0 -> 3.0.0)
 
 # Docker
 npm run docker:build    # Build Docker image with version
@@ -262,7 +273,11 @@ Commits are validated automatically via husky git hooks. Non-compliant commits w
 - Generates changelog from conventional commits
 - Builds and publishes multi-arch Docker images (amd64, arm64)
 - Creates GitHub release with notes
-- Tags: `latest`, `v1.6.0`, `1.6`, `1`
+- Tags: `latest`, `v2.10.0`, `2.10`, `2`
+
+**Deploy (`.github/workflows/deploy.yml`)**
+
+- Handles deployment of published images to the target environment
 
 ### Docker Hub Setup
 
@@ -331,9 +346,9 @@ The Docker image uses a multi-stage build and includes:
 **Docker Image Tags:**
 
 - `latest` - Most recent stable release
-- `v1.6.0` - Specific version (immutable)
-- `1.6` - Minor version (receives patches)
-- `1` - Major version (receives minors and patches)
+- `v2.10.0` - Specific version (immutable)
+- `2.10` - Minor version (receives patches)
+- `2` - Major version (receives minors and patches)
 
 Exposed port: **80**
 
@@ -342,11 +357,13 @@ Exposed port: **80**
 See the [docs/](./docs/) folder for detailed documentation:
 
 - [Architecture](./docs/architecture.md) - Clean architecture overview
-- [Authentication](./docs/authentication.md) - Better Auth setup
+- [Authentication](./docs/authentication.md) - Auth flow
+- [Better Auth Setup](./docs/better-auth-setup.md) - Better Auth configuration
 - [Game Flow](./docs/game-flow.md) - Game mechanics and scoring
 - [API Reference](./docs/api.md) - REST API endpoints
 - [Database Schema](./docs/database.md) - Database structure
 - [Real-time Events](./docs/realtime.md) - Socket.io events
+- [UI Tokens](./docs/ui-tokens.md) - Design tokens
 
 ## License
 
