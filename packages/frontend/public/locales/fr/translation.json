@@ -521,19 +521,38 @@
         },
         "advanced": {
           "title": "Avancé",
-          "subtitle": "Actions manuelles rares — uniquement si l'auto-ingestion se trompe.",
-          "curatedToggle": "Activer/désactiver la curation",
-          "curatedOn": "Marquer comme curaté",
-          "curatedOff": "Retirer de la curation",
-          "reimport": "Forcer la ré-ingestion",
-          "scheduleNow": "Planifier le défi maintenant",
-          "gameIdLabel": "ID du jeu",
-          "gameIdHint": "Identifiant numérique du jeu dans la base locale."
+          "subtitle": "Actions rares — l'ingestion s'occupe du reste.",
+          "scheduleNow": "Planifier le défi maintenant"
+        },
+        "curatedList": {
+          "title": "Jeux curatés",
+          "empty": "Aucun jeu n'est encore dans le set curaté. Ajoutez-en depuis la liste de suggestions ci-dessous.",
+          "loading": "Chargement de la liste curatée…",
+          "remove": "Retirer",
+          "reimport": "Réimporter",
+          "status": {
+            "pending": "Métadonnées en attente",
+            "resolved": "Métadonnées prêtes",
+            "unresolved": "Non résolu"
+          },
+          "hasMap": "Carte importée",
+          "noMap": "Sans carte",
+          "candidates_one": "{{count}} capture",
+          "candidates_other": "{{count}} captures"
+        },
+        "suggestions": {
+          "title": "Suggestions",
+          "subtitle": "Jeux populaires non encore curatés (triés par Metacritic).",
+          "empty": "Aucune suggestion disponible.",
+          "loading": "Chargement des suggestions…",
+          "add": "Curater",
+          "metacritic": "Metacritic {{score}}"
         },
         "actions": {
           "queued": "Tâche en file : {{id}}",
-          "curatedSet": "Jeu #{{id}} : curation = {{curated}}",
-          "reimportQueued": "Ré-ingestion lancée pour le jeu #{{id}} (tâche {{jobId}})",
+          "curatedSet": "« {{name}} » est maintenant curaté",
+          "curatedRemoved": "« {{name}} » retiré du set curaté",
+          "reimportQueued": "Ré-ingestion lancée pour « {{name}} »",
           "scheduled": "Planification lancée (tâche {{id}})"
         }
       }

@@ -1600,6 +1600,136 @@ router.get('/geo/health', async (_req, res, next) => {
   }
 })
 
+// Lists games for the admin "curate / suggest" UI. With `curated=true` it
+// returns the existing curated set with ingestion status (resolved metadata,
+// active map present, candidate count). With `curated=false` it proposes
+// non-curated games ranked by Metacritic (descending) — that signal correlates
+// well with "famous game with a Fandom wiki and Steam listing", which is the
+// shape the auto-ingester can actually handle. Limit is small by design; the
+// admin scrolls a curated shortlist, not the whole catalogue.
+const gamesQuerySchema = z.object({
+  curated: z.enum(['true', 'false']).default('true'),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+})
+
+router.get('/geo/games', async (req, res, next) => {
+  try {
+    const parse = gamesQuerySchema.safeParse(req.query)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const curated = parse.data.curated === 'true'
+    const limit = parse.data.limit
+
+    if (curated) {
+      const result = await db.raw<{
+        rows: Array<{
+          id: number
+          name: string
+          slug: string
+          release_year: number | null
+          developer: string | null
+          metacritic: number | null
+          geo_metadata_status: string
+          steam_app_id: number | null
+          wiki_subdomain: string | null
+          has_map: boolean
+          candidate_count: number
+        }>
+      }>(
+        `
+        SELECT
+          g.id,
+          g.name,
+          g.slug,
+          g.release_year,
+          g.developer,
+          g.metacritic,
+          g.geo_metadata_status,
+          g.steam_app_id,
+          g.wiki_subdomain,
+          (m.id IS NOT NULL) AS has_map,
+          COALESCE(c.cnt, 0)::int AS candidate_count
+        FROM games g
+        LEFT JOIN LATERAL (
+          SELECT id FROM geo_map
+          WHERE game_id = g.id AND is_active = true
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) m ON true
+        LEFT JOIN (
+          SELECT game_id, COUNT(*)::int AS cnt
+          FROM geo_screenshot_candidate
+          WHERE is_active IS NOT FALSE
+          GROUP BY game_id
+        ) c ON c.game_id = g.id
+        WHERE g.geo_curated = true
+        ORDER BY g.name
+        LIMIT ?
+        `,
+        [limit],
+      )
+      const rows = (result as unknown as { rows: typeof result.rows }).rows
+      res.json({
+        success: true,
+        data: {
+          games: rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            slug: r.slug,
+            releaseYear: r.release_year,
+            developer: r.developer,
+            metacritic: r.metacritic,
+            metadataStatus: r.geo_metadata_status,
+            steamAppId: r.steam_app_id,
+            wikiSubdomain: r.wiki_subdomain,
+            hasMap: r.has_map,
+            candidateCount: r.candidate_count,
+          })),
+        },
+      })
+      return
+    }
+
+    const rows = await db('games')
+      .where('geo_curated', false)
+      .whereNotNull('metacritic')
+      .orderBy('metacritic', 'desc')
+      .orderBy('name')
+      .limit(limit)
+      .select<
+        Array<{
+          id: number
+          name: string
+          slug: string
+          release_year: number | null
+          developer: string | null
+          metacritic: number | null
+        }>
+      >('id', 'name', 'slug', 'release_year', 'developer', 'metacritic')
+
+    res.json({
+      success: true,
+      data: {
+        games: rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          slug: r.slug,
+          releaseYear: r.release_year,
+          developer: r.developer,
+          metacritic: r.metacritic,
+        })),
+      },
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
 const curatedBodySchema = z.object({
   gameId: z.number().int().positive(),
   curated: z.boolean(),
