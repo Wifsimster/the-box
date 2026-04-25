@@ -425,6 +425,17 @@
       "geo": "Geo"
     },
     "geo": {
+      "title": "Geo Moderation",
+      "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and validate crowdsourced pins.",
+      "intro": {
+        "title": "How this page works",
+        "step1Title": "1. Import sources",
+        "step1Body": "Pull a game's annotated map from a Fandom wiki, then bring in screenshots from Steam. Both run as background jobs — watch progress in the Jobs tab.",
+        "step2Title": "2. Schedule a daily challenge",
+        "step2Body": "Pick the screenshot that the daily Geo round should use. Leave the date blank to schedule for tomorrow (UTC).",
+        "step3Title": "3. Review crowdsourced pins",
+        "step3Body": "Players drop pins guessing where each screenshot was taken. When pins converge, promote a canonical location so the screenshot can ship in a daily challenge."
+      },
       "candidates": "Candidates",
       "empty": "No candidates match this filter.",
       "pins": "pins",
@@ -433,14 +444,56 @@
       "detailHint": "Select a candidate from the list to review its pins and optionally set canonical coordinates.",
       "promote": "Promote to canonical",
       "demote": "Demote canonical",
-      "alreadyPromoted": "Already promoted — delete to re-pin with new coords.",
+      "alreadyPromoted": "Already promoted — demote it to re-pin with new coordinates.",
+      "candidateRow": {
+        "pinCount_one": "{{count}} pin",
+        "pinCount_other": "{{count}} pins",
+        "source": "source: {{source}}"
+      },
+      "statusFilter": {
+        "label": "Filter by status",
+        "collecting": "Collecting",
+        "pending": "Pending",
+        "promoted": "Promoted",
+        "all": "All"
+      },
+      "statusBadge": {
+        "collecting": "Collecting",
+        "pending": "Pending",
+        "promoted": "Promoted",
+        "rejected": "Rejected"
+      },
+      "demoteDialog": {
+        "title": "Demote canonical pin?",
+        "description": "This screenshot will return to the collecting queue. Players' pins are kept; you'll be able to set new canonical coordinates.",
+        "confirm": "Demote",
+        "cancel": "Cancel"
+      },
       "actions": {
         "title": "Ingestion & scheduling",
+        "subtitle": "Run admin-only jobs against the Geo pipeline.",
         "fandom": "Import Fandom map",
+        "fandomDescription": "Download a wiki's interactive-map asset and register it as a Geo map for a game.",
         "steam": "Import Steam screenshots",
+        "steamDescription": "Pull a game's user-submitted screenshots from Steam and register them as candidates against a Geo map.",
         "schedule": "Schedule daily challenge",
-        "enqueue": "Enqueue",
-        "queued": "Job queued: {{id}}"
+        "scheduleDescription": "Assign one promoted candidate to a future date so it appears in the daily Geo round.",
+        "enqueue": "Enqueue job",
+        "queued": "Job queued: {{id}}",
+        "fields": {
+          "gameId": "Game ID",
+          "gameIdHint": "Numeric ID of the game in the local database.",
+          "subdomain": "Wiki subdomain",
+          "subdomainHint": "The Fandom subdomain (e.g. \"eldenring\" for eldenring.fandom.com).",
+          "pageTitle": "Wiki page title",
+          "pageTitleHint": "URL slug of the page hosting the map (e.g. \"Interactive_Map\").",
+          "geoMapId": "Geo map ID",
+          "geoMapIdHint": "ID of the existing Geo map this game's screenshots should attach to.",
+          "steamAppId": "Steam app ID",
+          "steamAppIdHint": "Numeric Steam app ID (e.g. 1245620 for Elden Ring).",
+          "scheduleDate": "Date (optional)",
+          "scheduleDateHint": "Format YYYY-MM-DD. Leave empty to schedule for tomorrow."
+        }
       }
     },
     "growth": {

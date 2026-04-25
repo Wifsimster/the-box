@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Loader2, CalendarClock, Image, ImageDown } from 'lucide-react'
 
 type ActionKind = 'fandom' | 'steam' | 'schedule' | null
@@ -21,6 +28,34 @@ async function postJson(path: string, body: unknown): Promise<{ jobId: string }>
     return json.data
 }
 
+interface FieldProps {
+    id: string
+    label: string
+    hint: string
+    placeholder?: string
+    value: string
+    onChange: (v: string) => void
+    inputMode?: 'numeric' | 'text'
+}
+
+function Field({ id, label, hint, placeholder, value, onChange, inputMode }: FieldProps) {
+    return (
+        <div className="space-y-1">
+            <Label htmlFor={id} className="text-xs">
+                {label}
+            </Label>
+            <Input
+                id={id}
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                inputMode={inputMode}
+            />
+            <p className="text-[11px] text-muted-foreground leading-snug">{hint}</p>
+        </div>
+    )
+}
+
 /**
  * Minimal ops controls for the admin: enqueue ingestion + scheduling jobs
  * onto the geo-jobs BullMQ queue. Deliberately no job-status polling here
@@ -28,6 +63,7 @@ async function postJson(path: string, body: unknown): Promise<{ jobId: string }>
  */
 export function GeoAdminActions() {
     const { t } = useTranslation()
+    const formId = useId()
     const [running, setRunning] = useState<ActionKind>(null)
     const [message, setMessage] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -45,15 +81,16 @@ export function GeoAdminActions() {
     // Schedule form
     const [scheduleDate, setScheduleDate] = useState('')
 
-    const runAction = async (kind: Exclude<ActionKind, null>, fn: () => Promise<{ jobId: string }>) => {
+    const runAction = async (
+        kind: Exclude<ActionKind, null>,
+        fn: () => Promise<{ jobId: string }>,
+    ) => {
         setRunning(kind)
         setError(null)
         setMessage(null)
         try {
             const { jobId } = await fn()
-            setMessage(
-                t('admin.geo.actions.queued', 'Job queued: {{id}}', { id: jobId }),
-            )
+            setMessage(t('admin.geo.actions.queued', { id: jobId }))
         } catch (e) {
             setError(String(e))
         } finally {
@@ -64,11 +101,12 @@ export function GeoAdminActions() {
     return (
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-sm">
-                    {t('admin.geo.actions.title', 'Ingestion & scheduling')}
-                </CardTitle>
+                <CardTitle className="text-sm">{t('admin.geo.actions.title')}</CardTitle>
+                <CardDescription className="text-xs">
+                    {t('admin.geo.actions.subtitle')}
+                </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
                 {message && (
                     <div className="rounded border border-success/40 bg-success/10 p-2 text-xs text-success">
                         {message}
@@ -80,26 +118,42 @@ export function GeoAdminActions() {
                     </div>
                 )}
 
-                <section className="space-y-2">
-                    <h3 className="text-xs font-semibold flex items-center gap-2">
-                        <Image className="h-3.5 w-3.5" aria-hidden />
-                        {t('admin.geo.actions.fandom', 'Import Fandom map')}
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
-                        <Input
-                            placeholder="gameId"
+                {/* Fandom */}
+                <section className="space-y-3">
+                    <div className="space-y-0.5">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <Image className="h-3.5 w-3.5" aria-hidden />
+                            {t('admin.geo.actions.fandom')}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                            {t('admin.geo.actions.fandomDescription')}
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <Field
+                            id={`${formId}-fandom-gameid`}
+                            label={t('admin.geo.actions.fields.gameId')}
+                            hint={t('admin.geo.actions.fields.gameIdHint')}
+                            placeholder="123"
                             value={fandomGameId}
-                            onChange={(e) => setFandomGameId(e.target.value)}
+                            onChange={setFandomGameId}
+                            inputMode="numeric"
                         />
-                        <Input
-                            placeholder="subdomain"
+                        <Field
+                            id={`${formId}-fandom-sub`}
+                            label={t('admin.geo.actions.fields.subdomain')}
+                            hint={t('admin.geo.actions.fields.subdomainHint')}
+                            placeholder="eldenring"
                             value={fandomSubdomain}
-                            onChange={(e) => setFandomSubdomain(e.target.value)}
+                            onChange={setFandomSubdomain}
                         />
-                        <Input
-                            placeholder="pageTitle"
+                        <Field
+                            id={`${formId}-fandom-page`}
+                            label={t('admin.geo.actions.fields.pageTitle')}
+                            hint={t('admin.geo.actions.fields.pageTitleHint')}
+                            placeholder="Interactive_Map"
                             value={fandomPage}
-                            onChange={(e) => setFandomPage(e.target.value)}
+                            onChange={setFandomPage}
                         />
                     </div>
                     <Button
@@ -123,30 +177,48 @@ export function GeoAdminActions() {
                         {running === 'fandom' && (
                             <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                         )}
-                        {t('admin.geo.actions.enqueue', 'Enqueue')}
+                        {t('admin.geo.actions.enqueue')}
                     </Button>
                 </section>
 
-                <section className="space-y-2">
-                    <h3 className="text-xs font-semibold flex items-center gap-2">
-                        <ImageDown className="h-3.5 w-3.5" aria-hidden />
-                        {t('admin.geo.actions.steam', 'Import Steam screenshots')}
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
-                        <Input
-                            placeholder="gameId"
+                {/* Steam */}
+                <section className="space-y-3">
+                    <div className="space-y-0.5">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <ImageDown className="h-3.5 w-3.5" aria-hidden />
+                            {t('admin.geo.actions.steam')}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                            {t('admin.geo.actions.steamDescription')}
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <Field
+                            id={`${formId}-steam-gameid`}
+                            label={t('admin.geo.actions.fields.gameId')}
+                            hint={t('admin.geo.actions.fields.gameIdHint')}
+                            placeholder="123"
                             value={steamGameId}
-                            onChange={(e) => setSteamGameId(e.target.value)}
+                            onChange={setSteamGameId}
+                            inputMode="numeric"
                         />
-                        <Input
-                            placeholder="geoMapId"
+                        <Field
+                            id={`${formId}-steam-mapid`}
+                            label={t('admin.geo.actions.fields.geoMapId')}
+                            hint={t('admin.geo.actions.fields.geoMapIdHint')}
+                            placeholder="456"
                             value={steamMapId}
-                            onChange={(e) => setSteamMapId(e.target.value)}
+                            onChange={setSteamMapId}
+                            inputMode="numeric"
                         />
-                        <Input
-                            placeholder="steamAppId"
+                        <Field
+                            id={`${formId}-steam-appid`}
+                            label={t('admin.geo.actions.fields.steamAppId')}
+                            hint={t('admin.geo.actions.fields.steamAppIdHint')}
+                            placeholder="1245620"
                             value={steamAppId}
-                            onChange={(e) => setSteamAppId(e.target.value)}
+                            onChange={setSteamAppId}
+                            inputMode="numeric"
                         />
                     </div>
                     <Button
@@ -167,20 +239,29 @@ export function GeoAdminActions() {
                         {running === 'steam' && (
                             <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                         )}
-                        {t('admin.geo.actions.enqueue', 'Enqueue')}
+                        {t('admin.geo.actions.enqueue')}
                     </Button>
                 </section>
 
-                <section className="space-y-2">
-                    <h3 className="text-xs font-semibold flex items-center gap-2">
-                        <CalendarClock className="h-3.5 w-3.5" aria-hidden />
-                        {t('admin.geo.actions.schedule', 'Schedule daily challenge')}
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
-                        <Input
-                            placeholder="YYYY-MM-DD (optional)"
+                {/* Schedule */}
+                <section className="space-y-3">
+                    <div className="space-y-0.5">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+                            {t('admin.geo.actions.schedule')}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                            {t('admin.geo.actions.scheduleDescription')}
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <Field
+                            id={`${formId}-schedule-date`}
+                            label={t('admin.geo.actions.fields.scheduleDate')}
+                            hint={t('admin.geo.actions.fields.scheduleDateHint')}
+                            placeholder="2026-05-01"
                             value={scheduleDate}
-                            onChange={(e) => setScheduleDate(e.target.value)}
+                            onChange={setScheduleDate}
                         />
                     </div>
                     <Button
@@ -198,7 +279,7 @@ export function GeoAdminActions() {
                         {running === 'schedule' && (
                             <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                         )}
-                        {t('admin.geo.actions.enqueue', 'Enqueue')}
+                        {t('admin.geo.actions.enqueue')}
                     </Button>
                 </section>
             </CardContent>

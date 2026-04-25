@@ -425,6 +425,17 @@
       "geo": "Géo"
     },
     "geo": {
+      "title": "Modération Géo",
+      "subtitle": "Curatez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
+      "intro": {
+        "title": "Comment cette page fonctionne",
+        "step1Title": "1. Importer les sources",
+        "step1Body": "Récupérez la carte annotée d'un jeu depuis un wiki Fandom, puis importez les captures depuis Steam. Les deux opérations s'exécutent en arrière-plan — surveillez l'avancement dans l'onglet Tâches.",
+        "step2Title": "2. Planifier un défi quotidien",
+        "step2Body": "Choisissez la capture qui sera utilisée pour le défi Géo du jour. Laissez la date vide pour planifier pour demain (UTC).",
+        "step3Title": "3. Valider les épingles",
+        "step3Body": "Les joueurs déposent des épingles pour deviner où chaque capture a été prise. Lorsqu'elles convergent, promouvez un emplacement canonique pour que la capture puisse être utilisée dans un défi quotidien."
+      },
       "candidates": "Candidats",
       "empty": "Aucun candidat ne correspond à ce filtre.",
       "pins": "épingles",
@@ -433,14 +444,56 @@
       "detailHint": "Sélectionnez un candidat dans la liste pour consulter ses épingles et éventuellement définir les coordonnées canoniques.",
       "promote": "Promouvoir en canonique",
       "demote": "Rétrograder la canonique",
-      "alreadyPromoted": "Déjà promu — supprimez pour ré-épingler avec de nouvelles coordonnées.",
+      "alreadyPromoted": "Déjà promu — rétrogradez pour ré-épingler avec de nouvelles coordonnées.",
+      "candidateRow": {
+        "pinCount_one": "{{count}} épingle",
+        "pinCount_other": "{{count}} épingles",
+        "source": "source : {{source}}"
+      },
+      "statusFilter": {
+        "label": "Filtrer par statut",
+        "collecting": "En collecte",
+        "pending": "En attente",
+        "promoted": "Promus",
+        "all": "Tous"
+      },
+      "statusBadge": {
+        "collecting": "En collecte",
+        "pending": "En attente",
+        "promoted": "Promu",
+        "rejected": "Rejeté"
+      },
+      "demoteDialog": {
+        "title": "Rétrograder la canonique ?",
+        "description": "Cette capture retournera dans la file de collecte. Les épingles des joueurs sont conservées ; vous pourrez définir de nouvelles coordonnées canoniques.",
+        "confirm": "Rétrograder",
+        "cancel": "Annuler"
+      },
       "actions": {
         "title": "Ingestion et planification",
+        "subtitle": "Lancez les tâches admin du pipeline Géo.",
         "fandom": "Importer la carte Fandom",
+        "fandomDescription": "Télécharge la carte interactive d'un wiki et l'enregistre comme carte Géo pour un jeu.",
         "steam": "Importer les captures Steam",
+        "steamDescription": "Récupère les captures publiques d'un jeu depuis Steam et les enregistre comme candidats sur une carte Géo.",
         "schedule": "Planifier le défi quotidien",
-        "enqueue": "Lancer",
-        "queued": "Tâche en file : {{id}}"
+        "scheduleDescription": "Assigne un candidat promu à une date future pour qu'il apparaisse dans le défi Géo quotidien.",
+        "enqueue": "Lancer la tâche",
+        "queued": "Tâche en file : {{id}}",
+        "fields": {
+          "gameId": "ID du jeu",
+          "gameIdHint": "Identifiant numérique du jeu dans la base locale.",
+          "subdomain": "Sous-domaine du wiki",
+          "subdomainHint": "Le sous-domaine Fandom (ex. « eldenring » pour eldenring.fandom.com).",
+          "pageTitle": "Titre de la page wiki",
+          "pageTitleHint": "Slug de la page qui héberge la carte (ex. « Interactive_Map »).",
+          "geoMapId": "ID de carte Géo",
+          "geoMapIdHint": "Identifiant de la carte Géo existante à laquelle rattacher les captures.",
+          "steamAppId": "App ID Steam",
+          "steamAppIdHint": "Identifiant Steam numérique du jeu (ex. 1245620 pour Elden Ring).",
+          "scheduleDate": "Date (optionnel)",
+          "scheduleDateHint": "Format AAAA-MM-JJ. Laissez vide pour planifier pour demain."
+        }
       }
     },
     "growth": {

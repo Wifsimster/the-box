@@ -3,7 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Trash2 } from 'lucide-react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Loader2, Trash2, Info, MapPin } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoAdminActions } from './GeoAdminActions'
 import type {
@@ -20,6 +28,9 @@ interface CandidateDetail {
     map: GeoMap | null
     meta: GeoScreenshotMeta | null
 }
+
+type StatusFilter = 'collecting' | 'pending' | 'promoted' | 'all'
+const STATUS_FILTERS: StatusFilter[] = ['collecting', 'pending', 'promoted', 'all']
 
 async function fetchCandidates(status?: string): Promise<GeoScreenshotCandidate[]> {
     const qs = status ? `?status=${encodeURIComponent(status)}` : ''
@@ -62,15 +73,14 @@ async function deleteMeta(metaId: number): Promise<void> {
 
 export function GeoReviewPanel() {
     const { t } = useTranslation()
-    const [statusFilter, setStatusFilter] = useState<'pending' | 'collecting' | 'promoted' | 'all'>(
-        'collecting',
-    )
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('collecting')
     const [candidates, setCandidates] = useState<GeoScreenshotCandidate[]>([])
     const [detail, setDetail] = useState<CandidateDetail | null>(null)
     const [pin, setPin] = useState<GeoPoint | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [demoteOpen, setDemoteOpen] = useState(false)
 
     useEffect(() => {
         let cancelled = false
@@ -112,10 +122,8 @@ export function GeoReviewPanel() {
         }
     }
 
-    const handleDeleteMeta = async () => {
+    const confirmDemote = async () => {
         if (!detail?.meta) return
-        // Destructive on a public canonical — confirm explicitly.
-        if (!window.confirm('Demote this meta? It will become a collecting candidate again.')) return
         setError(null)
         setSaving(true)
         try {
@@ -124,6 +132,7 @@ export function GeoReviewPanel() {
             const fresh = await fetchCandidateDetail(detail.candidate.id)
             setDetail(fresh)
             setPin(null)
+            setDemoteOpen(false)
         } catch (e) {
             setError(String(e))
         } finally {
@@ -131,19 +140,65 @@ export function GeoReviewPanel() {
         }
     }
 
+    const statusLabel = (status: string): string => {
+        // Translate known statuses; fall back to the raw value for unknown statuses
+        // (rejected, archived, etc.) so we never silently hide data.
+        const key = `admin.geo.statusBadge.${status}`
+        const translated = t(key)
+        return translated === key ? status : translated
+    }
+
     return (
         <div className="space-y-4">
+            {/* Page header */}
+            <header className="space-y-1">
+                <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-neon-pink" />
+                    {t('admin.geo.title')}
+                </h2>
+                <p className="text-sm text-muted-foreground">{t('admin.geo.subtitle')}</p>
+            </header>
+
+            {/* Workflow explainer */}
+            <Card className="border-neon-pink/30 bg-linear-to-r from-neon-pink/5 via-neon-purple/5 to-transparent">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                        <Info className="h-4 w-4 text-neon-pink" />
+                        {t('admin.geo.intro.title')}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ol className="grid gap-3 sm:grid-cols-3 text-sm">
+                        {(['step1', 'step2', 'step3'] as const).map((step) => (
+                            <li key={step} className="space-y-1">
+                                <p className="font-semibold text-foreground">
+                                    {t(`admin.geo.intro.${step}Title`)}
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {t(`admin.geo.intro.${step}Body`)}
+                                </p>
+                            </li>
+                        ))}
+                    </ol>
+                </CardContent>
+            </Card>
+
             <GeoAdminActions />
 
-            <div className="flex items-center gap-2">
-                {(['collecting', 'pending', 'promoted', 'all'] as const).map((s) => (
+            {/* Status filter */}
+            <div
+                className="flex flex-wrap items-center gap-2"
+                role="group"
+                aria-label={t('admin.geo.statusFilter.label')}
+            >
+                {STATUS_FILTERS.map((s) => (
                     <Button
                         key={s}
                         size="sm"
                         variant={statusFilter === s ? 'default' : 'outline'}
                         onClick={() => setStatusFilter(s)}
                     >
-                        {s}
+                        {t(`admin.geo.statusFilter.${s}`)}
                     </Button>
                 ))}
             </div>
@@ -163,7 +218,7 @@ export function GeoReviewPanel() {
                     <Card className="lg:col-span-1">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm">
-                                {t('admin.geo.candidates', 'Candidates')} ({candidates.length})
+                                {t('admin.geo.candidates')} ({candidates.length})
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 max-h-[520px] overflow-auto">
@@ -177,16 +232,18 @@ export function GeoReviewPanel() {
                                 >
                                     <div className="flex justify-between items-center">
                                         <span className="font-mono">#{c.id}</span>
-                                        <Badge variant="outline">{c.status}</Badge>
+                                        <Badge variant="outline">{statusLabel(c.status)}</Badge>
                                     </div>
                                     <div className="mt-1 text-muted-foreground">
-                                        {c.pinCount} pins · {c.source}
+                                        {t('admin.geo.candidateRow.pinCount', { count: c.pinCount })}
+                                        {' · '}
+                                        {t('admin.geo.candidateRow.source', { source: c.source })}
                                     </div>
                                 </button>
                             ))}
                             {candidates.length === 0 && (
                                 <p className="text-xs text-muted-foreground">
-                                    {t('admin.geo.empty', 'No candidates match this filter.')}
+                                    {t('admin.geo.empty')}
                                 </p>
                             )}
                         </CardContent>
@@ -196,8 +253,8 @@ export function GeoReviewPanel() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm">
                                 {detail
-                                    ? `#${detail.candidate.id} · ${detail.pins.length} ${t('admin.geo.pins', 'pins')}`
-                                    : t('admin.geo.pickOne', 'Pick a candidate')}
+                                    ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
+                                    : t('admin.geo.pickOne')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -227,23 +284,16 @@ export function GeoReviewPanel() {
                                     {detail.meta ? (
                                         <div className="flex items-center justify-between gap-3">
                                             <p className="text-xs text-warning">
-                                                {t(
-                                                    'admin.geo.alreadyPromoted',
-                                                    'Already promoted — delete to re-pin with new coords.',
-                                                )}
+                                                {t('admin.geo.alreadyPromoted')}
                                             </p>
                                             <Button
                                                 size="sm"
                                                 variant="destructive"
-                                                onClick={handleDeleteMeta}
+                                                onClick={() => setDemoteOpen(true)}
                                                 disabled={saving}
                                             >
-                                                {saving ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                                                ) : (
-                                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                                )}
-                                                {t('admin.geo.demote', 'Demote canonical')}
+                                                <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                                {t('admin.geo.demote')}
                                             </Button>
                                         </div>
                                     ) : (
@@ -251,10 +301,7 @@ export function GeoReviewPanel() {
                                             <span className="text-xs text-muted-foreground">
                                                 {pin
                                                     ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
-                                                    : t(
-                                                          'admin.geo.pickPoint',
-                                                          'Click the map to set canonical coordinates',
-                                                      )}
+                                                    : t('admin.geo.pickPoint')}
                                             </span>
                                             <Button
                                                 size="sm"
@@ -265,23 +312,48 @@ export function GeoReviewPanel() {
                                                 {saving && (
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                                                 )}
-                                                {t('admin.geo.promote', 'Promote to canonical')}
+                                                {t('admin.geo.promote')}
                                             </Button>
                                         </div>
                                     )}
                                 </>
                             ) : (
                                 <p className="text-xs text-muted-foreground">
-                                    {t(
-                                        'admin.geo.detailHint',
-                                        'Select a candidate from the list to review its pins and optionally set canonical coordinates.',
-                                    )}
+                                    {t('admin.geo.detailHint')}
                                 </p>
                             )}
                         </CardContent>
                     </Card>
                 </div>
             )}
+
+            <Dialog open={demoteOpen} onOpenChange={(open) => !saving && setDemoteOpen(open)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('admin.geo.demoteDialog.title')}</DialogTitle>
+                        <DialogDescription>
+                            {t('admin.geo.demoteDialog.description')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDemoteOpen(false)}
+                            disabled={saving}
+                        >
+                            {t('admin.geo.demoteDialog.cancel')}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDemote}
+                            disabled={saving}
+                        >
+                            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+                            {t('admin.geo.demoteDialog.confirm')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
