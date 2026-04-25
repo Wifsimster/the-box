@@ -930,7 +930,14 @@
       "screenshot": "Capture d'écran",
       "map": "Carte",
       "hint": "Cliquez sur la carte pour placer votre épingle",
-      "submit": "Valider ma réponse"
+      "submit": "Valider ma réponse",
+      "score": "Score",
+      "distance": "Distance",
+      "formula": "Formule",
+      "screenshotUnavailable": "Aperçu de la capture indisponible.",
+      "errors": {
+        "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard."
+      }
     },
     "contribute": {
       "title": "Étiqueter une capture",

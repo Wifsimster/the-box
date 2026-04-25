@@ -4,9 +4,8 @@ import { loginAsAdmin } from './helpers/game-helpers'
 /**
  * E2E tests for the admin Geo review panel and ingestion actions.
  *
- * Skipped gracefully when VITE_GEO_ENABLED is off — the "geo" tab only
- * renders behind that flag, so the rest of the suite would fail
- * misleadingly without this guard.
+ * Skipped gracefully when the geo API is unreachable (older backend), so
+ * the rest of the suite doesn't fail misleadingly.
  */
 
 async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {

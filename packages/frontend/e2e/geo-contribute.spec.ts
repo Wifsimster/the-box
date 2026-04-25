@@ -4,8 +4,8 @@ import { loginAsUser } from './helpers/game-helpers'
 /**
  * E2E tests for the /geo/contribute pin mini-game and /geo/leaderboard.
  *
- * Skipped gracefully when VITE_GEO_ENABLED is off or when there are no
- * unlabeled candidates to tag for the default gameId.
+ * Skipped gracefully when the geo API is unreachable (older backend) or
+ * when there are no unlabeled candidates to tag for the default gameId.
  */
 
 async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {

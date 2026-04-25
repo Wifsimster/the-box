@@ -4,15 +4,13 @@ import { loginAsUser } from './helpers/game-helpers'
 /**
  * E2E tests for the /geo/daily challenge.
  *
- * These specs are flag-gated: the /geo routes only exist when
- * VITE_GEO_ENABLED=true was set at Vite build time. When the flag is off,
- * the app redirects to the language root; we detect and skip instead of
- * producing a misleading failure.
- *
- * Prerequisites (when flag is on):
+ * Prerequisites:
  * - Backend running with at least one promoted geo_screenshot_meta for
  *   today's date (see e2e-seed.ts once geo seeds are added)
  * - Logged-in test user
+ *
+ * If the geo API isn't reachable (older backend), we skip instead of
+ * producing a misleading failure.
  */
 
 async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {
@@ -30,7 +28,7 @@ test.describe('Geo Daily', () => {
 
     test('renders the challenge when a meta is promoted for today', async ({ page }) => {
         if (!(await geoRoutesAvailable(page))) {
-            test.skip(true, 'VITE_GEO_ENABLED is off for this build')
+            test.skip(true, 'geo API not reachable for this build')
         }
 
         await page.goto('/en/geo/daily')

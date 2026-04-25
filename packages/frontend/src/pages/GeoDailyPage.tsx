@@ -25,6 +25,7 @@ export default function GeoDailyPage() {
         pendingGuess,
         result,
         errorMessage,
+        errorCode,
         loadDaily,
         setPendingGuess,
         submitGuess,
@@ -73,7 +74,12 @@ export default function GeoDailyPage() {
             {phase === 'error' && (
                 <Card>
                     <CardContent className="py-10 text-center text-sm text-destructive">
-                        {errorMessage ?? t('common.error', 'Error')}
+                        {errorCode === 'NO_CHALLENGE'
+                            ? t(
+                                  'geo.daily.errors.noChallenge',
+                                  'No geo challenge is available for today yet. Please check back later.',
+                              )
+                            : (errorMessage ?? t('common.error', 'Error'))}
                     </CardContent>
                 </Card>
             )}
@@ -128,7 +134,7 @@ export default function GeoDailyPage() {
                                 </Button>
                             </div>
 
-                            {result && <ResultBlock result={result} />}
+                            {result && <ResultBlock result={result} t={t} />}
                         </CardContent>
                     </Card>
                 </div>
@@ -139,35 +145,41 @@ export default function GeoDailyPage() {
 
 function ResultBlock({
     result,
+    t,
 }: {
     result: NonNullable<ReturnType<typeof useGeoStore.getState>['result']>
+    t: ReturnType<typeof useTranslation>['t']
 }) {
     return (
         <div className="rounded-lg border bg-card/50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-neon-pink font-medium">
                 <Trophy className="h-4 w-4" />
-                <span>Score: {result.score.toLocaleString()}</span>
+                <span>
+                    {t('geo.daily.score', 'Score')}: {result.score.toLocaleString()}
+                </span>
             </div>
             <div className="text-xs text-muted-foreground">
-                Distance: {(result.distance * 100).toFixed(1)}% · Formula v{result.scoreVersion}
+                {t('geo.daily.distance', 'Distance')}: {(result.distance * 100).toFixed(1)}% ·{' '}
+                {t('geo.daily.formula', 'Formula')} v{result.scoreVersion}
             </div>
         </div>
     )
 }
 
 function ScreenshotFrame({ imageUrl }: { imageUrl: string }) {
+    const { t } = useTranslation()
     const [errored, setErrored] = useState(false)
     if (errored) {
         return (
             <div className="aspect-video w-full rounded-lg border bg-muted/30 flex items-center justify-center text-xs text-muted-foreground">
-                Screenshot preview unavailable.
+                {t('geo.daily.screenshotUnavailable', 'Screenshot preview unavailable.')}
             </div>
         )
     }
     return (
         <img
             src={imageUrl}
-            alt="Game screenshot"
+            alt={t('geo.daily.screenshot', 'Screenshot')}
             className="w-full rounded-lg border"
             onError={() => setErrored(true)}
         />

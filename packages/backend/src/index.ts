@@ -22,7 +22,7 @@ import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
-import { importQueue } from './infrastructure/queue/queues.js'
+import { importQueue, geoQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
 import './infrastructure/queue/workers/geo.worker.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
@@ -438,11 +438,36 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to schedule recurring inactive-user-reminder job')
     }
 
+    // Schedule recurring geo daily challenge creation (00:05 UTC daily — runs
+    // shortly after the main create-daily-challenge cron so the new calendar
+    // day has rolled over before scheduleDailyGeoChallenge() picks today's
+    // date). Re-registered every boot so config changes take effect.
+    try {
+      const existing = await geoQueue.getRepeatableJobs()
+      for (const job of existing) {
+        if (job.name === 'schedule-daily-challenge') {
+          await geoQueue.removeRepeatableByKey(job.key)
+        }
+      }
+      await geoQueue.add(
+        'schedule-daily-challenge',
+        { kind: 'schedule-daily-challenge' },
+        {
+          repeat: { pattern: '5 0 * * *', tz: 'UTC' }, // Cron: 00:05 UTC daily
+          jobId: 'schedule-daily-geo-challenge-recurring',
+        }
+      )
+      logger.info('scheduled recurring schedule-daily-challenge geo job (daily at 00:05 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring geo daily challenge job')
+    }
+
     // Log final repeatable jobs configuration with next run times
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
+      const geoRepeatableJobs = await geoQueue.getRepeatableJobs()
       logger.info({
-        repeatableJobs: repeatableJobs.map(j => ({
+        repeatableJobs: [...repeatableJobs, ...geoRepeatableJobs].map(j => ({
           name: j.name,
           pattern: j.pattern,
           tz: j.tz,
