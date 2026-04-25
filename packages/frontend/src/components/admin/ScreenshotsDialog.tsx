@@ -79,7 +79,7 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {t('admin.games.screenshotsDialog.title', { name: game?.name })}
@@ -110,27 +110,27 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10"
+                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10"
                     onClick={goToPrevious}
                     aria-label={t('admin.games.screenshotsDialog.previous')}
                   >
-                    <ChevronLeft className="h-6 w-6" />
+                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                   </Button>
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10"
+                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10"
                     onClick={goToNext}
                     aria-label={t('admin.games.screenshotsDialog.next')}
                   >
-                    <ChevronRight className="h-6 w-6" />
+                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                   </Button>
                 </>
               )}
 
               {/* Info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4">
-                <div className="flex items-center justify-between">
+              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                   {currentScreenshot && (
                     <Badge variant={getDifficultyLabel(currentScreenshot.difficulty).variant}>
                       {t('admin.games.screenshotsDialog.difficulty')}: {getDifficultyLabel(currentScreenshot.difficulty).label}

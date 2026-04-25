@@ -77,7 +77,7 @@ export function EmailLogPanel() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2 text-base min-w-0">
           <Mail className="h-4 w-4 text-neon-purple shrink-0" />
           <span className="truncate">{t('admin.emailLog.title')}</span>
@@ -95,7 +95,7 @@ export function EmailLogPanel() {
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
         <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <Input
             placeholder={t('admin.emailLog.searchPlaceholder')}
@@ -106,7 +106,7 @@ export function EmailLogPanel() {
           <select
             value={type}
             onChange={(e) => setType(e.target.value as EmailLogType | '')}
-            className="bg-background border border-border rounded-md px-3 py-2 text-sm"
+            className="bg-background border border-border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
           >
             <option value="">{t('admin.emailLog.filterType')}</option>
             {TYPE_OPTIONS.map((o) => (
@@ -118,7 +118,7 @@ export function EmailLogPanel() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as EmailLogStatus | '')}
-            className="bg-background border border-border rounded-md px-3 py-2 text-sm"
+            className="bg-background border border-border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
           >
             <option value="">{t('admin.emailLog.filterStatus')}</option>
             {STATUS_OPTIONS.map((o) => (
@@ -135,7 +135,39 @@ export function EmailLogPanel() {
           </div>
         ) : entries && entries.length > 0 ? (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="space-y-2 md:hidden">
+              {entries.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      {t(`admin.emailLog.types.${row.type}`)}
+                    </Badge>
+                    <StatusBadge status={row.status} />
+                  </div>
+                  <div className="font-mono text-xs break-all text-muted-foreground">
+                    {row.recipient}
+                  </div>
+                  <div className="text-sm break-words" title={row.subject}>
+                    {row.subject}
+                  </div>
+                  {row.errorMessage && (
+                    <div className="text-[11px] text-destructive break-words" title={row.errorMessage}>
+                      {row.errorMessage}
+                    </div>
+                  )}
+                  <div className="text-[11px] text-muted-foreground">
+                    {formatWhen(row.sentAt, i18n.language)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">

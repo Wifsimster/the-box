@@ -40,18 +40,18 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader>
+      <CardHeader className="p-4 sm:p-6">
         <div className="flex items-center gap-3">
           {isGamesImport ? (
-            <Gamepad2 className="h-6 w-6 text-neon-purple" />
+            <Gamepad2 className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0" />
           ) : (
-            <Download className="h-6 w-6 text-neon-pink" />
+            <Download className="h-5 w-5 sm:h-6 sm:w-6 text-neon-pink shrink-0" />
           )}
-          <div>
-            <CardTitle>
+          <div className="min-w-0">
+            <CardTitle className="text-base sm:text-lg">
               {isGamesImport ? t('admin.jobs.importGames') : t('admin.jobs.importScreenshots')}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               {isGamesImport
                 ? t('admin.jobs.importGamesDesc')
                 : t('admin.jobs.importScreenshotsDesc')}
@@ -61,8 +61,8 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
       </CardHeader>
 
       {isGamesImport && (
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label className="text-muted-foreground font-normal">
                 {t('admin.jobs.targetGames')}
@@ -103,7 +103,7 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
         </CardContent>
       )}
 
-      <CardFooter>
+      <CardFooter className="p-4 sm:p-6 pt-0 sm:pt-0">
         <Button
           variant="gaming"
           onClick={handleStart}

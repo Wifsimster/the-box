@@ -58,14 +58,14 @@ export function GrowthStats() {
     <div className="space-y-4 sm:space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <UserPlus className="h-4 w-4" />
               {t('admin.growth.referralsClaimed')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold gradient-gaming bg-clip-text text-transparent">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold gradient-gaming bg-clip-text text-transparent">
               {stats.referrals.claimedTotal}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -75,14 +75,14 @@ export function GrowthStats() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingUp className="h-4 w-4" />
               {t('admin.growth.consentRate')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-neon-cyan">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-neon-cyan">
               {stats.consent.ratePercent}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -95,14 +95,14 @@ export function GrowthStats() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Mail className="h-4 w-4" />
               {t('admin.growth.streakEmails')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-neon-pink">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-neon-pink">
               {stats.streakRiskEmail.sentLast24h}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -116,11 +116,11 @@ export function GrowthStats() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{t('admin.growth.topReferrers')}</CardTitle>
-          <CardDescription>{t('admin.growth.topReferrersHint')}</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">{t('admin.growth.topReferrers')}</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">{t('admin.growth.topReferrersHint')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {stats.referrals.topReferrers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
               {t('admin.growth.noReferrers')}

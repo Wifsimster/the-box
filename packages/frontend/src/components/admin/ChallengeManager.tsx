@@ -38,21 +38,29 @@ export function ChallengeManager() {
 
   return (
     <Card className="relative bg-card/50 backdrop-blur-sm border-neon-purple/30">
-      {/* Date Badge - Top Right */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+      {/* Date Badge - Top Right (desktop) / inline (mobile) */}
+      <div className="hidden sm:block absolute top-6 right-6">
         <div className="flex flex-col items-end gap-1">
           <span className="text-xs text-muted-foreground uppercase tracking-wide">{t('admin.challenges.date')}</span>
           <div className="bg-neon-purple/20 border border-neon-purple/40 rounded-lg px-3 py-1.5 backdrop-blur-sm">
-            <span className="font-mono text-lg sm:text-xl font-bold text-neon-purple">{today}</span>
+            <span className="font-mono text-xl font-bold text-neon-purple">{today}</span>
           </div>
         </div>
       </div>
 
-      <CardHeader className="p-4 sm:p-6 pr-24 sm:pr-32">
+      <CardHeader className="p-4 sm:p-6 sm:pr-32">
         <div className="flex items-start gap-3">
-          <Calendar className="h-6 w-6 text-neon-purple shrink-0 mt-0.5" />
+          <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1 space-y-1">
-            <CardTitle className="text-lg sm:text-xl">{t('admin.challenges.todaysChallenge')}</CardTitle>
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className="text-base sm:text-xl">{t('admin.challenges.todaysChallenge')}</CardTitle>
+              <div className="flex sm:hidden flex-col items-end gap-0.5 shrink-0">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('admin.challenges.date')}</span>
+                <div className="bg-neon-purple/20 border border-neon-purple/40 rounded-md px-2 py-0.5 backdrop-blur-sm">
+                  <span className="font-mono text-xs font-bold text-neon-purple">{today}</span>
+                </div>
+              </div>
+            </div>
             <CardDescription className="text-xs sm:text-sm">{t('admin.challenges.rerollDesc')}</CardDescription>
           </div>
         </div>

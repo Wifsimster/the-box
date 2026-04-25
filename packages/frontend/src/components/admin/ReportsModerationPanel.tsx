@@ -93,12 +93,12 @@ export function ReportsModerationPanel() {
 
     return (
         <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
                 <CardTitle className="flex items-center gap-2 text-base min-w-0">
                     <Flag className="h-4 w-4 text-neon-pink shrink-0" />
                     <span className="truncate">{t('admin.reports.title')}</span>
                 </CardTitle>
-                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:shrink-0">
                     <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
                         <Checkbox
                             checked={onlyDeactivated}
@@ -119,7 +119,7 @@ export function ReportsModerationPanel() {
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 {loading && reports === null ? (
                     <div className="flex justify-center py-12">
                         <Loader2 className="h-6 w-6 animate-spin text-neon-pink" />
@@ -197,6 +197,7 @@ export function ReportsModerationPanel() {
                                         size="sm"
                                         onClick={() => void handleReactivate(row)}
                                         disabled={pendingKey === rowKey(row)}
+                                        className="w-full sm:w-auto sm:shrink-0"
                                     >
                                         {pendingKey === rowKey(row) ? (
                                             <Loader2 className="h-4 w-4 animate-spin mr-2" />

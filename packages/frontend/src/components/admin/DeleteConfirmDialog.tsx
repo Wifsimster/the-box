@@ -31,16 +31,16 @@ export function DeleteConfirmDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-sm sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" onClick={onClose} disabled={isLoading} className="w-full sm:w-auto">
             {t('common.cancel')}
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
+          <Button variant="destructive" onClick={onConfirm} disabled={isLoading} className="w-full sm:w-auto">
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             {t('common.delete')}
           </Button>

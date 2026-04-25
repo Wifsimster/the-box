@@ -205,16 +205,16 @@ export function GeoReviewPanel() {
             />
 
             <Tabs defaultValue="pins" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="pins" className="gap-1.5">
+                <TabsList className="w-full overflow-x-auto justify-start sm:justify-center scrollbar-hide">
+                    <TabsTrigger value="pins" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.pins')}
                     </TabsTrigger>
-                    <TabsTrigger value="maps" className="gap-1.5">
+                    <TabsTrigger value="maps" className="gap-1.5 shrink-0">
                         <Map className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.maps')}
                     </TabsTrigger>
-                    <TabsTrigger value="games" className="gap-1.5">
+                    <TabsTrigger value="games" className="gap-1.5 shrink-0">
                         <Library className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.games')}
                     </TabsTrigger>
@@ -296,14 +296,14 @@ export function GeoReviewPanel() {
                     <Loader2 className="h-6 w-6 animate-spin text-neon-pink" />
                 </div>
             ) : (
-                <div className="grid gap-4 lg:grid-cols-3">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">
                     <Card className="lg:col-span-1">
-                        <CardHeader className="pb-2">
+                        <CardHeader className="pb-2 p-4 sm:p-6">
                             <CardTitle className="text-sm">
                                 {t('admin.geo.candidates')} ({candidates.length})
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 max-h-[520px] overflow-auto">
+                        <CardContent className="space-y-2 max-h-[300px] sm:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
                             {candidates.map((c) => (
                                 <button
                                     key={c.id}
@@ -332,14 +332,14 @@ export function GeoReviewPanel() {
                     </Card>
 
                     <Card className="lg:col-span-2">
-                        <CardHeader className="pb-2">
+                        <CardHeader className="pb-2 p-4 sm:p-6">
                             <CardTitle className="text-sm">
                                 {detail
                                     ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
                                     : t('admin.geo.pickOne')}
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-3 p-4 sm:p-6 pt-0 sm:pt-0">
                             {detail && detail.map ? (
                                 <>
                                     <img
@@ -364,7 +364,7 @@ export function GeoReviewPanel() {
                                         disabled={!!detail.meta}
                                     />
                                     {detail.meta ? (
-                                        <div className="flex items-center justify-between gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                                             <p className="text-xs text-warning">
                                                 {t('admin.geo.alreadyPromoted')}
                                             </p>
@@ -373,13 +373,14 @@ export function GeoReviewPanel() {
                                                 variant="destructive"
                                                 onClick={() => setDemoteOpen(true)}
                                                 disabled={saving}
+                                                className="w-full sm:w-auto"
                                             >
                                                 <Trash2 className="h-3.5 w-3.5 mr-2" />
                                                 {t('admin.geo.demote')}
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                             <span className="text-xs text-muted-foreground">
                                                 {pin
                                                     ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
@@ -389,7 +390,7 @@ export function GeoReviewPanel() {
                                                 size="sm"
                                                 onClick={applyOverride}
                                                 disabled={!pin || saving}
-                                                className="gradient-gaming hover:opacity-90"
+                                                className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
                                             >
                                                 {saving && (
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
@@ -410,14 +411,14 @@ export function GeoReviewPanel() {
             )}
 
             <Dialog open={demoteOpen} onOpenChange={(open) => !saving && setDemoteOpen(open)}>
-                <DialogContent>
+                <DialogContent className="max-w-sm sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>{t('admin.geo.demoteDialog.title')}</DialogTitle>
                         <DialogDescription>
                             {t('admin.geo.demoteDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
+                    <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
                         <Button
                             variant="outline"
                             onClick={() => setDemoteOpen(false)}

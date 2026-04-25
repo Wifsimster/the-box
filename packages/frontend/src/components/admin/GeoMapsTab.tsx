@@ -170,7 +170,7 @@ export function GeoMapsTab() {
     const selectedGame = games?.find((g) => g.id === selectedId) ?? null
 
     return (
-        <div className="grid gap-4 lg:grid-cols-5">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5">
             {/* Left: per-game table */}
             <Card className="lg:col-span-3">
                 <CardHeader className="pb-3">

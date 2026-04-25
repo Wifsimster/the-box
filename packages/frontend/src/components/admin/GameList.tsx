@@ -153,8 +153,8 @@ export function GameList() {
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-        <CardTitle className="flex items-center gap-2 min-w-0">
+      <CardHeader className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 min-w-0 text-base sm:text-lg">
           <span className="truncate">{t('admin.games.title')}</span>
           {gamesPagination.total > 0 && (
             <span className="text-sm font-normal text-muted-foreground shrink-0">
@@ -162,13 +162,13 @@ export function GameList() {
             </span>
           )}
         </CardTitle>
-        <Button variant="gaming" onClick={() => setIsFormOpen(true)} className="shrink-0">
+        <Button variant="gaming" onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4" />
           {t('admin.games.addGame')}
         </Button>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
         {/* Search */}
         <div className="mb-4">
           <div className="relative">
@@ -243,7 +243,7 @@ export function GameList() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isFormOpen || !!editingGame} onOpenChange={handleCloseForm}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogTitle className="sr-only">
             {editingGame ? t('admin.games.editGame') : t('admin.games.addGame')}
           </DialogTitle>
