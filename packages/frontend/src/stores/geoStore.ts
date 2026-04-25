@@ -11,6 +11,8 @@ import type {
     GeoTierUpEvent,
 } from '@the-box/types'
 import { geoApi, GeoApiError, type GeoContributorMe } from '../lib/api/geo'
+import { getApiErrorMessage } from '../lib/api-errors'
+import i18n from '../lib/i18n'
 
 type Phase = 'idle' | 'loading' | 'playing' | 'submitting' | 'result' | 'error'
 
@@ -101,7 +103,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
         } catch (err) {
             set({
                 phase: 'error',
-                errorMessage: err instanceof GeoApiError ? err.message : 'Failed to load challenge',
+                errorMessage: getApiErrorMessage(err, i18n.t('apiErrors.default')),
                 errorCode: err instanceof GeoApiError ? err.code : null,
             })
         }
@@ -127,8 +129,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
         } catch (err) {
             set({
                 phase: 'error',
-                errorMessage:
-                    err instanceof GeoApiError ? err.message : 'Failed to submit guess',
+                errorMessage: getApiErrorMessage(err),
             })
             return null
         }
@@ -157,12 +158,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
         } catch (err) {
             set({
                 phase: 'error',
-                errorMessage:
-                    err instanceof GeoApiError
-                        ? err.code === 'CONTRIBUTE_RATE_LIMIT'
-                            ? 'Hourly pin limit reached — come back later.'
-                            : err.message
-                        : 'Failed to load a candidate',
+                errorMessage: getApiErrorMessage(err),
             })
         }
     },
@@ -188,8 +184,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
             return true
         } catch (err) {
             set({
-                errorMessage:
-                    err instanceof GeoApiError ? err.message : 'Failed to submit pin',
+                errorMessage: getApiErrorMessage(err),
             })
             return false
         }

@@ -10,7 +10,7 @@ import { useAdminStore } from '@/stores/adminStore'
 import { Database, Play, Pause, Loader2, RefreshCw } from 'lucide-react'
 
 export function FullImportCard() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const {
     currentImport,
     fullImportLoading,
@@ -142,23 +142,23 @@ export function FullImportCard() {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.totalAvailable')}:</span>
-                <span>{currentImport.totalGamesAvailable?.toLocaleString() || '...'}</span>
+                <span>{currentImport.totalGamesAvailable?.toLocaleString(i18n.language) || '...'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.processed')}:</span>
-                <span>{currentImport.gamesProcessed.toLocaleString()}</span>
+                <span>{currentImport.gamesProcessed.toLocaleString(i18n.language)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.imported')}:</span>
-                <span className="text-success">{currentImport.gamesImported.toLocaleString()}</span>
+                <span className="text-success">{currentImport.gamesImported.toLocaleString(i18n.language)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.skipped')}:</span>
-                <span className="text-warning">{currentImport.gamesSkipped.toLocaleString()}</span>
+                <span className="text-warning">{currentImport.gamesSkipped.toLocaleString(i18n.language)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.screenshots')}:</span>
-                <span>{currentImport.screenshotsDownloaded.toLocaleString()}</span>
+                <span>{currentImport.screenshotsDownloaded.toLocaleString(i18n.language)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('admin.fullImport.batch')}:</span>

@@ -34,7 +34,11 @@ const progressVariants: Record<JobStatus, 'default' | 'success' | 'warning' | 'e
     delayed: 'warning',
 }
 
-function formatDate(dateString: string): string {
+function formatDate(
+    dateString: string,
+    t: ReturnType<typeof useTranslation>['t'],
+    language: string,
+): string {
     const date = new Date(dateString)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
@@ -42,15 +46,15 @@ function formatDate(dateString: string): string {
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)
 
-    if (seconds < 60) return `${seconds}s ago`
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    return date.toLocaleDateString()
+    if (seconds < 60) return t('admin.jobs.relativeTime.secondsAgo', { count: seconds })
+    if (minutes < 60) return t('admin.jobs.relativeTime.minutesAgo', { count: minutes })
+    if (hours < 24) return t('admin.jobs.relativeTime.hoursAgo', { count: hours })
+    return date.toLocaleDateString(language)
 }
 
-function formatNextRunDate(dateString: string): string {
+function formatNextRunDate(dateString: string, language: string): string {
     const date = new Date(dateString)
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(language, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -81,7 +85,7 @@ interface JobQueuePanelProps {
 }
 
 export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { jobs, isLoading, fetchJobs, clearCompleted, cancelJob, connectSocket, disconnectSocket } = useAdminStore()
     const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed' | 'delayed'>('all')
     const [isMinimized, setIsMinimized] = useState(true)
@@ -256,12 +260,12 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                         )}
                                                     </div>
                                                     <div className="text-[10px] text-muted-foreground">
-                                                        {formatDate(job.createdAt)}
+                                                        {formatDate(job.createdAt, t, i18n.language)}
                                                     </div>
                                                 </div>
                                                 <Badge variant={statusBadgeVariants[job.status]} className="text-[10px] h-5">
                                                     {job.id.startsWith('repeat:') && job.status === 'delayed' && job.nextRunAt
-                                                        ? formatNextRunDate(job.nextRunAt)
+                                                        ? formatNextRunDate(job.nextRunAt, i18n.language)
                                                         : t(`admin.jobs.status.${job.status}`)}
                                                 </Badge>
                                             </div>

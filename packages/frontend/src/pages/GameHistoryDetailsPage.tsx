@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Trophy, ArrowLeft, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
+import { getApiErrorMessage } from '@/lib/api-errors'
 import type { GameSessionDetailsResponse } from '@/types'
 import { calculateSpeedMultiplier } from '@/lib/utils'
 
@@ -25,7 +26,7 @@ export default function GameHistoryDetailsPage() {
   /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     if (!sessionId) {
-      setError('Session ID is required')
+      setError(t('apiErrors.INVALID_SESSION_ID'))
       setLoading(false)
       return
     }
@@ -36,12 +37,12 @@ export default function GameHistoryDetailsPage() {
         setError(null)
       })
       .catch(err => {
-        setError(err.message || 'Failed to load game session details')
+        setError(getApiErrorMessage(err))
       })
       .finally(() => {
         setLoading(false)
       })
-  }, [sessionId])
+  }, [sessionId, t])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) {

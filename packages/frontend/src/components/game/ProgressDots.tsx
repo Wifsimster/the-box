@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useGameStore } from '@/stores/gameStore'
 import { cn } from '@/lib/utils'
 import type { PositionStatus } from '@/types'
@@ -11,6 +12,7 @@ import type { PositionStatus } from '@/types'
  * - primary: current page (with ring + glow)
  */
 export function ProgressDots() {
+  const { t } = useTranslation()
   const {
     positionStates,
     currentPosition,
@@ -36,7 +38,7 @@ export function ProgressDots() {
   return (
     <div
       role="tablist"
-      aria-label="Screenshot progress"
+      aria-label={t('game.progressDots.label')}
       className="flex gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-lg max-w-full"
     >
       {Array.from({ length: totalScreenshots }, (_, i) => {
@@ -60,7 +62,10 @@ export function ProgressDots() {
             )}
             animate={isCurrent ? { scale: [1, 1.08, 1] } : { scale: 1 }}
             transition={{ duration: 0.6, repeat: isCurrent ? Infinity : 0, repeatDelay: 1.5 }}
-            aria-label={`Screenshot ${pos}${isCurrent ? ' (current)' : ''}: ${status}`}
+            aria-label={t(isCurrent ? 'game.progressDots.itemCurrent' : 'game.progressDots.item', {
+              position: pos,
+              status: t(`game.progressDots.status.${status}`),
+            })}
             aria-current={isCurrent ? 'true' : undefined}
           >
             <span
@@ -86,6 +91,7 @@ export function ProgressDots() {
  * Compact progress indicator showing current/total with dots
  */
 export function ProgressDotsCompact() {
+  const { t } = useTranslation()
   const { positionStates, currentPosition, totalScreenshots } = useGameStore()
 
   // Count by status
@@ -106,12 +112,12 @@ export function ProgressDotsCompact() {
       </span>
       {counts.correct > 0 && (
         <span className="text-success text-sm">
-          {counts.correct} found
+          {t('game.progressDots.summary.found', { count: counts.correct })}
         </span>
       )}
       {counts.skipped > 0 && (
         <span className="text-warning text-sm">
-          {counts.skipped} skipped
+          {t('game.progressDots.summary.skipped', { count: counts.skipped })}
         </span>
       )}
     </div>
