@@ -274,6 +274,32 @@ export function GeoMapsTab() {
                         </div>
                     ) : sources ? (
                         <>
+                            {sources.activeMap && (
+                                <a
+                                    href={sources.activeMap.imageUrl}
+                                    target="_blank"
+                                    rel="noreferrer noopener"
+                                    className="block overflow-hidden rounded border border-border/40 bg-muted/10"
+                                    aria-label={t('admin.geo.maps.sidePanel.previewAlt', {
+                                        name: sources.gameName,
+                                    })}
+                                >
+                                    <img
+                                        src={sources.activeMap.imageUrl}
+                                        alt={t('admin.geo.maps.sidePanel.previewAlt', {
+                                            name: sources.gameName,
+                                        })}
+                                        loading="lazy"
+                                        className="block max-h-48 w-full object-contain bg-black/40"
+                                    />
+                                    <p className="px-2 py-1 text-[10px] text-muted-foreground">
+                                        {t('admin.geo.maps.sidePanel.previewDimensions', {
+                                            width: sources.activeMap.widthPx,
+                                            height: sources.activeMap.heightPx,
+                                        })}
+                                    </p>
+                                </a>
+                            )}
                             <ol className="space-y-2">
                                 {sources.sources.map((s) => (
                                     <TierRow key={s.tier} state={s} t={t} />

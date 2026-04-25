@@ -567,7 +567,9 @@
           "empty": "Select a game",
           "hint": "Pick a game on the left to see its tier-by-tier ingestion state.",
           "noActive": "No active map yet — see tier states below.",
-          "activeViaTier": "Active via {{tier}} · {{license}}"
+          "activeViaTier": "Active via {{tier}} · {{license}}",
+          "previewAlt": "Active map for {{name}} (click to open full size)",
+          "previewDimensions": "{{width}} × {{height}} px"
         }
       },
       "intro": {

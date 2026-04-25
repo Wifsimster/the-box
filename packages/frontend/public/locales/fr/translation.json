@@ -567,7 +567,9 @@
           "empty": "Sélectionnez un jeu",
           "hint": "Choisissez un jeu à gauche pour voir l'état d'ingestion niveau par niveau.",
           "noActive": "Aucune carte active — voir l'état des niveaux ci-dessous.",
-          "activeViaTier": "Actif via {{tier}} · {{license}}"
+          "activeViaTier": "Actif via {{tier}} · {{license}}",
+          "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
+          "previewDimensions": "{{width}} × {{height}} px"
         }
       },
       "intro": {
