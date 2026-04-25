@@ -482,7 +482,54 @@
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and validate crowdsourced pins.",
       "tabs": {
         "pins": "Pins",
-        "maps": "Maps"
+        "maps": "Maps",
+        "games": "Games"
+      },
+      "strip": {
+        "loading": "Loading dataset health…",
+        "error": "Could not load dataset health.",
+        "maps": "maps",
+        "pins": "pins",
+        "errors": "errors",
+        "nextChallenge": "next",
+        "scheduleNow": "Schedule now"
+      },
+      "games": {
+        "title": "Games",
+        "subtitle": "Curate the games whose maps and screenshots should land in the Geo daily challenge. Select multiple to curate or remove in bulk.",
+        "refresh": "Refresh",
+        "empty": "No games match this filter.",
+        "filter": {
+          "label": "Filter",
+          "all": "All",
+          "curated": "Curated",
+          "candidates": "Candidates"
+        },
+        "select": "Select",
+        "deselect": "Deselect",
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
+        "col": {
+          "name": "Game",
+          "score": "Score",
+          "status": "Status"
+        },
+        "status": {
+          "curatedMapped": "Curated · Mapped",
+          "curatedNoMap": "Curated · No map",
+          "candidate": "Candidate"
+        },
+        "bulk": {
+          "selected_one": "{{count}} selected",
+          "selected_other": "{{count}} selected",
+          "curate": "Curate",
+          "remove": "Remove",
+          "clear": "Clear",
+          "curatedMessage_one": "Curated {{count}} game.",
+          "curatedMessage_other": "Curated {{count}} games.",
+          "removedMessage_one": "Removed {{count}} game from the curated set.",
+          "removedMessage_other": "Removed {{count}} games from the curated set."
+        }
       },
       "maps": {
         "title": "Maps per game",

@@ -16,10 +16,20 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2, Trash2, Info, MapPin, ChevronDown, Map, ListChecks } from 'lucide-react'
+import {
+    Loader2,
+    Trash2,
+    Info,
+    MapPin,
+    ChevronDown,
+    Map,
+    ListChecks,
+    Library,
+} from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
-import { GeoAdminActions } from './GeoAdminActions'
 import { GeoMapsTab } from './GeoMapsTab'
+import { GeoGamesTab } from './GeoGamesTab'
+import { GeoHeaderStrip } from './GeoHeaderStrip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoMap,
@@ -89,6 +99,28 @@ export function GeoReviewPanel() {
     const [error, setError] = useState<string | null>(null)
     const [demoteOpen, setDemoteOpen] = useState(false)
     const [introOpen, setIntroOpen] = useState(false)
+    const [scheduling, setScheduling] = useState(false)
+
+    const triggerSchedule = async () => {
+        setScheduling(true)
+        setError(null)
+        try {
+            const res = await fetch('/api/admin/geo/schedule', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+            })
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({}))
+                throw new Error(json?.error?.code ?? `schedule failed: ${res.status}`)
+            }
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setScheduling(false)
+        }
+    }
 
     useEffect(() => {
         let cancelled = false
@@ -167,6 +199,11 @@ export function GeoReviewPanel() {
                 <p className="text-sm text-muted-foreground">{t('admin.geo.subtitle')}</p>
             </header>
 
+            <GeoHeaderStrip
+                onScheduleClick={() => void triggerSchedule()}
+                scheduling={scheduling}
+            />
+
             <Tabs defaultValue="pins" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="pins" className="gap-1.5">
@@ -177,10 +214,18 @@ export function GeoReviewPanel() {
                         <Map className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.maps')}
                     </TabsTrigger>
+                    <TabsTrigger value="games" className="gap-1.5">
+                        <Library className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.games')}
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="maps" className="space-y-4">
                     <GeoMapsTab />
+                </TabsContent>
+
+                <TabsContent value="games" className="space-y-4">
+                    <GeoGamesTab />
                 </TabsContent>
 
                 <TabsContent value="pins" className="space-y-4">
@@ -221,8 +266,6 @@ export function GeoReviewPanel() {
                     </CollapsibleContent>
                 </Card>
             </Collapsible>
-
-            <GeoAdminActions />
 
             {/* Status filter */}
             <div
