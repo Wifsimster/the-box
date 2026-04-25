@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
+import { cn } from '@/lib/utils'
 
 interface NavigationLinksProps {
   isMobile?: boolean
@@ -78,6 +79,7 @@ export function Header() {
   const { localizedPath } = useLocalizedPath()
   const { session, isPending, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const isRewardModalOpen = useDailyLoginStore((state) => state.isModalOpen)
   const closeRewardModal = useDailyLoginStore((state) => state.closeModal)
 
@@ -89,6 +91,15 @@ export function Header() {
     }
   }, [mobileMenuOpen, isRewardModalOpen, closeRewardModal])
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 8)
+    }
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   // Show login/register buttons if there's no session
   // Also check if session is valid (has user data)
   // This handles cases where the session endpoint returns invalid data
@@ -96,7 +107,14 @@ export function Header() {
   const showAuthButtons = !hasValidSession
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/20 bg-transparent backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md">
+    <header
+      className={cn(
+        'sticky top-0 z-50 w-full border-b backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md transition-colors duration-200',
+        isScrolled
+          ? 'border-border/40 bg-background/80 supports-[backdrop-filter]:bg-background/70 shadow-md shadow-black/20'
+          : 'border-border/20 bg-transparent',
+      )}
+    >
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4">
         {/* Mobile Menu Button - shown on mobile, hidden on md and up */}
         <div className="flex md:hidden">
