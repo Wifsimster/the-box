@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/lib/toast'
-import { Loader2, RefreshCw, Undo2, Flag } from 'lucide-react'
+import { Loader2, RefreshCw, Undo2, Flag, ImageOff } from 'lucide-react'
+import type { ScreenshotReportReason } from '@the-box/types'
 
 interface ReportSummary {
     screenshotId?: number
@@ -13,6 +14,10 @@ interface ReportSummary {
     reportCount: number
     lastReportedAt: string
     isActive: boolean
+    imageUrl?: string
+    thumbnailUrl?: string
+    gameName?: string
+    reasons: Partial<Record<ScreenshotReportReason, number>>
 }
 
 async function fetchReports(onlyDeactivated: boolean): Promise<ReportSummary[]> {
@@ -124,36 +129,66 @@ export function ReportsModerationPanel() {
                         {reports.map((row) => (
                             <li
                                 key={rowKey(row)}
-                                className="flex items-center justify-between gap-3 py-3"
+                                className="flex items-start justify-between gap-3 py-3"
                             >
-                                <div className="flex flex-col gap-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <Badge
-                                            variant={
-                                                row.screenshotId ? 'default' : 'secondary'
-                                            }
-                                        >
-                                            {row.screenshotId
-                                                ? t('admin.reports.targetMain')
-                                                : t('admin.reports.targetGeo')}
-                                        </Badge>
-                                        <span className="text-sm font-mono">
-                                            #{row.screenshotId ?? row.geoScreenshotCandidateId}
-                                        </span>
-                                        {!row.isActive && (
-                                            <Badge variant="destructive">
-                                                {t('admin.reports.deactivated')}
+                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                    <ReportThumbnail
+                                        src={row.thumbnailUrl ?? row.imageUrl}
+                                        alt={row.gameName ?? ''}
+                                    />
+                                    <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <Badge
+                                                variant={
+                                                    row.screenshotId ? 'default' : 'secondary'
+                                                }
+                                            >
+                                                {row.screenshotId
+                                                    ? t('admin.reports.targetMain')
+                                                    : t('admin.reports.targetGeo')}
                                             </Badge>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('admin.reports.count', {
-                                            count: row.reportCount,
-                                        })}
-                                        {' · '}
-                                        {t('admin.reports.lastReported', {
-                                            when: formatWhen(row.lastReportedAt, i18n.language),
-                                        })}
+                                            <span className="text-sm font-mono">
+                                                #{row.screenshotId ?? row.geoScreenshotCandidateId}
+                                            </span>
+                                            {row.gameName && (
+                                                <span className="text-sm font-medium truncate">
+                                                    {row.gameName}
+                                                </span>
+                                            )}
+                                            {!row.isActive && (
+                                                <Badge variant="destructive">
+                                                    {t('admin.reports.deactivated')}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {(Object.entries(row.reasons) as [
+                                                ScreenshotReportReason,
+                                                number,
+                                            ][])
+                                                .sort((a, b) => b[1] - a[1])
+                                                .map(([reason, n]) => (
+                                                    <Badge
+                                                        key={reason}
+                                                        variant="outline"
+                                                        className="text-[10px] font-normal"
+                                                    >
+                                                        {t(`report.reasons.${reason}`)} · {n}
+                                                    </Badge>
+                                                ))}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {t('admin.reports.count', {
+                                                count: row.reportCount,
+                                            })}
+                                            {' · '}
+                                            {t('admin.reports.lastReported', {
+                                                when: formatWhen(
+                                                    row.lastReportedAt,
+                                                    i18n.language,
+                                                ),
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                                 {!row.isActive && (
@@ -188,6 +223,26 @@ function rowKey(row: ReportSummary): string {
     return row.screenshotId
         ? `s:${row.screenshotId}`
         : `g:${row.geoScreenshotCandidateId}`
+}
+
+function ReportThumbnail({ src, alt }: { src?: string; alt: string }) {
+    const [errored, setErrored] = useState(false)
+    if (!src || errored) {
+        return (
+            <div className="h-16 w-24 shrink-0 rounded-md bg-muted/40 flex items-center justify-center">
+                <ImageOff className="h-4 w-4 text-muted-foreground" />
+            </div>
+        )
+    }
+    return (
+        <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            onError={() => setErrored(true)}
+            className="h-16 w-24 shrink-0 rounded-md object-cover border border-border"
+        />
+    )
 }
 
 function formatWhen(iso: string, locale: string): string {
