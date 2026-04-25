@@ -904,7 +904,14 @@
       "screenshot": "Screenshot",
       "map": "Map",
       "hint": "Click the map to drop a pin",
-      "submit": "Submit guess"
+      "submit": "Submit guess",
+      "score": "Score",
+      "distance": "Distance",
+      "formula": "Formula",
+      "screenshotUnavailable": "Screenshot preview unavailable.",
+      "errors": {
+        "noChallenge": "No geo challenge is available for today yet. Please check back later."
+      }
     },
     "contribute": {
       "title": "Tag a screenshot",

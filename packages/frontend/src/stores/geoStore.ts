@@ -25,6 +25,7 @@ interface GeoState {
     pendingGuess: GeoPoint | null
     result: GeoGuessResult | null
     errorMessage: string | null
+    errorCode: string | null
 
     // Leaderboards
     leaderboardDaily: GeoLeaderboardEntry[]
@@ -73,6 +74,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
     pendingGuess: null,
     result: null,
     errorMessage: null,
+    errorCode: null,
     leaderboardDaily: [],
     leaderboardMonthly: [],
     currentCandidate: null,
@@ -83,7 +85,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
     latestTierUp: null,
 
     async loadDaily(date) {
-        set({ phase: 'loading', errorMessage: null })
+        set({ phase: 'loading', errorMessage: null, errorCode: null })
         try {
             const view = await geoApi.getDaily(date)
             set({
@@ -100,6 +102,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
             set({
                 phase: 'error',
                 errorMessage: err instanceof GeoApiError ? err.message : 'Failed to load challenge',
+                errorCode: err instanceof GeoApiError ? err.code : null,
             })
         }
     },
@@ -234,6 +237,7 @@ export const useGeoStore = create<GeoState>((set, get) => ({
             pendingGuess: null,
             result: null,
             errorMessage: null,
+            errorCode: null,
             currentCandidate: null,
             currentCandidateMap: null,
             pendingPin: null,

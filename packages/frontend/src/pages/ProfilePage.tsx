@@ -14,8 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { AvatarUpload, ReferralCard, EmailConsentCard } from '@/components/profile'
 import { GeoContributorCard } from '@/components/profile/GeoContributorCard'
-
-const GEO_ENABLED = import.meta.env.VITE_GEO_ENABLED === 'true'
 import type { User as UserType } from '@the-box/types'
 
 /**
@@ -299,8 +297,8 @@ export default function ProfilePage() {
                         </motion.div>
                     )}
 
-                    {/* Geo Crowdsourcer — only when geo mode is enabled */}
-                    {GEO_ENABLED && userProfile && !userProfile.isGuest && (
+                    {/* Geo Crowdsourcer */}
+                    {userProfile && !userProfile.isGuest && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
