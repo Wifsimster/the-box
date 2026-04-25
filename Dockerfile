@@ -68,9 +68,15 @@ COPY package.json package-lock.json ./
 COPY packages/types/package.json ./packages/types/
 COPY packages/backend/package.json ./packages/backend/
 
-# Install production dependencies only + tsx for migrations + better-auth CLI
-# --ignore-scripts skips lifecycle scripts like prepare (which runs husky)
-RUN npm ci --omit=dev --ignore-scripts && npm install -w @the-box/backend tsx @better-auth/cli
+# Install production dependencies only + tsx for migrations + better-auth CLI.
+# --ignore-scripts on both installs skips lifecycle scripts: prepare (husky)
+# on the workspace install, and native build scripts on @better-auth/cli's
+# transitive better-sqlite3 dependency. We use Postgres, so the sqlite native
+# binding is never loaded — building it would otherwise fail on alpine-arm64
+# where prebuilds aren't always available and python/g++ aren't installed.
+# @better-auth/cli is pinned to keep Docker builds reproducible.
+RUN npm ci --omit=dev --ignore-scripts && \
+    npm install --ignore-scripts -w @the-box/backend tsx @better-auth/cli@1.4.10
 
 # Copy built backend artifacts
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
