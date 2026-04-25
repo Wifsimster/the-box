@@ -480,6 +480,49 @@
     "geo": {
       "title": "Geo Moderation",
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and validate crowdsourced pins.",
+      "tabs": {
+        "pins": "Pins",
+        "maps": "Maps"
+      },
+      "maps": {
+        "title": "Maps per game",
+        "subtitle": "Click a game to see which ingestion tiers ran or would run next.",
+        "refresh": "Refresh",
+        "empty": "No curated games yet. Add some from the curated list in the Pins tab.",
+        "reimportQueued": "Re-run pipeline queued for \"{{name}}\".",
+        "row": {
+          "hasMap": "Map",
+          "noMap": "No map",
+          "failed": "Failed"
+        },
+        "tiers": {
+          "registry": "Tier 1 — Registry",
+          "fandom": "Tier 2 — Fandom",
+          "wikidata": "Tier 3 — Wikidata",
+          "steam": "Steam",
+          "manual": "Tier 4 — Manual"
+        },
+        "tierStatus": {
+          "matched": "Matched",
+          "tombstoned_one": "Tombstoned ({{count}} attempt)",
+          "tombstoned_other": "Tombstoned ({{count}} attempts)",
+          "eligible": "Eligible",
+          "untried": "Skipped",
+          "eligibleHint": "Will run on the next ingest tick if no earlier tier wins.",
+          "retryAfter": "Retry after {{time}}"
+        },
+        "viewSource": "View source",
+        "actions": {
+          "rerun": "Re-run pipeline",
+          "uploadManual": "Upload manually"
+        },
+        "sidePanel": {
+          "empty": "Select a game",
+          "hint": "Pick a game on the left to see its tier-by-tier ingestion state.",
+          "noActive": "No active map yet — see tier states below.",
+          "activeViaTier": "Active via {{tier}} · {{license}}"
+        }
+      },
       "intro": {
         "title": "How this page works",
         "step1Title": "1. Import sources",

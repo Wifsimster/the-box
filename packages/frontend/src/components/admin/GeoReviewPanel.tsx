@@ -16,9 +16,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2, Trash2, Info, MapPin, ChevronDown } from 'lucide-react'
+import { Loader2, Trash2, Info, MapPin, ChevronDown, Map, ListChecks } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoAdminActions } from './GeoAdminActions'
+import { GeoMapsTab } from './GeoMapsTab'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoMap,
     GeoPinSubmission,
@@ -165,6 +167,23 @@ export function GeoReviewPanel() {
                 <p className="text-sm text-muted-foreground">{t('admin.geo.subtitle')}</p>
             </header>
 
+            <Tabs defaultValue="pins" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="pins" className="gap-1.5">
+                        <ListChecks className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.pins')}
+                    </TabsTrigger>
+                    <TabsTrigger value="maps" className="gap-1.5">
+                        <Map className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.maps')}
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="maps" className="space-y-4">
+                    <GeoMapsTab />
+                </TabsContent>
+
+                <TabsContent value="pins" className="space-y-4">
             {/* Workflow explainer */}
             <Collapsible open={introOpen} onOpenChange={setIntroOpen}>
                 <Card className="border-neon-pink/30 bg-linear-to-r from-neon-pink/5 via-neon-purple/5 to-transparent">
@@ -374,6 +393,8 @@ export function GeoReviewPanel() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
