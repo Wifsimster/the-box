@@ -22,7 +22,7 @@ import {
     Info,
     MapPin,
     ChevronDown,
-    Map,
+    Map as MapIcon,
     ListChecks,
     Library,
     X,
@@ -294,7 +294,7 @@ export function GeoReviewPanel() {
                         {t('admin.geo.tabs.pins')}
                     </TabsTrigger>
                     <TabsTrigger value="maps" className="gap-1.5 shrink-0">
-                        <Map className="h-3.5 w-3.5" />
+                        <MapIcon className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.maps')}
                     </TabsTrigger>
                     <TabsTrigger value="games" className="gap-1.5 shrink-0">
