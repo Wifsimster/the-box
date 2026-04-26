@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     ImageOverlay,
     MapContainer,
@@ -8,8 +9,10 @@ import {
 } from 'react-leaflet'
 import L, { CRS, type LatLngBoundsExpression, type LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { ImageOff } from 'lucide-react'
 import type { GeoPoint } from '@the-box/types'
 import { cn } from '@/lib/utils'
+import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import type { MapCanvasProps } from './MapCanvas'
 
 // Leaflet-based map canvas. Same public API as MapCanvas so the pages are
@@ -45,6 +48,7 @@ export function MapCanvasLeaflet({
     className,
     showGuessLine,
 }: MapCanvasProps) {
+    const { t } = useTranslation()
     // CRS.Simple: y=0 at top, +y downward in our normalized space; Leaflet's
     // default Simple CRS has +y upward. Flip y at the conversion boundary.
     const bounds: LatLngBoundsExpression = useMemo(
@@ -55,14 +59,47 @@ export function MapCanvasLeaflet({
         [widthPx, heightPx],
     )
 
+    // See MapCanvas.tsx for the rationale: placeholder URLs may load OK, real
+    // 404s won't surface through Leaflet's ImageOverlay, so probe with a hidden
+    // <img> in addition to the proactive placeholder check.
+    const [errored, setErrored] = useState(() => isPlaceholderImageUrl(imageUrl))
+
+    useEffect(() => {
+        setErrored(isPlaceholderImageUrl(imageUrl))
+    }, [imageUrl])
+
     const pinLatLng = pointToLatLng(pin, widthPx, heightPx)
     const canonicalLatLng = pointToLatLng(canonical, widthPx, heightPx)
+
+    if (errored) {
+        return (
+            <div
+                className={cn(
+                    'relative w-full rounded-lg border border-dashed bg-muted/30 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs text-muted-foreground',
+                    className,
+                )}
+                style={{ aspectRatio: `${widthPx} / ${heightPx}` }}
+                role="img"
+                aria-label={t('geo.daily.mapUnavailable', 'Map unavailable')}
+            >
+                <ImageOff className="h-6 w-6 opacity-60" aria-hidden />
+                <span>{t('geo.daily.mapUnavailable', 'Map unavailable')}</span>
+            </div>
+        )
+    }
 
     return (
         <div
             className={cn('w-full overflow-hidden rounded-lg', className)}
             style={{ aspectRatio: `${widthPx} / ${heightPx}` }}
         >
+            <img
+                src={imageUrl}
+                alt=""
+                className="hidden"
+                onError={() => setErrored(true)}
+                aria-hidden
+            />
             <MapContainer
                 crs={CRS.Simple}
                 bounds={bounds}

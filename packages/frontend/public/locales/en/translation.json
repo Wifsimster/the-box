@@ -1275,6 +1275,7 @@
       "distance": "Distance",
       "formula": "Formula",
       "screenshotUnavailable": "Screenshot preview unavailable.",
+      "mapUnavailable": "Map unavailable.",
       "errors": {
         "noChallenge": "No geo challenge is available for today yet. Please check back later."
       }
