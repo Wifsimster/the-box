@@ -528,8 +528,12 @@
           "curatedMessage_one": "{{count}} jeu curaté.",
           "curatedMessage_other": "{{count}} jeux curatés.",
           "removedMessage_one": "{{count}} jeu retiré du set curaté.",
-          "removedMessage_other": "{{count}} jeux retirés du set curaté."
-        }
+          "removedMessage_other": "{{count}} jeux retirés du set curaté.",
+          "noMapLikely_one": "{{count}} sans carte probable",
+          "noMapLikely_other": "{{count}} sans carte probable"
+        },
+        "noMapLikely": "carte improbable",
+        "noMapLikelyTooltip": "Les genres ({{genres}}) suggèrent que ce jeu n'a pas de carte du monde. L'auto-ingestion va probablement échouer ; envisagez plutôt un téléversement manuel."
       },
       "maps": {
         "title": "Cartes par jeu",
@@ -567,7 +571,10 @@
           "empty": "Sélectionnez un jeu",
           "hint": "Choisissez un jeu à gauche pour voir l'état d'ingestion niveau par niveau.",
           "noActive": "Aucune carte active — voir l'état des niveaux ci-dessous.",
-          "activeViaTier": "Actif via {{tier}} · {{license}}"
+          "activeViaTier": "Actif via {{tier}} · {{license}}",
+          "region": "région : {{region}}",
+          "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
+          "previewDimensions": "{{width}} × {{height}} px"
         }
       },
       "intro": {
@@ -695,7 +702,10 @@
           "heightPx": "Hauteur (px)",
           "license": "Licence",
           "attribution": "Attribution",
-          "sourceUrl": "URL de la page source"
+          "sourceUrl": "URL de la page source",
+          "region": "Région (optionnel)",
+          "regionPlaceholder": "ex. Velen, Acte II",
+          "regionHint": "Laissez vide s'il s'agit de la carte canonique / monde / mosaïque."
         },
         "submit": "Enregistrer la carte",
         "submitReplace": "Remplacer la carte",

@@ -35,9 +35,17 @@ export function wikiSubdomainCandidates(slug: string): string[] {
  * Score a `Map:` page title against the curated game's name + slug to pick
  * the most likely "main" map when a wiki publishes several. Higher is
  * better. The scoring rewards titles that:
- *   - mention the game name or its slug tokens (game-specific maps),
- *   - mention "world" / "overworld" / "atlas" (top-level maps),
+ *   - mention the full game name (strongest signal of the canonical map),
+ *   - mention slug tokens (game-specific sub-maps still beat generic ones),
+ *   - mention top-level keywords (`world`, `overworld`, `atlas`, `main`,
+ *     `full`, `complete`, `central`, `overview`),
  *   - mention "map" generically.
+ *
+ * It penalises titles that:
+ *   - are degenerate (e.g. just "Map", "Maps", or a single word),
+ *   - look like sub-region / DLC / interior maps,
+ *   - look like serialised episodes (`Act I`, `Chapter 2`, `Part 3`) — those
+ *     are usually one of N installments and never the canonical world map.
  *
  * Pure function so the resolver can be exercised without network access.
  */
@@ -46,7 +54,7 @@ export function scoreMapTitle(
   gameName: string,
   slug: string,
 ): number {
-  const t = mapTitle.toLowerCase().replace(/_/g, ' ')
+  const t = mapTitle.toLowerCase().replace(/_/g, ' ').trim()
   const name = normalizeGameTitle(gameName)
   const slugTokens = slug
     .toLowerCase()
@@ -55,13 +63,24 @@ export function scoreMapTitle(
 
   let score = 0
   if (name && t.includes(name)) score += 50
+  // Extra boost when the title *equals* the game name (e.g. "Elden Ring"
+  // beats "Elden Ring Boss Map"). Cheap signal for canonical pages.
+  if (name && t === name) score += 30
   for (const tok of slugTokens) {
     if (t.includes(tok)) score += 8
   }
-  if (/\b(world|overworld|atlas)\b/.test(t)) score += 20
+  if (/\b(world|overworld|atlas|main|full|complete|central|overview)\b/.test(t))
+    score += 20
   if (/\bmap\b/.test(t)) score += 5
   // Penalise obvious sub-region or DLC maps when a top-level alternative exists.
-  if (/\b(zone|region|area|level|dlc|dungeon|interior|building)\b/.test(t)) score -= 6
+  if (/\b(zone|region|area|level|dlc|dungeon|interior|building|biome|district|chapter|episode|part|act|mission|quest)\b/.test(t))
+    score -= 8
+  // Roman / arabic numerals at end → "Act I", "Map 2", "Chapter III" etc.
+  if (/\b(?:[ivx]+|\d+)$/.test(t)) score -= 8
+  // Degenerate titles: empty, single word, or just "map"/"maps".
+  const tokens = t.split(/\s+/).filter(Boolean)
+  if (tokens.length <= 1) score -= 15
+  if (t === 'map' || t === 'maps') score -= 30
   return score
 }
 
@@ -101,4 +120,49 @@ export function normalizeGameTitle(title: string): string {
 export function tombstoneRetryAfter(attemptCount: number, now: Date = new Date()): Date {
   const days = Math.min(2 ** Math.max(0, attemptCount - 1), 30)
   return new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+}
+
+// Genre-based heuristic for "is this game even capable of having a world map?".
+// RAWG genre names — kept conservative on the negative list because false
+// negatives hide playable games from the curate UI, while false positives
+// just waste a few API calls before tombstoning.
+const NO_MAP_GENRES = new Set<string>([
+  'Puzzle',
+  'Platformer',
+  'Racing',
+  'Sports',
+  'Fighting',
+  'Card',
+  'Board Games',
+  'Educational',
+  'Casual',
+  'Family',
+  'Arcade',
+])
+
+const HAS_MAP_GENRES = new Set<string>([
+  'Adventure',
+  'RPG',
+  'Massively Multiplayer',
+])
+
+/**
+ * Returns:
+ *   - true  → genres strongly suggest a navigable world map exists
+ *             (Adventure/RPG/MMO present)
+ *   - false → genres are exclusively no-map (Puzzle-only, Platformer-only…)
+ *   - null  → ambiguous (Shooter, Strategy, Action alone, missing genres)
+ *
+ * Used to (a) gate Tier 3 Wikidata so we don't tombstone P242 lookups
+ * forever for games that obviously won't have a locator, and (b) flag
+ * candidates in the admin curate list so operators don't onboard
+ * Portal 2 expecting a map.
+ */
+export function isMapEligibleByGenre(
+  genres: readonly string[] | null | undefined,
+): boolean | null {
+  if (!genres || genres.length === 0) return null
+  if (genres.some((g) => HAS_MAP_GENRES.has(g))) return true
+  if (genres.every((g) => NO_MAP_GENRES.has(g))) return false
+  return null
 }

@@ -528,8 +528,12 @@
           "curatedMessage_one": "Curated {{count}} game.",
           "curatedMessage_other": "Curated {{count}} games.",
           "removedMessage_one": "Removed {{count}} game from the curated set.",
-          "removedMessage_other": "Removed {{count}} games from the curated set."
-        }
+          "removedMessage_other": "Removed {{count}} games from the curated set.",
+          "noMapLikely_one": "{{count}} unlikely to have a map",
+          "noMapLikely_other": "{{count}} unlikely to have a map"
+        },
+        "noMapLikely": "no map likely",
+        "noMapLikelyTooltip": "Genres ({{genres}}) suggest this game has no world map. Auto-ingestion will probably fail; consider manual upload only."
       },
       "maps": {
         "title": "Maps per game",
@@ -567,7 +571,10 @@
           "empty": "Select a game",
           "hint": "Pick a game on the left to see its tier-by-tier ingestion state.",
           "noActive": "No active map yet — see tier states below.",
-          "activeViaTier": "Active via {{tier}} · {{license}}"
+          "activeViaTier": "Active via {{tier}} · {{license}}",
+          "region": "region: {{region}}",
+          "previewAlt": "Active map for {{name}} (click to open full size)",
+          "previewDimensions": "{{width}} × {{height}} px"
         }
       },
       "intro": {
@@ -695,7 +702,10 @@
           "heightPx": "Height (px)",
           "license": "License",
           "attribution": "Attribution",
-          "sourceUrl": "Source page URL"
+          "sourceUrl": "Source page URL",
+          "region": "Region (optional)",
+          "regionPlaceholder": "e.g. Velen, Act II",
+          "regionHint": "Leave empty if this is the canonical / world / mosaic map."
         },
         "submit": "Save map",
         "submitReplace": "Replace map",

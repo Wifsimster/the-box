@@ -1,7 +1,7 @@
 {
   "$schema": "./geo-map-registry.schema.json",
   "version": 1,
-  "description": "Tier 1 ingestion source for geo_map. Each entry maps a game (matched by slug or aliases) to a permissively-licensed external image URL with declared license + attribution. The geo-registry-import worker fetches imageUrl, infers dimensions, and writes a geo_map row with source='registry'. Prefer raw.githubusercontent.com URLs from MIT/GPL/CC-licensed repos so we have an audit trail; commercial-incompatible NC clauses are flagged.",
+  "description": "Tier 1 ingestion source for geo_map. Each entry maps a game (matched by `match.slug` or any string in `match.aliases`) to a permissively-licensed external image URL with declared license + attribution. The geo-registry-import worker fetches imageUrl, infers dimensions, and writes a geo_map row with source='registry'. To add a new entry: (1) find a real GitHub repo / wiki tile-source hosting a flat world-map image — verify the URL returns an image with `curl -I`; (2) confirm the license in the repo's README/LICENSE; (3) record license + attribution. Prefer MIT/GPL/CC-BY/CC-BY-SA over CC-BY-NC. The `aliases` array catches RAWG slug variations: GOTY/Legendary/Definitive editions, DLCs that share the base game's map, abbreviations (e.g. `gta-5`, `botw`). Optional `region` field labels which slice of a multi-region game the entry represents (e.g. \"Velen\", \"Act II\"); omit it for the canonical world / mosaic map. Today's runtime still picks a single active map per game — region is informational + future-proofing.",
   "entries": [
     {
       "match": { "slug": "elden-ring" },
@@ -14,7 +14,15 @@
       "commercialUseOk": true
     },
     {
-      "match": { "slug": "the-witcher-3-wild-hunt" },
+      "match": {
+        "slug": "the-witcher-3-wild-hunt",
+        "aliases": [
+          "the-witcher-3-wild-hunt-hearts-of-stone",
+          "the-witcher-3-wild-hunt-blood-and-wine",
+          "the-witcher-3-game-of-the-year",
+          "the-witcher-3"
+        ]
+      },
       "imageUrl": "https://raw.githubusercontent.com/witcher3map/witcher3map-maps/master/Velen/0/0/0.png",
       "widthPx": 4096,
       "heightPx": 4096,
@@ -24,7 +32,10 @@
       "commercialUseOk": false
     },
     {
-      "match": { "slug": "the-legend-of-zelda-breath-of-the-wild" },
+      "match": {
+        "slug": "the-legend-of-zelda-breath-of-the-wild",
+        "aliases": ["breath-of-the-wild", "botw"]
+      },
       "imageUrl": "https://objmap.zeldamods.org/game_files/maptex/MainField.jpg",
       "widthPx": 6000,
       "heightPx": 5000,
@@ -34,7 +45,10 @@
       "commercialUseOk": false
     },
     {
-      "match": { "slug": "grand-theft-auto-v" },
+      "match": {
+        "slug": "grand-theft-auto-v",
+        "aliases": ["gta-5", "gta-v"]
+      },
       "imageUrl": "https://raw.githubusercontent.com/RiceaRaul/gta-v-map-leaflet/main/public/tiles/atlas/0/0/0.png",
       "widthPx": 8192,
       "heightPx": 8192,
@@ -64,7 +78,14 @@
       "commercialUseOk": false
     },
     {
-      "match": { "slug": "the-elder-scrolls-v-skyrim" },
+      "match": {
+        "slug": "the-elder-scrolls-v-skyrim",
+        "aliases": [
+          "the-elder-scrolls-v-skyrim-legendary-edition",
+          "the-elder-scrolls-v-skyrim-special-edition",
+          "skyrim"
+        ]
+      },
       "imageUrl": "https://gamemap.uesp.net/sr/zoom2/maptile-0-0.jpg",
       "widthPx": 4096,
       "heightPx": 4096,
@@ -74,7 +95,10 @@
       "commercialUseOk": true
     },
     {
-      "match": { "slug": "red-dead-redemption-2" },
+      "match": {
+        "slug": "red-dead-redemption-2",
+        "aliases": ["rdr2", "red-dead-redemption-ii"]
+      },
       "imageUrl": "https://raw.githubusercontent.com/jeanropke/RDR2CollectorsMap/master/assets/images/game-map/0/0_0.png",
       "widthPx": 8192,
       "heightPx": 8192,

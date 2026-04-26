@@ -15,6 +15,7 @@ export interface GeoMapRow {
   consensus_radius: number
   license: string
   attribution: string | null
+  region: string | null
   wiki_map_name: string | null
   wiki_revision_id: string | number | null
   is_active: boolean
@@ -40,6 +41,7 @@ function mapRow(row: GeoMapRow): GeoMap {
     consensusRadius: row.consensus_radius,
     license: row.license,
     attribution: row.attribution ?? undefined,
+    region: row.region ?? undefined,
     wikiMapName: row.wiki_map_name ?? undefined,
     wikiRevisionId: revision,
   }
@@ -77,6 +79,7 @@ export const geoMapRepository = {
     consensusRadius?: number
     license: string
     attribution?: string
+    region?: string | null
     wikiMapName?: string | null
     wikiRevisionId?: number | null
   }): Promise<GeoMap> {
@@ -92,6 +95,7 @@ export const geoMapRepository = {
         consensus_radius: data.consensusRadius ?? 0.03,
         license: data.license,
         attribution: data.attribution ?? null,
+        region: data.region ?? null,
         wiki_map_name: data.wikiMapName ?? null,
         wiki_revision_id: data.wikiRevisionId ?? null,
       })

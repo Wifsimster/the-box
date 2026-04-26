@@ -33,6 +33,7 @@ interface FormState {
   license: string
   attribution: string
   sourceUrl: string
+  region: string
 }
 
 const EMPTY: FormState = {
@@ -42,6 +43,7 @@ const EMPTY: FormState = {
   license: '',
   attribution: '',
   sourceUrl: '',
+  region: '',
 }
 
 export function GeoManualMapDialog({
@@ -100,6 +102,7 @@ export function GeoManualMapDialog({
           license: form.license,
           attribution: form.attribution || undefined,
           sourceUrl: form.sourceUrl || undefined,
+          region: form.region.trim() || undefined,
           // If a map already exists, the operator is explicitly overwriting
           // it; otherwise the backend would 409 on duplicate.
           replaceActive: game.hasMap,
@@ -228,6 +231,21 @@ export function GeoManualMapDialog({
             />
           </Field>
 
+          <Field
+            id="manual-map-region"
+            label={t('admin.geo.manualMap.fields.region')}
+            hint={t('admin.geo.manualMap.fields.regionHint')}
+          >
+            <Input
+              id="manual-map-region"
+              placeholder={t('admin.geo.manualMap.fields.regionPlaceholder')}
+              value={form.region}
+              onChange={(e) => set('region', e.target.value)}
+              disabled={submitting}
+              maxLength={100}
+            />
+          </Field>
+
           {error && (
             <p
               role="alert"
@@ -258,11 +276,13 @@ function Field({
   id,
   label,
   required,
+  hint,
   children,
 }: {
   id: string
   label: string
   required?: boolean
+  hint?: string
   children: React.ReactNode
 }) {
   return (
@@ -272,6 +292,7 @@ function Field({
         {required && <span className="text-destructive ml-0.5">*</span>}
       </Label>
       {children}
+      {hint && <p className="text-[10px] text-muted-foreground leading-snug">{hint}</p>}
     </div>
   )
 }
