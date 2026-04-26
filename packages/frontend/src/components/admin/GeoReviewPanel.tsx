@@ -25,6 +25,7 @@ import {
     Map,
     ListChecks,
     Library,
+    X,
 } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
@@ -53,8 +54,14 @@ interface CandidateDetail {
 type StatusFilter = 'collecting' | 'pending' | 'promoted' | 'all'
 const STATUS_FILTERS: StatusFilter[] = ['collecting', 'pending', 'promoted', 'all']
 
-async function fetchCandidates(status?: string): Promise<GeoScreenshotCandidate[]> {
-    const qs = status ? `?status=${encodeURIComponent(status)}` : ''
+async function fetchCandidates(args: {
+    status?: string
+    gameId?: number
+}): Promise<GeoScreenshotCandidate[]> {
+    const params = new URLSearchParams()
+    if (args.status) params.set('status', args.status)
+    if (args.gameId !== undefined) params.set('gameId', String(args.gameId))
+    const qs = params.toString() ? `?${params.toString()}` : ''
     const res = await fetch(`/api/admin/geo/candidates${qs}`, { credentials: 'include' })
     if (!res.ok) throw new Error(`list failed: ${res.status}`)
     const json = await res.json()
@@ -94,7 +101,15 @@ async function deleteMeta(metaId: number): Promise<void> {
 
 export function GeoReviewPanel() {
     const { t } = useTranslation()
+    const [activeTab, setActiveTab] = useState<'pins' | 'maps' | 'games'>('pins')
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('collecting')
+    // Per-game filter for the Pins tab. Set when the operator clicks "Voir
+    // les captures" on a Maps row so the candidate list narrows to that game.
+    // Cleared via the badge in the Pins header.
+    const [gameFilter, setGameFilter] = useState<{
+        gameId: number
+        gameName: string
+    } | null>(null)
     const [candidates, setCandidates] = useState<GeoScreenshotCandidate[]>([])
     const [detail, setDetail] = useState<CandidateDetail | null>(null)
     const [pin, setPin] = useState<GeoPoint | null>(null)
@@ -136,14 +151,17 @@ export function GeoReviewPanel() {
     useEffect(() => {
         let cancelled = false
         setLoading(true)
-        fetchCandidates(statusFilter === 'all' ? undefined : statusFilter)
+        fetchCandidates({
+            status: statusFilter === 'all' ? undefined : statusFilter,
+            gameId: gameFilter?.gameId,
+        })
             .then((rows) => !cancelled && setCandidates(rows))
             .catch((e) => !cancelled && setError(String(e)))
             .finally(() => !cancelled && setLoading(false))
         return () => {
             cancelled = true
         }
-    }, [statusFilter])
+    }, [statusFilter, gameFilter?.gameId])
 
     const openDetail = async (id: number) => {
         setError(null)
@@ -164,13 +182,23 @@ export function GeoReviewPanel() {
             // Refresh the list + clear the detail pane.
             setDetail(null)
             setPin(null)
-            const rows = await fetchCandidates(statusFilter === 'all' ? undefined : statusFilter)
+            const rows = await fetchCandidates({
+                status: statusFilter === 'all' ? undefined : statusFilter,
+                gameId: gameFilter?.gameId,
+            })
             setCandidates(rows)
         } catch (e) {
             setError(String(e))
         } finally {
             setSaving(false)
         }
+    }
+
+    const viewCapturesForGame = (gameId: number, gameName: string) => {
+        setGameFilter({ gameId, gameName })
+        setStatusFilter('all')
+        setDetail(null)
+        setActiveTab('pins')
     }
 
     const confirmDemote = async () => {
@@ -222,7 +250,11 @@ export function GeoReviewPanel() {
 
             <GeoRunStateBanner state={runState} />
 
-            <Tabs defaultValue="pins" className="space-y-4">
+            <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as 'pins' | 'maps' | 'games')}
+                className="space-y-4"
+            >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
                     <TabsTrigger value="pins" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
@@ -243,6 +275,7 @@ export function GeoReviewPanel() {
                         runState={runState}
                         runError={runError}
                         armRunPolling={armRunPolling}
+                        onViewCaptures={viewCapturesForGame}
                     />
                 </TabsContent>
 
@@ -305,6 +338,24 @@ export function GeoReviewPanel() {
                         {t(`admin.geo.statusFilter.${s}`)}
                     </Button>
                 ))}
+                {gameFilter && (
+                    <Badge
+                        variant="outline"
+                        className="ml-1 gap-1.5 border-neon-pink/40 bg-neon-pink/5 text-neon-pink"
+                    >
+                        {t('admin.geo.gameFilter.active', {
+                            name: gameFilter.gameName,
+                        })}
+                        <button
+                            type="button"
+                            onClick={() => setGameFilter(null)}
+                            aria-label={t('admin.geo.gameFilter.clear')}
+                            className="rounded hover:bg-neon-pink/10"
+                        >
+                            <X className="h-3 w-3" aria-hidden />
+                        </button>
+                    </Badge>
+                )}
             </div>
 
             {error && (
@@ -343,11 +394,15 @@ export function GeoReviewPanel() {
                                         detail?.candidate.id === c.id ? 'border-neon-pink' : ''
                                     }`}
                                 >
-                                    <div className="flex justify-between items-center">
-                                        <span className="font-mono">#{c.id}</span>
+                                    <div className="flex justify-between items-center gap-2">
+                                        <span className="truncate font-medium">
+                                            {c.gameName ?? `#${c.id}`}
+                                        </span>
                                         <Badge variant="outline">{statusLabel(c.status)}</Badge>
                                     </div>
                                     <div className="mt-1 text-muted-foreground">
+                                        <span className="font-mono">#{c.id}</span>
+                                        {' · '}
                                         {t('admin.geo.candidateRow.pinCount', { count: c.pinCount })}
                                         {' · '}
                                         {t('admin.geo.candidateRow.source', { source: c.source })}

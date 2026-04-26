@@ -1511,8 +1511,19 @@ router.get('/geo/candidates', async (req, res, next) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status : undefined
     const limit = req.query.limit ? Math.min(200, Number(req.query.limit)) : 50
+    // Optional per-game filter so the Pins tab can deep-link from the Maps
+    // tab side panel (admin clicks "Voir les captures" on a row → only that
+    // game's candidates show up). Invalid ids are ignored, keeping the
+    // unfiltered behaviour as a safe fallback.
+    const gameIdRaw =
+      typeof req.query.gameId === 'string' ? Number(req.query.gameId) : undefined
+    const gameId =
+      gameIdRaw !== undefined && Number.isFinite(gameIdRaw) && gameIdRaw > 0
+        ? gameIdRaw
+        : undefined
     const candidates = await geoScreenshotRepository.listCandidatesForReview({
       status: status as 'pending' | 'collecting' | 'promoted' | 'rejected' | undefined,
+      gameId,
       limit,
     })
     res.json({ success: true, data: candidates })

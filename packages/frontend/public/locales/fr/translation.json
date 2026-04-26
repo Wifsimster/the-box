@@ -596,7 +596,10 @@
           "rerunTooltip": "Efface tous les tombstones d'échec pour ce jeu et relance la pipeline complète (résolution + cartes). Plus agressif que « Lancer pour ce jeu » qui respecte les tombstones existants.",
           "research": "Rechercher",
           "researchTooltip": "Ouvrir des liens de recherche pré-remplis (Google, StrategyWiki, Fextralife…)",
-          "uploadManual": "Téléverser manuellement"
+          "uploadManual": "Téléverser manuellement",
+          "viewCaptures_one": "Voir les captures ({{count}})",
+          "viewCaptures_other": "Voir les captures ({{count}})",
+          "viewCapturesTooltip": "Ouvrir l'onglet Pins filtré sur les captures de ce jeu."
         },
         "loading": "Chargement des jeux…",
         "sidePanel": {
@@ -645,6 +648,10 @@
         "pending": "En attente",
         "promoted": "Promus",
         "all": "Tous"
+      },
+      "gameFilter": {
+        "active": "Jeu : {{name}}",
+        "clear": "Effacer le filtre par jeu"
       },
       "statusBadge": {
         "collecting": "En collecte",

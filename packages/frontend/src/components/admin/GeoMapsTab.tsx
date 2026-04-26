@@ -25,6 +25,7 @@ import {
     Zap,
     Search,
     RefreshCcw,
+    ListChecks,
 } from 'lucide-react'
 import { GeoManualMapDialog } from './GeoManualMapDialog'
 import { GeoResearchAssistantDialog } from './GeoResearchAssistantDialog'
@@ -124,9 +125,20 @@ interface GeoMapsTabProps {
     runState: GeoRunStatePayload | null
     runError: string | null
     armRunPolling: (windowMs?: number) => void
+    /**
+     * Deep-link from the Maps side panel into the Pins tab pre-filtered
+     * to the selected game's screenshot candidates. Owned by the parent
+     * because tab state and the candidate list filter live there.
+     */
+    onViewCaptures?: (gameId: number, gameName: string) => void
 }
 
-export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProps) {
+export function GeoMapsTab({
+    runState,
+    runError,
+    armRunPolling,
+    onViewCaptures,
+}: GeoMapsTabProps) {
     const { t } = useTranslation()
     const [games, setGames] = useState<CuratedGame[] | null>(null)
     const [loading, setLoading] = useState(true)
@@ -648,6 +660,25 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
                                     {t('admin.geo.maps.actions.uploadManual')}
                                 </Button>
                             </div>
+                            {onViewCaptures && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="w-full justify-center text-xs text-muted-foreground hover:text-foreground"
+                                    onClick={() =>
+                                        onViewCaptures(
+                                            selectedGame.id,
+                                            selectedGame.name,
+                                        )
+                                    }
+                                    title={t('admin.geo.maps.actions.viewCapturesTooltip')}
+                                >
+                                    <ListChecks className="h-3.5 w-3.5 mr-1.5" />
+                                    {t('admin.geo.maps.actions.viewCaptures', {
+                                        count: selectedGame.candidateCount,
+                                    })}
+                                </Button>
+                            )}
                         </>
                     ) : null}
                 </CardContent>
