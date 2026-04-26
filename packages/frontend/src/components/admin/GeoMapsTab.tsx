@@ -143,6 +143,7 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
     const [runningAll, setRunningAll] = useState(false)
     const [runningGameId, setRunningGameId] = useState<number | null>(null)
     const [retryingTier, setRetryingTier] = useState<string | null>(null)
+    const [runningTier, setRunningTier] = useState<string | null>(null)
     const [activatingMapId, setActivatingMapId] = useState<number | null>(null)
 
     const reload = useCallback(async () => {
@@ -274,6 +275,24 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
             setError(String(e))
         } finally {
             setRetryingTier(null)
+        }
+    }
+
+    const handleRunTierNow = async (gameId: number, tier: string) => {
+        setRunningTier(tier)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/run/${gameId}/${tier}`, {
+                method: 'POST',
+            })
+            setMessage(t('admin.geo.maps.tierStatus.runNowQueued'))
+            armRunPolling()
+            await reloadSources(gameId)
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setRunningTier(null)
         }
     }
 
@@ -572,6 +591,16 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
                                                     : undefined
                                             }
                                             retrying={retryingTier === s.tier}
+                                            onRunNow={
+                                                s.tier !== 'manual'
+                                                    ? () =>
+                                                          void handleRunTierNow(
+                                                              sources.gameId,
+                                                              s.tier,
+                                                          )
+                                                    : undefined
+                                            }
+                                            runningNow={runningTier === s.tier}
                                             onActivate={(mapId) =>
                                                 void handleActivateMap(
                                                     sources.gameId,
@@ -729,6 +758,8 @@ function TierRow({
     running,
     onRetry,
     retrying,
+    onRunNow,
+    runningNow,
     onActivate,
     activatingMapId,
 }: {
@@ -737,6 +768,8 @@ function TierRow({
     running?: boolean
     onRetry?: () => void
     retrying?: boolean
+    onRunNow?: () => void
+    runningNow?: boolean
     onActivate?: (mapId: number) => void
     activatingMapId?: number | null
 }) {
@@ -924,9 +957,28 @@ function TierRow({
                         {t('admin.geo.maps.tierStatus.eligible')}
                     </span>
                 </div>
-                <p className="pt-1 text-[11px] text-muted-foreground leading-snug">
-                    {t('admin.geo.maps.tierStatus.eligibleHint')}
-                </p>
+                <div className="pt-1 flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                        {t('admin.geo.maps.tierStatus.eligibleHint')}
+                    </p>
+                    {onRunNow && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={runningNow}
+                            onClick={onRunNow}
+                            className="h-6 gap-1 px-2 text-[10px] text-warning hover:text-warning"
+                            title={t('admin.geo.maps.tierStatus.runNowTooltip')}
+                        >
+                            {runningNow ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <Play className="h-3 w-3" />
+                            )}
+                            {t('admin.geo.maps.tierStatus.runNow')}
+                        </Button>
+                    )}
+                </div>
             </li>
         )
     }

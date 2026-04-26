@@ -49,6 +49,10 @@ import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
 import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service.js'
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
+import {
+  enqueueSingleTierImport,
+  type RunnableTier,
+} from '../../infrastructure/queue/workers/geo-ingest-tick-logic.js'
 
 // Cap even admin-triggered sends so a mistake or compromised admin
 // account can't spray mail on Resend's dime. Keyed by user id so two
@@ -2391,6 +2395,45 @@ router.post('/geo/run/:gameId', async (req, res, next) => {
       success: true,
       data: { gameId, resolveJobId: resolveJob.id, tickJobId: tickJob.id },
     })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Run a single tier for one game — surfaced by the "Run now" button on an
+// eligible TierRow. Avoids the all-tiers cascade so an operator can iterate
+// on one source without re-running the others.
+const RUNNABLE_TIERS: readonly RunnableTier[] = [
+  'registry',
+  'fandom',
+  'strategywiki',
+  'fextralife',
+  'wikidata',
+] as const
+function isRunnableTier(s: string): s is RunnableTier {
+  return (RUNNABLE_TIERS as readonly string[]).includes(s)
+}
+
+router.post('/geo/run/:gameId/:source', async (req, res, next) => {
+  try {
+    const gameId = Number(req.params.gameId)
+    if (!Number.isFinite(gameId) || gameId <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const source = req.params.source ?? ''
+    if (!isRunnableTier(source)) {
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'INVALID_SOURCE' } })
+      return
+    }
+    const result = await enqueueSingleTierImport(gameId, source)
+    if (!result.enqueued) {
+      res.status(409).json({ success: false, error: { code: result.reason } })
+      return
+    }
+    res.json({ success: true, data: { gameId, source, jobId: result.jobId } })
   } catch (err) {
     next(err)
   }
