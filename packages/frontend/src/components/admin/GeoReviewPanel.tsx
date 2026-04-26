@@ -17,6 +17,12 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet'
+import {
     Loader2,
     Trash2,
     Info,
@@ -35,6 +41,7 @@ import { GeoRunStateBanner } from './GeoRunStateBanner'
 import { GeoColdStartBanner } from './GeoColdStartBanner'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoMap,
@@ -145,6 +152,7 @@ async function rejectCandidate(id: number): Promise<void> {
 
 export function GeoReviewPanel() {
     const { t } = useTranslation()
+    const isMobile = useIsMobile()
     const [activeTab, setActiveTab] = useState<'pins' | 'maps' | 'games'>('pins')
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('collecting')
     // Per-game filter for the Pins tab. Set when the operator clicks "Voir
@@ -451,7 +459,7 @@ export function GeoReviewPanel() {
                                 {t('admin.geo.candidates')} ({candidates.length})
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4 max-h-[300px] sm:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
+                        <CardContent className="space-y-4 lg:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
                             {groupCandidatesByGame(candidates).map((group) => (
                                 <section key={group.gameId} className="space-y-2">
                                     <header className="flex items-baseline justify-between gap-2 border-b border-border/40 pb-1">
@@ -472,8 +480,8 @@ export function GeoReviewPanel() {
                                             <button
                                                 key={c.id}
                                                 onClick={() => openDetail(c.id)}
-                                                className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 ${
-                                                    detail?.candidate.id === c.id
+                                                className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 active:bg-muted/60 ${
+                                                    detail?.candidate.id === c.id && !isMobile
                                                         ? 'border-neon-pink'
                                                         : ''
                                                 }`}
@@ -508,7 +516,8 @@ export function GeoReviewPanel() {
                         </CardContent>
                     </Card>
 
-                    <Card className="lg:col-span-2">
+                    {/* Desktop: side-by-side detail card */}
+                    <Card className="hidden lg:block lg:col-span-2">
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <CardTitle className="text-sm">
                                 {detail
@@ -517,87 +526,56 @@ export function GeoReviewPanel() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 p-4 sm:p-6 pt-0 sm:pt-0">
-                            {detail && detail.map ? (
-                                <>
-                                    <img
-                                        src={detail.candidate.imageUrl}
-                                        alt={`Candidate ${detail.candidate.id}`}
-                                        className="w-full rounded border max-h-48 object-contain bg-black/20"
-                                    />
-                                    <GeoMapCanvas
-                                        imageUrl={detail.map.imageUrl}
-                                        widthPx={detail.map.widthPx}
-                                        heightPx={detail.map.heightPx}
-                                        pin={pin}
-                                        canonical={
-                                            detail.meta
-                                                ? {
-                                                      x: detail.meta.canonical.x,
-                                                      y: detail.meta.canonical.y,
-                                                  }
-                                                : null
-                                        }
-                                        onPin={setPin}
-                                        disabled={!!detail.meta}
-                                    />
-                                    {detail.meta ? (
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                                            <p className="text-xs text-warning">
-                                                {t('admin.geo.alreadyPromoted')}
-                                            </p>
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                onClick={() => setDemoteOpen(true)}
-                                                disabled={saving}
-                                                className="w-full sm:w-auto"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                                {t('admin.geo.demote')}
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                            <span className="text-xs text-muted-foreground">
-                                                {pin
-                                                    ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
-                                                    : t('admin.geo.pickPoint')}
-                                            </span>
-                                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => setRejectOpen(true)}
-                                                    disabled={saving}
-                                                    className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                                    {t('admin.geo.reject')}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={applyOverride}
-                                                    disabled={!pin || saving}
-                                                    className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
-                                                >
-                                                    {saving && (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                                                    )}
-                                                    {t('admin.geo.promote')}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <p className="text-xs text-muted-foreground">
-                                    {t('admin.geo.detailHint')}
-                                </p>
-                            )}
+                            <CandidateDetailBody
+                                detail={detail}
+                                pin={pin}
+                                setPin={setPin}
+                                saving={saving}
+                                onPromote={applyOverride}
+                                onReject={() => setRejectOpen(true)}
+                                onDemote={() => setDemoteOpen(true)}
+                                t={t}
+                            />
                         </CardContent>
                     </Card>
                 </div>
             )}
+
+            {/* Mobile: bottom drawer for candidate detail */}
+            <Sheet
+                open={isMobile && detail !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDetail(null)
+                        setPin(null)
+                    }
+                }}
+            >
+                <SheetContent
+                    side="bottom"
+                    className="lg:hidden h-[92vh] p-0 flex flex-col gap-0 rounded-t-xl"
+                >
+                    <SheetHeader className="px-4 py-3 border-b border-border/40 text-left">
+                        <SheetTitle className="text-sm font-semibold">
+                            {detail
+                                ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
+                                : t('admin.geo.pickOne')}
+                        </SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-[max(env(safe-area-inset-bottom),1rem)]">
+                        <CandidateDetailBody
+                            detail={detail}
+                            pin={pin}
+                            setPin={setPin}
+                            saving={saving}
+                            onPromote={applyOverride}
+                            onReject={() => setRejectOpen(true)}
+                            onDemote={() => setDemoteOpen(true)}
+                            t={t}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
 
             <Dialog open={rejectOpen} onOpenChange={(open) => !saving && setRejectOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">
@@ -657,5 +635,112 @@ export function GeoReviewPanel() {
                 </TabsContent>
             </Tabs>
         </div>
+    )
+}
+
+interface CandidateDetailBodyProps {
+    detail: CandidateDetail | null
+    pin: GeoPoint | null
+    setPin: (p: GeoPoint | null) => void
+    saving: boolean
+    onPromote: () => void | Promise<void>
+    onReject: () => void
+    onDemote: () => void
+    t: ReturnType<typeof useTranslation>['t']
+}
+
+// Shared body for the candidate detail view — rendered inside the desktop
+// side-card and the mobile bottom sheet. Keeps the pin canvas, image,
+// status text and action buttons in one place so the two surfaces never
+// drift.
+function CandidateDetailBody({
+    detail,
+    pin,
+    setPin,
+    saving,
+    onPromote,
+    onReject,
+    onDemote,
+    t,
+}: CandidateDetailBodyProps) {
+    if (!detail || !detail.map) {
+        return (
+            <p className="text-xs text-muted-foreground">
+                {t('admin.geo.detailHint')}
+            </p>
+        )
+    }
+    return (
+        <>
+            <img
+                src={detail.candidate.imageUrl}
+                alt={`Candidate ${detail.candidate.id}`}
+                className="w-full rounded border max-h-48 object-contain bg-black/20"
+            />
+            <GeoMapCanvas
+                imageUrl={detail.map.imageUrl}
+                widthPx={detail.map.widthPx}
+                heightPx={detail.map.heightPx}
+                pin={pin}
+                canonical={
+                    detail.meta
+                        ? {
+                              x: detail.meta.canonical.x,
+                              y: detail.meta.canonical.y,
+                          }
+                        : null
+                }
+                onPin={setPin}
+                disabled={!!detail.meta}
+            />
+            {detail.meta ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                    <p className="text-xs text-warning">
+                        {t('admin.geo.alreadyPromoted')}
+                    </p>
+                    <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={onDemote}
+                        disabled={saving}
+                        className="w-full sm:w-auto"
+                    >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        {t('admin.geo.demote')}
+                    </Button>
+                </div>
+            ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                        {pin
+                            ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
+                            : t('admin.geo.pickPoint')}
+                    </span>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={onReject}
+                            disabled={saving}
+                            className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
+                        >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            {t('admin.geo.reject')}
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={() => void onPromote()}
+                            disabled={!pin || saving}
+                            className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
+                        >
+                            {saving && (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                            )}
+                            {t('admin.geo.promote')}
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </>
     )
 }
