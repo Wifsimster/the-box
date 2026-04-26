@@ -642,6 +642,11 @@
         "pinCount_other": "{{count}} épingles",
         "source": "source : {{source}}"
       },
+      "groupHeader": {
+        "unknownGame": "Jeu #{{id}}",
+        "captureCount_one": "{{count}} capture",
+        "captureCount_other": "{{count}} captures"
+      },
       "statusFilter": {
         "label": "Filtrer par statut",
         "collecting": "En collecte",

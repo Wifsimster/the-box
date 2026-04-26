@@ -642,6 +642,11 @@
         "pinCount_other": "{{count}} pins",
         "source": "source: {{source}}"
       },
+      "groupHeader": {
+        "unknownGame": "Game #{{id}}",
+        "captureCount_one": "{{count}} capture",
+        "captureCount_other": "{{count}} captures"
+      },
       "statusFilter": {
         "label": "Filter by status",
         "collecting": "Collecting",
