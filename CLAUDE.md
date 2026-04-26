@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-"The Box" is a gaming screenshot guessing application where players identify video games from 360° panoramic screenshots. It features daily challenges with tiered difficulty, power-ups/hints, achievements, daily login rewards, tournaments, and live leaderboards with real-time updates.
+"The Box" is a gaming screenshot guessing application where players identify video games from screenshots. It features daily challenges with tiered difficulty, power-ups/hints, achievements, daily login rewards, tournaments, and live leaderboards with real-time updates.
 
 ## Tech Stack
 
@@ -12,8 +12,9 @@
 - **Authentication**: Better Auth (session-based, email/password)
 - **Job Queue**: BullMQ + Redis
 - **Email**: Resend (password reset / transactional)
-- **Panorama Viewer**: Three.js / React Three Fiber
-- **Animation / UI**: Framer Motion, Embla Carousel, Radix UI primitives, shadcn/ui, Lucide icons
+- **Screenshot Viewer**: Embla Carousel (`ScreenshotViewer` shows the current screenshot with prev/next pre-loaded)
+- **Decorative 3D**: Three.js / React Three Fiber (used only by `CubeBackground` on the home page)
+- **Animation / UI**: Framer Motion, Radix UI primitives, shadcn/ui, Lucide icons
 - **Forms**: React Hook Form + Zod
 - **Validation**: Zod (frontend and backend)
 - **Logging**: Pino (pino-pretty in dev)
