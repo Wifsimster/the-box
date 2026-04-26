@@ -28,6 +28,7 @@ const REPORT_REASONS = [
     'low_quality',
     'not_recognizable',
     'inappropriate',
+    'too_easy',
     'other',
 ] as const satisfies readonly ScreenshotReportReason[]
 

@@ -1481,6 +1481,7 @@
       "low_quality": "Image de mauvaise qualité",
       "not_recognizable": "Non reconnaissable / aucun repère utile",
       "inappropriate": "Contenu inapproprié",
+      "too_easy": "Trop facile",
       "other": "Autre"
     }
   }

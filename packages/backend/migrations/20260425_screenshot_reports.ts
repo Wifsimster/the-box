@@ -31,7 +31,7 @@ export async function up(knex: Knex): Promise<void> {
     table
       .string('reason', 50)
       .notNullable()
-      .comment('wrong_game | low_quality | not_recognizable | inappropriate | other')
+      .comment('wrong_game | low_quality | not_recognizable | inappropriate | too_easy | other')
     table.text('details').nullable()
     table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
 

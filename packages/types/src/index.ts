@@ -894,4 +894,5 @@ export type ScreenshotReportReason =
   | 'low_quality'
   | 'not_recognizable'
   | 'inappropriate'
+  | 'too_easy'
   | 'other'
