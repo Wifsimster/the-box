@@ -105,8 +105,19 @@ export default function GeoContributePage() {
             )}
 
             {!isLocked && phase === 'loading' && (
-                <div className="flex justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
+                <div
+                    className="flex justify-center py-20"
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
+                >
+                    <Loader2
+                        className="h-8 w-8 animate-spin text-neon-pink"
+                        aria-hidden
+                    />
+                    <span className="sr-only">
+                        {t('geo.contribute.loading', 'Loading screenshot…')}
+                    </span>
                 </div>
             )}
 
@@ -167,7 +178,13 @@ export default function GeoContributePage() {
                                 </Button>
                             </div>
                             {message && (
-                                <p className="text-xs text-success">{message}</p>
+                                <p
+                                    className="text-xs text-success"
+                                    role="status"
+                                    aria-live="polite"
+                                >
+                                    {message}
+                                </p>
                             )}
                         </CardContent>
                     </Card>
