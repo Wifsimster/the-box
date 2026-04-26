@@ -33,19 +33,6 @@
     },
     {
       "match": {
-        "slug": "the-legend-of-zelda-breath-of-the-wild",
-        "aliases": ["breath-of-the-wild", "botw"]
-      },
-      "imageUrl": "https://objmap.zeldamods.org/game_files/maptex/MainField.jpg",
-      "widthPx": 6000,
-      "heightPx": 5000,
-      "license": "GPL-3.0",
-      "attribution": "zeldamods/objmap (GPL-3.0)",
-      "sourceUrl": "https://github.com/zeldamods/objmap",
-      "commercialUseOk": false
-    },
-    {
-      "match": {
         "slug": "grand-theft-auto-v",
         "aliases": ["gta-5", "gta-v"]
       },

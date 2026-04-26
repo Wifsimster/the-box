@@ -49,6 +49,8 @@ interface ImageInfoResponse {
     pages?: Record<
       string,
       {
+        title?: string
+        categories?: Array<{ title?: string }>
         imageinfo?: Array<{
           url?: string
           width?: number
@@ -62,6 +64,18 @@ interface ImageInfoResponse {
     >
   }
 }
+
+// Wikidata's P242 was originally curated for places (cities, countries) and
+// only later co-opted for video games. A non-trivial fraction of game Q-items
+// have a P242 that points at a real-world geographic map (e.g. a developer's
+// home country, or an inaccurate auto-import) — useless for our "guess where
+// you are inside the game" use case. Reject candidates whose Commons file is
+// in any geography-of-the-real-world category, or whose filename matches a
+// real-world cartographic pattern.
+const REAL_WORLD_CATEGORY_RE =
+  /(locator map|locator maps|maps of [a-z]|maps of the [a-z]|location maps|country maps|geographic maps|real-?world maps|administrative divisions)/i
+const REAL_WORLD_FILENAME_RE =
+  /(locator|location_map|country_map|world_political|earth_political|continent_of_)/i
 
 export async function importWikidataMap(
   input: ImportWikidataMapInput,
@@ -94,12 +108,36 @@ export async function importWikidataMap(
 
   // P242 stores the Commons file name (without `File:` prefix). Resolve it
   // through Commons' imageinfo to get a real URL + dimensions + license.
-  let info: { url: string; width: number; height: number; license: string; artist?: string }
+  let info: {
+    url: string
+    width: number
+    height: number
+    license: string
+    artist?: string
+    categories: string[]
+  }
   try {
     info = await fetchCommonsImageInfo(claimValue)
   } catch (err) {
     await recordTombstone(gameId, `commons imageinfo failed: ${String(err)}`)
     return { imported: false, reason: 'commons imageinfo failed' }
+  }
+
+  // Reject real-world geographic locator maps — see notes on the regexes above.
+  const categoryHit = info.categories.find((c) => REAL_WORLD_CATEGORY_RE.test(c))
+  if (categoryHit) {
+    await recordTombstone(
+      gameId,
+      `P242 is a real-world map (Commons category: ${categoryHit}) — rejected`,
+    )
+    return { imported: false, reason: 'real-world locator map' }
+  }
+  if (REAL_WORLD_FILENAME_RE.test(claimValue)) {
+    await recordTombstone(
+      gameId,
+      `P242 filename "${claimValue}" looks like a real-world locator map — rejected`,
+    )
+    return { imported: false, reason: 'real-world locator map' }
   }
 
   const map = await geoMapRepository.create({
@@ -140,12 +178,16 @@ async function fetchCommonsImageInfo(fileName: string): Promise<{
   height: number
   license: string
   artist?: string
+  categories: string[]
 }> {
   const titles = `File:${fileName}`
+  // Pulls imageinfo + categories in one round-trip so we can filter out
+  // real-world locator maps before writing a geo_map row.
   const url =
     `https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2` +
     `&titles=${encodeURIComponent(titles)}` +
-    `&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=4096`
+    `&prop=imageinfo|categories&cllimit=50&clshow=!hidden` +
+    `&iiprop=url|size|extmetadata&iiurlwidth=4096`
   const res = await fetch(url, {
     headers: { 'User-Agent': DEFAULT_USER_AGENT, Accept: 'application/json' },
   })
@@ -155,16 +197,21 @@ async function fetchCommonsImageInfo(fileName: string): Promise<{
   // normalize defensively.
   const rawPages = body.query?.pages
   const pageList = Array.isArray(rawPages) ? rawPages : Object.values(rawPages ?? {})
-  const info = pageList[0]?.imageinfo?.[0]
+  const page = pageList[0]
+  const info = page?.imageinfo?.[0]
   if (!info?.url || !info.width || !info.height) {
     throw new Error('no imageinfo')
   }
+  const categories = (page?.categories ?? [])
+    .map((c) => (c.title ?? '').replace(/^Category:/, ''))
+    .filter((t) => t.length > 0)
   return {
     url: info.url,
     width: info.width,
     height: info.height,
     license: info.extmetadata?.LicenseShortName?.value ?? 'unknown',
     artist: info.extmetadata?.Artist?.value,
+    categories,
   }
 }
 
