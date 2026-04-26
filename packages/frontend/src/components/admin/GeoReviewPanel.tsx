@@ -314,8 +314,17 @@ export function GeoReviewPanel() {
             )}
 
             {loading ? (
-                <div className="flex justify-center py-16">
-                    <Loader2 className="h-6 w-6 animate-spin text-neon-pink" />
+                <div
+                    className="flex justify-center py-16"
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
+                    aria-label={t('admin.geo.candidatesLoading')}
+                >
+                    <Loader2
+                        className="h-6 w-6 animate-spin text-neon-pink"
+                        aria-hidden
+                    />
                 </div>
             ) : (
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">

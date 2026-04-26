@@ -480,6 +480,7 @@
     "geo": {
       "title": "Modération Géo",
       "subtitle": "Curatez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
+      "candidatesLoading": "Chargement des épingles…",
       "tabs": {
         "pins": "Épingles",
         "maps": "Cartes",
@@ -577,9 +578,11 @@
         },
         "viewSource": "Voir la source",
         "actions": {
-          "rerun": "Relancer le pipeline",
+          "rerun": "Forcer une ré-ingestion",
+          "rerunTooltip": "Efface tous les tombstones d'échec pour ce jeu et relance la pipeline complète (résolution + cartes). Plus agressif que « Lancer pour ce jeu » qui respecte les tombstones existants.",
           "uploadManual": "Téléverser manuellement"
         },
+        "loading": "Chargement des jeux…",
         "sidePanel": {
           "empty": "Sélectionnez un jeu",
           "hint": "Choisissez un jeu à gauche pour voir l'état d'ingestion niveau par niveau.",
@@ -587,7 +590,8 @@
           "activeViaTier": "Actif via {{tier}} · {{license}}",
           "region": "région : {{region}}",
           "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
-          "previewDimensions": "{{width}} × {{height}} px"
+          "previewDimensions": "{{width}} × {{height}} px",
+          "loading": "Chargement des sources…"
         }
       },
       "intro": {
@@ -1330,6 +1334,7 @@
       "mapUnavailable": "Carte indisponible.",
       "mapAria": "Épinglez l'emplacement sur la carte. Utilisez les flèches du clavier pour déplacer le curseur, puis Entrée pour valider.",
       "mapAriaDisabled": "Carte",
+      "loading": "Chargement du défi…",
       "markers": {
         "you": "Votre épingle",
         "actual": "Emplacement réel"
@@ -1347,6 +1352,7 @@
       "map": "Épinglez son emplacement",
       "submit": "Envoyer l'épingle",
       "skip": "Passer",
+      "loading": "Chargement de la capture…",
       "thanks": "Merci — nous vous préviendrons quand d'autres joueurs confirmeront l'emplacement.",
       "recent": "Récompenses récentes",
       "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",

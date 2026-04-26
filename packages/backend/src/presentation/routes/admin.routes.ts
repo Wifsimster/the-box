@@ -2118,17 +2118,19 @@ router.post('/geo/reimport', async (req, res, next) => {
       })
       return
     }
-    // Wipe tombstones + force a metadata re-resolve. The recurring ingest
-    // tick will re-enqueue per-source imports as soon as resolution lands.
+    const gameId = parse.data.gameId
+    // Aggressive variant of /geo/run/:gameId — wipes every per-tier failure
+    // tombstone AND the resolved metadata so the resolver+tick re-run from
+    // scratch. The lighter /geo/run/:gameId path leaves tombstones in place.
     await Promise.all([
-      geoIngestFailureRepository.clear(parse.data.gameId, 'registry'),
-      geoIngestFailureRepository.clear(parse.data.gameId, 'fandom'),
-      geoIngestFailureRepository.clear(parse.data.gameId, 'wikidata'),
-      geoIngestFailureRepository.clear(parse.data.gameId, 'steam'),
-      geoIngestFailureRepository.clear(parse.data.gameId, 'metadata'),
+      geoIngestFailureRepository.clear(gameId, 'registry'),
+      geoIngestFailureRepository.clear(gameId, 'fandom'),
+      geoIngestFailureRepository.clear(gameId, 'wikidata'),
+      geoIngestFailureRepository.clear(gameId, 'steam'),
+      geoIngestFailureRepository.clear(gameId, 'metadata'),
     ])
     await db('games')
-      .where({ id: parse.data.gameId })
+      .where({ id: gameId })
       .update({
         geo_metadata_status: 'pending',
         wiki_subdomain: null,
@@ -2137,11 +2139,24 @@ router.post('/geo/reimport', async (req, res, next) => {
         wikidata_qid: null,
       })
 
-    const job = await geoQueue.add('resolve-metadata', {
-      kind: 'resolve-metadata',
-      batchSize: 1,
+    // Run the full pipeline (resolve → tick) right away instead of
+    // depending on the recurring tick to pick the row back up. Stable
+    // jobIds so a double-click collapses to one execution; the resolver
+    // is gameId-scoped here for fast feedback.
+    const resolveJob = await geoQueue.add(
+      'resolve-metadata',
+      { kind: 'resolve-metadata', batchSize: 1, gameId },
+      { jobId: `manual-resolve:${gameId}` },
+    )
+    const tickJob = await geoQueue.add(
+      'ingest-tick',
+      { kind: 'ingest-tick', batchSize: 1, gameId },
+      { jobId: `manual-tick:${gameId}` },
+    )
+    res.json({
+      success: true,
+      data: { resolveJobId: resolveJob.id, tickJobId: tickJob.id },
     })
-    res.json({ success: true, data: { jobId: job.id } })
   } catch (err) {
     next(err)
   }

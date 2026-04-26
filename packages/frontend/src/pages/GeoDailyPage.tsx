@@ -74,8 +74,16 @@ export default function GeoDailyPage() {
                 </header>
 
                 {phase === 'loading' && (
-                    <div className="flex justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-neon-pink" />
+                    <div
+                        className="flex justify-center py-20"
+                        role="status"
+                        aria-live="polite"
+                        aria-busy="true"
+                    >
+                        <Loader2 className="h-8 w-8 animate-spin text-neon-pink" aria-hidden />
+                        <span className="sr-only">
+                            {t('geo.daily.loading', 'Loading challenge…')}
+                        </span>
                     </div>
                 )}
 

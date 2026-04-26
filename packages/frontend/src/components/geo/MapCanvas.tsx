@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from
 import { useTranslation } from 'react-i18next'
 import type { GeoPoint } from '@the-box/types'
 import { cn } from '@/lib/utils'
-import { isPlaceholderImageUrl } from '@/lib/geo-image'
-import { ImageOff } from 'lucide-react'
+import { clamp01, isPlaceholderImageUrl } from '@/lib/geo-image'
+import { MapErrorFallback } from './MapErrorFallback'
 
 export interface MapCanvasProps {
     imageUrl: string
@@ -122,20 +122,7 @@ export function MapCanvas({
     const aspectRatio = widthPx > 0 && heightPx > 0 ? `${widthPx} / ${heightPx}` : '16 / 9'
 
     if (errored) {
-        return (
-            <div
-                style={{ aspectRatio }}
-                className={cn(
-                    'relative w-full rounded-lg border border-dashed bg-muted/30 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs text-muted-foreground',
-                    className,
-                )}
-                role="img"
-                aria-label={t('geo.daily.mapUnavailable', 'Map unavailable')}
-            >
-                <ImageOff className="h-6 w-6 opacity-60" aria-hidden />
-                <span>{t('geo.daily.mapUnavailable', 'Map unavailable')}</span>
-            </div>
-        )
+        return <MapErrorFallback aspectRatio={aspectRatio} className={className} />
     }
 
     const interactive = !disabled && !!onPin
@@ -277,7 +264,3 @@ function GuessLine({ from, to }: { from: GeoPoint; to: GeoPoint }) {
     )
 }
 
-function clamp01(n: number): number {
-    if (Number.isNaN(n)) return 0
-    return Math.max(0, Math.min(1, n))
-}

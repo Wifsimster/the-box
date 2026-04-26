@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, RefreshCw, CheckSquare, Square, Star, AlertTriangle } from 'lucide-react'
+import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
 
 // Unified curated-set + suggestions surface. Replaces the two stacked
 // sections in GeoAdminActions (which the new tabbed layout has otherwise
@@ -37,18 +38,6 @@ interface GameRow {
     curated: boolean
 }
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(path, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        ...init,
-    })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok || !json?.success) {
-        throw new Error(json?.error?.code ?? `request failed: ${res.status}`)
-    }
-    return json.data as T
-}
 
 export function GeoGamesTab() {
     const { t } = useTranslation()

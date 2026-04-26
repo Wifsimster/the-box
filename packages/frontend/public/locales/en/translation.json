@@ -480,6 +480,7 @@
     "geo": {
       "title": "Geo Moderation",
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and validate crowdsourced pins.",
+      "candidatesLoading": "Loading pins…",
       "tabs": {
         "pins": "Pins",
         "maps": "Maps",
@@ -577,9 +578,11 @@
         },
         "viewSource": "View source",
         "actions": {
-          "rerun": "Re-run pipeline",
+          "rerun": "Force fresh ingestion",
+          "rerunTooltip": "Clears every per-tier failure tombstone for this game and re-runs the full pipeline (metadata + maps). More aggressive than \"Run for this game\", which respects existing tombstones.",
           "uploadManual": "Upload manually"
         },
+        "loading": "Loading games…",
         "sidePanel": {
           "empty": "Select a game",
           "hint": "Pick a game on the left to see its tier-by-tier ingestion state.",
@@ -587,7 +590,8 @@
           "activeViaTier": "Active via {{tier}} · {{license}}",
           "region": "region: {{region}}",
           "previewAlt": "Active map for {{name}} (click to open full size)",
-          "previewDimensions": "{{width}} × {{height}} px"
+          "previewDimensions": "{{width}} × {{height}} px",
+          "loading": "Loading sources…"
         }
       },
       "intro": {
@@ -1330,6 +1334,7 @@
       "mapUnavailable": "Map unavailable.",
       "mapAria": "Pin a location on the map. Use the arrow keys to move the cursor, then press Enter to drop the pin.",
       "mapAriaDisabled": "Map",
+      "loading": "Loading challenge…",
       "markers": {
         "you": "Your pin",
         "actual": "Actual location"
@@ -1347,6 +1352,7 @@
       "map": "Pin its location",
       "submit": "Submit pin",
       "skip": "Skip",
+      "loading": "Loading screenshot…",
       "thanks": "Thanks — we'll let you know once other players agree on the spot.",
       "recent": "Recent rewards",
       "lockedTitle": "Tagging unlocks after a few daily games.",
