@@ -596,7 +596,10 @@
           "rerunTooltip": "Clears every per-tier failure tombstone for this game and re-runs the full pipeline (metadata + maps). More aggressive than \"Run for this game\", which respects existing tombstones.",
           "research": "Research",
           "researchTooltip": "Open pre-filled search links (Google, StrategyWiki, Fextralife…)",
-          "uploadManual": "Upload manually"
+          "uploadManual": "Upload manually",
+          "viewCaptures_one": "View captures ({{count}})",
+          "viewCaptures_other": "View captures ({{count}})",
+          "viewCapturesTooltip": "Open the Pins tab filtered to this game's captures."
         },
         "loading": "Loading games…",
         "sidePanel": {
@@ -645,6 +648,10 @@
         "pending": "Pending",
         "promoted": "Promoted",
         "all": "All"
+      },
+      "gameFilter": {
+        "active": "Game: {{name}}",
+        "clear": "Clear game filter"
       },
       "statusBadge": {
         "collecting": "Collecting",

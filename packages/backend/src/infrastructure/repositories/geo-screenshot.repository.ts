@@ -193,13 +193,27 @@ export const geoScreenshotRepository = {
 
   async listCandidatesForReview(args: {
     status?: GeoScreenshotCandidateRow['status']
+    gameId?: number
     limit?: number
   }): Promise<GeoScreenshotCandidate[]> {
-    const { status, limit = 50 } = args
-    const q = db('geo_screenshot_candidate').orderBy('pin_count', 'desc').limit(limit)
-    if (status) q.where('status', status)
-    const rows = await q.select<GeoScreenshotCandidateRow[]>('*')
-    return rows.map(mapCandidate)
+    const { status, gameId, limit = 50 } = args
+    // Join games so the Pins list can show game names without N+1 lookups.
+    // The status/gameId filters narrow the set before the join, keeping the
+    // query cheap even at full catalog scale.
+    const q = db('geo_screenshot_candidate as gsc')
+      .leftJoin('games as g', 'g.id', 'gsc.game_id')
+      .orderBy('gsc.pin_count', 'desc')
+      .limit(limit)
+    if (status) q.where('gsc.status', status)
+    if (gameId !== undefined) q.where('gsc.game_id', gameId)
+    const rows = await q.select<Array<GeoScreenshotCandidateRow & { game_name: string | null }>>(
+      'gsc.*',
+      'g.name as game_name',
+    )
+    return rows.map((row) => ({
+      ...mapCandidate(row),
+      gameName: row.game_name ?? undefined,
+    }))
   },
 
   /**

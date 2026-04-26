@@ -775,6 +775,12 @@ export interface GeoMap {
 export interface GeoScreenshotCandidate {
   id: number
   gameId: number
+  /**
+   * Set when the candidate is fetched via the admin review listing — the
+   * repository joins `games` so the Pins UI can label rows without a
+   * second round-trip per row. Per-id detail lookups don't populate it.
+   */
+  gameName?: string
   geoMapId: number
   screenshotId?: number
   imageUrl: string
