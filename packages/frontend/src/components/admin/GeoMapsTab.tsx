@@ -23,6 +23,7 @@ import {
     Trash2,
     Play,
     Zap,
+    RefreshCcw,
 } from 'lucide-react'
 import { GeoManualMapDialog } from './GeoManualMapDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
@@ -123,6 +124,7 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
     const [resetting, setResetting] = useState(false)
     const [runningAll, setRunningAll] = useState(false)
     const [runningGameId, setRunningGameId] = useState<number | null>(null)
+    const [retryingTier, setRetryingTier] = useState<string | null>(null)
 
     const reload = useCallback(async () => {
         setLoading(true)
@@ -229,6 +231,24 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
             setError(String(e))
         } finally {
             setRunningGameId(null)
+        }
+    }
+
+    const handleRetryTier = async (gameId: number, tier: string) => {
+        setRetryingTier(tier)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/tombstone/${gameId}/${tier}`, {
+                method: 'DELETE',
+            })
+            setMessage(t('admin.geo.maps.tierStatus.retryQueued'))
+            armRunPolling()
+            await reloadSources(gameId)
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setRetryingTier(null)
         }
     }
 
@@ -479,6 +499,16 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
                                             state={s}
                                             t={t}
                                             running={running}
+                                            onRetry={
+                                                s.tier !== 'manual'
+                                                    ? () =>
+                                                          void handleRetryTier(
+                                                              sources.gameId,
+                                                              s.tier,
+                                                          )
+                                                    : undefined
+                                            }
+                                            retrying={retryingTier === s.tier}
                                         />
                                     )
                                 })}
@@ -603,10 +633,14 @@ function TierRow({
     state,
     t,
     running,
+    onRetry,
+    retrying,
 }: {
     state: TierState
     t: ReturnType<typeof useTranslation>['t']
     running?: boolean
+    onRetry?: () => void
+    retrying?: boolean
 }) {
     const tierLabel = t(`admin.geo.maps.tiers.${state.tier}`)
 
@@ -681,12 +715,31 @@ function TierRow({
                 >
                     {state.reason}
                 </p>
-                <p className="pt-0.5 text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" aria-hidden />
-                    {t('admin.geo.maps.tierStatus.retryAfter', {
-                        time: retry.toLocaleString(),
-                    })}
-                </p>
+                <div className="pt-0.5 flex items-center justify-between gap-2">
+                    <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" aria-hidden />
+                        {t('admin.geo.maps.tierStatus.retryAfter', {
+                            time: retry.toLocaleString(),
+                        })}
+                    </p>
+                    {onRetry && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={retrying}
+                            onClick={onRetry}
+                            className="h-6 gap-1 px-2 text-[10px] text-destructive hover:text-destructive"
+                            title={t('admin.geo.maps.tierStatus.retryNowTooltip')}
+                        >
+                            {retrying ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <RefreshCcw className="h-3 w-3" />
+                            )}
+                            {t('admin.geo.maps.tierStatus.retryNow')}
+                        </Button>
+                    )}
+                </div>
             </li>
         )
     }

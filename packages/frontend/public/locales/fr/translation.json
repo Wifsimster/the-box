@@ -494,6 +494,16 @@
         "nextChallenge": "prochain",
         "scheduleNow": "Planifier"
       },
+      "coldStart": {
+        "no-curated": {
+          "title": "Aucun jeu curaté pour le moment",
+          "body": "Allez dans l'onglet Jeux pour activer le mode Géo sur un ou plusieurs jeux. Une fois curatés, le pipeline ingère leurs cartes automatiquement."
+        },
+        "no-maps": {
+          "title": "Aucune carte importée",
+          "body": "Vos jeux curatés n'ont pas encore de carte active. Cliquez sur « Tout lancer » dans l'onglet Cartes pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
+        }
+      },
       "games": {
         "title": "Jeux",
         "subtitle": "Curatez les jeux dont les cartes et captures doivent alimenter le défi Géo quotidien. Sélectionnez-en plusieurs pour curater ou retirer en lot.",
@@ -560,7 +570,10 @@
           "eligible": "Éligible",
           "untried": "Ignoré",
           "eligibleHint": "Sera tenté à la prochaine passe si aucun niveau précédent ne réussit.",
-          "retryAfter": "Nouvel essai après {{time}}"
+          "retryAfter": "Nouvel essai après {{time}}",
+          "retryNow": "Réessayer",
+          "retryNowTooltip": "Efface le tombstone de cette source et relance la pipeline pour ce jeu.",
+          "retryQueued": "Réessai en file. La pipeline va se relancer dans quelques secondes."
         },
         "viewSource": "Voir la source",
         "actions": {
@@ -1322,7 +1335,9 @@
         "actual": "Emplacement réel"
       },
       "errors": {
-        "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard."
+        "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard.",
+        "nextIn": "Prochain défi dans {{countdown}}",
+        "viewHistory": "Voir les défis passés"
       }
     },
     "contribute": {

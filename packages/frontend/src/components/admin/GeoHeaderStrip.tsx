@@ -1,51 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Map, ListChecks, AlertTriangle, CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { GeoHealth } from '@/hooks/useGeoHealth'
 
 // Persistent dataset-health indicator that replaces GeoAdminActions'
 // metric/queue tile grids. One thin line of always-visible counters that
 // the operator can scan in <1 second:
 //   `38/42 maps · 12 pins · 0 errors`
-// Refreshes itself every 30s so a long-open admin tab stays current.
-
-interface HealthData {
-    coverage: { curated: number; resolved: number; withMap: number; total: number }
-    queue: { active: number; waiting: number; delayed: number; failed: number }
-    nextChallenge: { id: number; date: string } | null
-    failures: Array<unknown>
-}
+//
+// Health data is owned by the parent (GeoReviewPanel) via `useGeoHealth`
+// so the cold-start banner and these counters always agree without a
+// duplicate poll.
 
 interface GeoHeaderStripProps {
     onScheduleClick?: () => void
     scheduling?: boolean
+    health: GeoHealth | null
+    loading: boolean
+    error: boolean
 }
 
-export function GeoHeaderStrip({ onScheduleClick, scheduling }: GeoHeaderStripProps) {
+export function GeoHeaderStrip({
+    onScheduleClick,
+    scheduling,
+    health,
+    loading,
+    error,
+}: GeoHeaderStripProps) {
     const { t, i18n } = useTranslation()
-    const [health, setHealth] = useState<HealthData | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(false)
-
-    const reload = useCallback(async () => {
-        try {
-            const res = await fetch('/api/admin/geo/health', { credentials: 'include' })
-            const json = await res.json().catch(() => ({}))
-            if (!res.ok || !json?.success) throw new Error('health failed')
-            setHealth(json.data as HealthData)
-            setError(false)
-        } catch {
-            setError(true)
-        } finally {
-            setLoading(false)
-        }
-    }, [])
-
-    useEffect(() => {
-        void reload()
-        const id = window.setInterval(() => void reload(), 30_000)
-        return () => window.clearInterval(id)
-    }, [reload])
 
     if (loading && !health) {
         return (

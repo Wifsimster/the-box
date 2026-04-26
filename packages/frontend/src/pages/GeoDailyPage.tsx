@@ -8,8 +8,11 @@ import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ImageOff, Loader2, MapPin, Trophy } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Trophy, Clock, History } from 'lucide-react'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
+import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
+import { Link } from 'react-router-dom'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -76,15 +79,17 @@ export default function GeoDailyPage() {
                     </div>
                 )}
 
-                {phase === 'error' && (
+                {phase === 'error' && errorCode === 'NO_CHALLENGE' && (
+                    <NoChallengeCard />
+                )}
+
+                {phase === 'error' && errorCode !== 'NO_CHALLENGE' && (
                     <Card>
-                        <CardContent className="py-10 text-center text-sm text-destructive">
-                            {errorCode === 'NO_CHALLENGE'
-                                ? t(
-                                      'geo.daily.errors.noChallenge',
-                                      'No geo challenge is available for today yet. Please check back later.',
-                                  )
-                                : (errorMessage ?? t('common.error', 'Error'))}
+                        <CardContent
+                            className="py-10 text-center text-sm text-destructive"
+                            role="alert"
+                        >
+                            {errorMessage ?? t('common.error', 'Error')}
                         </CardContent>
                     </Card>
                 )}
@@ -204,5 +209,45 @@ function ScreenshotFrame({ imageUrl }: { imageUrl: string }) {
             className="w-full rounded-lg border"
             onError={() => setErrored(true)}
         />
+    )
+}
+
+// Shown when /api/geo/daily/{date} returns 404 NO_CHALLENGE — usually right
+// after an admin reset or before the daily scheduler has had a chance to
+// run. Gives the player the time-to-next-challenge so they don't think the
+// game is broken, plus a path back to past results.
+function NoChallengeCard() {
+    const { t } = useTranslation()
+    const { hours, minutes, seconds } = useNextDailyCountdown()
+    const { localizedPath } = useLocalizedPath()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const countdown = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    return (
+        <Card className="border-neon-pink/40">
+            <CardContent className="py-10 text-center space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-neon-pink/40 bg-neon-pink/5 px-3 py-1 text-xs text-neon-pink">
+                    <Clock className="h-3.5 w-3.5" aria-hidden />
+                    <span aria-live="polite">
+                        {t('geo.daily.errors.nextIn', 'Next challenge in {{countdown}}', {
+                            countdown,
+                        })}
+                    </span>
+                </div>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    {t(
+                        'geo.daily.errors.noChallenge',
+                        "No geo challenge is available for today yet. Please check back later.",
+                    )}
+                </p>
+                <div className="flex justify-center">
+                    <Button asChild variant="outline" size="sm">
+                        <Link to={localizedPath('/history')}>
+                            <History className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                            {t('geo.daily.errors.viewHistory', 'View past challenges')}
+                        </Link>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     )
 }

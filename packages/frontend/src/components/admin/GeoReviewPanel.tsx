@@ -31,7 +31,9 @@ import { GeoMapsTab } from './GeoMapsTab'
 import { GeoGamesTab } from './GeoGamesTab'
 import { GeoHeaderStrip } from './GeoHeaderStrip'
 import { GeoRunStateBanner } from './GeoRunStateBanner'
+import { GeoColdStartBanner } from './GeoColdStartBanner'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
+import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoMap,
@@ -106,6 +108,9 @@ export function GeoReviewPanel() {
     // polling and the live banner stays visible when the operator switches
     // between Pins / Maps / Games tabs.
     const { state: runState, error: runError, arm: armRunPolling } = useGeoRunPolling()
+    // Single health subscription shared between the counter strip and the
+    // cold-start banner — keeps them in sync without a duplicate poll.
+    const { data: health, loading: healthLoading, error: healthError } = useGeoHealth()
 
     const triggerSchedule = async () => {
         setScheduling(true)
@@ -208,7 +213,12 @@ export function GeoReviewPanel() {
             <GeoHeaderStrip
                 onScheduleClick={() => void triggerSchedule()}
                 scheduling={scheduling}
+                health={health}
+                loading={healthLoading}
+                error={healthError}
             />
+
+            <GeoColdStartBanner health={health} />
 
             <GeoRunStateBanner state={runState} />
 

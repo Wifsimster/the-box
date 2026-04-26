@@ -2147,6 +2147,51 @@ router.post('/geo/reimport', async (req, res, next) => {
   }
 })
 
+// Per-tier tombstone clear. Targeted alternative to /geo/reimport (which
+// wipes all 5 source tombstones for a game) and /scraping/reset (which
+// nukes everything). Lets an operator say "Fandom is back up, retry just
+// that tier for this game" without re-paying the registry/wikidata cost.
+const TOMBSTONE_SOURCES = [
+  'fandom',
+  'steam',
+  'metadata',
+  'registry',
+  'wikidata',
+] as const
+type TombstoneSource = (typeof TOMBSTONE_SOURCES)[number]
+function isTombstoneSource(s: string): s is TombstoneSource {
+  return (TOMBSTONE_SOURCES as readonly string[]).includes(s)
+}
+
+router.delete('/geo/tombstone/:gameId/:source', async (req, res, next) => {
+  try {
+    const gameId = Number(req.params.gameId)
+    if (!Number.isFinite(gameId) || gameId <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const source = req.params.source ?? ''
+    if (!isTombstoneSource(source)) {
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'INVALID_SOURCE' } })
+      return
+    }
+    await geoIngestFailureRepository.clear(gameId, source)
+    // Best-effort: kick the per-game pipeline so the cleared tier gets
+    // retried right away. Idempotent jobIds keep this safe to call even
+    // if the operator just hit "Run for this game".
+    await geoQueue.add(
+      'ingest-tick',
+      { kind: 'ingest-tick', batchSize: 1, gameId },
+      { jobId: `manual-tick:${gameId}` },
+    )
+    res.json({ success: true, data: { gameId, source } })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // Manual run-now triggers for the whole geo ingestion pipeline. The recurring
 // resolver + tick workers already run on a schedule; these endpoints just
 // short-circuit the wait so an operator can kick off a fresh pass immediately
