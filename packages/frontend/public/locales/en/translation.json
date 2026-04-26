@@ -514,6 +514,7 @@
         "subtitle": "Curate the games whose maps and screenshots should land in the Geo daily challenge. Select multiple to curate or remove in bulk.",
         "refresh": "Refresh",
         "empty": "No games match this filter.",
+        "searchPlaceholder": "Search games by name…",
         "filter": {
           "label": "Filter",
           "all": "All",

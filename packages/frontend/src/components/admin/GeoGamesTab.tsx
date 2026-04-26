@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RefreshCw, CheckSquare, Square, Star, AlertTriangle } from 'lucide-react'
+import { Loader2, RefreshCw, CheckSquare, Square, Star, AlertTriangle, Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
 
 // Unified curated-set + suggestions surface. Replaces the two stacked
@@ -42,6 +43,7 @@ interface GameRow {
 export function GeoGamesTab() {
     const { t } = useTranslation()
     const [filter, setFilter] = useState<FilterMode>('all')
+    const [search, setSearch] = useState('')
     const [curated, setCurated] = useState<GameRow[]>([])
     const [candidates, setCandidates] = useState<GameRow[]>([])
     const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -76,10 +78,20 @@ export function GeoGamesTab() {
     }, [reload])
 
     const rows: GameRow[] = useMemo(() => {
-        if (filter === 'curated') return curated
-        if (filter === 'candidates') return candidates
-        return [...curated, ...candidates]
-    }, [filter, curated, candidates])
+        const base =
+            filter === 'curated'
+                ? curated
+                : filter === 'candidates'
+                    ? candidates
+                    : [...curated, ...candidates]
+        const q = search.trim().toLowerCase()
+        if (!q) return base
+        return base.filter(
+            (r) =>
+                r.name.toLowerCase().includes(q) ||
+                (r.developer ?? '').toLowerCase().includes(q),
+        )
+    }, [filter, curated, candidates, search])
 
     const toggleSelect = (id: number) => {
         setSelected((prev) => {
@@ -176,6 +188,22 @@ export function GeoGamesTab() {
                             {f === 'all' && ` (${curated.length + candidates.length})`}
                         </Button>
                     ))}
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        className="h-8 pl-9 text-xs"
+                        placeholder={t('admin.geo.games.searchPlaceholder')}
+                        value={search}
+                        onChange={(e) => {
+                            setSearch(e.target.value)
+                            setSelected(new Set())
+                        }}
+                        aria-label={t('admin.geo.games.searchPlaceholder')}
+                    />
                 </div>
 
                 {message && (

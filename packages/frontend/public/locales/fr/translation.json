@@ -514,6 +514,7 @@
         "subtitle": "Activez les jeux dont les cartes et captures doivent alimenter le défi Géo quotidien. Sélectionnez-en plusieurs pour les activer ou les retirer en lot.",
         "refresh": "Rafraîchir",
         "empty": "Aucun jeu ne correspond à ce filtre.",
+        "searchPlaceholder": "Rechercher un jeu par nom…",
         "filter": {
           "label": "Filtre",
           "all": "Tous",
