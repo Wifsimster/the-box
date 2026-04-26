@@ -1956,6 +1956,7 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         | 'fandom'
         | 'strategywiki'
         | 'fextralife'
+        | 'wand'
         | 'wikidata'
         | 'manual',
       state:
@@ -1979,6 +1980,7 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         | 'fandom'
         | 'strategywiki'
         | 'fextralife'
+        | 'wand'
         | 'wikidata'
         | 'manual',
       via: string,
@@ -2089,7 +2091,27 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       }
     }
 
-    // Tier 5 — Wikidata
+    // Tier 5 — Wand (probes inline by slug, always eligible until tombstoned)
+    const wandMatched = matchedTier('wand', `wand.com/maps/${game.slug}`)
+    if (wandMatched) {
+      sources.push(wandMatched)
+    } else {
+      const tomb = failureBySource.get('wand')
+      if (tomb && tomb.retry_after.getTime() > now) {
+        sources.push(
+          tier('wand', {
+            status: 'tombstoned',
+            reason: tomb.reason,
+            attempts: tomb.attempt_count,
+            retryAfter: tomb.retry_after,
+          }),
+        )
+      } else {
+        sources.push(tier('wand', { status: 'eligible' }))
+      }
+    }
+
+    // Tier 6 — Wikidata
     const wikidataMatched = matchedTier('wikidata', game.wikidata_qid ?? 'P242')
     if (wikidataMatched) {
       sources.push(wikidataMatched)
@@ -2113,7 +2135,7 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       )
     }
 
-    // Tier 6 — Manual
+    // Tier 7 — Manual
     const manualMatched = matchedTier('manual', 'admin upload')
     if (manualMatched) {
       sources.push(manualMatched)
@@ -2459,6 +2481,7 @@ const RUNNABLE_TIERS: readonly RunnableTier[] = [
   'fandom',
   'strategywiki',
   'fextralife',
+  'wand',
   'wikidata',
 ] as const
 function isRunnableTier(s: string): s is RunnableTier {

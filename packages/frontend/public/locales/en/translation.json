@@ -566,9 +566,10 @@
           "fandom": "Tier 2 — Fandom",
           "strategywiki": "Tier 3 — StrategyWiki",
           "fextralife": "Tier 4 — Fextralife",
-          "wikidata": "Tier 5 — Wikidata",
+          "wand": "Tier 5 — Wand",
+          "wikidata": "Tier 6 — Wikidata",
           "steam": "Steam",
-          "manual": "Tier 6 — Manual"
+          "manual": "Tier 7 — Manual"
         },
         "tierStatus": {
           "matched": "Matched",

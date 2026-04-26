@@ -11,6 +11,7 @@ const GeoRunJobKindSchema = z.enum([
     'import-fandom-map',
     'import-strategywiki-map',
     'import-fextralife-map',
+    'import-wand-map',
     'import-wikidata-map',
     'import-steam-screenshots',
     'schedule-daily-challenge',
@@ -140,6 +141,7 @@ export type InFlightTier =
     | 'fandom'
     | 'strategywiki'
     | 'fextralife'
+    | 'wand'
     | 'wikidata'
     | 'steam'
     | 'metadata'
@@ -157,6 +159,7 @@ export function tiersInFlightForGame(
         else if (job.kind === 'import-fandom-map') out.add('fandom')
         else if (job.kind === 'import-strategywiki-map') out.add('strategywiki')
         else if (job.kind === 'import-fextralife-map') out.add('fextralife')
+        else if (job.kind === 'import-wand-map') out.add('wand')
         else if (job.kind === 'import-wikidata-map') out.add('wikidata')
         else if (job.kind === 'import-steam-screenshots') out.add('steam')
         else if (job.kind === 'resolve-metadata') out.add('metadata')

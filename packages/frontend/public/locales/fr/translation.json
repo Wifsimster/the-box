@@ -566,9 +566,10 @@
           "fandom": "Niveau 2 — Fandom",
           "strategywiki": "Niveau 3 — StrategyWiki",
           "fextralife": "Niveau 4 — Fextralife",
-          "wikidata": "Niveau 5 — Wikidata",
+          "wand": "Niveau 5 — Wand",
+          "wikidata": "Niveau 6 — Wikidata",
           "steam": "Steam",
-          "manual": "Niveau 6 — Manuel"
+          "manual": "Niveau 7 — Manuel"
         },
         "tierStatus": {
           "matched": "Trouvé",

@@ -78,6 +78,7 @@ type TierKey =
     | 'fandom'
     | 'strategywiki'
     | 'fextralife'
+    | 'wand'
     | 'wikidata'
     | 'manual'
 

@@ -27,6 +27,7 @@ export interface IngestTickResult {
   fandomEnqueued: number
   strategyWikiEnqueued: number
   fextralifeEnqueued: number
+  wandEnqueued: number
   wikidataEnqueued: number
   steamEnqueued: number
 }
@@ -39,9 +40,10 @@ export interface IngestTickResult {
  *   2. `fandom`       — Fandom Interactive Maps (if wiki_subdomain + map page resolved)
  *   3. `strategywiki` — StrategyWiki MediaWiki API (CC-BY-SA, no pre-resolution)
  *   4. `fextralife`   — Fextralife wiki og:image scrape (RPG / Soulsborne coverage)
- *   5. `wikidata`     — Wikidata P242 locator map (if wikidata_qid resolved)
+ *   5. `wand`         — wand.com og:image scrape via slug (Cloudflare-gated)
+ *   6. `wikidata`     — Wikidata P242 locator map (if wikidata_qid resolved)
  *
- * Tiers 3 and 4 don't require pre-resolution — they probe the upstream API
+ * Tiers 3, 4 and 5 don't require pre-resolution — they probe the upstream
  * inline using the game slug + name, so a game can succeed there even if
  * the metadata resolver couldn't find a Fandom subdomain or Wikidata Q-id.
  *
@@ -103,6 +105,7 @@ export async function runGeoIngestTick(
   let fandomEnqueued = 0
   let strategyWikiEnqueued = 0
   let fextralifeEnqueued = 0
+  let wandEnqueued = 0
   let wikidataEnqueued = 0
   let steamEnqueued = 0
 
@@ -112,6 +115,7 @@ export async function runGeoIngestTick(
     fandomEnqueued += enqueued.fandom
     strategyWikiEnqueued += enqueued.strategywiki
     fextralifeEnqueued += enqueued.fextralife
+    wandEnqueued += enqueued.wand
     wikidataEnqueued += enqueued.wikidata
 
     if (
@@ -148,6 +152,7 @@ export async function runGeoIngestTick(
       fandomEnqueued,
       strategyWikiEnqueued,
       fextralifeEnqueued,
+      wandEnqueued,
       wikidataEnqueued,
       steamEnqueued,
     },
@@ -159,6 +164,7 @@ export async function runGeoIngestTick(
     fandomEnqueued,
     strategyWikiEnqueued,
     fextralifeEnqueued,
+    wandEnqueued,
     wikidataEnqueued,
     steamEnqueued,
   }
@@ -169,6 +175,7 @@ interface TierEnqueueTally {
   fandom: number
   strategywiki: number
   fextralife: number
+  wand: number
   wikidata: number
 }
 
@@ -178,6 +185,7 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     fandom: 0,
     strategywiki: 0,
     fextralife: 0,
+    wand: 0,
     wikidata: 0,
   }
 
@@ -243,7 +251,21 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     tally.fextralife++
   }
 
-  // Tier 5 — Wikidata P242 fallback
+  // Tier 5 — Wand (no pre-resolution required; probes wand.com/maps/<slug>)
+  if (!(await tombstoneBlocks(row.id, 'wand'))) {
+    await geoQueue.add(
+      'import-wand-map',
+      {
+        kind: 'import-wand-map',
+        gameId: row.id,
+        wandUrl: `https://wand.com/maps/${encodeURIComponent(row.slug)}`,
+      },
+      { jobId: `auto-wand-${row.id}` },
+    )
+    tally.wand++
+  }
+
+  // Tier 6 — Wikidata P242 fallback
   if (row.wikidata_qid && !(await tombstoneBlocks(row.id, 'wikidata'))) {
     await geoQueue.add(
       'import-wikidata-map',
@@ -264,7 +286,8 @@ async function tombstoneBlocks(
     | 'registry'
     | 'wikidata'
     | 'strategywiki'
-    | 'fextralife',
+    | 'fextralife'
+    | 'wand',
 ): Promise<boolean> {
   const row = await db('geo_ingest_failure')
     .where({ game_id: gameId, source })
@@ -278,6 +301,7 @@ export type RunnableTier =
   | 'fandom'
   | 'strategywiki'
   | 'fextralife'
+  | 'wand'
   | 'wikidata'
 
 export type SingleTierFailure =
@@ -383,6 +407,19 @@ export async function enqueueSingleTierImport(
         gameId,
         gameName: game.name,
         slug: game.slug,
+      },
+      { jobId },
+    )
+    return { enqueued: true, jobId }
+  }
+
+  if (source === 'wand') {
+    await geoQueue.add(
+      'import-wand-map',
+      {
+        kind: 'import-wand-map',
+        gameId,
+        wandUrl: `https://wand.com/maps/${encodeURIComponent(game.slug)}`,
       },
       { jobId },
     )
