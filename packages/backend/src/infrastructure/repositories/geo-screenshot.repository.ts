@@ -116,6 +116,27 @@ export const geoScreenshotRepository = {
     await db('geo_screenshot_candidate').where({ id: candidateId }).update({ status })
   },
 
+  /**
+   * Soft-delete a candidate that isn't suitable for the geo game (e.g. a UI
+   * screenshot that has no in-world location). Marks it `rejected` and
+   * deactivates it so contributors stop seeing it and the daily picker skips
+   * it. Existing pins are kept for audit. Refuses to act if the candidate is
+   * already promoted — the admin must demote the meta first.
+   */
+  async rejectCandidate(
+    candidateId: number,
+  ): Promise<{ rejected: boolean; alreadyPromoted: boolean }> {
+    log.info({ candidateId }, 'rejectCandidate')
+    const meta = await db('geo_screenshot_meta')
+      .where({ geo_screenshot_candidate_id: candidateId })
+      .first<{ id: number }>()
+    if (meta) return { rejected: false, alreadyPromoted: true }
+    const updated = await db('geo_screenshot_candidate')
+      .where({ id: candidateId })
+      .update({ status: 'rejected', is_active: false })
+    return { rejected: updated > 0, alreadyPromoted: false }
+  },
+
   async findMetaByCandidateId(candidateId: number): Promise<GeoScreenshotMeta | null> {
     const row = await db('geo_screenshot_meta')
       .where({ geo_screenshot_candidate_id: candidateId })

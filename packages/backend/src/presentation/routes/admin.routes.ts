@@ -1611,6 +1611,38 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
   }
 })
 
+router.post('/geo/candidates/:id/reject', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+
+    const candidate = await geoScreenshotRepository.findCandidateById(id)
+    if (!candidate) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
+      return
+    }
+
+    const result = await geoScreenshotRepository.rejectCandidate(id)
+    if (result.alreadyPromoted) {
+      res.status(409).json({
+        success: false,
+        error: {
+          code: 'ALREADY_PROMOTED',
+          message: 'demote the canonical meta before rejecting the candidate',
+        },
+      })
+      return
+    }
+
+    res.json({ success: true, data: { id, rejected: result.rejected } })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // Auto-ingestion is driven by recurring `resolve-metadata` and `ingest-tick`
 // jobs (see index.ts). The endpoints below give the admin a read-only view of
 // the dataset's health plus a small set of manual-override actions: flagging

@@ -132,6 +132,17 @@ async function deleteMeta(metaId: number): Promise<void> {
     }
 }
 
+async function rejectCandidate(id: number): Promise<void> {
+    const res = await fetch(`/api/admin/geo/candidates/${id}/reject`, {
+        method: 'POST',
+        credentials: 'include',
+    })
+    if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json?.error?.code ?? `reject failed: ${res.status}`)
+    }
+}
+
 export function GeoReviewPanel() {
     const { t } = useTranslation()
     const [activeTab, setActiveTab] = useState<'pins' | 'maps' | 'games'>('pins')
@@ -150,6 +161,7 @@ export function GeoReviewPanel() {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [demoteOpen, setDemoteOpen] = useState(false)
+    const [rejectOpen, setRejectOpen] = useState(false)
     const [introOpen, setIntroOpen] = useState(false)
     const [scheduling, setScheduling] = useState(false)
     // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
@@ -232,6 +244,27 @@ export function GeoReviewPanel() {
         setStatusFilter('all')
         setDetail(null)
         setActiveTab('pins')
+    }
+
+    const confirmReject = async () => {
+        if (!detail) return
+        setError(null)
+        setSaving(true)
+        try {
+            await rejectCandidate(detail.candidate.id)
+            setRejectOpen(false)
+            setDetail(null)
+            setPin(null)
+            const rows = await fetchCandidates({
+                status: statusFilter === 'all' ? undefined : statusFilter,
+                gameId: gameFilter?.gameId,
+            })
+            setCandidates(rows)
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setSaving(false)
+        }
     }
 
     const confirmDemote = async () => {
@@ -530,17 +563,29 @@ export function GeoReviewPanel() {
                                                     ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
                                                     : t('admin.geo.pickPoint')}
                                             </span>
-                                            <Button
-                                                size="sm"
-                                                onClick={applyOverride}
-                                                disabled={!pin || saving}
-                                                className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
-                                            >
-                                                {saving && (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                                                )}
-                                                {t('admin.geo.promote')}
-                                            </Button>
+                                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => setRejectOpen(true)}
+                                                    disabled={saving}
+                                                    className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                                    {t('admin.geo.reject')}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={applyOverride}
+                                                    disabled={!pin || saving}
+                                                    className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
+                                                >
+                                                    {saving && (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                                    )}
+                                                    {t('admin.geo.promote')}
+                                                </Button>
+                                            </div>
                                         </div>
                                     )}
                                 </>
@@ -553,6 +598,34 @@ export function GeoReviewPanel() {
                     </Card>
                 </div>
             )}
+
+            <Dialog open={rejectOpen} onOpenChange={(open) => !saving && setRejectOpen(open)}>
+                <DialogContent className="max-w-sm sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{t('admin.geo.rejectDialog.title')}</DialogTitle>
+                        <DialogDescription>
+                            {t('admin.geo.rejectDialog.description')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setRejectOpen(false)}
+                            disabled={saving}
+                        >
+                            {t('admin.geo.rejectDialog.cancel')}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmReject}
+                            disabled={saving}
+                        >
+                            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+                            {t('admin.geo.rejectDialog.confirm')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={demoteOpen} onOpenChange={(open) => !saving && setDemoteOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">
