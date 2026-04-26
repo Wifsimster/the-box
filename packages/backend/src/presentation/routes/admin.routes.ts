@@ -1846,8 +1846,8 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       return
     }
 
-    const [activeMap, registryEntry, failures] = await Promise.all([
-      geoMapRepository.findActiveByGameId(id),
+    const [allMaps, registryEntry, failures] = await Promise.all([
+      geoMapRepository.listByGameId(id),
       findRegistryEntryBySlug(game.slug),
       db('geo_ingest_failure')
         .where({ game_id: id })
@@ -1862,9 +1862,43 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         >('source', 'reason', 'attempt_count', 'last_attempt_at', 'retry_after'),
     ])
 
+    const activeMap = allMaps.find((m) => m.isActive) ?? null
+    const candidatesBySource = new Map<
+      string,
+      Array<{
+        id: number
+        imageUrl: string
+        widthPx: number
+        heightPx: number
+        license: string
+        attribution: string | null
+        sourceUrl: string | null
+        region: string | null
+        isActive: boolean
+      }>
+    >()
+    for (const m of allMaps) {
+      const list = candidatesBySource.get(m.source) ?? []
+      list.push({
+        id: m.id,
+        imageUrl: m.imageUrl,
+        widthPx: m.widthPx,
+        heightPx: m.heightPx,
+        license: m.license,
+        attribution: m.attribution ?? null,
+        sourceUrl: m.sourceUrl ?? null,
+        region: m.region ?? null,
+        isActive: m.isActive,
+      })
+      candidatesBySource.set(m.source, list)
+    }
+
     const failureBySource = new Map(failures.map((f) => [f.source, f]))
     const now = Date.now()
 
+    type TierCandidate = NonNullable<
+      ReturnType<typeof candidatesBySource.get>
+    >[number]
     const tier = (
       key:
         | 'registry'
@@ -1874,7 +1908,13 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         | 'wikidata'
         | 'manual',
       state:
-        | { status: 'matched'; via: string; license?: string; sourceUrl?: string }
+        | {
+            status: 'matched'
+            via: string
+            license?: string
+            sourceUrl?: string
+            candidates: TierCandidate[]
+          }
         | { status: 'tombstoned'; reason: string; attempts: number; retryAfter: Date }
         | { status: 'untried'; reason?: string }
         | { status: 'eligible' },
@@ -1882,16 +1922,35 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
 
     const sources: Array<ReturnType<typeof tier>> = []
 
+    const matchedTier = (
+      key:
+        | 'registry'
+        | 'fandom'
+        | 'strategywiki'
+        | 'fextralife'
+        | 'wikidata'
+        | 'manual',
+      via: string,
+    ): ReturnType<typeof tier> | null => {
+      const list = candidatesBySource.get(key)
+      if (!list || list.length === 0) return null
+      // Surface the active candidate first when present, so the existing
+      // "matched" caption (license / sourceUrl) reflects what is currently
+      // serving in-game; siblings remain available for the admin to pick.
+      const primary = list.find((c) => c.isActive) ?? list[0]!
+      return tier(key, {
+        status: 'matched',
+        via,
+        license: primary.license,
+        sourceUrl: primary.sourceUrl ?? undefined,
+        candidates: list,
+      })
+    }
+
     // Tier 1 — Registry
-    if (activeMap?.source === 'registry') {
-      sources.push(
-        tier('registry', {
-          status: 'matched',
-          via: 'curated registry',
-          license: activeMap.license,
-          sourceUrl: activeMap.sourceUrl,
-        }),
-      )
+    const registryMatched = matchedTier('registry', 'curated registry')
+    if (registryMatched) {
+      sources.push(registryMatched)
     } else if (registryEntry) {
       const tomb = failureBySource.get('registry')
       if (tomb && tomb.retry_after.getTime() > now) {
@@ -1913,15 +1972,12 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     }
 
     // Tier 2 — Fandom
-    if (activeMap?.source === 'fandom') {
-      sources.push(
-        tier('fandom', {
-          status: 'matched',
-          via: `${game.wiki_subdomain ?? '?'}.fandom.com`,
-          license: activeMap.license,
-          sourceUrl: activeMap.sourceUrl,
-        }),
-      )
+    const fandomMatched = matchedTier(
+      'fandom',
+      `${game.wiki_subdomain ?? '?'}.fandom.com`,
+    )
+    if (fandomMatched) {
+      sources.push(fandomMatched)
     } else if (game.wiki_subdomain && game.wiki_page_title) {
       const tomb = failureBySource.get('fandom')
       if (tomb && tomb.retry_after.getTime() > now) {
@@ -1943,15 +1999,9 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     }
 
     // Tier 3 — StrategyWiki (probes inline, always eligible until tombstoned)
-    if (activeMap?.source === 'strategywiki') {
-      sources.push(
-        tier('strategywiki', {
-          status: 'matched',
-          via: 'strategywiki.org',
-          license: activeMap.license,
-          sourceUrl: activeMap.sourceUrl,
-        }),
-      )
+    const strategyMatched = matchedTier('strategywiki', 'strategywiki.org')
+    if (strategyMatched) {
+      sources.push(strategyMatched)
     } else {
       const tomb = failureBySource.get('strategywiki')
       if (tomb && tomb.retry_after.getTime() > now) {
@@ -1969,15 +2019,9 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     }
 
     // Tier 4 — Fextralife (probes inline, always eligible until tombstoned)
-    if (activeMap?.source === 'fextralife') {
-      sources.push(
-        tier('fextralife', {
-          status: 'matched',
-          via: 'wiki.fextralife.com',
-          license: activeMap.license,
-          sourceUrl: activeMap.sourceUrl,
-        }),
-      )
+    const fextralifeMatched = matchedTier('fextralife', 'wiki.fextralife.com')
+    if (fextralifeMatched) {
+      sources.push(fextralifeMatched)
     } else {
       const tomb = failureBySource.get('fextralife')
       if (tomb && tomb.retry_after.getTime() > now) {
@@ -1995,15 +2039,9 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     }
 
     // Tier 5 — Wikidata
-    if (activeMap?.source === 'wikidata') {
-      sources.push(
-        tier('wikidata', {
-          status: 'matched',
-          via: game.wikidata_qid ?? 'P242',
-          license: activeMap.license,
-          sourceUrl: activeMap.sourceUrl,
-        }),
-      )
+    const wikidataMatched = matchedTier('wikidata', game.wikidata_qid ?? 'P242')
+    if (wikidataMatched) {
+      sources.push(wikidataMatched)
     } else if (game.wikidata_qid) {
       const tomb = failureBySource.get('wikidata')
       if (tomb && tomb.retry_after.getTime() > now) {
@@ -2024,16 +2062,10 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       )
     }
 
-    // Tier 4 — Manual
-    if (activeMap?.source === 'manual') {
-      sources.push(
-        tier('manual', {
-          status: 'matched',
-          via: 'admin upload',
-          license: activeMap.license,
-          sourceUrl: activeMap.sourceUrl,
-        }),
-      )
+    // Tier 6 — Manual
+    const manualMatched = matchedTier('manual', 'admin upload')
+    if (manualMatched) {
+      sources.push(manualMatched)
     } else {
       sources.push(tier('manual', { status: 'untried' }))
     }
@@ -2059,6 +2091,46 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         sources,
       },
     })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Switch which geo_map row is the active one for a game. Used by the admin
+// Maps tab when multiple tiers (Fandom / StrategyWiki / Fextralife / …) have
+// produced candidate maps and the operator wants to pick the best one
+// instead of accepting whichever tier landed first.
+const setActiveMapBodySchema = z.object({
+  geoMapId: z.number().int().positive(),
+})
+
+router.post('/geo/games/:id/active-map', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = setActiveMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const map = await geoMapRepository.setActiveForGame(id, parse.data.geoMapId)
+    if (!map) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'MAP_NOT_FOUND',
+          message: 'no geo_map row with that id for this game',
+        },
+      })
+      return
+    }
+    res.json({ success: true, data: map })
   } catch (err) {
     next(err)
   }

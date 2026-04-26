@@ -68,9 +68,13 @@ export async function importWikidataMap(
 ): Promise<ImportWikidataMapResult> {
   const { gameId, wikidataQid } = input
 
-  const existing = await geoMapRepository.findActiveByGameId(gameId)
+  const existing = await geoMapRepository.findBySourceAndGameId(gameId, 'wikidata')
   if (existing) {
-    return { imported: false, geoMapId: existing.id, reason: 'map already exists' }
+    return {
+      imported: false,
+      geoMapId: existing.id,
+      reason: 'wikidata map already imported',
+    }
   }
 
   log.info({ gameId, wikidataQid }, 'fetching wikidata locator map')

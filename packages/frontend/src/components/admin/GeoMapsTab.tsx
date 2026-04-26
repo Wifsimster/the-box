@@ -78,6 +78,18 @@ type TierKey =
     | 'wikidata'
     | 'manual'
 
+interface TierCandidate {
+    id: number
+    imageUrl: string
+    widthPx: number
+    heightPx: number
+    license: string
+    attribution: string | null
+    sourceUrl: string | null
+    region: string | null
+    isActive: boolean
+}
+
 type TierStateBase = { tier: TierKey }
 type TierState =
     | (TierStateBase & {
@@ -85,6 +97,7 @@ type TierState =
           via: string
           license?: string
           sourceUrl?: string
+          candidates: TierCandidate[]
       })
     | (TierStateBase & {
           status: 'tombstoned'
@@ -130,6 +143,7 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
     const [runningAll, setRunningAll] = useState(false)
     const [runningGameId, setRunningGameId] = useState<number | null>(null)
     const [retryingTier, setRetryingTier] = useState<string | null>(null)
+    const [activatingMapId, setActivatingMapId] = useState<number | null>(null)
 
     const reload = useCallback(async () => {
         setLoading(true)
@@ -260,6 +274,24 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
             setError(String(e))
         } finally {
             setRetryingTier(null)
+        }
+    }
+
+    const handleActivateMap = async (gameId: number, mapId: number) => {
+        setActivatingMapId(mapId)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/games/${gameId}/active-map`, {
+                method: 'POST',
+                body: JSON.stringify({ geoMapId: mapId }),
+            })
+            setMessage(t('admin.geo.maps.tierStatus.activated'))
+            await Promise.all([reload(), reloadSources(gameId)])
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setActivatingMapId(null)
         }
     }
 
@@ -540,6 +572,13 @@ export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProp
                                                     : undefined
                                             }
                                             retrying={retryingTier === s.tier}
+                                            onActivate={(mapId) =>
+                                                void handleActivateMap(
+                                                    sources.gameId,
+                                                    mapId,
+                                                )
+                                            }
+                                            activatingMapId={activatingMapId}
                                         />
                                     )
                                 })}
@@ -690,12 +729,16 @@ function TierRow({
     running,
     onRetry,
     retrying,
+    onActivate,
+    activatingMapId,
 }: {
     state: TierState
     t: ReturnType<typeof useTranslation>['t']
     running?: boolean
     onRetry?: () => void
     retrying?: boolean
+    onActivate?: (mapId: number) => void
+    activatingMapId?: number | null
 }) {
     const tierLabel = t(`admin.geo.maps.tiers.${state.tier}`)
 
@@ -722,6 +765,7 @@ function TierRow({
     }
 
     if (state.status === 'matched') {
+        const candidates = state.candidates ?? []
         return (
             <li className="rounded border border-success/30 bg-success/5 p-2.5 text-xs">
                 <div className="flex items-center justify-between gap-2">
@@ -737,15 +781,84 @@ function TierRow({
                     {state.via}
                     {state.license && ` · ${state.license}`}
                 </p>
-                {state.sourceUrl && (
-                    <a
-                        href={state.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="text-[11px] text-primary hover:underline"
-                    >
-                        {t('admin.geo.maps.viewSource')}
-                    </a>
+                {candidates.length > 0 && (
+                    <ul className="mt-2 space-y-1.5">
+                        {candidates.map((c) => {
+                            const activating = activatingMapId === c.id
+                            return (
+                                <li
+                                    key={c.id}
+                                    className={`flex gap-2 rounded border p-1.5 ${
+                                        c.isActive
+                                            ? 'border-success/50 bg-success/10'
+                                            : 'border-border/40 bg-background/40'
+                                    }`}
+                                >
+                                    <a
+                                        href={c.imageUrl}
+                                        target="_blank"
+                                        rel="noreferrer noopener"
+                                        className="block shrink-0 overflow-hidden rounded bg-black/40"
+                                        aria-label={t(
+                                            'admin.geo.maps.tierStatus.candidatePreviewAria',
+                                        )}
+                                    >
+                                        <img
+                                            src={c.imageUrl}
+                                            alt=""
+                                            loading="lazy"
+                                            className="block h-12 w-16 object-contain"
+                                        />
+                                    </a>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[10px] text-muted-foreground">
+                                            {c.widthPx} × {c.heightPx} px
+                                            {c.region && ` · ${c.region}`}
+                                        </p>
+                                        {c.sourceUrl && (
+                                            <a
+                                                href={c.sourceUrl}
+                                                target="_blank"
+                                                rel="noreferrer noopener"
+                                                className="text-[10px] text-primary hover:underline"
+                                            >
+                                                {t('admin.geo.maps.viewSource')}
+                                            </a>
+                                        )}
+                                    </div>
+                                    <div className="flex shrink-0 items-center">
+                                        {c.isActive ? (
+                                            <span className="text-[10px] uppercase tracking-wide text-success px-1.5">
+                                                {t(
+                                                    'admin.geo.maps.tierStatus.active',
+                                                )}
+                                            </span>
+                                        ) : onActivate ? (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                disabled={activating}
+                                                onClick={() => onActivate(c.id)}
+                                                className="h-6 gap-1 px-2 text-[10px]"
+                                                title={t(
+                                                    'admin.geo.maps.tierStatus.useThisMapTooltip',
+                                                )}
+                                            >
+                                                {activating ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                )}
+                                                {t(
+                                                    'admin.geo.maps.tierStatus.useThisMap',
+                                                )}
+                                            </Button>
+                                        ) : null}
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ul>
                 )}
             </li>
         )

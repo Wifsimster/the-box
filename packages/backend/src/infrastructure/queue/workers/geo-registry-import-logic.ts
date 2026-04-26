@@ -81,9 +81,13 @@ export async function importRegistryMap(
 ): Promise<ImportRegistryMapResult> {
   const { gameId, entry } = input
 
-  const existing = await geoMapRepository.findActiveByGameId(gameId)
+  const existing = await geoMapRepository.findBySourceAndGameId(gameId, 'registry')
   if (existing) {
-    return { imported: false, geoMapId: existing.id, reason: 'map already exists' }
+    return {
+      imported: false,
+      geoMapId: existing.id,
+      reason: 'registry map already imported',
+    }
   }
 
   log.info({ gameId, imageUrl: entry.imageUrl }, 'fetching registry map')

@@ -576,11 +576,16 @@
           "tombstoned_other": "Tombé ({{count}} tentatives)",
           "eligible": "Éligible",
           "untried": "Ignoré",
-          "eligibleHint": "Sera tenté à la prochaine passe si aucun niveau précédent ne réussit.",
+          "active": "Actif",
+          "eligibleHint": "Sera tenté à la prochaine passe d'ingestion.",
           "retryAfter": "Nouvel essai après {{time}}",
           "retryNow": "Réessayer",
           "retryNowTooltip": "Efface le tombstone de cette source et relance la pipeline pour ce jeu.",
-          "retryQueued": "Réessai en file. La pipeline va se relancer dans quelques secondes."
+          "retryQueued": "Réessai en file. La pipeline va se relancer dans quelques secondes.",
+          "useThisMap": "Utiliser",
+          "useThisMapTooltip": "Choisir cette carte comme carte active du jeu.",
+          "candidatePreviewAria": "Aperçu de la carte candidate (cliquez pour ouvrir en taille réelle)",
+          "activated": "Carte active mise à jour."
         },
         "viewSource": "Voir la source",
         "actions": {

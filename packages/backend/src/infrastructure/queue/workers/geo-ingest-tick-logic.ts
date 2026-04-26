@@ -32,8 +32,9 @@ export interface IngestTickResult {
 }
 
 /**
- * One pass over curated, resolved games. For each game without an active map,
- * try the ingestion tiers in order and enqueue the first eligible job:
+ * One pass over curated, resolved games. For each game we enqueue **every**
+ * eligible ingestion tier so the admin can compare results and pick the best
+ * map per game (instead of only the first tier to land winning by default):
  *   1. `registry`     — curated GitHub Leaflet repo (if entry exists for slug)
  *   2. `fandom`       — Fandom Interactive Maps (if wiki_subdomain + map page resolved)
  *   3. `strategywiki` — StrategyWiki MediaWiki API (CC-BY-SA, no pre-resolution)
@@ -44,13 +45,14 @@ export interface IngestTickResult {
  * inline using the game slug + name, so a game can succeed there even if
  * the metadata resolver couldn't find a Fandom subdomain or Wikidata Q-id.
  *
- * Tier 0 is implicit: if `geo_map` already has an active row (e.g. via
- * `manual` upload), no map-import is enqueued at all — only the Steam
- * screenshot top-up runs.
+ * The first tier to successfully insert a row becomes the default active map
+ * (so games stay playable). Subsequent tiers store their results as inactive
+ * candidates — visible in the admin Maps tab side panel where an operator
+ * can swap which one is active for the game.
  *
  * Each tier is gated by its own tombstone, so a permanently-failing tier
  * doesn't block the next one. Idempotency is preserved via deterministic
- * jobIds + the importers' own `findActiveByGameId` short-circuit.
+ * jobIds + the importers' per-source `findBySourceAndGameId` short-circuit.
  */
 export async function runGeoIngestTick(
   batchSize = DEFAULT_BATCH,
@@ -105,14 +107,12 @@ export async function runGeoIngestTick(
   let steamEnqueued = 0
 
   for (const row of rows) {
-    if (!row.active_map_id) {
-      const enqueued = await enqueueFirstAvailableMapImport(row)
-      if (enqueued === 'registry') registryEnqueued++
-      else if (enqueued === 'fandom') fandomEnqueued++
-      else if (enqueued === 'strategywiki') strategyWikiEnqueued++
-      else if (enqueued === 'fextralife') fextralifeEnqueued++
-      else if (enqueued === 'wikidata') wikidataEnqueued++
-    }
+    const enqueued = await enqueueAllEligibleMapImports(row)
+    registryEnqueued += enqueued.registry
+    fandomEnqueued += enqueued.fandom
+    strategyWikiEnqueued += enqueued.strategywiki
+    fextralifeEnqueued += enqueued.fextralife
+    wikidataEnqueued += enqueued.wikidata
 
     if (
       row.active_map_id &&
@@ -164,9 +164,23 @@ export async function runGeoIngestTick(
   }
 }
 
-type MapTier = 'registry' | 'fandom' | 'strategywiki' | 'fextralife' | 'wikidata' | null
+interface TierEnqueueTally {
+  registry: number
+  fandom: number
+  strategywiki: number
+  fextralife: number
+  wikidata: number
+}
 
-async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
+async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTally> {
+  const tally: TierEnqueueTally = {
+    registry: 0,
+    fandom: 0,
+    strategywiki: 0,
+    fextralife: 0,
+    wikidata: 0,
+  }
+
   // Tier 1 — registry
   if (!(await tombstoneBlocks(row.id, 'registry'))) {
     const entry = await findRegistryEntryBySlug(row.slug)
@@ -176,7 +190,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
         { kind: 'import-registry-map', gameId: row.id, entry },
         { jobId: `auto-registry-${row.id}` },
       )
-      return 'registry'
+      tally.registry++
     }
   }
 
@@ -196,7 +210,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
       },
       { jobId: `auto-fandom-${row.id}` },
     )
-    return 'fandom'
+    tally.fandom++
   }
 
   // Tier 3 — StrategyWiki (no pre-resolution required; probes via opensearch)
@@ -211,7 +225,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
       },
       { jobId: `auto-strategywiki-${row.id}` },
     )
-    return 'strategywiki'
+    tally.strategywiki++
   }
 
   // Tier 4 — Fextralife (no pre-resolution required; probes by slug)
@@ -226,7 +240,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
       },
       { jobId: `auto-fextralife-${row.id}` },
     )
-    return 'fextralife'
+    tally.fextralife++
   }
 
   // Tier 5 — Wikidata P242 fallback
@@ -236,10 +250,10 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
       { kind: 'import-wikidata-map', gameId: row.id, wikidataQid: row.wikidata_qid },
       { jobId: `auto-wikidata-${row.id}` },
     )
-    return 'wikidata'
+    tally.wikidata++
   }
 
-  return null
+  return tally
 }
 
 async function tombstoneBlocks(

@@ -53,10 +53,12 @@ export async function importFandomMap(
   const { gameId, wikiSubdomain, pageTitle } = input
   const ua = input.userAgent ?? DEFAULT_USER_AGENT
 
-  // Skip if we already have an active map for this game — do not create dupes.
-  const existing = await geoMapRepository.findActiveByGameId(gameId)
+  // Skip if a Fandom row already exists for this game (idempotent re-runs).
+  // Other tiers may also have produced their own candidate — we don't block
+  // on them anymore so the admin can compare maps and pick the best.
+  const existing = await geoMapRepository.findBySourceAndGameId(gameId, 'fandom')
   if (existing) {
-    return { imported: false, geoMapId: existing.id, reason: 'map already exists' }
+    return { imported: false, geoMapId: existing.id, reason: 'fandom map already imported' }
   }
 
   const url =

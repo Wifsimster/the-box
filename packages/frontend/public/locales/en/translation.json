@@ -576,11 +576,16 @@
           "tombstoned_other": "Tombstoned ({{count}} attempts)",
           "eligible": "Eligible",
           "untried": "Skipped",
-          "eligibleHint": "Will run on the next ingest tick if no earlier tier wins.",
+          "active": "Active",
+          "eligibleHint": "Will run on the next ingest tick.",
           "retryAfter": "Retry after {{time}}",
           "retryNow": "Retry",
           "retryNowTooltip": "Clear this source's tombstone and re-run the pipeline for this game.",
-          "retryQueued": "Retry queued. The pipeline will pick it up shortly."
+          "retryQueued": "Retry queued. The pipeline will pick it up shortly.",
+          "useThisMap": "Use",
+          "useThisMapTooltip": "Set this map as the active one for the game.",
+          "candidatePreviewAria": "Candidate map preview (click to open full size)",
+          "activated": "Active map updated."
         },
         "viewSource": "View source",
         "actions": {

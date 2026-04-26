@@ -89,9 +89,13 @@ export async function importStrategyWikiMap(
   const { gameId, gameName, slug } = input
   const ua = input.userAgent ?? DEFAULT_USER_AGENT
 
-  const existing = await geoMapRepository.findActiveByGameId(gameId)
+  const existing = await geoMapRepository.findBySourceAndGameId(gameId, 'strategywiki')
   if (existing) {
-    return { imported: false, geoMapId: existing.id, reason: 'map already exists' }
+    return {
+      imported: false,
+      geoMapId: existing.id,
+      reason: 'strategywiki map already imported',
+    }
   }
 
   log.info({ gameId, gameName }, 'looking up strategywiki page')
