@@ -127,8 +127,8 @@ export function MapCanvas({
 
     const interactive = !disabled && !!onPin
     const ariaLabel = interactive
-        ? t('geo.daily.mapAria', 'Pin location on the map. Use arrow keys to move and Enter to drop a pin.')
-        : t('geo.daily.mapAriaDisabled', 'Map')
+        ? t('geo.map.ariaPin')
+        : t('geo.map.ariaPinDisabled')
 
     return (
         <div
@@ -180,7 +180,7 @@ export function MapCanvas({
                     x={pin.x}
                     y={pin.y}
                     color="fuchsia"
-                    label={t('geo.daily.markers.you', 'Your pin')}
+                    label={t('geo.map.labelYou')}
                 />
             )}
 
@@ -190,7 +190,7 @@ export function MapCanvas({
                     x={canonical.x}
                     y={canonical.y}
                     color="emerald"
-                    label={t('geo.daily.markers.actual', 'Actual location')}
+                    label={t('geo.map.labelActual')}
                 />
             )}
         </div>

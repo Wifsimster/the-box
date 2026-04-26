@@ -186,7 +186,7 @@ export default function ProfilePage() {
                                                 <TooltipContent>
                                                     <div className="text-center">
                                                         <p className="font-semibold">{t('profile.totalScore')}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">Cumul de tous vos scores de jeu</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.totalScoreDescription')}</p>
                                                     </div>
                                                 </TooltipContent>
                                             </TooltipRoot>
@@ -211,7 +211,7 @@ export default function ProfilePage() {
                                                 <TooltipContent>
                                                     <div className="text-center">
                                                         <p className="font-semibold">{t('profile.currentStreak')}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">Jours consécutifs de jeu</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.currentStreakDescription')}</p>
                                                     </div>
                                                 </TooltipContent>
                                             </TooltipRoot>
@@ -235,8 +235,8 @@ export default function ProfilePage() {
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <div className="text-center">
-                                                        <p className="font-semibold">Succès débloqués</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">{earnedCount}/{totalCount} succès obtenus</p>
+                                                        <p className="font-semibold">{t('profile.tooltips.unlockedAchievementsTitle')}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.earnedOfTotal', { earned: earnedCount, total: totalCount })}</p>
                                                     </div>
                                                 </TooltipContent>
                                             </TooltipRoot>

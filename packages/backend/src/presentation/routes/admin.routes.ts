@@ -2241,16 +2241,19 @@ router.post('/geo/run/:gameId', async (req, res, next) => {
       return
     }
     // Stable jobIds so a double-click while one is still in flight collapses
-    // to a single run. BullMQ silently no-ops on duplicate ids.
+    // to a single run. BullMQ silently no-ops on duplicate ids. Hyphens (not
+    // colons) — BullMQ's `Job.validateOptions` throws on jobIds containing
+    // `:` unless they have exactly 3 colon-separated parts (a legacy
+    // repeatable-job carve-out).
     const resolveJob = await geoQueue.add(
       'resolve-metadata',
       { kind: 'resolve-metadata', batchSize: 1, gameId },
-      { jobId: `manual-resolve:${gameId}` },
+      { jobId: `manual-resolve-${gameId}` },
     )
     const tickJob = await geoQueue.add(
       'ingest-tick',
       { kind: 'ingest-tick', batchSize: 1, gameId },
-      { jobId: `manual-tick:${gameId}` },
+      { jobId: `manual-tick-${gameId}` },
     )
     res.json({
       success: true,

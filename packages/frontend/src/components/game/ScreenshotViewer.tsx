@@ -161,7 +161,7 @@ export function ScreenshotViewer({
             exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-neon-purple/20 to-neon-pink/20 z-20"
           >
-            <p className="text-muted-foreground">Screenshot will appear here</p>
+            <p className="text-muted-foreground">{t('game.screenshotPlaceholder')}</p>
           </motion.div>
         </AnimatePresence>
       )}
