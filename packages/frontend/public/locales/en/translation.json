@@ -713,6 +713,25 @@
           "required": "Image URL, width, height, and license are required."
         },
         "success": "Manual map saved for \"{{name}}\"."
+      },
+      "reset": {
+        "title": "Danger zone — reset scraping",
+        "subtitle": "Wipes map and screenshot ingestion progress so the pipeline starts from zero. Curation flags (curated games) and player scores are kept.",
+        "cta": "Reset everything",
+        "success": "Scraping reset: {{importStates}} import states, {{ingestFailures}} failures, {{challenges}} geo challenges, {{maps}} maps deleted.",
+        "dialog": {
+          "title": "Confirm reset",
+          "body": "This action is irreversible. The daily geo challenge will return \"no challenge\" until a new map is imported and a challenge is scheduled.",
+          "bullets": {
+            "importStates": "Tracks every import state (RAWG: games, screenshots).",
+            "ingestFailures": "Clears ingestion failure tombstones (Fandom, Wikidata, Steam, registry).",
+            "maps": "Deletes every ingested map and its candidate screenshots.",
+            "challenges": "Deletes every scheduled geo challenge.",
+            "metadata": "Resets games' geo metadata to \"pending\" so the resolver re-runs."
+          },
+          "confirmLabel": "Type {{word}} to confirm",
+          "confirm": "Reset everything"
+        }
       }
     },
     "growth": {

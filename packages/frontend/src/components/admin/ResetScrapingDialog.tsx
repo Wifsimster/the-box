@@ -1,0 +1,104 @@
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { AlertTriangle, Loader2 } from 'lucide-react'
+
+interface ResetScrapingDialogProps {
+    isOpen: boolean
+    onClose: () => void
+    onConfirm: () => Promise<void> | void
+    isLoading?: boolean
+}
+
+// Word the operator must type to enable the destructive button. Kept as a
+// constant (not translated) so it's identical regardless of UI language —
+// muscle-memory across languages, and easier to grep for in audit logs.
+const CONFIRM_WORD = 'RESET'
+
+export function ResetScrapingDialog({
+    isOpen,
+    onClose,
+    onConfirm,
+    isLoading = false,
+}: ResetScrapingDialogProps) {
+    const { t } = useTranslation()
+    const [typed, setTyped] = useState('')
+
+    const handleClose = () => {
+        if (isLoading) return
+        setTyped('')
+        onClose()
+    }
+
+    const canConfirm = typed === CONFIRM_WORD && !isLoading
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+            <DialogContent className="max-w-sm sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        {t('admin.geo.reset.dialog.title')}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t('admin.geo.reset.dialog.body')}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                    <li>{t('admin.geo.reset.dialog.bullets.importStates')}</li>
+                    <li>{t('admin.geo.reset.dialog.bullets.ingestFailures')}</li>
+                    <li>{t('admin.geo.reset.dialog.bullets.maps')}</li>
+                    <li>{t('admin.geo.reset.dialog.bullets.challenges')}</li>
+                    <li>{t('admin.geo.reset.dialog.bullets.metadata')}</li>
+                </ul>
+
+                <div className="space-y-2">
+                    <Label htmlFor="reset-confirm-input" className="text-xs">
+                        {t('admin.geo.reset.dialog.confirmLabel', { word: CONFIRM_WORD })}
+                    </Label>
+                    <Input
+                        id="reset-confirm-input"
+                        value={typed}
+                        onChange={(e) => setTyped(e.target.value)}
+                        placeholder={CONFIRM_WORD}
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        disabled={isLoading}
+                    />
+                </div>
+
+                <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleClose}
+                        disabled={isLoading}
+                        className="w-full sm:w-auto"
+                    >
+                        {t('common.cancel')}
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => void onConfirm()}
+                        disabled={!canConfirm}
+                        className="w-full sm:w-auto"
+                    >
+                        {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {t('admin.geo.reset.dialog.confirm')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
