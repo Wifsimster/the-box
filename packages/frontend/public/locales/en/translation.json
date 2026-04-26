@@ -854,6 +854,8 @@
       "syncRunning": "Syncing new games...",
       "createDailyChallenge": "Create Daily Challenge (Metascore ≥ 85)",
       "dailyChallengeRunning": "Creating daily challenge...",
+      "scheduleDailyGeoChallenge": "Schedule Daily Geo Challenge",
+      "scheduleDailyGeoChallengeRunning": "Scheduling daily geo challenge...",
       "cleanupAnonymousUsersRunning": "Cleaning up anonymous users...",
       "atMidnight": "Midnight UTC",
       "weeklySunday2am": "Sunday 2 AM UTC (weekly)",
@@ -885,6 +887,7 @@
       "running": "Running",
       "descriptions": {
         "createDailyChallenge": "Automatically creates a new daily challenge with high-quality games (Metascore ≥ 85). Users can participate in a new challenge every day.",
+        "scheduleDailyGeoChallenge": "Schedules the daily Geo challenge by picking a random promoted screenshot. Idempotent: re-running does not replace an already-scheduled challenge.",
         "syncAllGames": "Synchronizes the entire game database with the RAWG API to keep information up-to-date (ratings, screenshots, metadata).",
         "cleanupAnonymousUsers": "Removes inactive anonymous user accounts to optimize the database and free up space.",
         "clearDailyData": "Clears all game session data for the current day's daily challenge. This allows users to replay the challenge.",

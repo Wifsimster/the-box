@@ -89,7 +89,7 @@ import { createGeoRewardService } from './geo-reward.service.js'
 import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
-import { importQueue } from '../../infrastructure/queue/queues.js'
+import { importQueue, geoQueue } from '../../infrastructure/queue/queues.js'
 import {
   achievementRepository,
   challengeRepository,
@@ -120,6 +120,7 @@ export const dailyLoginService = createDailyLoginService({
 export const jobService = createJobService({
   logger: serviceLogger,
   importQueue,
+  geoQueue,
 })
 
 export const leaderboardService = createLeaderboardService({

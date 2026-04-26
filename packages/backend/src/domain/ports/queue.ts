@@ -91,3 +91,18 @@ export interface ImportQueuePort {
   getFailedCount(): Promise<number>
   getDelayedCount(): Promise<number>
 }
+
+/**
+ * Read-only slice for queues we only inspect (e.g. geoQueue's repeatable
+ * jobs surfaced in the admin job list). Avoids forcing `add()` payload
+ * compatibility across queues with different `JobData` generics.
+ */
+export interface ReadOnlyQueuePort {
+  getJobs(
+    types: BullJobState[],
+    start?: number,
+    end?: number,
+    asc?: boolean
+  ): Promise<BullJobLike[]>
+  getRepeatableJobs(start?: number, end?: number, asc?: boolean): Promise<RepeatableJobLike[]>
+}

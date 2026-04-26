@@ -94,6 +94,7 @@ interface AdminState {
   fetchStats: () => Promise<void>
   fetchRecurringJobs: () => Promise<void>
   triggerDailyChallengeJob: () => Promise<void>
+  triggerScheduleDailyGeoChallengeJob: () => Promise<void>
   triggerSyncAllJob: () => Promise<void>
   cancelActiveSyncAll: () => Promise<void>
   triggerCleanupAnonymousUsersJob: () => Promise<void>
@@ -273,6 +274,16 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger daily challenge job:', err)
+          throw err
+        }
+      },
+
+      triggerScheduleDailyGeoChallengeJob: async () => {
+        try {
+          await adminApi.triggerScheduleDailyGeoChallenge()
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger schedule-daily-geo-challenge job:', err)
           throw err
         }
       },

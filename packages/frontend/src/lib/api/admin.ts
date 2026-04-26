@@ -183,6 +183,21 @@ export const adminApi = {
   },
 
   /**
+   * Trigger the daily geo-pin challenge scheduler (manual run-now).
+   * Mirrors triggerDailyChallenge but targets the geo-jobs queue.
+   */
+  async triggerScheduleDailyGeoChallenge(): Promise<{ jobId: string }> {
+    const response = await fetch('/api/admin/geo/schedule', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return handleResponse<{ jobId: string }>(response)
+  },
+
+  /**
    * Start cleanup-anonymous-users job (manual trigger)
    */
   async triggerCleanupAnonymousUsers(): Promise<{ job: Job }> {

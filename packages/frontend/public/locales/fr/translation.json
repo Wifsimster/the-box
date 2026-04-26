@@ -854,6 +854,8 @@
       "syncRunning": "Synchronisation en cours...",
       "createDailyChallenge": "Création défi quotidien (Metascore ≥ 85)",
       "dailyChallengeRunning": "Création du défi en cours...",
+      "scheduleDailyGeoChallenge": "Planifier le défi Géo du jour",
+      "scheduleDailyGeoChallengeRunning": "Planification du défi Géo en cours...",
       "cleanupAnonymousUsersRunning": "Nettoyage des utilisateurs anonymes...",
       "atMidnight": "Minuit UTC",
       "weeklySunday2am": "Dimanche 2h UTC (hebdo)",
@@ -885,6 +887,7 @@
       "running": "En cours",
       "descriptions": {
         "createDailyChallenge": "Crée automatiquement un nouveau défi quotidien avec des jeux de haute qualité (Metascore ≥ 85). Les utilisateurs peuvent participer chaque jour à un nouveau challenge.",
+        "scheduleDailyGeoChallenge": "Planifie le défi Géo quotidien en sélectionnant une capture promue au hasard. Idempotent : ré-exécuter ne remplace pas le défi déjà programmé.",
         "syncAllGames": "Synchronise l'intégralité de la base de données de jeux avec l'API RAWG pour maintenir les informations à jour (notes, captures, métadonnées).",
         "cleanupAnonymousUsers": "Supprime les comptes utilisateurs anonymes inactifs pour optimiser la base de données et libérer de l'espace.",
         "clearDailyData": "Efface toutes les données de session de jeu pour le défi quotidien du jour. Permet aux utilisateurs de rejouer le défi.",
