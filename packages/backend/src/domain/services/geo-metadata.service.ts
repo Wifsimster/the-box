@@ -112,6 +112,40 @@ export function normalizeGameTitle(title: string): string {
     .trim()
 }
 
+const ROMAN_NUMERAL_TOKENS = new Set<string>([
+  'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
+  'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii', 'xix', 'xx',
+])
+
+/**
+ * Pull the version-like tokens from a normalized title. We treat both arabic
+ * numerals (`2`, `3`) and roman numerals (`ii`, `iii`) as version markers
+ * because Steam's storesearch returns sequels alongside the original entry —
+ * "Baldur's Gate II: Enhanced Edition" must not silently bind to a curated
+ * "Baldur's Gate" row just because it ranks first in the API response.
+ *
+ * Pure helper so the resolver stays testable without hitting Steam.
+ */
+export function extractVersionTokens(normalized: string): string[] {
+  return normalized
+    .split(/\s+/)
+    .filter((tok) => /^\d+$/.test(tok) || ROMAN_NUMERAL_TOKENS.has(tok))
+}
+
+/**
+ * True iff two version-token lists describe the same installment. The order
+ * doesn't matter ("part 2" vs "2 part") but the multiset must match — so
+ * "baldur s gate" (no tokens) only matches candidates that also have no
+ * version tokens, and "baldur s gate 3" only matches candidates whose
+ * tokens are exactly `["3"]`.
+ */
+export function versionTokensMatch(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false
+  const sortedA = [...a].sort()
+  const sortedB = [...b].sort()
+  return sortedA.every((tok, i) => tok === sortedB[i])
+}
+
 /**
  * Compute the next retry-after timestamp for a tombstoned (game, source)
  * pair using exponential backoff capped at 30 days. Attempt 1 = 1 day,

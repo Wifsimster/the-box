@@ -54,6 +54,39 @@ interface CandidateDetail {
 type StatusFilter = 'collecting' | 'pending' | 'promoted' | 'all'
 const STATUS_FILTERS: StatusFilter[] = ['collecting', 'pending', 'promoted', 'all']
 
+interface CandidateGroup {
+    gameId: number
+    gameName: string | null
+    candidates: GeoScreenshotCandidate[]
+}
+
+// Bucket candidates by their owning game so the Pins list renders one
+// section per game instead of a flat #id list. The repository already
+// orders candidates by pin_count desc; we keep that ordering inside each
+// group, then sort groups by size (most candidates first) so the
+// busiest games stay at the top of the panel.
+function groupCandidatesByGame(
+    candidates: GeoScreenshotCandidate[],
+): CandidateGroup[] {
+    const groups = new Map<number, CandidateGroup>()
+    for (const c of candidates) {
+        const existing = groups.get(c.gameId)
+        if (existing) {
+            existing.candidates.push(c)
+        } else {
+            groups.set(c.gameId, {
+                gameId: c.gameId,
+                gameName: c.gameName ?? null,
+                candidates: [c],
+            })
+        }
+    }
+    return [...groups.values()].sort(
+        (a, b) =>
+            b.candidates.length - a.candidates.length || a.gameId - b.gameId,
+    )
+}
+
 async function fetchCandidates(args: {
     status?: string
     gameId?: number
@@ -385,29 +418,54 @@ export function GeoReviewPanel() {
                                 {t('admin.geo.candidates')} ({candidates.length})
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 max-h-[300px] sm:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
-                            {candidates.map((c) => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => openDetail(c.id)}
-                                    className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 ${
-                                        detail?.candidate.id === c.id ? 'border-neon-pink' : ''
-                                    }`}
-                                >
-                                    <div className="flex justify-between items-center gap-2">
-                                        <span className="truncate font-medium">
-                                            {c.gameName ?? `#${c.id}`}
+                        <CardContent className="space-y-4 max-h-[300px] sm:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
+                            {groupCandidatesByGame(candidates).map((group) => (
+                                <section key={group.gameId} className="space-y-2">
+                                    <header className="flex items-baseline justify-between gap-2 border-b border-border/40 pb-1">
+                                        <h3 className="truncate text-xs font-semibold text-foreground">
+                                            {group.gameName ??
+                                                t('admin.geo.groupHeader.unknownGame', {
+                                                    id: group.gameId,
+                                                })}
+                                        </h3>
+                                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                            {t('admin.geo.groupHeader.captureCount', {
+                                                count: group.candidates.length,
+                                            })}
                                         </span>
-                                        <Badge variant="outline">{statusLabel(c.status)}</Badge>
+                                    </header>
+                                    <div className="space-y-2">
+                                        {group.candidates.map((c) => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => openDetail(c.id)}
+                                                className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 ${
+                                                    detail?.candidate.id === c.id
+                                                        ? 'border-neon-pink'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-center gap-2">
+                                                    <span className="truncate font-mono font-medium">
+                                                        #{c.id}
+                                                    </span>
+                                                    <Badge variant="outline">
+                                                        {statusLabel(c.status)}
+                                                    </Badge>
+                                                </div>
+                                                <div className="mt-1 text-muted-foreground">
+                                                    {t('admin.geo.candidateRow.pinCount', {
+                                                        count: c.pinCount,
+                                                    })}
+                                                    {' · '}
+                                                    {t('admin.geo.candidateRow.source', {
+                                                        source: c.source,
+                                                    })}
+                                                </div>
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div className="mt-1 text-muted-foreground">
-                                        <span className="font-mono">#{c.id}</span>
-                                        {' · '}
-                                        {t('admin.geo.candidateRow.pinCount', { count: c.pinCount })}
-                                        {' · '}
-                                        {t('admin.geo.candidateRow.source', { source: c.source })}
-                                    </div>
-                                </button>
+                                </section>
                             ))}
                             {candidates.length === 0 && (
                                 <p className="text-xs text-muted-foreground">
