@@ -536,12 +536,12 @@ export default function GamePage() {
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 px-2">
                       <Menu className="h-4 w-4" />
-                      <span className="sr-only">Toggle menu</span>
+                      <span className="sr-only">{t('common.toggleMenu')}</span>
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-70 sm:w-80">
                     <SheetHeader>
-                      <SheetTitle className="text-left">Menu</SheetTitle>
+                      <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
                     </SheetHeader>
                     <div className="flex flex-col gap-2 mt-6">
                       <Button variant="ghost" size="sm" asChild className="w-full justify-start">

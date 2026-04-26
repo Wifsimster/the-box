@@ -120,14 +120,14 @@ export function Header() {
         <div className="flex md:hidden">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" aria-label="Toggle menu">
+              <Button variant="ghost" size="sm" aria-label={t('common.toggleMenu')}>
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">{t('common.toggleMenu')}</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[280px] sm:w-[320px]">
               <SheetHeader>
-                <SheetTitle className="text-left">Menu</SheetTitle>
+                <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
                 <NavigationLinks isMobile={true} t={t} localizedPath={localizedPath} onMobileClick={() => setMobileMenuOpen(false)} />

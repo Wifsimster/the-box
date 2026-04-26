@@ -104,7 +104,7 @@ export function MapCanvas({
                 className,
             )}
             role={disabled ? 'img' : 'button'}
-            aria-label="Pin location on the map"
+            aria-label={t('geo.map.ariaPin')}
         >
             {/* Hidden probe so we can detect a 404 on the background image,
                 which CSS background-image cannot signal. */}
@@ -127,11 +127,11 @@ export function MapCanvas({
             )}
 
             {/* User pin */}
-            {pin && <Marker x={pin.x} y={pin.y} color="fuchsia" label="You" />}
+            {pin && <Marker x={pin.x} y={pin.y} color="fuchsia" label={t('geo.map.labelYou')} />}
 
             {/* Canonical (revealed) */}
             {canonical && (
-                <Marker x={canonical.x} y={canonical.y} color="emerald" label="Actual" />
+                <Marker x={canonical.x} y={canonical.y} color="emerald" label={t('geo.map.labelActual')} />
             )}
         </div>
     )
