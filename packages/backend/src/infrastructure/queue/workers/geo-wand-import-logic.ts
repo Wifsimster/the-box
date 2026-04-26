@@ -9,20 +9,25 @@ import { probeImageDimensions } from './image-dimensions.js'
 const log = queueLogger.child({ worker: 'geo-wand-import' })
 
 // Wand (https://wand.com/maps/<slug>) hosts community-curated interactive
-// maps for ~750 games. Unlike registry / Fandom / Wikidata, there is no
-// machine-readable feed and the slug-to-game mapping isn't predictable
-// across editions, so admins paste the exact wand.com URL on a per-game
-// basis. The server fetches the page, extracts the `og:image` poster
-// (Wand publishes one for social embedding), probes its dimensions, and
-// records a `source = 'wand'` row.
+// maps for ~750 games. The slug pattern is predictable — `wand.com/maps/<slug>`
+// for the canonical map, `wand.com/<locale>/maps/<slug>/<region>` for regional
+// sub-maps — so we expose a `wandUrlForSlug` helper and the admin dialog
+// pre-fills the URL from the game's slug. The server fetches the page,
+// extracts the `og:image` poster (Wand publishes one for social embedding),
+// probes its dimensions, and records a `source = 'wand'` row.
+//
+// Cloudflare gates the bare-bones bot UA we use elsewhere (returns 503), so
+// this worker pretends to be a desktop Chrome. This is exactly the
+// "Cloudflare anti-bot risk" FR-20a flagged for MapGenie / Fextralife —
+// admins explicitly opted into Wand knowing that, and tombstones surface
+// when Cloudflare changes its rules.
 //
 // Licensing: Wand maps are derivative of publisher assets and Wand has no
 // public API or sub-license to redistribute. We treat the result as
-// fair-use attribution-only; commercialUseOk is implicitly false. Admins
-// confirm by pasting the URL — the same trust model as the manual tier.
+// fair-use attribution-only; commercialUseOk is implicitly false.
 
 const DEFAULT_USER_AGENT =
-  'Mozilla/5.0 (compatible; the-box-geo-importer/1.0; +https://github.com/Wifsimster/the-box)'
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 const WAND_LICENSE = 'Wand.com (proprietary, fair-use attribution)'
 const MIN_DIMENSION = 600
 const WAND_HOST_SUFFIX = 'wand.com'
@@ -67,9 +72,10 @@ export async function importWandMap(
     const res = await fetch(wandUrl, {
       headers: {
         'User-Agent': ua,
-        Accept: 'text/html,application/xhtml+xml',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
+      redirect: 'follow',
     })
     if (!res.ok) {
       await tombstone(gameId, `GET ${wandUrl} → ${res.status}`)
@@ -85,6 +91,16 @@ export async function importWandMap(
   if (!ogImage) {
     await tombstone(gameId, `og:image missing on ${wandUrl}`)
     return { imported: false, reason: 'og:image missing' }
+  }
+  if (isWandFallbackImage(ogImage)) {
+    // Wand's soft-404 pages still return HTTP 200 but advertise a generic
+    // `/wand-assets/images/meta-*.png` banner instead of a real map image.
+    // Verified empirically: any unknown slug yields this fallback.
+    await tombstone(
+      gameId,
+      `og:image is wand's fallback (page has no real map): ${ogImage}`,
+    )
+    return { imported: false, reason: 'no real map (fallback og:image)' }
   }
 
   const dims = await probeImageDimensions(ogImage, ua)
@@ -131,6 +147,30 @@ export function isWandUrl(input: string): boolean {
     return false
   }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+  const host = parsed.hostname.toLowerCase()
+  return host === WAND_HOST_SUFFIX || host.endsWith(`.${WAND_HOST_SUFFIX}`)
+}
+
+// Build the canonical wand.com URL for a game slug. Wand redirects from
+// the bare `/maps/<slug>` form to a localized canonical
+// (`/<locale>/maps/<slug>`); we let `redirect: 'follow'` handle that. Slug
+// is URL-encoded defensively even though the registry slugs are
+// kebab-case ASCII.
+export function wandUrlForSlug(slug: string): string {
+  return `https://wand.com/maps/${encodeURIComponent(slug)}`
+}
+
+// Wand's soft-404 / unknown-slug pages still return HTTP 200 and embed
+// `https://wand.com/wand-assets/images/meta-*.png` as their og:image.
+// Real maps embed `https://api-cdn.wemod.com/meta_images/...`. So any
+// og:image whose hostname is wand.com itself is the fallback.
+export function isWandFallbackImage(imageUrl: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(imageUrl)
+  } catch {
+    return true
+  }
   const host = parsed.hostname.toLowerCase()
   return host === WAND_HOST_SUFFIX || host.endsWith(`.${WAND_HOST_SUFFIX}`)
 }

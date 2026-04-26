@@ -21,7 +21,7 @@ import { Loader2 } from 'lucide-react'
 interface GeoWandMapDialogProps {
   isOpen: boolean
   onClose: () => void
-  game: { id: number; name: string; hasMap: boolean } | null
+  game: { id: number; name: string; slug: string; hasMap: boolean } | null
   onSuccess: () => void
 }
 
@@ -30,9 +30,11 @@ interface FormState {
   region: string
 }
 
-const EMPTY: FormState = {
-  wandUrl: '',
-  region: '',
+function defaultFormFor(slug: string | undefined): FormState {
+  return {
+    wandUrl: slug ? `https://wand.com/maps/${encodeURIComponent(slug)}` : '',
+    region: '',
+  }
 }
 
 export function GeoWandMapDialog({
@@ -42,16 +44,16 @@ export function GeoWandMapDialog({
   onSuccess,
 }: GeoWandMapDialogProps) {
   const { t } = useTranslation()
-  const [form, setForm] = useState<FormState>(EMPTY)
+  const [form, setForm] = useState<FormState>(defaultFormFor(game?.slug))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
-      setForm(EMPTY)
+      setForm(defaultFormFor(game?.slug))
       setError(null)
     }
-  }, [isOpen, game?.id])
+  }, [isOpen, game?.id, game?.slug])
 
   if (!game) return null
 

@@ -727,6 +727,7 @@ export function GeoMapsTab({
                     wandImportFor && {
                         id: wandImportFor.id,
                         name: wandImportFor.name,
+                        slug: wandImportFor.slug,
                         hasMap: wandImportFor.hasMap,
                     }
                 }
