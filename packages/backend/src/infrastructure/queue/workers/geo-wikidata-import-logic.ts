@@ -196,7 +196,10 @@ async function fetchCommonsImageInfo(fileName: string): Promise<{
   // formatversion=2 returns an array under pages; older shapes are objects —
   // normalize defensively.
   const rawPages = body.query?.pages
-  const pageList = Array.isArray(rawPages) ? rawPages : Object.values(rawPages ?? {})
+  type PageEntry = NonNullable<NonNullable<ImageInfoResponse['query']>['pages']>[string]
+  const pageList: PageEntry[] = Array.isArray(rawPages)
+    ? (rawPages as PageEntry[])
+    : Object.values<PageEntry>(rawPages ?? {})
   const page = pageList[0]
   const info = page?.imageinfo?.[0]
   if (!info?.url || !info.width || !info.height) {
