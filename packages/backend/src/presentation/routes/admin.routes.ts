@@ -47,7 +47,7 @@ import {
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
 import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service.js'
-import { geoQueue } from '../../infrastructure/queue/queues.js'
+import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
 
 // Cap even admin-triggered sends so a mistake or compromised admin
@@ -2142,6 +2142,139 @@ router.post('/geo/reimport', async (req, res, next) => {
       batchSize: 1,
     })
     res.json({ success: true, data: { jobId: job.id } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Manual run-now triggers for the whole geo ingestion pipeline. The recurring
+// resolver + tick workers already run on a schedule; these endpoints just
+// short-circuit the wait so an operator can kick off a fresh pass immediately
+// after curating games or after a reset. Both jobs are idempotent — clicking
+// twice is harmless because the per-tier importers short-circuit on existing
+// rows.
+router.post('/geo/run', async (_req, res, next) => {
+  try {
+    // Large batch sizes so a single click sweeps the whole curated set.
+    const resolveJob = await geoQueue.add('resolve-metadata', {
+      kind: 'resolve-metadata',
+      batchSize: 500,
+    })
+    const tickJob = await geoQueue.add('ingest-tick', {
+      kind: 'ingest-tick',
+      batchSize: 500,
+    })
+    res.json({
+      success: true,
+      data: { resolveJobId: resolveJob.id, tickJobId: tickJob.id },
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/geo/run/:gameId', async (req, res, next) => {
+  try {
+    const gameId = Number(req.params.gameId)
+    if (!Number.isFinite(gameId) || gameId <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    // Stable jobIds so a double-click while one is still in flight collapses
+    // to a single run. BullMQ silently no-ops on duplicate ids.
+    const resolveJob = await geoQueue.add(
+      'resolve-metadata',
+      { kind: 'resolve-metadata', batchSize: 1, gameId },
+      { jobId: `manual-resolve:${gameId}` },
+    )
+    const tickJob = await geoQueue.add(
+      'ingest-tick',
+      { kind: 'ingest-tick', batchSize: 1, gameId },
+      { jobId: `manual-tick:${gameId}` },
+    )
+    res.json({
+      success: true,
+      data: { gameId, resolveJobId: resolveJob.id, tickJobId: tickJob.id },
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Live-progress feed for the manual run UI. Returns active/waiting/delayed
+// geo jobs grouped by gameId so the maps tab can highlight which rows are
+// in flight at which tier. Polled at ~2s while a run is active.
+router.get('/geo/run/state', async (_req, res, next) => {
+  try {
+    const [active, waiting, delayed, counts] = await Promise.all([
+      geoQueue.getActive(0, 200),
+      geoQueue.getWaiting(0, 200),
+      geoQueue.getDelayed(0, 200),
+      geoQueue.getJobCounts(
+        'active',
+        'waiting',
+        'delayed',
+        'failed',
+        'completed',
+      ),
+    ])
+
+    const byGame: Record<
+      number,
+      Array<{ kind: GeoJobData['kind']; state: 'active' | 'waiting' | 'delayed' }>
+    > = {}
+    // Global (no-gameId) jobs surfaced separately so the UI can show "batch
+    // resolver running" alongside per-game progress.
+    const globals: Array<{
+      kind: GeoJobData['kind']
+      state: 'active' | 'waiting' | 'delayed'
+    }> = []
+
+    const sweep = (
+      jobs: typeof active,
+      state: 'active' | 'waiting' | 'delayed',
+    ) => {
+      for (const job of jobs) {
+        const data = job.data as GeoJobData
+        // Skip noise jobs unrelated to the ingest pipeline.
+        if (
+          data.kind === 'evaluate-consensus' ||
+          data.kind === 'promote-contributor-tier'
+        ) {
+          continue
+        }
+        const gameId =
+          'gameId' in data && typeof data.gameId === 'number' ? data.gameId : null
+        if (gameId === null) {
+          globals.push({ kind: data.kind, state })
+          continue
+        }
+        ;(byGame[gameId] ??= []).push({ kind: data.kind, state })
+      }
+    }
+    sweep(active, 'active')
+    sweep(waiting, 'waiting')
+    sweep(delayed, 'delayed')
+
+    // BullMQ types each `JobCountsKeyType` as optional even though
+    // `getJobCounts` always returns the keys you asked for.
+    const safeCounts = {
+      active: counts.active ?? 0,
+      waiting: counts.waiting ?? 0,
+      delayed: counts.delayed ?? 0,
+      failed: counts.failed ?? 0,
+      completed: counts.completed ?? 0,
+    }
+    const inflight = safeCounts.active + safeCounts.waiting + safeCounts.delayed
+    res.json({
+      success: true,
+      data: {
+        isActive: inflight > 0,
+        counts: safeCounts,
+        byGame,
+        globals,
+      },
+    })
   } catch (err) {
     next(err)
   }

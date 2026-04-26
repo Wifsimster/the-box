@@ -75,11 +75,11 @@ export const geoWorker = new Worker<GeoJobData>(
     }
 
     if (data.kind === 'resolve-metadata') {
-      return await resolveGeoMetadataBatch(data.batchSize)
+      return await resolveGeoMetadataBatch(data.batchSize, data.gameId)
     }
 
     if (data.kind === 'ingest-tick') {
-      return await runGeoIngestTick(data.batchSize)
+      return await runGeoIngestTick(data.batchSize, data.gameId)
     }
 
     throw new Error(`unknown geo job kind: ${JSON.stringify(data)}`)

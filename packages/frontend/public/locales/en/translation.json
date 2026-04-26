@@ -714,6 +714,26 @@
         },
         "success": "Manual map saved for \"{{name}}\"."
       },
+      "run": {
+        "allCta": "Run all",
+        "allTooltip": "Runs metadata resolution and ingestion for every curated game.",
+        "running": "Running…",
+        "allQueued": "Pipeline started for every curated game.",
+        "gameQueued": "Pipeline started for \"{{name}}\".",
+        "gameTooltip": "Run for this game",
+        "gameAria": "Run pipeline for {{name}}",
+        "inFlight": "Running",
+        "tierRunning": "Running",
+        "tierRunningHint": "Job queued or in flight — the live status will refresh in a few seconds.",
+        "banner": {
+          "active_one": "{{count}} job active",
+          "active_other": "{{count}} jobs active",
+          "waiting_one": "{{count}} waiting",
+          "waiting_other": "{{count}} waiting",
+          "failed_one": "{{count}} failed",
+          "failed_other": "{{count}} failed"
+        }
+      },
       "reset": {
         "title": "Danger zone — reset scraping",
         "subtitle": "Wipes map and screenshot ingestion progress so the pipeline starts from zero. Curation flags (curated games) and player scores are kept.",

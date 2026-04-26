@@ -57,22 +57,29 @@ export interface ResolveMetadataResult {
  */
 export async function resolveGeoMetadataBatch(
   batchSize = 25,
+  gameId?: number,
 ): Promise<ResolveMetadataResult> {
-  const rows = await db<CuratedGameRow>('games')
-    .where('geo_curated', true)
-    .where('geo_metadata_status', 'pending')
-    .orderBy('id')
-    .limit(batchSize)
-    .select<CuratedGameRow[]>(
-      'id',
-      'name',
-      'slug',
-      'genres',
-      'steam_app_id',
-      'wiki_subdomain',
-      'wiki_page_title',
-      'wikidata_qid',
-    )
+  // When `gameId` is set we run the resolver for that single game regardless
+  // of its current `geo_metadata_status` — manual admin runs need to re-resolve
+  // a 'resolved' or 'unresolved' game without an extra round-trip to flip the
+  // column first. Batch (recurring) runs keep the 'pending' filter so already
+  // resolved games aren't re-resolved every tick.
+  const query = db<CuratedGameRow>('games').where('geo_curated', true)
+  if (gameId === undefined) {
+    query.where('geo_metadata_status', 'pending').orderBy('id').limit(batchSize)
+  } else {
+    query.where('id', gameId)
+  }
+  const rows = await query.select<CuratedGameRow[]>(
+    'id',
+    'name',
+    'slug',
+    'genres',
+    'steam_app_id',
+    'wiki_subdomain',
+    'wiki_page_title',
+    'wikidata_qid',
+  )
 
   let resolved = 0
   let unresolved = 0

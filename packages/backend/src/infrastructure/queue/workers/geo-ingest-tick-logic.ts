@@ -45,7 +45,13 @@ export interface IngestTickResult {
  */
 export async function runGeoIngestTick(
   batchSize = DEFAULT_BATCH,
+  gameId?: number,
 ): Promise<IngestTickResult> {
+  // When `gameId` is set the tick runs only for that single game (and ignores
+  // the LIMIT). Used by the admin "Run for this game" button so an operator
+  // can replay the cascade for a specific row without scanning the catalog.
+  const params: Array<number | null> =
+    gameId === undefined ? [null, batchSize] : [gameId, null]
   const rows = await db
     .raw<{ rows: TickRow[] }>(
       `
@@ -73,10 +79,11 @@ export async function runGeoIngestTick(
       ) c ON c.game_id = g.id
       WHERE g.geo_curated = true
         AND g.geo_metadata_status = 'resolved'
+        AND (?::int IS NULL OR g.id = ?::int)
       ORDER BY g.id
-      LIMIT ?
+      LIMIT COALESCE(?::int, 2147483647)
       `,
-      [batchSize],
+      [params[0], params[0], params[1]],
     )
     .then((res) => (res as unknown as { rows: TickRow[] }).rows)
 

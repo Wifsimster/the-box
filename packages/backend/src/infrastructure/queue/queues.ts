@@ -50,8 +50,8 @@ export type GeoJobData =
       maxItems?: number
     }
   | { kind: 'schedule-daily-challenge'; date?: string }
-  | { kind: 'resolve-metadata'; batchSize?: number }
-  | { kind: 'ingest-tick'; batchSize?: number }
+  | { kind: 'resolve-metadata'; batchSize?: number; gameId?: number }
+  | { kind: 'ingest-tick'; batchSize?: number; gameId?: number }
 
 export const geoQueue = new Queue<GeoJobData>('geo-jobs', {
   connection: redisConnectionOptions,
