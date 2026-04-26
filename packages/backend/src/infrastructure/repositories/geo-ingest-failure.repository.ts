@@ -8,6 +8,8 @@ export type GeoIngestSource =
   | 'steam'
   | 'metadata'
   | 'registry'
+  | 'strategywiki'
+  | 'fextralife'
   | 'wikidata'
 
 export interface GeoIngestFailureRow {

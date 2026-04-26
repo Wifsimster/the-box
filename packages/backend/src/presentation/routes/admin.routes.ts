@@ -1866,7 +1866,13 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     const now = Date.now()
 
     const tier = (
-      key: 'registry' | 'fandom' | 'wikidata' | 'manual',
+      key:
+        | 'registry'
+        | 'fandom'
+        | 'strategywiki'
+        | 'fextralife'
+        | 'wikidata'
+        | 'manual',
       state:
         | { status: 'matched'; via: string; license?: string; sourceUrl?: string }
         | { status: 'tombstoned'; reason: string; attempts: number; retryAfter: Date }
@@ -1936,7 +1942,59 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       )
     }
 
-    // Tier 3 — Wikidata
+    // Tier 3 — StrategyWiki (probes inline, always eligible until tombstoned)
+    if (activeMap?.source === 'strategywiki') {
+      sources.push(
+        tier('strategywiki', {
+          status: 'matched',
+          via: 'strategywiki.org',
+          license: activeMap.license,
+          sourceUrl: activeMap.sourceUrl,
+        }),
+      )
+    } else {
+      const tomb = failureBySource.get('strategywiki')
+      if (tomb && tomb.retry_after.getTime() > now) {
+        sources.push(
+          tier('strategywiki', {
+            status: 'tombstoned',
+            reason: tomb.reason,
+            attempts: tomb.attempt_count,
+            retryAfter: tomb.retry_after,
+          }),
+        )
+      } else {
+        sources.push(tier('strategywiki', { status: 'eligible' }))
+      }
+    }
+
+    // Tier 4 — Fextralife (probes inline, always eligible until tombstoned)
+    if (activeMap?.source === 'fextralife') {
+      sources.push(
+        tier('fextralife', {
+          status: 'matched',
+          via: 'wiki.fextralife.com',
+          license: activeMap.license,
+          sourceUrl: activeMap.sourceUrl,
+        }),
+      )
+    } else {
+      const tomb = failureBySource.get('fextralife')
+      if (tomb && tomb.retry_after.getTime() > now) {
+        sources.push(
+          tier('fextralife', {
+            status: 'tombstoned',
+            reason: tomb.reason,
+            attempts: tomb.attempt_count,
+            retryAfter: tomb.retry_after,
+          }),
+        )
+      } else {
+        sources.push(tier('fextralife', { status: 'eligible' }))
+      }
+    }
+
+    // Tier 5 — Wikidata
     if (activeMap?.source === 'wikidata') {
       sources.push(
         tier('wikidata', {
@@ -2125,6 +2183,8 @@ router.post('/geo/reimport', async (req, res, next) => {
     await Promise.all([
       geoIngestFailureRepository.clear(gameId, 'registry'),
       geoIngestFailureRepository.clear(gameId, 'fandom'),
+      geoIngestFailureRepository.clear(gameId, 'strategywiki'),
+      geoIngestFailureRepository.clear(gameId, 'fextralife'),
       geoIngestFailureRepository.clear(gameId, 'wikidata'),
       geoIngestFailureRepository.clear(gameId, 'steam'),
       geoIngestFailureRepository.clear(gameId, 'metadata'),
@@ -2476,6 +2536,8 @@ router.post('/geo/maps/manual', async (req, res, next) => {
     await Promise.all([
       geoIngestFailureRepository.clear(data.gameId, 'registry'),
       geoIngestFailureRepository.clear(data.gameId, 'fandom'),
+      geoIngestFailureRepository.clear(data.gameId, 'strategywiki'),
+      geoIngestFailureRepository.clear(data.gameId, 'fextralife'),
       geoIngestFailureRepository.clear(data.gameId, 'wikidata'),
     ])
 

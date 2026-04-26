@@ -9,6 +9,8 @@ const GeoRunJobKindSchema = z.enum([
     'ingest-tick',
     'import-registry-map',
     'import-fandom-map',
+    'import-strategywiki-map',
+    'import-fextralife-map',
     'import-wikidata-map',
     'import-steam-screenshots',
     'schedule-daily-challenge',
@@ -133,18 +135,28 @@ export function useGeoRunPolling(intervalMs = DEFAULT_INTERVAL_MS): UseGeoRunPol
 
 // Helper: which tiers are currently in flight for a given game. Maps the
 // per-source job kinds to the tier labels the maps tab already uses.
+export type InFlightTier =
+    | 'registry'
+    | 'fandom'
+    | 'strategywiki'
+    | 'fextralife'
+    | 'wikidata'
+    | 'steam'
+    | 'metadata'
+    | 'tick'
+
 export function tiersInFlightForGame(
     state: GeoRunStatePayload | null,
     gameId: number,
-): Set<'registry' | 'fandom' | 'wikidata' | 'steam' | 'metadata' | 'tick'> {
-    const out = new Set<
-        'registry' | 'fandom' | 'wikidata' | 'steam' | 'metadata' | 'tick'
-    >()
+): Set<InFlightTier> {
+    const out = new Set<InFlightTier>()
     const jobs = state?.byGame[gameId]
     if (!jobs) return out
     for (const job of jobs) {
         if (job.kind === 'import-registry-map') out.add('registry')
         else if (job.kind === 'import-fandom-map') out.add('fandom')
+        else if (job.kind === 'import-strategywiki-map') out.add('strategywiki')
+        else if (job.kind === 'import-fextralife-map') out.add('fextralife')
         else if (job.kind === 'import-wikidata-map') out.add('wikidata')
         else if (job.kind === 'import-steam-screenshots') out.add('steam')
         else if (job.kind === 'resolve-metadata') out.add('metadata')
