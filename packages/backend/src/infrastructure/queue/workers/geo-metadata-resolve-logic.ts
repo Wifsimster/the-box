@@ -3,9 +3,11 @@ import { queueLogger } from '../../logger/logger.js'
 import { geoIngestFailureRepository } from '../../repositories/index.js'
 import {
   FANDOM_MAP_NAMESPACE,
+  extractVersionTokens,
   isMapEligibleByGenre,
   normalizeGameTitle,
   scoreMapTitle,
+  versionTokensMatch,
   wikiSubdomainCandidates,
 } from '../../../domain/services/geo-metadata.service.js'
 import { resolveWikidataQid } from './geo-wikidata-import-logic.js'
@@ -144,9 +146,31 @@ async function resolveSteamAppId(name: string): Promise<number | null> {
     const body = (await res.json()) as { items?: Array<{ id: number; name: string }> }
     if (!body.items?.length) return null
     const target = normalizeGameTitle(name)
-    const hit =
-      body.items.find((it) => normalizeGameTitle(it.name) === target) ?? body.items[0]
-    return hit?.id ?? null
+    // Exact normalized match always wins (handles "Game™" → "Game" trims).
+    const exact = body.items.find((it) => normalizeGameTitle(it.name) === target)
+    if (exact) return exact.id
+    // Steam's storesearch happily returns sequels alongside the original
+    // entry — searching "Baldur's Gate" returns "Baldur's Gate II: Enhanced
+    // Edition" first. Falling back to `items[0]` would silently bind the
+    // curated row to the wrong appid and pollute the candidates list with
+    // sequel screenshots. Filter to items whose version tokens match the
+    // target (no extra "ii" / "2" / "3" introduced).
+    const targetTokens = extractVersionTokens(target)
+    const compatible = body.items.find((it) =>
+      versionTokensMatch(targetTokens, extractVersionTokens(normalizeGameTitle(it.name))),
+    )
+    if (compatible) {
+      log.info(
+        { name, picked: compatible.name, appId: compatible.id },
+        'steam storesearch picked first version-compatible hit',
+      )
+      return compatible.id
+    }
+    log.warn(
+      { name, top: body.items[0]?.name },
+      'steam storesearch had no version-compatible hit',
+    )
+    return null
   } catch (err) {
     log.warn({ name, err: String(err) }, 'steam storesearch failed')
     return null
