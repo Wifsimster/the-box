@@ -36,7 +36,15 @@ import {
     tiersInFlightForGame,
     type GeoRunStatePayload,
 } from '@/hooks/useGeoRunPolling'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetDescription,
+} from '@/components/ui/sheet'
 
 // Per-game ingestion-state surface. Replaces the global metric-tile grid +
 // failures table from GeoAdminActions with a focused, drill-down table where
@@ -143,6 +151,7 @@ export function GeoMapsTab({
     onViewCaptures,
 }: GeoMapsTabProps) {
     const { t } = useTranslation()
+    const isMobile = useIsMobile()
     const [games, setGames] = useState<CuratedGame[] | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -507,206 +516,108 @@ export function GeoMapsTab({
                 </CardContent>
             </Card>
 
-            {/* Right: tier-cascade side panel */}
-            <Card className="lg:col-span-2">
+            {/* Desktop: tier-cascade side panel docked next to the list. */}
+            <Card className="hidden lg:block lg:col-span-2">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm">
                         {selectedGame
                             ? selectedGame.name
                             : t('admin.geo.maps.sidePanel.empty')}
                     </CardTitle>
-                    {selectedGame && sources?.activeMap && (
-                        <CardDescription className="text-xs">
-                            {t('admin.geo.maps.sidePanel.activeViaTier', {
-                                tier: t(`admin.geo.maps.tiers.${sources.activeMap.source}`),
-                                license: sources.activeMap.license,
-                            })}
-                            {sources.activeMap.region && (
-                                <span className="ml-1 text-muted-foreground">
-                                    {' · '}
-                                    {t('admin.geo.maps.sidePanel.region', {
-                                        region: sources.activeMap.region,
-                                    })}
-                                </span>
-                            )}
-                        </CardDescription>
-                    )}
-                    {selectedGame && sources && !sources.activeMap && (
-                        <CardDescription className="text-xs text-warning">
-                            {t('admin.geo.maps.sidePanel.noActive')}
-                        </CardDescription>
-                    )}
+                    <SidePanelDescription
+                        selected={selectedGame !== null}
+                        sources={sources}
+                        t={t}
+                    />
                 </CardHeader>
                 <CardContent className="space-y-3">
-                    {!selectedGame ? (
-                        <p className="text-xs text-muted-foreground">
-                            {t('admin.geo.maps.sidePanel.hint')}
-                        </p>
-                    ) : sourcesLoading && !sources ? (
-                        <div
-                            className="flex justify-center py-6"
-                            role="status"
-                            aria-live="polite"
-                            aria-busy="true"
-                            aria-label={t('admin.geo.maps.sidePanel.loading')}
-                        >
-                            <Loader2
-                                className="h-4 w-4 animate-spin text-muted-foreground"
-                                aria-hidden
-                            />
-                        </div>
-                    ) : sources ? (
-                        <>
-                            {sources.activeMap && (
-                                <a
-                                    href={sources.activeMap.imageUrl}
-                                    target="_blank"
-                                    rel="noreferrer noopener"
-                                    className="block overflow-hidden rounded border border-border/40 bg-muted/10"
-                                    aria-label={t('admin.geo.maps.sidePanel.previewAlt', {
-                                        name: sources.gameName,
-                                    })}
-                                >
-                                    <img
-                                        src={sources.activeMap.imageUrl}
-                                        alt={t('admin.geo.maps.sidePanel.previewAlt', {
-                                            name: sources.gameName,
-                                        })}
-                                        loading="lazy"
-                                        className="block max-h-48 w-full object-contain bg-black/40"
-                                    />
-                                    <p className="px-2 py-1 text-[10px] text-muted-foreground">
-                                        {t('admin.geo.maps.sidePanel.previewDimensions', {
-                                            width: sources.activeMap.widthPx,
-                                            height: sources.activeMap.heightPx,
-                                        })}
-                                    </p>
-                                </a>
-                            )}
-                            <ol className="space-y-2">
-                                {sources.sources.map((s) => {
-                                    const tiers = tiersInFlightForGame(
-                                        runState,
-                                        sources.gameId,
-                                    )
-                                    // 'manual' is operator-uploaded, never a
-                                    // background job — never flag it running.
-                                    const running =
-                                        s.tier !== 'manual' &&
-                                        tiers.has(
-                                            s.tier as
-                                                | 'registry'
-                                                | 'fandom'
-                                                | 'strategywiki'
-                                                | 'fextralife'
-                                                | 'wikidata',
-                                        )
-                                    return (
-                                        <TierRow
-                                            key={s.tier}
-                                            state={s}
-                                            t={t}
-                                            running={running}
-                                            onRetry={
-                                                s.tier !== 'manual'
-                                                    ? () =>
-                                                          void handleRetryTier(
-                                                              sources.gameId,
-                                                              s.tier,
-                                                          )
-                                                    : undefined
-                                            }
-                                            retrying={retryingTier === s.tier}
-                                            onRunNow={
-                                                s.tier !== 'manual'
-                                                    ? () =>
-                                                          void handleRunTierNow(
-                                                              sources.gameId,
-                                                              s.tier,
-                                                          )
-                                                    : undefined
-                                            }
-                                            runningNow={runningTier === s.tier}
-                                            onActivate={(mapId) =>
-                                                void handleActivateMap(
-                                                    sources.gameId,
-                                                    mapId,
-                                                )
-                                            }
-                                            activatingMapId={activatingMapId}
-                                        />
-                                    )
-                                })}
-                            </ol>
-                            <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1 border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
-                                    disabled={busyAction !== null}
-                                    onClick={() => void reimport(selectedGame)}
-                                    title={t('admin.geo.maps.actions.rerunTooltip')}
-                                >
-                                    {busyAction === 'reimport' ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                                    ) : (
-                                        <RotateCw className="h-3.5 w-3.5 mr-1.5" />
-                                    )}
-                                    {t('admin.geo.maps.actions.rerun')}
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() => setResearchFor(selectedGame)}
-                                    title={t('admin.geo.maps.actions.researchTooltip')}
-                                >
-                                    <Search className="h-3.5 w-3.5 mr-1.5" />
-                                    {t('admin.geo.maps.actions.research')}
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() => setWandImportFor(selectedGame)}
-                                    title={t('admin.geo.maps.actions.importWandTooltip')}
-                                >
-                                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                                    {t('admin.geo.maps.actions.importWand')}
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() => setManualUploadFor(selectedGame)}
-                                >
-                                    <Upload className="h-3.5 w-3.5 mr-1.5" />
-                                    {t('admin.geo.maps.actions.uploadManual')}
-                                </Button>
-                            </div>
-                            {onViewCaptures && (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="w-full justify-center text-xs text-muted-foreground hover:text-foreground"
-                                    onClick={() =>
-                                        onViewCaptures(
-                                            selectedGame.id,
-                                            selectedGame.name,
-                                        )
-                                    }
-                                    title={t('admin.geo.maps.actions.viewCapturesTooltip')}
-                                >
-                                    <ListChecks className="h-3.5 w-3.5 mr-1.5" />
-                                    {t('admin.geo.maps.actions.viewCaptures', {
-                                        count: selectedGame.candidateCount,
-                                    })}
-                                </Button>
-                            )}
-                        </>
-                    ) : null}
+                    <SidePanelBody
+                        selectedGame={selectedGame}
+                        sources={sources}
+                        sourcesLoading={sourcesLoading}
+                        runState={runState}
+                        retryingTier={retryingTier}
+                        runningTier={runningTier}
+                        activatingMapId={activatingMapId}
+                        busyAction={busyAction}
+                        onRetryTier={handleRetryTier}
+                        onRunTierNow={handleRunTierNow}
+                        onActivateMap={handleActivateMap}
+                        onReimport={reimport}
+                        onResearch={setResearchFor}
+                        onWandImport={setWandImportFor}
+                        onManualUpload={setManualUploadFor}
+                        onViewCaptures={onViewCaptures}
+                        t={t}
+                    />
                 </CardContent>
             </Card>
+
+            {/* Mobile: same panel surfaced as a bottom drawer when a row is tapped. */}
+            <Sheet
+                open={isMobile && selectedId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedId(null)
+                        setSources(null)
+                    }
+                }}
+            >
+                <SheetContent
+                    side="bottom"
+                    className="lg:hidden h-[92vh] p-0 flex flex-col gap-0 rounded-t-xl"
+                >
+                    <SheetHeader className="px-4 py-3 border-b border-border/40 text-left">
+                        <SheetTitle className="text-sm font-semibold">
+                            {selectedGame
+                                ? selectedGame.name
+                                : t('admin.geo.maps.sidePanel.empty')}
+                        </SheetTitle>
+                        {selectedGame && sources?.activeMap && (
+                            <SheetDescription className="text-xs">
+                                {t('admin.geo.maps.sidePanel.activeViaTier', {
+                                    tier: t(`admin.geo.maps.tiers.${sources.activeMap.source}`),
+                                    license: sources.activeMap.license,
+                                })}
+                                {sources.activeMap.region && (
+                                    <span className="ml-1 text-muted-foreground">
+                                        {' · '}
+                                        {t('admin.geo.maps.sidePanel.region', {
+                                            region: sources.activeMap.region,
+                                        })}
+                                    </span>
+                                )}
+                            </SheetDescription>
+                        )}
+                        {selectedGame && sources && !sources.activeMap && (
+                            <SheetDescription className="text-xs text-warning">
+                                {t('admin.geo.maps.sidePanel.noActive')}
+                            </SheetDescription>
+                        )}
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-[max(env(safe-area-inset-bottom),1rem)]">
+                        <SidePanelBody
+                            selectedGame={selectedGame}
+                            sources={sources}
+                            sourcesLoading={sourcesLoading}
+                            runState={runState}
+                            retryingTier={retryingTier}
+                            runningTier={runningTier}
+                            activatingMapId={activatingMapId}
+                            busyAction={busyAction}
+                            onRetryTier={handleRetryTier}
+                            onRunTierNow={handleRunTierNow}
+                            onActivateMap={handleActivateMap}
+                            onReimport={reimport}
+                            onResearch={setResearchFor}
+                            onWandImport={setWandImportFor}
+                            onManualUpload={setManualUploadFor}
+                            onViewCaptures={onViewCaptures}
+                            t={t}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
 
             <GeoManualMapDialog
                 isOpen={manualUploadFor !== null}
@@ -787,6 +698,247 @@ export function GeoMapsTab({
             isLoading={resetting}
         />
         </div>
+    )
+}
+
+// Renders the description line under the side panel title (active tier +
+// license, or "no active map" warning). Shared by the desktop card header
+// and the mobile sheet header so both surfaces stay in lock-step.
+function SidePanelDescription({
+    selected,
+    sources,
+    t,
+}: {
+    selected: boolean
+    sources: SourcesResponse | null
+    t: ReturnType<typeof useTranslation>['t']
+}) {
+    if (!selected) return null
+    if (sources?.activeMap) {
+        return (
+            <CardDescription className="text-xs">
+                {t('admin.geo.maps.sidePanel.activeViaTier', {
+                    tier: t(`admin.geo.maps.tiers.${sources.activeMap.source}`),
+                    license: sources.activeMap.license,
+                })}
+                {sources.activeMap.region && (
+                    <span className="ml-1 text-muted-foreground">
+                        {' · '}
+                        {t('admin.geo.maps.sidePanel.region', {
+                            region: sources.activeMap.region,
+                        })}
+                    </span>
+                )}
+            </CardDescription>
+        )
+    }
+    if (sources && !sources.activeMap) {
+        return (
+            <CardDescription className="text-xs text-warning">
+                {t('admin.geo.maps.sidePanel.noActive')}
+            </CardDescription>
+        )
+    }
+    return null
+}
+
+interface SidePanelBodyProps {
+    selectedGame: CuratedGame | null
+    sources: SourcesResponse | null
+    sourcesLoading: boolean
+    runState: GeoRunStatePayload | null
+    retryingTier: string | null
+    runningTier: string | null
+    activatingMapId: number | null
+    busyAction: 'reimport' | null
+    onRetryTier: (gameId: number, tier: string) => void | Promise<void>
+    onRunTierNow: (gameId: number, tier: string) => void | Promise<void>
+    onActivateMap: (gameId: number, mapId: number) => void | Promise<void>
+    onReimport: (game: CuratedGame) => void | Promise<void>
+    onResearch: (game: CuratedGame) => void
+    onWandImport: (game: CuratedGame) => void
+    onManualUpload: (game: CuratedGame) => void
+    onViewCaptures?: (gameId: number, gameName: string) => void
+    t: ReturnType<typeof useTranslation>['t']
+}
+
+// Inner content of the tier-cascade side panel — extracted so the desktop
+// docked card and the mobile bottom sheet render the exact same body.
+function SidePanelBody({
+    selectedGame,
+    sources,
+    sourcesLoading,
+    runState,
+    retryingTier,
+    runningTier,
+    activatingMapId,
+    busyAction,
+    onRetryTier,
+    onRunTierNow,
+    onActivateMap,
+    onReimport,
+    onResearch,
+    onWandImport,
+    onManualUpload,
+    onViewCaptures,
+    t,
+}: SidePanelBodyProps) {
+    if (!selectedGame) {
+        return (
+            <p className="text-xs text-muted-foreground">
+                {t('admin.geo.maps.sidePanel.hint')}
+            </p>
+        )
+    }
+    if (sourcesLoading && !sources) {
+        return (
+            <div
+                className="flex justify-center py-6"
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+                aria-label={t('admin.geo.maps.sidePanel.loading')}
+            >
+                <Loader2
+                    className="h-4 w-4 animate-spin text-muted-foreground"
+                    aria-hidden
+                />
+            </div>
+        )
+    }
+    if (!sources) return null
+    return (
+        <>
+            {sources.activeMap && (
+                <a
+                    href={sources.activeMap.imageUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="block overflow-hidden rounded border border-border/40 bg-muted/10"
+                    aria-label={t('admin.geo.maps.sidePanel.previewAlt', {
+                        name: sources.gameName,
+                    })}
+                >
+                    <img
+                        src={sources.activeMap.imageUrl}
+                        alt={t('admin.geo.maps.sidePanel.previewAlt', {
+                            name: sources.gameName,
+                        })}
+                        loading="lazy"
+                        className="block max-h-48 w-full object-contain bg-black/40"
+                    />
+                    <p className="px-2 py-1 text-[10px] text-muted-foreground">
+                        {t('admin.geo.maps.sidePanel.previewDimensions', {
+                            width: sources.activeMap.widthPx,
+                            height: sources.activeMap.heightPx,
+                        })}
+                    </p>
+                </a>
+            )}
+            <ol className="space-y-2">
+                {sources.sources.map((s) => {
+                    const tiers = tiersInFlightForGame(runState, sources.gameId)
+                    // 'manual' is operator-uploaded, never a background job —
+                    // never flag it running.
+                    const running =
+                        s.tier !== 'manual' &&
+                        tiers.has(
+                            s.tier as
+                                | 'registry'
+                                | 'fandom'
+                                | 'strategywiki'
+                                | 'fextralife'
+                                | 'wikidata',
+                        )
+                    return (
+                        <TierRow
+                            key={s.tier}
+                            state={s}
+                            t={t}
+                            running={running}
+                            onRetry={
+                                s.tier !== 'manual'
+                                    ? () => void onRetryTier(sources.gameId, s.tier)
+                                    : undefined
+                            }
+                            retrying={retryingTier === s.tier}
+                            onRunNow={
+                                s.tier !== 'manual'
+                                    ? () => void onRunTierNow(sources.gameId, s.tier)
+                                    : undefined
+                            }
+                            runningNow={runningTier === s.tier}
+                            onActivate={(mapId) =>
+                                void onActivateMap(sources.gameId, mapId)
+                            }
+                            activatingMapId={activatingMapId}
+                        />
+                    )
+                })}
+            </ol>
+            <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
+                    disabled={busyAction !== null}
+                    onClick={() => void onReimport(selectedGame)}
+                    title={t('admin.geo.maps.actions.rerunTooltip')}
+                >
+                    {busyAction === 'reimport' ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                        <RotateCw className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    {t('admin.geo.maps.actions.rerun')}
+                </Button>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => onResearch(selectedGame)}
+                    title={t('admin.geo.maps.actions.researchTooltip')}
+                >
+                    <Search className="h-3.5 w-3.5 mr-1.5" />
+                    {t('admin.geo.maps.actions.research')}
+                </Button>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => onWandImport(selectedGame)}
+                    title={t('admin.geo.maps.actions.importWandTooltip')}
+                >
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    {t('admin.geo.maps.actions.importWand')}
+                </Button>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => onManualUpload(selectedGame)}
+                >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    {t('admin.geo.maps.actions.uploadManual')}
+                </Button>
+            </div>
+            {onViewCaptures && (
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full justify-center text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() =>
+                        onViewCaptures(selectedGame.id, selectedGame.name)
+                    }
+                    title={t('admin.geo.maps.actions.viewCapturesTooltip')}
+                >
+                    <ListChecks className="h-3.5 w-3.5 mr-1.5" />
+                    {t('admin.geo.maps.actions.viewCaptures', {
+                        count: selectedGame.candidateCount,
+                    })}
+                </Button>
+            )}
+        </>
     )
 }
 
