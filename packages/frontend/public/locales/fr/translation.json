@@ -714,6 +714,26 @@
         },
         "success": "Carte manuelle enregistrée pour « {{name}} »."
       },
+      "run": {
+        "allCta": "Tout lancer",
+        "allTooltip": "Lance la résolution des métadonnées et l'ingestion pour tous les jeux curatés.",
+        "running": "En cours…",
+        "allQueued": "Lancement de la pipeline pour tous les jeux curatés.",
+        "gameQueued": "Lancement de la pipeline pour « {{name}} ».",
+        "gameTooltip": "Lancer pour ce jeu",
+        "gameAria": "Lancer la pipeline pour {{name}}",
+        "inFlight": "En cours",
+        "tierRunning": "En cours",
+        "tierRunningHint": "Job en file ou en exécution — l'état réel se mettra à jour dans quelques secondes.",
+        "banner": {
+          "active_one": "{{count}} job actif",
+          "active_other": "{{count}} jobs actifs",
+          "waiting_one": "{{count}} en attente",
+          "waiting_other": "{{count}} en attente",
+          "failed_one": "{{count}} en échec",
+          "failed_other": "{{count}} en échec"
+        }
+      },
       "reset": {
         "title": "Zone de danger — réinitialiser le scraping",
         "subtitle": "Repart de zéro sur l'ingestion des cartes et captures. Les choix de curation (jeux activés) et les scores des joueurs sont conservés.",
