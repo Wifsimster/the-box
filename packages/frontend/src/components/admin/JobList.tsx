@@ -29,6 +29,7 @@ import {
   Users,
   Trash2,
   AlertTriangle,
+  MapPin,
 } from 'lucide-react'
 
 function formatRelativeTime(dateString: string): string {
@@ -71,6 +72,7 @@ function formatCronPattern(pattern: string, t: (key: string) => string): string 
 function getJobTranslationKey(jobName: string): string {
   const keyMap: Record<string, string> = {
     'create-daily-challenge': 'admin.jobs.createDailyChallenge',
+    'schedule-daily-challenge': 'admin.jobs.scheduleDailyGeoChallenge',
     'sync-all-games': 'admin.jobs.syncAllGames',
     'cleanup-anonymous-users': 'admin.jobs.cleanupAnonymousUsers',
     'create-weekly-tournament': 'admin.jobs.createWeeklyTournament',
@@ -90,6 +92,7 @@ function getJobTranslationKey(jobName: string): string {
 function getJobRunningTranslationKey(jobName: string): string {
   const keyMap: Record<string, string> = {
     'create-daily-challenge': 'admin.jobs.dailyChallengeRunning',
+    'schedule-daily-challenge': 'admin.jobs.scheduleDailyGeoChallengeRunning',
     'sync-all-games': 'admin.jobs.syncAllRunning',
     'cleanup-anonymous-users': 'admin.jobs.cleanupAnonymousUsersRunning',
     'create-weekly-tournament': 'admin.jobs.createWeeklyTournamentRunning',
@@ -115,6 +118,11 @@ function getJobMetadata(jobName: string, t: (key: string) => string) {
     'create-daily-challenge': {
       description: t('admin.jobs.descriptions.createDailyChallenge'),
       icon: <Calendar className="h-4 w-4" />,
+      category: 'Challenge',
+    },
+    'schedule-daily-challenge': {
+      description: t('admin.jobs.descriptions.scheduleDailyGeoChallenge'),
+      icon: <MapPin className="h-4 w-4" />,
       category: 'Challenge',
     },
     'sync-all-games': {
@@ -191,6 +199,7 @@ export function JobList() {
     isLoading,
     recurringJobs,
     triggerDailyChallengeJob,
+    triggerScheduleDailyGeoChallengeJob,
     triggerSyncAllJob,
     cancelActiveSyncAll,
     triggerCleanupAnonymousUsersJob,
@@ -238,6 +247,8 @@ export function JobList() {
     try {
       if (jobName === 'create-daily-challenge') {
         await triggerDailyChallengeJob()
+      } else if (jobName === 'schedule-daily-challenge') {
+        await triggerScheduleDailyGeoChallengeJob()
       } else if (jobName === 'sync-all-games') {
         await triggerSyncAllJob()
       } else if (jobName === 'cleanup-anonymous-users') {

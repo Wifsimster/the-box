@@ -1,5 +1,10 @@
 import type { Job, JobType, JobData, JobStatus } from '@the-box/types'
-import type { DomainLogger, ImportQueuePort, BullJobLike } from '../ports/index.js'
+import type {
+  DomainLogger,
+  ImportQueuePort,
+  ReadOnlyQueuePort,
+  BullJobLike,
+} from '../ports/index.js'
 
 async function mapBullJobToJob(
   bullJob: BullJobLike,
@@ -68,13 +73,17 @@ export interface JobService {
 export interface JobServiceDeps {
   logger: DomainLogger
   importQueue: ImportQueuePort
+  // Optional secondary queue whose repeatable jobs should also surface in
+  // the admin job list. Read-only here: triggering geo jobs goes through
+  // the dedicated `/api/admin/geo/schedule` route.
+  geoQueue?: ReadOnlyQueuePort
 }
 
 /**
  * Create a JobService with injected dependencies.
  */
 export function createJobService(deps: JobServiceDeps): JobService {
-  const { importQueue } = deps
+  const { importQueue, geoQueue } = deps
   const log = deps.logger.child({ service: 'job' })
 
   return {
@@ -191,13 +200,30 @@ export function createJobService(deps: JobServiceDeps): JobService {
     },
 
     async getRecurringJobs() {
-      const repeatableJobs = await importQueue.getRepeatableJobs()
+      const [importRepeats, importActive] = await Promise.all([
+        importQueue.getRepeatableJobs(),
+        importQueue.getJobs(['active']),
+      ])
 
-      // Get active jobs to check if any recurring job is currently running
-      const activeJobs = await importQueue.getJobs(['active'])
-      const activeJobNames = new Set(activeJobs.map(j => j.name))
+      const allRepeats = [...importRepeats]
+      const allActive = [...importActive]
 
-      return repeatableJobs.map(job => ({
+      if (geoQueue) {
+        const [geoRepeats, geoActive] = await Promise.all([
+          geoQueue.getRepeatableJobs(),
+          geoQueue.getJobs(['active']),
+        ])
+        // Surface only the operator-facing geo job. `resolve-metadata` and
+        // `ingest-tick` are background plumbing — admins shouldn't see them
+        // in the manual run-now list alongside the daily challenge.
+        const geoSurfaced = new Set(['schedule-daily-challenge'])
+        allRepeats.push(...geoRepeats.filter(j => geoSurfaced.has(j.name)))
+        allActive.push(...geoActive.filter(j => geoSurfaced.has(j.name)))
+      }
+
+      const activeJobNames = new Set(allActive.map(j => j.name))
+
+      return allRepeats.map(job => ({
         id: job.id || job.key,
         name: job.name,
         pattern: job.pattern || null,
