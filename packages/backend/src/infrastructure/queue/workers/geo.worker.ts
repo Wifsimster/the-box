@@ -4,7 +4,9 @@ import { queueLogger } from '../../logger/logger.js'
 import type { GeoJobData } from '../queues.js'
 import { evaluateConsensusForCandidate } from './geo-consensus-logic.js'
 import { importFandomMap } from './geo-fandom-import-logic.js'
+import { importFextralifeMap } from './geo-fextralife-import-logic.js'
 import { importRegistryMap } from './geo-registry-import-logic.js'
+import { importStrategyWikiMap } from './geo-strategywiki-import-logic.js'
 import { importWikidataMap } from './geo-wikidata-import-logic.js'
 import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
@@ -51,6 +53,22 @@ export const geoWorker = new Worker<GeoJobData>(
         gameId: data.gameId,
         wikiSubdomain: data.wikiSubdomain,
         pageTitle: data.pageTitle,
+      })
+    }
+
+    if (data.kind === 'import-strategywiki-map') {
+      return await importStrategyWikiMap({
+        gameId: data.gameId,
+        gameName: data.gameName,
+        slug: data.slug,
+      })
+    }
+
+    if (data.kind === 'import-fextralife-map') {
+      return await importFextralifeMap({
+        gameId: data.gameId,
+        gameName: data.gameName,
+        slug: data.slug,
       })
     }
 

@@ -741,7 +741,14 @@ export interface GeoPoint {
   y: number
 }
 
-export type GeoMapSource = 'registry' | 'fandom' | 'wikidata' | 'steam' | 'manual'
+export type GeoMapSource =
+  | 'registry'
+  | 'fandom'
+  | 'strategywiki'
+  | 'fextralife'
+  | 'wikidata'
+  | 'steam'
+  | 'manual'
 
 export interface GeoMap {
   id: number

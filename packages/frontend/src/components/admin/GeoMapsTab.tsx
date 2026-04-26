@@ -23,8 +23,10 @@ import {
     Trash2,
     Play,
     Zap,
+    Search,
 } from 'lucide-react'
 import { GeoManualMapDialog } from './GeoManualMapDialog'
+import { GeoResearchAssistantDialog } from './GeoResearchAssistantDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
 import {
     isGameInFlight,
@@ -51,7 +53,14 @@ interface CuratedGame {
 
 interface ActiveMapInfo {
     id: number
-    source: 'registry' | 'fandom' | 'wikidata' | 'steam' | 'manual'
+    source:
+        | 'registry'
+        | 'fandom'
+        | 'strategywiki'
+        | 'fextralife'
+        | 'wikidata'
+        | 'steam'
+        | 'manual'
     imageUrl: string
     license: string
     attribution: string | null
@@ -60,7 +69,13 @@ interface ActiveMapInfo {
     region?: string | null
 }
 
-type TierKey = 'registry' | 'fandom' | 'wikidata' | 'manual'
+type TierKey =
+    | 'registry'
+    | 'fandom'
+    | 'strategywiki'
+    | 'fextralife'
+    | 'wikidata'
+    | 'manual'
 
 type TierStateBase = { tier: TierKey }
 type TierState =
@@ -111,6 +126,7 @@ export function GeoMapsTab() {
     const [busyAction, setBusyAction] = useState<'reimport' | null>(null)
     const [message, setMessage] = useState<string | null>(null)
     const [manualUploadFor, setManualUploadFor] = useState<CuratedGame | null>(null)
+    const [researchFor, setResearchFor] = useState<CuratedGame | null>(null)
     const [resetOpen, setResetOpen] = useState(false)
     const [resetting, setResetting] = useState(false)
     const [runningAll, setRunningAll] = useState(false)
@@ -463,6 +479,8 @@ export function GeoMapsTab() {
                                             s.tier as
                                                 | 'registry'
                                                 | 'fandom'
+                                                | 'strategywiki'
+                                                | 'fextralife'
                                                 | 'wikidata',
                                         )
                                     return (
@@ -494,6 +512,16 @@ export function GeoMapsTab() {
                                     size="sm"
                                     variant="outline"
                                     className="flex-1"
+                                    onClick={() => setResearchFor(selectedGame)}
+                                    title={t('admin.geo.maps.actions.researchTooltip')}
+                                >
+                                    <Search className="h-3.5 w-3.5 mr-1.5" />
+                                    {t('admin.geo.maps.actions.research')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
                                     onClick={() => setManualUploadFor(selectedGame)}
                                 >
                                     <Upload className="h-3.5 w-3.5 mr-1.5" />
@@ -516,6 +544,19 @@ export function GeoMapsTab() {
                     }
                 }
                 onSuccess={onManualSuccess}
+            />
+
+            <GeoResearchAssistantDialog
+                isOpen={researchFor !== null}
+                onClose={() => setResearchFor(null)}
+                game={
+                    researchFor && {
+                        id: researchFor.id,
+                        name: researchFor.name,
+                        slug: researchFor.slug,
+                    }
+                }
+                onPickManualUpload={() => setManualUploadFor(researchFor)}
             />
         </div>
 

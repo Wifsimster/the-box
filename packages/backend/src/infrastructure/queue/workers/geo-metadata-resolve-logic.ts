@@ -6,7 +6,6 @@ import {
   isMapEligibleByGenre,
   normalizeGameTitle,
   scoreMapTitle,
-  tombstoneRetryAfter,
   wikiSubdomainCandidates,
 } from '../../../domain/services/geo-metadata.service.js'
 import { resolveWikidataQid } from './geo-wikidata-import-logic.js'
@@ -103,26 +102,12 @@ export async function resolveGeoMetadataBatch(
       // Tier 1 hit short-circuits the "did we find anything" check — even if
       // Steam/Fandom/Wikidata all whiff, a curated registry entry is enough
       // to mark this game `resolved` and let the tick enqueue the import.
+      // The StrategyWiki and Fextralife tiers don't need pre-resolution
+      // (they probe upstream APIs inline using just the game name + slug),
+      // so every curated game implicitly has at least those two fallbacks
+      // — we no longer mark `unresolved` here. Per-tier tombstones still
+      // enforce backoff if every tier whiffs at import time.
       const hasRegistry = (await findRegistryEntryBySlug(row.slug)) !== null
-
-      const haveAnything =
-        hasRegistry || Boolean(steamAppId) || Boolean(wiki) || Boolean(wikidataQid)
-      if (!haveAnything) {
-        const attempt =
-          (await geoIngestFailureRepository.getAttemptCount(row.id, 'metadata')) + 1
-        await geoIngestFailureRepository.record({
-          gameId: row.id,
-          source: 'metadata',
-          reason:
-            'no registry entry, Steam appid, Fandom map, or Wikidata Q-id found',
-          retryAfter: tombstoneRetryAfter(attempt),
-        })
-        await db('games')
-          .where({ id: row.id })
-          .update({ geo_metadata_status: 'unresolved' })
-        unresolved++
-        continue
-      }
 
       await db('games')
         .where({ id: row.id })

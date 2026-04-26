@@ -38,6 +38,18 @@ export type GeoJobData =
       pageTitle: string
     }
   | {
+      kind: 'import-strategywiki-map'
+      gameId: number
+      gameName: string
+      slug: string
+    }
+  | {
+      kind: 'import-fextralife-map'
+      gameId: number
+      gameName: string
+      slug: string
+    }
+  | {
       kind: 'import-wikidata-map'
       gameId: number
       wikidataQid: string

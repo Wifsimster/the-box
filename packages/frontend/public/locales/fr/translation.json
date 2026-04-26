@@ -553,9 +553,11 @@
         "tiers": {
           "registry": "Niveau 1 — Registre",
           "fandom": "Niveau 2 — Fandom",
-          "wikidata": "Niveau 3 — Wikidata",
+          "strategywiki": "Niveau 3 — StrategyWiki",
+          "fextralife": "Niveau 4 — Fextralife",
+          "wikidata": "Niveau 5 — Wikidata",
           "steam": "Steam",
-          "manual": "Niveau 4 — Manuel"
+          "manual": "Niveau 6 — Manuel"
         },
         "tierStatus": {
           "matched": "Trouvé",
@@ -569,6 +571,8 @@
         "viewSource": "Voir la source",
         "actions": {
           "rerun": "Relancer le pipeline",
+          "research": "Rechercher",
+          "researchTooltip": "Ouvrir des liens de recherche pré-remplis (Google, StrategyWiki, Fextralife…)",
           "uploadManual": "Téléverser manuellement"
         },
         "sidePanel": {
@@ -581,10 +585,16 @@
           "previewDimensions": "{{width}} × {{height}} px"
         }
       },
+      "research": {
+        "title": "Rechercher une carte pour {{name}}",
+        "description": "Liens de recherche pré-remplis. Ouvrez-en un dans un nouvel onglet, copiez l'URL d'une image utilisable, puis revenez ici pour téléverser la carte.",
+        "pasteUrlCta": "J'ai une URL — téléverser",
+        "close": "Fermer"
+      },
       "intro": {
         "title": "Comment cette page fonctionne",
         "step1Title": "1. Curater les jeux",
-        "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → Wikidata → Manuel) et les captures Steam en arrière-plan.",
+        "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → StrategyWiki → Fextralife → Wikidata → Manuel) et les captures Steam en arrière-plan.",
         "step2Title": "2. Suivre l'ingestion",
         "step2Body": "Visualisez l'avancement niveau par niveau dans l'onglet Cartes. Relancez le pipeline ou téléversez une carte manuellement si un jeu reste sans carte.",
         "step3Title": "3. Valider les épingles",
