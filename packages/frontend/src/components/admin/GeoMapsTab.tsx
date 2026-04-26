@@ -20,8 +20,10 @@ import {
     Clock,
     MinusCircle,
     Sparkles,
+    Trash2,
 } from 'lucide-react'
 import { GeoManualMapDialog } from './GeoManualMapDialog'
+import { ResetScrapingDialog } from './ResetScrapingDialog'
 
 // Per-game ingestion-state surface. Replaces the global metric-tile grid +
 // failures table from GeoAdminActions with a focused, drill-down table where
@@ -101,6 +103,8 @@ export function GeoMapsTab() {
     const [busyAction, setBusyAction] = useState<'reimport' | null>(null)
     const [message, setMessage] = useState<string | null>(null)
     const [manualUploadFor, setManualUploadFor] = useState<CuratedGame | null>(null)
+    const [resetOpen, setResetOpen] = useState(false)
+    const [resetting, setResetting] = useState(false)
 
     const reload = useCallback(async () => {
         setLoading(true)
@@ -168,9 +172,34 @@ export function GeoMapsTab() {
         void Promise.all([reload(), id !== undefined ? reloadSources(id) : Promise.resolve()])
     }
 
+    const handleResetScraping = async () => {
+        setResetting(true)
+        setMessage(null)
+        setError(null)
+        try {
+            const data = await fetchJson<{
+                importStates: number
+                ingestFailures: number
+                challenges: number
+                maps: number
+            }>('/api/admin/scraping/reset', { method: 'POST' })
+            setMessage(t('admin.geo.reset.success', data))
+            setResetOpen(false)
+            // Side panel referenced rows that no longer exist.
+            setSelectedId(null)
+            setSources(null)
+            await reload()
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setResetting(false)
+        }
+    }
+
     const selectedGame = games?.find((g) => g.id === selectedId) ?? null
 
     return (
+        <div className="space-y-4">
         <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5">
             {/* Left: per-game table */}
             <Card className="lg:col-span-3">
@@ -356,6 +385,45 @@ export function GeoMapsTab() {
                 }
                 onSuccess={onManualSuccess}
             />
+        </div>
+
+        {/* Danger zone: wipes scraping progress + scraped maps so the
+            ingestion pipeline starts from zero. Curation flags
+            (games.geo_curated) and player scores are preserved. */}
+        <Card className="border-destructive/40 bg-destructive/5">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden />
+                    {t('admin.geo.reset.title')}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                    {t('admin.geo.reset.subtitle')}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setResetOpen(true)}
+                    disabled={resetting}
+                    className="gap-1.5"
+                >
+                    {resetting ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    {t('admin.geo.reset.cta')}
+                </Button>
+            </CardContent>
+        </Card>
+
+        <ResetScrapingDialog
+            isOpen={resetOpen}
+            onClose={() => setResetOpen(false)}
+            onConfirm={handleResetScraping}
+            isLoading={resetting}
+        />
         </div>
     )
 }

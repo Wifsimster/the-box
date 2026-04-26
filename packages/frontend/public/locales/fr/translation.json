@@ -713,6 +713,25 @@
           "required": "L'URL de l'image, la largeur, la hauteur et la licence sont obligatoires."
         },
         "success": "Carte manuelle enregistrée pour « {{name}} »."
+      },
+      "reset": {
+        "title": "Zone de danger — réinitialiser le scraping",
+        "subtitle": "Repart de zéro sur l'ingestion des cartes et captures. Les choix de curation (jeux activés) et les scores des joueurs sont conservés.",
+        "cta": "Tout réinitialiser",
+        "success": "Scraping réinitialisé : {{importStates}} états d'import, {{ingestFailures}} échecs, {{challenges}} défis géo, {{maps}} cartes supprimés.",
+        "dialog": {
+          "title": "Confirmer la réinitialisation",
+          "body": "Cette action est irréversible. Le défi géo quotidien renverra « aucun défi » jusqu'à ce qu'une nouvelle carte soit importée et qu'un défi soit programmé.",
+          "bullets": {
+            "importStates": "Suit tous les états d'import (RAWG : jeux, captures).",
+            "ingestFailures": "Efface les tombstones d'échec d'ingestion (Fandom, Wikidata, Steam, registry).",
+            "maps": "Supprime toutes les cartes ingérées et les captures candidates associées.",
+            "challenges": "Supprime tous les défis géo programmés.",
+            "metadata": "Remet les métadonnées géo des jeux à « pending » pour forcer une nouvelle résolution."
+          },
+          "confirmLabel": "Tapez {{word}} pour confirmer",
+          "confirm": "Réinitialiser tout"
+        }
       }
     },
     "growth": {

@@ -35,6 +35,7 @@ import {
 import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
+import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import {
   geoScreenshotRepository,
@@ -2330,6 +2331,49 @@ router.post('/screenshot-reports/reactivate', async (req, res, next) => {
       screenshotId,
       geoScreenshotCandidateId,
     })
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Wipes every piece of scraping progress + scraped data so the next run
+// starts from zero. Keeps operator curation choices (`games.geo_curated`)
+// and player-generated data (scores, leaderboards). User-visible impact:
+// the daily geo challenge will return NO_CHALLENGE until a new map is
+// imported and a challenge is scheduled.
+//
+// Cascade order matters here:
+//   - geo_challenge.geo_screenshot_meta_id is ON DELETE RESTRICT, so it must
+//     go first, otherwise the geo_map delete would fail when the cascade
+//     reaches geo_screenshot_meta.
+//   - geo_map cascades to geo_screenshot_candidate + geo_screenshot_meta,
+//     and those cascade to geo_pin / screenshot_reports.geo_* in turn.
+router.post('/scraping/reset', async (req, res, next) => {
+  try {
+    const result = await db.transaction(async (trx) => {
+      const importStates = await trx('import_states').delete()
+      const ingestFailures = await trx('geo_ingest_failure').delete()
+
+      await trx('games').update({
+        geo_metadata_status: 'pending',
+        geo_metadata_resolved_at: null,
+        wiki_subdomain: null,
+        wiki_page_title: null,
+        steam_app_id: null,
+        wikidata_qid: null,
+      })
+
+      const challenges = await trx('geo_challenge').delete()
+      const maps = await trx('geo_map').delete()
+
+      return { importStates, ingestFailures, challenges, maps }
+    })
+
+    routeLogger.warn(
+      { adminId: req.userId, ...result },
+      'admin reset scraping state from zero',
+    )
     res.json({ success: true, data: result })
   } catch (err) {
     next(err)
