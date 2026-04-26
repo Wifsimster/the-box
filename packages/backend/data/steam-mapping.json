@@ -1,0 +1,352 @@
+{
+  "the-witcher-3-wild-hunt-blood-and-wine": {
+    "appid": 292030,
+    "steam_name": "The Witcher 3: Wild Hunt",
+    "matched_at": "2026-04-26T20:35:10.228Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-witcher-3-game-of-the-year": {
+    "appid": 499450,
+    "steam_name": "(override #499450)",
+    "matched_at": "2026-04-26T20:35:11.804Z",
+    "match_score": 1,
+    "screenshots_added": 0
+  },
+  "the-witcher-3-wild-hunt-hearts-of-stone": {
+    "appid": 292030,
+    "steam_name": "The Witcher 3: Wild Hunt",
+    "matched_at": "2026-04-26T20:35:13.621Z",
+    "match_score": 1,
+    "screenshots_added": 0
+  },
+  "persona-5-royal": {
+    "appid": 1687950,
+    "steam_name": "Persona 5 Royal",
+    "matched_at": "2026-04-26T20:35:14.718Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-last-of-us-remastered": {
+    "appid": 1888930,
+    "steam_name": "The Last of Us™ Part I",
+    "matched_at": "2026-04-26T20:35:16.368Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "ballistics": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:16.368Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "disco-elysium-final-cut": {
+    "appid": 632470,
+    "steam_name": "Disco Elysium - The Final Cut",
+    "matched_at": "2026-04-26T20:35:17.511Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-witcher-3-wild-hunt": {
+    "appid": 292030,
+    "steam_name": "The Witcher 3: Wild Hunt",
+    "matched_at": "2026-04-26T20:35:19.046Z",
+    "match_score": 1,
+    "screenshots_added": 0
+  },
+  "mario-luigi-bowsers-inside-story-bowser-jrs-journe": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:19.046Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "starlancer": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:19.046Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "splatoon-2-octo-expansion": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:19.046Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "dark-souls-iii-the-ringed-city": {
+    "appid": 374320,
+    "steam_name": "DARK SOULS™ III",
+    "matched_at": "2026-04-26T20:35:20.583Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-elder-scrolls-v-skyrim-legendary-edition": {
+    "appid": 72850,
+    "steam_name": "The Elder Scrolls V: Skyrim",
+    "matched_at": "2026-04-26T20:35:22.363Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "starraft-ii-legacy-of-the-void": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:22.363Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "red-dead-redemption-2": {
+    "appid": 1174180,
+    "steam_name": "Red Dead Redemption 2",
+    "matched_at": "2026-04-26T20:35:23.746Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "grand-theft-auto-iv-complete-edition": {
+    "appid": 12210,
+    "steam_name": "Grand Theft Auto IV: The Complete Edition",
+    "matched_at": "2026-04-26T20:35:25.451Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "portal-2": {
+    "appid": 620,
+    "steam_name": "Portal 2",
+    "matched_at": "2026-04-26T20:35:26.573Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "midnight-club-3-dub-edition-remix": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:26.573Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "mega-man-maverick-hunter-x": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:26.573Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "starcraft-ii-wings-of-liberty": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:26.573Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "the-legend-of-zelda-the-wind-waker-hd": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:26.573Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "mass-effect-legendary-edition": {
+    "appid": 1328670,
+    "steam_name": "Mass Effect™ Legendary Edition",
+    "matched_at": "2026-04-26T20:35:28.047Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "metal-gear-rising-revengeance-jetstream-sam": {
+    "appid": 235460,
+    "steam_name": "METAL GEAR RISING: REVENGEANCE",
+    "matched_at": "2026-04-26T20:35:29.463Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "warcraft-3-the-frozen-throne": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:29.463Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "the-legend-of-zelda-ocarina-of-time-3d": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:29.463Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "god-of-war-2": {
+    "appid": 1593500,
+    "steam_name": "God of War",
+    "matched_at": "2026-04-26T20:35:31.117Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-orange-box": {
+    "appid": 220,
+    "steam_name": "Half-Life 2",
+    "matched_at": "2026-04-26T20:35:32.520Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-last-of-us": {
+    "appid": 1888930,
+    "steam_name": "The Last of Us™ Part I",
+    "matched_at": "2026-04-26T20:35:34.017Z",
+    "match_score": 1,
+    "screenshots_added": 0
+  },
+  "ace-attorney-phoenix-wright-trilogy-hd": {
+    "appid": 787480,
+    "steam_name": "Phoenix Wright: Ace Attorney Trilogy",
+    "matched_at": "2026-04-26T20:35:35.526Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "ace-combat-5-the-unsung-war": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:35.526Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "kingdom-hearts-ii-final-mix": {
+    "appid": 2552430,
+    "steam_name": "KINGDOM HEARTS -HD 1.5+2.5 ReMIX-",
+    "matched_at": "2026-04-26T20:35:36.964Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "the-elder-scrolls-4-shivering-isles": {
+    "appid": 22330,
+    "steam_name": "The Elder Scrolls IV: Oblivion® Game of the Year Edition (2009)",
+    "matched_at": "2026-04-26T20:35:38.435Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "cuphead-the-delicious-last-course": {
+    "appid": 268910,
+    "steam_name": "Cuphead",
+    "matched_at": "2026-04-26T20:35:39.949Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "divinity-original-sin-ii-definitive-edition": {
+    "appid": 435150,
+    "steam_name": "Divinity: Original Sin 2 - Definitive Edition",
+    "matched_at": "2026-04-26T20:35:41.505Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "shining-force-resurrection-of-the-dark-dragon": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:41.505Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "resident-evil-2-2019": {
+    "appid": 883710,
+    "steam_name": "Resident Evil 2",
+    "matched_at": "2026-04-26T20:35:43.020Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "zone-of-the-enders-2-the-second-runner": {
+    "appid": 311550,
+    "steam_name": "Trials Fusion - Riders of the Rustlands",
+    "matched_at": "2026-04-26T20:35:44.432Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "baten-kaitos-eternal-wings-and-the-lost-ocean": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:44.432Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "odin-sphere": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:44.432Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "grand-theft-auto-san-andreas": {
+    "appid": 12120,
+    "steam_name": "Grand Theft Auto: San Andreas",
+    "matched_at": "2026-04-26T20:35:45.930Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "ace-combat-zero-the-belkan-war": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:45.930Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "gran-turismo-4": {
+    "appid": null,
+    "steam_name": null,
+    "matched_at": "2026-04-26T20:35:45.930Z",
+    "match_score": 0,
+    "screenshots_added": 0
+  },
+  "persona-3-portable": {
+    "appid": 1809540,
+    "steam_name": "Nine Sols",
+    "matched_at": "2026-04-26T20:35:47.450Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "bioshock-the-collection": {
+    "appid": 409710,
+    "steam_name": "BioShock™ Remastered",
+    "matched_at": "2026-04-26T20:35:48.979Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "portal": {
+    "appid": 400,
+    "steam_name": "Portal",
+    "matched_at": "2026-04-26T20:35:50.487Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "uncharted-4-a-thiefs-end": {
+    "appid": 1659420,
+    "steam_name": "UNCHARTED™: Legacy of Thieves Collection",
+    "matched_at": "2026-04-26T20:35:54.937Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "half-life-2": {
+    "appid": 220,
+    "steam_name": "Half-Life 2",
+    "matched_at": "2026-04-26T20:35:56.500Z",
+    "match_score": 1,
+    "screenshots_added": 0
+  },
+  "zone-of-the-enders-the-2nd-runner-mrs": {
+    "appid": 311550,
+    "steam_name": "Trials Fusion - Riders of the Rustlands",
+    "matched_at": "2026-04-26T20:35:57.955Z",
+    "match_score": 1,
+    "screenshots_added": 0
+  },
+  "disciples-ii-rise-of-the-elves": {
+    "appid": 1630,
+    "steam_name": "Disciples II: Rise of the Elves ",
+    "matched_at": "2026-04-26T20:35:51.966Z",
+    "match_score": 1,
+    "screenshots_added": 5
+  },
+  "disciples-ii-galleans-return": {
+    "appid": 1640,
+    "steam_name": "Disciples II: Gallean's Return",
+    "matched_at": "2026-04-26T20:35:53.446Z",
+    "match_score": 1,
+    "screenshots_added": 4
+  }
+}
