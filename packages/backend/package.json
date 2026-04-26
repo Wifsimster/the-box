@@ -17,6 +17,9 @@
     "fetch:games": "tsx src/tools/screenshot-fetcher.ts fetch --games 200 --screenshots-per-game 5",
     "fetch:download": "tsx src/tools/screenshot-fetcher.ts download",
     "fetch:all": "tsx src/tools/screenshot-fetcher.ts all --games 200 --screenshots-per-game 5",
+    "fetch:steam": "tsx src/tools/steam-screenshot-fetcher.ts fetch --screenshots-per-game 5",
+    "fetch:steam-download": "tsx src/tools/steam-screenshot-fetcher.ts download",
+    "fetch:steam-all": "tsx src/tools/steam-screenshot-fetcher.ts all --screenshots-per-game 5",
     "e2e:seed": "tsx scripts/e2e-seed.ts"
   },
   "dependencies": {
