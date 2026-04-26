@@ -30,6 +30,10 @@ import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
 import { GeoGamesTab } from './GeoGamesTab'
 import { GeoHeaderStrip } from './GeoHeaderStrip'
+import { GeoRunStateBanner } from './GeoRunStateBanner'
+import { GeoColdStartBanner } from './GeoColdStartBanner'
+import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
+import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoMap,
@@ -100,6 +104,13 @@ export function GeoReviewPanel() {
     const [demoteOpen, setDemoteOpen] = useState(false)
     const [introOpen, setIntroOpen] = useState(false)
     const [scheduling, setScheduling] = useState(false)
+    // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
+    // polling and the live banner stays visible when the operator switches
+    // between Pins / Maps / Games tabs.
+    const { state: runState, error: runError, arm: armRunPolling } = useGeoRunPolling()
+    // Single health subscription shared between the counter strip and the
+    // cold-start banner — keeps them in sync without a duplicate poll.
+    const { data: health, loading: healthLoading, error: healthError } = useGeoHealth()
 
     const triggerSchedule = async () => {
         setScheduling(true)
@@ -202,10 +213,17 @@ export function GeoReviewPanel() {
             <GeoHeaderStrip
                 onScheduleClick={() => void triggerSchedule()}
                 scheduling={scheduling}
+                health={health}
+                loading={healthLoading}
+                error={healthError}
             />
 
+            <GeoColdStartBanner health={health} />
+
+            <GeoRunStateBanner state={runState} />
+
             <Tabs defaultValue="pins" className="space-y-4">
-                <TabsList className="w-full overflow-x-auto justify-start sm:justify-center scrollbar-hide">
+                <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
                     <TabsTrigger value="pins" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.pins')}
@@ -221,7 +239,11 @@ export function GeoReviewPanel() {
                 </TabsList>
 
                 <TabsContent value="maps" className="space-y-4">
-                    <GeoMapsTab />
+                    <GeoMapsTab
+                        runState={runState}
+                        runError={runError}
+                        armRunPolling={armRunPolling}
+                    />
                 </TabsContent>
 
                 <TabsContent value="games" className="space-y-4">
@@ -292,8 +314,17 @@ export function GeoReviewPanel() {
             )}
 
             {loading ? (
-                <div className="flex justify-center py-16">
-                    <Loader2 className="h-6 w-6 animate-spin text-neon-pink" />
+                <div
+                    className="flex justify-center py-16"
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
+                    aria-label={t('admin.geo.candidatesLoading')}
+                >
+                    <Loader2
+                        className="h-6 w-6 animate-spin text-neon-pink"
+                        aria-hidden
+                    />
                 </div>
             ) : (
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">

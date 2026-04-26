@@ -484,6 +484,7 @@
     "geo": {
       "title": "Geo Moderation",
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and validate crowdsourced pins.",
+      "candidatesLoading": "Loading pins…",
       "tabs": {
         "pins": "Pins",
         "maps": "Maps",
@@ -497,6 +498,16 @@
         "errors": "errors",
         "nextChallenge": "next",
         "scheduleNow": "Schedule now"
+      },
+      "coldStart": {
+        "no-curated": {
+          "title": "No curated games yet",
+          "body": "Open the Games tab and curate one or more games for Geo. Once curated, the pipeline imports their maps automatically."
+        },
+        "no-maps": {
+          "title": "No maps imported yet",
+          "body": "Your curated games don't have an active map yet. Click \"Run all\" on the Maps tab to start the ingestion pipeline, then schedule a challenge once at least one map is ready."
+        }
       },
       "games": {
         "title": "Games",
@@ -566,15 +577,20 @@
           "eligible": "Eligible",
           "untried": "Skipped",
           "eligibleHint": "Will run on the next ingest tick if no earlier tier wins.",
-          "retryAfter": "Retry after {{time}}"
+          "retryAfter": "Retry after {{time}}",
+          "retryNow": "Retry",
+          "retryNowTooltip": "Clear this source's tombstone and re-run the pipeline for this game.",
+          "retryQueued": "Retry queued. The pipeline will pick it up shortly."
         },
         "viewSource": "View source",
         "actions": {
-          "rerun": "Re-run pipeline",
+          "rerun": "Force fresh ingestion",
+          "rerunTooltip": "Clears every per-tier failure tombstone for this game and re-runs the full pipeline (metadata + maps). More aggressive than \"Run for this game\", which respects existing tombstones.",
           "research": "Research",
           "researchTooltip": "Open pre-filled search links (Google, StrategyWiki, Fextralife…)",
           "uploadManual": "Upload manually"
         },
+        "loading": "Loading games…",
         "sidePanel": {
           "empty": "Select a game",
           "hint": "Pick a game on the left to see its tier-by-tier ingestion state.",
@@ -582,7 +598,8 @@
           "activeViaTier": "Active via {{tier}} · {{license}}",
           "region": "region: {{region}}",
           "previewAlt": "Active map for {{name}} (click to open full size)",
-          "previewDimensions": "{{width}} × {{height}} px"
+          "previewDimensions": "{{width}} × {{height}} px",
+          "loading": "Loading sources…"
         }
       },
       "research": {
@@ -763,6 +780,7 @@
             "challenges": "Deletes every scheduled geo challenge.",
             "metadata": "Resets games' geo metadata to \"pending\" so the resolver re-runs."
           },
+          "confirmWord": "RESET",
           "confirmLabel": "Type {{word}} to confirm",
           "confirm": "Reset everything"
         }
@@ -1338,8 +1356,11 @@
       "formula": "Formula",
       "screenshotUnavailable": "Screenshot preview unavailable.",
       "mapUnavailable": "Map unavailable.",
+      "loading": "Loading challenge…",
       "errors": {
-        "noChallenge": "No geo challenge is available for today yet. Please check back later."
+        "noChallenge": "No geo challenge is available for today yet. Please check back later.",
+        "nextIn": "Next challenge in {{countdown}}",
+        "viewHistory": "View past challenges"
       }
     },
     "contribute": {
@@ -1349,6 +1370,7 @@
       "map": "Pin its location",
       "submit": "Submit pin",
       "skip": "Skip",
+      "loading": "Loading screenshot…",
       "thanks": "Thanks — we'll let you know once other players agree on the spot.",
       "recent": "Recent rewards",
       "lockedTitle": "Tagging unlocks after a few daily games.",
@@ -1376,9 +1398,10 @@
       "unlockDays": "days played"
     },
     "map": {
-      "ariaPin": "Pin location on the map",
-      "labelYou": "You",
-      "labelActual": "Actual"
+      "ariaPin": "Pin a location on the map. Use the arrow keys to move the cursor, then press Enter to drop the pin.",
+      "ariaPinDisabled": "Map",
+      "labelYou": "Your pin",
+      "labelActual": "Actual location"
     }
   },
   "apiErrors": {

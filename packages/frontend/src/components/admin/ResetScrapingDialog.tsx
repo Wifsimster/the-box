@@ -20,10 +20,9 @@ interface ResetScrapingDialogProps {
     isLoading?: boolean
 }
 
-// Word the operator must type to enable the destructive button. Kept as a
-// constant (not translated) so it's identical regardless of UI language —
-// muscle-memory across languages, and easier to grep for in audit logs.
-const CONFIRM_WORD = 'RESET'
+// Fallback if the locale ever ships without a confirmWord — keeps the
+// dialog usable instead of letting any input pass.
+const DEFAULT_CONFIRM_WORD = 'RESET'
 
 export function ResetScrapingDialog({
     isOpen,
@@ -32,6 +31,10 @@ export function ResetScrapingDialog({
     isLoading = false,
 }: ResetScrapingDialogProps) {
     const { t } = useTranslation()
+    // Localized — French operators type RÉINITIALISER, English RESET.
+    // Compared case-insensitively + trim()'d so accent-keyboard quirks
+    // don't trap an operator who clearly understood the intent.
+    const confirmWord = t('admin.geo.reset.dialog.confirmWord', DEFAULT_CONFIRM_WORD)
     const [typed, setTyped] = useState('')
 
     const handleClose = () => {
@@ -40,7 +43,9 @@ export function ResetScrapingDialog({
         onClose()
     }
 
-    const canConfirm = typed === CONFIRM_WORD && !isLoading
+    const canConfirm =
+        typed.trim().toLocaleUpperCase() === confirmWord.toLocaleUpperCase() &&
+        !isLoading
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -65,13 +70,13 @@ export function ResetScrapingDialog({
 
                 <div className="space-y-2">
                     <Label htmlFor="reset-confirm-input" className="text-xs">
-                        {t('admin.geo.reset.dialog.confirmLabel', { word: CONFIRM_WORD })}
+                        {t('admin.geo.reset.dialog.confirmLabel', { word: confirmWord })}
                     </Label>
                     <Input
                         id="reset-confirm-input"
                         value={typed}
                         onChange={(e) => setTyped(e.target.value)}
-                        placeholder={CONFIRM_WORD}
+                        placeholder={confirmWord}
                         autoComplete="off"
                         autoCapitalize="characters"
                         spellCheck={false}

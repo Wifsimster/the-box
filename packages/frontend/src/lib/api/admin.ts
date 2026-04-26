@@ -1,5 +1,31 @@
 import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse } from '@/types'
 
+/**
+ * Thin wrapper around `fetch` for admin endpoints. Defaults to
+ * `credentials: 'include'` and JSON content type, then unwraps the
+ * standard `{ success, data, error }` envelope. Throws an `Error` with
+ * the backend's `error.code` on failure so callers don't have to re-check
+ * the envelope.
+ *
+ * Replaces the per-tab `fetchJson` helper that lived in GeoMapsTab and
+ * GeoGamesTab — same signature, single source of truth.
+ */
+export async function fetchAdminJson<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.error?.code ?? `request failed: ${res.status}`)
+  }
+  return json.data as T
+}
+
 // Games API types
 export interface GamesListParams {
   page?: number

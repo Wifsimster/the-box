@@ -24,6 +24,7 @@ import {
     Play,
     Zap,
     Search,
+    RefreshCcw,
 } from 'lucide-react'
 import { GeoManualMapDialog } from './GeoManualMapDialog'
 import { GeoResearchAssistantDialog } from './GeoResearchAssistantDialog'
@@ -31,9 +32,9 @@ import { ResetScrapingDialog } from './ResetScrapingDialog'
 import {
     isGameInFlight,
     tiersInFlightForGame,
-    useGeoRunPolling,
     type GeoRunStatePayload,
 } from '@/hooks/useGeoRunPolling'
+import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
 
 // Per-game ingestion-state surface. Replaces the global metric-tile grid +
 // failures table from GeoAdminActions with a focused, drill-down table where
@@ -102,20 +103,17 @@ interface SourcesResponse {
     sources: TierState[]
 }
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(path, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        ...init,
-    })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok || !json?.success) {
-        throw new Error(json?.error?.code ?? `request failed: ${res.status}`)
-    }
-    return json.data as T
+
+interface GeoMapsTabProps {
+    // The run-progress hook is owned by the parent (GeoReviewPanel) so that
+    // polling and the live banner survive when an admin switches between
+    // Pins / Maps / Games tabs mid-run.
+    runState: GeoRunStatePayload | null
+    runError: string | null
+    armRunPolling: (windowMs?: number) => void
 }
 
-export function GeoMapsTab() {
+export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProps) {
     const { t } = useTranslation()
     const [games, setGames] = useState<CuratedGame[] | null>(null)
     const [loading, setLoading] = useState(true)
@@ -131,7 +129,7 @@ export function GeoMapsTab() {
     const [resetting, setResetting] = useState(false)
     const [runningAll, setRunningAll] = useState(false)
     const [runningGameId, setRunningGameId] = useState<number | null>(null)
-    const { state: runState, error: runError, arm: armRunPolling } = useGeoRunPolling()
+    const [retryingTier, setRetryingTier] = useState<string | null>(null)
 
     const reload = useCallback(async () => {
         setLoading(true)
@@ -167,8 +165,11 @@ export function GeoMapsTab() {
     }, [reload])
 
     useEffect(() => {
+        // Clear immediately on selection change so the side panel doesn't
+        // flash the previous game's name/preview while the next sources
+        // request is in flight (S2 from the audit).
+        setSources(null)
         if (selectedId !== null) void reloadSources(selectedId)
-        else setSources(null)
     }, [selectedId, reloadSources])
 
     const reimport = async (game: CuratedGame) => {
@@ -181,6 +182,9 @@ export function GeoMapsTab() {
                 body: JSON.stringify({ gameId: game.id }),
             })
             setMessage(t('admin.geo.maps.reimportQueued', { name: game.name }))
+            // Show live progress in the run banner since /reimport now
+            // enqueues the full resolve+tick pipeline (not just resolver).
+            armRunPolling()
             await Promise.all([reload(), reloadSources(game.id)])
         } catch (e) {
             setError(String(e))
@@ -238,6 +242,24 @@ export function GeoMapsTab() {
             setError(String(e))
         } finally {
             setRunningGameId(null)
+        }
+    }
+
+    const handleRetryTier = async (gameId: number, tier: string) => {
+        setRetryingTier(tier)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/tombstone/${gameId}/${tier}`, {
+                method: 'DELETE',
+            })
+            setMessage(t('admin.geo.maps.tierStatus.retryQueued'))
+            armRunPolling()
+            await reloadSources(gameId)
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setRetryingTier(null)
         }
     }
 
@@ -314,9 +336,10 @@ export function GeoMapsTab() {
                             </Button>
                         </div>
                     </div>
-                    <RunStateBanner state={runState} t={t} />
                     {runError && (
-                        <p className="text-[11px] text-destructive">{runError}</p>
+                        <p className="text-[11px] text-destructive" role="alert">
+                            {runError}
+                        </p>
                     )}
                 </CardHeader>
                 <CardContent className="p-0">
@@ -331,8 +354,17 @@ export function GeoMapsTab() {
                         </div>
                     )}
                     {loading && games === null ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <div
+                            className="flex justify-center py-12"
+                            role="status"
+                            aria-live="polite"
+                            aria-busy="true"
+                            aria-label={t('admin.geo.maps.loading')}
+                        >
+                            <Loader2
+                                className="h-5 w-5 animate-spin text-muted-foreground"
+                                aria-hidden
+                            />
                         </div>
                     ) : games && games.length > 0 ? (
                         <ul className="divide-y divide-border/40">
@@ -434,8 +466,17 @@ export function GeoMapsTab() {
                             {t('admin.geo.maps.sidePanel.hint')}
                         </p>
                     ) : sourcesLoading && !sources ? (
-                        <div className="flex justify-center py-6">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <div
+                            className="flex justify-center py-6"
+                            role="status"
+                            aria-live="polite"
+                            aria-busy="true"
+                            aria-label={t('admin.geo.maps.sidePanel.loading')}
+                        >
+                            <Loader2
+                                className="h-4 w-4 animate-spin text-muted-foreground"
+                                aria-hidden
+                            />
                         </div>
                     ) : sources ? (
                         <>
@@ -489,6 +530,16 @@ export function GeoMapsTab() {
                                             state={s}
                                             t={t}
                                             running={running}
+                                            onRetry={
+                                                s.tier !== 'manual'
+                                                    ? () =>
+                                                          void handleRetryTier(
+                                                              sources.gameId,
+                                                              s.tier,
+                                                          )
+                                                    : undefined
+                                            }
+                                            retrying={retryingTier === s.tier}
                                         />
                                     )
                                 })}
@@ -497,9 +548,10 @@ export function GeoMapsTab() {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1"
+                                    className="flex-1 border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
                                     disabled={busyAction !== null}
                                     onClick={() => void reimport(selectedGame)}
+                                    title={t('admin.geo.maps.actions.rerunTooltip')}
                                 >
                                     {busyAction === 'reimport' ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -636,10 +688,14 @@ function TierRow({
     state,
     t,
     running,
+    onRetry,
+    retrying,
 }: {
     state: TierState
     t: ReturnType<typeof useTranslation>['t']
     running?: boolean
+    onRetry?: () => void
+    retrying?: boolean
 }) {
     const tierLabel = t(`admin.geo.maps.tiers.${state.tier}`)
 
@@ -714,12 +770,31 @@ function TierRow({
                 >
                     {state.reason}
                 </p>
-                <p className="pt-0.5 text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" aria-hidden />
-                    {t('admin.geo.maps.tierStatus.retryAfter', {
-                        time: retry.toLocaleString(),
-                    })}
-                </p>
+                <div className="pt-0.5 flex items-center justify-between gap-2">
+                    <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" aria-hidden />
+                        {t('admin.geo.maps.tierStatus.retryAfter', {
+                            time: retry.toLocaleString(),
+                        })}
+                    </p>
+                    {onRetry && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={retrying}
+                            onClick={onRetry}
+                            className="h-6 gap-1 px-2 text-[10px] text-destructive hover:text-destructive"
+                            title={t('admin.geo.maps.tierStatus.retryNowTooltip')}
+                        >
+                            {retrying ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <RefreshCcw className="h-3 w-3" />
+                            )}
+                            {t('admin.geo.maps.tierStatus.retryNow')}
+                        </Button>
+                    )}
+                </div>
             </li>
         )
     }
@@ -761,34 +836,5 @@ function TierRow({
                 </p>
             )}
         </li>
-    )
-}
-
-// Compact summary line that shows BullMQ in-flight counts during a manual
-// run. Hidden while the queue is idle so it doesn't clutter the header.
-function RunStateBanner({
-    state,
-    t,
-}: {
-    state: GeoRunStatePayload | null
-    t: ReturnType<typeof useTranslation>['t']
-}) {
-    if (!state || !state.isActive) return null
-    const { active, waiting, delayed, failed } = state.counts
-    return (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1 text-neon-pink">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                {t('admin.geo.run.banner.active', { count: active })}
-            </span>
-            <span className="text-muted-foreground">
-                · {t('admin.geo.run.banner.waiting', { count: waiting + delayed })}
-            </span>
-            {failed > 0 && (
-                <span className="text-destructive">
-                    · {t('admin.geo.run.banner.failed', { count: failed })}
-                </span>
-            )}
-        </div>
     )
 }

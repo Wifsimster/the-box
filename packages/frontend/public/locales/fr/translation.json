@@ -484,6 +484,7 @@
     "geo": {
       "title": "Modération Géo",
       "subtitle": "Curatez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
+      "candidatesLoading": "Chargement des épingles…",
       "tabs": {
         "pins": "Épingles",
         "maps": "Cartes",
@@ -497,6 +498,16 @@
         "errors": "erreurs",
         "nextChallenge": "prochain",
         "scheduleNow": "Planifier"
+      },
+      "coldStart": {
+        "no-curated": {
+          "title": "Aucun jeu curaté pour le moment",
+          "body": "Allez dans l'onglet Jeux pour activer le mode Géo sur un ou plusieurs jeux. Une fois curatés, le pipeline ingère leurs cartes automatiquement."
+        },
+        "no-maps": {
+          "title": "Aucune carte importée",
+          "body": "Vos jeux curatés n'ont pas encore de carte active. Cliquez sur « Tout lancer » dans l'onglet Cartes pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
+        }
       },
       "games": {
         "title": "Jeux",
@@ -566,15 +577,20 @@
           "eligible": "Éligible",
           "untried": "Ignoré",
           "eligibleHint": "Sera tenté à la prochaine passe si aucun niveau précédent ne réussit.",
-          "retryAfter": "Nouvel essai après {{time}}"
+          "retryAfter": "Nouvel essai après {{time}}",
+          "retryNow": "Réessayer",
+          "retryNowTooltip": "Efface le tombstone de cette source et relance la pipeline pour ce jeu.",
+          "retryQueued": "Réessai en file. La pipeline va se relancer dans quelques secondes."
         },
         "viewSource": "Voir la source",
         "actions": {
-          "rerun": "Relancer le pipeline",
+          "rerun": "Forcer une ré-ingestion",
+          "rerunTooltip": "Efface tous les tombstones d'échec pour ce jeu et relance la pipeline complète (résolution + cartes). Plus agressif que « Lancer pour ce jeu » qui respecte les tombstones existants.",
           "research": "Rechercher",
           "researchTooltip": "Ouvrir des liens de recherche pré-remplis (Google, StrategyWiki, Fextralife…)",
           "uploadManual": "Téléverser manuellement"
         },
+        "loading": "Chargement des jeux…",
         "sidePanel": {
           "empty": "Sélectionnez un jeu",
           "hint": "Choisissez un jeu à gauche pour voir l'état d'ingestion niveau par niveau.",
@@ -582,7 +598,8 @@
           "activeViaTier": "Actif via {{tier}} · {{license}}",
           "region": "région : {{region}}",
           "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
-          "previewDimensions": "{{width}} × {{height}} px"
+          "previewDimensions": "{{width}} × {{height}} px",
+          "loading": "Chargement des sources…"
         }
       },
       "research": {
@@ -763,6 +780,7 @@
             "challenges": "Supprime tous les défis géo programmés.",
             "metadata": "Remet les métadonnées géo des jeux à « pending » pour forcer une nouvelle résolution."
           },
+          "confirmWord": "RÉINITIALISER",
           "confirmLabel": "Tapez {{word}} pour confirmer",
           "confirm": "Réinitialiser tout"
         }
@@ -1338,8 +1356,11 @@
       "formula": "Formule",
       "screenshotUnavailable": "Aperçu de la capture indisponible.",
       "mapUnavailable": "Carte indisponible.",
+      "loading": "Chargement du défi…",
       "errors": {
-        "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard."
+        "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard.",
+        "nextIn": "Prochain défi dans {{countdown}}",
+        "viewHistory": "Voir les défis passés"
       }
     },
     "contribute": {
@@ -1349,6 +1370,7 @@
       "map": "Épinglez son emplacement",
       "submit": "Envoyer l'épingle",
       "skip": "Passer",
+      "loading": "Chargement de la capture…",
       "thanks": "Merci — nous vous préviendrons quand d'autres joueurs confirmeront l'emplacement.",
       "recent": "Récompenses récentes",
       "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",
@@ -1376,9 +1398,10 @@
       "unlockDays": "jours joués"
     },
     "map": {
-      "ariaPin": "Épinglez l'emplacement sur la carte",
-      "labelYou": "Vous",
-      "labelActual": "Réel"
+      "ariaPin": "Épinglez l'emplacement sur la carte. Utilisez les flèches du clavier pour déplacer le curseur, puis Entrée pour valider.",
+      "ariaPinDisabled": "Carte",
+      "labelYou": "Votre épingle",
+      "labelActual": "Emplacement réel"
     }
   },
   "apiErrors": {
