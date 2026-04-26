@@ -259,7 +259,7 @@ export function GameForm({
                   <FormItem>
                     <FormLabel>{t('admin.games.form.developer')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Studio Name" disabled={isLoading} />
+                      <Input {...field} placeholder={t('admin.games.form.developerPlaceholder')} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -272,7 +272,7 @@ export function GameForm({
                   <FormItem>
                     <FormLabel>{t('admin.games.form.publisher')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Publisher Name" disabled={isLoading} />
+                      <Input {...field} placeholder={t('admin.games.form.publisherPlaceholder')} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -329,7 +329,7 @@ export function GameForm({
                       {field.value && !imageError ? (
                         <img
                           src={field.value}
-                          alt="Cover preview"
+                          alt={t('admin.games.form.coverPreviewAlt')}
                           className="w-full h-full object-cover"
                           onError={() => setImageError(true)}
                         />

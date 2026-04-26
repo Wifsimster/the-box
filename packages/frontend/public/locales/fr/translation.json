@@ -36,6 +36,9 @@
     "activeFilters": "Filtres actifs",
     "clearAll": "Tout effacer",
     "earned": "Obtenu",
+    "menu": "Menu",
+    "toggleMenu": "Ouvrir/fermer le menu",
+    "toggleDetails": "Afficher/masquer les détails",
     "rankBadge": {
       "first": "1re place",
       "second": "2e place",
@@ -101,7 +104,8 @@
       "next": "Capture suivante"
     },
     "screenshots": "captures",
-    "round": "Round",
+    "screenshotPlaceholder": "La capture apparaîtra ici",
+    "round": "Manche",
     "score": "Score",
     "time": "Temps",
     "guessPlaceholder": "Nom du jeu...",
@@ -421,7 +425,7 @@
   "admin": {
     "title": "Administration",
     "tabs": {
-      "import": "Import",
+      "import": "Importer",
       "jobs": "Tâches",
       "games": "Jeux",
       "challenges": "Défis",
@@ -884,12 +888,15 @@
         "releaseYear": "Année de sortie",
         "metacritic": "Metascore",
         "developer": "Développeur",
+        "developerPlaceholder": "Nom du studio",
         "publisher": "Éditeur",
+        "publisherPlaceholder": "Nom de l'éditeur",
         "genres": "Genres",
         "genresPlaceholder": "Action, RPG, ...",
         "platforms": "Plateformes",
         "platformsPlaceholder": "PC, PlayStation, ...",
-        "coverImageUrl": "URL de l'image de couverture"
+        "coverImageUrl": "URL de l'image de couverture",
+        "coverPreviewAlt": "Aperçu de la couverture"
       },
       "messages": {
         "created": "Jeu créé avec succès",
@@ -1200,6 +1207,12 @@
       "achievements": "Commencez à jouer pour débloquer des succès !",
       "achievementPoints": "Gagnez des points en débloquant des succès !"
     },
+    "tooltips": {
+      "totalScoreDescription": "Cumul de tous vos scores de jeu",
+      "currentStreakDescription": "Jours consécutifs de jeu",
+      "unlockedAchievementsTitle": "Succès débloqués",
+      "earnedOfTotal": "{{earned}}/{{total}} succès obtenus"
+    },
     "tabs": {
       "overview": "Aperçu",
       "achievements": "Succès",
@@ -1331,6 +1344,11 @@
       "placeholder": "Étiquetez des captures pour gagner des jetons et un palier Contributeur.",
       "unlockLabel": "Contribution débloquée après",
       "unlockDays": "jours joués"
+    },
+    "map": {
+      "ariaPin": "Épinglez l'emplacement sur la carte",
+      "labelYou": "Vous",
+      "labelActual": "Réel"
     }
   },
   "apiErrors": {

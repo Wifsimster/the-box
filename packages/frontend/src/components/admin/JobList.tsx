@@ -350,7 +350,7 @@ export function JobList() {
                                     className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
                                       }`}
                                   />
-                                  <span className="sr-only">Toggle details</span>
+                                  <span className="sr-only">{t('common.toggleDetails')}</span>
                                 </Button>
                               </CollapsibleTrigger>
 

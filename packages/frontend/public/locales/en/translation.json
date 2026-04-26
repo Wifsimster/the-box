@@ -36,6 +36,9 @@
     "activeFilters": "Active filters",
     "clearAll": "Clear all",
     "earned": "Earned",
+    "menu": "Menu",
+    "toggleMenu": "Toggle menu",
+    "toggleDetails": "Toggle details",
     "rankBadge": {
       "first": "1st place",
       "second": "2nd place",
@@ -101,6 +104,7 @@
       "next": "Next screenshot"
     },
     "screenshots": "screenshots",
+    "screenshotPlaceholder": "Screenshot will appear here",
     "round": "Round",
     "score": "Score",
     "time": "Time",
@@ -921,12 +925,15 @@
         "releaseYear": "Release Year",
         "metacritic": "Metascore",
         "developer": "Developer",
+        "developerPlaceholder": "Studio Name",
         "publisher": "Publisher",
+        "publisherPlaceholder": "Publisher Name",
         "genres": "Genres",
         "genresPlaceholder": "Action, RPG, ...",
         "platforms": "Platforms",
         "platformsPlaceholder": "PC, PlayStation, ...",
-        "coverImageUrl": "Cover Image URL"
+        "coverImageUrl": "Cover Image URL",
+        "coverPreviewAlt": "Cover preview"
       },
       "messages": {
         "created": "Game created successfully",
@@ -1200,6 +1207,12 @@
       "achievements": "Start playing to unlock achievements!",
       "achievementPoints": "Earn points by unlocking achievements!"
     },
+    "tooltips": {
+      "totalScoreDescription": "Sum of all your game scores",
+      "currentStreakDescription": "Consecutive days played",
+      "unlockedAchievementsTitle": "Unlocked achievements",
+      "earnedOfTotal": "{{earned}}/{{total}} achievements earned"
+    },
     "tabs": {
       "overview": "Overview",
       "achievements": "Achievements",
@@ -1331,6 +1344,11 @@
       "placeholder": "Tag screenshots to earn hint tokens and a Crowdsourcer tier.",
       "unlockLabel": "Contribute unlocks after",
       "unlockDays": "days played"
+    },
+    "map": {
+      "ariaPin": "Pin location on the map",
+      "labelYou": "You",
+      "labelActual": "Actual"
     }
   },
   "apiErrors": {
