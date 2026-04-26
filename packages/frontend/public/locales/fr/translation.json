@@ -572,6 +572,7 @@
           "hint": "Choisissez un jeu à gauche pour voir l'état d'ingestion niveau par niveau.",
           "noActive": "Aucune carte active — voir l'état des niveaux ci-dessous.",
           "activeViaTier": "Actif via {{tier}} · {{license}}",
+          "region": "région : {{region}}",
           "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
           "previewDimensions": "{{width}} × {{height}} px"
         }
@@ -685,7 +686,10 @@
             "heightPx": "Hauteur (px)",
             "license": "Licence",
             "attribution": "Attribution",
-            "sourceUrl": "URL de la page source"
+            "sourceUrl": "URL de la page source",
+            "region": "Région (optionnel)",
+            "regionPlaceholder": "ex. Velen, Acte II",
+            "regionHint": "Laissez vide s'il s'agit de la carte canonique / monde / mosaïque."
           },
           "submit": "Enregistrer la carte",
           "submitReplace": "Remplacer la carte",

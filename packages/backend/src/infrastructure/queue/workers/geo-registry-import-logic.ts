@@ -27,6 +27,10 @@ export interface RegistryEntry {
   attribution: string
   sourceUrl?: string
   commercialUseOk?: boolean
+  // Optional region label (e.g. "Velen", "Act II"). Omit for the canonical
+  // world / mosaic map. Stored on geo_map.region for admin visibility; the
+  // runtime still selects a single is_active row per game today.
+  region?: string
 }
 
 interface RegistryFile {
@@ -110,6 +114,7 @@ export async function importRegistryMap(
     heightPx: entry.heightPx,
     license: entry.license,
     attribution: entry.attribution,
+    region: entry.region ?? null,
   })
 
   await geoIngestFailureRepository.clear(gameId, 'registry')

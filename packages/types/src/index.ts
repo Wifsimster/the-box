@@ -754,6 +754,10 @@ export interface GeoMap {
   consensusRadius: number
   license: string
   attribution?: string
+  // Optional region label for games whose world is natively split
+  // (Witcher 3 Velen / Skellige, BG3 Acts I-III, Diablo II Acts I-V).
+  // Undefined = canonical / world map (default).
+  region?: string
   // Fandom Interactive Maps source identity (only set for source='fandom').
   // wikiMapName is the `Map:` page name without prefix; wikiRevisionId is
   // the JSON revisionId at import time, used for change detection.

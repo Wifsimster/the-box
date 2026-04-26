@@ -47,6 +47,7 @@ interface ActiveMapInfo {
     attribution: string | null
     widthPx: number
     heightPx: number
+    region?: string | null
 }
 
 type TierKey = 'registry' | 'fandom' | 'wikidata' | 'manual'
@@ -255,6 +256,14 @@ export function GeoMapsTab() {
                                 tier: t(`admin.geo.maps.tiers.${sources.activeMap.source}`),
                                 license: sources.activeMap.license,
                             })}
+                            {sources.activeMap.region && (
+                                <span className="ml-1 text-muted-foreground">
+                                    {' · '}
+                                    {t('admin.geo.maps.sidePanel.region', {
+                                        region: sources.activeMap.region,
+                                    })}
+                                </span>
+                            )}
                         </CardDescription>
                     )}
                     {selectedGame && sources && !sources.activeMap && (

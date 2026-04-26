@@ -1994,6 +1994,7 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
               attribution: activeMap.attribution,
               widthPx: activeMap.widthPx,
               heightPx: activeMap.heightPx,
+              region: activeMap.region,
             }
           : null,
         sources,
@@ -2214,6 +2215,9 @@ const manualGeoMapBodySchema = z.object({
   attribution: z.string().max(500).optional(),
   sourceUrl: z.string().url().max(1000).optional(),
   consensusRadius: z.number().min(0.001).max(1).optional(),
+  // Optional region label (e.g. "Velen", "Act II") for multi-map games.
+  // Omit / empty for the canonical world map. Stored on geo_map.region.
+  region: z.string().trim().min(1).max(100).optional(),
   // If true, the existing active map for this game is deactivated first so
   // the new one becomes canonical without violating the unique
   // (game_id, image_url) constraint when the URLs differ.
@@ -2266,6 +2270,7 @@ router.post('/geo/maps/manual', async (req, res, next) => {
       license: data.license,
       attribution: data.attribution,
       consensusRadius: data.consensusRadius,
+      region: data.region,
     })
 
     // Also clear all ingest tombstones for this game — manual upload is the
