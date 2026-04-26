@@ -272,3 +272,130 @@ async function tombstoneBlocks(
     .first<{ game_id: number }>()
   return Boolean(row)
 }
+
+export type RunnableTier =
+  | 'registry'
+  | 'fandom'
+  | 'strategywiki'
+  | 'fextralife'
+  | 'wikidata'
+
+export type SingleTierFailure =
+  | 'GAME_NOT_FOUND'
+  | 'NOT_CURATED'
+  | 'METADATA_UNRESOLVED'
+  | 'NO_REGISTRY_ENTRY'
+  | 'MISSING_FANDOM_METADATA'
+  | 'MISSING_WIKIDATA_QID'
+
+export type EnqueueSingleTierResult =
+  | { enqueued: true; jobId: string }
+  | { enqueued: false; reason: SingleTierFailure }
+
+interface SingleTierGameRow {
+  id: number
+  name: string
+  slug: string
+  wiki_subdomain: string | null
+  wiki_page_title: string | null
+  wikidata_qid: string | null
+  geo_curated: boolean
+  geo_metadata_status: 'pending' | 'resolved' | 'unresolved'
+}
+
+/**
+ * Enqueue a single tier's import job for one game. Used by the admin "Run now"
+ * button on the per-tier eligible row, which lets an operator kick off just
+ * that source instead of the whole cascade. Tombstones are intentionally not
+ * checked: the UI only surfaces this for `eligible` tiers (no live tombstone),
+ * and bypassing the gate makes the button do exactly what it says.
+ */
+export async function enqueueSingleTierImport(
+  gameId: number,
+  source: RunnableTier,
+): Promise<EnqueueSingleTierResult> {
+  const game = await db<SingleTierGameRow>('games')
+    .where({ id: gameId })
+    .select(
+      'id',
+      'name',
+      'slug',
+      'wiki_subdomain',
+      'wiki_page_title',
+      'wikidata_qid',
+      'geo_curated',
+      'geo_metadata_status',
+    )
+    .first()
+  if (!game) return { enqueued: false, reason: 'GAME_NOT_FOUND' }
+  if (!game.geo_curated) return { enqueued: false, reason: 'NOT_CURATED' }
+  if (game.geo_metadata_status !== 'resolved')
+    return { enqueued: false, reason: 'METADATA_UNRESOLVED' }
+
+  const jobId = `manual-${source}-${gameId}`
+
+  if (source === 'registry') {
+    const entry = await findRegistryEntryBySlug(game.slug)
+    if (!entry) return { enqueued: false, reason: 'NO_REGISTRY_ENTRY' }
+    await geoQueue.add(
+      'import-registry-map',
+      { kind: 'import-registry-map', gameId, entry },
+      { jobId },
+    )
+    return { enqueued: true, jobId }
+  }
+
+  if (source === 'fandom') {
+    if (!game.wiki_subdomain || !game.wiki_page_title)
+      return { enqueued: false, reason: 'MISSING_FANDOM_METADATA' }
+    await geoQueue.add(
+      'import-fandom-map',
+      {
+        kind: 'import-fandom-map',
+        gameId,
+        wikiSubdomain: game.wiki_subdomain,
+        pageTitle: game.wiki_page_title,
+      },
+      { jobId },
+    )
+    return { enqueued: true, jobId }
+  }
+
+  if (source === 'strategywiki') {
+    await geoQueue.add(
+      'import-strategywiki-map',
+      {
+        kind: 'import-strategywiki-map',
+        gameId,
+        gameName: game.name,
+        slug: game.slug,
+      },
+      { jobId },
+    )
+    return { enqueued: true, jobId }
+  }
+
+  if (source === 'fextralife') {
+    await geoQueue.add(
+      'import-fextralife-map',
+      {
+        kind: 'import-fextralife-map',
+        gameId,
+        gameName: game.name,
+        slug: game.slug,
+      },
+      { jobId },
+    )
+    return { enqueued: true, jobId }
+  }
+
+  // wikidata
+  if (!game.wikidata_qid)
+    return { enqueued: false, reason: 'MISSING_WIKIDATA_QID' }
+  await geoQueue.add(
+    'import-wikidata-map',
+    { kind: 'import-wikidata-map', gameId, wikidataQid: game.wikidata_qid },
+    { jobId },
+  )
+  return { enqueued: true, jobId }
+}
