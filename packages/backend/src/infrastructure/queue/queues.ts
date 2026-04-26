@@ -61,6 +61,13 @@ export type GeoJobData =
       steamAppId: number
       maxItems?: number
     }
+  | {
+      kind: 'import-rawg-screenshots'
+      gameId: number
+      geoMapId: number
+      rawgId: number
+      maxItems?: number
+    }
   | { kind: 'schedule-daily-challenge'; date?: string }
   | { kind: 'resolve-metadata'; batchSize?: number; gameId?: number }
   | { kind: 'ingest-tick'; batchSize?: number; gameId?: number }
