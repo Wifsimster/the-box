@@ -567,9 +567,10 @@
           "fandom": "Tier 2 — Fandom",
           "strategywiki": "Tier 3 — StrategyWiki",
           "fextralife": "Tier 4 — Fextralife",
-          "wikidata": "Tier 5 — Wikidata",
+          "wand": "Tier 5 — Wand",
+          "wikidata": "Tier 6 — Wikidata",
           "steam": "Steam",
-          "manual": "Tier 6 — Manual"
+          "manual": "Tier 7 — Manual"
         },
         "tierStatus": {
           "matched": "Matched",
@@ -598,6 +599,8 @@
           "research": "Research",
           "researchTooltip": "Open pre-filled search links (Google, StrategyWiki, Fextralife…)",
           "uploadManual": "Upload manually",
+          "importWand": "Import from Wand",
+          "importWandTooltip": "Paste a wand.com map URL — the server will scrape its og:image and record it as the map for this game.",
           "viewCaptures_one": "View captures ({{count}})",
           "viewCaptures_other": "View captures ({{count}})",
           "viewCapturesTooltip": "Open the Pins tab filtered to this game's captures."
@@ -772,6 +775,25 @@
           "required": "Image URL, width, height, and license are required."
         },
         "success": "Manual map saved for \"{{name}}\"."
+      },
+      "wandMap": {
+        "title": "Import from Wand for \"{{name}}\"",
+        "description": "Paste the wand.com map page URL. The server fetches the page and records its og:image as the map. Wand maps are stored with attribution-only license.",
+        "descriptionReplace": "Replace the active map for this game with a Wand-sourced one. The previous map is deactivated; existing screenshot pins remain valid because coordinates are normalized.",
+        "fields": {
+          "wandUrl": "Wand map URL",
+          "wandUrlHint": "Must be a https://wand.com/maps/… URL.",
+          "region": "Region (optional)",
+          "regionPlaceholder": "e.g. Velen, Act II",
+          "regionHint": "Leave empty if this is the canonical / world / mosaic map."
+        },
+        "submit": "Import from Wand",
+        "submitReplace": "Replace with Wand map",
+        "errors": {
+          "required": "A wand.com URL is required.",
+          "notWandUrl": "URL must be hosted on wand.com."
+        },
+        "success": "Wand map imported for \"{{name}}\"."
       },
       "run": {
         "allCta": "Run all",

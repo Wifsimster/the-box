@@ -28,6 +28,7 @@ import {
     ListChecks,
 } from 'lucide-react'
 import { GeoManualMapDialog } from './GeoManualMapDialog'
+import { GeoWandMapDialog } from './GeoWandMapDialog'
 import { GeoResearchAssistantDialog } from './GeoResearchAssistantDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
 import {
@@ -60,6 +61,7 @@ interface ActiveMapInfo {
         | 'fandom'
         | 'strategywiki'
         | 'fextralife'
+        | 'wand'
         | 'wikidata'
         | 'steam'
         | 'manual'
@@ -76,6 +78,7 @@ type TierKey =
     | 'fandom'
     | 'strategywiki'
     | 'fextralife'
+    | 'wand'
     | 'wikidata'
     | 'manual'
 
@@ -149,6 +152,7 @@ export function GeoMapsTab({
     const [busyAction, setBusyAction] = useState<'reimport' | null>(null)
     const [message, setMessage] = useState<string | null>(null)
     const [manualUploadFor, setManualUploadFor] = useState<CuratedGame | null>(null)
+    const [wandImportFor, setWandImportFor] = useState<CuratedGame | null>(null)
     const [researchFor, setResearchFor] = useState<CuratedGame | null>(null)
     const [resetOpen, setResetOpen] = useState(false)
     const [resetting, setResetting] = useState(false)
@@ -227,6 +231,16 @@ export function GeoMapsTab({
             }),
         )
         const id = manualUploadFor?.id
+        void Promise.all([reload(), id !== undefined ? reloadSources(id) : Promise.resolve()])
+    }
+
+    const onWandSuccess = () => {
+        setMessage(
+            t('admin.geo.wandMap.success', {
+                name: wandImportFor?.name ?? '',
+            }),
+        )
+        const id = wandImportFor?.id
         void Promise.all([reload(), id !== undefined ? reloadSources(id) : Promise.resolve()])
     }
 
@@ -654,6 +668,16 @@ export function GeoMapsTab({
                                     size="sm"
                                     variant="outline"
                                     className="flex-1"
+                                    onClick={() => setWandImportFor(selectedGame)}
+                                    title={t('admin.geo.maps.actions.importWandTooltip')}
+                                >
+                                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                                    {t('admin.geo.maps.actions.importWand')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
                                     onClick={() => setManualUploadFor(selectedGame)}
                                 >
                                     <Upload className="h-3.5 w-3.5 mr-1.5" />
@@ -695,6 +719,20 @@ export function GeoMapsTab({
                     }
                 }
                 onSuccess={onManualSuccess}
+            />
+
+            <GeoWandMapDialog
+                isOpen={wandImportFor !== null}
+                onClose={() => setWandImportFor(null)}
+                game={
+                    wandImportFor && {
+                        id: wandImportFor.id,
+                        name: wandImportFor.name,
+                        slug: wandImportFor.slug,
+                        hasMap: wandImportFor.hasMap,
+                    }
+                }
+                onSuccess={onWandSuccess}
             />
 
             <GeoResearchAssistantDialog

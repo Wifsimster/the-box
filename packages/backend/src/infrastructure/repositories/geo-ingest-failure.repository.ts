@@ -10,6 +10,7 @@ export type GeoIngestSource =
   | 'registry'
   | 'strategywiki'
   | 'fextralife'
+  | 'wand'
   | 'wikidata'
 
 export interface GeoIngestFailureRow {
