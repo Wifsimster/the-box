@@ -483,7 +483,7 @@
     },
     "geo": {
       "title": "Modération Géo",
-      "subtitle": "Curatez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
+      "subtitle": "Gérez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
       "candidatesLoading": "Chargement des épingles…",
       "tabs": {
         "pins": "Épingles",
@@ -501,23 +501,23 @@
       },
       "coldStart": {
         "no-curated": {
-          "title": "Aucun jeu curaté pour le moment",
-          "body": "Allez dans l'onglet Jeux pour activer le mode Géo sur un ou plusieurs jeux. Une fois curatés, le pipeline ingère leurs cartes automatiquement."
+          "title": "Aucun jeu activé pour le moment",
+          "body": "Allez dans l'onglet Jeux pour activer le mode Géo sur un ou plusieurs jeux. Une fois activés, le pipeline ingère leurs cartes automatiquement."
         },
         "no-maps": {
           "title": "Aucune carte importée",
-          "body": "Vos jeux curatés n'ont pas encore de carte active. Cliquez sur « Tout lancer » dans l'onglet Cartes pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
+          "body": "Vos jeux activés n'ont pas encore de carte active. Cliquez sur « Tout lancer » dans l'onglet Cartes pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
         }
       },
       "games": {
         "title": "Jeux",
-        "subtitle": "Curatez les jeux dont les cartes et captures doivent alimenter le défi Géo quotidien. Sélectionnez-en plusieurs pour curater ou retirer en lot.",
+        "subtitle": "Activez les jeux dont les cartes et captures doivent alimenter le défi Géo quotidien. Sélectionnez-en plusieurs pour les activer ou les retirer en lot.",
         "refresh": "Rafraîchir",
         "empty": "Aucun jeu ne correspond à ce filtre.",
         "filter": {
           "label": "Filtre",
           "all": "Tous",
-          "curated": "Curatés",
+          "curated": "Activés",
           "candidates": "Candidats"
         },
         "select": "Sélectionner",
@@ -530,20 +530,20 @@
           "status": "Statut"
         },
         "status": {
-          "curatedMapped": "Curaté · Carte",
-          "curatedNoMap": "Curaté · Sans carte",
+          "curatedMapped": "Activé · Carte",
+          "curatedNoMap": "Activé · Sans carte",
           "candidate": "Candidat"
         },
         "bulk": {
           "selected_one": "{{count}} sélectionné",
           "selected_other": "{{count}} sélectionnés",
-          "curate": "Curater",
+          "curate": "Activer",
           "remove": "Retirer",
           "clear": "Effacer",
-          "curatedMessage_one": "{{count}} jeu curaté.",
-          "curatedMessage_other": "{{count}} jeux curatés.",
-          "removedMessage_one": "{{count}} jeu retiré du set curaté.",
-          "removedMessage_other": "{{count}} jeux retirés du set curaté.",
+          "curatedMessage_one": "{{count}} jeu activé.",
+          "curatedMessage_other": "{{count}} jeux activés.",
+          "removedMessage_one": "{{count}} jeu retiré de la sélection.",
+          "removedMessage_other": "{{count}} jeux retirés de la sélection.",
           "noMapLikely_one": "{{count}} sans carte probable",
           "noMapLikely_other": "{{count}} sans carte probable"
         },
@@ -554,7 +554,7 @@
         "title": "Cartes par jeu",
         "subtitle": "Cliquez sur un jeu pour voir quels niveaux d'ingestion ont été essayés ou seraient lancés ensuite.",
         "refresh": "Rafraîchir",
-        "empty": "Aucun jeu curaté pour le moment. Ajoutez-en depuis la liste curatée de l'onglet Épingles.",
+        "empty": "Aucun jeu activé pour le moment. Ajoutez-en depuis la liste des jeux activés de l'onglet Épingles.",
         "reimportQueued": "Pipeline relancé pour « {{name}} ».",
         "row": {
           "hasMap": "Carte",
@@ -621,7 +621,7 @@
       },
       "intro": {
         "title": "Comment cette page fonctionne",
-        "step1Title": "1. Curater les jeux",
+        "step1Title": "1. Activer les jeux",
         "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → StrategyWiki → Fextralife → Wikidata → Manuel) et les captures Steam en arrière-plan.",
         "step2Title": "2. Suivre l'ingestion",
         "step2Body": "Visualisez l'avancement niveau par niveau dans l'onglet Cartes. Relancez le pipeline ou téléversez une carte manuellement si un jeu reste sans carte.",
@@ -672,7 +672,7 @@
       },
       "health": {
         "title": "Santé du dataset Géo",
-        "subtitle": "Le pipeline ingère automatiquement cartes et captures pour les jeux marqués comme curatés. Aucune action manuelle requise.",
+        "subtitle": "Le pipeline ingère automatiquement cartes et captures pour les jeux marqués comme activés. Aucune action manuelle requise.",
         "loading": "Chargement de l'état du dataset…",
         "error": "Échec du chargement de l'état du dataset.",
         "refresh": "Actualiser",
@@ -683,7 +683,7 @@
         },
         "coverage": {
           "label": "Couverture des cartes",
-          "value": "{{withMap}} / {{curated}} jeux curatés ont une carte ({{total}} jeux au total)"
+          "value": "{{withMap}} / {{curated}} jeux activés ont une carte ({{total}} jeux au total)"
         },
         "metrics": {
           "resolved": "Métadonnées résolues",
@@ -711,9 +711,9 @@
           "scheduleNow": "Planifier le défi maintenant"
         },
         "curatedList": {
-          "title": "Jeux curatés",
-          "empty": "Aucun jeu n'est encore dans le set curaté. Ajoutez-en depuis la liste de suggestions ci-dessous.",
-          "loading": "Chargement de la liste curatée…",
+          "title": "Jeux activés",
+          "empty": "Aucun jeu n'est encore activé. Ajoutez-en depuis la liste de suggestions ci-dessous.",
+          "loading": "Chargement de la liste des jeux activés…",
           "remove": "Retirer",
           "reimport": "Réimporter",
           "manualUpload": "Téléverser une carte manuellement",
@@ -729,16 +729,16 @@
         },
         "suggestions": {
           "title": "Suggestions",
-          "subtitle": "Jeux populaires non encore curatés (triés par Metacritic).",
+          "subtitle": "Jeux populaires non encore activés (triés par Metacritic).",
           "empty": "Aucune suggestion disponible.",
           "loading": "Chargement des suggestions…",
-          "add": "Curater",
+          "add": "Activer",
           "metacritic": "Metacritic {{score}}"
         },
         "actions": {
           "queued": "Tâche en file : {{id}}",
-          "curatedSet": "« {{name}} » est maintenant curaté",
-          "curatedRemoved": "« {{name}} » retiré du set curaté",
+          "curatedSet": "« {{name}} » est maintenant activé",
+          "curatedRemoved": "« {{name}} » retiré de la sélection",
           "reimportQueued": "Ré-ingestion lancée pour « {{name}} »",
           "scheduled": "Planification lancée (tâche {{id}})"
         }
@@ -767,9 +767,9 @@
       },
       "run": {
         "allCta": "Tout lancer",
-        "allTooltip": "Lance la résolution des métadonnées et l'ingestion pour tous les jeux curatés.",
+        "allTooltip": "Lance la résolution des métadonnées et l'ingestion pour tous les jeux activés.",
         "running": "En cours…",
-        "allQueued": "Lancement de la pipeline pour tous les jeux curatés.",
+        "allQueued": "Lancement de la pipeline pour tous les jeux activés.",
         "gameQueued": "Lancement de la pipeline pour « {{name}} ».",
         "gameTooltip": "Lancer pour ce jeu",
         "gameAria": "Lancer la pipeline pour {{name}}",
@@ -787,7 +787,7 @@
       },
       "reset": {
         "title": "Zone de danger — réinitialiser le scraping",
-        "subtitle": "Repart de zéro sur l'ingestion des cartes et captures. Les choix de curation (jeux activés) et les scores des joueurs sont conservés.",
+        "subtitle": "Repart de zéro sur l'ingestion des cartes et captures. Les jeux activés et les scores des joueurs sont conservés.",
         "cta": "Tout réinitialiser",
         "success": "Scraping réinitialisé : {{importStates}} états d'import, {{ingestFailures}} échecs, {{challenges}} défis géo, {{maps}} cartes supprimés.",
         "dialog": {
