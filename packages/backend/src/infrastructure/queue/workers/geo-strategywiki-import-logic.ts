@@ -20,12 +20,27 @@ const log = queueLogger.child({ worker: 'geo-strategywiki-import' })
 //   3. Resolve each File: via prop=imageinfo, score by name + size.
 //   4. Pick the highest-scoring image, validate dimensions, write geo_map.
 
+// Mozilla-style UA — bare `the-box-geo-importer/1.0` strings get a 403 from
+// the CDN that fronts strategywiki.org, presumably matching a generic
+// anti-bot rule. The "compatible" prefix + browser-shaped tail is the
+// MediaWiki-recommended form for crawlers and gets through cleanly.
 const DEFAULT_USER_AGENT =
-  'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
+  'Mozilla/5.0 (compatible; the-box-geo-importer/1.0; +https://github.com/Wifsimster/the-box)'
 const STRATEGYWIKI_API = 'https://strategywiki.org/w/api.php'
 const STRATEGYWIKI_LICENSE = 'CC-BY-SA-3.0'
 const MIN_IMAGE_DIMENSION = 600
 const MIN_IMAGE_AREA = 600_000
+
+// Headers shared by every StrategyWiki request. Keeping them in one place so
+// the 403-mitigation lives next to the UA — Accept-Language and a permissive
+// Accept also matter for the same anti-bot rule.
+function strategyWikiHeaders(ua: string): Record<string, string> {
+  return {
+    'User-Agent': ua,
+    Accept: 'application/json, */*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+  }
+}
 
 export interface ImportStrategyWikiMapInput {
   gameId: number
@@ -172,9 +187,7 @@ async function resolveStrategyWikiTitle(
   const url =
     `${STRATEGYWIKI_API}?action=opensearch&format=json&namespace=0` +
     `&limit=5&search=${encodeURIComponent(gameName)}`
-  const res = await fetch(url, {
-    headers: { 'User-Agent': ua, Accept: 'application/json' },
-  })
+  const res = await fetch(url, { headers: strategyWikiHeaders(ua) })
   if (!res.ok) throw new Error(`opensearch ${res.status}`)
   const body = (await res.json()) as OpenSearchResponse
   const titles = body[1] ?? []
@@ -195,9 +208,7 @@ async function listCandidateFiles(pageTitle: string, ua: string): Promise<string
   const url =
     `${STRATEGYWIKI_API}?action=query&format=json&prop=images&imlimit=200` +
     `&titles=${encodeURIComponent(titles)}`
-  const res = await fetch(url, {
-    headers: { 'User-Agent': ua, Accept: 'application/json' },
-  })
+  const res = await fetch(url, { headers: strategyWikiHeaders(ua) })
   if (!res.ok) throw new Error(`prop=images ${res.status}`)
   const body = (await res.json()) as ImagesResponse
   const out = new Set<string>()
@@ -236,9 +247,7 @@ async function pickBestImage(
     `${STRATEGYWIKI_API}?action=query&format=json&prop=imageinfo` +
     `&iiprop=url|size|mime|extmetadata&iiurlwidth=2048` +
     `&titles=${encodeURIComponent(titles)}`
-  const res = await fetch(url, {
-    headers: { 'User-Agent': ua, Accept: 'application/json' },
-  })
+  const res = await fetch(url, { headers: strategyWikiHeaders(ua) })
   if (!res.ok) throw new Error(`imageinfo ${res.status}`)
   const body = (await res.json()) as ImageInfoResponse
 
