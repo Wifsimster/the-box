@@ -6,6 +6,7 @@ const log = repoLogger.child({ repository: 'geo-ingest-failure' })
 export type GeoIngestSource =
   | 'fandom'
   | 'steam'
+  | 'rawg'
   | 'metadata'
   | 'registry'
   | 'strategywiki'

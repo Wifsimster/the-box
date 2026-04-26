@@ -1,4 +1,5 @@
 import { db } from '../../database/connection.js'
+import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { geoIngestFailureRepository } from '../../repositories/index.js'
 import {
@@ -18,6 +19,7 @@ const log = queueLogger.child({ worker: 'geo-metadata-resolve' })
 const DEFAULT_USER_AGENT =
   'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
 const STEAM_STORESEARCH = 'https://store.steampowered.com/api/storesearch/'
+const RAWG_API = 'https://api.rawg.io/api'
 const FANDOM_BASE = (sub: string) => `https://${sub}.fandom.com`
 const MAP_TITLE_PREFIX = 'Map:'
 
@@ -27,6 +29,7 @@ interface CuratedGameRow {
   slug: string
   genres: string[] | null
   steam_app_id: number | null
+  rawg_id: number | null
   wiki_subdomain: string | null
   wiki_page_title: string | null
   wikidata_qid: string | null
@@ -77,6 +80,7 @@ export async function resolveGeoMetadataBatch(
     'slug',
     'genres',
     'steam_app_id',
+    'rawg_id',
     'wiki_subdomain',
     'wiki_page_title',
     'wikidata_qid',
@@ -89,6 +93,13 @@ export async function resolveGeoMetadataBatch(
   for (const row of rows) {
     try {
       const steamAppId = row.steam_app_id ?? (await resolveSteamAppId(row.name))
+      // RAWG covers Switch / PS / Xbox / mobile titles that Steam can't,
+      // so resolving rawg_id for curated rows that don't already have one
+      // unblocks the rawg capture importer for the long tail of console
+      // exclusives (e.g. Zelda BotW). Gated on RAWG_API_KEY because the
+      // search endpoint requires it.
+      const rawgId =
+        row.rawg_id ?? (env.RAWG_API_KEY ? await resolveRawgId(row.name) : null)
       const wiki =
         row.wiki_subdomain && row.wiki_page_title
           ? { subdomain: row.wiki_subdomain, mapName: row.wiki_page_title }
@@ -115,6 +126,7 @@ export async function resolveGeoMetadataBatch(
         .where({ id: row.id })
         .update({
           steam_app_id: steamAppId,
+          rawg_id: rawgId,
           wiki_subdomain: wiki?.subdomain ?? row.wiki_subdomain,
           wiki_page_title: wiki?.mapName ?? row.wiki_page_title,
           wikidata_qid: wikidataQid ?? row.wikidata_qid,
@@ -124,7 +136,7 @@ export async function resolveGeoMetadataBatch(
       await geoIngestFailureRepository.clear(row.id, 'metadata')
       resolved++
       log.info(
-        { gameId: row.id, steamAppId, wiki, wikidataQid, hasRegistry },
+        { gameId: row.id, steamAppId, rawgId, wiki, wikidataQid, hasRegistry },
         'resolved geo metadata',
       )
     } catch (err) {
@@ -173,6 +185,49 @@ async function resolveSteamAppId(name: string): Promise<number | null> {
     return null
   } catch (err) {
     log.warn({ name, err: String(err) }, 'steam storesearch failed')
+    return null
+  }
+}
+
+async function resolveRawgId(name: string): Promise<number | null> {
+  const apiKey = env.RAWG_API_KEY
+  if (!apiKey) return null
+  try {
+    const url =
+      `${RAWG_API}/games?key=${encodeURIComponent(apiKey)}` +
+      `&search=${encodeURIComponent(name)}&page_size=10`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': DEFAULT_USER_AGENT, Accept: 'application/json' },
+    })
+    if (!res.ok) return null
+    const body = (await res.json()) as {
+      results?: Array<{ id: number; name: string }>
+    }
+    if (!body.results?.length) return null
+    const target = normalizeGameTitle(name)
+    // Same disambiguation rules we apply to Steam storesearch — exact
+    // normalized match wins, otherwise the first version-token-compatible
+    // hit. Without this guard "Diablo" silently binds to "Diablo II" / III.
+    const exact = body.results.find((it) => normalizeGameTitle(it.name) === target)
+    if (exact) return exact.id
+    const targetTokens = extractVersionTokens(target)
+    const compatible = body.results.find((it) =>
+      versionTokensMatch(targetTokens, extractVersionTokens(normalizeGameTitle(it.name))),
+    )
+    if (compatible) {
+      log.info(
+        { name, picked: compatible.name, rawgId: compatible.id },
+        'rawg search picked first version-compatible hit',
+      )
+      return compatible.id
+    }
+    log.warn(
+      { name, top: body.results[0]?.name },
+      'rawg search had no version-compatible hit',
+    )
+    return null
+  } catch (err) {
+    log.warn({ name, err: String(err) }, 'rawg search failed')
     return null
   }
 }

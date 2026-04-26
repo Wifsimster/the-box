@@ -1,4 +1,5 @@
 import { db } from '../../database/connection.js'
+import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { geoQueue } from '../queues.js'
 import { geoMapRepository } from '../../repositories/index.js'
@@ -7,13 +8,17 @@ import { findRegistryEntryBySlug } from './geo-registry-import-logic.js'
 const log = queueLogger.child({ worker: 'geo-ingest-tick' })
 
 const DEFAULT_BATCH = 25
-const STEAM_TARGET_CANDIDATES = 30 // stop fetching Steam shots once we have this many
+// Combined cap across every capture provider (Steam + RAWG). Once a game
+// has this many active candidates we stop enqueuing more — admins can
+// reject duds and the next tick will top up.
+const CAPTURE_TARGET_CANDIDATES = 30
 
 interface TickRow {
   id: number
   name: string
   slug: string
   steam_app_id: number | null
+  rawg_id: number | null
   wiki_subdomain: string | null
   wiki_page_title: string | null
   wikidata_qid: string | null
@@ -30,6 +35,7 @@ export interface IngestTickResult {
   wandEnqueued: number
   wikidataEnqueued: number
   steamEnqueued: number
+  rawgEnqueued: number
 }
 
 /**
@@ -73,6 +79,7 @@ export async function runGeoIngestTick(
         g.name,
         g.slug,
         g.steam_app_id,
+        g.rawg_id,
         g.wiki_subdomain,
         g.wiki_page_title,
         g.wikidata_qid,
@@ -108,6 +115,9 @@ export async function runGeoIngestTick(
   let wandEnqueued = 0
   let wikidataEnqueued = 0
   let steamEnqueued = 0
+  let rawgEnqueued = 0
+
+  const rawgEnabled = Boolean(env.RAWG_API_KEY)
 
   for (const row of rows) {
     const enqueued = await enqueueAllEligibleMapImports(row)
@@ -118,17 +128,19 @@ export async function runGeoIngestTick(
     wandEnqueued += enqueued.wand
     wikidataEnqueued += enqueued.wikidata
 
-    if (
-      row.active_map_id &&
-      row.candidate_count < STEAM_TARGET_CANDIDATES &&
-      row.steam_app_id
-    ) {
-      const skip = await tombstoneBlocks(row.id, 'steam')
-      if (!skip) {
-        // Re-fetch the active map id off the repo so we don't pass a stale
-        // value (the SELECT above can be racing a recent map import).
-        const map = await geoMapRepository.findActiveByGameId(row.id)
-        if (map) {
+    // Capture providers (Steam + RAWG) only run once an active map exists,
+    // so pins have something to anchor to. Both are enqueued in parallel
+    // when below the combined cap — they return different screenshots
+    // (Steam = publisher store-page shots, RAWG = aggregated incl.
+    // Switch / console / mobile titles that aren't on Steam) so running
+    // both is strictly additive. (source, external_id) uniqueness in
+    // geo_screenshot_candidate prevents dupes inside each provider.
+    if (row.active_map_id && row.candidate_count < CAPTURE_TARGET_CANDIDATES) {
+      // Re-fetch the active map id off the repo so we don't pass a stale
+      // value (the SELECT above can be racing a recent map import).
+      const map = await geoMapRepository.findActiveByGameId(row.id)
+      if (map) {
+        if (row.steam_app_id && !(await tombstoneBlocks(row.id, 'steam'))) {
           await geoQueue.add(
             'import-steam-screenshots',
             {
@@ -140,6 +152,24 @@ export async function runGeoIngestTick(
             { jobId: `auto-steam-${row.id}-${map.id}` },
           )
           steamEnqueued++
+        }
+
+        if (
+          rawgEnabled &&
+          row.rawg_id &&
+          !(await tombstoneBlocks(row.id, 'rawg'))
+        ) {
+          await geoQueue.add(
+            'import-rawg-screenshots',
+            {
+              kind: 'import-rawg-screenshots',
+              gameId: row.id,
+              geoMapId: map.id,
+              rawgId: row.rawg_id,
+            },
+            { jobId: `auto-rawg-${row.id}-${map.id}` },
+          )
+          rawgEnqueued++
         }
       }
     }
@@ -155,6 +185,7 @@ export async function runGeoIngestTick(
       wandEnqueued,
       wikidataEnqueued,
       steamEnqueued,
+      rawgEnqueued,
     },
     'geo-ingest-tick run',
   )
@@ -167,6 +198,7 @@ export async function runGeoIngestTick(
     wandEnqueued,
     wikidataEnqueued,
     steamEnqueued,
+    rawgEnqueued,
   }
 }
 
@@ -283,6 +315,7 @@ async function tombstoneBlocks(
   source:
     | 'fandom'
     | 'steam'
+    | 'rawg'
     | 'registry'
     | 'wikidata'
     | 'strategywiki'

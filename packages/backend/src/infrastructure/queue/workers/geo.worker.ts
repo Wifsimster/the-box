@@ -10,6 +10,7 @@ import { importStrategyWikiMap } from './geo-strategywiki-import-logic.js'
 import { importWandMap } from './geo-wand-import-logic.js'
 import { importWikidataMap } from './geo-wikidata-import-logic.js'
 import { importSteamScreenshots } from './geo-steam-import-logic.js'
+import { importRawgScreenshots } from './geo-rawg-import-logic.js'
 import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
@@ -93,6 +94,15 @@ export const geoWorker = new Worker<GeoJobData>(
         gameId: data.gameId,
         geoMapId: data.geoMapId,
         steamAppId: data.steamAppId,
+        maxItems: data.maxItems,
+      })
+    }
+
+    if (data.kind === 'import-rawg-screenshots') {
+      return await importRawgScreenshots({
+        gameId: data.gameId,
+        geoMapId: data.geoMapId,
+        rawgId: data.rawgId,
         maxItems: data.maxItems,
       })
     }
