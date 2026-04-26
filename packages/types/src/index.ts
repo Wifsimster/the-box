@@ -746,6 +746,7 @@ export type GeoMapSource =
   | 'fandom'
   | 'strategywiki'
   | 'fextralife'
+  | 'wand'
   | 'wikidata'
   | 'steam'
   | 'manual'

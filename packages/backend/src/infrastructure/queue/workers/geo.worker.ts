@@ -7,6 +7,7 @@ import { importFandomMap } from './geo-fandom-import-logic.js'
 import { importFextralifeMap } from './geo-fextralife-import-logic.js'
 import { importRegistryMap } from './geo-registry-import-logic.js'
 import { importStrategyWikiMap } from './geo-strategywiki-import-logic.js'
+import { importWandMap } from './geo-wand-import-logic.js'
 import { importWikidataMap } from './geo-wikidata-import-logic.js'
 import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
@@ -76,6 +77,14 @@ export const geoWorker = new Worker<GeoJobData>(
       return await importWikidataMap({
         gameId: data.gameId,
         wikidataQid: data.wikidataQid,
+      })
+    }
+
+    if (data.kind === 'import-wand-map') {
+      return await importWandMap({
+        gameId: data.gameId,
+        wandUrl: data.wandUrl,
+        region: data.region,
       })
     }
 

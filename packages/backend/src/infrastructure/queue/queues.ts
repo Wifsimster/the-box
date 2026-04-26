@@ -55,6 +55,12 @@ export type GeoJobData =
       wikidataQid: string
     }
   | {
+      kind: 'import-wand-map'
+      gameId: number
+      wandUrl: string
+      region?: string
+    }
+  | {
       kind: 'import-steam-screenshots'
       gameId: number
       geoMapId: number

@@ -50,6 +50,10 @@ import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
 import {
+  importWandMap,
+  isWandUrl,
+} from '../../infrastructure/queue/workers/geo-wand-import-logic.js'
+import {
   enqueueSingleTierImport,
   type RunnableTier,
 } from '../../infrastructure/queue/workers/geo-ingest-tick-logic.js'
@@ -2353,6 +2357,7 @@ const TOMBSTONE_SOURCES = [
   'registry',
   'strategywiki',
   'fextralife',
+  'wand',
   'wikidata',
 ] as const
 type TombstoneSource = (typeof TOMBSTONE_SOURCES)[number]
@@ -2699,8 +2704,93 @@ router.post('/geo/maps/manual', async (req, res, next) => {
       geoIngestFailureRepository.clear(data.gameId, 'fandom'),
       geoIngestFailureRepository.clear(data.gameId, 'strategywiki'),
       geoIngestFailureRepository.clear(data.gameId, 'fextralife'),
+      geoIngestFailureRepository.clear(data.gameId, 'wand'),
       geoIngestFailureRepository.clear(data.gameId, 'wikidata'),
     ])
+
+    res.json({ success: true, data: map })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ---------- Wand map import ----------
+
+// Admin pastes a wand.com map page URL (e.g. https://wand.com/maps/elden-ring)
+// and the server scrapes the page's `og:image` to record a `source = 'wand'`
+// row. Synchronous on purpose so the operator sees the resolved image URL +
+// dimensions immediately and can fall back to the manual route if Wand
+// returned a Cloudflare challenge or moved the slug.
+const wandGeoMapBodySchema = z.object({
+  gameId: z.number().int().positive(),
+  wandUrl: z.string().url().max(1000),
+  region: z.string().trim().min(1).max(100).optional(),
+  replaceActive: z.boolean().optional(),
+})
+
+router.post('/geo/maps/wand', async (req, res, next) => {
+  try {
+    const parse = wandGeoMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const data = parse.data
+
+    if (!isWandUrl(data.wandUrl)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'NOT_WAND_URL', message: 'wandUrl must be on wand.com' },
+      })
+      return
+    }
+
+    const game = await db('games').where({ id: data.gameId }).first<{ id: number }>()
+    if (!game) {
+      res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+      return
+    }
+
+    const active = await geoMapRepository.findActiveByGameId(data.gameId)
+    if (active && !data.replaceActive) {
+      res.status(409).json({
+        success: false,
+        error: {
+          code: 'MAP_EXISTS',
+          message:
+            'an active geo_map already exists for this game; pass replaceActive=true to swap',
+        },
+      })
+      return
+    }
+
+    const result = await importWandMap({
+      gameId: data.gameId,
+      wandUrl: data.wandUrl,
+      region: data.region,
+    })
+
+    if (!result.imported) {
+      res.status(422).json({
+        success: false,
+        error: { code: 'WAND_IMPORT_FAILED', message: result.reason },
+      })
+      return
+    }
+
+    if (active && data.replaceActive && active.id !== result.geoMapId) {
+      await geoMapRepository.deactivate(active.id)
+      if (result.geoMapId) {
+        await geoMapRepository.setActiveForGame(data.gameId, result.geoMapId)
+      }
+    }
+
+    const map = result.geoMapId
+      ? await geoMapRepository.findById(result.geoMapId)
+      : null
 
     res.json({ success: true, data: map })
   } catch (err) {

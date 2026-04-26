@@ -597,6 +597,8 @@
           "research": "Rechercher",
           "researchTooltip": "Ouvrir des liens de recherche pré-remplis (Google, StrategyWiki, Fextralife…)",
           "uploadManual": "Téléverser manuellement",
+          "importWand": "Importer depuis Wand",
+          "importWandTooltip": "Collez une URL de carte wand.com — le serveur extrait son og:image et l'enregistre comme carte de ce jeu.",
           "viewCaptures_one": "Voir les captures ({{count}})",
           "viewCaptures_other": "Voir les captures ({{count}})",
           "viewCapturesTooltip": "Ouvrir l'onglet Pins filtré sur les captures de ce jeu."
@@ -771,6 +773,25 @@
           "required": "L'URL de l'image, la largeur, la hauteur et la licence sont obligatoires."
         },
         "success": "Carte manuelle enregistrée pour « {{name}} »."
+      },
+      "wandMap": {
+        "title": "Importer depuis Wand pour « {{name}} »",
+        "description": "Collez l'URL de la page de carte wand.com. Le serveur récupère la page et enregistre son og:image comme carte. Les cartes Wand sont stockées avec une licence d'attribution uniquement.",
+        "descriptionReplace": "Remplacer la carte active de ce jeu par une carte Wand. L'ancienne carte est désactivée ; les pins existants restent valides puisque les coordonnées sont normalisées.",
+        "fields": {
+          "wandUrl": "URL de la carte Wand",
+          "wandUrlHint": "Doit être une URL https://wand.com/maps/…",
+          "region": "Région (optionnel)",
+          "regionPlaceholder": "ex. Velen, Acte II",
+          "regionHint": "Laissez vide s'il s'agit de la carte canonique / monde / mosaïque."
+        },
+        "submit": "Importer depuis Wand",
+        "submitReplace": "Remplacer par une carte Wand",
+        "errors": {
+          "required": "Une URL wand.com est obligatoire.",
+          "notWandUrl": "L'URL doit être hébergée sur wand.com."
+        },
+        "success": "Carte Wand importée pour « {{name}} »."
       },
       "run": {
         "allCta": "Tout lancer",
