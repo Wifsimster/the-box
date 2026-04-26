@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type {
     GeoChallenge,
     GeoGuessResult,
@@ -66,7 +67,9 @@ interface GeoState {
 
 const REWARD_BUFFER_MAX = 20
 
-export const useGeoStore = create<GeoState>((set, get) => ({
+export const useGeoStore = create<GeoState>()(
+    persist(
+        (set, get) => ({
     phase: 'idle',
     challenge: null,
     meta: null,
@@ -87,18 +90,32 @@ export const useGeoStore = create<GeoState>((set, get) => ({
     latestTierUp: null,
 
     async loadDaily(date) {
+        // Snapshot what was rehydrated (or held in memory) before we kick off
+        // the fetch — needed so we can restore the player's score after a
+        // page reload or a route round-trip.
+        const prev = get()
         set({ phase: 'loading', errorMessage: null, errorCode: null })
         try {
             const view = await geoApi.getDaily(date)
+            // Survive reload: if the backend says "you already guessed" AND
+            // we have a persisted result for this exact challenge, restore
+            // the result phase instead of dropping the player back to a
+            // fresh playing state. The challenge.id guard makes day-to-day
+            // store rollover safe — yesterday's result is ignored.
+            const restored =
+                view.hasGuessed &&
+                prev.result !== null &&
+                prev.challenge !== null &&
+                prev.challenge.id === view.challenge.id
             set({
-                phase: 'playing',
+                phase: restored ? 'result' : 'playing',
                 challenge: view.challenge,
                 meta: view.meta,
                 candidate: view.candidate,
                 map: view.map,
                 hasGuessed: view.hasGuessed,
-                result: null,
-                pendingGuess: null,
+                result: restored ? prev.result : null,
+                pendingGuess: restored ? prev.pendingGuess : null,
             })
         } catch (err) {
             set({
@@ -238,4 +255,19 @@ export const useGeoStore = create<GeoState>((set, get) => ({
             pendingPin: null,
         })
     },
-}))
+        }),
+        {
+            name: 'geo-daily-store',
+            // Only persist what's needed to survive a reload during the
+            // daily-game result phase. Skipping leaderboards / contributor
+            // / live event buffers keeps localStorage small and avoids
+            // resurrecting stale realtime data on a fresh tab.
+            partialize: (state) => ({
+                challenge: state.challenge,
+                result: state.result,
+                hasGuessed: state.hasGuessed,
+                pendingGuess: state.pendingGuess,
+            }),
+        },
+    ),
+)

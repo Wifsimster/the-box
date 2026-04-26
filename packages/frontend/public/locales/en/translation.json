@@ -1315,6 +1315,12 @@
       "formula": "Formula",
       "screenshotUnavailable": "Screenshot preview unavailable.",
       "mapUnavailable": "Map unavailable.",
+      "mapAria": "Pin a location on the map. Use the arrow keys to move the cursor, then press Enter to drop the pin.",
+      "mapAriaDisabled": "Map",
+      "markers": {
+        "you": "Your pin",
+        "actual": "Actual location"
+      },
       "errors": {
         "noChallenge": "No geo challenge is available for today yet. Please check back later."
       }

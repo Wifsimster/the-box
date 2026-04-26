@@ -30,6 +30,8 @@ import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
 import { GeoGamesTab } from './GeoGamesTab'
 import { GeoHeaderStrip } from './GeoHeaderStrip'
+import { GeoRunStateBanner } from './GeoRunStateBanner'
+import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoMap,
@@ -100,6 +102,10 @@ export function GeoReviewPanel() {
     const [demoteOpen, setDemoteOpen] = useState(false)
     const [introOpen, setIntroOpen] = useState(false)
     const [scheduling, setScheduling] = useState(false)
+    // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
+    // polling and the live banner stays visible when the operator switches
+    // between Pins / Maps / Games tabs.
+    const { state: runState, error: runError, arm: armRunPolling } = useGeoRunPolling()
 
     const triggerSchedule = async () => {
         setScheduling(true)
@@ -204,6 +210,8 @@ export function GeoReviewPanel() {
                 scheduling={scheduling}
             />
 
+            <GeoRunStateBanner state={runState} />
+
             <Tabs defaultValue="pins" className="space-y-4">
                 <TabsList className="w-full overflow-x-auto justify-start sm:justify-center scrollbar-hide">
                     <TabsTrigger value="pins" className="gap-1.5 shrink-0">
@@ -221,7 +229,11 @@ export function GeoReviewPanel() {
                 </TabsList>
 
                 <TabsContent value="maps" className="space-y-4">
-                    <GeoMapsTab />
+                    <GeoMapsTab
+                        runState={runState}
+                        runError={runError}
+                        armRunPolling={armRunPolling}
+                    />
                 </TabsContent>
 
                 <TabsContent value="games" className="space-y-4">

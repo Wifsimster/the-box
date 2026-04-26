@@ -1315,6 +1315,12 @@
       "formula": "Formule",
       "screenshotUnavailable": "Aperçu de la capture indisponible.",
       "mapUnavailable": "Carte indisponible.",
+      "mapAria": "Épinglez l'emplacement sur la carte. Utilisez les flèches du clavier pour déplacer le curseur, puis Entrée pour valider.",
+      "mapAriaDisabled": "Carte",
+      "markers": {
+        "you": "Votre épingle",
+        "actual": "Emplacement réel"
+      },
       "errors": {
         "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard."
       }

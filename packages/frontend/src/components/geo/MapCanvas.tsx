@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoPoint } from '@the-box/types'
 import { cn } from '@/lib/utils'
@@ -42,6 +42,10 @@ export function MapCanvas({
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const [hover, setHover] = useState<GeoPoint | null>(null)
+    // Keyboard cursor — visible only while the canvas has focus. Lets keyboard
+    // users nudge a virtual crosshair with arrow keys and confirm with
+    // Enter/Space, since clientX/clientY isn't available without a mouse.
+    const [kbCursor, setKbCursor] = useState<GeoPoint | null>(null)
     // Treat known placeholder URLs as failed up-front: they "load" successfully
     // (placehold.co returns a real image) so onError would never fire.
     const [errored, setErrored] = useState(() => isPlaceholderImageUrl(imageUrl))
@@ -72,6 +76,49 @@ export function MapCanvas({
         })
     }
 
+    const handleFocus = () => {
+        if (disabled || errored) return
+        // Seed the keyboard cursor from the existing pin (so re-focus picks up
+        // where the player left off) or center it if there isn't one yet.
+        setKbCursor((prev) => prev ?? pin ?? { x: 0.5, y: 0.5 })
+    }
+
+    const handleBlur = () => setKbCursor(null)
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+        if (disabled || errored || !onPin) return
+        const cursor = kbCursor ?? pin ?? { x: 0.5, y: 0.5 }
+        // Coarse step ~5% of the map (large enough to feel responsive without
+        // being unmanageable), Shift bumps to ~15% for fast traversal.
+        const step = e.shiftKey ? 0.15 : 0.05
+        switch (e.key) {
+            case 'ArrowLeft':
+                e.preventDefault()
+                setKbCursor({ x: clamp01(cursor.x - step), y: cursor.y })
+                return
+            case 'ArrowRight':
+                e.preventDefault()
+                setKbCursor({ x: clamp01(cursor.x + step), y: cursor.y })
+                return
+            case 'ArrowUp':
+                e.preventDefault()
+                setKbCursor({ x: cursor.x, y: clamp01(cursor.y - step) })
+                return
+            case 'ArrowDown':
+                e.preventDefault()
+                setKbCursor({ x: cursor.x, y: clamp01(cursor.y + step) })
+                return
+            case 'Enter':
+            case ' ':
+                e.preventDefault()
+                onPin({ x: clamp01(cursor.x), y: clamp01(cursor.y) })
+                return
+            case 'Escape':
+                setKbCursor(null)
+                return
+        }
+    }
+
     const aspectRatio = widthPx > 0 && heightPx > 0 ? `${widthPx} / ${heightPx}` : '16 / 9'
 
     if (errored) {
@@ -91,20 +138,30 @@ export function MapCanvas({
         )
     }
 
+    const interactive = !disabled && !!onPin
+    const ariaLabel = interactive
+        ? t('geo.daily.mapAria', 'Pin location on the map. Use arrow keys to move and Enter to drop a pin.')
+        : t('geo.daily.mapAriaDisabled', 'Map')
+
     return (
         <div
             ref={containerRef}
             onClick={handleClick}
             onMouseMove={handleMove}
             onMouseLeave={() => setHover(null)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
             style={{ aspectRatio, backgroundImage: `url(${imageUrl})` }}
             className={cn(
                 'relative w-full rounded-lg overflow-hidden bg-center bg-no-repeat bg-cover select-none',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 disabled ? 'cursor-default' : 'cursor-crosshair',
                 className,
             )}
-            role={disabled ? 'img' : 'button'}
-            aria-label="Pin location on the map"
+            role={interactive ? 'button' : 'img'}
+            tabIndex={interactive ? 0 : -1}
+            aria-label={ariaLabel}
         >
             {/* Hidden probe so we can detect a 404 on the background image,
                 which CSS background-image cannot signal. */}
@@ -117,9 +174,13 @@ export function MapCanvas({
             />
 
             {/* Crosshair at hover position */}
-            {!disabled && hover && (
+            {!disabled && hover && !kbCursor && (
                 <Crosshair x={hover.x} y={hover.y} faint />
             )}
+
+            {/* Keyboard cursor — solid (not faint) so it's distinguishable
+                from the mouse-hover crosshair. */}
+            {kbCursor && <Crosshair x={kbCursor.x} y={kbCursor.y} />}
 
             {/* Guess → canonical line */}
             {showGuessLine && pin && canonical && (
@@ -127,11 +188,23 @@ export function MapCanvas({
             )}
 
             {/* User pin */}
-            {pin && <Marker x={pin.x} y={pin.y} color="fuchsia" label="You" />}
+            {pin && (
+                <Marker
+                    x={pin.x}
+                    y={pin.y}
+                    color="fuchsia"
+                    label={t('geo.daily.markers.you', 'Your pin')}
+                />
+            )}
 
             {/* Canonical (revealed) */}
             {canonical && (
-                <Marker x={canonical.x} y={canonical.y} color="emerald" label="Actual" />
+                <Marker
+                    x={canonical.x}
+                    y={canonical.y}
+                    color="emerald"
+                    label={t('geo.daily.markers.actual', 'Actual location')}
+                />
             )}
         </div>
     )

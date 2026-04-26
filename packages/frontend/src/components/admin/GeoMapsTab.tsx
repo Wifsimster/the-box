@@ -29,7 +29,6 @@ import { ResetScrapingDialog } from './ResetScrapingDialog'
 import {
     isGameInFlight,
     tiersInFlightForGame,
-    useGeoRunPolling,
     type GeoRunStatePayload,
 } from '@/hooks/useGeoRunPolling'
 
@@ -100,7 +99,16 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     return json.data as T
 }
 
-export function GeoMapsTab() {
+interface GeoMapsTabProps {
+    // The run-progress hook is owned by the parent (GeoReviewPanel) so that
+    // polling and the live banner survive when an admin switches between
+    // Pins / Maps / Games tabs mid-run.
+    runState: GeoRunStatePayload | null
+    runError: string | null
+    armRunPolling: (windowMs?: number) => void
+}
+
+export function GeoMapsTab({ runState, runError, armRunPolling }: GeoMapsTabProps) {
     const { t } = useTranslation()
     const [games, setGames] = useState<CuratedGame[] | null>(null)
     const [loading, setLoading] = useState(true)
@@ -115,7 +123,6 @@ export function GeoMapsTab() {
     const [resetting, setResetting] = useState(false)
     const [runningAll, setRunningAll] = useState(false)
     const [runningGameId, setRunningGameId] = useState<number | null>(null)
-    const { state: runState, error: runError, arm: armRunPolling } = useGeoRunPolling()
 
     const reload = useCallback(async () => {
         setLoading(true)
@@ -298,9 +305,10 @@ export function GeoMapsTab() {
                             </Button>
                         </div>
                     </div>
-                    <RunStateBanner state={runState} t={t} />
                     {runError && (
-                        <p className="text-[11px] text-destructive">{runError}</p>
+                        <p className="text-[11px] text-destructive" role="alert">
+                            {runError}
+                        </p>
                     )}
                 </CardHeader>
                 <CardContent className="p-0">
@@ -720,34 +728,5 @@ function TierRow({
                 </p>
             )}
         </li>
-    )
-}
-
-// Compact summary line that shows BullMQ in-flight counts during a manual
-// run. Hidden while the queue is idle so it doesn't clutter the header.
-function RunStateBanner({
-    state,
-    t,
-}: {
-    state: GeoRunStatePayload | null
-    t: ReturnType<typeof useTranslation>['t']
-}) {
-    if (!state || !state.isActive) return null
-    const { active, waiting, delayed, failed } = state.counts
-    return (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1 text-neon-pink">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                {t('admin.geo.run.banner.active', { count: active })}
-            </span>
-            <span className="text-muted-foreground">
-                · {t('admin.geo.run.banner.waiting', { count: waiting + delayed })}
-            </span>
-            {failed > 0 && (
-                <span className="text-destructive">
-                    · {t('admin.geo.run.banner.failed', { count: failed })}
-                </span>
-            )}
-        </div>
     )
 }
