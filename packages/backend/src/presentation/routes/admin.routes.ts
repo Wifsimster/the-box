@@ -2278,16 +2278,17 @@ router.post('/geo/reimport', async (req, res, next) => {
     // Run the full pipeline (resolve → tick) right away instead of
     // depending on the recurring tick to pick the row back up. Stable
     // jobIds so a double-click collapses to one execution; the resolver
-    // is gameId-scoped here for fast feedback.
+    // is gameId-scoped here for fast feedback. Hyphens (not colons) —
+    // BullMQ 5.x rejects 2-part colon-separated jobIds.
     const resolveJob = await geoQueue.add(
       'resolve-metadata',
       { kind: 'resolve-metadata', batchSize: 1, gameId },
-      { jobId: `manual-resolve:${gameId}` },
+      { jobId: `manual-resolve-${gameId}` },
     )
     const tickJob = await geoQueue.add(
       'ingest-tick',
       { kind: 'ingest-tick', batchSize: 1, gameId },
-      { jobId: `manual-tick:${gameId}` },
+      { jobId: `manual-tick-${gameId}` },
     )
     res.json({
       success: true,
@@ -2307,6 +2308,8 @@ const TOMBSTONE_SOURCES = [
   'steam',
   'metadata',
   'registry',
+  'strategywiki',
+  'fextralife',
   'wikidata',
 ] as const
 type TombstoneSource = (typeof TOMBSTONE_SOURCES)[number]
@@ -2335,7 +2338,7 @@ router.delete('/geo/tombstone/:gameId/:source', async (req, res, next) => {
     await geoQueue.add(
       'ingest-tick',
       { kind: 'ingest-tick', batchSize: 1, gameId },
-      { jobId: `manual-tick:${gameId}` },
+      { jobId: `manual-tick-${gameId}` },
     )
     res.json({ success: true, data: { gameId, source } })
   } catch (err) {
