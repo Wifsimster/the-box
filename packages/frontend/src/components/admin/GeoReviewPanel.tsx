@@ -223,7 +223,7 @@ export function GeoReviewPanel() {
             <GeoRunStateBanner state={runState} />
 
             <Tabs defaultValue="pins" className="space-y-4">
-                <TabsList className="w-full overflow-x-auto justify-start sm:justify-center scrollbar-hide">
+                <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
                     <TabsTrigger value="pins" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.pins')}

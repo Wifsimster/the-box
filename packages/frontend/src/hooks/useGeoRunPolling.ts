@@ -1,36 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { z } from 'zod'
 
 // Job kinds we care to surface in the manual-run progress UI. Mirrors the
 // backend's GeoJobData.kind minus consensus/promote-tier (those are unrelated
 // to the ingestion pipeline and the route already filters them out).
-export type GeoRunJobKind =
-    | 'resolve-metadata'
-    | 'ingest-tick'
-    | 'import-registry-map'
-    | 'import-fandom-map'
-    | 'import-wikidata-map'
-    | 'import-steam-screenshots'
-    | 'schedule-daily-challenge'
+const GeoRunJobKindSchema = z.enum([
+    'resolve-metadata',
+    'ingest-tick',
+    'import-registry-map',
+    'import-fandom-map',
+    'import-wikidata-map',
+    'import-steam-screenshots',
+    'schedule-daily-challenge',
+])
+export type GeoRunJobKind = z.infer<typeof GeoRunJobKindSchema>
 
-export type GeoRunJobState = 'active' | 'waiting' | 'delayed'
+const GeoRunJobStateSchema = z.enum(['active', 'waiting', 'delayed'])
+export type GeoRunJobState = z.infer<typeof GeoRunJobStateSchema>
 
-export interface GeoRunJob {
-    kind: GeoRunJobKind
-    state: GeoRunJobState
-}
+const GeoRunJobSchema = z.object({
+    kind: GeoRunJobKindSchema,
+    state: GeoRunJobStateSchema,
+})
+export type GeoRunJob = z.infer<typeof GeoRunJobSchema>
 
-export interface GeoRunStatePayload {
-    isActive: boolean
-    counts: {
-        active: number
-        waiting: number
-        delayed: number
-        failed: number
-        completed: number
-    }
-    byGame: Record<number, GeoRunJob[]>
-    globals: GeoRunJob[]
-}
+const GeoRunStatePayloadSchema = z.object({
+    isActive: z.boolean(),
+    counts: z.object({
+        active: z.number(),
+        waiting: z.number(),
+        delayed: z.number(),
+        failed: z.number(),
+        completed: z.number(),
+    }),
+    // BullMQ job ids on the wire are strings, but we only key by gameId
+    // numerically. z.coerce.number() lets the JSON parse path recover when
+    // either side serializes the key as a string.
+    byGame: z.record(z.coerce.number(), z.array(GeoRunJobSchema)),
+    globals: z.array(GeoRunJobSchema),
+})
+export type GeoRunStatePayload = z.infer<typeof GeoRunStatePayloadSchema>
 
 export interface UseGeoRunPolling {
     state: GeoRunStatePayload | null
@@ -52,7 +61,9 @@ async function fetchState(): Promise<GeoRunStatePayload> {
     if (!res.ok || !json?.success) {
         throw new Error(json?.error?.code ?? `request failed: ${res.status}`)
     }
-    return json.data as GeoRunStatePayload
+    const parsed = GeoRunStatePayloadSchema.safeParse(json.data)
+    if (!parsed.success) throw new Error('run state shape mismatch')
+    return parsed.data
 }
 
 /**

@@ -766,6 +766,7 @@
             "challenges": "Supprime tous les défis géo programmés.",
             "metadata": "Remet les métadonnées géo des jeux à « pending » pour forcer une nouvelle résolution."
           },
+          "confirmWord": "RÉINITIALISER",
           "confirmLabel": "Tapez {{word}} pour confirmer",
           "confirm": "Réinitialiser tout"
         }

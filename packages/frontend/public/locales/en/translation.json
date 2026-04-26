@@ -766,6 +766,7 @@
             "challenges": "Deletes every scheduled geo challenge.",
             "metadata": "Resets games' geo metadata to \"pending\" so the resolver re-runs."
           },
+          "confirmWord": "RESET",
           "confirmLabel": "Type {{word}} to confirm",
           "confirm": "Reset everything"
         }
