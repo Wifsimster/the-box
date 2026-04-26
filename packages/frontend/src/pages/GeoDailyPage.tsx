@@ -8,7 +8,8 @@ import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, MapPin, Trophy } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Trophy } from 'lucide-react'
+import { isPlaceholderImageUrl } from '@/lib/geo-image'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -179,11 +180,20 @@ function ResultBlock({
 
 function ScreenshotFrame({ imageUrl }: { imageUrl: string }) {
     const { t } = useTranslation()
-    const [errored, setErrored] = useState(false)
+    // Proactively flag known placeholder hosts (placehold.co etc.) — they
+    // *successfully* load a real image and would otherwise sneak past the
+    // onError fallback as a fake-looking screenshot.
+    const [errored, setErrored] = useState(() => isPlaceholderImageUrl(imageUrl))
+
+    useEffect(() => {
+        setErrored(isPlaceholderImageUrl(imageUrl))
+    }, [imageUrl])
+
     if (errored) {
         return (
-            <div className="aspect-video w-full rounded-lg border bg-muted/30 flex items-center justify-center text-xs text-muted-foreground">
-                {t('geo.daily.screenshotUnavailable', 'Screenshot preview unavailable.')}
+            <div className="aspect-video w-full rounded-lg border border-dashed bg-muted/30 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                <ImageOff className="h-6 w-6 opacity-60" aria-hidden />
+                <span>{t('geo.daily.screenshotUnavailable', 'Screenshot preview unavailable.')}</span>
             </div>
         )
     }

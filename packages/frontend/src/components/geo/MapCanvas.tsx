@@ -1,6 +1,9 @@
-import { useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { GeoPoint } from '@the-box/types'
 import { cn } from '@/lib/utils'
+import { isPlaceholderImageUrl } from '@/lib/geo-image'
+import { ImageOff } from 'lucide-react'
 
 export interface MapCanvasProps {
     imageUrl: string
@@ -36,11 +39,19 @@ export function MapCanvas({
     className,
     showGuessLine,
 }: MapCanvasProps) {
+    const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const [hover, setHover] = useState<GeoPoint | null>(null)
+    // Treat known placeholder URLs as failed up-front: they "load" successfully
+    // (placehold.co returns a real image) so onError would never fire.
+    const [errored, setErrored] = useState(() => isPlaceholderImageUrl(imageUrl))
+
+    useEffect(() => {
+        setErrored(isPlaceholderImageUrl(imageUrl))
+    }, [imageUrl])
 
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
-        if (disabled || !onPin) return
+        if (disabled || errored || !onPin) return
         const rect = containerRef.current?.getBoundingClientRect()
         if (!rect) return
         const x = (e.clientX - rect.left) / rect.width
@@ -52,7 +63,7 @@ export function MapCanvas({
     }
 
     const handleMove = (e: MouseEvent<HTMLDivElement>) => {
-        if (disabled) return
+        if (disabled || errored) return
         const rect = containerRef.current?.getBoundingClientRect()
         if (!rect) return
         setHover({
@@ -62,6 +73,23 @@ export function MapCanvas({
     }
 
     const aspectRatio = widthPx > 0 && heightPx > 0 ? `${widthPx} / ${heightPx}` : '16 / 9'
+
+    if (errored) {
+        return (
+            <div
+                style={{ aspectRatio }}
+                className={cn(
+                    'relative w-full rounded-lg border border-dashed bg-muted/30 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs text-muted-foreground',
+                    className,
+                )}
+                role="img"
+                aria-label={t('geo.daily.mapUnavailable', 'Map unavailable')}
+            >
+                <ImageOff className="h-6 w-6 opacity-60" aria-hidden />
+                <span>{t('geo.daily.mapUnavailable', 'Map unavailable')}</span>
+            </div>
+        )
+    }
 
     return (
         <div
@@ -78,6 +106,16 @@ export function MapCanvas({
             role={disabled ? 'img' : 'button'}
             aria-label="Pin location on the map"
         >
+            {/* Hidden probe so we can detect a 404 on the background image,
+                which CSS background-image cannot signal. */}
+            <img
+                src={imageUrl}
+                alt=""
+                className="hidden"
+                onError={() => setErrored(true)}
+                aria-hidden
+            />
+
             {/* Crosshair at hover position */}
             {!disabled && hover && (
                 <Crosshair x={hover.x} y={hover.y} faint />

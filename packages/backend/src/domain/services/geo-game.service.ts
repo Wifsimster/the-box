@@ -94,6 +94,22 @@ function validPoint(p: GeoPoint): boolean {
   )
 }
 
+// Hosts/paths used by the dev seed (`seeds/010_geo_elden_ring.ts`) that must
+// never be served as a real daily challenge. The seed is guarded by
+// NODE_ENV !== 'production', but if a row slips into a non-prod-flagged
+// deployment we'd otherwise show players a visibly fake placeholder image.
+// Treat any of these as "challenge not configured" instead.
+const PLACEHOLDER_URL_PATTERNS = [
+  /(^|\/\/)placehold\.co\//i,
+  /(^|\/\/)via\.placeholder\.com\//i,
+  /\/map-placeholder\.(jpg|jpeg|png|webp)(\?|$)/i,
+]
+
+function isPlaceholderImageUrl(url: string | null | undefined): boolean {
+  if (!url) return true
+  return PLACEHOLDER_URL_PATTERNS.some((p) => p.test(url))
+}
+
 function monthPeriodOf(dateStr: string): string {
   return dateStr.slice(0, 7)
 }
@@ -131,6 +147,18 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       const map = await geoMapRepository.findById(meta.geoMapId)
       if (!map) {
         log.error({ metaId: meta.id }, 'meta references missing map')
+        return null
+      }
+
+      if (isPlaceholderImageUrl(candidate.imageUrl) || isPlaceholderImageUrl(map.imageUrl)) {
+        log.error(
+          {
+            challengeId: challenge.id,
+            candidateImageUrl: candidate.imageUrl,
+            mapImageUrl: map.imageUrl,
+          },
+          'refusing to serve daily challenge backed by placeholder image URL',
+        )
         return null
       }
 
