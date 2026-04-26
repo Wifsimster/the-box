@@ -119,7 +119,7 @@ export async function runGeoIngestTick(
               geoMapId: map.id,
               steamAppId: row.steam_app_id,
             },
-            { jobId: `auto-steam:${row.id}:${map.id}` },
+            { jobId: `auto-steam-${row.id}-${map.id}` },
           )
           steamEnqueued++
         }
@@ -156,7 +156,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
       await geoQueue.add(
         'import-registry-map',
         { kind: 'import-registry-map', gameId: row.id, entry },
-        { jobId: `auto-registry:${row.id}` },
+        { jobId: `auto-registry-${row.id}` },
       )
       return 'registry'
     }
@@ -176,7 +176,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
         wikiSubdomain: row.wiki_subdomain,
         pageTitle: row.wiki_page_title,
       },
-      { jobId: `auto-fandom:${row.id}` },
+      { jobId: `auto-fandom-${row.id}` },
     )
     return 'fandom'
   }
@@ -186,7 +186,7 @@ async function enqueueFirstAvailableMapImport(row: TickRow): Promise<MapTier> {
     await geoQueue.add(
       'import-wikidata-map',
       { kind: 'import-wikidata-map', gameId: row.id, wikidataQid: row.wikidata_qid },
-      { jobId: `auto-wikidata:${row.id}` },
+      { jobId: `auto-wikidata-${row.id}` },
     )
     return 'wikidata'
   }
