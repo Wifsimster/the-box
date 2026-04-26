@@ -636,6 +636,7 @@
       "detailHint": "Sélectionnez un candidat dans la liste pour consulter ses épingles et éventuellement définir les coordonnées canoniques.",
       "promote": "Promouvoir en canonique",
       "demote": "Rétrograder la canonique",
+      "reject": "Rejeter la capture",
       "alreadyPromoted": "Déjà promu — rétrogradez pour ré-épingler avec de nouvelles coordonnées.",
       "candidateRow": {
         "pinCount_one": "{{count}} épingle",
@@ -668,6 +669,12 @@
         "title": "Rétrograder la canonique ?",
         "description": "Cette capture retournera dans la file de collecte. Les épingles des joueurs sont conservées ; vous pourrez définir de nouvelles coordonnées canoniques.",
         "confirm": "Rétrograder",
+        "cancel": "Annuler"
+      },
+      "rejectDialog": {
+        "title": "Rejeter cette capture ?",
+        "description": "La capture sera retirée du défi Géo : les contributeurs ne la verront plus et elle ne sera jamais sélectionnée pour le défi quotidien. À utiliser pour les captures sans emplacement repérable (interface, inventaire, écran de chargement…).",
+        "confirm": "Rejeter",
         "cancel": "Annuler"
       },
       "health": {

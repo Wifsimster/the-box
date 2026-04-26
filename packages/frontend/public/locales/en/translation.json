@@ -636,6 +636,7 @@
       "detailHint": "Select a candidate from the list to review its pins and optionally set canonical coordinates.",
       "promote": "Promote to canonical",
       "demote": "Demote canonical",
+      "reject": "Reject capture",
       "alreadyPromoted": "Already promoted — demote it to re-pin with new coordinates.",
       "candidateRow": {
         "pinCount_one": "{{count}} pin",
@@ -668,6 +669,12 @@
         "title": "Demote canonical pin?",
         "description": "This screenshot will return to the collecting queue. Players' pins are kept; you'll be able to set new canonical coordinates.",
         "confirm": "Demote",
+        "cancel": "Cancel"
+      },
+      "rejectDialog": {
+        "title": "Reject this capture?",
+        "description": "The capture will be removed from the Geo challenge: contributors won't see it anymore and it will never be picked for the daily challenge. Use for captures with no locatable spot (UI, inventory, loading screen…).",
+        "confirm": "Reject",
         "cancel": "Cancel"
       },
       "health": {
