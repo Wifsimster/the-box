@@ -620,12 +620,14 @@ export interface GeoScreenshotRepository {
 
 export interface GeoChallengeRepository {
   findByDate(date: string, tier?: number): Promise<GeoChallenge | null>
+  findCurrent(tier?: number): Promise<GeoChallenge | null>
   listRecent(days: number): Promise<GeoChallenge[]>
   create(data: {
     challengeDate: string
     geoScreenshotMetaId: number
     tier?: number
   }): Promise<GeoChallenge>
+  setCurrent(args: { challengeId: number; tier?: number }): Promise<void>
   findGuess(
     userId: string,
     challengeId: number,

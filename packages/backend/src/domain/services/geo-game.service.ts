@@ -57,6 +57,10 @@ export interface GeoGameService {
     userId?: string
   }): Promise<GeoDailyChallengeView | null>
 
+  getCurrentChallenge(args: {
+    userId?: string
+  }): Promise<GeoDailyChallengeView | null>
+
   submitGuess(args: {
     userId: string
     challengeId: number
@@ -125,50 +129,66 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
   } = deps
   const log = deps.logger.child({ service: 'geo-game' })
 
+  // Hydrate a challenge row into the full view (meta + candidate + map +
+  // hasGuessed). Shared between the date-pinned `/daily/:date` lookup
+  // (used by history) and the current-challenge `/current` lookup (used
+  // by the public geo page during slow rollout).
+  async function hydrate(
+    challenge: GeoChallenge,
+    userId?: string,
+  ): Promise<GeoDailyChallengeView | null> {
+    const meta = await geoScreenshotRepository.findMetaById(challenge.geoScreenshotMetaId)
+    if (!meta) {
+      log.error({ challengeId: challenge.id }, 'challenge references missing meta')
+      return null
+    }
+
+    const candidate = await geoScreenshotRepository.findCandidateById(
+      meta.geoScreenshotCandidateId,
+    )
+    if (!candidate) {
+      log.error({ metaId: meta.id }, 'meta references missing candidate')
+      return null
+    }
+
+    const map = await geoMapRepository.findById(meta.geoMapId)
+    if (!map) {
+      log.error({ metaId: meta.id }, 'meta references missing map')
+      return null
+    }
+
+    if (isPlaceholderImageUrl(candidate.imageUrl) || isPlaceholderImageUrl(map.imageUrl)) {
+      log.error(
+        {
+          challengeId: challenge.id,
+          candidateImageUrl: candidate.imageUrl,
+          mapImageUrl: map.imageUrl,
+        },
+        'refusing to serve geo challenge backed by placeholder image URL',
+      )
+      return null
+    }
+
+    let hasGuessed = false
+    if (userId) {
+      const existing = await geoChallengeRepository.findGuess(userId, challenge.id)
+      hasGuessed = !!existing
+    }
+
+    return { challenge, meta, candidate, map, hasGuessed }
+  }
+
   return {
     async getDailyChallenge({ date, userId }) {
       const challenge = await geoChallengeRepository.findByDate(date, 1)
       if (!challenge) return null
+      return hydrate(challenge, userId)
+    },
 
-      const meta = await geoScreenshotRepository.findMetaById(challenge.geoScreenshotMetaId)
-      if (!meta) {
-        log.error({ challengeId: challenge.id }, 'challenge references missing meta')
-        return null
-      }
-
-      const candidate = await geoScreenshotRepository.findCandidateById(
-        meta.geoScreenshotCandidateId,
-      )
-      if (!candidate) {
-        log.error({ metaId: meta.id }, 'meta references missing candidate')
-        return null
-      }
-
-      const map = await geoMapRepository.findById(meta.geoMapId)
-      if (!map) {
-        log.error({ metaId: meta.id }, 'meta references missing map')
-        return null
-      }
-
-      if (isPlaceholderImageUrl(candidate.imageUrl) || isPlaceholderImageUrl(map.imageUrl)) {
-        log.error(
-          {
-            challengeId: challenge.id,
-            candidateImageUrl: candidate.imageUrl,
-            mapImageUrl: map.imageUrl,
-          },
-          'refusing to serve daily challenge backed by placeholder image URL',
-        )
-        return null
-      }
-
-      let hasGuessed = false
-      if (userId) {
-        const existing = await geoChallengeRepository.findGuess(userId, challenge.id)
-        hasGuessed = !!existing
-      }
-
-      return { challenge, meta, candidate, map, hasGuessed }
+    async getCurrentChallenge({ userId }) {
+      const challenge = await geoChallengeRepository.findCurrent(1)
+      if (!challenge) return null
+      return hydrate(challenge, userId)
     },
 
     async submitGuess({ userId, challengeId, guess, durationMs }) {

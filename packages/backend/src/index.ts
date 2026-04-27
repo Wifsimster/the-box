@@ -460,10 +460,11 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to enqueue referral-announcement-email job')
     }
 
-    // Schedule recurring geo daily challenge creation (00:05 UTC daily — runs
-    // shortly after the main create-daily-challenge cron so the new calendar
-    // day has rolled over before scheduleDailyGeoChallenge() picks today's
-    // date). Re-registered every boot so config changes take effect.
+    // Geo recurring jobs. Daily auto-rotation is intentionally NOT scheduled:
+    // the geo mode is in slow-rollout phase and challenges are released
+    // manually by admins via POST /api/admin/geo/schedule (or the dedicated
+    // release endpoint). Any leftover recurring scheduler from a previous
+    // boot is cleaned up here so a redeploy off the cron actually stops it.
     try {
       const existing = await geoQueue.getRepeatableJobs()
       for (const job of existing) {
@@ -475,15 +476,6 @@ async function start(): Promise<void> {
           await geoQueue.removeRepeatableByKey(job.key)
         }
       }
-      await geoQueue.add(
-        'schedule-daily-challenge',
-        { kind: 'schedule-daily-challenge' },
-        {
-          repeat: { pattern: '5 0 * * *', tz: 'UTC' }, // Cron: 00:05 UTC daily
-          jobId: 'schedule-daily-geo-challenge-recurring',
-        }
-      )
-      logger.info('scheduled recurring schedule-daily-challenge geo job (daily at 00:05 UTC)')
 
       // Auto-resolve metadata for curated games every 30 min: HEADs Fandom +
       // Steam storesearch and fills in steam_app_id / wiki_subdomain.
@@ -509,7 +501,7 @@ async function start(): Promise<void> {
       )
       logger.info('scheduled recurring ingest-tick geo job (every 15 min)')
     } catch (error) {
-      logger.warn({ error: String(error) }, 'failed to schedule recurring geo daily challenge job')
+      logger.warn({ error: String(error) }, 'failed to register recurring geo jobs')
     }
 
     // Log final repeatable jobs configuration with next run times

@@ -70,6 +70,10 @@ export interface GeoContributorMe {
 }
 
 export const geoApi = {
+    getCurrent(): Promise<GeoDailyView> {
+        return request<GeoDailyView>('/api/geo/current')
+    },
+
     getDaily(date: string): Promise<GeoDailyView> {
         return request<GeoDailyView>(`/api/geo/daily/${date}`)
     },

@@ -47,6 +47,7 @@ interface GeoState {
     latestTierUp: GeoTierUpEvent | null
 
     // Actions
+    loadCurrent: () => Promise<void>
     loadDaily: (date: string) => Promise<void>
     setPendingGuess: (p: GeoPoint | null) => void
     submitGuess: (durationMs?: number) => Promise<GeoGuessResult | null>
@@ -66,6 +67,49 @@ interface GeoState {
 }
 
 const REWARD_BUFFER_MAX = 20
+
+// Shared loader for both `loadCurrent` and `loadDaily`. Snapshots the
+// store before kicking off the fetch so we can restore the player's
+// score after a reload or route round-trip — keyed on `challenge.id`,
+// so a rotation to a new challenge correctly drops yesterday's result.
+async function loadView(
+    get: () => GeoState,
+    set: (partial: Partial<GeoState>) => void,
+    fetcher: () => Promise<{
+        challenge: GeoChallenge
+        meta: GeoScreenshotMeta
+        candidate: GeoScreenshotCandidate
+        map: GeoMap
+        hasGuessed: boolean
+    }>,
+): Promise<void> {
+    const prev = get()
+    set({ phase: 'loading', errorMessage: null, errorCode: null })
+    try {
+        const view = await fetcher()
+        const restored =
+            view.hasGuessed &&
+            prev.result !== null &&
+            prev.challenge !== null &&
+            prev.challenge.id === view.challenge.id
+        set({
+            phase: restored ? 'result' : 'playing',
+            challenge: view.challenge,
+            meta: view.meta,
+            candidate: view.candidate,
+            map: view.map,
+            hasGuessed: view.hasGuessed,
+            result: restored ? prev.result : null,
+            pendingGuess: restored ? prev.pendingGuess : null,
+        })
+    } catch (err) {
+        set({
+            phase: 'error',
+            errorMessage: getApiErrorMessage(err, i18n.t('apiErrors.default')),
+            errorCode: err instanceof GeoApiError ? err.code : null,
+        })
+    }
+}
 
 export const useGeoStore = create<GeoState>()(
     persist(
@@ -89,41 +133,12 @@ export const useGeoStore = create<GeoState>()(
     recentRewards: [],
     latestTierUp: null,
 
+    async loadCurrent() {
+        await loadView(get, set, () => geoApi.getCurrent())
+    },
+
     async loadDaily(date) {
-        // Snapshot what was rehydrated (or held in memory) before we kick off
-        // the fetch — needed so we can restore the player's score after a
-        // page reload or a route round-trip.
-        const prev = get()
-        set({ phase: 'loading', errorMessage: null, errorCode: null })
-        try {
-            const view = await geoApi.getDaily(date)
-            // Survive reload: if the backend says "you already guessed" AND
-            // we have a persisted result for this exact challenge, restore
-            // the result phase instead of dropping the player back to a
-            // fresh playing state. The challenge.id guard makes day-to-day
-            // store rollover safe — yesterday's result is ignored.
-            const restored =
-                view.hasGuessed &&
-                prev.result !== null &&
-                prev.challenge !== null &&
-                prev.challenge.id === view.challenge.id
-            set({
-                phase: restored ? 'result' : 'playing',
-                challenge: view.challenge,
-                meta: view.meta,
-                candidate: view.candidate,
-                map: view.map,
-                hasGuessed: view.hasGuessed,
-                result: restored ? prev.result : null,
-                pendingGuess: restored ? prev.pendingGuess : null,
-            })
-        } catch (err) {
-            set({
-                phase: 'error',
-                errorMessage: getApiErrorMessage(err, i18n.t('apiErrors.default')),
-                errorCode: err instanceof GeoApiError ? err.code : null,
-            })
-        }
+        await loadView(get, set, () => geoApi.getDaily(date))
     },
 
     setPendingGuess(p) {
