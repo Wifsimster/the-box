@@ -484,14 +484,9 @@
     "geo": {
       "title": "Geo Moderation",
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and review crowdsourced submissions.",
-      "candidatesLoading": "Loading pins…",
       "tabs": {
-        "pins": "Pins",
-        "submissions": "Submissions",
         "queue": "Review queue",
-        "catalog": "Catalog",
-        "maps": "Maps",
-        "games": "Games"
+        "catalog": "Catalog"
       },
       "catalog": {
         "subtoggleLabel": "Catalog sub-section",
@@ -511,7 +506,6 @@
         "pins": "submissions",
         "errors": "reports",
         "nextChallenge": "next challenge",
-        "scheduleNow": "Schedule now",
         "mapsAria": "Open the Maps tab",
         "pinsAria": "Jump to the submissions awaiting review",
         "errorsAria": "Show recent failures",
@@ -645,31 +639,6 @@
         "pasteUrlCta": "I have a URL — upload",
         "close": "Close"
       },
-      "intro": {
-        "title": "How this page works",
-        "close": "Close",
-        "step1Title": "1. Curate games",
-        "step1Body": "Pick the games that should feed the Geo challenge in the Games tab. The ingestion pipeline then pulls their maps (Registry → Fandom → StrategyWiki → Fextralife → Wikidata → Manual) and Steam screenshots in the background.",
-        "step2Title": "2. Track ingestion",
-        "step2Body": "Watch maps land tier by tier in the Maps tab. Re-run the pipeline or upload a map manually for any game still missing one.",
-        "step3Title": "3. Review crowdsourced pins",
-        "step3Body": "Players drop pins guessing where each screenshot was taken. When pins converge, promote a canonical location — the Schedule button at the top will then queue the next validated screenshot for the daily challenge."
-      },
-      "candidates": "Candidates",
-      "empty": "No candidates match this filter.",
-      "pins": "pins",
-      "pickOne": "Pick a candidate",
-      "pickPoint": "Click the map to set canonical coordinates",
-      "detailHint": "Select a candidate from the list to review its pins and optionally set canonical coordinates.",
-      "promote": "Promote to canonical",
-      "demote": "Demote canonical",
-      "reject": "Reject capture",
-      "alreadyPromoted": "Already promoted — demote it to re-pin with new coordinates.",
-      "candidateRow": {
-        "pinCount_one": "{{count}} pin",
-        "pinCount_other": "{{count}} pins",
-        "source": "source: {{source}}"
-      },
       "groupHeader": {
         "unknownGame": "Game #{{id}}",
         "captureCount_one": "{{count}} capture",
@@ -734,18 +703,6 @@
         "title": "Remove official location?",
         "description": "This capture will return to the moderation queue. Players' submissions are kept; you'll be able to set a new official location.",
         "confirm": "Remove",
-        "cancel": "Cancel"
-      },
-      "demoteDialog": {
-        "title": "Demote canonical pin?",
-        "description": "This screenshot will return to the collecting queue. Players' pins are kept; you'll be able to set new canonical coordinates.",
-        "confirm": "Demote",
-        "cancel": "Cancel"
-      },
-      "rejectDialog": {
-        "title": "Reject this capture?",
-        "description": "The capture will be removed from the Geo challenge: contributors won't see it anymore and it will never be picked for the daily challenge. Use for captures with no locatable spot (UI, inventory, loading screen…).",
-        "confirm": "Reject",
         "cancel": "Cancel"
       },
       "health": {

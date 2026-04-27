@@ -484,14 +484,9 @@
     "geo": {
       "title": "Modération Géo",
       "subtitle": "Gérez le défi Géo quotidien : importez les sources, planifiez les défis et modérez les propositions communautaires.",
-      "candidatesLoading": "Chargement des épingles…",
       "tabs": {
-        "pins": "Épingles",
-        "submissions": "Propositions",
         "queue": "À examiner",
-        "catalog": "Catalogue",
-        "maps": "Cartes",
-        "games": "Jeux"
+        "catalog": "Catalogue"
       },
       "catalog": {
         "subtoggleLabel": "Sous-section du catalogue",
@@ -511,7 +506,6 @@
         "pins": "propositions",
         "errors": "signalements",
         "nextChallenge": "prochain défi",
-        "scheduleNow": "Planifier",
         "mapsAria": "Voir les cartes",
         "pinsAria": "Aller à la file des propositions à modérer",
         "errorsAria": "Voir les échecs récents",
@@ -645,31 +639,6 @@
         "pasteUrlCta": "J'ai une URL — téléverser",
         "close": "Fermer"
       },
-      "intro": {
-        "title": "Comment cette page fonctionne",
-        "close": "Fermer",
-        "step1Title": "1. Activer les jeux",
-        "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → StrategyWiki → Fextralife → Wikidata → Manuel) et les captures Steam en arrière-plan.",
-        "step2Title": "2. Suivre l'ingestion",
-        "step2Body": "Visualisez l'avancement niveau par niveau dans l'onglet Cartes. Relancez le pipeline ou téléversez une carte manuellement si un jeu reste sans carte.",
-        "step3Title": "3. Valider les épingles",
-        "step3Body": "Les joueurs déposent des épingles pour deviner où chaque capture a été prise. Lorsqu'elles convergent, promouvez un emplacement canonique : le bouton Planifier en haut programmera la prochaine capture validée pour le défi quotidien."
-      },
-      "candidates": "Candidats",
-      "empty": "Aucun candidat ne correspond à ce filtre.",
-      "pins": "épingles",
-      "pickOne": "Choisir un candidat",
-      "pickPoint": "Cliquez sur la carte pour définir les coordonnées canoniques",
-      "detailHint": "Sélectionnez un candidat dans la liste pour consulter ses épingles et éventuellement définir les coordonnées canoniques.",
-      "promote": "Promouvoir en canonique",
-      "demote": "Rétrograder la canonique",
-      "reject": "Rejeter la capture",
-      "alreadyPromoted": "Déjà promu — rétrogradez pour ré-épingler avec de nouvelles coordonnées.",
-      "candidateRow": {
-        "pinCount_one": "{{count}} épingle",
-        "pinCount_other": "{{count}} épingles",
-        "source": "source : {{source}}"
-      },
       "groupHeader": {
         "unknownGame": "Jeu #{{id}}",
         "captureCount_one": "{{count}} capture",
@@ -734,18 +703,6 @@
         "title": "Retirer du lieu officiel ?",
         "description": "Cette capture retournera dans la file de modération. Les propositions des joueurs sont conservées ; vous pourrez fixer un nouveau lieu officiel.",
         "confirm": "Retirer",
-        "cancel": "Annuler"
-      },
-      "demoteDialog": {
-        "title": "Rétrograder la canonique ?",
-        "description": "Cette capture retournera dans la file de collecte. Les épingles des joueurs sont conservées ; vous pourrez définir de nouvelles coordonnées canoniques.",
-        "confirm": "Rétrograder",
-        "cancel": "Annuler"
-      },
-      "rejectDialog": {
-        "title": "Rejeter cette capture ?",
-        "description": "La capture sera retirée du défi Géo : les contributeurs ne la verront plus et elle ne sera jamais sélectionnée pour le défi quotidien. À utiliser pour les captures sans emplacement repérable (interface, inventaire, écran de chargement…).",
-        "confirm": "Rejeter",
         "cancel": "Annuler"
       },
       "health": {
