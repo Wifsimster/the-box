@@ -8,7 +8,7 @@ import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History, SkipForward } from 'lucide-react'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { Link } from 'react-router-dom'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -25,11 +25,13 @@ export default function GeoDailyPage() {
         hasGuessed,
         pendingGuess,
         result,
+        wasSkipped,
         errorMessage,
         errorCode,
         loadCurrent,
         setPendingGuess,
         submitGuess,
+        skipChallenge,
     } = useGeoStore()
 
     // useRef's initial value runs on every render; lazy-via-useState keeps
@@ -45,10 +47,15 @@ export default function GeoDailyPage() {
     }, [session?.user?.id])
 
     const canSubmit = phase === 'playing' && !!pendingGuess && !hasGuessed
+    const canSkip = phase === 'playing' && !hasGuessed
 
     const handleSubmit = async () => {
         const duration = Date.now() - startedAt
         await submitGuess(duration)
+    }
+
+    const handleSkip = async () => {
+        await skipChallenge()
     }
 
     return (
@@ -96,7 +103,7 @@ export default function GeoDailyPage() {
                     </Card>
                 )}
 
-                {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result') && (
+                {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result' || phase === 'skipped') && (
                     <div className="grid gap-6 lg:grid-cols-2">
                         <Card>
                             <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
@@ -127,36 +134,69 @@ export default function GeoDailyPage() {
                                     heightPx={map.heightPx}
                                     pin={pendingGuess ?? result?.guess ?? null}
                                     canonical={result?.canonical ?? null}
-                                    disabled={hasGuessed || phase === 'submitting' || phase === 'result'}
+                                    disabled={hasGuessed || phase === 'submitting' || phase === 'result' || phase === 'skipped'}
                                     onPin={setPendingGuess}
                                     showGuessLine={phase === 'result'}
                                 />
 
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between gap-2">
                                     <span className="text-xs text-muted-foreground">
                                         {pendingGuess
                                             ? `(${pendingGuess.x.toFixed(3)}, ${pendingGuess.y.toFixed(3)})`
                                             : t('geo.daily.hint', 'Click the map to drop a pin')}
                                     </span>
-                                    <Button
-                                        onClick={handleSubmit}
-                                        disabled={!canSubmit}
-                                        className="gradient-gaming hover:opacity-90"
-                                    >
-                                        {phase === 'submitting' && (
-                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        )}
-                                        {t('geo.daily.submit', 'Submit guess')}
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            onClick={handleSkip}
+                                            disabled={!canSkip}
+                                            variant="ghost"
+                                            size="sm"
+                                            title={t(
+                                                'geo.daily.skip.tooltip',
+                                                "I don't recognize this game",
+                                            )}
+                                        >
+                                            <SkipForward className="h-4 w-4 mr-1.5" aria-hidden />
+                                            {t('geo.daily.skip.action', 'Skip')}
+                                        </Button>
+                                        <Button
+                                            onClick={handleSubmit}
+                                            disabled={!canSubmit}
+                                            className="gradient-gaming hover:opacity-90"
+                                        >
+                                            {phase === 'submitting' && (
+                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                            )}
+                                            {t('geo.daily.submit', 'Submit guess')}
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 {result && <ResultBlock result={result} t={t} language={i18n.language} />}
+                                {phase === 'skipped' && wasSkipped && <SkipResultBlock t={t} />}
                             </CardContent>
                         </Card>
                     </div>
                 )}
             </div>
         </>
+    )
+}
+
+function SkipResultBlock({ t }: { t: ReturnType<typeof useTranslation>['t'] }) {
+    return (
+        <div className="rounded-lg border bg-card/50 p-4 space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                <SkipForward className="h-4 w-4" aria-hidden />
+                <span>{t('geo.daily.skip.title', 'Skipped')}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+                {t(
+                    'geo.daily.skip.body',
+                    "No score recorded — this challenge won't count toward the leaderboard for you.",
+                )}
+            </p>
+        </div>
     )
 }
 

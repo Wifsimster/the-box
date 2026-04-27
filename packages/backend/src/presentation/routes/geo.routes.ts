@@ -45,6 +45,10 @@ const guessBodySchema = z.object({
   durationMs: z.number().int().nonnegative().optional(),
 })
 
+const skipBodySchema = z.object({
+  challengeId: z.number().int().positive(),
+})
+
 const pinBodySchema = z.object({
   geoScreenshotCandidateId: z.number().int().positive(),
   pin: pointSchema,
@@ -132,6 +136,25 @@ router.post('/guess', authMiddleware, validateBody(guessBodySchema), async (req,
   } catch (err) {
     if (err instanceof GeoGameError) {
       const status = err.code === 'ALREADY_GUESSED' ? 409 : err.code === 'INVALID_POINT' ? 400 : 404
+      res.status(status).json({ success: false, error: { code: err.code, message: err.message } })
+      return
+    }
+    next(err)
+  }
+})
+
+// "I don't recognize this game" — locks the daily slot but doesn't
+// score and doesn't touch the leaderboard tables. No socket emit
+// because there's no leaderboard delta to push.
+router.post('/skip', authMiddleware, validateBody(skipBodySchema), async (req, res, next) => {
+  try {
+    const userId = req.userId!
+    const { challengeId } = req.body as z.infer<typeof skipBodySchema>
+    await geoGameService.submitSkip({ userId, challengeId })
+    res.json({ success: true, data: { skipped: true } })
+  } catch (err) {
+    if (err instanceof GeoGameError) {
+      const status = err.code === 'ALREADY_GUESSED' ? 409 : 404
       res.status(status).json({ success: false, error: { code: err.code, message: err.message } })
       return
     }

@@ -1434,6 +1434,12 @@
       "average": "Average",
       "players": "{{count}} players",
       "comparisonAria": "Your score vs. average",
+      "skip": {
+        "action": "Skip",
+        "tooltip": "I don't recognize this game",
+        "title": "Skipped",
+        "body": "No score recorded — this challenge won't count toward the leaderboard for you."
+      },
       "screenshotUnavailable": "Screenshot preview unavailable.",
       "mapUnavailable": "Map unavailable.",
       "loading": "Loading challenge…",

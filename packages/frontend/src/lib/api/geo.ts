@@ -93,6 +93,13 @@ export const geoApi = {
         })
     },
 
+    submitSkip(input: { challengeId: number }): Promise<{ skipped: boolean }> {
+        return request<{ skipped: boolean }>('/api/geo/skip', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        })
+    },
+
     leaderboardDaily(date: string): Promise<GeoLeaderboardEntry[]> {
         return request<GeoLeaderboardEntry[]>(`/api/geo/leaderboard/${date}`)
     },

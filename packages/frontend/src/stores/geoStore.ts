@@ -15,7 +15,14 @@ import { geoApi, GeoApiError, type GeoContributorMe } from '../lib/api/geo'
 import { getApiErrorMessage } from '../lib/api-errors'
 import i18n from '../lib/i18n'
 
-type Phase = 'idle' | 'loading' | 'playing' | 'submitting' | 'result' | 'error'
+type Phase =
+    | 'idle'
+    | 'loading'
+    | 'playing'
+    | 'submitting'
+    | 'result'
+    | 'skipped'
+    | 'error'
 
 interface GeoState {
     // Daily challenge flow
@@ -27,6 +34,10 @@ interface GeoState {
     hasGuessed: boolean
     pendingGuess: GeoPoint | null
     result: GeoGuessResult | null
+    // Sticky flag for "player skipped this challenge" so a reload during
+    // the skipped phase can restore the SkipResultBlock without resurrecting
+    // a (non-existent) score. Cleared whenever a new challenge loads.
+    wasSkipped: boolean
     errorMessage: string | null
     errorCode: string | null
 
@@ -51,6 +62,7 @@ interface GeoState {
     loadDaily: (date: string) => Promise<void>
     setPendingGuess: (p: GeoPoint | null) => void
     submitGuess: (durationMs?: number) => Promise<GeoGuessResult | null>
+    skipChallenge: () => Promise<boolean>
     loadLeaderboardDaily: (date: string) => Promise<void>
     loadLeaderboardMonthly: (period: string) => Promise<void>
 
@@ -87,20 +99,20 @@ async function loadView(
     set({ phase: 'loading', errorMessage: null, errorCode: null })
     try {
         const view = await fetcher()
-        const restored =
-            view.hasGuessed &&
-            prev.result !== null &&
-            prev.challenge !== null &&
-            prev.challenge.id === view.challenge.id
+        const sameChallenge =
+            prev.challenge !== null && prev.challenge.id === view.challenge.id
+        const restoredResult = view.hasGuessed && sameChallenge && prev.result !== null
+        const restoredSkip = view.hasGuessed && sameChallenge && prev.wasSkipped
         set({
-            phase: restored ? 'result' : 'playing',
+            phase: restoredResult ? 'result' : restoredSkip ? 'skipped' : 'playing',
             challenge: view.challenge,
             meta: view.meta,
             candidate: view.candidate,
             map: view.map,
             hasGuessed: view.hasGuessed,
-            result: restored ? prev.result : null,
-            pendingGuess: restored ? prev.pendingGuess : null,
+            result: restoredResult ? prev.result : null,
+            wasSkipped: restoredSkip,
+            pendingGuess: restoredResult ? prev.pendingGuess : null,
         })
     } catch (err) {
         set({
@@ -122,6 +134,7 @@ export const useGeoStore = create<GeoState>()(
     hasGuessed: false,
     pendingGuess: null,
     result: null,
+    wasSkipped: false,
     errorMessage: null,
     errorCode: null,
     leaderboardDaily: [],
@@ -156,7 +169,7 @@ export const useGeoStore = create<GeoState>()(
                 guess: pendingGuess,
                 durationMs,
             })
-            set({ phase: 'result', result, hasGuessed: true })
+            set({ phase: 'result', result, hasGuessed: true, wasSkipped: false })
             return result
         } catch (err) {
             set({
@@ -164,6 +177,30 @@ export const useGeoStore = create<GeoState>()(
                 errorMessage: getApiErrorMessage(err),
             })
             return null
+        }
+    },
+
+    async skipChallenge() {
+        const { challenge } = get()
+        if (!challenge) return false
+
+        set({ phase: 'submitting', errorMessage: null })
+        try {
+            await geoApi.submitSkip({ challengeId: challenge.id })
+            set({
+                phase: 'skipped',
+                hasGuessed: true,
+                wasSkipped: true,
+                result: null,
+                pendingGuess: null,
+            })
+            return true
+        } catch (err) {
+            set({
+                phase: 'error',
+                errorMessage: getApiErrorMessage(err),
+            })
+            return false
         }
     },
 
@@ -263,6 +300,7 @@ export const useGeoStore = create<GeoState>()(
             hasGuessed: false,
             pendingGuess: null,
             result: null,
+            wasSkipped: false,
             errorMessage: null,
             errorCode: null,
             currentCandidate: null,
@@ -282,6 +320,7 @@ export const useGeoStore = create<GeoState>()(
                 result: state.result,
                 hasGuessed: state.hasGuessed,
                 pendingGuess: state.pendingGuess,
+                wasSkipped: state.wasSkipped,
             }),
         },
     ),

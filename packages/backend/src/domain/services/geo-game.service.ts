@@ -68,6 +68,8 @@ export interface GeoGameService {
     durationMs?: number
   }): Promise<GeoGuessResult>
 
+  submitSkip(args: { userId: string; challengeId: number }): Promise<void>
+
   getLeaderboardDaily(date: string, limit?: number): Promise<GeoLeaderboardEntry[]>
   getLeaderboardMonthly(period: string, limit?: number): Promise<GeoLeaderboardEntry[]>
 
@@ -244,6 +246,29 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       const stats = await geoChallengeRepository.getChallengeStats(challengeId)
 
       return { ...result, averageScore: stats.averageScore, playerCount: stats.playerCount }
+    },
+
+    async submitSkip({ userId, challengeId }) {
+      // Skip shares the daily slot with submitGuess: same uniqueness
+      // check, same `ALREADY_GUESSED` 409. This kills the
+      // skip-then-ask-Discord-then-resubmit exploit and keeps a single
+      // terminal action per challenge per user.
+      const existing = await geoChallengeRepository.findGuess(userId, challengeId)
+      if (existing) {
+        throw new GeoGameError('already guessed this challenge', 'ALREADY_GUESSED')
+      }
+
+      const challenge = await (async () => {
+        const rows = await geoChallengeRepository.listRecent(30)
+        return rows.find((c) => c.id === challengeId) ?? null
+      })()
+      if (!challenge) {
+        throw new GeoGameError('challenge not found', 'CHALLENGE_NOT_FOUND')
+      }
+
+      await geoChallengeRepository.recordSkip({ userId, geoChallengeId: challengeId })
+      // Deliberately no `upsertDaily` / `upsertMonthly` — a skip is a
+      // non-attempt and must never appear on the leaderboard.
     },
 
     getLeaderboardDaily(date, limit) {

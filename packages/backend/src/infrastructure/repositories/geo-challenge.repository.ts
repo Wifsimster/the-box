@@ -23,6 +23,7 @@ export interface GeoGuessRow {
   score: number
   score_version: number
   duration_ms: number | null
+  is_skip: boolean
   created_at: Date
 }
 
@@ -153,16 +154,36 @@ export const geoChallengeRepository = {
     }
   },
 
+  // Records a "skip" — the player declared they don't recognize the
+  // game. Stored in `geo_guess` with `is_skip = true` so the PK
+  // `(user_id, geo_challenge_id)` keeps locking the daily slot
+  // (preventing skip-then-guess), but excluded from `getChallengeStats`
+  // and never upserted to the leaderboards.
+  async recordSkip(data: { userId: string; geoChallengeId: number }): Promise<void> {
+    log.info({ userId: data.userId, challengeId: data.geoChallengeId }, 'recordSkip')
+    await db('geo_guess').insert({
+      user_id: data.userId,
+      geo_challenge_id: data.geoChallengeId,
+      x: 0,
+      y: 0,
+      distance: 0,
+      score: 0,
+      score_version: 0,
+      duration_ms: null,
+      is_skip: true,
+    })
+  },
+
   // ---- Challenge stats ----
 
-  // Average + player count across all guesses recorded for the challenge.
-  // Used by the result block to show the player how their score compares
-  // to the community on this same challenge.
+  // Average + player count across all *attempted* guesses for the
+  // challenge — skips are excluded so the comparison the player sees
+  // reflects only people who actually tried, not people who passed.
   async getChallengeStats(
     challengeId: number,
   ): Promise<{ averageScore: number; playerCount: number }> {
     const row = await db('geo_guess')
-      .where({ geo_challenge_id: challengeId })
+      .where({ geo_challenge_id: challengeId, is_skip: false })
       .select<{ avg: string | null; count: string | null }>(
         db.raw('AVG(score) AS avg'),
         db.raw('COUNT(*) AS count'),

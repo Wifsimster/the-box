@@ -641,6 +641,7 @@ export interface GeoChallengeRepository {
     score: number
     score_version: number
     duration_ms: number | null
+    is_skip: boolean
     created_at: Date
   } | null>
   recordGuess(data: {
@@ -652,6 +653,7 @@ export interface GeoChallengeRepository {
     scoreVersion: number
     durationMs?: number
   }): Promise<GeoGuessResult>
+  recordSkip(data: { userId: string; geoChallengeId: number }): Promise<void>
   upsertDaily(args: { challengeDate: string; userId: string; score: number }): Promise<void>
   upsertMonthly(args: { period: string; userId: string; scoreDelta: number }): Promise<void>
   topDaily(challengeDate: string, limit?: number): Promise<GeoLeaderboardEntry[]>

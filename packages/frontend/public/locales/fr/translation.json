@@ -1434,6 +1434,12 @@
       "average": "Moyenne",
       "players": "{{count}} joueurs",
       "comparisonAria": "Votre score comparé à la moyenne",
+      "skip": {
+        "action": "Passer",
+        "tooltip": "Je ne reconnais pas ce jeu",
+        "title": "Passé",
+        "body": "Aucun score enregistré — ce défi ne comptera pas dans le classement pour vous."
+      },
       "screenshotUnavailable": "Aperçu de la capture indisponible.",
       "mapUnavailable": "Carte indisponible.",
       "loading": "Chargement du défi…",
