@@ -63,6 +63,7 @@ interface GeoState {
     setPendingGuess: (p: GeoPoint | null) => void
     submitGuess: (durationMs?: number) => Promise<GeoGuessResult | null>
     skipChallenge: () => Promise<boolean>
+    loadNextUnplayed: () => Promise<boolean>
     loadLeaderboardDaily: (date: string) => Promise<void>
     loadLeaderboardMonthly: (period: string) => Promise<void>
 
@@ -199,6 +200,40 @@ export const useGeoStore = create<GeoState>()(
             set({
                 phase: 'error',
                 errorMessage: getApiErrorMessage(err),
+            })
+            return false
+        }
+    },
+
+    async loadNextUnplayed() {
+        // Pull the catch-up window and pick the most recent challenge
+        // the player hasn't yet guessed or skipped. Excludes the
+        // current challenge so the CTA doesn't loop the player back to
+        // the screen they just finished.
+        const { challenge: currentChallenge } = get()
+        try {
+            const history = await geoApi.getHistory(7)
+            const next = history.find(
+                (c) => !c.hasGuessed && c.id !== currentChallenge?.id,
+            )
+            if (!next) {
+                set({
+                    phase: 'error',
+                    errorCode: 'NO_NEXT_UNPLAYED',
+                    errorMessage: i18n.t(
+                        'geo.daily.next.exhausted',
+                        "You've played every recent geo challenge.",
+                    ),
+                })
+                return false
+            }
+            await loadView(get, set, () => geoApi.getDaily(next.challengeDate))
+            return true
+        } catch (err) {
+            set({
+                phase: 'error',
+                errorMessage: getApiErrorMessage(err),
+                errorCode: err instanceof GeoApiError ? err.code : null,
             })
             return false
         }

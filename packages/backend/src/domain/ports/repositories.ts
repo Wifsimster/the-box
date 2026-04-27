@@ -21,6 +21,7 @@ import type {
   UserInventory,
   UserInventoryItem,
   GeoChallenge,
+  GeoChallengeWithStatus,
   GeoContributorStats,
   GeoContributorTier,
   GeoContributorTierThreshold,
@@ -622,6 +623,7 @@ export interface GeoChallengeRepository {
   findByDate(date: string, tier?: number): Promise<GeoChallenge | null>
   findCurrent(tier?: number): Promise<GeoChallenge | null>
   listRecent(days: number): Promise<GeoChallenge[]>
+  listRecentWithStatus(days: number, userId?: string): Promise<GeoChallengeWithStatus[]>
   create(data: {
     challengeDate: string
     geoScreenshotMetaId: number

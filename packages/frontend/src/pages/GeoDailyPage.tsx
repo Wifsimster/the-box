@@ -8,7 +8,7 @@ import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History, SkipForward } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History, SkipForward, ArrowRight } from 'lucide-react'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { Link } from 'react-router-dom'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -32,6 +32,7 @@ export default function GeoDailyPage() {
         setPendingGuess,
         submitGuess,
         skipChallenge,
+        loadNextUnplayed,
     } = useGeoStore()
 
     // useRef's initial value runs on every render; lazy-via-useState keeps
@@ -56,6 +57,10 @@ export default function GeoDailyPage() {
 
     const handleSkip = async () => {
         await skipChallenge()
+    }
+
+    const handleNext = async () => {
+        await loadNextUnplayed()
     }
 
     return (
@@ -92,16 +97,22 @@ export default function GeoDailyPage() {
                     <NoChallengeCard />
                 )}
 
-                {phase === 'error' && errorCode !== 'NO_CHALLENGE' && (
-                    <Card>
-                        <CardContent
-                            className="py-10 text-center text-sm text-destructive"
-                            role="alert"
-                        >
-                            {errorMessage ?? t('common.error', 'Error')}
-                        </CardContent>
-                    </Card>
+                {phase === 'error' && errorCode === 'NO_NEXT_UNPLAYED' && (
+                    <NoMoreUnplayedCard />
                 )}
+
+                {phase === 'error' &&
+                    errorCode !== 'NO_CHALLENGE' &&
+                    errorCode !== 'NO_NEXT_UNPLAYED' && (
+                        <Card>
+                            <CardContent
+                                className="py-10 text-center text-sm text-destructive"
+                                role="alert"
+                            >
+                                {errorMessage ?? t('common.error', 'Error')}
+                            </CardContent>
+                        </Card>
+                    )}
 
                 {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result' || phase === 'skipped') && (
                     <div className="grid gap-6 lg:grid-cols-2">
@@ -174,6 +185,23 @@ export default function GeoDailyPage() {
 
                                 {result && <ResultBlock result={result} t={t} language={i18n.language} />}
                                 {phase === 'skipped' && wasSkipped && <SkipResultBlock t={t} />}
+                                {(phase === 'result' || phase === 'skipped') && (
+                                    <Button
+                                        onClick={handleNext}
+                                        className="gradient-gaming hover:opacity-90 w-full"
+                                    >
+                                        {t('geo.daily.next.action', 'Next geo guess')}
+                                        <ArrowRight className="h-4 w-4 ml-2" aria-hidden />
+                                    </Button>
+                                )}
+                                {(phase === 'result' || phase === 'skipped') && (
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        {t(
+                                            'geo.daily.next.casualNote',
+                                            "Practice round — won't affect your leaderboard rank.",
+                                        )}
+                                    </p>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
@@ -331,6 +359,41 @@ function ScreenshotFrame({ imageUrl }: { imageUrl: string }) {
             className="w-full rounded-lg border"
             onError={() => setErrored(true)}
         />
+    )
+}
+
+// Shown after a "Next geo guess" tap when the player has already
+// played every challenge in the last 7 days. Rather than a destructive
+// error, offer onward navigation — leaderboard for context, history
+// for review.
+function NoMoreUnplayedCard() {
+    const { t } = useTranslation()
+    const { localizedPath } = useLocalizedPath()
+    return (
+        <Card className="border-neon-pink/40">
+            <CardContent className="py-10 text-center space-y-4">
+                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    {t(
+                        'geo.daily.next.exhausted',
+                        "You've played every recent geo challenge. Come back tomorrow for a new one.",
+                    )}
+                </p>
+                <div className="flex justify-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                        <Link to={localizedPath('/history')}>
+                            <History className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                            {t('geo.daily.errors.viewHistory', 'View past challenges')}
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <Link to={localizedPath('/geo/leaderboard')}>
+                            <Trophy className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                            {t('geo.daily.next.viewLeaderboard', 'View leaderboard')}
+                        </Link>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     )
 }
 

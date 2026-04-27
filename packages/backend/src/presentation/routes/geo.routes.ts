@@ -105,7 +105,7 @@ router.get('/daily/:date', optionalAuthMiddleware, validateParams(dateSchema), a
 router.get('/history', optionalAuthMiddleware, validateQuery(historyQuerySchema), async (req, res, next) => {
   try {
     const { days = 7 } = req.query as unknown as { days?: number }
-    const data = await geoChallengeRepository.listRecent(days)
+    const data = await geoChallengeRepository.listRecentWithStatus(days, req.userId)
     res.json({ success: true, data })
   } catch (err) {
     next(err)

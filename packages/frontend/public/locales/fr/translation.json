@@ -1440,6 +1440,12 @@
         "title": "Passé",
         "body": "Aucun score enregistré — ce défi ne comptera pas dans le classement pour vous."
       },
+      "next": {
+        "action": "Défi géo suivant",
+        "casualNote": "Manche d'entraînement — n'affectera pas votre classement.",
+        "exhausted": "Vous avez joué tous les défis géo récents. Revenez demain pour un nouveau.",
+        "viewLeaderboard": "Voir le classement"
+      },
       "screenshotUnavailable": "Aperçu de la capture indisponible.",
       "mapUnavailable": "Carte indisponible.",
       "loading": "Chargement du défi…",

@@ -1,5 +1,6 @@
 import type {
     GeoChallenge,
+    GeoChallengeWithStatus,
     GeoContributorStats,
     GeoContributorTier,
     GeoContributorTierThreshold,
@@ -78,8 +79,8 @@ export const geoApi = {
         return request<GeoDailyView>(`/api/geo/daily/${date}`)
     },
 
-    getHistory(days = 7): Promise<GeoChallenge[]> {
-        return request<GeoChallenge[]>(`/api/geo/history?days=${days}`)
+    getHistory(days = 7): Promise<GeoChallengeWithStatus[]> {
+        return request<GeoChallengeWithStatus[]>(`/api/geo/history?days=${days}`)
     },
 
     submitGuess(input: {

@@ -1,6 +1,12 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
-import type { GeoChallenge, GeoGuessResult, GeoLeaderboardEntry, GeoPoint } from '@the-box/types'
+import type {
+  GeoChallenge,
+  GeoChallengeWithStatus,
+  GeoGuessResult,
+  GeoLeaderboardEntry,
+  GeoPoint,
+} from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'geo-challenge' })
 
@@ -62,6 +68,40 @@ export const geoChallengeRepository = {
       .orderBy('challenge_date', 'desc')
       .select<GeoChallengeRow[]>('*')
     return rows.map(mapChallenge)
+  },
+
+  // Same window as `listRecent` but enriched with the player's
+  // play-status so the frontend can find the next unplayed challenge in
+  // a single round-trip. A guess OR a skip both flip `has_guessed` to
+  // true (the day's slot is closed either way). Anonymous callers get
+  // `hasGuessed = false` for every row.
+  async listRecentWithStatus(
+    days: number,
+    userId?: string,
+  ): Promise<GeoChallengeWithStatus[]> {
+    const query = db('geo_challenge')
+      .where('challenge_date', '>=', db.raw(`CURRENT_DATE - INTERVAL '${days} days'`))
+      .orderBy('challenge_date', 'desc')
+
+    if (!userId) {
+      const rows = await query.select<GeoChallengeRow[]>('*')
+      return rows.map((r) => ({ ...mapChallenge(r), hasGuessed: false }))
+    }
+
+    const rows = await query
+      .leftJoin('geo_guess', function joinGuess() {
+        this.on('geo_guess.geo_challenge_id', '=', 'geo_challenge.id').andOn(
+          'geo_guess.user_id',
+          '=',
+          db.raw('?', [userId]),
+        )
+      })
+      .select<Array<GeoChallengeRow & { guess_id: number | null }>>(
+        'geo_challenge.*',
+        db.raw('geo_guess.id AS guess_id'),
+      )
+
+    return rows.map((r) => ({ ...mapChallenge(r), hasGuessed: r.guess_id !== null }))
   },
 
   async create(data: {
