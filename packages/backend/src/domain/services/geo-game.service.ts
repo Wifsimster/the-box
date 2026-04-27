@@ -238,7 +238,12 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
         scoreDelta: score,
       })
 
-      return result
+      // Stats are computed AFTER recordGuess so the player's own score is
+      // included — keeps the average meaningful even when they're the
+      // first guesser of the day.
+      const stats = await geoChallengeRepository.getChallengeStats(challengeId)
+
+      return { ...result, averageScore: stats.averageScore, playerCount: stats.playerCount }
     },
 
     getLeaderboardDaily(date, limit) {

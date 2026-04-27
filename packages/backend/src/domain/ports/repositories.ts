@@ -656,6 +656,9 @@ export interface GeoChallengeRepository {
   upsertMonthly(args: { period: string; userId: string; scoreDelta: number }): Promise<void>
   topDaily(challengeDate: string, limit?: number): Promise<GeoLeaderboardEntry[]>
   topMonthly(period: string, limit?: number): Promise<GeoLeaderboardEntry[]>
+  getChallengeStats(
+    challengeId: number,
+  ): Promise<{ averageScore: number; playerCount: number }>
 }
 
 export interface GeoPinRepository {

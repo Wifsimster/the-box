@@ -153,6 +153,26 @@ export const geoChallengeRepository = {
     }
   },
 
+  // ---- Challenge stats ----
+
+  // Average + player count across all guesses recorded for the challenge.
+  // Used by the result block to show the player how their score compares
+  // to the community on this same challenge.
+  async getChallengeStats(
+    challengeId: number,
+  ): Promise<{ averageScore: number; playerCount: number }> {
+    const row = await db('geo_guess')
+      .where({ geo_challenge_id: challengeId })
+      .select<{ avg: string | null; count: string | null }>(
+        db.raw('AVG(score) AS avg'),
+        db.raw('COUNT(*) AS count'),
+      )
+      .first()
+    const playerCount = Number(row?.count ?? 0)
+    const averageScore = playerCount > 0 ? Math.round(Number(row?.avg ?? 0)) : 0
+    return { averageScore, playerCount }
+  },
+
   // ---- Leaderboards ----
 
   async upsertDaily(args: {

@@ -169,6 +169,10 @@ function ResultBlock({
     t: ReturnType<typeof useTranslation>['t']
     language: string
 }) {
+    const hasStats =
+        typeof result.averageScore === 'number' &&
+        typeof result.playerCount === 'number' &&
+        result.playerCount > 0
     return (
         <div className="rounded-lg border bg-card/50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-neon-pink font-medium">
@@ -177,9 +181,85 @@ function ResultBlock({
                     {t('geo.daily.score', 'Score')}: {result.score.toLocaleString(language)}
                 </span>
             </div>
+            {hasStats && (
+                <ScoreComparison
+                    score={result.score}
+                    averageScore={result.averageScore!}
+                    playerCount={result.playerCount!}
+                    t={t}
+                    language={language}
+                />
+            )}
             <div className="text-xs text-muted-foreground">
                 {t('geo.daily.distance', 'Distance')}: {(result.distance * 100).toFixed(1)}% ·{' '}
                 {t('geo.daily.formula', 'Formula')} v{result.scoreVersion}
+            </div>
+        </div>
+    )
+}
+
+function ScoreComparison({
+    score,
+    averageScore,
+    playerCount,
+    t,
+    language,
+}: {
+    score: number
+    averageScore: number
+    playerCount: number
+    t: ReturnType<typeof useTranslation>['t']
+    language: string
+}) {
+    const delta = score - averageScore
+    // Color the delta by how far from the average the player landed.
+    // Within ±10% of the average → neutral; clearly above → green; clearly
+    // below → muted red. Tuned to feel encouraging on a near-miss.
+    const tolerance = Math.max(50, averageScore * 0.1)
+    const tone =
+        delta >= tolerance
+            ? 'text-score-high'
+            : delta <= -tolerance
+              ? 'text-score-low'
+              : 'text-muted-foreground'
+    const sign = delta > 0 ? '+' : ''
+    const formattedDelta = `${sign}${delta.toLocaleString(language)}`
+
+    // Bar mapping: average sits at 50 %, the user's score is positioned
+    // proportionally up to ±100 % of the average from that midpoint.
+    // Clamped so extreme outliers don't blow past the bar edges.
+    const ratio = averageScore > 0 ? (score - averageScore) / averageScore : 0
+    const clamped = Math.max(-1, Math.min(1, ratio))
+    const positionPct = 50 + clamped * 50
+
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                    {t('geo.daily.average', 'Average')}:{' '}
+                    <span className="text-foreground font-medium">
+                        {averageScore.toLocaleString(language)}
+                    </span>{' '}
+                    <span className="text-muted-foreground/70">
+                        ({t('geo.daily.players', '{{count}} players', { count: playerCount })})
+                    </span>
+                </span>
+                <span className={`font-medium ${tone}`}>{formattedDelta}</span>
+            </div>
+            <div
+                className="relative h-1.5 rounded-full bg-muted/40 overflow-hidden"
+                role="img"
+                aria-label={t('geo.daily.comparisonAria', 'Your score vs. average')}
+            >
+                {/* Average tick at 50 % */}
+                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-muted-foreground/60" />
+                {/* Player marker */}
+                <div
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-3 rounded-full border border-background ${
+                        delta >= 0 ? 'bg-score-high' : 'bg-score-low'
+                    }`}
+                    style={{ left: `${positionPct}%` }}
+                />
             </div>
         </div>
     )
