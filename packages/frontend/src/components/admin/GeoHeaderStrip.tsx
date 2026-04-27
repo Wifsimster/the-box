@@ -1,26 +1,25 @@
 import { useTranslation } from 'react-i18next'
 import { Loader2, Map, ListChecks, AlertTriangle, CalendarClock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { GeoHealth } from '@/hooks/useGeoHealth'
 
-// Persistent dataset-health indicator that replaces GeoAdminActions'
-// metric/queue tile grids. One thin line of always-visible counters that
-// the operator can scan in <1 second:
+// Persistent dataset-health indicator. One thin line of always-visible
+// counters the operator can scan in <1 second:
 //   `38/42 maps · 12 pins · 0 errors`
 //
 // Health data is owned by the parent (GeoReviewPanel) via `useGeoHealth`
-// so the cold-start banner and these counters always agree without a
-// duplicate poll.
+// so the cold-start banner, the readiness banner and these counters all
+// agree without duplicate polls.
 //
-// Counters now act as shortcuts: clicking `maps` jumps to the Maps tab,
-// clicking `pins` lands on the pending queue, and clicking `errors` opens
-// a Popover summarising the recent failures so the operator can see what
-// to chase without leaving the Géo panel.
+// Counters act as shortcuts: clicking `maps` jumps to the Catalog tab
+// on the Maps sub-section, `pins` lands on the moderation queue, and
+// `errors` opens a Popover summarising the recent failures.
+//
+// The Schedule action used to live here as a Button — it now belongs to
+// GeoReadinessBanner so the readiness state and the action that changes
+// it sit together.
 
 interface GeoHeaderStripProps {
-    onScheduleClick?: () => void
-    scheduling?: boolean
     health: GeoHealth | null
     loading: boolean
     error: boolean
@@ -38,8 +37,6 @@ interface HealthFailureRow {
 }
 
 export function GeoHeaderStrip({
-    onScheduleClick,
-    scheduling,
     health,
     loading,
     error,
@@ -116,22 +113,6 @@ export function GeoHeaderStrip({
                         tone="neutral"
                     />
                 </>
-            )}
-            {onScheduleClick && (
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full sm:w-auto sm:ml-auto h-7 text-xs"
-                    onClick={onScheduleClick}
-                    disabled={scheduling}
-                >
-                    {scheduling ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    ) : (
-                        <CalendarClock className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    {t('admin.geo.strip.scheduleNow')}
-                </Button>
             )}
         </div>
     )

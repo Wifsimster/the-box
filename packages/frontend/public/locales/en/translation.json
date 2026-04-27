@@ -488,8 +488,21 @@
       "tabs": {
         "pins": "Pins",
         "submissions": "Submissions",
+        "queue": "Review queue",
+        "catalog": "Catalog",
         "maps": "Maps",
         "games": "Games"
+      },
+      "catalog": {
+        "subtoggleLabel": "Catalog sub-section",
+        "maps": "Maps",
+        "games": "Games"
+      },
+      "readiness": {
+        "ready": "Challenge ready for {{date}}",
+        "notReady": "No challenge scheduled",
+        "notReadyHint": "Run the scheduler to prepare the next daily challenge.",
+        "scheduleAction": "Schedule"
       },
       "strip": {
         "loading": "Loading dataset health…",

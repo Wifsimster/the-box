@@ -488,8 +488,21 @@
       "tabs": {
         "pins": "Épingles",
         "submissions": "Propositions",
+        "queue": "À examiner",
+        "catalog": "Catalogue",
         "maps": "Cartes",
         "games": "Jeux"
+      },
+      "catalog": {
+        "subtoggleLabel": "Sous-section du catalogue",
+        "maps": "Cartes",
+        "games": "Jeux"
+      },
+      "readiness": {
+        "ready": "Défi prêt pour le {{date}}",
+        "notReady": "Aucun défi programmé",
+        "notReadyHint": "Lancez la planification pour préparer le prochain défi quotidien.",
+        "scheduleAction": "Planifier"
       },
       "strip": {
         "loading": "Chargement de l'état du dataset…",

@@ -33,6 +33,7 @@ import { GeoGamesTab } from './GeoGamesTab'
 import { GeoHeaderStrip } from './GeoHeaderStrip'
 import { GeoRunStateBanner } from './GeoRunStateBanner'
 import { GeoColdStartBanner } from './GeoColdStartBanner'
+import { GeoReadinessBanner } from './GeoReadinessBanner'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -147,7 +148,13 @@ async function rejectCandidate(id: number): Promise<void> {
 export function GeoReviewPanel() {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    const [activeTab, setActiveTab] = useState<'pins' | 'maps' | 'games'>('pins')
+    // Two top-level destinations: the moderation queue (the daily job) and
+    // the catalog of reference data (maps + games). The previous Pins / Maps
+    // / Games triple split by entity, which is the engineer's mental model,
+    // not the moderator's. `catalogView` tracks which catalog sub-section is
+    // open so the segmented control stays in sync without a third tab.
+    const [activeTab, setActiveTab] = useState<'queue' | 'catalog'>('queue')
+    const [catalogView, setCatalogView] = useState<'maps' | 'games'>('maps')
     // Default to the only status that needs the moderator's attention. The
     // other statuses are still reachable via the chip row, but the page
     // should not open on `collecting` (no decision possible) or `all` (mixes
@@ -275,7 +282,7 @@ export function GeoReviewPanel() {
         setGameFilter({ gameId, gameName })
         setStatusFilter('all')
         setDetail(null)
-        setActiveTab('pins')
+        setActiveTab('queue')
     }
 
     const confirmReject = async () => {
@@ -346,17 +353,24 @@ export function GeoReviewPanel() {
             </header>
 
             <GeoHeaderStrip
-                onScheduleClick={() => void triggerSchedule()}
-                scheduling={scheduling}
                 health={health}
                 loading={healthLoading}
                 error={healthError}
-                onMapsClick={() => setActiveTab('maps')}
+                onMapsClick={() => {
+                    setActiveTab('catalog')
+                    setCatalogView('maps')
+                }}
                 onPinsClick={() => {
-                    setActiveTab('pins')
+                    setActiveTab('queue')
                     setStatusFilter('pending')
                     setGameFilter(null)
                 }}
+            />
+
+            <GeoReadinessBanner
+                health={health}
+                onSchedule={() => void triggerSchedule()}
+                scheduling={scheduling}
             />
 
             <GeoColdStartBanner health={health} />
@@ -365,38 +379,66 @@ export function GeoReviewPanel() {
 
             <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as 'pins' | 'maps' | 'games')}
+                onValueChange={(v) => setActiveTab(v as 'queue' | 'catalog')}
                 className="space-y-4"
             >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
-                    <TabsTrigger value="pins" className="gap-1.5 shrink-0">
+                    <TabsTrigger value="queue" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.submissions')}
+                        {t('admin.geo.tabs.queue')}
                     </TabsTrigger>
-                    <TabsTrigger value="maps" className="gap-1.5 shrink-0">
-                        <MapIcon className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.maps')}
-                    </TabsTrigger>
-                    <TabsTrigger value="games" className="gap-1.5 shrink-0">
+                    <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
                         <Library className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.games')}
+                        {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="maps" className="space-y-4">
-                    <GeoMapsTab
-                        runState={runState}
-                        runError={runError}
-                        armRunPolling={armRunPolling}
-                        onViewCaptures={viewCapturesForGame}
-                    />
+                <TabsContent value="catalog" className="space-y-4">
+                    {/* Maps and Games are both reference data; previously
+                        they each had a top-level tab. Collapsed into one
+                        Catalogue tab with a segmented sub-control so the
+                        two top tabs map to the moderator's task split:
+                        "today's queue" vs. "everything else". */}
+                    <div
+                        className="inline-flex rounded-md border border-border/40 bg-muted/20 p-0.5"
+                        role="tablist"
+                        aria-label={t('admin.geo.catalog.subtoggleLabel')}
+                    >
+                        {(['maps', 'games'] as const).map((view) => {
+                            const Icon = view === 'maps' ? MapIcon : Library
+                            const active = catalogView === view
+                            return (
+                                <button
+                                    key={view}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    onClick={() => setCatalogView(view)}
+                                    className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors ${
+                                        active
+                                            ? 'bg-background shadow-sm text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                                    {t(`admin.geo.catalog.${view}`)}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    {catalogView === 'maps' ? (
+                        <GeoMapsTab
+                            runState={runState}
+                            runError={runError}
+                            armRunPolling={armRunPolling}
+                            onViewCaptures={viewCapturesForGame}
+                        />
+                    ) : (
+                        <GeoGamesTab />
+                    )}
                 </TabsContent>
 
-                <TabsContent value="games" className="space-y-4">
-                    <GeoGamesTab />
-                </TabsContent>
-
-                <TabsContent value="pins" className="space-y-4">
+                <TabsContent value="queue" className="space-y-4">
             {/* Status filter */}
             <div
                 className="flex flex-wrap items-center gap-2"
