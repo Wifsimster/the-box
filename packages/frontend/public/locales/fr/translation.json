@@ -483,23 +483,24 @@
     },
     "geo": {
       "title": "Modération Géo",
-      "subtitle": "Gérez le défi Géo quotidien : importez les sources, planifiez les défis et validez les épingles communautaires.",
+      "subtitle": "Gérez le défi Géo quotidien : importez les sources, planifiez les défis et modérez les propositions communautaires.",
       "candidatesLoading": "Chargement des épingles…",
       "tabs": {
         "pins": "Épingles",
+        "submissions": "Propositions",
         "maps": "Cartes",
         "games": "Jeux"
       },
       "strip": {
         "loading": "Chargement de l'état du dataset…",
         "error": "Impossible de charger l'état du dataset.",
-        "maps": "cartes",
-        "pins": "épingles",
-        "errors": "erreurs",
-        "nextChallenge": "prochain",
+        "maps": "cartes couvertes",
+        "pins": "propositions",
+        "errors": "signalements",
+        "nextChallenge": "prochain défi",
         "scheduleNow": "Planifier",
         "mapsAria": "Voir les cartes",
-        "pinsAria": "Aller à la file des épingles à valider",
+        "pinsAria": "Aller à la file des propositions à modérer",
         "errorsAria": "Voir les échecs récents",
         "errorsPopover": {
           "title": "Échecs récents du pipeline",
@@ -563,7 +564,7 @@
         "title": "Cartes par jeu",
         "subtitle": "Cliquez sur un jeu pour voir quels niveaux d'ingestion ont été essayés ou seraient lancés ensuite.",
         "refresh": "Rafraîchir",
-        "empty": "Aucun jeu activé pour le moment. Ajoutez-en depuis la liste des jeux activés de l'onglet Épingles.",
+        "empty": "Aucun jeu activé pour le moment. Ajoutez-en depuis la liste des jeux activés de l'onglet Propositions.",
         "reimportQueued": "Pipeline relancé pour « {{name}} ».",
         "row": {
           "hasMap": "Carte",
@@ -611,7 +612,7 @@
           "importWandTooltip": "Collez une URL de carte wand.com — le serveur extrait son og:image et l'enregistre comme carte de ce jeu.",
           "viewCaptures_one": "Voir les captures ({{count}})",
           "viewCaptures_other": "Voir les captures ({{count}})",
-          "viewCapturesTooltip": "Ouvrir l'onglet Pins filtré sur les captures de ce jeu."
+          "viewCapturesTooltip": "Ouvrir l'onglet Propositions filtré sur les captures de ce jeu."
         },
         "loading": "Chargement des jeux…",
         "sidePanel": {
@@ -663,9 +664,9 @@
       },
       "statusFilter": {
         "label": "Filtrer par statut",
-        "collecting": "En collecte",
-        "pending": "En attente",
-        "promoted": "Promus",
+        "collecting": "Ouvert",
+        "pending": "À modérer",
+        "promoted": "Officialisés",
         "all": "Tous"
       },
       "gameFilter": {
@@ -673,10 +674,54 @@
         "clear": "Effacer le filtre par jeu"
       },
       "statusBadge": {
-        "collecting": "En collecte",
-        "pending": "En attente",
-        "promoted": "Promu",
-        "rejected": "Rejeté"
+        "collecting": "Ouvert",
+        "pending": "À modérer",
+        "promoted": "Officialisé",
+        "rejected": "Refusé"
+      },
+      "actions": {
+        "makeOfficial": "Officialiser",
+        "removeOfficial": "Retirer du lieu officiel",
+        "decline": "Refuser"
+      },
+      "entities": {
+        "submission_one": "proposition",
+        "submission_other": "propositions",
+        "officialLocation": "lieu officiel"
+      },
+      "submissions": "Propositions",
+      "submissionsLoading": "Chargement des propositions…",
+      "emptyQueue": "Aucune proposition ne correspond à ce filtre.",
+      "pickSubmission": "Choisir une proposition",
+      "pickPointForOfficial": "Cliquez sur la carte pour fixer le lieu officiel",
+      "detailHintOfficial": "Sélectionnez une proposition dans la liste pour la consulter et fixer son lieu officiel.",
+      "alreadyOfficial": "Lieu officiel déjà fixé — retirez-le pour replacer le repère.",
+      "submissionRow": {
+        "pinCount_one": "{{count}} proposition",
+        "pinCount_other": "{{count}} propositions",
+        "source": "source : {{source}}"
+      },
+      "guide": {
+        "title": "Guide de modération",
+        "close": "Fermer",
+        "step1Title": "1. Activer les jeux",
+        "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → StrategyWiki → Fextralife → Wikidata → Manuel) et les captures Steam en arrière-plan.",
+        "step2Title": "2. Suivre l'ingestion",
+        "step2Body": "Visualisez l'avancement niveau par niveau dans l'onglet Cartes. Relancez le pipeline ou téléversez une carte manuellement si un jeu reste sans carte.",
+        "step3Title": "3. Modérer les propositions",
+        "step3Body": "Les joueurs envoient des propositions pour deviner où chaque capture a été prise. Lorsqu'elles convergent, fixez un lieu officiel : le bouton Planifier en haut programmera la prochaine capture validée pour le défi quotidien."
+      },
+      "declineDialog": {
+        "title": "Refuser cette capture ?",
+        "description": "La capture sera retirée du défi Géo : les contributeurs ne la verront plus et elle ne sera jamais sélectionnée pour le défi quotidien. À utiliser pour les captures sans emplacement repérable (interface, inventaire, écran de chargement…).",
+        "confirm": "Refuser",
+        "cancel": "Annuler"
+      },
+      "removeOfficialDialog": {
+        "title": "Retirer du lieu officiel ?",
+        "description": "Cette capture retournera dans la file de modération. Les propositions des joueurs sont conservées ; vous pourrez fixer un nouveau lieu officiel.",
+        "confirm": "Retirer",
+        "cancel": "Annuler"
       },
       "demoteDialog": {
         "title": "Rétrograder la canonique ?",

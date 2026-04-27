@@ -371,7 +371,7 @@ export function GeoReviewPanel() {
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
                     <TabsTrigger value="pins" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.pins')}
+                        {t('admin.geo.tabs.submissions')}
                     </TabsTrigger>
                     <TabsTrigger value="maps" className="gap-1.5 shrink-0">
                         <MapIcon className="h-3.5 w-3.5" />
@@ -445,7 +445,7 @@ export function GeoReviewPanel() {
                     role="status"
                     aria-live="polite"
                     aria-busy="true"
-                    aria-label={t('admin.geo.candidatesLoading')}
+                    aria-label={t('admin.geo.submissionsLoading')}
                 >
                     <Loader2
                         className="h-6 w-6 animate-spin text-neon-pink"
@@ -458,7 +458,7 @@ export function GeoReviewPanel() {
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <div className="flex items-center justify-between gap-2">
                                 <CardTitle className="text-sm">
-                                    {t('admin.geo.candidates')} ({candidates.length})
+                                    {t('admin.geo.submissions')} ({candidates.length})
                                 </CardTitle>
                                 <Button
                                     type="button"
@@ -466,7 +466,7 @@ export function GeoReviewPanel() {
                                     variant="ghost"
                                     className="h-7 w-7 text-muted-foreground hover:text-neon-pink"
                                     onClick={() => setIntroOpen(true)}
-                                    aria-label={t('admin.geo.intro.title')}
+                                    aria-label={t('admin.geo.guide.title')}
                                 >
                                     <HelpCircle className="h-4 w-4" />
                                 </Button>
@@ -508,11 +508,11 @@ export function GeoReviewPanel() {
                                                     </Badge>
                                                 </div>
                                                 <div className="mt-1 text-muted-foreground">
-                                                    {t('admin.geo.candidateRow.pinCount', {
+                                                    {t('admin.geo.submissionRow.pinCount', {
                                                         count: c.pinCount,
                                                     })}
                                                     {' · '}
-                                                    {t('admin.geo.candidateRow.source', {
+                                                    {t('admin.geo.submissionRow.source', {
                                                         source: c.source,
                                                     })}
                                                 </div>
@@ -523,7 +523,7 @@ export function GeoReviewPanel() {
                             ))}
                             {candidates.length === 0 && (
                                 <p className="text-xs text-muted-foreground">
-                                    {t('admin.geo.empty')}
+                                    {t('admin.geo.emptyQueue')}
                                 </p>
                             )}
                         </CardContent>
@@ -534,8 +534,8 @@ export function GeoReviewPanel() {
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <CardTitle className="text-sm">
                                 {detail
-                                    ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
-                                    : t('admin.geo.pickOne')}
+                                    ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                    : t('admin.geo.pickSubmission')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 p-4 sm:p-6 pt-0 sm:pt-0">
@@ -571,8 +571,8 @@ export function GeoReviewPanel() {
                     <SheetHeader className="px-4 py-3 border-b border-border/40 text-left">
                         <SheetTitle className="text-sm font-semibold">
                             {detail
-                                ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
-                                : t('admin.geo.pickOne')}
+                                ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                : t('admin.geo.pickSubmission')}
                         </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-[max(env(safe-area-inset-bottom),1rem)]">
@@ -593,23 +593,23 @@ export function GeoReviewPanel() {
             <Dialog open={introOpen} onOpenChange={setIntroOpen}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>{t('admin.geo.intro.title')}</DialogTitle>
+                        <DialogTitle>{t('admin.geo.guide.title')}</DialogTitle>
                     </DialogHeader>
                     <ol className="grid gap-3 text-sm">
                         {(['step1', 'step2', 'step3'] as const).map((step) => (
                             <li key={step} className="space-y-1">
                                 <p className="font-semibold text-foreground">
-                                    {t(`admin.geo.intro.${step}Title`)}
+                                    {t(`admin.geo.guide.${step}Title`)}
                                 </p>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t(`admin.geo.intro.${step}Body`)}
+                                    {t(`admin.geo.guide.${step}Body`)}
                                 </p>
                             </li>
                         ))}
                     </ol>
                     <DialogFooter>
                         <Button onClick={() => setIntroOpen(false)}>
-                            {t('admin.geo.intro.close')}
+                            {t('admin.geo.guide.close')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -618,9 +618,9 @@ export function GeoReviewPanel() {
             <Dialog open={rejectOpen} onOpenChange={(open) => !saving && setRejectOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>{t('admin.geo.rejectDialog.title')}</DialogTitle>
+                        <DialogTitle>{t('admin.geo.declineDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            {t('admin.geo.rejectDialog.description')}
+                            {t('admin.geo.declineDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
@@ -629,7 +629,7 @@ export function GeoReviewPanel() {
                             onClick={() => setRejectOpen(false)}
                             disabled={saving}
                         >
-                            {t('admin.geo.rejectDialog.cancel')}
+                            {t('admin.geo.declineDialog.cancel')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -637,7 +637,7 @@ export function GeoReviewPanel() {
                             disabled={saving}
                         >
                             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
-                            {t('admin.geo.rejectDialog.confirm')}
+                            {t('admin.geo.declineDialog.confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -646,9 +646,9 @@ export function GeoReviewPanel() {
             <Dialog open={demoteOpen} onOpenChange={(open) => !saving && setDemoteOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>{t('admin.geo.demoteDialog.title')}</DialogTitle>
+                        <DialogTitle>{t('admin.geo.removeOfficialDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            {t('admin.geo.demoteDialog.description')}
+                            {t('admin.geo.removeOfficialDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
@@ -657,7 +657,7 @@ export function GeoReviewPanel() {
                             onClick={() => setDemoteOpen(false)}
                             disabled={saving}
                         >
-                            {t('admin.geo.demoteDialog.cancel')}
+                            {t('admin.geo.removeOfficialDialog.cancel')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -665,7 +665,7 @@ export function GeoReviewPanel() {
                             disabled={saving}
                         >
                             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
-                            {t('admin.geo.demoteDialog.confirm')}
+                            {t('admin.geo.removeOfficialDialog.confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -704,7 +704,7 @@ function CandidateDetailBody({
     if (!detail || !detail.map) {
         return (
             <p className="text-xs text-muted-foreground">
-                {t('admin.geo.detailHint')}
+                {t('admin.geo.detailHintOfficial')}
             </p>
         )
     }
@@ -734,7 +734,7 @@ function CandidateDetailBody({
             {detail.meta ? (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <p className="text-xs text-warning">
-                        {t('admin.geo.alreadyPromoted')}
+                        {t('admin.geo.alreadyOfficial')}
                     </p>
                     <Button
                         size="sm"
@@ -744,7 +744,7 @@ function CandidateDetailBody({
                         className="w-full sm:w-auto"
                     >
                         <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        {t('admin.geo.demote')}
+                        {t('admin.geo.actions.removeOfficial')}
                     </Button>
                 </div>
             ) : (
@@ -752,7 +752,7 @@ function CandidateDetailBody({
                     <span className="text-xs text-muted-foreground">
                         {pin
                             ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
-                            : t('admin.geo.pickPoint')}
+                            : t('admin.geo.pickPointForOfficial')}
                     </span>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button
@@ -763,7 +763,7 @@ function CandidateDetailBody({
                             className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
                         >
                             <Trash2 className="h-3.5 w-3.5 mr-2" />
-                            {t('admin.geo.reject')}
+                            {t('admin.geo.actions.decline')}
                         </Button>
                         <Button
                             size="sm"
@@ -774,7 +774,7 @@ function CandidateDetailBody({
                             {saving && (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                             )}
-                            {t('admin.geo.promote')}
+                            {t('admin.geo.actions.makeOfficial')}
                         </Button>
                     </div>
                 </div>

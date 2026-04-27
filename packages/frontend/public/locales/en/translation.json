@@ -483,23 +483,24 @@
     },
     "geo": {
       "title": "Geo Moderation",
-      "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and validate crowdsourced pins.",
+      "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and review crowdsourced submissions.",
       "candidatesLoading": "Loading pins…",
       "tabs": {
         "pins": "Pins",
+        "submissions": "Submissions",
         "maps": "Maps",
         "games": "Games"
       },
       "strip": {
         "loading": "Loading dataset health…",
         "error": "Could not load dataset health.",
-        "maps": "maps",
-        "pins": "pins",
-        "errors": "errors",
-        "nextChallenge": "next",
+        "maps": "maps covered",
+        "pins": "submissions",
+        "errors": "reports",
+        "nextChallenge": "next challenge",
         "scheduleNow": "Schedule now",
         "mapsAria": "Open the Maps tab",
-        "pinsAria": "Jump to the pending pins queue",
+        "pinsAria": "Jump to the submissions awaiting review",
         "errorsAria": "Show recent failures",
         "errorsPopover": {
           "title": "Recent pipeline failures",
@@ -563,7 +564,7 @@
         "title": "Maps per game",
         "subtitle": "Click a game to see which ingestion tiers ran or would run next.",
         "refresh": "Refresh",
-        "empty": "No curated games yet. Add some from the curated list in the Pins tab.",
+        "empty": "No curated games yet. Add some from the curated list in the Submissions tab.",
         "reimportQueued": "Re-run pipeline queued for \"{{name}}\".",
         "row": {
           "hasMap": "Map",
@@ -611,7 +612,7 @@
           "importWandTooltip": "Paste a wand.com map URL — the server will scrape its og:image and record it as the map for this game.",
           "viewCaptures_one": "View captures ({{count}})",
           "viewCaptures_other": "View captures ({{count}})",
-          "viewCapturesTooltip": "Open the Pins tab filtered to this game's captures."
+          "viewCapturesTooltip": "Open the Submissions tab filtered to this game's captures."
         },
         "loading": "Loading games…",
         "sidePanel": {
@@ -663,9 +664,9 @@
       },
       "statusFilter": {
         "label": "Filter by status",
-        "collecting": "Collecting",
-        "pending": "Pending",
-        "promoted": "Promoted",
+        "collecting": "Open",
+        "pending": "Awaiting review",
+        "promoted": "Made official",
         "all": "All"
       },
       "gameFilter": {
@@ -673,10 +674,54 @@
         "clear": "Clear game filter"
       },
       "statusBadge": {
-        "collecting": "Collecting",
-        "pending": "Pending",
-        "promoted": "Promoted",
-        "rejected": "Rejected"
+        "collecting": "Open",
+        "pending": "Awaiting review",
+        "promoted": "Official",
+        "rejected": "Declined"
+      },
+      "actions": {
+        "makeOfficial": "Make official",
+        "removeOfficial": "Remove official location",
+        "decline": "Decline"
+      },
+      "entities": {
+        "submission_one": "submission",
+        "submission_other": "submissions",
+        "officialLocation": "official location"
+      },
+      "submissions": "Submissions",
+      "submissionsLoading": "Loading submissions…",
+      "emptyQueue": "No submissions match this filter.",
+      "pickSubmission": "Pick a submission",
+      "pickPointForOfficial": "Click the map to set the official location",
+      "detailHintOfficial": "Pick a submission from the list to review it and set its official location.",
+      "alreadyOfficial": "Official location already set — remove it to re-pin somewhere else.",
+      "submissionRow": {
+        "pinCount_one": "{{count}} submission",
+        "pinCount_other": "{{count}} submissions",
+        "source": "source: {{source}}"
+      },
+      "guide": {
+        "title": "Moderation guide",
+        "close": "Close",
+        "step1Title": "1. Curate games",
+        "step1Body": "Pick the games that should feed the Geo challenge in the Games tab. The ingestion pipeline then pulls their maps (Registry → Fandom → StrategyWiki → Fextralife → Wikidata → Manual) and Steam screenshots in the background.",
+        "step2Title": "2. Track ingestion",
+        "step2Body": "Watch maps land tier by tier in the Maps tab. Re-run the pipeline or upload a map manually for any game still missing one.",
+        "step3Title": "3. Review submissions",
+        "step3Body": "Players send submissions guessing where each screenshot was taken. When they converge, set an official location — the Schedule button at the top will then queue the next validated screenshot for the daily challenge."
+      },
+      "declineDialog": {
+        "title": "Decline this capture?",
+        "description": "The capture will be removed from the Geo challenge: contributors won't see it anymore and it will never be picked for the daily challenge. Use for captures with no locatable spot (UI, inventory, loading screen…).",
+        "confirm": "Decline",
+        "cancel": "Cancel"
+      },
+      "removeOfficialDialog": {
+        "title": "Remove official location?",
+        "description": "This capture will return to the moderation queue. Players' submissions are kept; you'll be able to set a new official location.",
+        "confirm": "Remove",
+        "cancel": "Cancel"
       },
       "demoteDialog": {
         "title": "Demote canonical pin?",
