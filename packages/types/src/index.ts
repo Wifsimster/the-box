@@ -821,6 +821,12 @@ export interface GeoGuessResult {
   distance: number
   score: number
   scoreVersion: number
+  // Community comparison: average score across all players who have
+  // already submitted on this challenge (the just-recorded guess
+  // included), and how many players that average is computed from.
+  // Optional so older clients / older persisted store snapshots stay valid.
+  averageScore?: number
+  playerCount?: number
 }
 
 export interface GeoLeaderboardEntry {
