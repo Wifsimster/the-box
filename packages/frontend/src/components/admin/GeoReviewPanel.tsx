@@ -4,11 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -25,9 +20,8 @@ import {
 import {
     Loader2,
     Trash2,
-    Info,
+    HelpCircle,
     MapPin,
-    ChevronDown,
     Map as MapIcon,
     ListChecks,
     Library,
@@ -154,7 +148,11 @@ export function GeoReviewPanel() {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
     const [activeTab, setActiveTab] = useState<'pins' | 'maps' | 'games'>('pins')
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('collecting')
+    // Default to the only status that needs the moderator's attention. The
+    // other statuses are still reachable via the chip row, but the page
+    // should not open on `collecting` (no decision possible) or `all` (mixes
+    // already-handled rows into the queue).
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
     // Per-game filter for the Pins tab. Set when the operator clicks "Voir
     // les captures" on a Maps row so the candidate list narrows to that game.
     // Cleared via the badge in the Pins header.
@@ -227,19 +225,45 @@ export function GeoReviewPanel() {
         }
     }
 
+    // Returns the candidate the moderator should triage *after* `currentId`
+    // is removed from the visible list. Uses the same flat (group-aware)
+    // ordering the UI renders, so "next" mirrors what the eye expects.
+    // Falls back to the first row, then to nothing when the queue empties.
+    const pickNextAfter = (
+        rows: GeoScreenshotCandidate[],
+        currentId: number,
+        previousFlat: GeoScreenshotCandidate[],
+    ): GeoScreenshotCandidate | null => {
+        const flat = groupCandidatesByGame(rows).flatMap((g) => g.candidates)
+        if (flat.length === 0) return null
+        const oldIdx = previousFlat.findIndex((c) => c.id === currentId)
+        // After a successful action the row drops out of the filtered list,
+        // so the candidate now sitting at `oldIdx` IS the next one.
+        if (oldIdx >= 0 && oldIdx < flat.length) return flat[oldIdx]
+        return flat[0]
+    }
+
     const applyOverride = async () => {
         if (!detail || !pin) return
         setSaving(true)
         try {
-            await overrideCandidate(detail.candidate.id, pin)
-            // Refresh the list + clear the detail pane.
-            setDetail(null)
-            setPin(null)
+            const previousFlat = groupCandidatesByGame(candidates).flatMap(
+                (g) => g.candidates,
+            )
+            const currentId = detail.candidate.id
+            await overrideCandidate(currentId, pin)
             const rows = await fetchCandidates({
                 status: statusFilter === 'all' ? undefined : statusFilter,
                 gameId: gameFilter?.gameId,
             })
             setCandidates(rows)
+            const next = pickNextAfter(rows, currentId, previousFlat)
+            setPin(null)
+            if (next) {
+                await openDetail(next.id)
+            } else {
+                setDetail(null)
+            }
         } catch (e) {
             setError(String(e))
         } finally {
@@ -259,15 +283,24 @@ export function GeoReviewPanel() {
         setError(null)
         setSaving(true)
         try {
-            await rejectCandidate(detail.candidate.id)
+            const previousFlat = groupCandidatesByGame(candidates).flatMap(
+                (g) => g.candidates,
+            )
+            const currentId = detail.candidate.id
+            await rejectCandidate(currentId)
             setRejectOpen(false)
-            setDetail(null)
-            setPin(null)
             const rows = await fetchCandidates({
                 status: statusFilter === 'all' ? undefined : statusFilter,
                 gameId: gameFilter?.gameId,
             })
             setCandidates(rows)
+            const next = pickNextAfter(rows, currentId, previousFlat)
+            setPin(null)
+            if (next) {
+                await openDetail(next.id)
+            } else {
+                setDetail(null)
+            }
         } catch (e) {
             setError(String(e))
         } finally {
@@ -318,6 +351,12 @@ export function GeoReviewPanel() {
                 health={health}
                 loading={healthLoading}
                 error={healthError}
+                onMapsClick={() => setActiveTab('maps')}
+                onPinsClick={() => {
+                    setActiveTab('pins')
+                    setStatusFilter('pending')
+                    setGameFilter(null)
+                }}
             />
 
             <GeoColdStartBanner health={health} />
@@ -358,44 +397,6 @@ export function GeoReviewPanel() {
                 </TabsContent>
 
                 <TabsContent value="pins" className="space-y-4">
-            {/* Workflow explainer */}
-            <Collapsible open={introOpen} onOpenChange={setIntroOpen}>
-                <Card className="border-neon-pink/30 bg-linear-to-r from-neon-pink/5 via-neon-purple/5 to-transparent">
-                    <CollapsibleTrigger asChild>
-                        <button
-                            type="button"
-                            className="flex w-full items-center justify-between gap-2 px-6 py-3 text-left"
-                            aria-expanded={introOpen}
-                        >
-                            <span className="text-sm font-semibold flex items-center gap-2">
-                                <Info className="h-4 w-4 text-neon-pink" />
-                                {t('admin.geo.intro.title')}
-                            </span>
-                            <ChevronDown
-                                className={`h-4 w-4 text-muted-foreground transition-transform ${introOpen ? 'rotate-180' : ''}`}
-                                aria-hidden
-                            />
-                        </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                        <CardContent className="pt-0">
-                            <ol className="grid gap-3 sm:grid-cols-3 text-sm">
-                                {(['step1', 'step2', 'step3'] as const).map((step) => (
-                                    <li key={step} className="space-y-1">
-                                        <p className="font-semibold text-foreground">
-                                            {t(`admin.geo.intro.${step}Title`)}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            {t(`admin.geo.intro.${step}Body`)}
-                                        </p>
-                                    </li>
-                                ))}
-                            </ol>
-                        </CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
-
             {/* Status filter */}
             <div
                 className="flex flex-wrap items-center gap-2"
@@ -455,9 +456,21 @@ export function GeoReviewPanel() {
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">
                     <Card className="lg:col-span-1">
                         <CardHeader className="pb-2 p-4 sm:p-6">
-                            <CardTitle className="text-sm">
-                                {t('admin.geo.candidates')} ({candidates.length})
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-sm">
+                                    {t('admin.geo.candidates')} ({candidates.length})
+                                </CardTitle>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-muted-foreground hover:text-neon-pink"
+                                    onClick={() => setIntroOpen(true)}
+                                    aria-label={t('admin.geo.intro.title')}
+                                >
+                                    <HelpCircle className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-4 lg:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
                             {groupCandidatesByGame(candidates).map((group) => (
@@ -576,6 +589,31 @@ export function GeoReviewPanel() {
                     </div>
                 </SheetContent>
             </Sheet>
+
+            <Dialog open={introOpen} onOpenChange={setIntroOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('admin.geo.intro.title')}</DialogTitle>
+                    </DialogHeader>
+                    <ol className="grid gap-3 text-sm">
+                        {(['step1', 'step2', 'step3'] as const).map((step) => (
+                            <li key={step} className="space-y-1">
+                                <p className="font-semibold text-foreground">
+                                    {t(`admin.geo.intro.${step}Title`)}
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {t(`admin.geo.intro.${step}Body`)}
+                                </p>
+                            </li>
+                        ))}
+                    </ol>
+                    <DialogFooter>
+                        <Button onClick={() => setIntroOpen(false)}>
+                            {t('admin.geo.intro.close')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={rejectOpen} onOpenChange={(open) => !saving && setRejectOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">

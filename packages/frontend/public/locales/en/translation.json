@@ -497,7 +497,15 @@
         "pins": "pins",
         "errors": "errors",
         "nextChallenge": "next",
-        "scheduleNow": "Schedule now"
+        "scheduleNow": "Schedule now",
+        "mapsAria": "Open the Maps tab",
+        "pinsAria": "Jump to the pending pins queue",
+        "errorsAria": "Show recent failures",
+        "errorsPopover": {
+          "title": "Recent pipeline failures",
+          "summary": "{{queue}} queue failure(s) · {{failures}} game alert(s)",
+          "empty": "No active failures. 🎉"
+        }
       },
       "coldStart": {
         "no-curated": {
@@ -625,6 +633,7 @@
       },
       "intro": {
         "title": "How this page works",
+        "close": "Close",
         "step1Title": "1. Curate games",
         "step1Body": "Pick the games that should feed the Geo challenge in the Games tab. The ingestion pipeline then pulls their maps (Registry → Fandom → StrategyWiki → Fextralife → Wikidata → Manual) and Steam screenshots in the background.",
         "step2Title": "2. Track ingestion",

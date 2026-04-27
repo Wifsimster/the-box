@@ -497,7 +497,15 @@
         "pins": "épingles",
         "errors": "erreurs",
         "nextChallenge": "prochain",
-        "scheduleNow": "Planifier"
+        "scheduleNow": "Planifier",
+        "mapsAria": "Voir les cartes",
+        "pinsAria": "Aller à la file des épingles à valider",
+        "errorsAria": "Voir les échecs récents",
+        "errorsPopover": {
+          "title": "Échecs récents du pipeline",
+          "summary": "{{queue}} échec(s) en file · {{failures}} alerte(s) jeu",
+          "empty": "Aucun échec actif. 🎉"
+        }
       },
       "coldStart": {
         "no-curated": {
@@ -625,6 +633,7 @@
       },
       "intro": {
         "title": "Comment cette page fonctionne",
+        "close": "Fermer",
         "step1Title": "1. Activer les jeux",
         "step1Body": "Choisissez dans l'onglet Jeux ceux qui doivent alimenter le défi Géo. Le pipeline d'ingestion récupère ensuite leurs cartes (Registre → Fandom → StrategyWiki → Fextralife → Wikidata → Manuel) et les captures Steam en arrière-plan.",
         "step2Title": "2. Suivre l'ingestion",
