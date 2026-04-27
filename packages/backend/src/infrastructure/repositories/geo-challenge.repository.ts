@@ -9,6 +9,7 @@ export interface GeoChallengeRow {
   challenge_date: Date
   geo_screenshot_meta_id: number
   tier: number
+  is_current: boolean
   created_at: Date
 }
 
@@ -47,6 +48,13 @@ export const geoChallengeRepository = {
     return row ? mapChallenge(row) : null
   },
 
+  async findCurrent(tier = 1): Promise<GeoChallenge | null> {
+    const row = await db('geo_challenge')
+      .where({ is_current: true, tier })
+      .first<GeoChallengeRow>()
+    return row ? mapChallenge(row) : null
+  },
+
   async listRecent(days: number): Promise<GeoChallenge[]> {
     const rows = await db('geo_challenge')
       .where('challenge_date', '>=', db.raw(`CURRENT_DATE - INTERVAL '${days} days'`))
@@ -69,6 +77,24 @@ export const geoChallengeRepository = {
       })
       .returning<GeoChallengeRow[]>('*')
     return mapChallenge(row!)
+  },
+
+  // Atomically promote `challengeId` to current and demote any existing
+  // current row in the same tier. Wrapped in a transaction because the
+  // partial unique index `geo_challenge_one_current_per_tier` would
+  // otherwise reject the second statement if run independently.
+  async setCurrent(args: { challengeId: number; tier?: number }): Promise<void> {
+    const tier = args.tier ?? 1
+    log.info({ challengeId: args.challengeId, tier }, 'setCurrent')
+    await db.transaction(async (trx) => {
+      await trx('geo_challenge')
+        .where({ tier, is_current: true })
+        .whereNot('id', args.challengeId)
+        .update({ is_current: false })
+      await trx('geo_challenge')
+        .where({ id: args.challengeId, tier })
+        .update({ is_current: true })
+    })
   },
 
   // ---- Guesses ----

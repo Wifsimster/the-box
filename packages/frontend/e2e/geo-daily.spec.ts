@@ -35,7 +35,7 @@ test.describe('Geo Daily', () => {
 
         // Either the challenge heading or a "no challenge" 404 state is acceptable
         // — the flag is on but seeds might not include today.
-        const heading = page.getByRole('heading', { name: /daily geo|défi géo/i })
+        const heading = page.getByRole('heading', { name: /geo challenge|défi géo/i })
         const notFound = page.getByText(/no.*challenge|aucun défi/i)
         await expect(heading.or(notFound).first()).toBeVisible({ timeout: 10_000 })
     })

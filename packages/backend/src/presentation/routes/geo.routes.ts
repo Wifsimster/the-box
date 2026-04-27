@@ -58,7 +58,28 @@ const historyQuerySchema = z.object({
   days: z.coerce.number().int().positive().max(30).optional(),
 })
 
-// ---------- Daily challenge ----------
+// ---------- Current / daily challenge ----------
+
+// Slow-rollout entrypoint: returns whichever challenge is currently flagged
+// `is_current = true`. Used by the public /geo page; admins control rollout
+// by manually releasing the next challenge instead of relying on a midnight
+// cron. Falls through to 404 NO_CHALLENGE when no row is flagged so the
+// frontend can render a "coming soon" state.
+router.get('/current', optionalAuthMiddleware, async (req, res, next) => {
+  try {
+    const view = await geoGameService.getCurrentChallenge({ userId: req.userId })
+    if (!view) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NO_CHALLENGE', message: 'no geo challenge is currently released' },
+      })
+      return
+    }
+    res.json({ success: true, data: view })
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/daily/:date', optionalAuthMiddleware, validateParams(dateSchema), async (req, res, next) => {
   try {

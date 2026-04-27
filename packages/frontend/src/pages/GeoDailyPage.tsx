@@ -8,15 +8,10 @@ import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ImageOff, Loader2, MapPin, Trophy, Clock, History } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History } from 'lucide-react'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
-import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { Link } from 'react-router-dom'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-
-function todayIso(): string {
-    return new Date().toISOString().slice(0, 10)
-}
 
 export default function GeoDailyPage() {
     const { t, i18n } = useTranslation()
@@ -32,19 +27,18 @@ export default function GeoDailyPage() {
         result,
         errorMessage,
         errorCode,
-        loadDaily,
+        loadCurrent,
         setPendingGuess,
         submitGuess,
     } = useGeoStore()
 
-    const [date] = useState(todayIso)
     // useRef's initial value runs on every render; lazy-via-useState keeps
     // Date.now() out of render while staying mount-stable.
     const [startedAt] = useState(() => Date.now())
 
     useEffect(() => {
-        loadDaily(date)
-    }, [date, loadDaily])
+        loadCurrent()
+    }, [loadCurrent])
 
     useEffect(() => {
         connectGeoSocket(session?.user?.id)
@@ -63,7 +57,7 @@ export default function GeoDailyPage() {
             <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6 relative z-10">
                 <header className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
-                        {t('geo.daily.title', 'Daily Geo Challenge')}
+                        {t('geo.daily.title', 'Geo Challenge')}
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         {t(
@@ -220,31 +214,27 @@ function ScreenshotFrame({ imageUrl }: { imageUrl: string }) {
     )
 }
 
-// Shown when /api/geo/daily/{date} returns 404 NO_CHALLENGE — usually right
-// after an admin reset or before the daily scheduler has had a chance to
-// run. Gives the player the time-to-next-challenge so they don't think the
-// game is broken, plus a path back to past results.
+// Shown when /api/geo/current returns 404 NO_CHALLENGE — i.e. no row is
+// flagged `is_current`. During slow rollout this is expected between
+// games (admins release manually, no midnight cron), so the copy and
+// missing countdown both signal "we'll release the next one when we're
+// ready" rather than "broken — try at midnight".
 function NoChallengeCard() {
     const { t } = useTranslation()
-    const { hours, minutes, seconds } = useNextDailyCountdown()
     const { localizedPath } = useLocalizedPath()
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const countdown = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
     return (
         <Card className="border-neon-pink/40">
             <CardContent className="py-10 text-center space-y-4">
                 <div className="inline-flex items-center gap-2 rounded-full border border-neon-pink/40 bg-neon-pink/5 px-3 py-1 text-xs text-neon-pink">
-                    <Clock className="h-3.5 w-3.5" aria-hidden />
-                    <span aria-live="polite">
-                        {t('geo.daily.errors.nextIn', 'Next challenge in {{countdown}}', {
-                            countdown,
-                        })}
+                    <Hourglass className="h-3.5 w-3.5" aria-hidden />
+                    <span>
+                        {t('geo.daily.errors.comingSoon', 'New game coming soon')}
                     </span>
                 </div>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                     {t(
                         'geo.daily.errors.noChallenge',
-                        "No geo challenge is available for today yet. Please check back later.",
+                        "No geo game is live right now. We're rolling out new ones gradually — check back soon.",
                     )}
                 </p>
                 <div className="flex justify-center">

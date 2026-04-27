@@ -267,10 +267,10 @@
     },
     "geoAlpha": {
       "badge": "Alpha",
-      "eyebrow": "New: Geo Daily",
+      "eyebrow": "New: Geo Mode",
       "title": "Find the spot. Drop the pin.",
-      "subtitle": "A daily challenge to pinpoint where game screenshots are taken on the world map. Elden Ring is live — more worlds on the way.",
-      "cta": "Play Geo Daily",
+      "subtitle": "Pinpoint where game screenshots are taken on the world map. Elden Ring is live — more worlds rolling out as we go.",
+      "cta": "Play Geo",
       "secondary": "See the geo leaderboard"
     },
     "achievements": {
@@ -1398,7 +1398,7 @@
   },
   "geo": {
     "daily": {
-      "title": "Daily Geo Challenge",
+      "title": "Geo Challenge",
       "subtitle": "Pin the exact spot on the map where this screenshot was taken.",
       "screenshot": "Screenshot",
       "map": "Map",
@@ -1411,8 +1411,8 @@
       "mapUnavailable": "Map unavailable.",
       "loading": "Loading challenge…",
       "errors": {
-        "noChallenge": "No geo challenge is available for today yet. Please check back later.",
-        "nextIn": "Next challenge in {{countdown}}",
+        "noChallenge": "No geo game is live right now. We're rolling out new ones gradually — check back soon.",
+        "comingSoon": "New game coming soon",
         "viewHistory": "View past challenges"
       }
     },

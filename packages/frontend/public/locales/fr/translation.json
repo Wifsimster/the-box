@@ -267,10 +267,10 @@
     },
     "geoAlpha": {
       "badge": "Alpha",
-      "eyebrow": "Nouveau : Geo Daily",
+      "eyebrow": "Nouveau : Mode Géo",
       "title": "Trouve l'endroit. Pose l'épingle.",
-      "subtitle": "Pour l'instant, c'est Elden Ring. Plante ton épingle pile où la capture a été prise — sinon ça compte pas.",
-      "cta": "Jouer Geo Daily",
+      "subtitle": "Pour l'instant, c'est Elden Ring. Plante ton épingle pile où la capture a été prise — d'autres mondes arrivent au fil du déploiement.",
+      "cta": "Jouer Géo",
       "secondary": "Voir le classement"
     },
     "achievements": {
@@ -1398,7 +1398,7 @@
   },
   "geo": {
     "daily": {
-      "title": "Défi Géo Quotidien",
+      "title": "Défi Géo",
       "subtitle": "Épinglez l'endroit exact où cette capture a été prise.",
       "screenshot": "Capture d'écran",
       "map": "Carte",
@@ -1411,8 +1411,8 @@
       "mapUnavailable": "Carte indisponible.",
       "loading": "Chargement du défi…",
       "errors": {
-        "noChallenge": "Aucun défi géo n'est encore disponible pour aujourd'hui. Revenez plus tard.",
-        "nextIn": "Prochain défi dans {{countdown}}",
+        "noChallenge": "Aucun défi géo n'est en ligne pour le moment. On les déploie progressivement — revenez bientôt.",
+        "comingSoon": "Nouveau défi à venir",
         "viewHistory": "Voir les défis passés"
       }
     },

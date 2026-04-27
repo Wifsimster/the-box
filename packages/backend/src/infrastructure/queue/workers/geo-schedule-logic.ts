@@ -17,20 +17,27 @@ export interface ScheduleDailyChallengeResult {
 
 /**
  * Pick a promoted (canonical) screenshot at random from any game that has
- * one and create tomorrow's — or a given date's — geo challenge. Idempotent
- * on (date, tier=1): re-runs are safe.
+ * one and create a challenge for the given date (defaults to today, since
+ * we no longer auto-rotate at midnight). Idempotent on (date, tier=1):
+ * re-runs are safe.
  *
- * Intentionally simple: the MVP pilots on a single game, so global-random
- * effectively picks among Elden Ring's promoted entries. When we open a
- * second game, this can be replaced with a rotation strategy.
+ * The slow-rollout model: this used to run from a recurring cron and
+ * stamp tomorrow's date. It is now invoked manually by an admin via
+ * POST /api/admin/geo/schedule (or the dedicated /release endpoint), and
+ * the newly created row is also marked `is_current = true` so the public
+ * /api/geo/current endpoint surfaces it immediately. Whatever was
+ * previously current is rotated off in the same transaction.
  */
 export async function scheduleDailyGeoChallenge(
   date?: string,
 ): Promise<ScheduleDailyChallengeResult> {
-  const target = date ?? isoDate(tomorrow())
+  const target = date ?? today()
 
   const existing = await geoChallengeRepository.findByDate(target, 1)
   if (existing) {
+    // Idempotent re-runs still re-promote to current — useful when an
+    // admin clicks "release again" after manually demoting via SQL.
+    await geoChallengeRepository.setCurrent({ challengeId: existing.id, tier: 1 })
     return {
       created: false,
       challengeDate: target,
@@ -81,9 +88,11 @@ export async function scheduleDailyGeoChallenge(
     tier: 1,
   })
 
+  await geoChallengeRepository.setCurrent({ challengeId: challenge.id, tier: 1 })
+
   log.info(
     { challengeDate: target, challengeId: challenge.id, metaId: meta.id },
-    'scheduled geo challenge',
+    'scheduled geo challenge (released as current)',
   )
 
   return {
@@ -94,12 +103,6 @@ export async function scheduleDailyGeoChallenge(
   }
 }
 
-function tomorrow(): Date {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() + 1)
-  return d
-}
-
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
 }
