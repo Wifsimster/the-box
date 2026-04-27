@@ -4,11 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -25,9 +20,8 @@ import {
 import {
     Loader2,
     Trash2,
-    Info,
+    HelpCircle,
     MapPin,
-    ChevronDown,
     Map as MapIcon,
     ListChecks,
     Library,
@@ -39,6 +33,7 @@ import { GeoGamesTab } from './GeoGamesTab'
 import { GeoHeaderStrip } from './GeoHeaderStrip'
 import { GeoRunStateBanner } from './GeoRunStateBanner'
 import { GeoColdStartBanner } from './GeoColdStartBanner'
+import { GeoReadinessBanner } from './GeoReadinessBanner'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -153,8 +148,18 @@ async function rejectCandidate(id: number): Promise<void> {
 export function GeoReviewPanel() {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    const [activeTab, setActiveTab] = useState<'pins' | 'maps' | 'games'>('pins')
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('collecting')
+    // Two top-level destinations: the moderation queue (the daily job) and
+    // the catalog of reference data (maps + games). The previous Pins / Maps
+    // / Games triple split by entity, which is the engineer's mental model,
+    // not the moderator's. `catalogView` tracks which catalog sub-section is
+    // open so the segmented control stays in sync without a third tab.
+    const [activeTab, setActiveTab] = useState<'queue' | 'catalog'>('queue')
+    const [catalogView, setCatalogView] = useState<'maps' | 'games'>('maps')
+    // Default to the only status that needs the moderator's attention. The
+    // other statuses are still reachable via the chip row, but the page
+    // should not open on `collecting` (no decision possible) or `all` (mixes
+    // already-handled rows into the queue).
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
     // Per-game filter for the Pins tab. Set when the operator clicks "Voir
     // les captures" on a Maps row so the candidate list narrows to that game.
     // Cleared via the badge in the Pins header.
@@ -227,19 +232,45 @@ export function GeoReviewPanel() {
         }
     }
 
+    // Returns the candidate the moderator should triage *after* `currentId`
+    // is removed from the visible list. Uses the same flat (group-aware)
+    // ordering the UI renders, so "next" mirrors what the eye expects.
+    // Falls back to the first row, then to nothing when the queue empties.
+    const pickNextAfter = (
+        rows: GeoScreenshotCandidate[],
+        currentId: number,
+        previousFlat: GeoScreenshotCandidate[],
+    ): GeoScreenshotCandidate | null => {
+        const flat = groupCandidatesByGame(rows).flatMap((g) => g.candidates)
+        if (flat.length === 0) return null
+        const oldIdx = previousFlat.findIndex((c) => c.id === currentId)
+        // After a successful action the row drops out of the filtered list,
+        // so the candidate now sitting at `oldIdx` IS the next one.
+        if (oldIdx >= 0 && oldIdx < flat.length) return flat[oldIdx]
+        return flat[0]
+    }
+
     const applyOverride = async () => {
         if (!detail || !pin) return
         setSaving(true)
         try {
-            await overrideCandidate(detail.candidate.id, pin)
-            // Refresh the list + clear the detail pane.
-            setDetail(null)
-            setPin(null)
+            const previousFlat = groupCandidatesByGame(candidates).flatMap(
+                (g) => g.candidates,
+            )
+            const currentId = detail.candidate.id
+            await overrideCandidate(currentId, pin)
             const rows = await fetchCandidates({
                 status: statusFilter === 'all' ? undefined : statusFilter,
                 gameId: gameFilter?.gameId,
             })
             setCandidates(rows)
+            const next = pickNextAfter(rows, currentId, previousFlat)
+            setPin(null)
+            if (next) {
+                await openDetail(next.id)
+            } else {
+                setDetail(null)
+            }
         } catch (e) {
             setError(String(e))
         } finally {
@@ -251,7 +282,7 @@ export function GeoReviewPanel() {
         setGameFilter({ gameId, gameName })
         setStatusFilter('all')
         setDetail(null)
-        setActiveTab('pins')
+        setActiveTab('queue')
     }
 
     const confirmReject = async () => {
@@ -259,15 +290,24 @@ export function GeoReviewPanel() {
         setError(null)
         setSaving(true)
         try {
-            await rejectCandidate(detail.candidate.id)
+            const previousFlat = groupCandidatesByGame(candidates).flatMap(
+                (g) => g.candidates,
+            )
+            const currentId = detail.candidate.id
+            await rejectCandidate(currentId)
             setRejectOpen(false)
-            setDetail(null)
-            setPin(null)
             const rows = await fetchCandidates({
                 status: statusFilter === 'all' ? undefined : statusFilter,
                 gameId: gameFilter?.gameId,
             })
             setCandidates(rows)
+            const next = pickNextAfter(rows, currentId, previousFlat)
+            setPin(null)
+            if (next) {
+                await openDetail(next.id)
+            } else {
+                setDetail(null)
+            }
         } catch (e) {
             setError(String(e))
         } finally {
@@ -313,11 +353,24 @@ export function GeoReviewPanel() {
             </header>
 
             <GeoHeaderStrip
-                onScheduleClick={() => void triggerSchedule()}
-                scheduling={scheduling}
                 health={health}
                 loading={healthLoading}
                 error={healthError}
+                onMapsClick={() => {
+                    setActiveTab('catalog')
+                    setCatalogView('maps')
+                }}
+                onPinsClick={() => {
+                    setActiveTab('queue')
+                    setStatusFilter('pending')
+                    setGameFilter(null)
+                }}
+            />
+
+            <GeoReadinessBanner
+                health={health}
+                onSchedule={() => void triggerSchedule()}
+                scheduling={scheduling}
             />
 
             <GeoColdStartBanner health={health} />
@@ -326,76 +379,66 @@ export function GeoReviewPanel() {
 
             <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as 'pins' | 'maps' | 'games')}
+                onValueChange={(v) => setActiveTab(v as 'queue' | 'catalog')}
                 className="space-y-4"
             >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
-                    <TabsTrigger value="pins" className="gap-1.5 shrink-0">
+                    <TabsTrigger value="queue" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.pins')}
+                        {t('admin.geo.tabs.queue')}
                     </TabsTrigger>
-                    <TabsTrigger value="maps" className="gap-1.5 shrink-0">
-                        <MapIcon className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.maps')}
-                    </TabsTrigger>
-                    <TabsTrigger value="games" className="gap-1.5 shrink-0">
+                    <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
                         <Library className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.games')}
+                        {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="maps" className="space-y-4">
-                    <GeoMapsTab
-                        runState={runState}
-                        runError={runError}
-                        armRunPolling={armRunPolling}
-                        onViewCaptures={viewCapturesForGame}
-                    />
+                <TabsContent value="catalog" className="space-y-4">
+                    {/* Maps and Games are both reference data; previously
+                        they each had a top-level tab. Collapsed into one
+                        Catalogue tab with a segmented sub-control so the
+                        two top tabs map to the moderator's task split:
+                        "today's queue" vs. "everything else". */}
+                    <div
+                        className="inline-flex rounded-md border border-border/40 bg-muted/20 p-0.5"
+                        role="tablist"
+                        aria-label={t('admin.geo.catalog.subtoggleLabel')}
+                    >
+                        {(['maps', 'games'] as const).map((view) => {
+                            const Icon = view === 'maps' ? MapIcon : Library
+                            const active = catalogView === view
+                            return (
+                                <button
+                                    key={view}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    onClick={() => setCatalogView(view)}
+                                    className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors ${
+                                        active
+                                            ? 'bg-background shadow-sm text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                                    {t(`admin.geo.catalog.${view}`)}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    {catalogView === 'maps' ? (
+                        <GeoMapsTab
+                            runState={runState}
+                            runError={runError}
+                            armRunPolling={armRunPolling}
+                            onViewCaptures={viewCapturesForGame}
+                        />
+                    ) : (
+                        <GeoGamesTab />
+                    )}
                 </TabsContent>
 
-                <TabsContent value="games" className="space-y-4">
-                    <GeoGamesTab />
-                </TabsContent>
-
-                <TabsContent value="pins" className="space-y-4">
-            {/* Workflow explainer */}
-            <Collapsible open={introOpen} onOpenChange={setIntroOpen}>
-                <Card className="border-neon-pink/30 bg-linear-to-r from-neon-pink/5 via-neon-purple/5 to-transparent">
-                    <CollapsibleTrigger asChild>
-                        <button
-                            type="button"
-                            className="flex w-full items-center justify-between gap-2 px-6 py-3 text-left"
-                            aria-expanded={introOpen}
-                        >
-                            <span className="text-sm font-semibold flex items-center gap-2">
-                                <Info className="h-4 w-4 text-neon-pink" />
-                                {t('admin.geo.intro.title')}
-                            </span>
-                            <ChevronDown
-                                className={`h-4 w-4 text-muted-foreground transition-transform ${introOpen ? 'rotate-180' : ''}`}
-                                aria-hidden
-                            />
-                        </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                        <CardContent className="pt-0">
-                            <ol className="grid gap-3 sm:grid-cols-3 text-sm">
-                                {(['step1', 'step2', 'step3'] as const).map((step) => (
-                                    <li key={step} className="space-y-1">
-                                        <p className="font-semibold text-foreground">
-                                            {t(`admin.geo.intro.${step}Title`)}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            {t(`admin.geo.intro.${step}Body`)}
-                                        </p>
-                                    </li>
-                                ))}
-                            </ol>
-                        </CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
-
+                <TabsContent value="queue" className="space-y-4">
             {/* Status filter */}
             <div
                 className="flex flex-wrap items-center gap-2"
@@ -444,7 +487,7 @@ export function GeoReviewPanel() {
                     role="status"
                     aria-live="polite"
                     aria-busy="true"
-                    aria-label={t('admin.geo.candidatesLoading')}
+                    aria-label={t('admin.geo.submissionsLoading')}
                 >
                     <Loader2
                         className="h-6 w-6 animate-spin text-neon-pink"
@@ -455,9 +498,21 @@ export function GeoReviewPanel() {
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">
                     <Card className="lg:col-span-1">
                         <CardHeader className="pb-2 p-4 sm:p-6">
-                            <CardTitle className="text-sm">
-                                {t('admin.geo.candidates')} ({candidates.length})
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-sm">
+                                    {t('admin.geo.submissions')} ({candidates.length})
+                                </CardTitle>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-muted-foreground hover:text-neon-pink"
+                                    onClick={() => setIntroOpen(true)}
+                                    aria-label={t('admin.geo.guide.title')}
+                                >
+                                    <HelpCircle className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-4 lg:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
                             {groupCandidatesByGame(candidates).map((group) => (
@@ -495,11 +550,11 @@ export function GeoReviewPanel() {
                                                     </Badge>
                                                 </div>
                                                 <div className="mt-1 text-muted-foreground">
-                                                    {t('admin.geo.candidateRow.pinCount', {
+                                                    {t('admin.geo.submissionRow.pinCount', {
                                                         count: c.pinCount,
                                                     })}
                                                     {' · '}
-                                                    {t('admin.geo.candidateRow.source', {
+                                                    {t('admin.geo.submissionRow.source', {
                                                         source: c.source,
                                                     })}
                                                 </div>
@@ -510,7 +565,7 @@ export function GeoReviewPanel() {
                             ))}
                             {candidates.length === 0 && (
                                 <p className="text-xs text-muted-foreground">
-                                    {t('admin.geo.empty')}
+                                    {t('admin.geo.emptyQueue')}
                                 </p>
                             )}
                         </CardContent>
@@ -521,8 +576,8 @@ export function GeoReviewPanel() {
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <CardTitle className="text-sm">
                                 {detail
-                                    ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
-                                    : t('admin.geo.pickOne')}
+                                    ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                    : t('admin.geo.pickSubmission')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 p-4 sm:p-6 pt-0 sm:pt-0">
@@ -558,8 +613,8 @@ export function GeoReviewPanel() {
                     <SheetHeader className="px-4 py-3 border-b border-border/40 text-left">
                         <SheetTitle className="text-sm font-semibold">
                             {detail
-                                ? `#${detail.candidate.id} · ${t('admin.geo.candidateRow.pinCount', { count: detail.pins.length })}`
-                                : t('admin.geo.pickOne')}
+                                ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                : t('admin.geo.pickSubmission')}
                         </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-[max(env(safe-area-inset-bottom),1rem)]">
@@ -577,12 +632,37 @@ export function GeoReviewPanel() {
                 </SheetContent>
             </Sheet>
 
+            <Dialog open={introOpen} onOpenChange={setIntroOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('admin.geo.guide.title')}</DialogTitle>
+                    </DialogHeader>
+                    <ol className="grid gap-3 text-sm">
+                        {(['step1', 'step2', 'step3'] as const).map((step) => (
+                            <li key={step} className="space-y-1">
+                                <p className="font-semibold text-foreground">
+                                    {t(`admin.geo.guide.${step}Title`)}
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {t(`admin.geo.guide.${step}Body`)}
+                                </p>
+                            </li>
+                        ))}
+                    </ol>
+                    <DialogFooter>
+                        <Button onClick={() => setIntroOpen(false)}>
+                            {t('admin.geo.guide.close')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={rejectOpen} onOpenChange={(open) => !saving && setRejectOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>{t('admin.geo.rejectDialog.title')}</DialogTitle>
+                        <DialogTitle>{t('admin.geo.declineDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            {t('admin.geo.rejectDialog.description')}
+                            {t('admin.geo.declineDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
@@ -591,7 +671,7 @@ export function GeoReviewPanel() {
                             onClick={() => setRejectOpen(false)}
                             disabled={saving}
                         >
-                            {t('admin.geo.rejectDialog.cancel')}
+                            {t('admin.geo.declineDialog.cancel')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -599,7 +679,7 @@ export function GeoReviewPanel() {
                             disabled={saving}
                         >
                             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
-                            {t('admin.geo.rejectDialog.confirm')}
+                            {t('admin.geo.declineDialog.confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -608,9 +688,9 @@ export function GeoReviewPanel() {
             <Dialog open={demoteOpen} onOpenChange={(open) => !saving && setDemoteOpen(open)}>
                 <DialogContent className="max-w-sm sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>{t('admin.geo.demoteDialog.title')}</DialogTitle>
+                        <DialogTitle>{t('admin.geo.removeOfficialDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            {t('admin.geo.demoteDialog.description')}
+                            {t('admin.geo.removeOfficialDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
@@ -619,7 +699,7 @@ export function GeoReviewPanel() {
                             onClick={() => setDemoteOpen(false)}
                             disabled={saving}
                         >
-                            {t('admin.geo.demoteDialog.cancel')}
+                            {t('admin.geo.removeOfficialDialog.cancel')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -627,7 +707,7 @@ export function GeoReviewPanel() {
                             disabled={saving}
                         >
                             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
-                            {t('admin.geo.demoteDialog.confirm')}
+                            {t('admin.geo.removeOfficialDialog.confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -666,7 +746,7 @@ function CandidateDetailBody({
     if (!detail || !detail.map) {
         return (
             <p className="text-xs text-muted-foreground">
-                {t('admin.geo.detailHint')}
+                {t('admin.geo.detailHintOfficial')}
             </p>
         )
     }
@@ -696,7 +776,7 @@ function CandidateDetailBody({
             {detail.meta ? (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <p className="text-xs text-warning">
-                        {t('admin.geo.alreadyPromoted')}
+                        {t('admin.geo.alreadyOfficial')}
                     </p>
                     <Button
                         size="sm"
@@ -706,7 +786,7 @@ function CandidateDetailBody({
                         className="w-full sm:w-auto"
                     >
                         <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        {t('admin.geo.demote')}
+                        {t('admin.geo.actions.removeOfficial')}
                     </Button>
                 </div>
             ) : (
@@ -714,7 +794,7 @@ function CandidateDetailBody({
                     <span className="text-xs text-muted-foreground">
                         {pin
                             ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
-                            : t('admin.geo.pickPoint')}
+                            : t('admin.geo.pickPointForOfficial')}
                     </span>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button
@@ -725,7 +805,7 @@ function CandidateDetailBody({
                             className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
                         >
                             <Trash2 className="h-3.5 w-3.5 mr-2" />
-                            {t('admin.geo.reject')}
+                            {t('admin.geo.actions.decline')}
                         </Button>
                         <Button
                             size="sm"
@@ -736,7 +816,7 @@ function CandidateDetailBody({
                             {saving && (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                             )}
-                            {t('admin.geo.promote')}
+                            {t('admin.geo.actions.makeOfficial')}
                         </Button>
                     </div>
                 </div>
