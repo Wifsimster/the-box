@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import { useGameStore } from '@/stores/gameStore'
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
 import { DailyIntro } from '@/components/game/TierIntro'
@@ -380,12 +381,20 @@ export default function GamePage() {
       const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
       if (code === 'CHALLENGE_ALREADY_COMPLETED' || code === 'SESSION_ALREADY_COMPLETED') {
         setError(t('game.alreadyCompleted'))
+      } else if (code === 'PREMIUM_REQUIRED_FOR_OLD_CATCHUP') {
+        // Free user clicked an archived challenge they can't access. Send
+        // them straight to the upsell instead of a dead-end error so the
+        // upgrade path is one click away. Toast surfaces context briefly
+        // before the navigation lands them on /premium.
+        toast.info(t('game.premiumRequiredForOldCatchup'))
+        setError(t('game.premiumRequiredForOldCatchup'))
+        navigate(localizedPath('/premium'))
       } else {
         setError(t('game.errorStarting'))
       }
       setLoading(false)
     }
-  }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, prefetchAllScreenshots, t])
+  }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, prefetchAllScreenshots, t, navigate, localizedPath])
 
   // Fetch screenshot when position changes (after navigation)
   useEffect(() => {

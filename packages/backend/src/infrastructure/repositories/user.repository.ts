@@ -159,6 +159,26 @@ export const userRepository = {
     return row ?? null
   },
 
+  async getSupporterLifetimeAt(userId: string): Promise<Date | null> {
+    const row = await db('user')
+      .where('id', userId)
+      .first<{ supporter_lifetime_at: Date | null }>('supporter_lifetime_at')
+    return row?.supporter_lifetime_at ?? null
+  },
+
+  async grantSupporterLifetime(userId: string, grantedAt: Date = new Date()): Promise<void> {
+    log.info({ userId, grantedAt }, 'grantSupporterLifetime')
+    // Idempotent: keep the earliest grant timestamp so a duplicate webhook
+    // doesn't overwrite the original supporter date.
+    await db('user')
+      .where('id', userId)
+      .whereNull('supporter_lifetime_at')
+      .update({
+        supporter_lifetime_at: grantedAt,
+        updatedAt: new Date(),
+      })
+  },
+
   async updateEmailMarketingConsent(userId: string, consent: boolean): Promise<User | null> {
     log.info({ userId, consent }, 'updateEmailMarketingConsent')
     await db('user')

@@ -47,7 +47,23 @@ export const billingService = {
   // The entitlement read every gated endpoint hits. Returns the cheapest
   // safe default (no premium) when anything is missing or off, so a
   // misconfigured env never silently grants premium to free users.
+  //
+  // Resolution order: supporter lifetime wins over recurring subscription.
+  // A user who paid once for lifetime and later subscribed should still
+  // surface as 'supporter' (the more durable grant) so cancellation of
+  // the recurring sub doesn't drop their entitlement.
   async getEntitlement(userId: string): Promise<BillingEntitlement> {
+    const supporterAt = await userRepository.getSupporterLifetimeAt(userId)
+    if (supporterAt) {
+      return {
+        isPremium: true,
+        tier: 'supporter_lifetime',
+        validUntil: null,
+        cancelAtPeriodEnd: false,
+        source: 'supporter',
+      }
+    }
+
     const row = await subscriptionRepository.findActiveByUserId(userId)
     if (!row) {
       return {

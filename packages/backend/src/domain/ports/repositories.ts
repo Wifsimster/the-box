@@ -153,6 +153,7 @@ export interface TierSessionWithContextRecord extends TierSessionRecord {
   game_session_started_at: Date
   game_session_id: string
   daily_challenge_id: number
+  is_catch_up: boolean
   tier_number: number
   time_limit_seconds: number
 }
