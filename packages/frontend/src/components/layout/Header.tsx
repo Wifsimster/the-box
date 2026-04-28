@@ -17,11 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useBillingStore } from '@/stores/billingStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
 import { cn } from '@/lib/utils'
 
@@ -30,9 +31,10 @@ interface NavigationLinksProps {
   t: (key: string) => string
   localizedPath: (path: string) => string
   onMobileClick?: () => void
+  showPremiumUpsell: boolean
 }
 
-function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick }: NavigationLinksProps) {
+function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick, showPremiumUpsell }: NavigationLinksProps) {
   const mobileClasses = isMobile ? "w-full justify-start" : ""
   const iconClass = isMobile ? "mr-2" : "mr-1"
   const handleClick = isMobile ? onMobileClick : undefined
@@ -62,6 +64,17 @@ function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick }: 
           </Badge>
         </Link>
       </Button>
+
+      {/* Premium upsell — hidden once the user already has it, so the header stops
+          nagging paying users. The link itself stays available via /premium. */}
+      {showPremiumUpsell && (
+        <Button variant="ghost" size="sm" asChild className={cn(mobileClasses, 'text-neon-pink hover:text-neon-pink/80')}>
+          <Link to={localizedPath('/premium')} onClick={handleClick}>
+            <Sparkles className={`w-4 h-4 ${iconClass}`} />
+            {t('common.premium')}
+          </Link>
+        </Button>
+      )}
     </>
   )
 }
@@ -82,6 +95,15 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const isRewardModalOpen = useDailyLoginStore((state) => state.isModalOpen)
   const closeRewardModal = useDailyLoginStore((state) => state.closeModal)
+  const billingEntitlement = useBillingStore((state) => state.entitlement)
+  const fetchBillingEntitlement = useBillingStore((state) => state.fetchEntitlement)
+  const showPremiumUpsell = !billingEntitlement?.isPremium
+
+  // Hydrate billing entitlement once we know who the user is. Anonymous
+  // visitors get a 401 → store falls back to FREE_ENTITLEMENT silently.
+  useEffect(() => {
+    void fetchBillingEntitlement()
+  }, [fetchBillingEntitlement, session?.user?.id])
 
   // Keep the mobile menu and the daily reward modal mutually exclusive so the
   // modal can't render underneath the Sheet on small screens.
@@ -130,7 +152,7 @@ export function Header() {
                 <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
-                <NavigationLinks isMobile={true} t={t} localizedPath={localizedPath} onMobileClick={() => setMobileMenuOpen(false)} />
+                <NavigationLinks isMobile={true} t={t} localizedPath={localizedPath} onMobileClick={() => setMobileMenuOpen(false)} showPremiumUpsell={showPremiumUpsell} />
 
                 {/* Mobile Auth Section */}
                 <div className="border-t border-border pt-4 mt-4">
@@ -218,7 +240,7 @@ export function Header() {
 
         {/* Desktop Navigation - hidden on mobile, shown on md and up */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-          <NavigationLinks isMobile={false} t={t} localizedPath={localizedPath} />
+          <NavigationLinks isMobile={false} t={t} localizedPath={localizedPath} showPremiumUpsell={showPremiumUpsell} />
         </nav>
 
         {/* Auth Buttons - Desktop - hidden on mobile, shown on md and up */}

@@ -37,6 +37,7 @@ const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
 const GeoDailyPage = lazy(() => import('@/pages/GeoDailyPage'))
 const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
 const GeoLeaderboardPage = lazy(() => import('@/pages/GeoLeaderboardPage'))
+const PricingPage = lazy(() => import('@/pages/PricingPage'))
 
 function LoadingSpinner() {
   return (
@@ -142,6 +143,12 @@ function App() {
           <Route path="geo/daily" element={<GeoDailyPage />} />
           <Route path="geo/leaderboard" element={<GeoLeaderboardPage />} />
           <Route path="geo/contribute" element={<GeoContributePage />} />
+
+          <Route path="premium" element={<PricingPage />} />
+          {/* French-friendly alias resolves to the same component so links from
+              older marketing copy still land. The page itself renders identically; SEO
+              gets a single canonical via the language-prefixed /premium URL. */}
+          <Route path="abonnement" element={<PricingPage />} />
         </Route>
 
         {/* Catch-all redirect to browser language */}
