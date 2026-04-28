@@ -936,3 +936,47 @@ export type ScreenshotReportReason =
   | 'inappropriate'
   | 'too_easy'
   | 'other'
+
+// ============================================
+// Billing — Stripe-backed Premium subscription
+// ============================================
+// Wire shape only. The runtime price catalog (display amounts paired with
+// env-driven Stripe price IDs) lives server-side in the backend config so
+// this package stays types-only.
+
+export type BillingTier = 'premium_monthly' | 'premium_annual' | 'supporter_lifetime'
+
+// Mirrors a Stripe Subscription status. Internal billing status is derived
+// from this; treat 'active' and 'trialing' as the only entitlement-granting
+// states for recurring tiers.
+export type SubscriptionStatus =
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'canceled'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'unpaid'
+  | 'paused'
+
+// Public-facing price metadata returned by GET /api/billing/prices. Amount
+// is in the smallest currency unit (cents) so the frontend formats once.
+export interface BillingPrice {
+  tier: BillingTier
+  stripePriceId: string
+  unitAmount: number
+  currency: string
+  interval: 'month' | 'year' | null
+  active: boolean
+}
+
+// Server-derived view of the caller's entitlement, returned by
+// GET /api/billing/me. `validUntil` is the period end for recurring tiers
+// (so the UI can show "Premium until ...") and null for lifetime grants.
+export interface BillingEntitlement {
+  isPremium: boolean
+  tier: BillingTier | null
+  validUntil: string | null
+  cancelAtPeriodEnd: boolean
+  source: 'subscription' | 'supporter' | null
+}
