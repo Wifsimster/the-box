@@ -22,6 +22,8 @@ import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
 import screenshotReportRoutes from './presentation/routes/screenshot-report.routes.js'
+import billingRoutes from './presentation/routes/billing.routes.js'
+import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue, geoQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
@@ -60,6 +62,11 @@ app.use(cors({
   origin: env.CORS_ORIGIN,
   credentials: true,
 }))
+
+// Stripe webhooks must mount BEFORE the global JSON parser — signature
+// verification needs the exact raw bytes Stripe sent. The route applies
+// its own express.raw() so only this path skips JSON parsing.
+app.use('/api/billing/webhook', billingWebhookRoutes)
 
 // JSON parsing middleware
 app.use(express.json())
@@ -183,6 +190,7 @@ app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
 app.use('/api/geo', geoRoutes)
 app.use('/api/screenshot-reports', screenshotReportRoutes)
+app.use('/api/billing', billingRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
