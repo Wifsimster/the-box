@@ -30,7 +30,15 @@ interface GeoState {
     challenge: GeoChallenge | null
     meta: GeoScreenshotMeta | null
     candidate: GeoScreenshotCandidate | null
-    map: GeoMap | null
+    // Multi-map: every enabled map the player can pick from. The
+    // chooser renders these; the canvas renders whichever
+    // `selectedMapId` references. For single-map games this is a
+    // length-1 array and the only id is auto-selected at load time.
+    maps: GeoMap[]
+    selectedMapId: number | null
+    // The canonical map of the screenshot. Only populated after the
+    // result reveal. Reused for the "correct map" highlight + reveal banner.
+    correctMap: GeoMap | null
     hasGuessed: boolean
     pendingGuess: GeoPoint | null
     result: GeoGuessResult | null
@@ -60,6 +68,7 @@ interface GeoState {
     // Actions
     loadCurrent: () => Promise<void>
     loadDaily: (date: string) => Promise<void>
+    selectMap: (mapId: number) => void
     setPendingGuess: (p: GeoPoint | null) => void
     submitGuess: (durationMs?: number) => Promise<GeoGuessResult | null>
     skipChallenge: () => Promise<boolean>
@@ -92,7 +101,8 @@ async function loadView(
         challenge: GeoChallenge
         meta: GeoScreenshotMeta
         candidate: GeoScreenshotCandidate
-        map: GeoMap
+        maps: GeoMap[]
+        map?: GeoMap
         hasGuessed: boolean
     }>,
 ): Promise<void> {
@@ -104,12 +114,23 @@ async function loadView(
             prev.challenge !== null && prev.challenge.id === view.challenge.id
         const restoredResult = view.hasGuessed && sameChallenge && prev.result !== null
         const restoredSkip = view.hasGuessed && sameChallenge && prev.wasSkipped
+        // Single-map games auto-select so the chooser feels invisible —
+        // a reload mid-result also restores the previously selected map
+        // when the challenge is the same.
+        const autoSelect =
+            view.maps.length === 1
+                ? view.maps[0]?.id ?? null
+                : sameChallenge
+                  ? prev.selectedMapId
+                  : null
         set({
             phase: restoredResult ? 'result' : restoredSkip ? 'skipped' : 'playing',
             challenge: view.challenge,
             meta: view.meta,
             candidate: view.candidate,
-            map: view.map,
+            maps: view.maps,
+            selectedMapId: autoSelect,
+            correctMap: view.map ?? null,
             hasGuessed: view.hasGuessed,
             result: restoredResult ? prev.result : null,
             wasSkipped: restoredSkip,
@@ -131,7 +152,9 @@ export const useGeoStore = create<GeoState>()(
     challenge: null,
     meta: null,
     candidate: null,
-    map: null,
+    maps: [],
+    selectedMapId: null,
+    correctMap: null,
     hasGuessed: false,
     pendingGuess: null,
     result: null,
@@ -155,22 +178,48 @@ export const useGeoStore = create<GeoState>()(
         await loadView(get, set, () => geoApi.getDaily(date))
     },
 
+    selectMap(mapId) {
+        // Pin coordinates are normalized [0..1] per map — switching the
+        // selected map invalidates the previous pin. Clearing it forces
+        // the player to re-pin, which matches the visual: the canvas
+        // image swaps under them.
+        set({ selectedMapId: mapId, pendingGuess: null })
+    },
+
     setPendingGuess(p) {
         set({ pendingGuess: p })
     },
 
     async submitGuess(durationMs) {
-        const { challenge, pendingGuess } = get()
+        const { challenge, pendingGuess, selectedMapId, maps } = get()
         if (!challenge || !pendingGuess) return null
+        // Multi-map games require an explicit pick. Single-map games
+        // would have auto-selected at load time, so a null here is
+        // genuinely a UI bug rather than a missing pick.
+        if (selectedMapId == null && maps.length > 1) return null
 
         set({ phase: 'submitting', errorMessage: null })
         try {
             const result = await geoApi.submitGuess({
                 challengeId: challenge.id,
+                geoMapId: selectedMapId ?? undefined,
                 guess: pendingGuess,
                 durationMs,
             })
-            set({ phase: 'result', result, hasGuessed: true, wasSkipped: false })
+            // Resolve the canonical map locally for the reveal — server
+            // also sends `correctMapId` on the result, so we just look
+            // up the matching `GeoMap` from the chooser list.
+            const correctMap =
+                result.correctMapId != null
+                    ? maps.find((m) => m.id === result.correctMapId) ?? null
+                    : null
+            set({
+                phase: 'result',
+                result,
+                hasGuessed: true,
+                wasSkipped: false,
+                correctMap,
+            })
             return result
         } catch (err) {
             set({
@@ -331,7 +380,9 @@ export const useGeoStore = create<GeoState>()(
             challenge: null,
             meta: null,
             candidate: null,
-            map: null,
+            maps: [],
+            selectedMapId: null,
+            correctMap: null,
             hasGuessed: false,
             pendingGuess: null,
             result: null,
@@ -356,6 +407,10 @@ export const useGeoStore = create<GeoState>()(
                 hasGuessed: state.hasGuessed,
                 pendingGuess: state.pendingGuess,
                 wasSkipped: state.wasSkipped,
+                // Persist the selected map so a reload mid-result doesn't
+                // bounce the user back to "pick a map" before showing
+                // their score.
+                selectedMapId: state.selectedMapId,
             }),
         },
     ),

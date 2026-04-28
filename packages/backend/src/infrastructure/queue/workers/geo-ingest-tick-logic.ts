@@ -86,10 +86,16 @@ export async function runGeoIngestTick(
         m.id AS active_map_id,
         COALESCE(c.cnt, 0) AS candidate_count
       FROM games g
+      -- Multi-map: capture providers anchor pins to the explicit
+      -- is_capture_default row, not just any active map. For single-map
+      -- games the migration backfilled is_capture_default = is_active so
+      -- behavior is unchanged. We also fall back to any enabled map (in
+      -- created_at desc order) for games that haven\'t yet been promoted --
+      -- preserves the previous first-to-land-becomes-default feel.
       LEFT JOIN LATERAL (
         SELECT id FROM geo_map
         WHERE game_id = g.id AND is_active = true
-        ORDER BY created_at DESC
+        ORDER BY is_capture_default DESC, created_at DESC
         LIMIT 1
       ) m ON true
       LEFT JOIN (
@@ -136,9 +142,13 @@ export async function runGeoIngestTick(
     // both is strictly additive. (source, external_id) uniqueness in
     // geo_screenshot_candidate prevents dupes inside each provider.
     if (row.active_map_id && row.candidate_count < CAPTURE_TARGET_CANDIDATES) {
-      // Re-fetch the active map id off the repo so we don't pass a stale
-      // value (the SELECT above can be racing a recent map import).
-      const map = await geoMapRepository.findActiveByGameId(row.id)
+      // Re-fetch off the repo so we don't pass a stale id (the SELECT
+      // above can be racing a recent map import). Multi-map mode prefers
+      // the capture-default row; falls back to any enabled map for
+      // games that haven't yet had a default promoted.
+      const map =
+        (await geoMapRepository.findCaptureDefaultByGameId(row.id)) ??
+        (await geoMapRepository.findFirstEnabledByGameId(row.id))
       if (map) {
         if (row.steam_app_id && !(await tombstoneBlocks(row.id, 'steam'))) {
           await geoQueue.add(

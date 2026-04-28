@@ -79,6 +79,9 @@ interface ActiveMapInfo {
     widthPx: number
     heightPx: number
     region?: string | null
+    // Multi-map: marks the row Steam/RAWG capture providers attach new
+    // candidates to. Exactly one map per game holds the role.
+    isCaptureDefault?: boolean
 }
 
 type TierKey =
@@ -124,7 +127,13 @@ interface SourcesResponse {
     gameId: number
     gameName: string
     slug: string
+    // Deprecated: identical to `captureDefaultMap`. Kept for the desktop
+    // preview block until the multi-map refactor of that section lands.
     activeMap: ActiveMapInfo | null
+    // All maps a player would see in the chooser today. Always includes
+    // the capture default; for a single-map game it has length 1.
+    enabledMaps?: ActiveMapInfo[]
+    captureDefaultMap?: ActiveMapInfo | null
     sources: TierState[]
 }
 
@@ -331,17 +340,89 @@ export function GeoMapsTab({
         }
     }
 
+    // Multi-map mode: "activate" a map = enable it. The legacy endpoint
+    // (`/active-map`) is kept on the backend as an alias; this path uses
+    // the explicit enable so multiple maps can be enabled in turn.
     const handleActivateMap = async (gameId: number, mapId: number) => {
         setActivatingMapId(mapId)
         setMessage(null)
         setError(null)
         try {
-            await fetchJson(`/api/admin/geo/games/${gameId}/active-map`, {
+            await fetchJson(`/api/admin/geo/games/${gameId}/maps/enable`, {
                 method: 'POST',
                 body: JSON.stringify({ geoMapId: mapId }),
             })
             setMessage(t('admin.geo.maps.tierStatus.activated'))
             await Promise.all([reload(), reloadSources(gameId)])
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setActivatingMapId(null)
+        }
+    }
+
+    const handleDisableMap = async (gameId: number, mapId: number) => {
+        setActivatingMapId(mapId)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/games/${gameId}/maps/disable`, {
+                method: 'POST',
+                body: JSON.stringify({ geoMapId: mapId }),
+            })
+            setMessage(t('admin.geo.maps.multi.disabled', 'Map disabled.'))
+            await Promise.all([reload(), reloadSources(gameId)])
+        } catch (e) {
+            const message = String(e)
+            if (message.includes('LAST_ENABLED')) {
+                setError(
+                    t(
+                        'admin.geo.maps.multi.disableLastBlocked',
+                        'Cannot disable the last enabled map for a game.',
+                    ),
+                )
+            } else {
+                setError(message)
+            }
+        } finally {
+            setActivatingMapId(null)
+        }
+    }
+
+    const handleSetCaptureDefault = async (gameId: number, mapId: number) => {
+        setActivatingMapId(mapId)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/games/${gameId}/maps/capture-default`, {
+                method: 'POST',
+                body: JSON.stringify({ geoMapId: mapId }),
+            })
+            setMessage(
+                t('admin.geo.maps.multi.captureDefaultSet', 'Capture default updated.'),
+            )
+            await reloadSources(gameId)
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setActivatingMapId(null)
+        }
+    }
+
+    const handleUpdateRegion = async (
+        gameId: number,
+        mapId: number,
+        region: string | null,
+    ) => {
+        setActivatingMapId(mapId)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson(`/api/admin/geo/maps/${mapId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ region }),
+            })
+            await reloadSources(gameId)
         } catch (e) {
             setError(String(e))
         } finally {
@@ -543,6 +624,9 @@ export function GeoMapsTab({
                         onRetryTier={handleRetryTier}
                         onRunTierNow={handleRunTierNow}
                         onActivateMap={handleActivateMap}
+                        onDisableMap={handleDisableMap}
+                        onSetCaptureDefault={handleSetCaptureDefault}
+                        onUpdateRegion={handleUpdateRegion}
                         onReimport={reimport}
                         onResearch={setResearchFor}
                         onWandImport={setWandImportFor}
@@ -608,6 +692,9 @@ export function GeoMapsTab({
                             onRetryTier={handleRetryTier}
                             onRunTierNow={handleRunTierNow}
                             onActivateMap={handleActivateMap}
+                            onDisableMap={handleDisableMap}
+                            onSetCaptureDefault={handleSetCaptureDefault}
+                            onUpdateRegion={handleUpdateRegion}
                             onReimport={reimport}
                             onResearch={setResearchFor}
                             onWandImport={setWandImportFor}
@@ -754,6 +841,13 @@ interface SidePanelBodyProps {
     onRetryTier: (gameId: number, tier: string) => void | Promise<void>
     onRunTierNow: (gameId: number, tier: string) => void | Promise<void>
     onActivateMap: (gameId: number, mapId: number) => void | Promise<void>
+    onDisableMap: (gameId: number, mapId: number) => void | Promise<void>
+    onSetCaptureDefault: (gameId: number, mapId: number) => void | Promise<void>
+    onUpdateRegion: (
+        gameId: number,
+        mapId: number,
+        region: string | null,
+    ) => void | Promise<void>
     onReimport: (game: CuratedGame) => void | Promise<void>
     onResearch: (game: CuratedGame) => void
     onWandImport: (game: CuratedGame) => void
@@ -776,6 +870,9 @@ function SidePanelBody({
     onRetryTier,
     onRunTierNow,
     onActivateMap,
+    onDisableMap,
+    onSetCaptureDefault,
+    onUpdateRegion,
     onReimport,
     onResearch,
     onWandImport,
@@ -807,34 +904,18 @@ function SidePanelBody({
         )
     }
     if (!sources) return null
+    const enabledMaps = sources.enabledMaps ?? (sources.activeMap ? [sources.activeMap] : [])
     return (
         <>
-            {sources.activeMap && (
-                <a
-                    href={sources.activeMap.imageUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="block overflow-hidden rounded border border-border/40 bg-muted/10"
-                    aria-label={t('admin.geo.maps.sidePanel.previewAlt', {
-                        name: sources.gameName,
-                    })}
-                >
-                    <img
-                        src={sources.activeMap.imageUrl}
-                        alt={t('admin.geo.maps.sidePanel.previewAlt', {
-                            name: sources.gameName,
-                        })}
-                        loading="lazy"
-                        className="block max-h-48 w-full object-contain bg-black/40"
-                    />
-                    <p className="px-2 py-1 text-[10px] text-muted-foreground">
-                        {t('admin.geo.maps.sidePanel.previewDimensions', {
-                            width: sources.activeMap.widthPx,
-                            height: sources.activeMap.heightPx,
-                        })}
-                    </p>
-                </a>
-            )}
+            <EnabledMapsPanel
+                gameId={sources.gameId}
+                enabledMaps={enabledMaps}
+                activatingMapId={activatingMapId}
+                onDisable={onDisableMap}
+                onSetCaptureDefault={onSetCaptureDefault}
+                onUpdateRegion={onUpdateRegion}
+                t={t}
+            />
             <ol className="space-y-2">
                 {sources.sources.map((s) => {
                     const tiers = tiersInFlightForGame(runState, sources.gameId)
@@ -939,6 +1020,193 @@ function SidePanelBody({
                 </Button>
             )}
         </>
+    )
+}
+
+// Multi-map: lists every enabled map for the game with per-map controls
+// (disable, promote to capture-default, edit region inline). Renders nothing
+// when the game has no enabled map yet — the tier cascade below still
+// surfaces the "Use this map" affordance on per-source candidates.
+function EnabledMapsPanel({
+    gameId,
+    enabledMaps,
+    activatingMapId,
+    onDisable,
+    onSetCaptureDefault,
+    onUpdateRegion,
+    t,
+}: {
+    gameId: number
+    enabledMaps: ActiveMapInfo[]
+    activatingMapId: number | null
+    onDisable: (gameId: number, mapId: number) => void | Promise<void>
+    onSetCaptureDefault: (gameId: number, mapId: number) => void | Promise<void>
+    onUpdateRegion: (
+        gameId: number,
+        mapId: number,
+        region: string | null,
+    ) => void | Promise<void>
+    t: ReturnType<typeof useTranslation>['t']
+}) {
+    if (enabledMaps.length === 0) return null
+    const canDisable = enabledMaps.length > 1
+    return (
+        <div className="rounded border border-border/40 bg-muted/10 p-2 space-y-2">
+            <div className="flex items-baseline justify-between">
+                <h4 className="text-xs font-medium">
+                    {t('admin.geo.maps.multi.enabledTitle', 'Enabled maps')}
+                </h4>
+                <span className="text-[10px] text-muted-foreground">
+                    {t('admin.geo.maps.multi.enabledCount', {
+                        defaultValue: '{{count}} enabled',
+                        count: enabledMaps.length,
+                    })}
+                </span>
+            </div>
+            <ul className="space-y-1.5">
+                {enabledMaps.map((m) => (
+                    <EnabledMapRow
+                        key={m.id}
+                        gameId={gameId}
+                        map={m}
+                        canDisable={canDisable}
+                        busy={activatingMapId === m.id}
+                        onDisable={onDisable}
+                        onSetCaptureDefault={onSetCaptureDefault}
+                        onUpdateRegion={onUpdateRegion}
+                        t={t}
+                    />
+                ))}
+            </ul>
+        </div>
+    )
+}
+
+function EnabledMapRow({
+    gameId,
+    map,
+    canDisable,
+    busy,
+    onDisable,
+    onSetCaptureDefault,
+    onUpdateRegion,
+    t,
+}: {
+    gameId: number
+    map: ActiveMapInfo
+    canDisable: boolean
+    busy: boolean
+    onDisable: (gameId: number, mapId: number) => void | Promise<void>
+    onSetCaptureDefault: (gameId: number, mapId: number) => void | Promise<void>
+    onUpdateRegion: (
+        gameId: number,
+        mapId: number,
+        region: string | null,
+    ) => void | Promise<void>
+    t: ReturnType<typeof useTranslation>['t']
+}) {
+    const [editing, setEditing] = useState(false)
+    const [draft, setDraft] = useState(map.region ?? '')
+    const commit = async () => {
+        const next = draft.trim() || null
+        if ((map.region ?? null) === next) {
+            setEditing(false)
+            return
+        }
+        await onUpdateRegion(gameId, map.id, next)
+        setEditing(false)
+    }
+    return (
+        <li className="flex items-center gap-2 rounded border border-border/30 bg-background/40 px-2 py-1.5 text-xs">
+            <img
+                src={map.imageUrl}
+                alt=""
+                loading="lazy"
+                className="h-10 w-10 flex-none rounded object-cover bg-black/40"
+            />
+            <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                    {editing ? (
+                        <input
+                            autoFocus
+                            value={draft}
+                            disabled={busy}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onBlur={() => void commit()}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') void commit()
+                                else if (e.key === 'Escape') {
+                                    setDraft(map.region ?? '')
+                                    setEditing(false)
+                                }
+                            }}
+                            placeholder={t(
+                                'admin.geo.maps.multi.regionEditPlaceholder',
+                                'Region — e.g. Act II',
+                            )}
+                            className="w-full rounded border border-border/60 bg-background px-1.5 py-0.5 text-[11px]"
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            className="truncate text-left font-medium hover:underline"
+                            onClick={() => setEditing(true)}
+                            title={t('admin.geo.maps.multi.regionEdit', 'Edit region')}
+                        >
+                            {map.region ??
+                                t('geo.daily.chooseMap.worldFallback', 'World map')}
+                        </button>
+                    )}
+                    {map.isCaptureDefault && (
+                        <span className="rounded-full border border-neon-pink/40 bg-neon-pink/10 px-1.5 py-px text-[9px] uppercase tracking-wide text-neon-pink">
+                            {t(
+                                'admin.geo.maps.multi.captureDefaultBadge',
+                                'Capture default',
+                            )}
+                        </span>
+                    )}
+                </div>
+                <p className="truncate text-[10px] text-muted-foreground">
+                    {t(`admin.geo.maps.tiers.${map.source}`)}
+                </p>
+            </div>
+            <div className="flex flex-none gap-1">
+                {!map.isCaptureDefault && (
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => void onSetCaptureDefault(gameId, map.id)}
+                        title={t(
+                            'admin.geo.maps.multi.setCaptureDefault',
+                            'Set as capture default',
+                        )}
+                    >
+                        {t('admin.geo.maps.multi.captureDefaultAction', 'Default')}
+                    </Button>
+                )}
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy || !canDisable}
+                    className="h-6 px-2 text-[10px] text-destructive hover:text-destructive"
+                    onClick={() => void onDisable(gameId, map.id)}
+                    title={
+                        canDisable
+                            ? t('admin.geo.maps.multi.disable', 'Disable map')
+                            : t(
+                                  'admin.geo.maps.multi.disableLastBlocked',
+                                  'Cannot disable the last enabled map for a game.',
+                              )
+                    }
+                >
+                    {t('admin.geo.maps.multi.disableAction', 'Disable')}
+                </Button>
+            </div>
+        </li>
     )
 }
 

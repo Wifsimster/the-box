@@ -24,6 +24,7 @@ export class GeoGameError extends Error {
       | 'CHALLENGE_NOT_FOUND'
       | 'ALREADY_GUESSED'
       | 'INVALID_POINT'
+      | 'INVALID_MAP'
       | 'NO_CANDIDATE'
       | 'CONTRIBUTE_RATE_LIMIT'
       | 'CONTRIBUTE_NOT_UNLOCKED',
@@ -44,10 +45,17 @@ export interface GeoDailyChallengeView {
   challenge: GeoChallenge
   meta: GeoScreenshotMeta
   // Exposed for the frontend map renderer; avoids hand-rolling image-proxy
-  // endpoints. The candidate's own imageUrl is the screenshot; the map
+  // endpoints. The candidate's own imageUrl is the screenshot; each map
   // carries its own image + dimensions for coordinate normalization.
   candidate: GeoScreenshotCandidate
-  map: GeoMap
+  // All enabled maps for the challenge's game. The chooser surfaces these
+  // to the player; client-side, the canvas renders whichever the player
+  // has selected. Always at least one entry.
+  maps: GeoMap[]
+  // The map the screenshot canonically belongs to. Only populated AFTER
+  // the player has guessed (so the in-progress response can't leak the
+  // answer to anyone reading the network panel).
+  map?: GeoMap
   hasGuessed: boolean
 }
 
@@ -64,6 +72,11 @@ export interface GeoGameService {
   submitGuess(args: {
     userId: string
     challengeId: number
+    // Optional only for backwards compatibility with single-map games:
+    // when the challenge's game has > 1 enabled map, missing/invalid
+    // values throw `INVALID_MAP`. Single-map games auto-resolve to the
+    // only enabled row.
+    geoMapId?: number
     guess: GeoPoint
     durationMs?: number
   }): Promise<GeoGuessResult>
@@ -131,10 +144,15 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
   } = deps
   const log = deps.logger.child({ service: 'geo-game' })
 
-  // Hydrate a challenge row into the full view (meta + candidate + map +
+  // Hydrate a challenge row into the full view (meta + candidate + maps +
   // hasGuessed). Shared between the date-pinned `/daily/:date` lookup
   // (used by history) and the current-challenge `/current` lookup (used
   // by the public geo page during slow rollout).
+  //
+  // Multi-map mode: returns every enabled map for the challenge's game
+  // so the player can pick. The correct map (the one the screenshot
+  // belongs to) is only included AFTER the player has guessed — keeping
+  // it out of the in-progress payload kills the trivial DevTools cheat.
   async function hydrate(
     challenge: GeoChallenge,
     userId?: string,
@@ -153,18 +171,29 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       return null
     }
 
-    const map = await geoMapRepository.findById(meta.geoMapId)
-    if (!map) {
+    const correctMap = await geoMapRepository.findById(meta.geoMapId)
+    if (!correctMap) {
       log.error({ metaId: meta.id }, 'meta references missing map')
       return null
     }
 
-    if (isPlaceholderImageUrl(candidate.imageUrl) || isPlaceholderImageUrl(map.imageUrl)) {
+    let maps = await geoMapRepository.listEnabledByGameId(candidate.gameId)
+    // The canonical map is always part of the chooser, even if an admin
+    // has temporarily disabled it after a meta was promoted — without
+    // this, the player would see a chooser missing the correct answer.
+    if (!maps.some((m) => m.id === correctMap.id)) {
+      maps = [...maps, correctMap]
+    }
+
+    if (
+      isPlaceholderImageUrl(candidate.imageUrl) ||
+      maps.every((m) => isPlaceholderImageUrl(m.imageUrl))
+    ) {
       log.error(
         {
           challengeId: challenge.id,
           candidateImageUrl: candidate.imageUrl,
-          mapImageUrl: map.imageUrl,
+          mapImageUrls: maps.map((m) => m.imageUrl),
         },
         'refusing to serve geo challenge backed by placeholder image URL',
       )
@@ -177,7 +206,15 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       hasGuessed = !!existing
     }
 
-    return { challenge, meta, candidate, map, hasGuessed }
+    return {
+      challenge,
+      meta,
+      candidate,
+      maps,
+      // Reveal only after the player has finalized their attempt.
+      map: hasGuessed ? correctMap : undefined,
+      hasGuessed,
+    }
   }
 
   return {
@@ -193,7 +230,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       return hydrate(challenge, userId)
     },
 
-    async submitGuess({ userId, challengeId, guess, durationMs }) {
+    async submitGuess({ userId, challengeId, geoMapId, guess, durationMs }) {
       if (!validPoint(guess)) {
         throw new GeoGameError('guess must have x and y in [0..1]', 'INVALID_POINT')
       }
@@ -217,7 +254,46 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
         throw new GeoGameError('challenge has no canonical location', 'CHALLENGE_NOT_FOUND')
       }
 
-      const { distance, score, scoreVersion } = geoScoringService.score(guess, meta.canonical)
+      const candidate = await geoScreenshotRepository.findCandidateById(
+        meta.geoScreenshotCandidateId,
+      )
+      if (!candidate) {
+        throw new GeoGameError('challenge has no candidate', 'CHALLENGE_NOT_FOUND')
+      }
+
+      // Resolve which map the player picked. Single-map games auto-select
+      // (legacy clients can submit without `geoMapId`); multi-map games
+      // require the field to be a currently-enabled map of the game.
+      const enabledMaps = await geoMapRepository.listEnabledByGameId(candidate.gameId)
+      let pickedMapId = geoMapId
+      if (pickedMapId == null) {
+        if (enabledMaps.length <= 1) {
+          pickedMapId = enabledMaps[0]?.id ?? meta.geoMapId
+        } else {
+          throw new GeoGameError(
+            'this game has multiple maps; geoMapId is required',
+            'INVALID_MAP',
+          )
+        }
+      } else if (!enabledMaps.some((m) => m.id === pickedMapId)) {
+        // Allow the canonical map even if it's been disabled mid-game so
+        // a player who picks the (still-rendered) correct answer is not
+        // penalized by an admin's flip — anything else is rejected.
+        if (pickedMapId !== meta.geoMapId) {
+          throw new GeoGameError(
+            'geoMapId does not belong to the challenge game',
+            'INVALID_MAP',
+          )
+        }
+      }
+
+      const wrongMap = pickedMapId !== meta.geoMapId
+
+      const { distance, score, scoreVersion } = geoScoringService.score(
+        guess,
+        meta.canonical,
+        { wrongMap },
+      )
 
       const result = await geoChallengeRepository.recordGuess({
         userId,
@@ -227,6 +303,8 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
         score,
         scoreVersion,
         durationMs,
+        geoMapIdPicked: pickedMapId,
+        wrongMap,
       })
 
       await geoChallengeRepository.upsertDaily({

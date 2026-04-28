@@ -4,6 +4,7 @@ import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
+import { GeoMapChooser } from '@/components/geo/GeoMapChooser'
 import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +22,9 @@ export default function GeoDailyPage() {
         challenge,
         meta,
         candidate,
-        map,
+        maps,
+        selectedMapId,
+        correctMap,
         hasGuessed,
         pendingGuess,
         result,
@@ -29,11 +32,14 @@ export default function GeoDailyPage() {
         errorMessage,
         errorCode,
         loadCurrent,
+        selectMap,
         setPendingGuess,
         submitGuess,
         skipChallenge,
         loadNextUnplayed,
     } = useGeoStore()
+    const selectedMap = maps.find((m) => m.id === selectedMapId) ?? null
+    const isMultiMap = maps.length > 1
 
     // useRef's initial value runs on every render; lazy-via-useState keeps
     // Date.now() out of render while staying mount-stable.
@@ -47,7 +53,13 @@ export default function GeoDailyPage() {
         connectGeoSocket(session?.user?.id)
     }, [session?.user?.id])
 
-    const canSubmit = phase === 'playing' && !!pendingGuess && !hasGuessed
+    // Multi-map games gate submit on having picked a map; single-map games
+    // auto-select at load time so the gate becomes a no-op.
+    const canSubmit =
+        phase === 'playing' &&
+        !!pendingGuess &&
+        !hasGuessed &&
+        (selectedMapId != null || maps.length === 0)
     const canSkip = phase === 'playing' && !hasGuessed
 
     const handleSubmit = async () => {
@@ -114,7 +126,7 @@ export default function GeoDailyPage() {
                         </Card>
                     )}
 
-                {challenge && meta && candidate && map && (phase === 'playing' || phase === 'submitting' || phase === 'result' || phase === 'skipped') && (
+                {challenge && meta && candidate && maps.length > 0 && (phase === 'playing' || phase === 'submitting' || phase === 'result' || phase === 'skipped') && (
                     <div className="grid gap-6 lg:grid-cols-2">
                         <Card>
                             <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
@@ -139,16 +151,48 @@ export default function GeoDailyPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <GeoMapCanvas
-                                    imageUrl={map.imageUrl}
-                                    widthPx={map.widthPx}
-                                    heightPx={map.heightPx}
-                                    pin={pendingGuess ?? result?.guess ?? null}
-                                    canonical={result?.canonical ?? null}
-                                    disabled={hasGuessed || phase === 'submitting' || phase === 'result' || phase === 'skipped'}
-                                    onPin={setPendingGuess}
-                                    showGuessLine={phase === 'result'}
-                                />
+                                {isMultiMap && (
+                                    <GeoMapChooser
+                                        maps={maps}
+                                        selectedMapId={selectedMapId}
+                                        correctMapId={correctMap?.id ?? null}
+                                        disabled={hasGuessed || phase !== 'playing'}
+                                        onSelect={selectMap}
+                                    />
+                                )}
+
+                                {selectedMap ? (
+                                    <GeoMapCanvas
+                                        imageUrl={selectedMap.imageUrl}
+                                        widthPx={selectedMap.widthPx}
+                                        heightPx={selectedMap.heightPx}
+                                        pin={pendingGuess ?? result?.guess ?? null}
+                                        canonical={
+                                            // Only show the canonical pin when the player picked
+                                            // the right map — otherwise the dot would land on
+                                            // a different map's coordinate space and look like
+                                            // an off-screen bug.
+                                            phase === 'result' &&
+                                            correctMap &&
+                                            selectedMap.id === correctMap.id
+                                                ? result?.canonical ?? null
+                                                : null
+                                        }
+                                        disabled={hasGuessed || phase === 'submitting' || phase === 'result' || phase === 'skipped'}
+                                        onPin={setPendingGuess}
+                                        showGuessLine={phase === 'result' && !!correctMap && selectedMap.id === correctMap.id}
+                                    />
+                                ) : (
+                                    <div
+                                        className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed bg-muted/30 px-6 text-center text-xs text-muted-foreground"
+                                        role="status"
+                                    >
+                                        {t(
+                                            'geo.daily.chooseMap.required',
+                                            'Pick a map above before dropping a pin.',
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-xs text-muted-foreground">
@@ -183,7 +227,14 @@ export default function GeoDailyPage() {
                                     </div>
                                 </div>
 
-                                {result && <ResultBlock result={result} t={t} language={i18n.language} />}
+                                {result && (
+                                    <ResultBlock
+                                        result={result}
+                                        correctMap={correctMap}
+                                        t={t}
+                                        language={i18n.language}
+                                    />
+                                )}
                                 {phase === 'skipped' && wasSkipped && <SkipResultBlock t={t} />}
                                 {(phase === 'result' || phase === 'skipped') && (
                                     <Button
@@ -230,10 +281,12 @@ function SkipResultBlock({ t }: { t: ReturnType<typeof useTranslation>['t'] }) {
 
 function ResultBlock({
     result,
+    correctMap,
     t,
     language,
 }: {
     result: NonNullable<ReturnType<typeof useGeoStore.getState>['result']>
+    correctMap: ReturnType<typeof useGeoStore.getState>['correctMap']
     t: ReturnType<typeof useTranslation>['t']
     language: string
 }) {
@@ -241,13 +294,37 @@ function ResultBlock({
         typeof result.averageScore === 'number' &&
         typeof result.playerCount === 'number' &&
         result.playerCount > 0
+    const correctRegion =
+        correctMap?.region ?? t('geo.daily.chooseMap.worldFallback', 'World map')
     return (
         <div className="rounded-lg border bg-card/50 p-4 space-y-2">
+            {result.wrongMap && (
+                <div
+                    className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                    role="alert"
+                >
+                    <p className="font-medium text-destructive">
+                        {t('geo.daily.wrongMap.banner', 'Wrong map — score floored.')}
+                    </p>
+                    {correctMap && (
+                        <p className="mt-0.5">
+                            {t('geo.daily.reveal.correctMap', 'Correct map: {{region}}', {
+                                region: correctRegion,
+                            })}
+                        </p>
+                    )}
+                </div>
+            )}
             <div className="flex items-center gap-2 text-neon-pink font-medium">
                 <Trophy className="h-4 w-4" />
                 <span>
                     {t('geo.daily.score', 'Score')}: {result.score.toLocaleString(language)}
                 </span>
+                {result.wrongMap && (
+                    <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-destructive">
+                        {t('geo.daily.wrongMap.chip', 'Wrong map')}
+                    </span>
+                )}
             </div>
             {hasStats && (
                 <ScoreComparison

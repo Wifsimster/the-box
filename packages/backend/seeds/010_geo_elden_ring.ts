@@ -93,6 +93,10 @@ export async function seed(knex: Knex): Promise<void> {
         license: MAP.license,
         attribution: MAP.attribution,
         is_active: true,
+        // Multi-map mode anchors Steam/RAWG capture on the explicit
+        // capture-default row. Seed games have a single enabled map, so
+        // it owns the role.
+        is_capture_default: true,
         created_at: now,
       })
       .returning<{ id: number }[]>('id')

@@ -631,6 +631,21 @@
           "previewAlt": "Active map for {{name}} (click to open full size)",
           "previewDimensions": "{{width}} × {{height}} px",
           "loading": "Loading sources…"
+        },
+        "multi": {
+          "enabledTitle": "Enabled maps",
+          "enabledCount_one": "{{count}} enabled",
+          "enabledCount_other": "{{count}} enabled",
+          "disable": "Disable map",
+          "disableAction": "Disable",
+          "disabled": "Map disabled.",
+          "disableLastBlocked": "Cannot disable the last enabled map for a game.",
+          "captureDefaultBadge": "Capture default",
+          "captureDefaultAction": "Default",
+          "setCaptureDefault": "Set as Steam/RAWG capture target",
+          "captureDefaultSet": "Capture default updated.",
+          "regionEdit": "Edit region",
+          "regionEditPlaceholder": "Region — e.g. Act II"
         }
       },
       "research": {
@@ -1453,6 +1468,21 @@
         "noChallenge": "No geo game is live right now. We're rolling out new ones gradually — check back soon.",
         "comingSoon": "New game coming soon",
         "viewHistory": "View past challenges"
+      },
+      "chooseMap": {
+        "title": "Which map?",
+        "hint": "Pick the map this screenshot is on, then drop a pin.",
+        "required": "Pick a map above before dropping a pin.",
+        "worldFallback": "World map",
+        "correct": "Correct map",
+        "incorrect": "Wrong map"
+      },
+      "wrongMap": {
+        "banner": "Wrong map — score floored.",
+        "chip": "Wrong map"
+      },
+      "reveal": {
+        "correctMap": "Correct map: {{region}}"
       }
     },
     "contribute": {

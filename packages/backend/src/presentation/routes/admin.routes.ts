@@ -1914,7 +1914,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         >('source', 'reason', 'attempt_count', 'last_attempt_at', 'retry_after'),
     ])
 
-    const activeMap = allMaps.find((m) => m.isActive) ?? null
     const candidatesBySource = new Map<
       string,
       Array<{
@@ -2144,24 +2143,37 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       sources.push(tier('manual', { status: 'untried' }))
     }
 
+    // Multi-map: enabledMaps is the new authoritative list the admin UI
+    // renders. `activeMap` is kept on the wire for one release so a
+    // stale frontend keeps working — it now carries the capture-default
+    // row (the one Steam/RAWG attaches to), which is the closest analog
+    // to the legacy single-active row.
+    const enabledMaps = allMaps.filter((m) => m.isActive)
+    const captureDefault =
+      enabledMaps.find((m) => m.isCaptureDefault) ?? enabledMaps[0] ?? null
+    const mapSummary = (m: (typeof allMaps)[number]) => ({
+      id: m.id,
+      source: m.source,
+      imageUrl: m.imageUrl,
+      license: m.license,
+      attribution: m.attribution,
+      widthPx: m.widthPx,
+      heightPx: m.heightPx,
+      region: m.region,
+      isCaptureDefault: !!m.isCaptureDefault,
+    })
+
     res.json({
       success: true,
       data: {
         gameId: game.id,
         gameName: game.name,
         slug: game.slug,
-        activeMap: activeMap
-          ? {
-              id: activeMap.id,
-              source: activeMap.source,
-              imageUrl: activeMap.imageUrl,
-              license: activeMap.license,
-              attribution: activeMap.attribution,
-              widthPx: activeMap.widthPx,
-              heightPx: activeMap.heightPx,
-              region: activeMap.region,
-            }
-          : null,
+        // Deprecated: kept for back-compat; consumers should switch to
+        // `enabledMaps` and `captureDefaultMap`.
+        activeMap: captureDefault ? mapSummary(captureDefault) : null,
+        enabledMaps: enabledMaps.map(mapSummary),
+        captureDefaultMap: captureDefault ? mapSummary(captureDefault) : null,
         sources,
       },
     })
@@ -2170,22 +2182,22 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
   }
 })
 
-// Switch which geo_map row is the active one for a game. Used by the admin
-// Maps tab when multiple tiers (Fandom / StrategyWiki / Fextralife / …) have
-// produced candidate maps and the operator wants to pick the best one
-// instead of accepting whichever tier landed first.
-const setActiveMapBodySchema = z.object({
+// Multi-map: enable a specific geo_map row for a game. Multiple maps can
+// be enabled simultaneously (BG3 → Nautiloid + Wilderness + …). When the
+// game had zero enabled maps before this call the same map is also
+// promoted to capture-default so ingest has a target.
+const enableMapBodySchema = z.object({
   geoMapId: z.number().int().positive(),
 })
 
-router.post('/geo/games/:id/active-map', async (req, res, next) => {
+router.post('/geo/games/:id/maps/enable', async (req, res, next) => {
   try {
     const id = Number(req.params.id)
     if (!Number.isFinite(id) || id <= 0) {
       res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
       return
     }
-    const parse = setActiveMapBodySchema.safeParse(req.body)
+    const parse = enableMapBodySchema.safeParse(req.body)
     if (!parse.success) {
       res.status(400).json({
         success: false,
@@ -2193,7 +2205,7 @@ router.post('/geo/games/:id/active-map', async (req, res, next) => {
       })
       return
     }
-    const map = await geoMapRepository.setActiveForGame(id, parse.data.geoMapId)
+    const map = await geoMapRepository.enableForGame(id, parse.data.geoMapId)
     if (!map) {
       res.status(404).json({
         success: false,
@@ -2201,6 +2213,146 @@ router.post('/geo/games/:id/active-map', async (req, res, next) => {
           code: 'MAP_NOT_FOUND',
           message: 'no geo_map row with that id for this game',
         },
+      })
+      return
+    }
+    res.json({ success: true, data: map })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Multi-map: disable a single map. Refuses with 409 LAST_ENABLED if it
+// would leave the game with zero enabled maps. The capture-default role
+// is auto-handed to a sibling if the disabled row held it.
+router.post('/geo/games/:id/maps/disable', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = enableMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const result = await geoMapRepository.disableForGame(id, parse.data.geoMapId)
+    if (!result.ok) {
+      const status = result.reason === 'NOT_FOUND' ? 404 : 409
+      res.status(status).json({
+        success: false,
+        error: {
+          code: result.reason,
+          message:
+            result.reason === 'LAST_ENABLED'
+              ? 'cannot disable the last enabled map for a game'
+              : 'no geo_map row with that id for this game',
+        },
+      })
+      return
+    }
+    res.json({ success: true, data: result.map })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Multi-map: pick which enabled map Steam/RAWG capture providers attach
+// new candidates to. At most one row per game holds the role; the partial
+// unique index `geo_map_one_capture_default_per_game` enforces it.
+router.post('/geo/games/:id/maps/capture-default', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = enableMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const map = await geoMapRepository.setCaptureDefault(id, parse.data.geoMapId)
+    if (!map) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'MAP_NOT_FOUND',
+          message: 'map must be enabled for this game before becoming capture default',
+        },
+      })
+      return
+    }
+    res.json({ success: true, data: map })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Inline region edit. Sending an empty string or null clears the region
+// (game collapses back to a single "world map" presentation).
+const updateMapBodySchema = z.object({
+  region: z.string().max(100).nullable().optional(),
+})
+
+router.patch('/geo/maps/:mapId', async (req, res, next) => {
+  try {
+    const mapId = Number(req.params.mapId)
+    if (!Number.isFinite(mapId) || mapId <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = updateMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const updated =
+      parse.data.region !== undefined
+        ? await geoMapRepository.updateRegion(mapId, parse.data.region ?? null)
+        : await geoMapRepository.findById(mapId)
+    if (!updated) {
+      res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND' } })
+      return
+    }
+    res.json({ success: true, data: updated })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Deprecated: routes through to `/maps/enable` for one release so a stale
+// frontend keeps working. Remove next release.
+router.post('/geo/games/:id/active-map', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
+      return
+    }
+    const parse = enableMapBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: parse.error.issues[0]?.message },
+      })
+      return
+    }
+    const map = await geoMapRepository.enableForGame(id, parse.data.geoMapId)
+    if (!map) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'MAP_NOT_FOUND' },
       })
       return
     }
@@ -2719,23 +2871,13 @@ router.post('/geo/maps/manual', async (req, res, next) => {
       return
     }
 
-    if (data.replaceActive) {
-      const active = await geoMapRepository.findActiveByGameId(data.gameId)
-      if (active) await geoMapRepository.deactivate(active.id)
-    } else {
-      const active = await geoMapRepository.findActiveByGameId(data.gameId)
-      if (active) {
-        res.status(409).json({
-          success: false,
-          error: {
-            code: 'MAP_EXISTS',
-            message:
-              'an active geo_map already exists for this game; pass replaceActive=true to swap',
-          },
-        })
-        return
-      }
-    }
+    // Multi-map mode: a game can have many enabled maps. The legacy
+    // `replaceActive` body flag now means "enable this new map after
+    // creating it"; without it, the row is created disabled and the
+    // admin enables it from the Cartes panel. This intentionally stops
+    // throwing MAP_EXISTS — that 409 is what blocked operators from
+    // adding a second region in the first place.
+    const enableImmediately = !!data.replaceActive
 
     const map = await geoMapRepository.create({
       gameId: data.gameId,
@@ -2748,7 +2890,14 @@ router.post('/geo/maps/manual', async (req, res, next) => {
       attribution: data.attribution,
       consensusRadius: data.consensusRadius,
       region: data.region,
+      isActive: enableImmediately,
     })
+
+    if (enableImmediately) {
+      // create() already inserts is_active=true, but enableForGame also
+      // promotes to capture-default when the game had no enabled siblings.
+      await geoMapRepository.enableForGame(data.gameId, map.id)
+    }
 
     // Also clear all ingest tombstones for this game — manual upload is the
     // operator saying "I've solved this", so the auto-pipeline shouldn't keep
@@ -2808,19 +2957,11 @@ router.post('/geo/maps/wand', async (req, res, next) => {
       return
     }
 
-    const active = await geoMapRepository.findActiveByGameId(data.gameId)
-    if (active && !data.replaceActive) {
-      res.status(409).json({
-        success: false,
-        error: {
-          code: 'MAP_EXISTS',
-          message:
-            'an active geo_map already exists for this game; pass replaceActive=true to swap',
-        },
-      })
-      return
-    }
-
+    // Multi-map: a game can have many enabled maps simultaneously. The
+    // legacy `replaceActive` flag now means "enable the imported map and
+    // deactivate the previously-enabled siblings" (back-compat for
+    // operators who explicitly want a swap). Without it, the wand
+    // import lands as inactive — admin enables it from the Cartes panel.
     const result = await importWandMap({
       gameId: data.gameId,
       wandUrl: data.wandUrl,
@@ -2835,11 +2976,18 @@ router.post('/geo/maps/wand', async (req, res, next) => {
       return
     }
 
-    if (active && data.replaceActive && active.id !== result.geoMapId) {
-      await geoMapRepository.deactivate(active.id)
-      if (result.geoMapId) {
-        await geoMapRepository.setActiveForGame(data.gameId, result.geoMapId)
+    if (data.replaceActive && result.geoMapId) {
+      // Disable currently-enabled siblings so the freshly imported row
+      // is the only one playable. Multi-map sibling-aware: skips itself.
+      const enabled = await geoMapRepository.listEnabledByGameId(data.gameId)
+      for (const sibling of enabled) {
+        if (sibling.id !== result.geoMapId) {
+          // Best-effort disable; swallow LAST_ENABLED since we're about
+          // to enable the new map below.
+          await geoMapRepository.deactivate(sibling.id)
+        }
       }
+      await geoMapRepository.enableForGame(data.gameId, result.geoMapId)
     }
 
     const map = result.geoMapId

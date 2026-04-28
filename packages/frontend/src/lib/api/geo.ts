@@ -53,7 +53,13 @@ export interface GeoDailyView {
     challenge: GeoChallenge
     meta: GeoScreenshotMeta
     candidate: GeoScreenshotCandidate
-    map: GeoMap
+    // Multi-map: every enabled map for the challenge's game. Always at
+    // least one entry; single-map games surface an array of length 1.
+    maps: GeoMap[]
+    // The canonical map. Server only sends this AFTER the player has
+    // guessed — the in-progress payload omits it so DevTools can't leak
+    // the answer.
+    map?: GeoMap
     hasGuessed: boolean
 }
 
@@ -85,6 +91,10 @@ export const geoApi = {
 
     submitGuess(input: {
         challengeId: number
+        // Map the player picked from the chooser. Optional for single-map
+        // games (server auto-resolves); required by validation when the
+        // game has multiple enabled maps.
+        geoMapId?: number
         guess: GeoPoint
         durationMs?: number
     }): Promise<GeoGuessResult> {
