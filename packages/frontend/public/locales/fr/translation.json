@@ -631,6 +631,21 @@
           "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
           "previewDimensions": "{{width}} × {{height}} px",
           "loading": "Chargement des sources…"
+        },
+        "multi": {
+          "enabledTitle": "Cartes activées",
+          "enabledCount_one": "{{count}} activée",
+          "enabledCount_other": "{{count}} activées",
+          "disable": "Désactiver la carte",
+          "disableAction": "Désactiver",
+          "disabled": "Carte désactivée.",
+          "disableLastBlocked": "Impossible de désactiver la dernière carte activée d'un jeu.",
+          "captureDefaultBadge": "Cible des captures",
+          "captureDefaultAction": "Définir comme cible",
+          "setCaptureDefault": "Définir comme cible des captures Steam/RAWG",
+          "captureDefaultSet": "Cible des captures mise à jour.",
+          "regionEdit": "Modifier la région",
+          "regionEditPlaceholder": "Région — ex. Acte II"
         }
       },
       "research": {
@@ -1453,6 +1468,21 @@
         "noChallenge": "Aucun défi géo n'est en ligne pour le moment. On les déploie progressivement — revenez bientôt.",
         "comingSoon": "Nouveau défi à venir",
         "viewHistory": "Voir les défis passés"
+      },
+      "chooseMap": {
+        "title": "Quelle carte ?",
+        "hint": "Choisissez la carte où se trouve la capture, puis posez votre épingle.",
+        "required": "Choisissez une carte avant de poser une épingle.",
+        "worldFallback": "Carte du monde",
+        "correct": "Bonne carte",
+        "incorrect": "Mauvaise carte"
+      },
+      "wrongMap": {
+        "banner": "Mauvaise carte — score plancher.",
+        "chip": "Mauvaise carte"
+      },
+      "reveal": {
+        "correctMap": "Bonne carte : {{region}}"
       }
     },
     "contribute": {

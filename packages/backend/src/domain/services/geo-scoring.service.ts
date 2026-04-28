@@ -3,7 +3,12 @@ import type { GeoPoint } from '@the-box/types'
 
 // Current scoring formula version. Bump whenever constants below change so
 // historical scores remain comparable via `geo_guess.score_version`.
-export const GEO_SCORE_VERSION = 1
+//
+// v2 introduces the wrong-map penalty: when the player picks a map that the
+// screenshot doesn't belong to, distance is floored to 1.0 (effectively
+// max distance), which the existing decay maps to ~1 point. No other
+// constants change, so v1 distances remain directly comparable.
+export const GEO_SCORE_VERSION = 2
 
 // Maximum points awarded for a perfect pin (distance 0).
 export const GEO_SCORE_MAX = 2000
@@ -38,10 +43,26 @@ export interface GeoScoringResult {
   distance: number
   score: number
   scoreVersion: number
+  // True when the player picked the wrong map and the distance was
+  // floored to 1.0 before scoring. Surfaced so the route can copy the
+  // flag onto the persisted guess and the result reveal.
+  wrongMap: boolean
+}
+
+export interface GeoScoringOptions {
+  // Set when the player's chosen map doesn't match the screenshot's
+  // canonical map. Floors distance to 1.0, which the existing decay
+  // collapses to ~1 point — the same as a wildly off pin on the right
+  // map, with no new constants to bump the formula version for.
+  wrongMap?: boolean
 }
 
 export interface GeoScoringService {
-  score(guess: GeoPoint, canonical: GeoPoint): GeoScoringResult
+  score(
+    guess: GeoPoint,
+    canonical: GeoPoint,
+    opts?: GeoScoringOptions,
+  ): GeoScoringResult
 }
 
 export interface GeoScoringServiceDeps {
@@ -52,11 +73,13 @@ export function createGeoScoringService(deps: GeoScoringServiceDeps): GeoScoring
   const log = deps.logger.child({ service: 'geo-scoring' })
 
   return {
-    score(guess, canonical) {
-      const distance = geoDistance(guess, canonical)
+    score(guess, canonical, opts) {
+      const wrongMap = !!opts?.wrongMap
+      const rawDistance = geoDistance(guess, canonical)
+      const distance = wrongMap ? 1 : rawDistance
       const score = geoScoreFromDistance(distance)
-      log.debug({ guess, canonical, distance, score }, 'scored guess')
-      return { distance, score, scoreVersion: GEO_SCORE_VERSION }
+      log.debug({ guess, canonical, distance, score, wrongMap }, 'scored guess')
+      return { distance, score, scoreVersion: GEO_SCORE_VERSION, wrongMap }
     },
   }
 }

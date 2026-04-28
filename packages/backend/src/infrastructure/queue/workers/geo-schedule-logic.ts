@@ -48,7 +48,11 @@ export async function scheduleDailyGeoChallenge(
   }
 
   // Global random over all promoted metas whose candidate is still active
-  // (i.e. not deactivated by user reports). RANDOM() is fine at pilot scale.
+  // (i.e. not deactivated by user reports) AND whose owning map is still
+  // enabled. The map filter matters in multi-map mode: an admin can
+  // disable a region (say, BG3 Nautiloid) without us needing to also
+  // archive every screenshot pinned to it — the schedule picker simply
+  // skips them. RANDOM() is fine at pilot scale.
   type Row = { id: number; game_id: number }
   const rows = await db<Row>('geo_screenshot_meta')
     .join(
@@ -56,7 +60,9 @@ export async function scheduleDailyGeoChallenge(
       'geo_screenshot_meta.geo_screenshot_candidate_id',
       'geo_screenshot_candidate.id',
     )
+    .join('geo_map', 'geo_screenshot_meta.geo_map_id', 'geo_map.id')
     .where('geo_screenshot_candidate.is_active', true)
+    .andWhere('geo_map.is_active', true)
     .orderByRaw('RANDOM()')
     .limit(1)
     .select<Row[]>(

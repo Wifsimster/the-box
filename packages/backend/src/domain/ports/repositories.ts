@@ -592,7 +592,19 @@ export interface FunnelEventRepository {
 
 export interface GeoMapRepository {
   findById(id: number): Promise<GeoMap | null>
+  // Legacy single-map lookup, kept for callers (ingest tick fallback,
+  // contribute pick) that don't yet need multi-map awareness. Returns the
+  // most recently created enabled map for the game.
   findActiveByGameId(gameId: number): Promise<GeoMap | null>
+  findFirstEnabledByGameId(gameId: number): Promise<GeoMap | null>
+  findCaptureDefaultByGameId(gameId: number): Promise<GeoMap | null>
+  // All maps (any state) for admin listings.
+  listByGameId(
+    gameId: number,
+  ): Promise<Array<GeoMap & { isActive: boolean }>>
+  // Enabled maps the daily-challenge chooser surfaces to players.
+  listEnabledByGameId(gameId: number): Promise<GeoMap[]>
+  findEnabledById(gameId: number, mapId: number): Promise<GeoMap | null>
 }
 
 export interface GeoScreenshotRepository {
@@ -654,6 +666,8 @@ export interface GeoChallengeRepository {
     score: number
     scoreVersion: number
     durationMs?: number
+    geoMapIdPicked?: number | null
+    wrongMap?: boolean
   }): Promise<GeoGuessResult>
   recordSkip(data: { userId: string; geoChallengeId: number }): Promise<void>
   upsertDaily(args: { challengeDate: string; userId: string; score: number }): Promise<void>

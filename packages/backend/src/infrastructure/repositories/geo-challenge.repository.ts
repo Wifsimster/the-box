@@ -155,6 +155,11 @@ export const geoChallengeRepository = {
     score: number
     scoreVersion: number
     durationMs?: number
+    // Map the player picked from the chooser. Persisted for analytics
+    // ("how often do players pick the wrong map?"). Optional so legacy
+    // single-map call sites keep working until they're updated.
+    geoMapIdPicked?: number | null
+    wrongMap?: boolean
   }): Promise<GeoGuessResult> {
     log.info(
       { userId: data.userId, challengeId: data.geoChallengeId, score: data.score },
@@ -170,6 +175,7 @@ export const geoChallengeRepository = {
       score: data.score,
       score_version: data.scoreVersion,
       duration_ms: data.durationMs ?? null,
+      geo_map_id_picked: data.geoMapIdPicked ?? null,
     })
 
     const meta = await db('geo_challenge')
@@ -179,9 +185,10 @@ export const geoChallengeRepository = {
         'geo_screenshot_meta.id',
       )
       .where('geo_challenge.id', data.geoChallengeId)
-      .select<{ canonical_x: number; canonical_y: number }>(
+      .select<{ canonical_x: number; canonical_y: number; geo_map_id: number }>(
         'geo_screenshot_meta.canonical_x',
         'geo_screenshot_meta.canonical_y',
+        'geo_screenshot_meta.geo_map_id',
       )
       .first()
 
@@ -191,6 +198,8 @@ export const geoChallengeRepository = {
       distance: data.distance,
       score: data.score,
       scoreVersion: data.scoreVersion,
+      correctMapId: meta?.geo_map_id,
+      wrongMap: data.wrongMap,
     }
   },
 

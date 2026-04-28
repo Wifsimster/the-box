@@ -771,6 +771,21 @@ export interface GeoMap {
   // the JSON revisionId at import time, used for change detection.
   wikiMapName?: string
   wikiRevisionId?: number
+  // True when Steam/RAWG capture providers should attach new candidates to
+  // this map. Exactly one row per game_id is the capture default; for a
+  // single-map game it's the only enabled row.
+  isCaptureDefault?: boolean
+}
+
+// Lightweight subset of GeoMap surfaced to the daily challenge chooser. The
+// player needs an image + size to render the thumbnail and (for the selected
+// map) the canvas; everything else stays server-side until reveal.
+export interface GeoMapOption {
+  id: number
+  region?: string
+  imageUrl: string
+  widthPx: number
+  heightPx: number
 }
 
 export interface GeoScreenshotCandidate {
@@ -820,6 +835,10 @@ export interface GeoChallengeWithStatus extends GeoChallenge {
 
 export interface GeoGuessInput {
   geoChallengeId: number
+  // Map the player picked from the chooser. Required when the challenge's
+  // game has > 1 enabled map; the API still accepts a missing value for
+  // single-map games and treats it as "the only one".
+  geoMapId?: number
   guess: GeoPoint
   durationMs?: number
 }
@@ -836,6 +855,11 @@ export interface GeoGuessResult {
   // Optional so older clients / older persisted store snapshots stay valid.
   averageScore?: number
   playerCount?: number
+  // Multi-map reveal: the map the screenshot actually belongs to and a
+  // flag for "the player picked the wrong map" (score floored to ~1).
+  // Optional so older persisted store snapshots stay valid.
+  correctMapId?: number
+  wrongMap?: boolean
 }
 
 export interface GeoLeaderboardEntry {
