@@ -15,9 +15,12 @@ import type {
 const TOTAL_SCREENSHOTS = 10
 const WRONG_GUESS_PENALTY = 0
 const CATCH_UP_DAYS = 7
+// Mirror of game.service.ts. Kept duplicated rather than cross-imported
+// to avoid pulling game.service into user.service's dependency graph.
+const PREMIUM_CATCH_UP_DAYS = 365
 
 export interface UserService {
-  getGameHistory(userId: string): Promise<GameHistoryResponse>
+  getGameHistory(userId: string, isPremium?: boolean): Promise<GameHistoryResponse>
   getPublicGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse>
   getGameSessionDetails(
     sessionId: string,
@@ -179,11 +182,13 @@ export function createUserService(deps: UserServiceDeps): UserService {
   }
 
   return {
-    async getGameHistory(userId: string): Promise<GameHistoryResponse> {
+    async getGameHistory(userId: string, isPremium: boolean = false): Promise<GameHistoryResponse> {
       const entries = await sessionRepository.findUserGameHistory(userId)
 
-      // Get recent challenges (last CATCH_UP_DAYS days)
-      const recentChallenges = await challengeRepository.findRecentChallenges(CATCH_UP_DAYS)
+      // Premium users see the extended archive so they have something to
+      // play beyond the 7-day window. Free users keep the existing list.
+      const lookbackDays = isPremium ? PREMIUM_CATCH_UP_DAYS : CATCH_UP_DAYS
+      const recentChallenges = await challengeRepository.findRecentChallenges(lookbackDays)
 
       // Get today's date to exclude it from missed challenges
       const today = new Date().toISOString().split('T')[0]

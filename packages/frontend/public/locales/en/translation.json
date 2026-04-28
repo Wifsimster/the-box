@@ -149,6 +149,7 @@
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",
     "alreadyCompleted": "You have already completed today's challenge! Come back tomorrow for a new one.",
+    "premiumRequiredForOldCatchup": "This challenge is more than 7 days old — available with Premium.",
     "catchUpNotice": "This is a catch-up session. Your score won't appear on the leaderboard.",
     "noChallenge": "No challenge available",
     "noChallengeAvailable": "No challenge available for {{date}}. Please check back later!",

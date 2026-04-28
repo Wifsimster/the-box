@@ -6,6 +6,7 @@ import {
   subscriptionRepository,
   stripeEventLogRepository,
 } from '../../infrastructure/repositories/subscription.repository.js'
+import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { billingService } from '../../domain/services/billing.service.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 
@@ -70,10 +71,6 @@ async function dispatch(event: Stripe.Event): Promise<void> {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
-      // For one-time supporter purchases there is no Subscription created;
-      // we still log the event so future PRs can grant a lifetime flag.
-      // Subscription mode hands off to customer.subscription.created which
-      // Stripe fires alongside this event.
       log.info(
         {
           mode: session.mode,
@@ -83,6 +80,28 @@ async function dispatch(event: Stripe.Event): Promise<void> {
         },
         'checkout completed',
       )
+
+      // One-time supporter purchases never create a Subscription, so the
+      // sibling customer.subscription.created handler doesn't fire. Persist
+      // the grant directly here when the Checkout Session was created for
+      // the supporter SKU; recurring-tier sessions fall through.
+      if (session.mode !== 'payment') return
+      if (session.metadata?.['tier'] !== 'supporter_lifetime') {
+        log.debug({ sessionId: session.id }, 'one-time checkout ignored — not the supporter SKU')
+        return
+      }
+
+      const userId =
+        (session.metadata?.['userId'] as string | undefined) ??
+        session.client_reference_id ??
+        null
+      if (!userId) {
+        log.warn({ sessionId: session.id }, 'supporter checkout missing userId metadata')
+        return
+      }
+
+      await userRepository.grantSupporterLifetime(userId)
+      log.info({ userId, sessionId: session.id }, 'supporter lifetime granted')
       return
     }
 

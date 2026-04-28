@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { userService } from '../../domain/services/index.js'
+import { billingService } from '../../domain/services/billing.service.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
@@ -114,7 +115,11 @@ router.get('/me', authMiddleware, async (req, res, next) => {
 // Get user's daily game history
 router.get('/history', authMiddleware, async (req, res, next) => {
   try {
-    const data = await userService.getGameHistory(req.userId!)
+    // Premium users get the extended catch-up window in their missed
+    // challenges list, so the UI surfaces playable archive entries
+    // without the user having to know a deep-link challenge ID.
+    const isPremium = await billingService.isPremium(req.userId!)
+    const data = await userService.getGameHistory(req.userId!, isPremium)
 
     res.json({
       success: true,
