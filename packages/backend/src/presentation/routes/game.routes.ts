@@ -2,6 +2,7 @@ import { Router } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { gameService, GameError } from '../../domain/services/index.js'
+import { billingService } from '../../domain/services/billing.service.js'
 import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
@@ -161,7 +162,12 @@ router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
 router.post('/start/:challengeId', authMiddleware, async (req, res, next) => {
   try {
     const challengeId = parseInt(req.params['challengeId'] as string, 10)
-    const data = await gameService.startChallenge(challengeId, req.userId!)
+    // Premium status flips two things in startChallenge: the catch-up
+    // window expands to PREMIUM_CATCH_UP_DAYS, and an old free attempt
+    // returns 402 PREMIUM_REQUIRED_FOR_OLD_CATCHUP instead of a generic
+    // 400 so the frontend can surface the upsell instead of a dead end.
+    const isPremium = await billingService.isPremium(req.userId!)
+    const data = await gameService.startChallenge(challengeId, req.userId!, isPremium)
 
     res.json({
       success: true,
@@ -219,6 +225,11 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
   try {
     const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs, powerUpUsed } = req.body
 
+    // Premium status only changes hint accounting in catch-up sessions
+    // (see game.service: premium + is_catch_up → free hint, no penalty).
+    // The flag is checked once here so the service stays sync-friendly.
+    const isPremium = await billingService.isPremium(req.userId!)
+
     const data = await gameService.submitGuess({
       tierSessionId,
       screenshotId,
@@ -228,6 +239,7 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
       roundTimeTakenMs: roundTimeTakenMs || 0, // Fallback for backward compatibility
       userId: req.userId!,
       powerUpUsed,
+      isPremium,
     })
 
     res.json({

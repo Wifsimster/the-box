@@ -36,6 +36,11 @@ const BASE_SCORE = 100
 const UNFOUND_PENALTY = 0
 const WRONG_GUESS_PENALTY = 0
 const CATCH_UP_DAYS = 7
+// Premium tier extends the catch-up window. 365 days is generous enough
+// to feel like "the full archive" for end-users while still bounding the
+// challenge-list query — the recurring `create-daily-challenge` job
+// produces one row per day, so the upper bound on cardinality is small.
+export const PREMIUM_CATCH_UP_DAYS = 365
 
 /**
  * Calculate speed multiplier based on time taken to find the screenshot
@@ -75,7 +80,7 @@ export interface GameServiceDeps {
 
 export interface GameService {
   getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse>
-  startChallenge(challengeId: number, userId: string): Promise<StartChallengeResponse>
+  startChallenge(challengeId: number, userId: string, isPremium?: boolean): Promise<StartChallengeResponse>
   getScreenshot(sessionId: string, position: number, userId: string): Promise<ScreenshotResponse>
   submitGuess(data: {
     tierSessionId: string
@@ -86,6 +91,7 @@ export interface GameService {
     roundTimeTakenMs: number
     userId: string
     powerUpUsed?: 'hint_year' | 'hint_publisher'
+    isPremium?: boolean
   }): Promise<GuessResponse>
   endGame(sessionId: string, userId: string): Promise<EndGameResponse>
 }
@@ -234,7 +240,11 @@ export function createGameService(deps: GameServiceDeps): GameService {
     }
   },
 
-  async startChallenge(challengeId: number, userId: string): Promise<StartChallengeResponse> {
+  async startChallenge(
+    challengeId: number,
+    userId: string,
+    isPremium: boolean = false,
+  ): Promise<StartChallengeResponse> {
     log.info({ challengeId, userId }, 'startChallenge')
 
     const tiers = await challengeRepository.findTiersByChallenge(challengeId)
@@ -253,9 +263,12 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Calculate the oldest allowed date (CATCH_UP_DAYS days ago)
+    // Free tier sees the last CATCH_UP_DAYS; premium extends to
+    // PREMIUM_CATCH_UP_DAYS. Outside both windows the challenge is
+    // genuinely too old for anyone and we keep the original 400.
+    const allowedDays = isPremium ? PREMIUM_CATCH_UP_DAYS : CATCH_UP_DAYS
     const oldestAllowed = new Date(today)
-    oldestAllowed.setDate(oldestAllowed.getDate() - CATCH_UP_DAYS)
+    oldestAllowed.setDate(oldestAllowed.getDate() - allowedDays)
 
     const challengeDate = new Date(challenge.challenge_date)
     challengeDate.setHours(0, 0, 0, 0)
@@ -265,10 +278,28 @@ export function createGameService(deps: GameServiceDeps): GameService {
       ? challenge.challenge_date
       : challengeDate.toISOString().split('T')[0]
 
-    // Check if challenge is from the past (not today and older than CATCH_UP_DAYS)
     const isCatchUp = challengeDateStr !== todayStr
     if (isCatchUp && challengeDate < oldestAllowed) {
-      throw new GameError('CHALLENGE_TOO_OLD', `This challenge is no longer available. You can only play challenges from the last ${CATCH_UP_DAYS} days.`, 400)
+      // Premium would already have allowedDays === PREMIUM_CATCH_UP_DAYS,
+      // so reaching this branch as a free user with a 7..365 day-old
+      // challenge is the upgrade moment. 402 lets the frontend route to
+      // the upsell instead of rendering a generic error.
+      if (!isPremium) {
+        const freeOldest = new Date(today)
+        freeOldest.setDate(freeOldest.getDate() - CATCH_UP_DAYS)
+        if (challengeDate >= new Date(today.getTime() - PREMIUM_CATCH_UP_DAYS * 24 * 60 * 60 * 1000) && challengeDate < freeOldest) {
+          throw new GameError(
+            'PREMIUM_REQUIRED_FOR_OLD_CATCHUP',
+            `Challenges older than ${CATCH_UP_DAYS} days require Premium`,
+            402,
+          )
+        }
+      }
+      throw new GameError(
+        'CHALLENGE_TOO_OLD',
+        `This challenge is no longer available. You can only play challenges from the last ${allowedDays} days.`,
+        400,
+      )
     }
 
     let gameSession = await sessionRepository.findGameSession(userId, challengeId)
@@ -349,6 +380,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     roundTimeTakenMs: number
     userId: string
     powerUpUsed?: 'hint_year' | 'hint_publisher'
+    isPremium?: boolean
   }): Promise<GuessResponse> {
     log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
 
@@ -382,23 +414,36 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
       // Check if hint was used and handle penalty/inventory
       if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher' || data.powerUpUsed === 'hint_developer') {
-        // Check if user has hint in inventory (use it for free)
-        const hasHintInInventory = await inventoryRepository.useItems(
-          data.userId,
-          'powerup',
-          data.powerUpUsed,
-          1
-        )
+        // Premium entitlement bypasses the hint cost ENTIRELY in catch-up
+        // sessions only — never on today's daily, since today is what
+        // feeds the leaderboard and ranked integrity is non-negotiable.
+        const premiumFreeHint = !!data.isPremium && !!tierSession.is_catch_up
 
-        if (hasHintInInventory) {
-          // Hint from inventory - no penalty
-          hintFromInventory = true
-          log.info({ userId: data.userId, hintType: data.powerUpUsed }, 'hint used from inventory (no penalty)')
+        if (premiumFreeHint) {
+          hintFromInventory = true // accounting bucket: "no penalty"
+          log.info(
+            { userId: data.userId, hintType: data.powerUpUsed },
+            'hint free for premium in catch-up',
+          )
         } else {
-          // No inventory - apply 20% penalty
-          hintPenalty = Math.round(scoreEarned * 0.20)
-          scoreEarned -= hintPenalty
-          log.info({ userId: data.userId, hintType: data.powerUpUsed, penalty: hintPenalty }, 'hint used with penalty (no inventory)')
+          // Check if user has hint in inventory (use it for free)
+          const hasHintInInventory = await inventoryRepository.useItems(
+            data.userId,
+            'powerup',
+            data.powerUpUsed,
+            1
+          )
+
+          if (hasHintInInventory) {
+            // Hint from inventory - no penalty
+            hintFromInventory = true
+            log.info({ userId: data.userId, hintType: data.powerUpUsed }, 'hint used from inventory (no penalty)')
+          } else {
+            // No inventory - apply 20% penalty
+            hintPenalty = Math.round(scoreEarned * 0.20)
+            scoreEarned -= hintPenalty
+            log.info({ userId: data.userId, hintType: data.powerUpUsed, penalty: hintPenalty }, 'hint used with penalty (no inventory)')
+          }
         }
       }
     }

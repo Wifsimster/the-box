@@ -149,6 +149,7 @@
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",
     "alreadyCompleted": "Vous avez déjà terminé le défi d'aujourd'hui ! Revenez demain pour un nouveau.",
+    "premiumRequiredForOldCatchup": "Ce défi a plus de 7 jours — accessible avec Premium.",
     "catchUpNotice": "Ceci est une session de rattrapage. Votre score n'apparaîtra pas au classement.",
     "noChallenge": "Aucun défi disponible",
     "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Revenez plus tard !",

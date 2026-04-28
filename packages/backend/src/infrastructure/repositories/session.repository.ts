@@ -42,6 +42,7 @@ export interface TierSessionWithContext extends TierSessionRow {
   game_session_started_at: Date
   game_session_id: string
   daily_challenge_id: number
+  is_catch_up: boolean
   tier_number: number
   time_limit_seconds: number
 }
@@ -133,6 +134,7 @@ export const sessionRepository = {
         'game_sessions.started_at as game_session_started_at',
         'game_sessions.id as game_session_id',
         'game_sessions.daily_challenge_id',
+        'game_sessions.is_catch_up',
         'tiers.tier_number',
         'tiers.time_limit_seconds'
       )
