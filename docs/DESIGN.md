@@ -86,12 +86,23 @@ Use sparingly — for hero titles, decorative glows, gradient surfaces.
 | Token | Value | Usage |
 |---|---|---|
 | `--neon-purple` | `#a855f7` | Primary brand neon |
-| `--neon-pink` | `#f472b6` | Secondary brand neon (AA-bumped) |
+| `--neon-pink` | `#f472b6` | Secondary brand neon |
 | `--neon-blue` | `#3b82f6` | Tertiary accent |
 | `--neon-cyan` | `#06b6d4` | Gradient terminator |
 
-**Rule:** Neon colors never carry meaning (success/error). They are decorative.
-Use status tokens for semantic feedback.
+**Rules for neon:**
+
+- Neon colors never carry meaning (success/error). They are decorative — use
+  status tokens for semantic feedback.
+- **Neon is for glows, gradients, icon accents, and hero gradient text only —
+  never for body or paragraph copy.** Measured against `--background`
+  (oklch 0.129), neon-pink `#f472b6` lands around ~2.8:1, which fails WCAG AA
+  for text. The lift in `index.css` (`#ec4899` → `#f472b6`) was about
+  surfacing decorative pink legibly on dark surfaces, not certifying it for
+  body copy.
+- If a neon color must appear as text (e.g. a hero countdown), pair it with
+  a heavy weight + large size (≥24px / 700) and re-measure contrast on the
+  actual surface before shipping.
 
 ### Status & feedback
 
@@ -114,9 +125,10 @@ categorical. Don't swap them.
 
 - Body text on any surface must clear **4.5:1**.
 - Large text (≥18px regular / ≥14px bold) must clear **3:1**.
-- Decorative neon-on-dark text: bump to the AA-corrected variant
-  (`--neon-pink` is `#f472b6`, not `#ec4899`).
-- Verify with a contrast checker before merging — don't eyeball it.
+- Decorative neon (purple / pink / blue / cyan) is **glow-only** on dark
+  surfaces — see "Rules for neon" above. Don't use it for body text.
+- Verify with a contrast checker (WebAIM, Stark, browser devtools) before
+  merging — don't eyeball it.
 
 ---
 
@@ -253,19 +265,56 @@ We use Radix primitives wrapped by shadcn under
 
 ### Buttons
 
-Variants live in the `Button` component (CVA). Discord-style hierarchy:
+> **Source of truth:** the CVA definition in
+> `packages/frontend/src/components/ui/button.tsx`. The table below
+> documents intent and common usage; if the table and the file disagree,
+> the file wins. Update both in the same PR.
+
+Discord-style hierarchy — pick the lowest-emphasis variant that still
+reads as actionable.
+
+**Core variants**
 
 | Variant | When |
 |---|---|
 | `default` (primary) | Primary action on a screen — one per view |
-| `secondary` | Alternative action |
+| `secondary` | Alternative action paired with the primary |
 | `outline` | Tertiary, low-emphasis |
-| `ghost` | Toolbar/icon actions |
-| `destructive` | Delete, irreversible |
-| `gaming` | Hero CTAs (gradient + glow). Use sparingly. |
+| `ghost` | Toolbar / icon actions, table row actions |
 | `link` | Inline navigation only |
+| `gaming` | Hero CTAs (purple→pink gradient + glow). Use sparingly. |
 
-Sizes: `sm`, `default`, `lg`, `icon`. Don't introduce custom sizes.
+**Status variants**
+
+| Variant | When |
+|---|---|
+| `destructive` | Delete, irreversible |
+| `dangerGhost` | Destructive action in a low-emphasis context (menu items, table rows) |
+| `warning` | Cautionary action (e.g. proceed with risk) |
+
+**Game / hint variants**
+
+| Variant | When |
+|---|---|
+| `hintFree` | A hint power-up that costs nothing |
+| `hintUsed` | A hint that has already been consumed (disabled-ish look) |
+
+**Admin variants**
+
+| Variant | When |
+|---|---|
+| `ban` | Suspend a user |
+| `unban` | Restore a user |
+
+**Layout variants**
+
+| Variant | When |
+|---|---|
+| `overlay` | Buttons sitting on top of imagery / blurred surfaces (e.g. screenshot viewer controls) |
+
+**Sizes:** `sm`, `default`, `lg`, `xl`, `icon`. `xl` is reserved for hero
+CTAs (home page, tier intro). Don't introduce custom sizes — extend the
+CVA in `button.tsx` if a new size is genuinely needed.
 
 ### Inputs & forms
 
