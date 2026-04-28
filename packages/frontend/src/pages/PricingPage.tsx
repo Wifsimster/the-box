@@ -56,7 +56,7 @@ export default function PricingPage() {
     <PageHero icon={Sparkles} title={t('pricing.title')} subtitle={t('pricing.subtitle')}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {isAuthenticated && isPremium && (
-          <Card className="border-emerald-500/40 bg-emerald-500/5">
+          <Card className="border-success/40 bg-success/5">
             <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="font-medium">{t('pricing.alreadyPremium')}</p>
