@@ -135,6 +135,30 @@ export const userRepository = {
     return this.findById(userId)
   },
 
+  async getStripeCustomerId(userId: string): Promise<string | null> {
+    const row = await db('user')
+      .where('id', userId)
+      .first<{ stripe_customer_id: string | null }>('stripe_customer_id')
+    return row?.stripe_customer_id ?? null
+  },
+
+  async setStripeCustomerId(userId: string, customerId: string): Promise<void> {
+    log.info({ userId, customerId }, 'setStripeCustomerId')
+    await db('user')
+      .where('id', userId)
+      .update({
+        stripe_customer_id: customerId,
+        updatedAt: new Date(),
+      })
+  },
+
+  async findByStripeCustomerId(customerId: string): Promise<{ id: string; email: string } | null> {
+    const row = await db('user')
+      .where('stripe_customer_id', customerId)
+      .first<{ id: string; email: string }>('id', 'email')
+    return row ?? null
+  },
+
   async updateEmailMarketingConsent(userId: string, consent: boolean): Promise<User | null> {
     log.info({ userId, consent }, 'updateEmailMarketingConsent')
     await db('user')

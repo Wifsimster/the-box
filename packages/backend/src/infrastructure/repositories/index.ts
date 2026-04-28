@@ -32,3 +32,10 @@ export {
   type GeoIngestFailureRow,
   type GeoIngestSource,
 } from './geo-ingest-failure.repository.js'
+export {
+  subscriptionRepository,
+  stripeEventLogRepository,
+  ENTITLED_STATUSES,
+  type SubscriptionRow,
+  type UpsertSubscriptionInput,
+} from './subscription.repository.js'
