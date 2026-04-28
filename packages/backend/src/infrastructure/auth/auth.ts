@@ -6,6 +6,7 @@ import { env } from "../../config/env.js";
 import { authLogger } from "../logger/logger.js";
 import { inventoryRepository } from "../repositories/inventory.repository.js";
 import { emailLogRepository } from "../repositories/email-log.repository.js";
+import { renderEmailHtml, renderEmailText } from "../email/template.js";
 
 const STARTER_INVENTORY: Array<{ itemType: string; itemKey: string; quantity: number }> = [
   { itemType: "powerup", itemKey: "hint_year", quantity: 2 },
@@ -31,18 +32,33 @@ function createAuth() {
       minPasswordLength: 8, // OWASP recommended minimum
       sendResetPassword: async ({ user, url }) => {
         const subject = "Réinitialiser votre mot de passe";
+        const html = renderEmailHtml({
+          heading: "Réinitialisation du mot de passe",
+          paragraphs: [
+            "Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.",
+            'Ce lien expirera dans <strong style="color:#f0abfc;">1 heure</strong>.',
+          ],
+          cta: { label: "Réinitialiser mon mot de passe", url },
+          footerHtml:
+            "Si vous n'avez pas demandé cette réinitialisation, ignorez cet e-mail — votre mot de passe ne sera pas modifié.",
+        });
+        const text = renderEmailText({
+          heading: "Réinitialisation du mot de passe",
+          paragraphs: [
+            "Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien expirera dans 1 heure.",
+          ],
+          cta: { label: "Réinitialiser mon mot de passe", url },
+          footerLines: [
+            "Si vous n'avez pas demandé cette réinitialisation, ignorez cet e-mail.",
+          ],
+        });
         if (resend) {
           const { data, error } = await resend.emails.send({
             from: `The Box <${env.EMAIL_FROM}>`,
             to: user.email,
             subject,
-            html: `
-            <h1>Réinitialisation du mot de passe</h1>
-            <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
-            <a href="${url}">Réinitialiser mon mot de passe</a>
-            <p>Ce lien expirera dans 1 heure.</p>
-            <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-          `,
+            html,
+            text,
           });
           if (error) {
             authLogger.error({ email: user.email, err: error.message }, "failed to send password reset email");
@@ -81,17 +97,33 @@ function createAuth() {
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
         const subject = "Vérifiez votre adresse email";
+        const html = renderEmailHtml({
+          heading: "Bienvenue sur The Box !",
+          paragraphs: [
+            "Confirme ton adresse e-mail pour activer ton compte et débloquer ton inventaire de départ.",
+            'Ce lien expirera dans <strong style="color:#f0abfc;">24 heures</strong>.',
+          ],
+          cta: { label: "Vérifier mon email", url },
+          footerHtml:
+            "Si tu n'as pas créé de compte sur The Box, ignore cet e-mail.",
+        });
+        const text = renderEmailText({
+          heading: "Bienvenue sur The Box !",
+          paragraphs: [
+            "Confirme ton adresse e-mail pour activer ton compte. Ce lien expirera dans 24 heures.",
+          ],
+          cta: { label: "Vérifier mon email", url },
+          footerLines: [
+            "Si tu n'as pas créé de compte sur The Box, ignore cet e-mail.",
+          ],
+        });
         if (resend) {
           const { data, error } = await resend.emails.send({
             from: `The Box <${env.EMAIL_FROM}>`,
             to: user.email,
             subject,
-            html: `
-            <h1>Bienvenue sur The Box !</h1>
-            <p>Cliquez sur le lien ci-dessous pour vérifier votre adresse email :</p>
-            <a href="${url}">Vérifier mon email</a>
-            <p>Ce lien expirera dans 24 heures.</p>
-          `,
+            html,
+            text,
           });
           if (error) {
             authLogger.error({ email: user.email, err: error.message }, "failed to send verification email");

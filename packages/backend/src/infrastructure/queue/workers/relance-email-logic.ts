@@ -2,6 +2,7 @@ import { db } from '../../database/connection.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { sendEmail } from '../../email/email-sender.js'
+import { renderEmailHtml, renderEmailText } from '../../email/template.js'
 
 const log = queueLogger.child({ worker: 'relance-email' })
 
@@ -76,49 +77,28 @@ async function findCandidates(): Promise<RelanceCandidate[]> {
 }
 
 function buildHtml(displayName: string, streakDay: number, playUrl: string, unsubscribeUrl: string): string {
-  return `
-    <div style="background:#0b0612;padding:24px 0;font-family:-apple-system,Segoe UI,Arial,sans-serif;">
-      <div style="max-width:520px;margin:0 auto;background:#140a26;border:1px solid #2a1644;border-radius:14px;padding:28px 24px;color:#ece8f5;">
-        <div style="font-size:13px;letter-spacing:2px;color:#c084fc;text-transform:uppercase;margin-bottom:8px;">The Box</div>
-        <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:#ffffff;">
-          Salut ${displayName}, ta récompense quotidienne t'attend
-        </h1>
-        <p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#cfc6e6;">
-          Tu ne t'es pas connecté(e) aujourd'hui — du coup, ton cadeau du <strong style="color:#f0abfc;">jour ${streakDay}</strong> dort encore dans ton inventaire.
-        </p>
-        <p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#cfc6e6;">
-          Un clic suffit pour le récupérer (et garder un peu de carburant pour les indices du prochain défi).
-        </p>
-        <div style="text-align:center;margin:28px 0;">
-          <a href="${playUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;">
-            Récupérer ma récompense
-          </a>
-        </div>
-        <p style="margin:0;font-size:12px;line-height:1.5;color:#7a6f93;">
-          Astuce : les indices Année et Éditeur reçus en récompense évitent la pénalité sur ton score.
-        </p>
-        <hr style="margin:28px 0 16px;border:none;border-top:1px solid #2a1644;" />
-        <p style="margin:0;font-size:11px;color:#6b6189;line-height:1.5;">
-          Tu reçois cet e-mail car tu as accepté les rappels de récompense. <a href="${unsubscribeUrl}" style="color:#a78bfa;">Se désabonner</a>.
-        </p>
-      </div>
-    </div>
-  `
+  return renderEmailHtml({
+    heading: `Salut ${displayName}, ta récompense quotidienne t'attend`,
+    paragraphs: [
+      `Tu ne t'es pas connecté(e) aujourd'hui — du coup, ton cadeau du <strong style="color:#f0abfc;">jour ${streakDay}</strong> dort encore dans ton inventaire.`,
+      `Un clic suffit pour le récupérer (et garder un peu de carburant pour les indices du prochain défi).`,
+    ],
+    cta: { label: 'Récupérer ma récompense', url: playUrl },
+    tip: 'Astuce : les indices Année et Éditeur reçus en récompense évitent la pénalité sur ton score.',
+    footerHtml: `Tu reçois cet e-mail car tu as accepté les rappels de récompense. <a href="${unsubscribeUrl}" style="color:#a78bfa;">Se désabonner</a>.`,
+  })
 }
 
 function buildText(displayName: string, streakDay: number, playUrl: string, unsubscribeUrl: string): string {
-  return [
-    `Salut ${displayName},`,
-    '',
-    `Ta récompense quotidienne du jour ${streakDay} t'attend dans ton inventaire — tu ne l'as pas encore récupérée aujourd'hui.`,
-    '',
-    `Récupère-la ici : ${playUrl}`,
-    '',
-    'Astuce : les indices Année et Éditeur évitent la pénalité sur ton score.',
-    '',
-    `Se désabonner : ${unsubscribeUrl}`,
-    '— The Box',
-  ].join('\n')
+  return renderEmailText({
+    heading: `Salut ${displayName}, ta récompense quotidienne t'attend`,
+    paragraphs: [
+      `Ta récompense quotidienne du jour ${streakDay} t'attend dans ton inventaire — tu ne l'as pas encore récupérée aujourd'hui.`,
+    ],
+    cta: { label: 'Récupère-la ici', url: playUrl },
+    tip: 'Astuce : les indices Année et Éditeur évitent la pénalité sur ton score.',
+    footerLines: [`Se désabonner : ${unsubscribeUrl}`],
+  })
 }
 
 async function sendOne(user: RelanceCandidate): Promise<'sent' | 'skipped' | 'failed'> {

@@ -2,6 +2,7 @@ import { db } from '../../database/connection.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { sendEmail } from '../../email/email-sender.js'
+import { renderEmailHtml, renderEmailText } from '../../email/template.js'
 
 const log = queueLogger.child({ worker: 'streak-risk-email' })
 
@@ -53,24 +54,32 @@ async function findCandidates(): Promise<StreakCandidate[]> {
   return rows
 }
 
+function plural(n: number): string {
+  return n > 1 ? 's' : ''
+}
+
 function buildHtml(displayName: string, streak: number, playUrl: string, unsubscribeUrl: string): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
-      <h1 style="color: #7c3aed;">Votre série de ${streak} jour${streak > 1 ? 's' : ''} est en danger !</h1>
-      <p>Salut ${displayName},</p>
-      <p>Vous n'avez pas encore joué au défi d'aujourd'hui. Sans action avant minuit, votre série de <strong>${streak} jour${streak > 1 ? 's' : ''}</strong> repartira à zéro.</p>
-      <p>
-        <a href="${playUrl}" style="display: inline-block; padding: 12px 24px; background: #7c3aed; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">
-          Jouer le défi du jour
-        </a>
-      </p>
-      <p style="color: #666; font-size: 13px;">Astuce : invitez un ami avec votre lien de parrainage et gagnez tous les deux des indices bonus.</p>
-      <hr style="margin-top: 32px; border: none; border-top: 1px solid #eee;" />
-      <p style="color: #999; font-size: 11px;">
-        Vous recevez cet e-mail car vous avez accepté les notifications marketing. Vous pouvez <a href="${unsubscribeUrl}" style="color: #999;">vous désabonner</a> à tout moment depuis votre profil.
-      </p>
-    </div>
-  `
+  return renderEmailHtml({
+    heading: `Ta série de ${streak} jour${plural(streak)} est en danger, ${displayName} !`,
+    paragraphs: [
+      `Tu n'as pas encore joué au défi d'aujourd'hui. Sans action avant minuit, ta série de <strong style="color:#f0abfc;">${streak} jour${plural(streak)}</strong> repartira à zéro.`,
+    ],
+    cta: { label: 'Jouer le défi du jour', url: playUrl },
+    tip: 'Astuce : invite un ami avec ton lien de parrainage et gagnez tous les deux des indices bonus.',
+    footerHtml: `Tu reçois cet e-mail car tu as accepté les notifications marketing. <a href="${unsubscribeUrl}" style="color:#a78bfa;">Se désabonner</a>.`,
+  })
+}
+
+function buildText(displayName: string, streak: number, playUrl: string, unsubscribeUrl: string): string {
+  return renderEmailText({
+    heading: `Ta série de ${streak} jour${plural(streak)} est en danger, ${displayName} !`,
+    paragraphs: [
+      `Tu n'as pas encore joué au défi d'aujourd'hui. Sans action avant minuit, ta série de ${streak} jour${plural(streak)} repartira à zéro.`,
+    ],
+    cta: { label: 'Jouer le défi du jour', url: playUrl },
+    tip: 'Astuce : invite un ami avec ton lien de parrainage et gagnez tous les deux des indices bonus.',
+    footerLines: [`Se désabonner : ${unsubscribeUrl}`],
+  })
 }
 
 async function sendOne(user: StreakCandidate): Promise<'sent' | 'skipped' | 'failed'> {
@@ -82,8 +91,9 @@ async function sendOne(user: StreakCandidate): Promise<'sent' | 'skipped' | 'fai
     type: 'streak-risk',
     userId: user.id,
     to: user.email,
-    subject: `Votre série de ${user.current_streak} jour${user.current_streak > 1 ? 's' : ''} est en danger`,
+    subject: `Ta série de ${user.current_streak} jour${plural(user.current_streak)} est en danger`,
     html: buildHtml(displayName, user.current_streak, playUrl, unsubscribeUrl),
+    text: buildText(displayName, user.current_streak, playUrl, unsubscribeUrl),
   })
 
   if (result.status === 'sent') {
