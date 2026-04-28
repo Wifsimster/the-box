@@ -24,7 +24,7 @@ const ROWS: FeatureRow[] = [
 
 function FeatureCell({ on, label }: { on: boolean; label: string }) {
   return (
-    <span className={cn('inline-flex items-center justify-center', on ? 'text-emerald-400' : 'text-muted-foreground/50')}>
+    <span className={cn('inline-flex items-center justify-center', on ? 'text-success' : 'text-muted-foreground/50')}>
       {on ? <Check className="w-5 h-5" aria-label={label} /> : <X className="w-5 h-5" aria-label={label} />}
     </span>
   )
