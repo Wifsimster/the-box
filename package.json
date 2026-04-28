@@ -20,6 +20,7 @@
     "db:rollback": "npm run db:rollback -w @the-box/backend",
     "db:seed": "npm run db:seed -w @the-box/backend",
     "db:seed:geo": "npm run db:seed:geo -w @the-box/backend",
+    "stripe:check": "npm run stripe:check -w @the-box/backend",
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules",
     "version:patch": "npm version patch --workspaces --no-git-tag-version && npm version patch --no-git-tag-version",
     "version:minor": "npm version minor --workspaces --no-git-tag-version && npm version minor --no-git-tag-version",

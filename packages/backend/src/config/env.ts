@@ -37,6 +37,18 @@ export const env = {
 
   // Redis (for BullMQ job queue)
   REDIS_URL: process.env['REDIS_URL'] || 'redis://localhost:6379',
+
+  // Stripe — Premium subscription billing. Empty defaults keep dev boot
+  // working without a Stripe account; production validation in
+  // validateEnv() enforces presence once any premium feature ships.
+  STRIPE_SECRET_KEY: process.env['STRIPE_SECRET_KEY'] || '',
+  STRIPE_WEBHOOK_SECRET: process.env['STRIPE_WEBHOOK_SECRET'] || '',
+  STRIPE_PRICE_PREMIUM_MONTHLY: process.env['STRIPE_PRICE_PREMIUM_MONTHLY'] || '',
+  STRIPE_PRICE_PREMIUM_ANNUAL: process.env['STRIPE_PRICE_PREMIUM_ANNUAL'] || '',
+  STRIPE_PRICE_SUPPORTER_LIFETIME: process.env['STRIPE_PRICE_SUPPORTER_LIFETIME'] || '',
+  STRIPE_CHECKOUT_SUCCESS_URL: process.env['STRIPE_CHECKOUT_SUCCESS_URL'] || 'http://localhost:5173/fr/premium?checkout=success',
+  STRIPE_CHECKOUT_CANCEL_URL: process.env['STRIPE_CHECKOUT_CANCEL_URL'] || 'http://localhost:5173/fr/premium?checkout=cancel',
+  STRIPE_PORTAL_RETURN_URL: process.env['STRIPE_PORTAL_RETURN_URL'] || 'http://localhost:5173/fr/profile',
 }
 
 export function validateEnv(): void {
