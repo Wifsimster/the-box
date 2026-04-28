@@ -332,8 +332,53 @@ jobs:
 
       - name: Push changes to repository
         run: |
-          git push origin HEAD:main
-          git push origin "v${{ needs.decide.outputs.new_version }}"
+          set -euo pipefail
+          NEW_VERSION="${{ needs.decide.outputs.new_version }}"
+
+          # Multi-arch Docker builds take ~5 minutes; if another PR merges
+          # to main during that window, a sibling Release run will have
+          # bumped main to the same target version (or beyond) by the time
+          # we try to push. The concurrency group on this workflow does not
+          # actually serialize the build matrix in practice, so handle the
+          # race here:
+          #   1. Try push.
+          #   2. On reject, fetch main. If our target tag already exists,
+          #      a sibling run won and the Docker manifest we already
+          #      published is co-tagged correctly — exit clean.
+          #   3. Otherwise rebase. If the rebase conflicts (typical: both
+          #      runs touched package.json version field), the sibling
+          #      released a different version that effectively supersedes
+          #      ours; exit clean rather than try to recover.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main 2>&1; then
+              break
+            fi
+            if [ $attempt -eq 3 ]; then
+              echo "::error::push to main failed after 3 attempts"
+              exit 1
+            fi
+
+            echo "Push rejected (attempt $attempt) — fetching origin/main…"
+            git fetch origin main
+
+            if git ls-remote --tags origin "v${NEW_VERSION}" | grep -q .; then
+              echo "v${NEW_VERSION} already exists on origin — sibling release won the race. Exiting clean."
+              exit 0
+            fi
+
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "Rebase conflicted — sibling release bumped to a different version. Exiting clean."
+              exit 0
+            fi
+          done
+
+          # Tag push uses --force-with-lease=v…:''  semantics implicitly:
+          # the tag is local-only until this point, so a successful main
+          # push above means no other run holds the tag. If a sibling
+          # tagged the same v$NEW_VERSION between the two pushes, the
+          # second push will fail and we surface that as a real error.
+          git push origin "v${NEW_VERSION}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
