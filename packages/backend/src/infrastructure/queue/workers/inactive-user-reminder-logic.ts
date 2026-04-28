@@ -2,6 +2,7 @@ import { db } from '../../database/connection.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { sendEmail } from '../../email/email-sender.js'
+import { renderEmailHtml, renderEmailText } from '../../email/template.js'
 
 const log = queueLogger.child({ worker: 'inactive-user-reminder' })
 
@@ -88,47 +89,27 @@ function daysSince(date: Date | null): number {
 }
 
 function buildHtml(displayName: string, days: number, playUrl: string, unsubscribeUrl: string): string {
-  return `
-    <div style="background:#0b0612;padding:24px 0;font-family:-apple-system,Segoe UI,Arial,sans-serif;">
-      <div style="max-width:520px;margin:0 auto;background:#140a26;border:1px solid #2a1644;border-radius:14px;padding:28px 24px;color:#ece8f5;">
-        <div style="font-size:13px;letter-spacing:2px;color:#c084fc;text-transform:uppercase;margin-bottom:8px;">The Box</div>
-        <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:#ffffff;">
-          Ça fait ${days} jours, ${displayName}…
-        </h1>
-        <p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#cfc6e6;">
-          Ton dernier passage dans la Box remonte à <strong style="color:#f0abfc;">${days} jours</strong>. Les défis du jour continuent de tomber sans toi — et on aimerait bien te revoir.
-        </p>
-        <p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#cfc6e6;">
-          Un nouveau panorama t'attend dès maintenant. Quelques secondes suffisent pour retrouver la main.
-        </p>
-        <div style="text-align:center;margin:28px 0;">
-          <a href="${playUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;">
-            Relancer une partie
-          </a>
-        </div>
-        <p style="margin:0;font-size:12px;line-height:1.5;color:#7a6f93;">
-          Astuce : ton inventaire d'indices est toujours là, intact, prêt à servir sur le prochain défi.
-        </p>
-        <hr style="margin:28px 0 16px;border:none;border-top:1px solid #2a1644;" />
-        <p style="margin:0;font-size:11px;color:#6b6189;line-height:1.5;">
-          Tu reçois cet e-mail car tu as accepté les rappels par e-mail. <a href="${unsubscribeUrl}" style="color:#a78bfa;">Se désabonner</a>.
-        </p>
-      </div>
-    </div>
-  `
+  return renderEmailHtml({
+    heading: `Ça fait ${days} jours, ${displayName}…`,
+    paragraphs: [
+      `Ton dernier passage dans la Box remonte à <strong style="color:#f0abfc;">${days} jours</strong>. Les défis du jour continuent de tomber sans toi — et on aimerait bien te revoir.`,
+      `Un nouveau panorama t'attend dès maintenant. Quelques secondes suffisent pour retrouver la main.`,
+    ],
+    cta: { label: 'Relancer une partie', url: playUrl },
+    tip: "Astuce : ton inventaire d'indices est toujours là, intact, prêt à servir sur le prochain défi.",
+    footerHtml: `Tu reçois cet e-mail car tu as accepté les rappels par e-mail. <a href="${unsubscribeUrl}" style="color:#a78bfa;">Se désabonner</a>.`,
+  })
 }
 
 function buildText(displayName: string, days: number, playUrl: string, unsubscribeUrl: string): string {
-  return [
-    `Salut ${displayName},`,
-    '',
-    `Ça fait ${days} jours qu'on ne t'a pas vu(e) dans la Box. Un nouveau défi t'attend — et ton inventaire d'indices est toujours là, intact.`,
-    '',
-    `Reprends une partie : ${playUrl}`,
-    '',
-    `Se désabonner : ${unsubscribeUrl}`,
-    '— The Box',
-  ].join('\n')
+  return renderEmailText({
+    heading: `Ça fait ${days} jours, ${displayName}…`,
+    paragraphs: [
+      `Ça fait ${days} jours qu'on ne t'a pas vu(e) dans la Box. Un nouveau défi t'attend — et ton inventaire d'indices est toujours là, intact.`,
+    ],
+    cta: { label: 'Reprends une partie', url: playUrl },
+    footerLines: [`Se désabonner : ${unsubscribeUrl}`],
+  })
 }
 
 async function sendOne(user: InactiveCandidate): Promise<'sent' | 'skipped' | 'failed'> {

@@ -36,6 +36,7 @@ import { resend } from '../../infrastructure/auth/auth.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
+import { renderEmailHtml, renderEmailText } from '../../infrastructure/email/template.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import {
   geoScreenshotRepository,
@@ -1290,16 +1291,30 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
     }
 
     const subject = 'Test Email - The Box'
+    const sentAt = new Date().toISOString()
+    const html = renderEmailHtml({
+      eyebrow: 'The Box · Admin',
+      heading: 'Test e-mail',
+      paragraphs: [
+        "Cet e-mail de test a été envoyé depuis le panneau d'administration de The Box.",
+        'Si tu le reçois, la configuration Resend est opérationnelle.',
+      ],
+      tip: `Envoyé le ${sentAt}`,
+    })
+    const text = renderEmailText({
+      heading: 'Test e-mail',
+      paragraphs: [
+        "Cet e-mail de test a été envoyé depuis le panneau d'administration de The Box.",
+        'Si tu le reçois, la configuration Resend est opérationnelle.',
+      ],
+      tip: `Envoyé le ${sentAt}`,
+    })
     const { data, error } = await resend.emails.send({
       from: `The Box <${env.EMAIL_FROM}>`,
       to: recipientEmail,
       subject,
-      html: `
-        <h1>Test Email</h1>
-        <p>This is a test email from The Box admin panel.</p>
-        <p>If you received this email, your email configuration is working correctly!</p>
-        <p>Sent at: ${new Date().toISOString()}</p>
-      `,
+      html,
+      text,
     })
 
     if (error) {
