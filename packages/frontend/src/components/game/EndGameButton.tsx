@@ -22,7 +22,6 @@ export function EndGameButton() {
 
   const gamePhase = useGameStore((s) => s.gamePhase)
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
-  const hasSkippedPositions = useGameStore((s) => s.hasSkippedPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
@@ -32,9 +31,7 @@ export function EndGameButton() {
     return sentences[Math.floor(Math.random() * sentences.length)]
   }, [showConfirm, t]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Show if playing, all positions visited, session not completed, and no skipped positions
-  // When there are skipped positions, the completion choice modal handles ending the game
-  const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted && !hasSkippedPositions()
+  const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted
 
   const handleEndGame = async () => {
     setIsEnding(true)
