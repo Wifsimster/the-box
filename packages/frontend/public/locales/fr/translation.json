@@ -15,6 +15,7 @@
     "leaderboard": "Classement",
     "geoDaily": "Geo",
     "alpha": "Alpha",
+    "premium": "Premium",
     "settings": "Paramètres",
     "login": "Connexion",
     "register": "Inscription",
@@ -1156,6 +1157,64 @@
       "emailRequired": "Veuillez entrer une adresse email destinataire",
       "invalidEmail": "Veuillez entrer une adresse email valide"
     }
+  },
+  "pricing": {
+    "title": "The Box Premium",
+    "subtitle": "Soutenez le jeu, débloquez l'archive complète et personnalisez votre profil.",
+    "billingMonthly": "/mois",
+    "billingAnnual": "/an",
+    "billingLifetime": "à vie",
+    "savingsAnnual": "Soit ~37 % d'économies",
+    "ctaSubscribe": "S'abonner",
+    "ctaLifetime": "Devenir Supporter",
+    "ctaManage": "Gérer mon abonnement",
+    "ctaLogin": "Se connecter pour s'abonner",
+    "ctaCurrent": "Plan actuel",
+    "loading": "Chargement…",
+    "redirecting": "Redirection vers le paiement…",
+    "errorCheckout": "Impossible de démarrer le paiement. Réessayez dans un instant.",
+    "errorPortal": "Impossible d'ouvrir le portail de gestion.",
+    "checkoutSuccess": "Paiement réussi — bienvenue parmi les Premium !",
+    "checkoutCancel": "Paiement annulé. Aucun montant n'a été débité.",
+    "alreadyPremium": "Vous avez déjà accès à Premium",
+    "premiumUntil": "Premium actif jusqu'au {{date}}",
+    "cancelScheduled": "Renouvellement annulé pour le {{date}}",
+    "tiers": {
+      "premium_monthly": {
+        "name": "Premium Mensuel",
+        "description": "Pour essayer sans engagement"
+      },
+      "premium_annual": {
+        "name": "Premium Annuel",
+        "description": "Le meilleur rapport qualité-prix",
+        "highlight": "Le plus populaire"
+      },
+      "supporter_lifetime": {
+        "name": "Supporter à vie",
+        "description": "Un soutien ponctuel — accès Premium et badge Founding Player"
+      }
+    },
+    "features": {
+      "title": "Ce qui est inclus",
+      "free": "Gratuit",
+      "premium": "Premium",
+      "items": {
+        "dailyChallenge": "Défi quotidien",
+        "leaderboards": "Classements en temps réel",
+        "achievements": "Succès et progression",
+        "catchUp7d": "Rattrapage des 7 derniers jours",
+        "catchUpFull": "Archive complète des défis passés",
+        "hintsBaseline": "Indices de base",
+        "hintsUnlimitedCatchUp": "Indices illimités en rattrapage",
+        "advancedStats": "Statistiques avancées du profil",
+        "cosmetics": "Badge et cadres animés",
+        "themes": "Thèmes supplémentaires",
+        "earlyAccess": "Accès anticipé aux nouveaux packs"
+      },
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "footnote": "Paiement sécurisé via Stripe. TVA appliquée selon votre pays. Annulation possible à tout moment depuis votre profil."
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",

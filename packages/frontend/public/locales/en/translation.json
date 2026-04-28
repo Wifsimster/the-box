@@ -15,6 +15,7 @@
     "leaderboard": "Leaderboard",
     "geoDaily": "Geo",
     "alpha": "Alpha",
+    "premium": "Premium",
     "settings": "Settings",
     "login": "Login",
     "register": "Register",
@@ -1156,6 +1157,64 @@
       "emailRequired": "Please enter a recipient email address",
       "invalidEmail": "Please enter a valid email address"
     }
+  },
+  "pricing": {
+    "title": "The Box Premium",
+    "subtitle": "Support the game, unlock the full archive, and customize your profile.",
+    "billingMonthly": "/month",
+    "billingAnnual": "/year",
+    "billingLifetime": "lifetime",
+    "savingsAnnual": "~37% savings vs monthly",
+    "ctaSubscribe": "Subscribe",
+    "ctaLifetime": "Become a Supporter",
+    "ctaManage": "Manage subscription",
+    "ctaLogin": "Sign in to subscribe",
+    "ctaCurrent": "Current plan",
+    "loading": "Loading…",
+    "redirecting": "Redirecting to checkout…",
+    "errorCheckout": "Couldn't start checkout. Please try again shortly.",
+    "errorPortal": "Couldn't open the management portal.",
+    "checkoutSuccess": "Payment successful — welcome to Premium!",
+    "checkoutCancel": "Checkout canceled. You were not charged.",
+    "alreadyPremium": "You already have Premium access",
+    "premiumUntil": "Premium active until {{date}}",
+    "cancelScheduled": "Renewal canceled for {{date}}",
+    "tiers": {
+      "premium_monthly": {
+        "name": "Premium Monthly",
+        "description": "Try it without commitment"
+      },
+      "premium_annual": {
+        "name": "Premium Annual",
+        "description": "Best value per month",
+        "highlight": "Most popular"
+      },
+      "supporter_lifetime": {
+        "name": "Lifetime Supporter",
+        "description": "One-time support — Premium access and Founding Player badge"
+      }
+    },
+    "features": {
+      "title": "What's included",
+      "free": "Free",
+      "premium": "Premium",
+      "items": {
+        "dailyChallenge": "Daily challenge",
+        "leaderboards": "Live leaderboards",
+        "achievements": "Achievements and progression",
+        "catchUp7d": "Catch up on the last 7 days",
+        "catchUpFull": "Full archive of past challenges",
+        "hintsBaseline": "Base hints",
+        "hintsUnlimitedCatchUp": "Unlimited hints in catch-up",
+        "advancedStats": "Advanced profile statistics",
+        "cosmetics": "Premium badge and animated frames",
+        "themes": "Extra themes",
+        "earlyAccess": "Early access to new game packs"
+      },
+      "yes": "Yes",
+      "no": "No"
+    },
+    "footnote": "Secure payment via Stripe. VAT applied based on your country. Cancel anytime from your profile."
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
