@@ -809,6 +809,15 @@ export interface GeoChallenge {
   tier: number
 }
 
+// Sibling shape returned by the userId-aware history endpoint so the
+// frontend can find the next unplayed challenge without an extra
+// per-challenge round-trip. `hasGuessed` is true if the player has
+// already submitted *or* skipped this challenge — both block today's
+// slot symmetrically.
+export interface GeoChallengeWithStatus extends GeoChallenge {
+  hasGuessed: boolean
+}
+
 export interface GeoGuessInput {
   geoChallengeId: number
   guess: GeoPoint

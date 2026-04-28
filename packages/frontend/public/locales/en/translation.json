@@ -1434,6 +1434,18 @@
       "average": "Average",
       "players": "{{count}} players",
       "comparisonAria": "Your score vs. average",
+      "skip": {
+        "action": "Skip",
+        "tooltip": "I don't recognize this game",
+        "title": "Skipped",
+        "body": "No score recorded — this challenge won't count toward the leaderboard for you."
+      },
+      "next": {
+        "action": "Next geo guess",
+        "casualNote": "Practice round — won't affect your leaderboard rank.",
+        "exhausted": "You've played every recent geo challenge. Come back tomorrow for a new one.",
+        "viewLeaderboard": "View leaderboard"
+      },
       "screenshotUnavailable": "Screenshot preview unavailable.",
       "mapUnavailable": "Map unavailable.",
       "loading": "Loading challenge…",

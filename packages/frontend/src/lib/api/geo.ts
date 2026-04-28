@@ -1,5 +1,6 @@
 import type {
     GeoChallenge,
+    GeoChallengeWithStatus,
     GeoContributorStats,
     GeoContributorTier,
     GeoContributorTierThreshold,
@@ -78,8 +79,8 @@ export const geoApi = {
         return request<GeoDailyView>(`/api/geo/daily/${date}`)
     },
 
-    getHistory(days = 7): Promise<GeoChallenge[]> {
-        return request<GeoChallenge[]>(`/api/geo/history?days=${days}`)
+    getHistory(days = 7): Promise<GeoChallengeWithStatus[]> {
+        return request<GeoChallengeWithStatus[]>(`/api/geo/history?days=${days}`)
     },
 
     submitGuess(input: {
@@ -88,6 +89,13 @@ export const geoApi = {
         durationMs?: number
     }): Promise<GeoGuessResult> {
         return request<GeoGuessResult>('/api/geo/guess', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        })
+    },
+
+    submitSkip(input: { challengeId: number }): Promise<{ skipped: boolean }> {
+        return request<{ skipped: boolean }>('/api/geo/skip', {
             method: 'POST',
             body: JSON.stringify(input),
         })
