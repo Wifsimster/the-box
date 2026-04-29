@@ -275,6 +275,16 @@
       "cta": "Play Geo",
       "secondary": "See the geo leaderboard"
     },
+    "premium": {
+      "badge": "Premium",
+      "eyebrow": "Subscriptions are live",
+      "title": "Unlock the full Box.",
+      "subtitle": "Support the game and get the entire challenge archive, unlimited catch-up hints and a Premium badge for your profile.",
+      "perkArchive": "Full archive of past challenges",
+      "perkHints": "Unlimited hints in catch-up",
+      "perkCosmetics": "Premium badge and cosmetics",
+      "cta": "See plans"
+    },
     "achievements": {
       "heading": "Achievements waiting to be unlocked",
       "subheading": "Three trophies you don't have yet. Yet.",

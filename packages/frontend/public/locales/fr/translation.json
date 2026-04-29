@@ -275,6 +275,16 @@
       "cta": "Jouer Géo",
       "secondary": "Voir le classement"
     },
+    "premium": {
+      "badge": "Premium",
+      "eyebrow": "Les abonnements sont là",
+      "title": "Débloque The Box en entier.",
+      "subtitle": "Soutiens le jeu et accède à toutes les archives, à des indices illimités en rattrapage et à un badge Premium sur ton profil.",
+      "perkArchive": "Archive complète des défis passés",
+      "perkHints": "Indices illimités en rattrapage",
+      "perkCosmetics": "Badge Premium et cosmétiques",
+      "cta": "Voir les offres"
+    },
     "achievements": {
       "heading": "Des succès qui n'attendent que toi",
       "subheading": "Trois trophées que tu n'as pas encore. Encore.",

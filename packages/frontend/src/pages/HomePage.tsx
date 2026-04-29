@@ -4,7 +4,7 @@ import { motion, type MotionProps } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
-import { Play, Trophy, History, Clock, CalendarDays, MapPin, ArrowRight } from 'lucide-react'
+import { Play, Trophy, History, Clock, CalendarDays, MapPin, ArrowRight, Sparkles, Check } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, useMemo } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -13,6 +13,7 @@ import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
+import { useBillingStore } from '@/stores/billingStore'
 import { prefersReducedMotion } from '@/lib/animations'
 
 // CubeBackground pulls in Three.js + react-three-fiber, so split it into
@@ -39,6 +40,10 @@ export default function HomePage() {
   } | null>(null)
   const [previewAvailable, setPreviewAvailable] = useState(false)
   const timeRemaining = useNextDailyCountdown()
+  const billingEntitlement = useBillingStore((state) => state.entitlement)
+  // Header hydrates the entitlement on mount; treat unknown as "not premium"
+  // so the teaser shows for anonymous visitors and free users alike.
+  const showPremiumTeaser = !billingEntitlement?.isPremium
 
   // Read once; entrance animations don't need to react mid-session.
   const reducedMotion = useMemo(() => prefersReducedMotion(), [])
@@ -302,6 +307,77 @@ export default function HomePage() {
             </motion.div>
           )}
         </motion.div>
+
+        {/* Premium teaser — surfaces subscriptions now that paid features
+            are live. Hidden once the visitor already has Premium so we don't
+            nag paying users. Falls back to "show" for anonymous visitors
+            since the entitlement store treats 401 as the free tier. */}
+        {showPremiumTeaser && (
+          <motion.div
+            {...motionProps({
+              initial: { opacity: 0, y: 20 },
+              animate: { opacity: 1, y: 0 },
+              transition: { duration: 0.5, delay: 0.5 },
+            })}
+            className="max-w-2xl mx-auto mb-8 sm:mb-10 md:mb-12"
+          >
+            <Link
+              to={localizedPath('/premium')}
+              className="group relative block overflow-hidden rounded-2xl border border-neon-pink/40 bg-linear-to-br from-neon-pink/20 via-background/60 to-neon-purple/20 backdrop-blur-sm transition-colors hover:border-neon-pink/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-20 -right-10 h-40 w-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+              />
+
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 p-5 sm:p-6">
+                <GradientIcon
+                  icon={<Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-white" />}
+                  className="shrink-0 h-12 w-12 sm:h-14 sm:w-14"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    <Badge
+                      variant="outline"
+                      className="border-neon-pink/50 bg-neon-pink/15 text-neon-pink uppercase tracking-wider"
+                    >
+                      {t('home.premium.badge')}
+                    </Badge>
+                    <span className="text-[11px] sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground">
+                      {t('home.premium.eyebrow')}
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight gradient-gaming bg-clip-text text-transparent">
+                    {t('home.premium.title')}
+                  </h2>
+                  <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
+                    {t('home.premium.subtitle')}
+                  </p>
+                  <ul className="mt-3 grid gap-1.5 text-xs sm:text-sm text-foreground/90">
+                    {[
+                      t('home.premium.perkArchive'),
+                      t('home.premium.perkHints'),
+                      t('home.premium.perkCosmetics'),
+                    ].map((perk) => (
+                      <li key={perk} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 mt-0.5 shrink-0 text-neon-pink" aria-hidden="true" />
+                        <span>{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground group-hover:text-neon-pink transition-colors">
+                    {t('home.premium.cta')}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        )}
 
         {/* Achievement teaser — replaces the static "Panorama / Daily"
             features grid with aspirational social proof: three locked
