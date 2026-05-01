@@ -283,6 +283,7 @@
       "perkArchive": "Archive complète des défis passés",
       "perkHints": "Indices illimités en rattrapage",
       "perkCosmetics": "Badge Premium et cosmétiques",
+      "priceFrom": "À partir de {{price}} / mois",
       "cta": "Voir les offres"
     },
     "achievements": {

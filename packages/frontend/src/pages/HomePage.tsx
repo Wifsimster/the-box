@@ -24,7 +24,7 @@ const CubeBackground = lazy(() =>
 )
 
 export default function HomePage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const { data: session } = useSession()
@@ -41,9 +41,29 @@ export default function HomePage() {
   const [previewAvailable, setPreviewAvailable] = useState(false)
   const timeRemaining = useNextDailyCountdown()
   const billingEntitlement = useBillingStore((state) => state.entitlement)
+  const billingPrices = useBillingStore((state) => state.prices)
+  const fetchBillingPrices = useBillingStore((state) => state.fetchPrices)
   // Header hydrates the entitlement on mount; treat unknown as "not premium"
   // so the teaser shows for anonymous visitors and free users alike.
   const showPremiumTeaser = !billingEntitlement?.isPremium
+
+  useEffect(() => {
+    if (!showPremiumTeaser) return
+    void fetchBillingPrices()
+  }, [showPremiumTeaser, fetchBillingPrices])
+
+  // Cheapest entry price for the teaser hook. Hidden until prices arrive so
+  // we never flash a "From €0.00" placeholder.
+  const monthlyPriceLabel = useMemo(() => {
+    const monthly = billingPrices.find((p) => p.tier === 'premium_monthly' && p.active)
+    if (!monthly) return null
+    return new Intl.NumberFormat(i18n.language, {
+      style: 'currency',
+      currency: monthly.currency.toUpperCase(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(monthly.unitAmount / 100)
+  }, [billingPrices, i18n.language])
 
   // Read once; entrance animations don't need to react mid-session.
   const reducedMotion = useMemo(() => prefersReducedMotion(), [])
@@ -357,6 +377,11 @@ export default function HomePage() {
                   <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
                     {t('home.premium.subtitle')}
                   </p>
+                  {monthlyPriceLabel && (
+                    <p className="mt-2 text-sm sm:text-base font-semibold text-neon-pink">
+                      {t('home.premium.priceFrom', { price: monthlyPriceLabel })}
+                    </p>
+                  )}
                   <ul className="mt-3 grid gap-1.5 text-xs sm:text-sm text-foreground/90">
                     {[
                       t('home.premium.perkArchive'),
