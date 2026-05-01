@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Check, Sparkles } from 'lucide-react'
+import { Check, Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,7 @@ interface PricingCardProps {
   isCurrentPlan: boolean
   isLoggedIn: boolean
   isWorking: boolean
+  isPending: boolean
   highlight?: boolean
   onSelect: (tier: BillingTier) => void
 }
@@ -30,33 +31,26 @@ export function PricingCard({
   isCurrentPlan,
   isLoggedIn,
   isWorking,
+  isPending,
   highlight,
   onSelect,
 }: PricingCardProps) {
   const { t, i18n } = useTranslation()
   const tierKey = `pricing.tiers.${price.tier}`
-  const isLifetime = price.interval === null
   const ctaKey = isCurrentPlan
     ? 'pricing.ctaCurrent'
     : !isLoggedIn
       ? 'pricing.ctaLogin'
-      : isLifetime
-        ? 'pricing.ctaLifetime'
-        : 'pricing.ctaSubscribe'
+      : 'pricing.ctaSubscribe'
 
-  const intervalKey =
-    price.interval === 'month'
-      ? 'pricing.billingMonthly'
-      : price.interval === 'year'
-        ? 'pricing.billingAnnual'
-        : 'pricing.billingLifetime'
+  const intervalKey = price.interval === 'month' ? 'pricing.billingMonthly' : 'pricing.billingAnnual'
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="h-full"
+      className={cn('h-full', highlight && 'md:scale-[1.03]')}
     >
       <Card
         className={cn(
@@ -73,7 +67,7 @@ export function PricingCard({
             {t(`${tierKey}.highlight`, '')}
           </Badge>
         )}
-        <CardHeader>
+        <CardHeader className={cn(highlight && 'pr-32')}>
           <CardTitle className="text-xl">{t(`${tierKey}.name`)}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">{t(`${tierKey}.description`)}</p>
         </CardHeader>
@@ -81,9 +75,7 @@ export function PricingCard({
         <CardContent className="flex-1 space-y-4">
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-bold">{formatAmount(price.unitAmount, i18n.language)}</span>
-            <span className="text-muted-foreground text-sm">
-              {isLifetime ? ` ${t(intervalKey)}` : t(intervalKey)}
-            </span>
+            <span className="text-muted-foreground text-sm">{t(intervalKey)}</span>
           </div>
           {price.tier === 'premium_annual' && (
             <p className="text-xs text-neon-pink/80 font-medium">{t('pricing.savingsAnnual')}</p>
@@ -94,11 +86,16 @@ export function PricingCard({
           <Button
             className="w-full"
             disabled={isCurrentPlan || isWorking}
+            aria-busy={isPending}
             onClick={() => onSelect(price.tier)}
             variant={highlight ? 'default' : 'outline'}
           >
-            {isCurrentPlan && <Check className="w-4 h-4 mr-2" />}
-            {t(ctaKey)}
+            {isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+            ) : isCurrentPlan ? (
+              <Check className="w-4 h-4 mr-2" aria-hidden="true" />
+            ) : null}
+            {isPending ? t('pricing.redirecting') : t(ctaKey)}
           </Button>
         </CardFooter>
       </Card>

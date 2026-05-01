@@ -1,12 +1,34 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { BillingTier } from '@the-box/types'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useBillingStore } from '@/stores/billingStore'
+import { FreePricingCard } from './FreePricingCard'
 import { PricingCard } from './PricingCard'
+
+function PricingCardSkeleton() {
+  // Mirrors PricingCard's vertical rhythm so swapping in the real card
+  // doesn't shift layout once /api/billing/prices resolves.
+  return (
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-4 w-48 mt-2" />
+      </CardHeader>
+      <CardContent className="flex-1 space-y-4">
+        <Skeleton className="h-10 w-24" />
+      </CardContent>
+      <CardFooter>
+        <Skeleton className="h-10 w-full" />
+      </CardFooter>
+    </Card>
+  )
+}
 
 export function PricingTable() {
   const { t } = useTranslation()
@@ -23,6 +45,11 @@ export function PricingTable() {
     startCheckout,
   } = useBillingStore()
 
+  // Local mirror of which tier the user just clicked, so the spinner lives
+  // on the right card. Cleared in finally even if the store throws so the
+  // button doesn't get stuck mid-animation.
+  const [pendingTier, setPendingTier] = useState<BillingTier | null>(null)
+
   useEffect(() => {
     void fetchPrices()
   }, [fetchPrices])
@@ -38,31 +65,57 @@ export function PricingTable() {
       })
       return
     }
-    const result = await startCheckout(tier)
-    if ('url' in result) {
-      window.location.href = result.url
-    } else {
-      toast.error(t('pricing.errorCheckout'))
+    setPendingTier(tier)
+    try {
+      const result = await startCheckout(tier)
+      if ('url' in result) {
+        window.location.href = result.url
+      } else {
+        toast.error(t('pricing.errorCheckout'))
+      }
+    } finally {
+      setPendingTier(null)
     }
   }
 
-  if (!pricesLoaded) {
-    return <p className="text-center text-muted-foreground">{t('pricing.loading')}</p>
+  const handleSignUp = () => {
+    navigate(localizedPath('/register'))
   }
 
+  const onFreePlan = isAuthenticated && !entitlement?.isPremium
+
+  // Three-card grid: Free (anchor) → Monthly → Annual (highlighted). On
+  // mobile each card stacks; the cap at lg:max-w-5xl keeps cards from
+  // stretching too wide on big screens.
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      {prices.map((price) => (
-        <PricingCard
-          key={price.tier}
-          price={price}
-          isCurrentPlan={entitlement?.tier === price.tier && entitlement.isPremium}
-          isLoggedIn={isAuthenticated}
-          isWorking={isStartingCheckout}
-          highlight={price.tier === 'premium_annual'}
-          onSelect={handleSelect}
-        />
-      ))}
+    <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+      {!pricesLoaded ? (
+        <>
+          <PricingCardSkeleton />
+          <PricingCardSkeleton />
+          <PricingCardSkeleton />
+        </>
+      ) : (
+        <>
+          <FreePricingCard
+            isCurrentPlan={onFreePlan}
+            isLoggedIn={isAuthenticated}
+            onSignUp={handleSignUp}
+          />
+          {prices.map((price) => (
+            <PricingCard
+              key={price.tier}
+              price={price}
+              isCurrentPlan={entitlement?.tier === price.tier && entitlement.isPremium}
+              isLoggedIn={isAuthenticated}
+              isWorking={isStartingCheckout}
+              isPending={pendingTier === price.tier}
+              highlight={price.tier === 'premium_annual'}
+              onSelect={handleSelect}
+            />
+          ))}
+        </>
+      )}
     </div>
   )
 }

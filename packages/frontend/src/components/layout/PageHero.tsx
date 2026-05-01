@@ -7,15 +7,27 @@ interface PageHeroProps {
   icon?: LucideIcon
   logo?: string
   iconStyle?: 'gradient' | 'simple'
+  // 'cube' is the default brand visual; pages where conversion matters
+  // more than vibe (e.g. /premium) opt out via 'none' to skip the ~875kB
+  // three.js chunk.
+  background?: 'cube' | 'none'
   title: string
   subtitle?: string
   children?: React.ReactNode
 }
 
-export function PageHero({ icon: Icon, logo, iconStyle = 'gradient', title, subtitle, children }: PageHeroProps) {
+export function PageHero({
+  icon: Icon,
+  logo,
+  iconStyle = 'gradient',
+  background = 'cube',
+  title,
+  subtitle,
+  children,
+}: PageHeroProps) {
   return (
     <>
-      <CubeBackground />
+      {background === 'cube' && <CubeBackground />}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

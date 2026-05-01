@@ -53,7 +53,12 @@ export default function PricingPage() {
     : null
 
   return (
-    <PageHero icon={Sparkles} title={t('pricing.title')} subtitle={t('pricing.subtitle')}>
+    <PageHero
+      icon={Sparkles}
+      background="none"
+      title={t('pricing.title')}
+      subtitle={t('pricing.subtitle')}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {isAuthenticated && isPremium && (
           <Card className="border-success/40 bg-success/5">

@@ -1175,10 +1175,8 @@
     "subtitle": "Support the game, unlock the full archive, and customize your profile.",
     "billingMonthly": "/month",
     "billingAnnual": "/year",
-    "billingLifetime": "lifetime",
     "savingsAnnual": "~37% savings vs monthly",
     "ctaSubscribe": "Subscribe",
-    "ctaLifetime": "Become a Supporter",
     "ctaManage": "Manage subscription",
     "ctaLogin": "Sign in to subscribe",
     "ctaCurrent": "Current plan",
@@ -1192,6 +1190,13 @@
     "premiumUntil": "Premium active until {{date}}",
     "cancelScheduled": "Renewal canceled for {{date}}",
     "tiers": {
+      "free": {
+        "name": "Free",
+        "description": "Everything you need to play daily",
+        "price": "€0",
+        "ctaCurrent": "Current plan",
+        "ctaSignUp": "Create an account"
+      },
       "premium_monthly": {
         "name": "Premium Monthly",
         "description": "Try it without commitment"
@@ -1200,10 +1205,6 @@
         "name": "Premium Annual",
         "description": "Best value per month",
         "highlight": "Most popular"
-      },
-      "supporter_lifetime": {
-        "name": "Lifetime Supporter",
-        "description": "One-time support — Premium access and Founding Player badge"
       }
     },
     "features": {
