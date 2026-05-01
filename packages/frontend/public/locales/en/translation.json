@@ -283,6 +283,7 @@
       "perkArchive": "Full archive of past challenges",
       "perkHints": "Unlimited hints in catch-up",
       "perkCosmetics": "Premium badge and cosmetics",
+      "priceFrom": "From {{price}} / month",
       "cta": "See plans"
     },
     "achievements": {
