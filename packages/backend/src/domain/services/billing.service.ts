@@ -3,7 +3,7 @@ import type {
   BillingTier,
   SubscriptionStatus,
 } from '@the-box/types'
-import { BILLING_CATALOG, getCatalogEntryByPriceId } from '../../config/billing.js'
+import { BILLING_CATALOG } from '../../config/billing.js'
 import {
   subscriptionRepository,
   ENTITLED_STATUSES,
@@ -11,6 +11,10 @@ import {
 } from '../../infrastructure/repositories/subscription.repository.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { getStripe } from '../../infrastructure/stripe/stripe.client.js'
+import {
+  snapshotResolvedCatalog,
+  tierFromPriceId as resolveTierFromPriceId,
+} from '../../infrastructure/stripe/billing-catalog.resolver.js'
 import { repoLogger } from '../../infrastructure/logger/logger.js'
 import type Stripe from 'stripe'
 
@@ -37,10 +41,12 @@ export function toSubscriptionStatus(raw: string): SubscriptionStatus {
 
 // Lookup the BillingTier for a Stripe price ID. Returns null if the price
 // isn't one we recognize (e.g. an old/archived price that survived in
-// Stripe history but has been removed from our catalog). The caller treats
-// that as "no entitlement" rather than crashing.
-export function tierFromPriceId(stripePriceId: string): BillingTier | null {
-  return getCatalogEntryByPriceId(stripePriceId)?.tier ?? null
+// Stripe history but has been rotated out of the active set). The caller
+// treats that as "no entitlement" rather than crashing. Async because the
+// price→tier map is resolved from Stripe by lookup_key on first use and
+// cached with a TTL refresh — see billing-catalog.resolver.
+export async function tierFromPriceId(stripePriceId: string): Promise<BillingTier | null> {
+  return resolveTierFromPriceId(stripePriceId)
 }
 
 export const billingService = {
@@ -74,7 +80,7 @@ export const billingService = {
         source: null,
       }
     }
-    const tier = tierFromPriceId(row.stripe_price_id)
+    const tier = await tierFromPriceId(row.stripe_price_id)
     const isPremium = ENTITLED_STATUSES.has(row.status)
     return {
       isPremium,
@@ -113,23 +119,32 @@ export const billingService = {
   },
 
   // Build the catalog payload for GET /api/billing/prices. Source of truth
-  // is BILLING_CATALOG; the boolean `active` matches what stripe-check
-  // would assert, so the UI only has to render strings.
-  listPublicPrices(): Array<{
+  // for amount/currency/interval is BILLING_CATALOG; `active` reflects
+  // whether the lookup_key resolved to a live Stripe price on the latest
+  // refresh, so the UI can hide a tier that hasn't been provisioned yet
+  // without coupling the frontend to Stripe IDs.
+  async listPublicPrices(): Promise<Array<{
     tier: BillingTier
-    stripePriceId: string
     unitAmount: number
     currency: string
     interval: 'month' | 'year' | null
     active: boolean
-  }> {
+  }>> {
+    let resolved: { byLookupKey: ReadonlyMap<string, string> }
+    try {
+      resolved = await snapshotResolvedCatalog()
+    } catch (err) {
+      // Stripe outage: surface every tier as inactive so the marketing
+      // page degrades gracefully rather than 500-ing.
+      log.warn({ err: String(err) }, 'failed to resolve catalog, returning all-inactive')
+      resolved = { byLookupKey: new Map() }
+    }
     return BILLING_CATALOG.map((entry) => ({
       tier: entry.tier,
-      stripePriceId: entry.stripePriceId,
       unitAmount: entry.unitAmount,
       currency: entry.currency,
       interval: entry.interval,
-      active: !!entry.stripePriceId,
+      active: resolved.byLookupKey.has(entry.lookupKey),
     }))
   },
 

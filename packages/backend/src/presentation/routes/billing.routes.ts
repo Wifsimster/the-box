@@ -6,6 +6,7 @@ import { validateBody } from '../middleware/validation.middleware.js'
 import { billingService } from '../../domain/services/billing.service.js'
 import { getCatalogEntry } from '../../config/billing.js'
 import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
+import { resolvePriceId } from '../../infrastructure/stripe/billing-catalog.resolver.js'
 import { env } from '../../config/env.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 
@@ -13,16 +14,25 @@ const log = logger.child({ route: 'billing' })
 
 const router = Router()
 
-const TIERS = ['premium_monthly', 'premium_annual', 'supporter_lifetime'] as const satisfies readonly BillingTier[]
+// Only the active subset of BillingTier is accepted by /checkout. The
+// shared union still lists supporter_lifetime so webhook reverse lookups
+// can recognise legacy subscriptions, but the route refuses new checkouts
+// for tiers that aren't in BILLING_CATALOG.
+const TIERS = ['premium_monthly', 'premium_annual'] as const satisfies readonly BillingTier[]
 
 // Public catalog. Used by the marketing page so the displayed amount is
 // always the same string the rest of the system asserts against. Cached
 // via Cache-Control to keep the page snappy without round-tripping Stripe
 // on every visitor — sync-check guarantees we'd never serve stale numbers
 // against a renamed price (CI fails first).
-router.get('/prices', (_req, res) => {
-  res.set('Cache-Control', 'public, max-age=300')
-  res.json({ success: true, data: { prices: billingService.listPublicPrices() } })
+router.get('/prices', async (_req, res, next) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=300')
+    const prices = await billingService.listPublicPrices()
+    res.json({ success: true, data: { prices } })
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.get('/me', authMiddleware, async (req, res, next) => {
@@ -50,10 +60,18 @@ router.post('/checkout', authMiddleware, validateBody(checkoutBodySchema), async
 
     const { tier } = req.body as z.infer<typeof checkoutBodySchema>
     const entry = getCatalogEntry(tier)
-    if (!entry || !entry.stripePriceId) {
+    if (!entry) {
       res.status(500).json({
         success: false,
-        error: { code: 'PRICE_NOT_CONFIGURED', message: `No Stripe price ID for ${tier}` },
+        error: { code: 'PRICE_NOT_CONFIGURED', message: `No catalog entry for ${tier}` },
+      })
+      return
+    }
+    const stripePriceId = await resolvePriceId(tier)
+    if (!stripePriceId) {
+      res.status(500).json({
+        success: false,
+        error: { code: 'PRICE_NOT_CONFIGURED', message: `No active Stripe price for lookup_key "${entry.lookupKey}"` },
       })
       return
     }
@@ -79,7 +97,7 @@ router.post('/checkout', authMiddleware, validateBody(checkoutBodySchema), async
     const session = await stripe.checkout.sessions.create({
       mode: entry.interval === null ? 'payment' : 'subscription',
       customer: customerId,
-      line_items: [{ price: entry.stripePriceId, quantity: 1 }],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       success_url: env.STRIPE_CHECKOUT_SUCCESS_URL,
       cancel_url: env.STRIPE_CHECKOUT_CANCEL_URL,
       // Lock the line items so a tampered redirect can't trick Stripe into

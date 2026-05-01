@@ -961,9 +961,10 @@ export type SubscriptionStatus =
 
 // Public-facing price metadata returned by GET /api/billing/prices. Amount
 // is in the smallest currency unit (cents) so the frontend formats once.
+// Stripe price IDs are intentionally not exposed: the backend resolves
+// them by lookup_key and the frontend identifies tiers by `tier` only.
 export interface BillingPrice {
   tier: BillingTier
-  stripePriceId: string
   unitAmount: number
   currency: string
   interval: 'month' | 'year' | null
