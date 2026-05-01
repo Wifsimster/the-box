@@ -28,13 +28,6 @@ export const BILLING_CATALOG: readonly BillingCatalogEntry[] = [
     currency: 'eur',
     interval: 'year',
   },
-  {
-    tier: 'supporter_lifetime',
-    stripePriceId: env.STRIPE_PRICE_SUPPORTER_LIFETIME,
-    unitAmount: 5999,
-    currency: 'eur',
-    interval: null,
-  },
 ] as const
 
 export function getCatalogEntry(tier: BillingTier): BillingCatalogEntry | undefined {
