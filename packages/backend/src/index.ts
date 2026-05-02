@@ -15,6 +15,7 @@ import { Pool } from 'pg'
 import gameRoutes from './presentation/routes/game.routes.js'
 import leaderboardRoutes from './presentation/routes/leaderboard.routes.js'
 import adminRoutes from './presentation/routes/admin.routes.js'
+import geoFetchRoutes from './presentation/routes/geo-fetch.routes.js'
 import userRoutes from './presentation/routes/user.routes.js'
 import achievementRoutes from './presentation/routes/achievement.routes.js'
 import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
@@ -181,6 +182,7 @@ app.get('/health', (_req, res) => {
 // Auth routes handled by better-auth at /api/auth/*
 app.use('/api/game', gameRoutes)
 app.use('/api/leaderboard', leaderboardRoutes)
+app.use('/api/admin/geo-fetch', geoFetchRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/achievements', achievementRoutes)

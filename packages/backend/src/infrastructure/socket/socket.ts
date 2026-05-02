@@ -246,3 +246,60 @@ export function emitGeoLeaderboardUpdate(payload: {
     if (!ns) return
     ns.emit('geo:leaderboard:update', payload)
 }
+
+// ---------- Geo-fetch pipeline (admin-only) ----------
+// Pipeline progress is admin-facing only — emitted into the /admin namespace
+// so the new admin tab can render live state without joining /geo.
+
+function adminRoomEmit(event: string, payload: unknown): void {
+    if (!io) return
+    io.of('/admin').to('admin-room').emit(event, payload)
+}
+
+export function emitGeoFetchStarted(payload: { totalGames: number }): void {
+    adminRoomEmit('geo:fetch:started', payload)
+}
+
+export function emitGeoFetchProgress(payload: {
+    gameId: number
+    source: string
+    stage: string
+    outcome?: string
+}): void {
+    adminRoomEmit('geo:fetch:progress', payload)
+}
+
+export function emitGeoFetchGameDone(payload: {
+    gameId: number
+    mapsFound: number
+    zonesTotal: number
+    finalStage: string
+}): void {
+    adminRoomEmit('geo:fetch:gameDone', payload)
+}
+
+export function emitGeoFetchDone(payload: {
+    succeeded: number
+    partial: number
+    failed: number
+}): void {
+    adminRoomEmit('geo:fetch:done', payload)
+}
+
+export function emitGeoFetchZoneCandidate(payload: {
+    gameId: number
+    zoneSlug: string | null
+    provider: string
+    mapId: number
+}): void {
+    adminRoomEmit('geo:fetch:zoneCandidate', payload)
+}
+
+export function emitGeoFetchMapSelected(payload: {
+    gameId: number
+    zoneSlug: string | null
+    mapId: number
+    by: string | null
+}): void {
+    adminRoomEmit('geo:fetch:mapSelected', payload)
+}

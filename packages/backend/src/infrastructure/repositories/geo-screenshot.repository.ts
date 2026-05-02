@@ -83,6 +83,7 @@ export const geoScreenshotRepository = {
     thumbnailUrl?: string
     source: 'steam' | 'rawg' | 'manual'
     externalId?: string
+    contentSha256?: string
   }): Promise<GeoScreenshotCandidate> {
     log.info({ gameId: data.gameId, source: data.source }, 'createCandidate')
     const [row] = await db('geo_screenshot_candidate')
@@ -94,11 +95,22 @@ export const geoScreenshotRepository = {
         thumbnail_url: data.thumbnailUrl ?? null,
         source: data.source,
         external_id: data.externalId ?? null,
+        content_sha256: data.contentSha256 ?? null,
       })
       .onConflict(['source', 'external_id'])
       .ignore()
       .returning<GeoScreenshotCandidateRow[]>('*')
     return mapCandidate(row!)
+  },
+
+  async findCandidateByContentHash(
+    gameId: number,
+    contentSha256: string,
+  ): Promise<GeoScreenshotCandidate | null> {
+    const row = await db('geo_screenshot_candidate')
+      .where({ game_id: gameId, content_sha256: contentSha256 })
+      .first<GeoScreenshotCandidateRow>()
+    return row ? mapCandidate(row) : null
   },
 
   async incrementPinCount(candidateId: number): Promise<number> {

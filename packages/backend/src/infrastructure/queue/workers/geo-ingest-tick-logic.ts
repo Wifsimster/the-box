@@ -86,16 +86,16 @@ export async function runGeoIngestTick(
         m.id AS active_map_id,
         COALESCE(c.cnt, 0) AS candidate_count
       FROM games g
-      -- Multi-map: capture providers anchor pins to the explicit
-      -- is_capture_default row, not just any active map. For single-map
-      -- games the migration backfilled is_capture_default = is_active so
-      -- behavior is unchanged. We also fall back to any enabled map (in
-      -- created_at desc order) for games that haven\'t yet been promoted --
-      -- preserves the previous first-to-land-becomes-default feel.
+      -- Multi-map: capture providers anchor pins to the admin-selected
+      -- (is_selected = true) row, not just any active map. For single-map
+      -- games the migration backfilled is_selected from the previous
+      -- is_capture_default so behavior is unchanged. We also fall back to
+      -- any enabled map (in created_at desc order) for games that haven't
+      -- yet been promoted — preserves the previous first-to-land feel.
       LEFT JOIN LATERAL (
         SELECT id FROM geo_map
         WHERE game_id = g.id AND is_active = true
-        ORDER BY is_capture_default DESC, created_at DESC
+        ORDER BY is_selected DESC, created_at DESC
         LIMIT 1
       ) m ON true
       LEFT JOIN (

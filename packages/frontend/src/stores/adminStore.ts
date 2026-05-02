@@ -163,19 +163,6 @@ interface AdminState {
   resumeRecalculateScores: () => Promise<void>
   updateRecalculateScoresProgress: (event: RecalculateScoresProgressEvent) => void
 
-  // Top-Up Screenshots (Backfill)
-  currentTopupScreenshots: ImportState | null
-  topupScreenshotsLoading: boolean
-  topupScreenshotsError: string | null
-  fetchCurrentTopupScreenshots: () => Promise<void>
-  startTopupScreenshots: (config?: {
-    batchSize?: number
-    targetScreenshotsPerGame?: number
-  }) => Promise<ImportState>
-  pauseTopupScreenshots: () => Promise<void>
-  resumeTopupScreenshots: () => Promise<void>
-  cancelTopupScreenshots: () => Promise<void>
-
   // Users data
   users: User[]
   usersLoading: boolean
@@ -228,11 +215,6 @@ export const useAdminStore = create<AdminState>()(
       currentRecalculateScores: null,
       recalculateScoresLoading: false,
       recalculateScoresError: null,
-
-      // Top-Up Screenshots initial state
-      currentTopupScreenshots: null,
-      topupScreenshotsLoading: false,
-      topupScreenshotsError: null,
 
       // Users initial state
       users: [],
@@ -688,72 +670,6 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           set({ recalculateScoresError: (err as Error).message, recalculateScoresLoading: false })
-          throw err
-        }
-      },
-
-      // Top-Up Screenshots Actions
-      fetchCurrentTopupScreenshots: async () => {
-        try {
-          const { topupState } = await adminApi.getCurrentTopupScreenshots()
-          set({ currentTopupScreenshots: topupState })
-        } catch (err) {
-          console.error('Failed to fetch current topup state:', err)
-        }
-      },
-
-      startTopupScreenshots: async (config) => {
-        set({ topupScreenshotsLoading: true, topupScreenshotsError: null })
-        try {
-          const { topupState } = await adminApi.startTopupScreenshots(config)
-          set({ currentTopupScreenshots: topupState, topupScreenshotsLoading: false })
-          get().fetchJobs()
-          return topupState
-        } catch (err) {
-          set({ topupScreenshotsError: (err as Error).message, topupScreenshotsLoading: false })
-          throw err
-        }
-      },
-
-      pauseTopupScreenshots: async () => {
-        const { currentTopupScreenshots } = get()
-        if (!currentTopupScreenshots) return
-
-        set({ topupScreenshotsLoading: true, topupScreenshotsError: null })
-        try {
-          const { topupState } = await adminApi.pauseTopupScreenshots(currentTopupScreenshots.id)
-          set({ currentTopupScreenshots: topupState, topupScreenshotsLoading: false })
-        } catch (err) {
-          set({ topupScreenshotsError: (err as Error).message, topupScreenshotsLoading: false })
-          throw err
-        }
-      },
-
-      resumeTopupScreenshots: async () => {
-        const { currentTopupScreenshots } = get()
-        if (!currentTopupScreenshots) return
-
-        set({ topupScreenshotsLoading: true, topupScreenshotsError: null })
-        try {
-          const { topupState } = await adminApi.resumeTopupScreenshots(currentTopupScreenshots.id)
-          set({ currentTopupScreenshots: topupState, topupScreenshotsLoading: false })
-          get().fetchJobs()
-        } catch (err) {
-          set({ topupScreenshotsError: (err as Error).message, topupScreenshotsLoading: false })
-          throw err
-        }
-      },
-
-      cancelTopupScreenshots: async () => {
-        const { currentTopupScreenshots } = get()
-        if (!currentTopupScreenshots) return
-
-        set({ topupScreenshotsLoading: true, topupScreenshotsError: null })
-        try {
-          const { topupState } = await adminApi.cancelTopupScreenshots(currentTopupScreenshots.id)
-          set({ currentTopupScreenshots: topupState, topupScreenshotsLoading: false })
-        } catch (err) {
-          set({ topupScreenshotsError: (err as Error).message, topupScreenshotsLoading: false })
           throw err
         }
       },

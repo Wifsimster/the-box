@@ -447,7 +447,52 @@
       "emailLog": "Historique email",
       "growth": "Acquisition",
       "geo": "Géo",
+      "geoFetch": "Cartes",
       "reports": "Signalements"
+    },
+    "geoFetch": {
+      "title": "Cartes des jeux",
+      "start": "Lancer",
+      "cancel": "Annuler",
+      "refresh": "Rafraîchir",
+      "loading": "Chargement…",
+      "empty": "Aucune carte récupérée. Cliquez sur Lancer pour démarrer le scan.",
+      "searchPlaceholder": "Rechercher un jeu…",
+      "progressSummary": "{{ready}}/{{total}} jeux prêts",
+      "filters": {
+        "all": "Tous",
+        "awaiting": "À valider",
+        "blocked": "Bloqués",
+        "ready": "Prêts"
+      },
+      "stages": {
+        "queued": "En attente",
+        "fetching_map": "Recherche carte",
+        "fetching_candidates": "Recherche images",
+        "awaiting_curation": "À valider",
+        "ready": "Prêt",
+        "blocked": "Bloqué"
+      },
+      "cols": {
+        "game": "Jeu",
+        "status": "Statut",
+        "zones": "Zones",
+        "actions": "Actions"
+      },
+      "row": {
+        "viewMaps": "Voir les cartes",
+        "retry": "Réessayer"
+      },
+      "drawer": {
+        "title": "Cartes du jeu",
+        "noCandidates": "Aucune carte récupérée pour ce jeu.",
+        "worldZone": "Monde",
+        "candidateCount_one": "{{count}} candidate",
+        "candidateCount_other": "{{count}} candidates",
+        "selected": "Sélectionnée",
+        "choose": "Choisir",
+        "refetch": "Re-récupérer"
+      }
     },
     "emailLog": {
       "title": "Historique des emails",
@@ -1170,17 +1215,6 @@
         "completed": "Termine",
         "failed": "Echoue"
       }
-    },
-    "topupScreenshots": {
-      "title": "Compléter les Captures",
-      "description": "Compléter les jeux existants jusqu'au nombre cible de captures en récupérant les captures manquantes depuis RAWG.",
-      "targetPerGame": "Captures cibles par jeu",
-      "start": "Démarrer la complétion",
-      "completed": "Complétion terminée",
-      "gamesToppedUp": "jeux complétés",
-      "newScreenshots": "nouvelles captures",
-      "candidates": "Candidats",
-      "toppedUp": "Complétés"
     },
     "email": {
       "title": "Paramètres Email",
