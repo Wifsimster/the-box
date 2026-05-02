@@ -130,7 +130,7 @@ router.post('/start', async (req, res, next) => {
       await geoQueue.add(
         'maps:pipeline',
         { kind: 'maps:pipeline', gameId } as GeoJobData,
-        { jobId: `maps:pipeline:start:${gameId}:${Date.now()}` },
+        { jobId: `maps-pipeline-start-${gameId}-${Date.now()}` },
       )
     }
     emitGeoFetchStarted({ totalGames: gameIds.length })
@@ -186,7 +186,7 @@ router.post('/:gameId/retry', async (req, res, next) => {
     await geoQueue.add(
       'maps:pipeline',
       { kind: 'maps:pipeline', gameId } as GeoJobData,
-      { jobId: `maps:pipeline:retry:${gameId}:${Date.now()}` },
+      { jobId: `maps-pipeline-retry-${gameId}-${Date.now()}` },
     )
     res.json({ success: true, data: { ok: true } })
   } catch (err) {
@@ -211,7 +211,7 @@ router.post('/:gameId/:source/retry', async (req, res, next) => {
     await geoQueue.add(
       kind,
       { kind, gameId } as GeoJobData,
-      { jobId: `${kind}:manual-retry:${gameId}:${Date.now()}` },
+      { jobId: `maps-fetch-from-${source}-manual-retry-${gameId}-${Date.now()}` },
     )
     res.json({ success: true, data: { ok: true } })
   } catch (err) {

@@ -89,7 +89,8 @@ export async function runMapsPipeline(input: {
   const childKind = `maps:fetch-from-${chosen.source}` as const
   // Use a deterministic-enough jobId to dedupe accidental double-enqueues
   // within the same second. Re-runs after the second elapses are intentional.
-  const jobId = `${childKind}:${gameId}:${Math.floor(Date.now() / 1000)}`
+  // BullMQ rejects custom ids containing `:`, so we hyphen-separate.
+  const jobId = `maps-fetch-from-${chosen.source}-${gameId}-${Math.floor(Date.now() / 1000)}`
   await geoQueue.add(
     childKind,
     { kind: childKind, gameId, correlationId } as GeoJobData,
@@ -122,7 +123,7 @@ export async function advancePipeline(input: {
     { kind: 'maps:pipeline', gameId: input.gameId, correlationId: input.correlationId },
     {
       delay: input.delayMs ?? 0,
-      jobId: `maps:pipeline:${input.gameId}:${Math.floor(Date.now() / 1000)}`,
+      jobId: `maps-pipeline-${input.gameId}-${Math.floor(Date.now() / 1000)}`,
     },
   )
 }
