@@ -448,7 +448,8 @@
       "growth": "Acquisition",
       "geo": "Géo",
       "geoFetch": "Cartes",
-      "reports": "Signalements"
+      "reports": "Signalements",
+      "moderation": "Modération"
     },
     "geoFetch": {
       "title": "Cartes des jeux",
@@ -544,7 +545,18 @@
       "subtitle": "Gérez le défi Géo quotidien : importez les sources, planifiez les défis et modérez les propositions communautaires.",
       "tabs": {
         "queue": "À examiner",
+        "reports": "Signalements",
         "catalog": "Catalogue"
+      },
+      "addMap": {
+        "title": "Ajouter une carte — {{name}}",
+        "description": "Choisissez une source pour importer la carte de référence.",
+        "descriptionReplace": "Remplacez la carte active par une nouvelle source.",
+        "tabs": {
+          "research": "Recherche",
+          "wand": "Wand",
+          "manual": "Manuelle"
+        }
       },
       "catalog": {
         "subtoggleLabel": "Sous-section du catalogue",

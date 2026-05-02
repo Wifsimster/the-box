@@ -27,9 +27,7 @@ import {
     RefreshCcw,
     ListChecks,
 } from 'lucide-react'
-import { GeoManualMapDialog } from './GeoManualMapDialog'
-import { GeoWandMapDialog } from './GeoWandMapDialog'
-import { GeoResearchAssistantDialog } from './GeoResearchAssistantDialog'
+import { AddMapDialog, type AddMapStrategy } from './AddMapDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
 import {
     Dialog,
@@ -178,9 +176,12 @@ export function GeoMapsTab({
     const [sourcesLoading, setSourcesLoading] = useState(false)
     const [busyAction, setBusyAction] = useState<'reimport' | null>(null)
     const [message, setMessage] = useState<string | null>(null)
-    const [manualUploadFor, setManualUploadFor] = useState<CuratedGame | null>(null)
-    const [wandImportFor, setWandImportFor] = useState<CuratedGame | null>(null)
-    const [researchFor, setResearchFor] = useState<CuratedGame | null>(null)
+    // One state for the unified Add-Map dialog. The three side-panel
+    // buttons (Research, Wand, Manual) all open it, each at its preferred
+    // strategy tab; the operator can switch tabs without closing.
+    const [addMapFor, setAddMapFor] = useState<
+        { game: CuratedGame; strategy: AddMapStrategy } | null
+    >(null)
     const [resetOpen, setResetOpen] = useState(false)
     const [resetting, setResetting] = useState(false)
     const [uncurateFor, setUncurateFor] = useState<CuratedGame | null>(null)
@@ -253,25 +254,20 @@ export function GeoMapsTab({
         }
     }
 
-    const onManualSuccess = () => {
-        setMessage(
-            t('admin.geo.manualMap.success', {
-                name: manualUploadFor?.name ?? '',
-            }),
-        )
-        const id = manualUploadFor?.id
-        void Promise.all([reload(), id !== undefined ? reloadSources(id) : Promise.resolve()])
+    const onAddMapSuccess = () => {
+        if (!addMapFor) return
+        const { game, strategy } = addMapFor
+        // Strategy determines which success message to show — the dialog
+        // doesn't tell us which form was submitted, but we know which one
+        // was active when success fired.
+        const messageKey =
+            strategy === 'wand' ? 'admin.geo.wandMap.success' : 'admin.geo.manualMap.success'
+        setMessage(t(messageKey, { name: game.name }))
+        void Promise.all([reload(), reloadSources(game.id)])
     }
 
-    const onWandSuccess = () => {
-        setMessage(
-            t('admin.geo.wandMap.success', {
-                name: wandImportFor?.name ?? '',
-            }),
-        )
-        const id = wandImportFor?.id
-        void Promise.all([reload(), id !== undefined ? reloadSources(id) : Promise.resolve()])
-    }
+    const openAddMap = (strategy: AddMapStrategy) => (game: CuratedGame) =>
+        setAddMapFor({ game, strategy })
 
     // Auto-refresh the games list once a run finishes — a game flipping from
     // 'pending' → 'resolved' or gaining `hasMap` is invisible until we re-fetch.
@@ -674,9 +670,9 @@ export function GeoMapsTab({
                         onSetCaptureDefault={handleSetCaptureDefault}
                         onUpdateRegion={handleUpdateRegion}
                         onReimport={reimport}
-                        onResearch={setResearchFor}
-                        onWandImport={setWandImportFor}
-                        onManualUpload={setManualUploadFor}
+                        onResearch={openAddMap('research')}
+                        onWandImport={openAddMap('wand')}
+                        onManualUpload={openAddMap('manual')}
                         onUncurate={setUncurateFor}
                         onViewCaptures={onViewCaptures}
                         t={t}
@@ -743,9 +739,9 @@ export function GeoMapsTab({
                             onSetCaptureDefault={handleSetCaptureDefault}
                             onUpdateRegion={handleUpdateRegion}
                             onReimport={reimport}
-                            onResearch={setResearchFor}
-                            onWandImport={setWandImportFor}
-                            onManualUpload={setManualUploadFor}
+                            onResearch={openAddMap('research')}
+                            onWandImport={openAddMap('wand')}
+                            onManualUpload={openAddMap('manual')}
                             onUncurate={setUncurateFor}
                             onViewCaptures={onViewCaptures}
                             t={t}
@@ -754,44 +750,22 @@ export function GeoMapsTab({
                 </SheetContent>
             </Sheet>
 
-            <GeoManualMapDialog
-                isOpen={manualUploadFor !== null}
-                onClose={() => setManualUploadFor(null)}
+            <AddMapDialog
+                isOpen={addMapFor !== null}
+                onClose={() => setAddMapFor(null)}
                 game={
-                    manualUploadFor && {
-                        id: manualUploadFor.id,
-                        name: manualUploadFor.name,
-                        hasMap: manualUploadFor.hasMap,
+                    addMapFor && {
+                        id: addMapFor.game.id,
+                        name: addMapFor.game.name,
+                        slug: addMapFor.game.slug,
+                        hasMap: addMapFor.game.hasMap,
                     }
                 }
-                onSuccess={onManualSuccess}
-            />
-
-            <GeoWandMapDialog
-                isOpen={wandImportFor !== null}
-                onClose={() => setWandImportFor(null)}
-                game={
-                    wandImportFor && {
-                        id: wandImportFor.id,
-                        name: wandImportFor.name,
-                        slug: wandImportFor.slug,
-                        hasMap: wandImportFor.hasMap,
-                    }
+                strategy={addMapFor?.strategy ?? 'research'}
+                onStrategyChange={(s) =>
+                    setAddMapFor((prev) => (prev ? { ...prev, strategy: s } : prev))
                 }
-                onSuccess={onWandSuccess}
-            />
-
-            <GeoResearchAssistantDialog
-                isOpen={researchFor !== null}
-                onClose={() => setResearchFor(null)}
-                game={
-                    researchFor && {
-                        id: researchFor.id,
-                        name: researchFor.name,
-                        slug: researchFor.slug,
-                    }
-                }
-                onPickManualUpload={() => setManualUploadFor(researchFor)}
+                onSuccess={onAddMapSuccess}
             />
         </div>
 
