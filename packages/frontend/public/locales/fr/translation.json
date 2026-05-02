@@ -538,6 +538,7 @@
       "subtitle": "Gérez le défi Géo quotidien : importez les sources, planifiez les défis et modérez les propositions communautaires.",
       "tabs": {
         "queue": "À examiner",
+        "acquisition": "Acquisition",
         "reports": "Signalements",
         "catalog": "Catalogue"
       },
@@ -579,7 +580,7 @@
         },
         "no-maps": {
           "title": "Aucune carte importée",
-          "body": "Vos jeux activés n'ont pas encore de carte active. Cliquez sur « Tout lancer » dans l'onglet Cartes pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
+          "body": "Vos jeux activés n'ont pas encore de carte active. Ouvrez le sous-onglet « Acquisition » pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
         }
       },
       "games": {
@@ -628,6 +629,8 @@
         "title": "Cartes par jeu",
         "subtitle": "Cliquez sur un jeu pour voir quels niveaux d'ingestion ont été essayés ou seraient lancés ensuite.",
         "refresh": "Rafraîchir",
+        "goToAcquisition": "Acquisition",
+        "goToAcquisitionTooltip": "Ouvrir le pipeline d'ingestion pour lancer ou suivre des récupérations de cartes.",
         "empty": "Aucun jeu activé pour le moment. Ajoutez-en depuis la liste des jeux activés de l'onglet Propositions.",
         "reimportQueued": "Pipeline relancé pour « {{name}} ».",
         "row": {

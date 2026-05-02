@@ -13,16 +13,21 @@ import { GrowthStats } from '@/components/admin/GrowthStats'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
-import GeoFetchPanel from '@/components/admin/geo-fetch/GeoFetchPanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, ShieldCheck, Map as MapIcon } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, Compass } from 'lucide-react'
 
-// `reports` used to be its own tab; it now lives as a sub-tab inside the
-// Moderation panel. Keep it in the redirect map so bookmarks land there.
-const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo', 'geoFetch']
-const REDIRECT_TABS: Record<string, string> = { reports: 'geo' }
+// Two old tabs were folded into the unified `geo` hub:
+//   - `reports`  → sub-tab `reports`
+//   - `geoFetch` → sub-tab `acquisition` (the standalone "Cartes" surface
+//                  duplicated triggers exposed under Géo › Catalogue)
+// Bookmarks for either land on the right sub-tab via REDIRECT_TABS.
+const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo']
+const REDIRECT_TABS: Record<string, { tab: string; sub?: string }> = {
+  reports: { tab: 'geo', sub: 'reports' },
+  geoFetch: { tab: 'geo', sub: 'acquisition' },
+}
 const DEFAULT_TAB = 'jobs'
 
 export default function AdminPage() {
@@ -49,15 +54,15 @@ export default function AdminPage() {
     { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
     { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="h-4 w-4" /> },
     { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
-    { id: 'geo', label: t('admin.tabs.moderation', 'Modération'), icon: <ShieldCheck className="h-4 w-4" /> },
-    { id: 'geoFetch', label: t('admin.tabs.geoFetch', 'Cartes'), icon: <MapIcon className="h-4 w-4" /> },
+    { id: 'geo', label: t('admin.tabs.geo', 'Géo'), icon: <Compass className="h-4 w-4" /> },
   ]
 
   // Get active tab from URL, default to 'jobs' if not present or invalid
   const tabFromUrl = searchParams.get('tab')
   const activeTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : DEFAULT_TAB
 
-  // Handle tab change - update URL
+  // Handle tab change - update URL. Drop the `sub` param when switching
+  // away so a stale Géo sub-tab marker doesn't ride along into other tabs.
   const handleTabChange = (tabId: string) => {
     if (VALID_TABS.includes(tabId)) {
       const newSearchParams = new URLSearchParams(searchParams)
@@ -66,21 +71,27 @@ export default function AdminPage() {
       } else {
         newSearchParams.set('tab', tabId)
       }
+      if (tabId !== 'geo') newSearchParams.delete('sub')
       setSearchParams(newSearchParams, { replace: true })
     }
   }
 
   // Clean up invalid tab parameters from URL. Old tab ids that have been
-  // folded into another tab (e.g. `reports` → `geo` as a sub-tab) get
-  // rewritten so existing bookmarks land on the right place.
+  // folded into the Géo hub (`reports`, `geoFetch`) get rewritten so
+  // bookmarks land on the right sub-tab.
   useEffect(() => {
     const currentTab = searchParams.get('tab')
     if (!currentTab) return
     if (VALID_TABS.includes(currentTab)) return
     const newSearchParams = new URLSearchParams(searchParams)
     const redirectTo = REDIRECT_TABS[currentTab]
-    if (redirectTo && redirectTo !== DEFAULT_TAB) {
-      newSearchParams.set('tab', redirectTo)
+    if (redirectTo) {
+      if (redirectTo.tab === DEFAULT_TAB) {
+        newSearchParams.delete('tab')
+      } else {
+        newSearchParams.set('tab', redirectTo.tab)
+      }
+      if (redirectTo.sub) newSearchParams.set('sub', redirectTo.sub)
     } else {
       newSearchParams.delete('tab')
     }
@@ -166,7 +177,6 @@ export default function AdminPage() {
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}
               {activeTab === 'geo' && <GeoReviewPanel />}
-              {activeTab === 'geoFetch' && <GeoFetchPanel />}
             </motion.div>
           </AnimatePresence>
         </div>
