@@ -14,6 +14,8 @@ import { importRawgScreenshots } from './geo-rawg-import-logic.js'
 import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
+import { runMapsPipeline } from './maps-pipeline-logic.js'
+import { runMapsFetchStub } from './maps-fetch-stub.js'
 import { geoContributorService } from '../../../domain/services/index.js'
 import { emitGeoTierUp } from '../../socket/socket.js'
 
@@ -117,6 +119,35 @@ export const geoWorker = new Worker<GeoJobData>(
 
     if (data.kind === 'ingest-tick') {
       return await runGeoIngestTick(data.batchSize, data.gameId)
+    }
+
+    if (data.kind === 'maps:pipeline') {
+      return await runMapsPipeline({
+        gameId: data.gameId,
+        correlationId: data.correlationId,
+      })
+    }
+
+    if (
+      data.kind === 'maps:fetch-from-fandom' ||
+      data.kind === 'maps:fetch-from-strategywiki' ||
+      data.kind === 'maps:fetch-from-mapgenie' ||
+      data.kind === 'maps:fetch-from-wand' ||
+      data.kind === 'maps:fetch-from-steam' ||
+      data.kind === 'maps:fetch-from-rawg'
+    ) {
+      const source = data.kind.replace('maps:fetch-from-', '') as
+        | 'fandom'
+        | 'strategywiki'
+        | 'mapgenie'
+        | 'wand'
+        | 'steam'
+        | 'rawg'
+      return await runMapsFetchStub({
+        gameId: data.gameId,
+        source,
+        correlationId: data.correlationId,
+      })
     }
 
     throw new Error(`unknown geo job kind: ${JSON.stringify(data)}`)

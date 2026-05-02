@@ -77,6 +77,23 @@ export type GeoJobData =
   | { kind: 'schedule-daily-challenge'; date?: string }
   | { kind: 'resolve-metadata'; batchSize?: number; gameId?: number }
   | { kind: 'ingest-tick'; batchSize?: number; gameId?: number }
+  // ===== Multi-source map fetch pipeline (replaces topup-screenshots) =====
+  // Parent orchestrator job. Re-enqueued by each child on completion until
+  // the pipeline reaches awaiting_curation, ready, or blocked.
+  | { kind: 'maps:pipeline'; gameId: number; correlationId?: string }
+  // Per-source children. The orchestrator picks one based on priority +
+  // cooldown + circuit-breaker state, then enqueues exactly one of these.
+  | {
+      kind:
+        | 'maps:fetch-from-fandom'
+        | 'maps:fetch-from-strategywiki'
+        | 'maps:fetch-from-mapgenie'
+        | 'maps:fetch-from-wand'
+        | 'maps:fetch-from-steam'
+        | 'maps:fetch-from-rawg'
+      gameId: number
+      correlationId?: string
+    }
 
 export const geoQueue = new Queue<GeoJobData>('geo-jobs', {
   connection: redisConnectionOptions,
