@@ -448,7 +448,8 @@
       "growth": "Growth",
       "geo": "Geo",
       "geoFetch": "Maps",
-      "reports": "Reports"
+      "reports": "Reports",
+      "moderation": "Moderation"
     },
     "geoFetch": {
       "title": "Game maps",
@@ -544,7 +545,18 @@
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and review crowdsourced submissions.",
       "tabs": {
         "queue": "Review queue",
+        "reports": "Reports",
         "catalog": "Catalog"
+      },
+      "addMap": {
+        "title": "Add a map — {{name}}",
+        "description": "Pick a source to import the reference map.",
+        "descriptionReplace": "Replace the active map with a new source.",
+        "tabs": {
+          "research": "Research",
+          "wand": "Wand",
+          "manual": "Manual"
+        }
       },
       "catalog": {
         "subtoggleLabel": "Catalog sub-section",

@@ -29,9 +29,9 @@ const GeoHealthSchema = z.object({
 export type GeoHealth = z.infer<typeof GeoHealthSchema>
 
 /**
- * Polls /api/admin/geo/health every 30s. Used by GeoHeaderStrip (counters)
- * and GeoReviewPanel (cold-start banner). Lifted out of GeoHeaderStrip so
- * the parent panel can derive cold-start state without a second fetch.
+ * Polls /api/admin/geo/health every 30s. Consumed by ModerationStatusRail
+ * (counter row + cold-start / readiness sections) via GeoReviewPanel, so
+ * all status surfaces stay in sync without duplicate fetches.
  */
 export function useGeoHealth(intervalMs = 30_000) {
     const [data, setData] = useState<GeoHealth | null>(null)

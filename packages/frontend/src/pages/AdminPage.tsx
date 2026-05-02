@@ -12,15 +12,17 @@ import { EmailSettings } from '@/components/admin/EmailSettings'
 import { GrowthStats } from '@/components/admin/GrowthStats'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
-import { ReportsModerationPanel } from '@/components/admin/ReportsModerationPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
 import GeoFetchPanel from '@/components/admin/geo-fetch/GeoFetchPanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, MapPin, Flag, Map as MapIcon } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, ShieldCheck, Map as MapIcon } from 'lucide-react'
 
-const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo', 'geoFetch', 'reports']
+// `reports` used to be its own tab; it now lives as a sub-tab inside the
+// Moderation panel. Keep it in the redirect map so bookmarks land there.
+const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo', 'geoFetch']
+const REDIRECT_TABS: Record<string, string> = { reports: 'geo' }
 const DEFAULT_TAB = 'jobs'
 
 export default function AdminPage() {
@@ -47,9 +49,8 @@ export default function AdminPage() {
     { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
     { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="h-4 w-4" /> },
     { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
-    { id: 'geo', label: t('admin.tabs.geo', 'Geo'), icon: <MapPin className="h-4 w-4" /> },
+    { id: 'geo', label: t('admin.tabs.moderation', 'Modération'), icon: <ShieldCheck className="h-4 w-4" /> },
     { id: 'geoFetch', label: t('admin.tabs.geoFetch', 'Cartes'), icon: <MapIcon className="h-4 w-4" /> },
-    { id: 'reports', label: t('admin.tabs.reports', 'Reports'), icon: <Flag className="h-4 w-4" /> },
   ]
 
   // Get active tab from URL, default to 'jobs' if not present or invalid
@@ -69,14 +70,21 @@ export default function AdminPage() {
     }
   }
 
-  // Clean up invalid tab parameters from URL
+  // Clean up invalid tab parameters from URL. Old tab ids that have been
+  // folded into another tab (e.g. `reports` → `geo` as a sub-tab) get
+  // rewritten so existing bookmarks land on the right place.
   useEffect(() => {
     const currentTab = searchParams.get('tab')
-    if (currentTab && !VALID_TABS.includes(currentTab)) {
-      const newSearchParams = new URLSearchParams(searchParams)
+    if (!currentTab) return
+    if (VALID_TABS.includes(currentTab)) return
+    const newSearchParams = new URLSearchParams(searchParams)
+    const redirectTo = REDIRECT_TABS[currentTab]
+    if (redirectTo && redirectTo !== DEFAULT_TAB) {
+      newSearchParams.set('tab', redirectTo)
+    } else {
       newSearchParams.delete('tab')
-      setSearchParams(newSearchParams, { replace: true })
     }
+    setSearchParams(newSearchParams, { replace: true })
   }, [searchParams, setSearchParams])
 
   // Redirect non-admins
@@ -159,7 +167,6 @@ export default function AdminPage() {
               {activeTab === 'growth' && <GrowthStats />}
               {activeTab === 'geo' && <GeoReviewPanel />}
               {activeTab === 'geoFetch' && <GeoFetchPanel />}
-              {activeTab === 'reports' && <ReportsModerationPanel />}
             </motion.div>
           </AnimatePresence>
         </div>

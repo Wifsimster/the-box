@@ -25,15 +25,14 @@ import {
     Map as MapIcon,
     ListChecks,
     Library,
+    Flag,
     X,
 } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
 import { GeoGamesTab } from './GeoGamesTab'
-import { GeoHeaderStrip } from './GeoHeaderStrip'
-import { GeoRunStateBanner } from './GeoRunStateBanner'
-import { GeoColdStartBanner } from './GeoColdStartBanner'
-import { GeoReadinessBanner } from './GeoReadinessBanner'
+import { ModerationStatusRail } from './ModerationStatusRail'
+import { ReportsModerationPanel } from './ReportsModerationPanel'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -153,7 +152,7 @@ export function GeoReviewPanel() {
     // / Games triple split by entity, which is the engineer's mental model,
     // not the moderator's. `catalogView` tracks which catalog sub-section is
     // open so the segmented control stays in sync without a third tab.
-    const [activeTab, setActiveTab] = useState<'queue' | 'catalog'>('queue')
+    const [activeTab, setActiveTab] = useState<'queue' | 'reports' | 'catalog'>('queue')
     const [catalogView, setCatalogView] = useState<'maps' | 'games'>('maps')
     // Default to the only status that needs the moderator's attention. The
     // other statuses are still reachable via the chip row, but the page
@@ -352,10 +351,13 @@ export function GeoReviewPanel() {
                 <p className="text-sm text-muted-foreground">{t('admin.geo.subtitle')}</p>
             </header>
 
-            <GeoHeaderStrip
+            <ModerationStatusRail
                 health={health}
-                loading={healthLoading}
-                error={healthError}
+                healthLoading={healthLoading}
+                healthError={healthError}
+                runState={runState}
+                onSchedule={() => void triggerSchedule()}
+                scheduling={scheduling}
                 onMapsClick={() => {
                     setActiveTab('catalog')
                     setCatalogView('maps')
@@ -367,19 +369,9 @@ export function GeoReviewPanel() {
                 }}
             />
 
-            <GeoReadinessBanner
-                health={health}
-                onSchedule={() => void triggerSchedule()}
-                scheduling={scheduling}
-            />
-
-            <GeoColdStartBanner health={health} />
-
-            <GeoRunStateBanner state={runState} />
-
             <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as 'queue' | 'catalog')}
+                onValueChange={(v) => setActiveTab(v as 'queue' | 'reports' | 'catalog')}
                 className="space-y-4"
             >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
@@ -387,11 +379,19 @@ export function GeoReviewPanel() {
                         <ListChecks className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.queue')}
                     </TabsTrigger>
+                    <TabsTrigger value="reports" className="gap-1.5 shrink-0">
+                        <Flag className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.reports')}
+                    </TabsTrigger>
                     <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
                         <Library className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="reports" className="space-y-4">
+                    <ReportsModerationPanel />
+                </TabsContent>
 
                 <TabsContent value="catalog" className="space-y-4">
                     {/* Maps and Games are both reference data; previously
