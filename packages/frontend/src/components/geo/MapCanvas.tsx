@@ -58,12 +58,15 @@ export function MapCanvas({
         if (disabled || errored || !onPin) return
         const rect = containerRef.current?.getBoundingClientRect()
         if (!rect) return
-        const x = (e.clientX - rect.left) / rect.width
-        const y = (e.clientY - rect.top) / rect.height
-        onPin({
-            x: clamp01(x),
-            y: clamp01(y),
-        })
+        const x = clamp01((e.clientX - rect.left) / rect.width)
+        const y = clamp01((e.clientY - rect.top) / rect.height)
+        // Anchor the keyboard cursor to the click. Tapping focuses the canvas
+        // (role=button, tabIndex=0), which fires handleFocus before the new
+        // pin prop has propagated — without this sync the focus-seeded cursor
+        // would land on the stale pin or the center default, leaving the
+        // crosshair pinned to (0.5, 0.5) while the marker sits elsewhere.
+        setKbCursor({ x, y })
+        onPin({ x, y })
     }
 
     const handleMove = (e: MouseEvent<HTMLDivElement>) => {
@@ -168,6 +171,14 @@ export function MapCanvas({
             {/* Keyboard cursor — solid (not faint) so it's distinguishable
                 from the mouse-hover crosshair. */}
             {kbCursor && <Crosshair x={kbCursor.x} y={kbCursor.y} />}
+
+            {/* Pin axis guide — when no hover/keyboard crosshair is active,
+                draw faint X/Y lines through the placed pin so the operator
+                can read its coordinates at a glance instead of seeing the
+                axis stuck at the canvas center. */}
+            {pin && !hover && !kbCursor && (
+                <Crosshair x={pin.x} y={pin.y} faint />
+            )}
 
             {/* Guess → canonical line */}
             {showGuessLine && pin && canonical && (
