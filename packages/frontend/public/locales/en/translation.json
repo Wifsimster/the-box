@@ -769,6 +769,11 @@
         "pinCount_other": "{{count}} submissions",
         "source": "source: {{source}}"
       },
+      "nav": {
+        "previous": "Previous capture",
+        "next": "Next capture",
+        "position": "{{current}} / {{total}}"
+      },
       "guide": {
         "title": "Moderation guide",
         "close": "Close",

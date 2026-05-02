@@ -27,6 +27,8 @@ import {
     Library,
     Flag,
     X,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
@@ -310,6 +312,23 @@ export function GeoReviewPanel() {
         }
     }
 
+    // Flat list of currently visible candidates, in the same order the
+    // sidebar renders them. Used to drive prev/next navigation in the detail
+    // view so the moderator can step through captures without bouncing back
+    // to the sidebar to tap another row.
+    const flatCandidates = groupCandidatesByGame(candidates).flatMap(
+        (g) => g.candidates,
+    )
+    const currentIndex = detail
+        ? flatCandidates.findIndex((c) => c.id === detail.candidate.id)
+        : -1
+    const prevCandidate =
+        currentIndex > 0 ? flatCandidates[currentIndex - 1] : null
+    const nextCandidate =
+        currentIndex >= 0 && currentIndex < flatCandidates.length - 1
+            ? flatCandidates[currentIndex + 1]
+            : null
+
     const statusLabel = (status: string): string => {
         // Translate known statuses; fall back to the raw value for unknown statuses
         // (rejected, archived, etc.) so we never silently hide data.
@@ -550,11 +569,24 @@ export function GeoReviewPanel() {
                     {/* Desktop: side-by-side detail card */}
                     <Card className="hidden lg:block lg:col-span-2">
                         <CardHeader className="pb-2 p-4 sm:p-6">
-                            <CardTitle className="text-sm">
-                                {detail
-                                    ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
-                                    : t('admin.geo.pickSubmission')}
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-sm">
+                                    {detail
+                                        ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                        : t('admin.geo.pickSubmission')}
+                                </CardTitle>
+                                {detail && (
+                                    <CandidateNavControls
+                                        prev={prevCandidate}
+                                        next={nextCandidate}
+                                        currentIndex={currentIndex}
+                                        total={flatCandidates.length}
+                                        disabled={saving}
+                                        onNavigate={openDetail}
+                                        t={t}
+                                    />
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-3 p-4 sm:p-6 pt-0 sm:pt-0">
                             <CandidateDetailBody
@@ -587,11 +619,24 @@ export function GeoReviewPanel() {
                     className="lg:hidden h-[92vh] p-0 flex flex-col gap-0 rounded-t-xl"
                 >
                     <SheetHeader className="px-4 py-3 border-b border-border/40 text-left">
-                        <SheetTitle className="text-sm font-semibold">
-                            {detail
-                                ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
-                                : t('admin.geo.pickSubmission')}
-                        </SheetTitle>
+                        <div className="flex items-center justify-between gap-2">
+                            <SheetTitle className="text-sm font-semibold">
+                                {detail
+                                    ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                    : t('admin.geo.pickSubmission')}
+                            </SheetTitle>
+                            {detail && (
+                                <CandidateNavControls
+                                    prev={prevCandidate}
+                                    next={nextCandidate}
+                                    currentIndex={currentIndex}
+                                    total={flatCandidates.length}
+                                    disabled={saving}
+                                    onNavigate={openDetail}
+                                    t={t}
+                                />
+                            )}
+                        </div>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-[max(env(safe-area-inset-bottom),1rem)]">
                         <CandidateDetailBody
@@ -690,6 +735,66 @@ export function GeoReviewPanel() {
             </Dialog>
                 </TabsContent>
             </Tabs>
+        </div>
+    )
+}
+
+interface CandidateNavControlsProps {
+    prev: GeoScreenshotCandidate | null
+    next: GeoScreenshotCandidate | null
+    currentIndex: number
+    total: number
+    disabled: boolean
+    onNavigate: (id: number) => void | Promise<void>
+    t: ReturnType<typeof useTranslation>['t']
+}
+
+function CandidateNavControls({
+    prev,
+    next,
+    currentIndex,
+    total,
+    disabled,
+    onNavigate,
+    t,
+}: CandidateNavControlsProps) {
+    return (
+        <div className="flex items-center gap-1 shrink-0">
+            <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                disabled={!prev || disabled}
+                onClick={() => prev && void onNavigate(prev.id)}
+                aria-label={t('admin.geo.nav.previous')}
+                title={t('admin.geo.nav.previous')}
+            >
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+            </Button>
+            {currentIndex >= 0 && total > 0 && (
+                <span
+                    className="text-[10px] tabular-nums text-muted-foreground min-w-[2.5rem] text-center"
+                    aria-live="polite"
+                >
+                    {t('admin.geo.nav.position', {
+                        current: currentIndex + 1,
+                        total,
+                    })}
+                </span>
+            )}
+            <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                disabled={!next || disabled}
+                onClick={() => next && void onNavigate(next.id)}
+                aria-label={t('admin.geo.nav.next')}
+                title={t('admin.geo.nav.next')}
+            >
+                <ChevronRight className="h-4 w-4" aria-hidden />
+            </Button>
         </div>
     )
 }

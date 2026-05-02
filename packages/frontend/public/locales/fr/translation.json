@@ -769,6 +769,11 @@
         "pinCount_other": "{{count}} propositions",
         "source": "source : {{source}}"
       },
+      "nav": {
+        "previous": "Capture précédente",
+        "next": "Capture suivante",
+        "position": "{{current}} / {{total}}"
+      },
       "guide": {
         "title": "Guide de modération",
         "close": "Fermer",
