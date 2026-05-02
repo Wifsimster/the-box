@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles, Play } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
@@ -45,6 +45,13 @@ function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick, sh
         <Link to={localizedPath('/')} onClick={handleClick}>
           <Home className={`w-4 h-4 ${iconClass}`} />
           {t('common.home')}
+        </Link>
+      </Button>
+
+      <Button variant="ghost" size="sm" asChild className={mobileClasses}>
+        <Link to={localizedPath('/play')} onClick={handleClick}>
+          <Play className={`w-4 h-4 ${iconClass}`} />
+          {t('common.dailyGuess')}
         </Link>
       </Button>
 
