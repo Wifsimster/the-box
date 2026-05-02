@@ -796,7 +796,8 @@
       "nav": {
         "previous": "Previous capture",
         "next": "Next capture",
-        "position": "{{current}} / {{total}}"
+        "position": "{{current}} / {{total}}",
+        "backToList": "Back to list"
       },
       "guide": {
         "title": "Moderation guide",

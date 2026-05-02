@@ -13,12 +13,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet'
-import {
     Loader2,
     Trash2,
     HelpCircle,
@@ -30,8 +24,10 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
+    ArrowLeft,
     Workflow,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
 import { GeoGamesTab } from './GeoGamesTab'
@@ -597,7 +593,16 @@ export function GeoReviewPanel() {
                 </div>
             ) : (
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">
-                    <Card className="lg:col-span-1">
+                    {/* List card — hidden on mobile while a candidate is open
+                        so the page reverts to a single column and the sticky
+                        Header stays reachable. On lg+, both cards sit
+                        side-by-side as before. */}
+                    <Card
+                        className={cn(
+                            'lg:col-span-1',
+                            detail && 'hidden lg:block',
+                        )}
+                    >
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <div className="flex items-center justify-between gap-2">
                                 <CardTitle className="text-sm">
@@ -748,15 +753,48 @@ export function GeoReviewPanel() {
                         </CardContent>
                     </Card>
 
-                    {/* Desktop: side-by-side detail card */}
-                    <Card className="hidden lg:block lg:col-span-2">
+                    {/* Detail card — on mobile, only renders when a
+                        candidate is selected (replacing the list). On lg+,
+                        always visible alongside the list. The Header stays
+                        sticky throughout because nothing is rendered as a
+                        modal/portal anymore. */}
+                    <Card
+                        className={cn(
+                            'lg:col-span-2',
+                            !detail && 'hidden lg:block',
+                        )}
+                    >
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="text-sm">
-                                    {detail
-                                        ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
-                                        : t('admin.geo.pickSubmission')}
-                                </CardTitle>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {/* Mobile back button — pops the detail
+                                        view so the user is returned to the
+                                        list. Hidden on lg+ where both cards
+                                        are visible side-by-side. */}
+                                    {detail && (
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 shrink-0 lg:hidden"
+                                            onClick={() => {
+                                                setDetail(null)
+                                                setPin(null)
+                                            }}
+                                            aria-label={t(
+                                                'admin.geo.nav.backToList',
+                                                'Retour à la liste',
+                                            )}
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    <CardTitle className="text-sm truncate">
+                                        {detail
+                                            ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
+                                            : t('admin.geo.pickSubmission')}
+                                    </CardTitle>
+                                </div>
                                 {detail && (
                                     <CandidateNavControls
                                         prev={prevCandidate}
@@ -785,55 +823,6 @@ export function GeoReviewPanel() {
                     </Card>
                 </div>
             )}
-
-            {/* Mobile: bottom drawer for candidate detail */}
-            <Sheet
-                open={isMobile && detail !== null}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setDetail(null)
-                        setPin(null)
-                    }
-                }}
-            >
-                <SheetContent
-                    side="bottom"
-                    className="lg:hidden h-[92vh] p-0 flex flex-col gap-0 rounded-t-xl"
-                >
-                    <SheetHeader className="px-4 py-3 pr-12 border-b border-border/40 text-left">
-                        <div className="flex items-center justify-between gap-2">
-                            <SheetTitle className="text-sm font-semibold">
-                                {detail
-                                    ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
-                                    : t('admin.geo.pickSubmission')}
-                            </SheetTitle>
-                            {detail && (
-                                <CandidateNavControls
-                                    prev={prevCandidate}
-                                    next={nextCandidate}
-                                    currentIndex={currentIndex}
-                                    total={flatCandidates.length}
-                                    disabled={saving}
-                                    onNavigate={openDetail}
-                                    t={t}
-                                />
-                            )}
-                        </div>
-                    </SheetHeader>
-                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-[max(env(safe-area-inset-bottom),1rem)]">
-                        <CandidateDetailBody
-                            detail={detail}
-                            pin={pin}
-                            setPin={setPin}
-                            saving={saving}
-                            onPromote={applyOverride}
-                            onReject={() => setRejectOpen(true)}
-                            onDemote={() => setDemoteOpen(true)}
-                            t={t}
-                        />
-                    </div>
-                </SheetContent>
-            </Sheet>
 
             <Dialog open={introOpen} onOpenChange={setIntroOpen}>
                 <DialogContent className="max-w-lg">
