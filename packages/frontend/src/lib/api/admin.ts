@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse, BillingEntitlement } from '@/types'
 
 /**
  * Thin wrapper around `fetch` for admin endpoints. Defaults to
@@ -862,6 +862,42 @@ export const adminApi = {
       body: JSON.stringify(email ? { email } : {}),
     })
     return handleResponse<{ sent: boolean; to: string }>(response)
+  },
+
+  /**
+   * Fetch billing entitlement for a batch of users (admin users tab).
+   * Empty list resolves to an empty map without hitting the network.
+   */
+  async getUsersBilling(userIds: string[]): Promise<Record<string, BillingEntitlement>> {
+    if (userIds.length === 0) return {}
+    const qs = new URLSearchParams({ userIds: userIds.join(',') }).toString()
+    const data = await fetchAdminJson<{ entitlements: Record<string, BillingEntitlement> }>(
+      `/api/admin/users/billing?${qs}`,
+    )
+    return data.entitlements
+  },
+
+  /**
+   * Grant lifetime supporter (free premium) to a user. Bypasses Stripe.
+   */
+  async grantSupporter(userId: string): Promise<{ entitlement: BillingEntitlement }> {
+    return fetchAdminJson<{ entitlement: BillingEntitlement }>(
+      `/api/admin/users/${encodeURIComponent(userId)}/grant-supporter`,
+      { method: 'POST' },
+    )
+  },
+
+  /**
+   * Revoke lifetime supporter grant from a user. Does not cancel Stripe subs.
+   */
+  async revokeSupporter(userId: string, reason?: string): Promise<{ entitlement: BillingEntitlement }> {
+    return fetchAdminJson<{ entitlement: BillingEntitlement }>(
+      `/api/admin/users/${encodeURIComponent(userId)}/revoke-supporter`,
+      {
+        method: 'POST',
+        body: JSON.stringify(reason ? { reason } : {}),
+      },
+    )
   },
 
   async getGrowthStats(): Promise<GrowthStats> {

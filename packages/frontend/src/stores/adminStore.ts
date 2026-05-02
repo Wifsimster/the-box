@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Job, Game, RecurringJob, ImportState, User } from '@/types'
+import type { Job, Game, RecurringJob, ImportState, User, BillingEntitlement } from '@/types'
 import { adminApi } from '@/lib/api'
 import { getAdminSocket, connectAdminSocket, disconnectAdminSocket } from '@/lib/socket'
 
@@ -183,6 +183,7 @@ interface AdminState {
   usersPagination: UsersPagination
   usersSearch: string
   usersSort: UsersSort
+  usersBilling: Record<string, BillingEntitlement>
 
   // Users Actions
   fetchUsers: (params?: { page?: number; search?: string }) => Promise<void>
@@ -193,6 +194,8 @@ interface AdminState {
   banUser: (userId: string, reason?: string, banExpiresIn?: number) => Promise<void>
   unbanUser: (userId: string) => Promise<void>
   deleteUser: (userId: string) => Promise<void>
+  grantSupporter: (userId: string) => Promise<void>
+  revokeSupporter: (userId: string) => Promise<void>
 }
 
 export const useAdminStore = create<AdminState>()(
@@ -238,6 +241,7 @@ export const useAdminStore = create<AdminState>()(
       usersPagination: { page: 1, limit: 20, total: 0, offset: 0 },
       usersSearch: '',
       usersSort: { field: 'createdAt', order: 'desc' },
+      usersBilling: {},
 
       fetchJobs: async () => {
         set({ isLoading: true, error: null })
@@ -793,6 +797,19 @@ export const useAdminStore = create<AdminState>()(
             },
             usersLoading: false,
           })
+
+          // Fetch billing entitlement for the visible users in parallel.
+          // Failure is non-fatal — the table still renders without the
+          // premium column populated.
+          const ids = transformedUsers.map((u) => u.id).filter(Boolean)
+          if (ids.length > 0) {
+            try {
+              const entitlements = await adminApi.getUsersBilling(ids)
+              set({ usersBilling: { ...get().usersBilling, ...entitlements } })
+            } catch {
+              // ignore — column will just stay blank for these rows
+            }
+          }
         } catch (err) {
           set({ usersError: (err as Error).message, usersLoading: false })
         }
@@ -856,6 +873,28 @@ export const useAdminStore = create<AdminState>()(
           await adminApi.deleteUser(userId)
           // Refresh the list
           get().fetchUsers()
+        } catch (err) {
+          set({ usersError: (err as Error).message })
+          throw err
+        }
+      },
+
+      grantSupporter: async (userId) => {
+        set({ usersError: null })
+        try {
+          const { entitlement } = await adminApi.grantSupporter(userId)
+          set({ usersBilling: { ...get().usersBilling, [userId]: entitlement } })
+        } catch (err) {
+          set({ usersError: (err as Error).message })
+          throw err
+        }
+      },
+
+      revokeSupporter: async (userId) => {
+        set({ usersError: null })
+        try {
+          const { entitlement } = await adminApi.revokeSupporter(userId)
+          set({ usersBilling: { ...get().usersBilling, [userId]: entitlement } })
         } catch (err) {
           set({ usersError: (err as Error).message })
           throw err

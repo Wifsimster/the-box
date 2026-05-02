@@ -589,7 +589,11 @@
         "row": {
           "hasMap": "Carte",
           "noMap": "Sans carte",
-          "failed": "Échec"
+          "failed": "Échec",
+          "mapCount_zero": "0 carte",
+          "mapCount_one": "{{count}} carte",
+          "mapCount_other": "{{count}} cartes",
+          "mapCountTooltip": "Nombre de cartes activées pour ce jeu"
         },
         "tiers": {
           "registry": "Niveau 1 — Registre",
@@ -1104,9 +1108,24 @@
       "banUser": "Bannir l'Utilisateur",
       "unbanUser": "Débannir l'Utilisateur",
       "deleteUser": "Supprimer l'Utilisateur",
+      "grantPremium": "Offrir le Premium",
+      "revokePremium": "Retirer le Premium",
       "confirmDelete": "Êtes-vous sûr de vouloir supprimer l'utilisateur \"{{email}}\" ? Cette action est irréversible.",
       "confirmBan": "Êtes-vous sûr de vouloir bannir l'utilisateur \"{{email}}\" ?",
       "confirmUnban": "Êtes-vous sûr de vouloir débannir l'utilisateur \"{{email}}\" ?",
+      "confirmGrant": "Accorder un accès premium à vie (gratuit) à \"{{email}}\" ? Cela ne crée aucune charge Stripe.",
+      "confirmRevoke": "Retirer l'accès premium à vie de \"{{email}}\" ? Cela n'annule pas un éventuel abonnement payant.",
+      "premium": {
+        "label": "Premium",
+        "free": "Gratuit",
+        "cancelling": "Résiliation",
+        "tier": {
+          "supporterLifetime": "À vie",
+          "premiumAnnual": "Annuel",
+          "premiumMonthly": "Mensuel",
+          "unknown": "Premium"
+        }
+      },
       "role": {
         "user": "Utilisateur",
         "admin": "Administrateur"
@@ -1116,10 +1135,14 @@
         "banned": "Utilisateur banni avec succès",
         "unbanned": "Utilisateur débanni avec succès",
         "deleted": "Utilisateur supprimé avec succès",
+        "granted": "Accès premium accordé",
+        "revoked": "Accès premium retiré",
         "roleUpdateError": "Échec de la mise à jour du rôle",
         "banError": "Échec du bannissement",
         "unbanError": "Échec du débannissement",
-        "deleteError": "Échec de la suppression"
+        "deleteError": "Échec de la suppression",
+        "grantError": "Échec de l'attribution du premium",
+        "revokeError": "Échec du retrait du premium"
       }
     },
     "fullImport": {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { User } from '@/types'
+import type { User, BillingEntitlement } from '@/types'
 import { useAdminStore } from '@/stores/adminStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
-import { Search, Loader2, ArrowUpDown, ArrowUp, Trash2, Ban, Unlock } from 'lucide-react'
+import { Search, Loader2, ArrowUpDown, ArrowUp, Trash2, Ban, Unlock, Crown } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { tableRow } from '@/lib/animations'
@@ -45,6 +45,47 @@ function UserSortIcon({ field, sortField, sortOrder }: { field: string; sortFiel
     >
       <ArrowUp className="ml-1 h-4 w-4" />
     </motion.span>
+  )
+}
+
+function PremiumBadge({ entitlement }: { entitlement: BillingEntitlement | undefined }) {
+  const { t } = useTranslation()
+  if (!entitlement) {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+  if (!entitlement.isPremium) {
+    return <span className="text-xs text-muted-foreground">{t('admin.users.premium.free')}</span>
+  }
+
+  const tierLabel =
+    entitlement.tier === 'supporter_lifetime'
+      ? t('admin.users.premium.tier.supporterLifetime')
+      : entitlement.tier === 'premium_annual'
+        ? t('admin.users.premium.tier.premiumAnnual')
+        : entitlement.tier === 'premium_monthly'
+          ? t('admin.users.premium.tier.premiumMonthly')
+          : t('admin.users.premium.tier.unknown')
+
+  // supporter (free grant) is bright, paid sub is the same neon-purple/pink
+  // we use elsewhere for the gaming accent — the source dot below carries
+  // the distinction.
+  const sourceDotClass =
+    entitlement.source === 'supporter' ? 'bg-neon-cyan' : 'bg-neon-purple'
+
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-neon-purple/40 bg-neon-purple/10 px-2 py-0.5 text-xs">
+      <Crown className="h-3 w-3 text-neon-pink" aria-hidden />
+      <span className="font-medium text-neon-pink">{tierLabel}</span>
+      <span
+        className={`ml-0.5 inline-block h-1.5 w-1.5 rounded-full ${sourceDotClass}`}
+        aria-hidden
+      />
+      {entitlement.cancelAtPeriodEnd && (
+        <span className="ml-1 text-[10px] uppercase tracking-wide text-warning">
+          {t('admin.users.premium.cancelling')}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -83,6 +124,7 @@ export function UserList() {
     usersPagination,
     usersSearch,
     usersSort,
+    usersBilling,
     fetchUsers,
     setUsersSearch,
     setUsersSort,
@@ -91,11 +133,15 @@ export function UserList() {
     banUser,
     unbanUser,
     deleteUser,
+    grantSupporter,
+    revokeSupporter,
   } = useAdminStore()
 
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const [banningUser, setBanningUser] = useState<User | null>(null)
   const [unbanningUser, setUnbanningUser] = useState<User | null>(null)
+  const [grantingUser, setGrantingUser] = useState<User | null>(null)
+  const [revokingUser, setRevokingUser] = useState<User | null>(null)
   const [, setRoleChangingUser] = useState<{ user: User; newRole: string } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchInput, setSearchInput] = useState(usersSearch)
@@ -187,6 +233,36 @@ export function UserList() {
       setDeletingUser(null)
     } catch {
       toast.error(t('admin.users.messages.deleteError'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Handle grant premium (supporter lifetime)
+  const handleGrant = async () => {
+    if (!grantingUser) return
+    setIsSubmitting(true)
+    try {
+      await grantSupporter(grantingUser.id)
+      toast.success(t('admin.users.messages.granted'))
+      setGrantingUser(null)
+    } catch {
+      toast.error(t('admin.users.messages.grantError'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Handle revoke premium (supporter lifetime)
+  const handleRevoke = async () => {
+    if (!revokingUser) return
+    setIsSubmitting(true)
+    try {
+      await revokeSupporter(revokingUser.id)
+      toast.success(t('admin.users.messages.revoked'))
+      setRevokingUser(null)
+    } catch {
+      toast.error(t('admin.users.messages.revokeError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -341,9 +417,38 @@ export function UserList() {
                           </dt>
                           <dd className="text-muted-foreground">{formatDateTime(user.lastLoginAt)}</dd>
                         </div>
+                        <div className="space-y-0.5 col-span-2">
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {t('admin.users.premium.label')}
+                          </dt>
+                          <dd>
+                            <PremiumBadge entitlement={usersBilling[user.id]} />
+                          </dd>
+                        </div>
                       </dl>
 
                       <div className="flex justify-end gap-1 pt-1 border-t border-white/5">
+                        {usersBilling[user.id]?.source === 'supporter' ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setRevokingUser(user)}
+                            aria-label={t('admin.users.revokePremium')}
+                            className="hover:text-warning"
+                          >
+                            <Crown className="h-4 w-4 text-neon-pink" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setGrantingUser(user)}
+                            aria-label={t('admin.users.grantPremium')}
+                            className="hover:text-neon-pink"
+                          >
+                            <Crown className="h-4 w-4" />
+                          </Button>
+                        )}
                         {user.isAdmin ? (
                           <Button
                             variant="unban"
@@ -389,6 +494,7 @@ export function UserList() {
                       <UserSortableHeader field="currentStreak" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.currentStreak')}</UserSortableHeader>
                       <UserSortableHeader field="createdAt" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.createdAt')}</UserSortableHeader>
                       <UserSortableHeader field="lastLoginAt" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.lastLoginAt')}</UserSortableHeader>
+                      <TableHead>{t('admin.users.premium.label')}</TableHead>
                       <TableHead className="text-right">{t('admin.users.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -444,8 +550,36 @@ export function UserList() {
                           <TableCell className="text-muted-foreground whitespace-nowrap">
                             {formatDateTime(user.lastLoginAt)}
                           </TableCell>
+                          <TableCell>
+                            <PremiumBadge entitlement={usersBilling[user.id]} />
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                              {usersBilling[user.id]?.source === 'supporter' ? (
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setRevokingUser(user)}
+                                    aria-label={t('admin.users.revokePremium')}
+                                    className="hover:text-warning"
+                                  >
+                                    <Crown className="h-4 w-4 text-neon-pink" />
+                                  </Button>
+                                </motion.div>
+                              ) : (
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setGrantingUser(user)}
+                                    aria-label={t('admin.users.grantPremium')}
+                                    className="hover:text-neon-pink"
+                                  >
+                                    <Crown className="h-4 w-4" />
+                                  </Button>
+                                </motion.div>
+                              )}
                               {user.isAdmin ? (
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                   <Button
@@ -554,6 +688,49 @@ export function UserList() {
             <Button variant="default" onClick={handleUnban} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('admin.users.unbanUser')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Grant Premium Confirmation Dialog */}
+      <Dialog open={!!grantingUser} onOpenChange={(open) => !open && setGrantingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('admin.users.grantPremium')}</DialogTitle>
+            <DialogDescription>
+              {grantingUser && t('admin.users.confirmGrant', { email: grantingUser.email })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGrantingUser(null)} disabled={isSubmitting}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="gaming" onClick={handleGrant} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Crown className="mr-1 h-4 w-4" />
+              {t('admin.users.grantPremium')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Premium Confirmation Dialog */}
+      <Dialog open={!!revokingUser} onOpenChange={(open) => !open && setRevokingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('admin.users.revokePremium')}</DialogTitle>
+            <DialogDescription>
+              {revokingUser && t('admin.users.confirmRevoke', { email: revokingUser.email })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevokingUser(null)} disabled={isSubmitting}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleRevoke} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('admin.users.revokePremium')}
             </Button>
           </DialogFooter>
         </DialogContent>

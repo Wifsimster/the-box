@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { adminService, jobService } from '../../domain/services/index.js'
+import { billingService } from '../../domain/services/billing.service.js'
+import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import {
   startBatchImport,
@@ -1787,6 +1789,7 @@ router.get('/geo/games', async (req, res, next) => {
           steam_app_id: number | null
           wiki_subdomain: string | null
           has_map: boolean
+          map_count: number
           candidate_count: number
         }>
       }>(
@@ -1803,6 +1806,7 @@ router.get('/geo/games', async (req, res, next) => {
           g.steam_app_id,
           g.wiki_subdomain,
           (m.id IS NOT NULL) AS has_map,
+          COALESCE(mc.cnt, 0)::int AS map_count,
           COALESCE(c.cnt, 0)::int AS candidate_count
         FROM games g
         LEFT JOIN LATERAL (
@@ -1811,6 +1815,12 @@ router.get('/geo/games', async (req, res, next) => {
           ORDER BY created_at DESC
           LIMIT 1
         ) m ON true
+        LEFT JOIN (
+          SELECT game_id, COUNT(*)::int AS cnt
+          FROM geo_map
+          WHERE is_active = true
+          GROUP BY game_id
+        ) mc ON mc.game_id = g.id
         LEFT JOIN (
           SELECT game_id, COUNT(*)::int AS cnt
           FROM geo_screenshot_candidate
@@ -1840,6 +1850,7 @@ router.get('/geo/games', async (req, res, next) => {
             steamAppId: r.steam_app_id,
             wikiSubdomain: r.wiki_subdomain,
             hasMap: r.has_map,
+            mapCount: r.map_count,
             candidateCount: r.candidate_count,
           })),
         },
@@ -3075,6 +3086,92 @@ router.post('/screenshot-reports/reactivate', async (req, res, next) => {
 //     reaches geo_screenshot_meta.
 //   - geo_map cascades to geo_screenshot_candidate + geo_screenshot_meta,
 //     and those cascade to geo_pin / screenshot_reports.geo_* in turn.
+// === Users billing (premium status + admin grant/revoke) ===
+//
+// Better-auth's /admin/list-users only knows about the `user` table, so the
+// admin UI fetches billing entitlement separately for the visible page. The
+// grant/revoke endpoints flip `supporter_lifetime_at` directly — they do not
+// touch Stripe, so they're safe even if billing is misconfigured. Supporter
+// lifetime takes priority over recurring subs in `getEntitlement`, so a
+// granted user stays premium even if they later cancel a paid subscription.
+
+router.get('/users/billing', async (req, res, next) => {
+  try {
+    const raw = typeof req.query['userIds'] === 'string' ? req.query['userIds'] : ''
+    const userIds = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (userIds.length === 0) {
+      res.json({ success: true, data: { entitlements: {} } })
+      return
+    }
+    if (userIds.length > 100) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'TOO_MANY_IDS', message: 'max 100 user ids' },
+      })
+      return
+    }
+
+    const entries = await Promise.all(
+      userIds.map(async (id) => {
+        const entitlement = await billingService.getEntitlement(id)
+        return [id, entitlement] as const
+      }),
+    )
+    const entitlements = Object.fromEntries(entries)
+    res.json({ success: true, data: { entitlements } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/users/:userId/grant-supporter', async (req, res, next) => {
+  try {
+    const userId = req.params['userId']
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_USER_ID', message: 'userId required' },
+      })
+      return
+    }
+    await userRepository.grantSupporterLifetime(userId)
+    const entitlement = await billingService.getEntitlement(userId)
+    routeLogger.warn(
+      { adminId: req.userId, targetUserId: userId },
+      'admin granted supporter lifetime',
+    )
+    res.json({ success: true, data: { entitlement } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/users/:userId/revoke-supporter', async (req, res, next) => {
+  try {
+    const userId = req.params['userId']
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_USER_ID', message: 'userId required' },
+      })
+      return
+    }
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason : 'admin manual revoke'
+    await userRepository.revokeSupporterLifetime(userId, reason)
+    const entitlement = await billingService.getEntitlement(userId)
+    routeLogger.warn(
+      { adminId: req.userId, targetUserId: userId },
+      'admin revoked supporter lifetime',
+    )
+    res.json({ success: true, data: { entitlement } })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.post('/scraping/reset', async (req, res, next) => {
   try {
     const result = await db.transaction(async (trx) => {

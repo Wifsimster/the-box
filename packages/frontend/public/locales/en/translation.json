@@ -589,7 +589,11 @@
         "row": {
           "hasMap": "Map",
           "noMap": "No map",
-          "failed": "Failed"
+          "failed": "Failed",
+          "mapCount_zero": "0 maps",
+          "mapCount_one": "{{count}} map",
+          "mapCount_other": "{{count}} maps",
+          "mapCountTooltip": "Number of enabled maps for this game"
         },
         "tiers": {
           "registry": "Tier 1 — Registry",
@@ -1141,9 +1145,24 @@
       "banUser": "Ban User",
       "unbanUser": "Unban User",
       "deleteUser": "Delete User",
+      "grantPremium": "Grant Premium",
+      "revokePremium": "Revoke Premium",
       "confirmDelete": "Are you sure you want to delete user \"{{email}}\"? This action cannot be undone.",
       "confirmBan": "Are you sure you want to ban user \"{{email}}\"?",
       "confirmUnban": "Are you sure you want to unban user \"{{email}}\"?",
+      "confirmGrant": "Grant lifetime premium (free) to \"{{email}}\"? This does not create any Stripe charge.",
+      "confirmRevoke": "Revoke lifetime premium from \"{{email}}\"? This does not cancel any paid Stripe subscription.",
+      "premium": {
+        "label": "Premium",
+        "free": "Free",
+        "cancelling": "Cancelling",
+        "tier": {
+          "supporterLifetime": "Lifetime",
+          "premiumAnnual": "Annual",
+          "premiumMonthly": "Monthly",
+          "unknown": "Premium"
+        }
+      },
       "role": {
         "user": "User",
         "admin": "Admin"
@@ -1153,10 +1172,14 @@
         "banned": "User banned successfully",
         "unbanned": "User unbanned successfully",
         "deleted": "User deleted successfully",
+        "granted": "Premium granted",
+        "revoked": "Premium revoked",
         "roleUpdateError": "Failed to update user role",
         "banError": "Failed to ban user",
         "unbanError": "Failed to unban user",
-        "deleteError": "Failed to delete user"
+        "deleteError": "Failed to delete user",
+        "grantError": "Failed to grant premium",
+        "revokeError": "Failed to revoke premium"
       }
     },
     "email": {

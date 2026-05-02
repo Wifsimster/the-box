@@ -60,4 +60,9 @@ export type {
   EmailLogEntry,
   EmailLogResponse,
   EmailLogQuery,
+
+  // Billing
+  BillingEntitlement,
+  BillingTier,
+  SubscriptionStatus,
 } from '@the-box/types'
