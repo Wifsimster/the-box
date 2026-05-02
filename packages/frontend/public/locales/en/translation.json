@@ -1610,6 +1610,8 @@
       "screenshot": "Screenshot",
       "score": "Score",
       "distance": "Distance",
+      "pinCount_one": "{{count}} pin on this capture",
+      "pinCount_other": "{{count}} pins on this capture",
       "mapUnavailable": "Map unavailable.",
       "chooseMap": {
         "title": "Which map?",

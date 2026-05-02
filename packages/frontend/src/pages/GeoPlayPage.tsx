@@ -9,6 +9,7 @@ import {
     Gamepad2,
     Loader2,
     Map as MapIcon,
+    MapPin,
     RefreshCw,
     Shuffle,
     Sparkles,
@@ -219,6 +220,7 @@ export default function GeoPlayPage() {
                             score={result.score}
                             distance={result.distance}
                             wrongMap={!!result.wrongMap}
+                            pinCount={result.pinCount}
                             language={i18n.language}
                         />
                     ) : null
@@ -474,11 +476,13 @@ function ResultOverlay({
     score,
     distance,
     wrongMap,
+    pinCount,
     language,
 }: {
     score: number
     distance: number
     wrongMap: boolean
+    pinCount: number
     language: string
 }) {
     const { t } = useTranslation()
@@ -505,6 +509,10 @@ function ResultOverlay({
                 <span className="text-xs text-white/70">
                     {t('geo.daily.distance', 'Distance')}: {(distance * 100).toFixed(1)}%
                 </span>
+            </div>
+            <div className="mt-1 flex items-center gap-1 text-xs text-white/70">
+                <MapPin className="h-3 w-3 text-neon-pink" aria-hidden />
+                <span>{t('geo.daily.pinCount', { count: pinCount })}</span>
             </div>
             {wrongMap && (
                 <p className="mt-1 text-xs text-destructive">
