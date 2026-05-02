@@ -11,12 +11,23 @@ import {
   geoContributorRepository,
   geoScreenshotRepository,
   geoMapRepository,
+  inventoryRepository,
   sessionRepository,
 } from '../../infrastructure/repositories/index.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
+import { emitGeoRewarded } from '../../infrastructure/socket/socket.js'
+
+// Granted to the user who places the very first pin on a candidate. Sized
+// to match the smallest accuracy reward (1σ hit) so discovery is encouraged
+// without dwarfing the consensus-based grants that follow.
+const FIRST_PIN_REWARD = {
+  itemType: 'powerup' as const,
+  itemKey: 'hint_year' as const,
+  quantity: 1,
+}
 
 const log = routeLogger.child({ route: 'geo' })
 
@@ -130,7 +141,29 @@ router.post(
       })
 
       if (submission) {
-        await geoScreenshotRepository.incrementPinCount(geoScreenshotCandidateId)
+        const newPinCount =
+          await geoScreenshotRepository.incrementPinCount(geoScreenshotCandidateId)
+
+        // First-pin reward: the increment is atomic, so exactly one
+        // submitter ever sees newPinCount === 1 per candidate.
+        if (newPinCount === 1) {
+          try {
+            await inventoryRepository.addItems(
+              userId,
+              FIRST_PIN_REWARD.itemType,
+              FIRST_PIN_REWARD.itemKey,
+              FIRST_PIN_REWARD.quantity,
+            )
+            emitGeoRewarded({
+              userId,
+              geoScreenshotCandidateId,
+              items: [FIRST_PIN_REWARD],
+            })
+          } catch (e) {
+            log.warn({ err: String(e), userId }, 'failed to grant first-pin reward')
+          }
+        }
+
         // Enqueue consensus evaluation; the worker itself decides (based on
         // threshold gates) whether this pin count warrants a full pass.
         try {

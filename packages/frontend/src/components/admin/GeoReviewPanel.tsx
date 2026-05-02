@@ -1046,7 +1046,11 @@ function CandidateDetailBody({
                     <span className="text-xs text-muted-foreground">
                         {pin
                             ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
-                            : t('admin.geo.pickPointForOfficial')}
+                            : t(
+                                  detail.pins.length === 0
+                                      ? 'admin.geo.pickPointRequired'
+                                      : 'admin.geo.pickPointForOfficial',
+                              )}
                     </span>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button
@@ -1062,7 +1066,7 @@ function CandidateDetailBody({
                         <Button
                             size="sm"
                             onClick={() => void onPromote()}
-                            disabled={saving}
+                            disabled={saving || (!pin && detail.pins.length === 0)}
                             className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
                         >
                             {saving && (

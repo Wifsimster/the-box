@@ -787,6 +787,7 @@
       "emptyQueue": "No submissions match this filter.",
       "pickSubmission": "Pick a submission",
       "pickPointForOfficial": "Click to set a location, or validate without a pin to use the average of submissions",
+      "pickPointRequired": "No submissions to average — click the map to set a location.",
       "detailHintOfficial": "Pick a submission from the list to review it and set its official location.",
       "alreadyOfficial": "Official location already set — remove it to re-pin somewhere else.",
       "submissionRow": {
