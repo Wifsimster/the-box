@@ -25,6 +25,16 @@ const GAMES_TTL_MS = 5 * 60 * 1000
 // screenshot after hundreds of rounds is acceptable, while letting the
 // list grow unbounded would balloon both storage and the request body.
 const MAX_PLAYED_PER_GAME = 1000
+// Cap on the in-memory history stack used by the prev/next buttons.
+// Older entries roll off the front so the player can always step back
+// through their recent rounds without us holding every view forever.
+const MAX_HISTORY = 50
+
+interface HistoryEntry {
+    gameId: number
+    mapId: number | null
+    view: GeoFreePlayView
+}
 
 interface GeoFreePlayState {
     // Catalog
@@ -56,12 +66,23 @@ interface GeoFreePlayState {
     // They're hidden from completion math so the all-time "done" message
     // can fire even if the catalog has games the player will never touch.
     ignoredGameIds: number[]
+    // In-memory navigation history (current session only). Each entry is
+    // a fully-restorable round so prev/next can step through screenshots
+    // the player has already seen — including across game switches.
+    history: HistoryEntry[]
+    historyIndex: number
 
     // Actions
     loadGames(force?: boolean): Promise<void>
     selectGame(gameId: number): Promise<void>
     selectMap(mapId: number | null): Promise<void>
     rerollScreenshot(): Promise<void>
+    // Pick a brand-new screenshot from a random non-ignored game in the
+    // catalog. Avoids re-rolling onto the current game when alternatives
+    // exist so the button feels like it actually shuffled.
+    pickRandomAcrossGames(): Promise<void>
+    goPrevious(): void
+    goNext(): Promise<void>
     setPendingGuess(p: GeoPoint | null): void
     submitGuess(): Promise<GeoFreePlayResult | null>
     nextRound(): Promise<void>
@@ -91,6 +112,8 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             round: 0,
             playedByGame: {},
             ignoredGameIds: [],
+            history: [],
+            historyIndex: -1,
 
             async loadGames(force) {
                 const { gamesFetchedAt } = get()
@@ -170,6 +193,19 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                         excludeMetaIds:
                             excludeMetaIds.length > 0 ? excludeMetaIds : undefined,
                     })
+                    // Branch the history at the current cursor (drop any
+                    // forward entries) and append this new view so prev/next
+                    // walks the user's actual recent path.
+                    const { history, historyIndex } = get()
+                    const truncated = history.slice(0, historyIndex + 1)
+                    const nextHistory = [
+                        ...truncated,
+                        {
+                            gameId: currentGameId,
+                            mapId: currentMapId,
+                            view,
+                        },
+                    ].slice(-MAX_HISTORY)
                     set({
                         view,
                         maps: view.maps,
@@ -178,6 +214,8 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                         // preference was set, keep it.
                         phase: 'ready',
                         round: get().round + 1,
+                        history: nextHistory,
+                        historyIndex: nextHistory.length - 1,
                     })
                 } catch (err) {
                     // The server returns ALL_PLAYED when the exclusion
@@ -191,6 +229,80 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                         errorCode: code,
                     })
                 }
+            },
+
+            async pickRandomAcrossGames() {
+                // Make sure the catalog is hydrated; cold-start this is
+                // the first thing a fresh visitor would tap.
+                if (get().games.length === 0) {
+                    await get().loadGames()
+                }
+                const { games, ignoredGameIds, currentGameId } = get()
+                const ignored = new Set(ignoredGameIds)
+                const candidates = games.filter(
+                    (g) => !ignored.has(g.id) && g.screenshotCount > 0,
+                )
+                if (candidates.length === 0) return
+                // Avoid landing back on the same game when there's an
+                // alternative — otherwise the shuffle feels broken on
+                // small catalogs.
+                const pool =
+                    candidates.length > 1 && currentGameId != null
+                        ? candidates.filter((g) => g.id !== currentGameId)
+                        : candidates
+                const pick = pool[Math.floor(Math.random() * pool.length)]
+                if (!pick) return
+                await get().selectGame(pick.id)
+            },
+
+            goPrevious() {
+                const { history, historyIndex } = get()
+                if (historyIndex <= 0) return
+                const newIndex = historyIndex - 1
+                const entry = history[newIndex]
+                if (!entry) return
+                set({
+                    historyIndex: newIndex,
+                    currentGameId: entry.gameId,
+                    currentMapId: entry.mapId,
+                    maps: entry.view.maps,
+                    view: entry.view,
+                    pendingGuess: null,
+                    result: null,
+                    correctMap: null,
+                    phase: 'ready',
+                    errorMessage: null,
+                    errorCode: null,
+                    round: get().round + 1,
+                })
+            },
+
+            async goNext() {
+                const { history, historyIndex } = get()
+                // Step forward through history if there's a stored entry…
+                if (historyIndex < history.length - 1) {
+                    const newIndex = historyIndex + 1
+                    const entry = history[newIndex]
+                    if (entry) {
+                        set({
+                            historyIndex: newIndex,
+                            currentGameId: entry.gameId,
+                            currentMapId: entry.mapId,
+                            maps: entry.view.maps,
+                            view: entry.view,
+                            pendingGuess: null,
+                            result: null,
+                            correctMap: null,
+                            phase: 'ready',
+                            errorMessage: null,
+                            errorCode: null,
+                            round: get().round + 1,
+                        })
+                        return
+                    }
+                }
+                // …otherwise fetch a fresh screenshot in the current game.
+                await get().rerollScreenshot()
             },
 
             setPendingGuess(p) {
@@ -274,6 +386,8 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     phase: 'idle',
                     errorMessage: null,
                     errorCode: null,
+                    history: [],
+                    historyIndex: -1,
                 })
             },
         }),

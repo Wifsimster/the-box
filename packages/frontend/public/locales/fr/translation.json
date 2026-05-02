@@ -1638,6 +1638,9 @@
       "submit": "Placer l'épingle",
       "next": "Suivant",
       "reroll": "Nouvelle capture",
+      "shuffleAllGames": "Jeu aléatoire",
+      "previous": "Capture précédente",
+      "nextScreenshot": "Capture suivante",
       "tabs": {
         "screenshot": "Photo",
         "map": "Carte"

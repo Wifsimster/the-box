@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import {
     ArrowLeft,
     ArrowRight,
+    ChevronLeft,
+    ChevronRight,
     EyeOff,
     Gamepad2,
     Loader2,
@@ -52,10 +54,15 @@ export default function GeoPlayPage() {
         round,
         playedByGame,
         ignoredGameIds,
+        history,
+        historyIndex,
         loadGames,
         selectGame,
         selectMap,
         rerollScreenshot,
+        pickRandomAcrossGames,
+        goPrevious,
+        goNext,
         setPendingGuess,
         submitGuess,
         nextRound,
@@ -213,9 +220,15 @@ export default function GeoPlayPage() {
                         showMapButton={isMultiMap || currentGameId == null}
                         onChangeGame={() => setGamePickerOpen(true)}
                         onChangeMap={() => setMapPickerOpen(true)}
-                        onReroll={() => void rerollScreenshot()}
+                        onShuffleAllGames={() => void pickRandomAcrossGames()}
+                        onPrevious={goPrevious}
+                        onNext={() => void goNext()}
+                        canGoPrevious={historyIndex > 0}
+                        canGoNext={
+                            historyIndex < history.length - 1 || currentGameId != null
+                        }
                         onSubmit={handleSubmit}
-                        onNext={() => void nextRound()}
+                        onNextRound={() => void nextRound()}
                         canSubmit={canSubmit}
                         phase={phase}
                     />
@@ -498,9 +511,13 @@ function Dock({
     showMapButton,
     onChangeGame,
     onChangeMap,
-    onReroll,
-    onSubmit,
+    onShuffleAllGames,
+    onPrevious,
     onNext,
+    canGoPrevious,
+    canGoNext,
+    onSubmit,
+    onNextRound,
     canSubmit,
     phase,
 }: {
@@ -509,16 +526,20 @@ function Dock({
     showMapButton: boolean
     onChangeGame: () => void
     onChangeMap: () => void
-    onReroll: () => void
-    onSubmit: () => void
+    onShuffleAllGames: () => void
+    onPrevious: () => void
     onNext: () => void
+    canGoPrevious: boolean
+    canGoNext: boolean
+    onSubmit: () => void
+    onNextRound: () => void
     canSubmit: boolean
     phase: ReturnType<typeof useGeoFreePlayStore.getState>['phase']
 }) {
     const { t } = useTranslation()
     const submitting = phase === 'submitting'
     const revealed = phase === 'revealed'
-    const exhausted = phase === 'exhausted'
+    const loading = phase === 'loading'
     return (
         <div className="flex flex-col gap-2">
             {/* Context row — game / map labels with quick-change links.
@@ -549,19 +570,44 @@ function Dock({
                 )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
                     type="button"
                     variant="ghost"
-                    onClick={onReroll}
+                    size="icon"
+                    onClick={onPrevious}
                     className="text-white/80 hover:text-white"
-                    disabled={submitting || exhausted || gameLabel == null}
-                    aria-label={t('geo.play.reroll', 'New screenshot')}
+                    disabled={!canGoPrevious || submitting || loading}
+                    aria-label={t('geo.play.previous', 'Previous screenshot')}
+                    title={t('geo.play.previous', 'Previous screenshot')}
                 >
-                    <Shuffle className="h-4 w-4 mr-1.5" aria-hidden />
+                    <ChevronLeft className="h-5 w-5" aria-hidden />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onShuffleAllGames}
+                    className="text-white/80 hover:text-white"
+                    disabled={submitting || loading}
+                    aria-label={t('geo.play.shuffleAllGames', 'Random game')}
+                    title={t('geo.play.shuffleAllGames', 'Random game')}
+                >
+                    <Shuffle className="h-4 w-4 sm:mr-1.5" aria-hidden />
                     <span className="hidden sm:inline">
-                        {t('geo.play.reroll', 'New screenshot')}
+                        {t('geo.play.shuffleAllGames', 'Random game')}
                     </span>
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onNext}
+                    className="text-white/80 hover:text-white"
+                    disabled={!canGoNext || submitting || loading}
+                    aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
+                    title={t('geo.play.nextScreenshot', 'Next screenshot')}
+                >
+                    <ChevronRight className="h-5 w-5" aria-hidden />
                 </Button>
 
                 <div className="flex-1" />
@@ -569,7 +615,7 @@ function Dock({
                 {revealed ? (
                     <Button
                         type="button"
-                        onClick={onNext}
+                        onClick={onNextRound}
                         className="gradient-gaming hover:opacity-90 min-h-11 min-w-32"
                     >
                         {t('geo.play.next', 'Next round')}
