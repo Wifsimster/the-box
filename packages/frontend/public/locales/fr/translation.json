@@ -632,7 +632,18 @@
           "importWandTooltip": "Collez une URL de carte wand.com — le serveur extrait son og:image et l'enregistre comme carte de ce jeu.",
           "viewCaptures_one": "Voir les captures ({{count}})",
           "viewCaptures_other": "Voir les captures ({{count}})",
-          "viewCapturesTooltip": "Ouvrir l'onglet Propositions filtré sur les captures de ce jeu."
+          "viewCapturesTooltip": "Ouvrir l'onglet Propositions filtré sur les captures de ce jeu.",
+          "uncurate": "Retirer du Géo",
+          "uncurateTooltip": "Retirer ce jeu de la sélection Géo. Il ne sera plus proposé dans les défis quotidiens. Vous pouvez le réactiver depuis l'onglet Jeux."
+        },
+        "uncurate": {
+          "success": "« {{name}} » retiré de la sélection Géo.",
+          "dialog": {
+            "title": "Retirer ce jeu du Géo ?",
+            "description": "« {{name}} » ne sera plus proposé dans les défis Géo quotidiens. Les cartes et captures existantes sont conservées et le jeu peut être réactivé depuis l'onglet Jeux.",
+            "cancel": "Annuler",
+            "confirm": "Retirer du Géo"
+          }
         },
         "loading": "Chargement des jeux…",
         "sidePanel": {

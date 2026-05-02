@@ -632,7 +632,18 @@
           "importWandTooltip": "Paste a wand.com map URL — the server will scrape its og:image and record it as the map for this game.",
           "viewCaptures_one": "View captures ({{count}})",
           "viewCaptures_other": "View captures ({{count}})",
-          "viewCapturesTooltip": "Open the Submissions tab filtered to this game's captures."
+          "viewCapturesTooltip": "Open the Submissions tab filtered to this game's captures.",
+          "uncurate": "Remove from Geo",
+          "uncurateTooltip": "Drop this game from the Geo selection. It won't appear in daily challenges anymore. You can re-enable it from the Games tab."
+        },
+        "uncurate": {
+          "success": "Removed \"{{name}}\" from the Geo selection.",
+          "dialog": {
+            "title": "Remove this game from Geo?",
+            "description": "\"{{name}}\" will stop appearing in daily Geo challenges. Existing maps and captures are kept; the game can be re-enabled from the Games tab.",
+            "cancel": "Cancel",
+            "confirm": "Remove from Geo"
+          }
         },
         "loading": "Loading games…",
         "sidePanel": {

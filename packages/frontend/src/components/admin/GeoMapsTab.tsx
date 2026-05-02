@@ -32,6 +32,14 @@ import { GeoWandMapDialog } from './GeoWandMapDialog'
 import { GeoResearchAssistantDialog } from './GeoResearchAssistantDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import {
     isGameInFlight,
     tiersInFlightForGame,
     type GeoRunStatePayload,
@@ -174,6 +182,8 @@ export function GeoMapsTab({
     const [researchFor, setResearchFor] = useState<CuratedGame | null>(null)
     const [resetOpen, setResetOpen] = useState(false)
     const [resetting, setResetting] = useState(false)
+    const [uncurateFor, setUncurateFor] = useState<CuratedGame | null>(null)
+    const [uncurating, setUncurating] = useState(false)
     const [runningAll, setRunningAll] = useState(false)
     const [runningGameId, setRunningGameId] = useState<number | null>(null)
     const [retryingTier, setRetryingTier] = useState<string | null>(null)
@@ -430,6 +440,33 @@ export function GeoMapsTab({
         }
     }
 
+    // Drop a game from the curated set straight from the Maps panel so an
+    // operator who notices a wrong pick (low quality, no map) can retire it
+    // without switching to the Games sub-tab. Backend flips `geo_curated`
+    // off; the row falls out of the curated list on the next reload.
+    const handleUncurate = async (game: CuratedGame) => {
+        setUncurating(true)
+        setMessage(null)
+        setError(null)
+        try {
+            await fetchJson('/api/admin/geo/curated', {
+                method: 'POST',
+                body: JSON.stringify({ gameId: game.id, curated: false }),
+            })
+            setMessage(t('admin.geo.maps.uncurate.success', { name: game.name }))
+            setUncurateFor(null)
+            if (selectedId === game.id) {
+                setSelectedId(null)
+                setSources(null)
+            }
+            await reload()
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setUncurating(false)
+        }
+    }
+
     const handleResetScraping = async () => {
         setResetting(true)
         setMessage(null)
@@ -631,6 +668,7 @@ export function GeoMapsTab({
                         onResearch={setResearchFor}
                         onWandImport={setWandImportFor}
                         onManualUpload={setManualUploadFor}
+                        onUncurate={setUncurateFor}
                         onViewCaptures={onViewCaptures}
                         t={t}
                     />
@@ -699,6 +737,7 @@ export function GeoMapsTab({
                             onResearch={setResearchFor}
                             onWandImport={setWandImportFor}
                             onManualUpload={setManualUploadFor}
+                            onUncurate={setUncurateFor}
                             onViewCaptures={onViewCaptures}
                             t={t}
                         />
@@ -784,6 +823,43 @@ export function GeoMapsTab({
             onConfirm={handleResetScraping}
             isLoading={resetting}
         />
+
+        <Dialog
+            open={uncurateFor !== null}
+            onOpenChange={(open) => !uncurating && !open && setUncurateFor(null)}
+        >
+            <DialogContent className="max-w-sm sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>
+                        {t('admin.geo.maps.uncurate.dialog.title')}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t('admin.geo.maps.uncurate.dialog.description', {
+                            name: uncurateFor?.name ?? '',
+                        })}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setUncurateFor(null)}
+                        disabled={uncurating}
+                    >
+                        {t('admin.geo.maps.uncurate.dialog.cancel')}
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => uncurateFor && void handleUncurate(uncurateFor)}
+                        disabled={uncurating}
+                    >
+                        {uncurating && (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                        )}
+                        {t('admin.geo.maps.uncurate.dialog.confirm')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         </div>
     )
 }
@@ -852,6 +928,7 @@ interface SidePanelBodyProps {
     onResearch: (game: CuratedGame) => void
     onWandImport: (game: CuratedGame) => void
     onManualUpload: (game: CuratedGame) => void
+    onUncurate: (game: CuratedGame) => void
     onViewCaptures?: (gameId: number, gameName: string) => void
     t: ReturnType<typeof useTranslation>['t']
 }
@@ -877,6 +954,7 @@ function SidePanelBody({
     onResearch,
     onWandImport,
     onManualUpload,
+    onUncurate,
     onViewCaptures,
     t,
 }: SidePanelBodyProps) {
@@ -1019,6 +1097,16 @@ function SidePanelBody({
                     })}
                 </Button>
             )}
+            <Button
+                size="sm"
+                variant="ghost"
+                className="w-full justify-center text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onUncurate(selectedGame)}
+                title={t('admin.geo.maps.actions.uncurateTooltip')}
+            >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                {t('admin.geo.maps.actions.uncurate')}
+            </Button>
         </>
     )
 }
