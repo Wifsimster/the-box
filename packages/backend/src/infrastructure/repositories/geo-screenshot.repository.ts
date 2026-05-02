@@ -104,7 +104,20 @@ export const geoScreenshotRepository = {
       .onConflict(['source', 'external_id'])
       .ignore()
       .returning<GeoScreenshotCandidateRow[]>('*')
-    return mapCandidate(row!)
+    if (row) return mapCandidate(row)
+
+    // Conflict path: the unique (source, external_id) row already exists.
+    // Re-fetch instead of dereferencing `row!` (which would crash here).
+    const existing = await db('geo_screenshot_candidate')
+      .where({ source: data.source, external_id: data.externalId ?? null })
+      .first<GeoScreenshotCandidateRow>()
+    if (!existing) {
+      // The row was inserted-then-deleted between INSERT and SELECT, or
+      // the unique constraint shape changed. Treat as a real failure
+      // rather than silently returning empty data.
+      throw new Error('createCandidate: insert ignored but no existing row')
+    }
+    return mapCandidate(existing)
   },
 
   async findCandidateByContentHash(

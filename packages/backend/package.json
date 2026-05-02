@@ -21,7 +21,8 @@
     "fetch:steam-download": "tsx src/tools/steam-screenshot-fetcher.ts download",
     "fetch:steam-all": "tsx src/tools/steam-screenshot-fetcher.ts all --screenshots-per-game 5",
     "e2e:seed": "tsx scripts/e2e-seed.ts",
-    "stripe:check": "tsx scripts/stripe-check.ts"
+    "stripe:check": "tsx scripts/stripe-check.ts",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@the-box/types": "*",

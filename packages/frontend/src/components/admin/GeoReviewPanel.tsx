@@ -39,6 +39,7 @@ import { geoFetchApi } from '@/lib/api/geo-fetch'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { getApiErrorMessage } from '@/lib/api-errors'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
     GeoCandidateGameSummary,
@@ -239,7 +240,7 @@ export function GeoReviewPanel() {
         if (gameId !== undefined) {
             fetchCandidates({ status, gameId })
                 .then((rows) => !cancelled && setCandidates(rows))
-                .catch((e) => !cancelled && setError(String(e)))
+                .catch((e) => !cancelled && setError(getApiErrorMessage(e)))
                 .finally(() => !cancelled && setLoading(false))
         } else {
             fetchGameSummaries({ status })
@@ -251,7 +252,7 @@ export function GeoReviewPanel() {
                     // doesn't carry stale rows from a previous drill-down.
                     setCandidates([])
                 })
-                .catch((e) => !cancelled && setError(String(e)))
+                .catch((e) => !cancelled && setError(getApiErrorMessage(e)))
                 .finally(() => !cancelled && setLoading(false))
         }
         return () => {
@@ -266,7 +267,7 @@ export function GeoReviewPanel() {
             const d = await fetchCandidateDetail(id)
             setDetail(d)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         }
     }
 
@@ -314,7 +315,7 @@ export function GeoReviewPanel() {
                 if (rows.length === 0 && gameFilter) setGameFilter(null)
             }
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setSaving(false)
         }
@@ -342,7 +343,7 @@ export function GeoReviewPanel() {
             await geoFetchApi.retry(gameFilter.gameId)
             setFetchMoreNotice(t('admin.geo.fetchMoreQueued'))
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setFetchingMore(false)
         }
@@ -373,7 +374,7 @@ export function GeoReviewPanel() {
                 if (rows.length === 0 && gameFilter) setGameFilter(null)
             }
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setSaving(false)
         }
@@ -391,7 +392,7 @@ export function GeoReviewPanel() {
             setPin(null)
             setDemoteOpen(false)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setSaving(false)
         }

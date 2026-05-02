@@ -28,9 +28,17 @@ export interface GeoConsensusJobResult {
 /**
  * Per-candidate consensus routine. Enqueued each time a pin is submitted;
  * cheap to no-op when the candidate is below a threshold.
+ *
+ * `pinCountAtEnqueue` is the post-increment value captured by the producer
+ * (see `geo.routes.ts /contribute/pin`). It is the gate's source of truth:
+ * without it, two near-simultaneous pins (A then B) can both step PAST the
+ * same threshold (e.g. 9 → 10 → 11) and the worker re-reads pin_count = 11
+ * for both, never evaluating at the threshold. Using the per-pin captured
+ * value guarantees exactly one pin sees each threshold.
  */
 export async function evaluateConsensusForCandidate(
   geoScreenshotCandidateId: number,
+  options: { pinCountAtEnqueue?: number } = {},
 ): Promise<GeoConsensusJobResult> {
   log.info({ candidateId: geoScreenshotCandidateId }, 'evaluating consensus')
 
@@ -61,10 +69,13 @@ export async function evaluateConsensusForCandidate(
     }
   }
 
-  // Only run at configured thresholds. This keeps the flywheel amortized
-  // and prevents noisy single-pin re-evaluations.
+  // Threshold gate. Use the captured at-enqueue value when available so two
+  // pins arriving in quick succession can't both skip the same threshold.
+  // Fall back to the (possibly racy) re-read for back-compat with jobs
+  // queued before this field shipped.
   const thresholds = GEO_CONSENSUS_THRESHOLDS as readonly number[]
-  if (!thresholds.includes(candidate.pinCount)) {
+  const gateCount = options.pinCountAtEnqueue ?? candidate.pinCount
+  if (!thresholds.includes(gateCount)) {
     return {
       evaluated: false,
       candidateId: geoScreenshotCandidateId,
@@ -73,7 +84,7 @@ export async function evaluateConsensusForCandidate(
       rejected: 0,
       promoted: false,
       rewardedUsers: 0,
-      skipReason: `pin count ${candidate.pinCount} not at threshold`,
+      skipReason: `pin count ${gateCount} not at threshold`,
     }
   }
 

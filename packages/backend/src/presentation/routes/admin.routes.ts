@@ -4,6 +4,7 @@ import { adminService, jobService } from '../../domain/services/index.js'
 import { billingService } from '../../domain/services/billing.service.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
+import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
 import {
   startBatchImport,
   pauseImport,
@@ -2440,31 +2441,36 @@ router.post('/geo/reimport', async (req, res, next) => {
     const gameId = parse.data.gameId
     // Aggressive variant of /geo/run/:gameId — wipes every per-tier failure
     // tombstone AND the resolved metadata so the resolver+tick re-run from
-    // scratch. The lighter /geo/run/:gameId path leaves tombstones in place.
-    await Promise.all([
-      geoIngestFailureRepository.clear(gameId, 'registry'),
-      geoIngestFailureRepository.clear(gameId, 'fandom'),
-      geoIngestFailureRepository.clear(gameId, 'strategywiki'),
-      geoIngestFailureRepository.clear(gameId, 'fextralife'),
-      geoIngestFailureRepository.clear(gameId, 'wikidata'),
-      geoIngestFailureRepository.clear(gameId, 'steam'),
-      geoIngestFailureRepository.clear(gameId, 'metadata'),
-    ])
-    await db('games')
-      .where({ id: gameId })
-      .update({
-        geo_metadata_status: 'pending',
-        wiki_subdomain: null,
-        wiki_page_title: null,
-        steam_app_id: null,
-        wikidata_qid: null,
-      })
+    // scratch. Wrapped in a transaction so a crash mid-flight can't leave
+    // half the tombstones cleared and the metadata still resolved.
+    // Single round trip per source (whereIn-grouped) instead of 7 deletes.
+    await db.transaction(async (trx) => {
+      await trx('geo_ingest_failure')
+        .where({ game_id: gameId })
+        .whereIn('source', [
+          'registry',
+          'fandom',
+          'strategywiki',
+          'fextralife',
+          'wikidata',
+          'steam',
+          'metadata',
+        ])
+        .del()
+      await trx('games')
+        .where({ id: gameId })
+        .update({
+          geo_metadata_status: 'pending',
+          wiki_subdomain: null,
+          wiki_page_title: null,
+          steam_app_id: null,
+          wikidata_qid: null,
+        })
+    })
 
-    // Run the full pipeline (resolve → tick) right away instead of
-    // depending on the recurring tick to pick the row back up. Stable
-    // jobIds so a double-click collapses to one execution; the resolver
-    // is gameId-scoped here for fast feedback. Hyphens (not colons) —
-    // BullMQ 5.x rejects 2-part colon-separated jobIds.
+    // Enqueue jobs AFTER the transaction commits so the orchestrator can
+    // observe the cleared state and a transaction rollback can't leak a
+    // job that races against a stale view.
     const resolveJob = await geoQueue.add(
       'resolve-metadata',
       { kind: 'resolve-metadata', batchSize: 1, gameId },
@@ -2475,6 +2481,11 @@ router.post('/geo/reimport', async (req, res, next) => {
       { kind: 'ingest-tick', batchSize: 1, gameId },
       { jobId: `manual-tick-${gameId}` },
     )
+    await recordAdminGeoAudit(req, {
+      action: 'geo.reimport',
+      target: { kind: 'game', id: gameId },
+      after: { resolveJobId: resolveJob.id, tickJobId: tickJob.id },
+    })
     res.json({
       success: true,
       data: { resolveJobId: resolveJob.id, tickJobId: tickJob.id },
@@ -2727,10 +2738,19 @@ router.delete('/geo/meta/:id', async (req, res, next) => {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
         return
       }
+      await recordAdminGeoAudit(req, {
+        action: 'geo.meta.delete',
+        target: { kind: 'geo-screenshot-meta', id },
+        after: { candidateId: result.candidateId },
+      })
       res.json({ success: true, data: result })
     } catch (dbErr) {
-      const msg = String(dbErr)
-      if (msg.includes('foreign key') || msg.includes('violates')) {
+      // Match Postgres' foreign_key_violation SQLSTATE rather than parsing
+      // the message — driver locale / pg version changes won't break the
+      // 409 path. Knex surfaces the code as `error.code` with the original
+      // pg error preserved.
+      const code = (dbErr as { code?: string } | null)?.code
+      if (code === '23503') {
         res.status(409).json({
           success: false,
           error: {
@@ -2791,14 +2811,16 @@ router.post('/geo/maps/manual', async (req, res, next) => {
       return
     }
 
-    // Multi-map mode: a game can have many enabled maps. The legacy
-    // `replaceActive` body flag now means "enable this new map after
-    // creating it"; without it, the row is created disabled and the
-    // admin enables it from the Cartes panel. This intentionally stops
-    // throwing MAP_EXISTS — that 409 is what blocked operators from
-    // adding a second region in the first place.
+    // Multi-map mode: a game can have many enabled maps. `replaceActive`
+    // means "enable this new map after creating it" — without it the row
+    // lands disabled and the admin enables from the Cartes panel.
     const enableImmediately = !!data.replaceActive
 
+    // create() opens its own transaction internally; running the
+    // tombstone clears in a SECOND transaction is fine because they're
+    // independently idempotent (the create + enable is the only
+    // multi-step write that needs atomicity, and create() handles that).
+    // Single whereIn delete instead of 6 round-trips.
     const map = await geoMapRepository.create({
       gameId: data.gameId,
       source: 'manual',
@@ -2814,23 +2836,32 @@ router.post('/geo/maps/manual', async (req, res, next) => {
     })
 
     if (enableImmediately) {
-      // create() already inserts is_active=true, but enableForGame also
-      // promotes to capture-default when the game had no enabled siblings.
       await geoMapRepository.enableForGame(data.gameId, map.id)
     }
 
-    // Also clear all ingest tombstones for this game — manual upload is the
-    // operator saying "I've solved this", so the auto-pipeline shouldn't keep
-    // re-tombstoning it.
-    await Promise.all([
-      geoIngestFailureRepository.clear(data.gameId, 'registry'),
-      geoIngestFailureRepository.clear(data.gameId, 'fandom'),
-      geoIngestFailureRepository.clear(data.gameId, 'strategywiki'),
-      geoIngestFailureRepository.clear(data.gameId, 'fextralife'),
-      geoIngestFailureRepository.clear(data.gameId, 'wand'),
-      geoIngestFailureRepository.clear(data.gameId, 'wikidata'),
-    ])
+    await db('geo_ingest_failure')
+      .where({ game_id: data.gameId })
+      .whereIn('source', [
+        'registry',
+        'fandom',
+        'strategywiki',
+        'fextralife',
+        'wand',
+        'wikidata',
+      ])
+      .del()
 
+    await recordAdminGeoAudit(req, {
+      action: 'geo.maps.manual',
+      target: { kind: 'geo-map', id: map.id },
+      after: {
+        gameId: data.gameId,
+        source: 'manual',
+        sourceUrl: data.sourceUrl,
+        license: data.license,
+        enableImmediately,
+      },
+    })
     res.json({ success: true, data: map })
   } catch (err) {
     next(err)
@@ -2942,25 +2973,53 @@ router.get('/screenshot-reports', async (req, res, next) => {
 // Body: { screenshotId } | { geoScreenshotCandidateId } — exactly one.
 // Drops the existing reports so a single 3-report wave doesn't immediately
 // re-trip the threshold; the audit log still has the request via Pino.
+// Zod-validated discriminated union: exactly one of screenshotId /
+// geoScreenshotCandidateId must be present, both as positive integers.
+// Without Zod, raw `Boolean(undefined) === Boolean(0)` was true, so a
+// caller could legally send `screenshotId: 0` and skip the type coercion.
+const reactivateBodySchema = z
+  .union([
+    z.object({
+      screenshotId: z.number().int().positive(),
+      geoScreenshotCandidateId: z.undefined().optional(),
+    }),
+    z.object({
+      screenshotId: z.undefined().optional(),
+      geoScreenshotCandidateId: z.number().int().positive(),
+    }),
+  ])
+  .refine(
+    (data) => Boolean(data.screenshotId) !== Boolean(data.geoScreenshotCandidateId),
+    { message: 'exactly one of screenshotId or geoScreenshotCandidateId is required' },
+  )
+
 router.post('/screenshot-reports/reactivate', async (req, res, next) => {
   try {
-    const { screenshotId, geoScreenshotCandidateId } = req.body as {
-      screenshotId?: number
-      geoScreenshotCandidateId?: number
-    }
-    if (Boolean(screenshotId) === Boolean(geoScreenshotCandidateId)) {
+    const parse = reactivateBodySchema.safeParse(req.body)
+    if (!parse.success) {
       res.status(400).json({
         success: false,
         error: {
-          code: 'INVALID_BODY',
-          message: 'exactly one of screenshotId or geoScreenshotCandidateId is required',
+          code: 'VALIDATION_ERROR',
+          message:
+            parse.error.issues[0]?.message ??
+            'exactly one of screenshotId or geoScreenshotCandidateId is required',
         },
       })
       return
     }
+    const { screenshotId, geoScreenshotCandidateId } = parse.data
     const result = await screenshotReportRepository.reactivate({
       screenshotId,
       geoScreenshotCandidateId,
+    })
+    await recordAdminGeoAudit(req, {
+      action: 'screenshot-report.reactivate',
+      target: {
+        kind: screenshotId ? 'screenshot' : 'geo-screenshot-candidate',
+        id: screenshotId ?? geoScreenshotCandidateId,
+      },
+      after: result,
     })
     res.json({ success: true, data: result })
   } catch (err) {
@@ -3094,8 +3153,32 @@ router.post('/users/:userId/revoke-supporter', async (req, res, next) => {
   }
 })
 
+// Destructive nuke that wipes every piece of scraping progress. Requires the
+// caller to send `{ confirm: 'RESET' }` so a stray click / CSRF can't silently
+// blow away the whole geo dataset. Audit-logged before the destructive work so
+// the trail survives even if the transaction crashes mid-flight.
+const scrapingResetBodySchema = z.object({
+  confirm: z.literal('RESET'),
+})
+
 router.post('/scraping/reset', async (req, res, next) => {
   try {
+    const parse = scrapingResetBodySchema.safeParse(req.body)
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'CONFIRMATION_REQUIRED',
+          message: "send { confirm: 'RESET' } to perform this destructive operation",
+        },
+      })
+      return
+    }
+
+    routeLogger.warn(
+      { adminId: req.userId },
+      'admin requested scraping/reset',
+    )
     const result = await db.transaction(async (trx) => {
       const importStates = await trx('import_states').delete()
       const ingestFailures = await trx('geo_ingest_failure').delete()
@@ -3115,6 +3198,11 @@ router.post('/scraping/reset', async (req, res, next) => {
       return { importStates, ingestFailures, challenges, maps }
     })
 
+    await recordAdminGeoAudit(req, {
+      action: 'scraping.reset',
+      target: { kind: 'global' },
+      after: result,
+    })
     routeLogger.warn(
       { adminId: req.userId, ...result },
       'admin reset scraping state from zero',

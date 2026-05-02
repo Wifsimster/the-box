@@ -84,19 +84,35 @@ export const geoPinRepository = {
       })
   },
 
-  async countByUserInWindow(userId: string, intervalSql: string): Promise<number> {
+  // Counts pin submissions inside the last `windowSeconds`. The window is a
+  // bound numeric parameter (no string interpolation) so this helper can't be
+  // turned into a SQL-injection seam by a future caller. Window is clamped
+  // to a positive integer to keep the SQL plan honest.
+  async countByUserInWindow(userId: string, windowSeconds: number): Promise<number> {
+    const seconds = Math.max(1, Math.floor(windowSeconds))
     const result = await db('geo_pin_submission')
       .where({ user_id: userId })
-      .where('created_at', '>=', db.raw(`NOW() - INTERVAL '${intervalSql}'`))
+      .where(
+        'created_at',
+        '>=',
+        db.raw(`NOW() - make_interval(secs => ?)`, [seconds]),
+      )
       .count<{ count: string }[]>('id as count')
       .first()
     return Number(result?.count ?? 0)
   },
 
   async userRejectionRatio7d(userId: string): Promise<{ submitted: number; rejected: number }> {
+    // 7 days = 604800 seconds, expressed as a bound parameter for the same
+    // reason as countByUserInWindow.
+    const sevenDaysSeconds = 7 * 24 * 60 * 60
     const rows = await db('geo_pin_submission')
       .where({ user_id: userId })
-      .where('created_at', '>=', db.raw(`NOW() - INTERVAL '7 days'`))
+      .where(
+        'created_at',
+        '>=',
+        db.raw(`NOW() - make_interval(secs => ?)`, [sevenDaysSeconds]),
+      )
       .select<Array<{ status: GeoPinStatus; count: string }>>(
         'status',
         db.raw('COUNT(*) as count'),

@@ -55,9 +55,38 @@ export function useGeoHealth(intervalMs = 30_000) {
     }, [])
 
     useEffect(() => {
-        void reload()
-        const id = window.setInterval(() => void reload(), intervalMs)
-        return () => window.clearInterval(id)
+        // Pause the 30s health poll when the tab is hidden — without this
+        // an admin who leaves the panel in a background tab keeps a slow
+        // drumbeat against /admin/geo/health forever.
+        let id: number | null = null
+        const start = () => {
+            if (id != null) return
+            void reload()
+            id = window.setInterval(() => void reload(), intervalMs)
+        }
+        const stop = () => {
+            if (id != null) {
+                window.clearInterval(id)
+                id = null
+            }
+        }
+        const onVis = () => {
+            if (typeof document === 'undefined') return
+            if (document.visibilityState === 'hidden') stop()
+            else start()
+        }
+        if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
+            start()
+        }
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', onVis)
+        }
+        return () => {
+            stop()
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', onVis)
+            }
+        }
     }, [reload, intervalMs])
 
     return { data, loading, error, reload }

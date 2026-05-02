@@ -81,7 +81,16 @@ export const geoPipelineStateRepository = {
   }): Promise<MapPipelineState> {
     log.debug({ gameId: input.gameId, stage: input.currentStage }, 'upsert')
 
-    // ON CONFLICT update is the cleanest way to keep this idempotent.
+    // Distinguish "field not provided" from "explicit null". Without this,
+    // calling upsert({ gameId, currentStage: 'queued' }) would clobber a
+    // previously-set `next_eligible_at` cooldown (and `active_source`) to
+    // NULL. We send a sentinel "keep existing" flag for each clear-only
+    // field so the SQL can branch.
+    const clearActiveSource = input.activeSource === null
+    const setActiveSource = input.activeSource ?? null
+    const clearNextEligibleAt = input.nextEligibleAt === null
+    const setNextEligibleAt = input.nextEligibleAt ?? null
+
     const result = await db.raw<{ rows: Row[] }>(
       `
       INSERT INTO geo_game_pipeline_state (
@@ -92,7 +101,11 @@ export const geoPipelineStateRepository = {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
       ON CONFLICT (game_id) DO UPDATE SET
         current_stage = COALESCE(EXCLUDED.current_stage, geo_game_pipeline_state.current_stage),
-        active_source = EXCLUDED.active_source,
+        -- Only overwrite active_source when the caller explicitly passed
+        -- one (including null to clear it). Undefined leaves it alone.
+        active_source = CASE WHEN ?::boolean THEN EXCLUDED.active_source
+                             WHEN EXCLUDED.active_source IS NOT NULL THEN EXCLUDED.active_source
+                             ELSE geo_game_pipeline_state.active_source END,
         next_source_idx = COALESCE(EXCLUDED.next_source_idx, geo_game_pipeline_state.next_source_idx),
         attempts_total = geo_game_pipeline_state.attempts_total + ?,
         zones_total = COALESCE(EXCLUDED.zones_total, geo_game_pipeline_state.zones_total),
@@ -100,14 +113,18 @@ export const geoPipelineStateRepository = {
         zones_selected = COALESCE(EXCLUDED.zones_selected, geo_game_pipeline_state.zones_selected),
         needs_curation = COALESCE(EXCLUDED.needs_curation, geo_game_pipeline_state.needs_curation),
         last_attempt_at = COALESCE(EXCLUDED.last_attempt_at, geo_game_pipeline_state.last_attempt_at),
-        next_eligible_at = EXCLUDED.next_eligible_at,
+        -- Same treatment for cooldown timestamp: undefined keeps existing,
+        -- null clears, a real Date overwrites.
+        next_eligible_at = CASE WHEN ?::boolean THEN EXCLUDED.next_eligible_at
+                                WHEN EXCLUDED.next_eligible_at IS NOT NULL THEN EXCLUDED.next_eligible_at
+                                ELSE geo_game_pipeline_state.next_eligible_at END,
         updated_at = NOW()
       RETURNING *
       `,
       [
         input.gameId,
         input.currentStage ?? 'queued',
-        input.activeSource ?? null,
+        setActiveSource,
         input.nextSourceIdx ?? 0,
         input.attemptsDelta ?? 0,
         input.zonesTotal ?? 0,
@@ -115,8 +132,10 @@ export const geoPipelineStateRepository = {
         input.zonesSelected ?? 0,
         input.needsCuration ?? false,
         input.lastAttemptAt ?? null,
-        input.nextEligibleAt ?? null,
+        setNextEligibleAt,
+        clearActiveSource,
         input.attemptsDelta ?? 0,
+        clearNextEligibleAt,
       ],
     )
     const row = result.rows[0]!

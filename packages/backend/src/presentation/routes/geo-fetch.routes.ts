@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
+import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
@@ -67,7 +68,10 @@ const listQuerySchema = z.object({
 router.get('/games', async (req, res, next) => {
   try {
     const q = listQuerySchema.parse(req.query)
-    let query = db('geo_game_pipeline_state as s')
+    // The page query and the count query share the same WHERE filters.
+    // Inline both rather than threading a generic helper through Knex'
+    // builder types (which fight any wrapper that's structurally typed).
+    let pageQuery = db('geo_game_pipeline_state as s')
       .leftJoin('games as g', 'g.id', 's.game_id')
       .select(
         's.game_id',
@@ -83,13 +87,34 @@ router.get('/games', async (req, res, next) => {
         'g.name',
         'g.slug',
       )
-    if (q.stage) query = query.where('s.current_stage', q.stage)
-    if (q.search) query = query.where('g.name', 'ilike', `%${q.search}%`)
-    const rows = await query
-      .orderBy('s.updated_at', 'desc')
-      .limit(q.limit)
-      .offset(q.offset)
-    res.json({ success: true, data: { games: rows, limit: q.limit, offset: q.offset } })
+    let countQuery = db('geo_game_pipeline_state as s').leftJoin(
+      'games as g',
+      'g.id',
+      's.game_id',
+    )
+    if (q.stage) {
+      pageQuery = pageQuery.where('s.current_stage', q.stage)
+      countQuery = countQuery.where('s.current_stage', q.stage)
+    }
+    if (q.search) {
+      pageQuery = pageQuery.where('g.name', 'ilike', `%${q.search}%`)
+      countQuery = countQuery.where('g.name', 'ilike', `%${q.search}%`)
+    }
+    const [rows, totalRow] = await Promise.all([
+      pageQuery.orderBy('s.updated_at', 'desc').limit(q.limit).offset(q.offset),
+      countQuery.count<{ count: string }[]>('* as count').first(),
+    ])
+    const total = Number(totalRow?.count ?? 0)
+    res.json({
+      success: true,
+      data: {
+        games: rows,
+        limit: q.limit,
+        offset: q.offset,
+        total,
+        hasMore: q.offset + rows.length < total,
+      },
+    })
   } catch (err) {
     next(err)
   }
@@ -97,8 +122,14 @@ router.get('/games', async (req, res, next) => {
 
 // === Start / cancel ===================================================
 
+// Hard cap on `start({ all: true })`. BullMQ stalls and the pipeline
+// state table thrashes if we drop tens of thousands of jobs in one click;
+// 1000 is enough to sweep our entire curated catalog today and gives a
+// human-scale upper bound for the future.
+const GEO_FETCH_MAX_START_GAMES = 1000
+
 const startSchema = z.object({
-  gameIds: z.array(z.number().int().positive()).optional(),
+  gameIds: z.array(z.number().int().positive()).max(GEO_FETCH_MAX_START_GAMES).optional(),
   // When true, enqueue every curated game that's not already ready.
   all: z.boolean().optional(),
 })
@@ -107,12 +138,20 @@ router.post('/start', async (req, res, next) => {
   try {
     const body = startSchema.parse(req.body)
     let gameIds = body.gameIds ?? []
+    let truncated = false
     if (body.all) {
       const rows = await db('games')
         .where('geo_curated', true)
         .where('geo_metadata_status', 'resolved')
         .select<Array<{ id: number }>>('id')
       gameIds = rows.map((r) => r.id)
+      // Truncate rather than reject: an admin clicking "Lancer tout" wants
+      // the run to start, not a 400. Surface the truncation in the response
+      // so the UI can show the clamp.
+      if (gameIds.length > GEO_FETCH_MAX_START_GAMES) {
+        gameIds = gameIds.slice(0, GEO_FETCH_MAX_START_GAMES)
+        truncated = true
+      }
     }
     if (gameIds.length === 0) {
       res.status(400).json({ success: false, error: { code: 'NO_GAMES', message: 'no games to start' } })
@@ -134,25 +173,60 @@ router.post('/start', async (req, res, next) => {
       )
     }
     emitGeoFetchStarted({ totalGames: gameIds.length })
-    log.info({ totalGames: gameIds.length }, 'geo-fetch started')
-    res.json({ success: true, data: { totalGames: gameIds.length } })
+    log.info(
+      { totalGames: gameIds.length, truncated, adminId: req.userId },
+      'geo-fetch started',
+    )
+    await recordAdminGeoAudit(req, {
+      action: 'geo-fetch.start',
+      target: { kind: 'global' },
+      after: { totalGames: gameIds.length, truncated, all: !!body.all },
+    })
+    res.json({
+      success: true,
+      data: { totalGames: gameIds.length, truncated, cap: GEO_FETCH_MAX_START_GAMES },
+    })
   } catch (err) {
     next(err)
   }
 })
 
-// Drain everything in flight: remove waiting/delayed jobs in geo-jobs that
-// belong to the maps:* family. Active jobs run to completion (BullMQ doesn't
-// kill them mid-flight) but no new ones get scheduled.
-router.post('/cancel', async (_req, res, next) => {
+// Drain only the maps:* jobs from the geo queue. Without the kind filter,
+// `clean()` would also blow away unrelated jobs (consensus evaluation,
+// contributor tier promotion) that happen to be waiting/delayed at the same
+// moment — those are user-initiated and must not be silently dropped.
+router.post('/cancel', async (req, res, next) => {
   try {
-    const removed = await geoQueue.clean(0, 1_000_000, 'wait')
-    const removedDelayed = await geoQueue.clean(0, 1_000_000, 'delayed')
+    const isMapsJob = (job: { name?: string }) =>
+      typeof job.name === 'string' && job.name.startsWith('maps:')
+
+    // Get a snapshot of waiting + delayed map jobs and remove them
+    // individually. clean() with the 'wait'/'delayed' status would drop
+    // every job in those buckets; iterating gives us per-job filter.
+    const [waiting, delayed] = await Promise.all([
+      geoQueue.getWaiting(0, 10_000),
+      geoQueue.getDelayed(0, 10_000),
+    ])
+    const targets = [...waiting, ...delayed].filter(isMapsJob)
+    let removed = 0
+    for (const job of targets) {
+      try {
+        await job.remove()
+        removed++
+      } catch {
+        // Job could've started in between snapshot and removal — skip.
+      }
+    }
     log.warn(
-      { wait: removed.length, delayed: removedDelayed.length },
-      'geo-fetch cancelled',
+      { mapsJobsRemoved: removed, totalSnapshot: targets.length, adminId: req.userId },
+      'geo-fetch cancelled (scoped to maps:* only)',
     )
-    res.json({ success: true, data: { removed: removed.length + removedDelayed.length } })
+    await recordAdminGeoAudit(req, {
+      action: 'geo-fetch.cancel',
+      target: { kind: 'global' },
+      after: { mapsJobsRemoved: removed },
+    })
+    res.json({ success: true, data: { removed } })
   } catch (err) {
     next(err)
   }
