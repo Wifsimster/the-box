@@ -1633,10 +1633,12 @@
           "none": "Aucune carte jouable pour ce jeu."
         }
       },
+      "newBadge": "+{{count}} nouvelles",
+      "newCaptures": "{{count}} nouvelles captures à deviner",
       "exhausted": {
         "title": "Vous avez vu toutes les captures",
-        "body": "Bravo ! Vous avez deviné toutes les captures disponibles pour ce jeu. Réinitialisez l'historique pour rejouer celles déjà vues.",
-        "reset": "Réinitialiser l'historique"
+        "body": "Bravo ! Vous avez deviné toutes les captures disponibles pour ce jeu. Nous vous préviendrons quand de nouvelles seront ajoutées.",
+        "checkForNew": "Vérifier les nouvelles captures"
       }
     },
     "fullscreen": {

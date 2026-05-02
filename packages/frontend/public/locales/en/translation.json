@@ -1633,10 +1633,12 @@
           "none": "No playable maps for this game yet."
         }
       },
+      "newBadge": "+{{count}} new",
+      "newCaptures": "{{count}} new screenshots to guess",
       "exhausted": {
         "title": "You've seen every screenshot",
-        "body": "Nice run! You've guessed every available screenshot for this game. Reset the history to replay the ones you've already seen.",
-        "reset": "Reset history"
+        "body": "Nice run! You've guessed every available screenshot for this game. We'll let you know when new ones are added.",
+        "checkForNew": "Check for new screenshots"
       }
     },
     "fullscreen": {

@@ -61,7 +61,10 @@ interface GeoFreePlayState {
     setPendingGuess(p: GeoPoint | null): void
     submitGuess(): Promise<GeoFreePlayResult | null>
     nextRound(): Promise<void>
-    resetPlayedHistory(): Promise<void>
+    // Force-refresh the catalog and try to roll again. Used from the
+    // exhausted state so a player who's seen everything can pull in
+    // newly-promoted screenshots without a full page reload.
+    checkForNewScreenshots(): Promise<void>
     reset(): void
 }
 
@@ -236,12 +239,12 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 await get().rerollScreenshot()
             },
 
-            async resetPlayedHistory() {
-                const { currentGameId } = get()
-                if (currentGameId == null) return
-                const next = { ...get().playedByGame }
-                delete next[currentGameId]
-                set({ playedByGame: next })
+            async checkForNewScreenshots() {
+                // Force-refresh the catalog so screenshotCount badges
+                // reflect newly-promoted captures, then try to roll
+                // again — succeeds iff there's now at least one
+                // unplayed meta for the current game.
+                await get().loadGames(true)
                 await get().rerollScreenshot()
             },
 
