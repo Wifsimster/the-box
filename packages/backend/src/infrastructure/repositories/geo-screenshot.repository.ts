@@ -197,8 +197,11 @@ export const geoScreenshotRepository = {
     return Number(result?.count ?? 0)
   },
 
-  async pickRandomPromotedForGame(gameId: number): Promise<GeoScreenshotMeta | null> {
-    const row = await db('geo_screenshot_meta')
+  async pickRandomPromotedForGame(
+    gameId: number,
+    geoMapId?: number,
+  ): Promise<GeoScreenshotMeta | null> {
+    const q = db('geo_screenshot_meta')
       .join(
         'geo_screenshot_candidate',
         'geo_screenshot_meta.geo_screenshot_candidate_id',
@@ -208,8 +211,57 @@ export const geoScreenshotRepository = {
       .where('geo_screenshot_candidate.is_active', true)
       .orderByRaw('RANDOM()')
       .select<GeoScreenshotMetaRow>('geo_screenshot_meta.*')
-      .first()
+    if (geoMapId !== undefined) {
+      q.where('geo_screenshot_meta.geo_map_id', geoMapId)
+    }
+    const row = await q.first()
     return row ? mapMeta(row) : null
+  },
+
+  // Catalog of games that the free-play browser can offer: any game whose
+  // catalogue contains at least one promoted (consensus-confirmed) screenshot
+  // on an active candidate. Returned with the count of enabled maps and the
+  // count of playable screenshots so the picker can render badges without an
+  // N+1. Ordered by recent activity (most promoted-screenshots first) so the
+  // list feels alive.
+  async listPlayableGames(): Promise<
+    Array<{
+      id: number
+      name: string
+      coverImageUrl: string | null
+      mapCount: number
+      screenshotCount: number
+    }>
+  > {
+    const rows = await db('games as g')
+      .join('geo_screenshot_candidate as gsc', 'gsc.game_id', 'g.id')
+      .join('geo_screenshot_meta as gsm', 'gsm.geo_screenshot_candidate_id', 'gsc.id')
+      .where('gsc.is_active', true)
+      .groupBy('g.id', 'g.name', 'g.cover_image_url')
+      .orderByRaw('COUNT(DISTINCT gsm.id) DESC')
+      .orderBy('g.name', 'asc')
+      .select<
+        Array<{
+          id: number
+          name: string
+          cover_image_url: string | null
+          screenshot_count: string
+          map_count: string
+        }>
+      >(
+        'g.id',
+        'g.name',
+        'g.cover_image_url',
+        db.raw('COUNT(DISTINCT gsm.id) as screenshot_count'),
+        db.raw('COUNT(DISTINCT gsm.geo_map_id) as map_count'),
+      )
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      coverImageUrl: r.cover_image_url,
+      mapCount: Number(r.map_count ?? 0),
+      screenshotCount: Number(r.screenshot_count ?? 0),
+    }))
   },
 
   async listCandidatesForReview(args: {

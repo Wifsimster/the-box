@@ -4,9 +4,12 @@ import type {
     GeoContributorStats,
     GeoContributorTier,
     GeoContributorTierThreshold,
+    GeoFreePlayResult,
+    GeoFreePlayView,
     GeoGuessResult,
     GeoLeaderboardEntry,
     GeoMap,
+    GeoPlayableGame,
     GeoPoint,
     GeoScreenshotCandidate,
     GeoScreenshotMeta,
@@ -143,5 +146,36 @@ export const geoApi = {
 
     getContributorMe(): Promise<GeoContributorMe> {
         return request<GeoContributorMe>('/api/geo/contributor/me')
+    },
+
+    // ---- Free-play (unranked, all-games-all-maps browser) ----
+
+    listPlayableGames(): Promise<GeoPlayableGame[]> {
+        return request<GeoPlayableGame[]>('/api/geo/games')
+    },
+
+    listGameMaps(gameId: number): Promise<GeoMap[]> {
+        return request<GeoMap[]>(`/api/geo/games/${gameId}/maps`)
+    },
+
+    pickFreePlay(input: {
+        gameId: number
+        geoMapId?: number
+    }): Promise<GeoFreePlayView> {
+        return request<GeoFreePlayView>('/api/geo/free-play/random', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        })
+    },
+
+    submitFreePlayGuess(input: {
+        metaId: number
+        geoMapId: number
+        guess: GeoPoint
+    }): Promise<GeoFreePlayResult> {
+        return request<GeoFreePlayResult>('/api/geo/free-play/guess', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        })
     },
 }

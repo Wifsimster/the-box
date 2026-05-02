@@ -59,6 +59,35 @@ export interface GeoDailyChallengeView {
   hasGuessed: boolean
 }
 
+// Free-play view: any game, any enabled map, no daily-challenge gating, no
+// leaderboard side effects. The chooser surface gets the full list of enabled
+// maps for the game; the canonical map id is held back until after the guess
+// (same DevTools-cheat protection as the daily flow).
+export interface GeoFreePlayView {
+  game: { id: number; name: string }
+  meta: GeoScreenshotMeta
+  candidate: GeoScreenshotCandidate
+  maps: GeoMap[]
+  // The map the screenshot canonically belongs to. Only populated AFTER the
+  // player has submitted a free-play guess (i.e. it's never returned by the
+  // pick endpoint). Reuses the same shape as `GeoDailyChallengeView.map`.
+  map?: GeoMap
+}
+
+// Pure-scoring result for free-play. Same shape as `GeoGuessResult` minus the
+// fields that only make sense in a leaderboard context (averageScore /
+// playerCount). Free-play never writes to daily/monthly aggregates, so those
+// stats would always be empty — we omit them rather than ship zeros.
+export interface GeoFreePlayResult {
+  guess: GeoPoint
+  canonical: GeoPoint
+  distance: number
+  score: number
+  scoreVersion: number
+  correctMapId: number
+  wrongMap: boolean
+}
+
 export interface GeoGameService {
   getDailyChallenge(args: {
     date: string
@@ -90,6 +119,19 @@ export interface GeoGameService {
     gameId: number
     userId: string
   }): Promise<GeoScreenshotCandidate>
+
+  // ---- Free-play (unranked, all-games-all-maps browser) ----
+
+  pickFreePlayScreenshot(args: {
+    gameId: number
+    geoMapId?: number
+  }): Promise<GeoFreePlayView | null>
+
+  scoreFreePlayGuess(args: {
+    metaId: number
+    geoMapId: number
+    guess: GeoPoint
+  }): Promise<GeoFreePlayResult>
 }
 
 export interface GeoGameServiceDeps {
@@ -355,6 +397,97 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
 
     getLeaderboardMonthly(period, limit) {
       return geoChallengeRepository.topMonthly(period, limit)
+    },
+
+    // Free-play view hydration: pick a random promoted screenshot for the
+    // (game, map) pair, surface every enabled map for the chooser, and
+    // never write anything. Returns null when the game has no promoted
+    // screenshots yet (the UI should show an empty state).
+    async pickFreePlayScreenshot({ gameId, geoMapId }) {
+      const enabledMaps = await geoMapRepository.listEnabledByGameId(gameId)
+      if (enabledMaps.length === 0) return null
+      // Validate the optional geoMapId belongs to the game's enabled set —
+      // otherwise an attacker could probe arbitrary map ids by way of a
+      // foreign-game request.
+      if (geoMapId != null && !enabledMaps.some((m) => m.id === geoMapId)) {
+        throw new GeoGameError(
+          'geoMapId does not belong to the requested game',
+          'INVALID_MAP',
+        )
+      }
+      const meta = await geoScreenshotRepository.pickRandomPromotedForGame(
+        gameId,
+        geoMapId,
+      )
+      if (!meta) return null
+      const candidate = await geoScreenshotRepository.findCandidateById(
+        meta.geoScreenshotCandidateId,
+      )
+      if (!candidate) return null
+      // Refuse to serve placeholder seed data — same guard as the daily flow.
+      if (
+        isPlaceholderImageUrl(candidate.imageUrl) ||
+        enabledMaps.every((m) => isPlaceholderImageUrl(m.imageUrl))
+      ) {
+        return null
+      }
+      // Look up the game's display name from the existing maps query
+      // result chain — we already know the game id; a lightweight join
+      // would need a port. Keep it simple: callers that want the name
+      // can join client-side with the games list.
+      return {
+        game: { id: gameId, name: '' },
+        meta,
+        candidate,
+        maps: enabledMaps,
+        // map: omitted — only the score endpoint reveals the canonical.
+      }
+    },
+
+    // Pure scoring + canonical reveal for free-play. No leaderboard writes,
+    // no socket emits, no upserts. Reuses `geoScoringService.score()` so the
+    // formula stays in lockstep with daily.
+    async scoreFreePlayGuess({ metaId, geoMapId, guess }) {
+      if (!validPoint(guess)) {
+        throw new GeoGameError('guess must have x and y in [0..1]', 'INVALID_POINT')
+      }
+      const meta = await geoScreenshotRepository.findMetaById(metaId)
+      if (!meta) {
+        throw new GeoGameError('meta not found', 'CHALLENGE_NOT_FOUND')
+      }
+      const candidate = await geoScreenshotRepository.findCandidateById(
+        meta.geoScreenshotCandidateId,
+      )
+      if (!candidate) {
+        throw new GeoGameError('candidate not found', 'CHALLENGE_NOT_FOUND')
+      }
+      // The picked map must be one of the game's currently-enabled maps —
+      // OR the canonical map (which may have been disabled mid-session,
+      // same fallback as the daily flow so the player isn't punished by
+      // an admin's flip).
+      const enabledMaps = await geoMapRepository.listEnabledByGameId(candidate.gameId)
+      const isEnabled = enabledMaps.some((m) => m.id === geoMapId)
+      if (!isEnabled && geoMapId !== meta.geoMapId) {
+        throw new GeoGameError(
+          'geoMapId does not belong to the screenshot game',
+          'INVALID_MAP',
+        )
+      }
+      const wrongMap = geoMapId !== meta.geoMapId
+      const { distance, score, scoreVersion } = geoScoringService.score(
+        guess,
+        meta.canonical,
+        { wrongMap },
+      )
+      return {
+        guess,
+        canonical: meta.canonical,
+        distance,
+        score,
+        scoreVersion,
+        correctMapId: meta.geoMapId,
+        wrongMap,
+      }
     },
 
     async pickContributionTarget({ gameId, userId }) {

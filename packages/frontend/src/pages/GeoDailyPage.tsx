@@ -9,7 +9,7 @@ import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History, SkipForward, ArrowRight } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Trophy, Hourglass, History, SkipForward, ArrowRight, Compass } from 'lucide-react'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { Link } from 'react-router-dom'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -17,6 +17,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 export default function GeoDailyPage() {
     const { t, i18n } = useTranslation()
     const { data: session } = useSession()
+    const { localizedPath } = useLocalizedPath()
     const {
         phase,
         challenge,
@@ -79,10 +80,23 @@ export default function GeoDailyPage() {
         <>
             <CubeBackground />
             <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6 relative z-10">
-                <header className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
-                        {t('geo.daily.title', 'Geo Challenge')}
-                    </h1>
+                <header className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
+                            {t('geo.daily.title', 'Geo Challenge')}
+                        </h1>
+                        <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="border-neon-pink/40 hover:border-neon-pink"
+                        >
+                            <Link to={localizedPath('/geo/play')}>
+                                <Compass className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                                {t('geo.daily.freePlayCta', 'Free play any game')}
+                            </Link>
+                        </Button>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                         {t(
                             'geo.daily.subtitle',
