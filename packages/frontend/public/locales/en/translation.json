@@ -538,6 +538,7 @@
       "subtitle": "Curate the Geo daily challenge: import sources, schedule challenges, and review crowdsourced submissions.",
       "tabs": {
         "queue": "Review queue",
+        "acquisition": "Acquisition",
         "reports": "Reports",
         "catalog": "Catalog"
       },
@@ -579,7 +580,7 @@
         },
         "no-maps": {
           "title": "No maps imported yet",
-          "body": "Your curated games don't have an active map yet. Click \"Run all\" on the Maps tab to start the ingestion pipeline, then schedule a challenge once at least one map is ready."
+          "body": "Your curated games don't have an active map yet. Open the \"Acquisition\" sub-tab to start the ingestion pipeline, then schedule a challenge once at least one map is ready."
         }
       },
       "games": {
@@ -628,6 +629,8 @@
         "title": "Maps per game",
         "subtitle": "Click a game to see which ingestion tiers ran or would run next.",
         "refresh": "Refresh",
+        "goToAcquisition": "Acquisition",
+        "goToAcquisitionTooltip": "Open the ingestion pipeline to start or monitor map runs.",
         "empty": "No curated games yet. Add some from the curated list in the Submissions tab.",
         "reimportQueued": "Re-run pipeline queued for \"{{name}}\".",
         "row": {

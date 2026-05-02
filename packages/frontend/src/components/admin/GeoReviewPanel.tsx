@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,12 +30,14 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
+    Workflow,
 } from 'lucide-react'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
 import { GeoGamesTab } from './GeoGamesTab'
 import { ModerationStatusRail } from './ModerationStatusRail'
 import { ReportsModerationPanel } from './ReportsModerationPanel'
+import GeoFetchPanel from './geo-fetch/GeoFetchPanel'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -146,15 +149,30 @@ async function rejectCandidate(id: number): Promise<void> {
     }
 }
 
+type GeoSubTab = 'queue' | 'acquisition' | 'reports' | 'catalog'
+const SUB_TABS: GeoSubTab[] = ['queue', 'acquisition', 'reports', 'catalog']
+
 export function GeoReviewPanel() {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    // Two top-level destinations: the moderation queue (the daily job) and
-    // the catalog of reference data (maps + games). The previous Pins / Maps
-    // / Games triple split by entity, which is the engineer's mental model,
-    // not the moderator's. `catalogView` tracks which catalog sub-section is
-    // open so the segmented control stays in sync without a third tab.
-    const [activeTab, setActiveTab] = useState<'queue' | 'reports' | 'catalog'>('queue')
+    // Sub-tab state lives in the URL (`?sub=…`) so AdminPage's redirect
+    // map can deep-link `?tab=geoFetch` straight into Acquisition and so
+    // the moderator's tab choice survives a refresh.
+    const [searchParams, setSearchParams] = useSearchParams()
+    const subFromUrl = searchParams.get('sub')
+    const activeTab: GeoSubTab =
+        subFromUrl && (SUB_TABS as string[]).includes(subFromUrl)
+            ? (subFromUrl as GeoSubTab)
+            : 'queue'
+    const setActiveTab = useCallback(
+        (next: GeoSubTab) => {
+            const params = new URLSearchParams(searchParams)
+            if (next === 'queue') params.delete('sub')
+            else params.set('sub', next)
+            setSearchParams(params, { replace: true })
+        },
+        [searchParams, setSearchParams],
+    )
     const [catalogView, setCatalogView] = useState<'maps' | 'games'>('maps')
     // Default to the only status that needs the moderator's attention. The
     // other statuses are still reachable via the chip row, but the page
@@ -366,13 +384,17 @@ export function GeoReviewPanel() {
 
             <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as 'queue' | 'reports' | 'catalog')}
+                onValueChange={(v) => setActiveTab(v as GeoSubTab)}
                 className="space-y-4"
             >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
                     <TabsTrigger value="queue" className="gap-1.5 shrink-0">
                         <ListChecks className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.queue')}
+                    </TabsTrigger>
+                    <TabsTrigger value="acquisition" className="gap-1.5 shrink-0">
+                        <Workflow className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.acquisition')}
                     </TabsTrigger>
                     <TabsTrigger value="reports" className="gap-1.5 shrink-0">
                         <Flag className="h-3.5 w-3.5" />
@@ -383,6 +405,16 @@ export function GeoReviewPanel() {
                         {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="acquisition" className="space-y-4">
+                    {/* Folded the standalone "Cartes" admin tab in here so
+                        ingestion controls live next door to the moderation
+                        queue and the catalog they feed. The previous tab
+                        duplicated triggers already exposed in
+                        Catalogue › Cartes; the IA now keeps a single
+                        ingestion entry-point. */}
+                    <GeoFetchPanel />
+                </TabsContent>
 
                 <TabsContent value="reports" className="space-y-4">
                     <ReportsModerationPanel />
@@ -427,6 +459,7 @@ export function GeoReviewPanel() {
                             runError={runError}
                             armRunPolling={armRunPolling}
                             onViewCaptures={viewCapturesForGame}
+                            onGoToAcquisition={() => setActiveTab('acquisition')}
                         />
                     ) : (
                         <GeoGamesTab />

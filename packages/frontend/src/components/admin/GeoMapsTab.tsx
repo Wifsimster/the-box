@@ -17,12 +17,12 @@ import {
     CheckCircle2,
     XCircle,
     AlertTriangle,
+    ArrowUpRight,
     Clock,
     MinusCircle,
     Sparkles,
     Trash2,
     Play,
-    Zap,
     Search,
     RefreshCcw,
     ListChecks,
@@ -158,6 +158,13 @@ interface GeoMapsTabProps {
      * because tab state and the candidate list filter live there.
      */
     onViewCaptures?: (gameId: number, gameName: string) => void
+    /**
+     * Deep-link out of the Catalog into the Acquisition sub-tab. Replaces
+     * the bulk "Tout lancer" + per-row ▶ controls that used to live here
+     * and duplicated the Acquisition entry-point — the Catalog stays a
+     * read-and-curate surface; ingestion is run from one place.
+     */
+    onGoToAcquisition?: () => void
 }
 
 export function GeoMapsTab({
@@ -165,6 +172,7 @@ export function GeoMapsTab({
     runError,
     armRunPolling,
     onViewCaptures,
+    onGoToAcquisition,
 }: GeoMapsTabProps) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
@@ -186,8 +194,6 @@ export function GeoMapsTab({
     const [resetting, setResetting] = useState(false)
     const [uncurateFor, setUncurateFor] = useState<CuratedGame | null>(null)
     const [uncurating, setUncurating] = useState(false)
-    const [runningAll, setRunningAll] = useState(false)
-    const [runningGameId, setRunningGameId] = useState<number | null>(null)
     const [retryingTier, setRetryingTier] = useState<string | null>(null)
     const [runningTier, setRunningTier] = useState<string | null>(null)
     const [activatingMapId, setActivatingMapId] = useState<number | null>(null)
@@ -280,36 +286,6 @@ export function GeoMapsTab({
         }
         wasActiveRef.current = active
     }, [runState?.isActive, reload, reloadSources, selectedId])
-
-    const handleRunAll = async () => {
-        setRunningAll(true)
-        setMessage(null)
-        setError(null)
-        try {
-            await fetchJson('/api/admin/geo/run', { method: 'POST' })
-            setMessage(t('admin.geo.run.allQueued'))
-            armRunPolling()
-        } catch (e) {
-            setError(String(e))
-        } finally {
-            setRunningAll(false)
-        }
-    }
-
-    const handleRunGame = async (game: CuratedGame) => {
-        setRunningGameId(game.id)
-        setMessage(null)
-        setError(null)
-        try {
-            await fetchJson(`/api/admin/geo/run/${game.id}`, { method: 'POST' })
-            setMessage(t('admin.geo.run.gameQueued', { name: game.name }))
-            armRunPolling()
-        } catch (e) {
-            setError(String(e))
-        } finally {
-            setRunningGameId(null)
-        }
-    }
 
     const handleRetryTier = async (gameId: number, tier: string) => {
         setRetryingTier(tier)
@@ -506,23 +482,18 @@ export function GeoMapsTab({
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-1">
-                            <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => void handleRunAll()}
-                                disabled={runningAll || runState?.isActive}
-                                className="h-7 gap-1.5 text-xs"
-                                title={t('admin.geo.run.allTooltip')}
-                            >
-                                {runningAll || runState?.isActive ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                    <Zap className="h-3.5 w-3.5" />
-                                )}
-                                {runState?.isActive
-                                    ? t('admin.geo.run.running')
-                                    : t('admin.geo.run.allCta')}
-                            </Button>
+                            {onGoToAcquisition && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={onGoToAcquisition}
+                                    className="h-7 gap-1.5 text-xs"
+                                    title={t('admin.geo.maps.goToAcquisitionTooltip')}
+                                >
+                                    <ArrowUpRight className="h-3.5 w-3.5" />
+                                    {t('admin.geo.maps.goToAcquisition')}
+                                </Button>
+                            )}
                             <Button
                                 size="sm"
                                 variant="ghost"
@@ -571,7 +542,6 @@ export function GeoMapsTab({
                         <ul className="divide-y divide-border/40">
                             {games.map((g) => {
                                 const inflight = isGameInFlight(runState, g.id)
-                                const isThisRunning = runningGameId === g.id
                                 return (
                                 <li
                                     key={g.id}
@@ -605,26 +575,6 @@ export function GeoMapsTab({
                                                 </Badge>
                                             )}
                                             <MapStatusBadge game={g} t={t} />
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                disabled={isThisRunning || inflight}
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    void handleRunGame(g)
-                                                }}
-                                                aria-label={t('admin.geo.run.gameAria', {
-                                                    name: g.name,
-                                                })}
-                                                title={t('admin.geo.run.gameTooltip')}
-                                                className="h-6 w-6 p-0"
-                                            >
-                                                {isThisRunning ? (
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                ) : (
-                                                    <Play className="h-3 w-3" />
-                                                )}
-                                            </Button>
                                         </div>
                                     </div>
                                 </li>
