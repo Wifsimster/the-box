@@ -1638,6 +1638,9 @@
       "submit": "Drop pin",
       "next": "Next round",
       "reroll": "New screenshot",
+      "shuffleAllGames": "Random game",
+      "previous": "Previous screenshot",
+      "nextScreenshot": "Next screenshot",
       "tabs": {
         "screenshot": "Photo",
         "map": "Map"
