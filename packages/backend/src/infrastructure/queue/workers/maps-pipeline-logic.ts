@@ -7,6 +7,10 @@ import { geoSourceConfigRepository } from '../../repositories/geo-source-config.
 import { geoPipelineStateRepository } from '../../repositories/geo-pipeline-state.repository.js'
 import { geoQueue, type GeoJobData } from '../queues.js'
 import { getState } from '../../redis/circuit-breaker.js'
+import {
+  emitGeoFetchProgress,
+  emitGeoFetchGameDone,
+} from '../../socket/socket.js'
 
 const log = queueLogger.child({ worker: 'maps-pipeline' })
 
@@ -96,6 +100,11 @@ export async function runMapsPipeline(input: {
     { gameId, source: chosen.source, stage, correlationId },
     'enqueued source child',
   )
+  emitGeoFetchProgress({
+    gameId,
+    source: chosen.source,
+    stage,
+  })
   return { gameId, stage, enqueuedSource: chosen.source }
 }
 
@@ -173,6 +182,13 @@ async function advanceWhenExhausted(
     needsCuration: true,
   })
   await geoPipelineStateRepository.recomputeZoneCounts(gameId)
+  const refreshed = await geoPipelineStateRepository.findByGameId(gameId)
+  emitGeoFetchGameDone({
+    gameId,
+    mapsFound: refreshed?.zonesCovered ?? 0,
+    zonesTotal: refreshed?.zonesTotal ?? 0,
+    finalStage: 'awaiting_curation',
+  })
   log.info({ gameId }, 'pipeline → awaiting_curation')
   return { gameId, stage: 'awaiting_curation' }
 }
