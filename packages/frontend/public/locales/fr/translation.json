@@ -787,6 +787,7 @@
       "emptyQueue": "Aucune proposition ne correspond à ce filtre.",
       "pickSubmission": "Choisir une proposition",
       "pickPointForOfficial": "Cliquez pour fixer un lieu, ou validez sans pin pour utiliser la moyenne des propositions",
+      "pickPointRequired": "Aucune proposition à moyenner — cliquez sur la carte pour fixer un lieu.",
       "detailHintOfficial": "Sélectionnez une proposition dans la liste pour la consulter et fixer son lieu officiel.",
       "alreadyOfficial": "Lieu officiel déjà fixé — retirez-le pour replacer le repère.",
       "submissionRow": {
