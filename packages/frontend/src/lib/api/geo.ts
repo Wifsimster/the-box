@@ -1,18 +1,13 @@
 import type {
-    GeoChallenge,
-    GeoChallengeWithStatus,
     GeoContributorStats,
     GeoContributorTier,
     GeoContributorTierThreshold,
     GeoFreePlayResult,
     GeoFreePlayView,
-    GeoGuessResult,
-    GeoLeaderboardEntry,
     GeoMap,
     GeoPlayableGame,
     GeoPoint,
     GeoScreenshotCandidate,
-    GeoScreenshotMeta,
 } from '@the-box/types'
 
 export class GeoApiError extends Error {
@@ -52,20 +47,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     return json.data
 }
 
-export interface GeoDailyView {
-    challenge: GeoChallenge
-    meta: GeoScreenshotMeta
-    candidate: GeoScreenshotCandidate
-    // Multi-map: every enabled map for the challenge's game. Always at
-    // least one entry; single-map games surface an array of length 1.
-    maps: GeoMap[]
-    // The canonical map. Server only sends this AFTER the player has
-    // guessed — the in-progress payload omits it so DevTools can't leak
-    // the answer.
-    map?: GeoMap
-    hasGuessed: boolean
-}
-
 export interface GeoContributorUnlock {
     daysPlayed: number
     minRequired: number
@@ -80,48 +61,6 @@ export interface GeoContributorMe {
 }
 
 export const geoApi = {
-    getCurrent(): Promise<GeoDailyView> {
-        return request<GeoDailyView>('/api/geo/current')
-    },
-
-    getDaily(date: string): Promise<GeoDailyView> {
-        return request<GeoDailyView>(`/api/geo/daily/${date}`)
-    },
-
-    getHistory(days = 7): Promise<GeoChallengeWithStatus[]> {
-        return request<GeoChallengeWithStatus[]>(`/api/geo/history?days=${days}`)
-    },
-
-    submitGuess(input: {
-        challengeId: number
-        // Map the player picked from the chooser. Optional for single-map
-        // games (server auto-resolves); required by validation when the
-        // game has multiple enabled maps.
-        geoMapId?: number
-        guess: GeoPoint
-        durationMs?: number
-    }): Promise<GeoGuessResult> {
-        return request<GeoGuessResult>('/api/geo/guess', {
-            method: 'POST',
-            body: JSON.stringify(input),
-        })
-    },
-
-    submitSkip(input: { challengeId: number }): Promise<{ skipped: boolean }> {
-        return request<{ skipped: boolean }>('/api/geo/skip', {
-            method: 'POST',
-            body: JSON.stringify(input),
-        })
-    },
-
-    leaderboardDaily(date: string): Promise<GeoLeaderboardEntry[]> {
-        return request<GeoLeaderboardEntry[]>(`/api/geo/leaderboard/${date}`)
-    },
-
-    leaderboardMonthly(period: string): Promise<GeoLeaderboardEntry[]> {
-        return request<GeoLeaderboardEntry[]>(`/api/geo/leaderboard/monthly/${period}`)
-    },
-
     pickContribution(
         gameId: number,
     ): Promise<{ candidate: GeoScreenshotCandidate; map: GeoMap }> {

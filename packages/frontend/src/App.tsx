@@ -38,10 +38,8 @@ const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const GameHistoryDetailsPage = lazy(() => import('@/pages/GameHistoryDetailsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
-const GeoDailyPage = lazy(() => import('@/pages/GeoDailyPage'))
 const GeoPlayPage = lazy(() => import('@/pages/GeoPlayPage'))
 const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
-const GeoLeaderboardPage = lazy(() => import('@/pages/GeoLeaderboardPage'))
 const PricingPage = lazy(() => import('@/pages/PricingPage'))
 
 function LoadingSpinner() {
@@ -104,8 +102,10 @@ function LanguageLayout() {
     return <Navigate to={`/${browserLang}`} replace />
   }
 
-  // Check if current route is fullscreen (play page)
-  const isFullscreen = location.pathname.endsWith('/play')
+  // Check if current route is fullscreen (game / geo play page).
+  const isFullscreen =
+    location.pathname.endsWith('/play') ||
+    /\/geo\/?$/.test(location.pathname)
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -155,10 +155,8 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="u/:username" element={<PublicProfilePage />} />
 
-          <Route path="geo" element={<GeoDailyPage />} />
-          <Route path="geo/daily" element={<GeoDailyPage />} />
+          <Route path="geo" element={<GeoPlayPage />} />
           <Route path="geo/play" element={<GeoPlayPage />} />
-          <Route path="geo/leaderboard" element={<GeoLeaderboardPage />} />
           <Route path="geo/contribute" element={<GeoContributePage />} />
 
           <Route path="premium" element={<PricingPage />} />

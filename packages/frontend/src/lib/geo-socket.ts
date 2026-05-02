@@ -56,10 +56,6 @@ export function connectGeoSocket(userId: string | null | undefined): void {
         s.on('geo:contributor:tier_up', (e: GeoTierUpEvent) => {
             useGeoStore.getState().ingestTierUpEvent(e)
         })
-        s.on('geo:leaderboard:update', (payload: { challengeDate: string }) => {
-            // Refresh the daily board if we happen to be viewing it.
-            useGeoStore.getState().loadLeaderboardDaily(payload.challengeDate).catch(() => {})
-        })
         ;(s as unknown as { _wired?: boolean })._wired = true
     }
 

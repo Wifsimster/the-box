@@ -13,7 +13,7 @@
     "back": "Back",
     "home": "Home",
     "leaderboard": "Leaderboard",
-    "geoDaily": "Geo",
+    "geo": "Geo",
     "alpha": "Alpha",
     "premium": "Premium",
     "settings": "Settings",
@@ -266,14 +266,6 @@
       "dailyDesc": "New puzzle every day. Same challenge worldwide — climb the global leaderboard!",
       "multiplayer": "Multiplayer Mode",
       "multiplayerDesc": "Challenge friends in real-time battles with live scoring"
-    },
-    "geoAlpha": {
-      "badge": "Alpha",
-      "eyebrow": "New: Geo Mode",
-      "title": "Find the spot. Drop the pin.",
-      "subtitle": "Pinpoint where game screenshots are taken on the world map. Elden Ring is live — more worlds rolling out as we go.",
-      "cta": "Play Geo",
-      "secondary": "See the geo leaderboard"
     },
     "premium": {
       "badge": "Premium",
@@ -562,12 +554,6 @@
         "subtoggleLabel": "Catalog sub-section",
         "maps": "Maps",
         "games": "Games"
-      },
-      "readiness": {
-        "ready": "Challenge ready for {{date}}",
-        "notReady": "No challenge scheduled",
-        "notReadyHint": "Run the scheduler to prepare the next daily challenge.",
-        "scheduleAction": "Schedule"
       },
       "strip": {
         "loading": "Loading dataset health…",
@@ -1589,54 +1575,20 @@
   },
   "geo": {
     "daily": {
-      "title": "Geo Challenge",
-      "subtitle": "Pin the exact spot on the map where this screenshot was taken.",
       "screenshot": "Screenshot",
-      "map": "Map",
-      "hint": "Click the map to drop a pin",
-      "submit": "Submit guess",
       "score": "Score",
       "distance": "Distance",
-      "formula": "Formula",
-      "average": "Average",
-      "players": "{{count}} players",
-      "comparisonAria": "Your score vs. average",
-      "skip": {
-        "action": "Skip",
-        "tooltip": "I don't recognize this game",
-        "title": "Skipped",
-        "body": "No score recorded — this challenge won't count toward the leaderboard for you."
-      },
-      "next": {
-        "action": "Next geo guess",
-        "casualNote": "Practice round — won't affect your leaderboard rank.",
-        "exhausted": "You've played every recent geo challenge. Come back tomorrow for a new one.",
-        "viewLeaderboard": "View leaderboard"
-      },
-      "screenshotUnavailable": "Screenshot preview unavailable.",
       "mapUnavailable": "Map unavailable.",
-      "loading": "Loading challenge…",
-      "errors": {
-        "noChallenge": "No geo game is live right now. We're rolling out new ones gradually — check back soon.",
-        "comingSoon": "New game coming soon",
-        "viewHistory": "View past challenges"
-      },
       "chooseMap": {
         "title": "Which map?",
         "hint": "Pick the map this screenshot is on, then drop a pin.",
-        "required": "Pick a map above before dropping a pin.",
         "worldFallback": "World map",
         "correct": "Correct map",
         "incorrect": "Wrong map"
       },
       "wrongMap": {
-        "banner": "Wrong map — score floored.",
-        "chip": "Wrong map"
-      },
-      "reveal": {
-        "correctMap": "Correct map: {{region}}"
-      },
-      "freePlayCta": "Free play any game"
+        "banner": "Wrong map — score floored."
+      }
     },
     "play": {
       "title": "Free play",
@@ -1675,9 +1627,7 @@
           "multi": "This game has several maps. Pick one to start guessing.",
           "none": "No playable maps for this game yet."
         }
-      },
-      "practiceNote": "Practice mode — your score does not affect the leaderboard.",
-      "backToDaily": "Play the ranked daily challenge"
+      }
     },
     "fullscreen": {
       "enter": "Enter fullscreen",
@@ -1699,14 +1649,6 @@
       "recent": "Recent rewards",
       "lockedTitle": "Tagging unlocks after a few daily games.",
       "lockedProgress": "Progress"
-    },
-    "leaderboard": {
-      "title": "Geo Leaderboard",
-      "subtitle": "Ranked independently from the main game.",
-      "daily": "Daily",
-      "monthly": "Monthly",
-      "topPlayers": "Top players",
-      "noEntries": "No entries yet — be the first."
     },
     "profile": {
       "title": "Geo Crowdsourcer",

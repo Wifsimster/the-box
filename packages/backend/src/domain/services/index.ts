@@ -52,7 +52,6 @@ export {
 export {
   createGeoGameService,
   type GeoGameService,
-  type GeoDailyChallengeView,
   GeoGameError,
   GEO_CONTRIBUTE_HOURLY_LIMIT,
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
@@ -101,7 +100,6 @@ import {
   screenshotRepository,
   sessionRepository,
   userRepository,
-  geoChallengeRepository,
   geoContributorRepository,
   geoMapRepository,
   geoPinRepository,
@@ -188,7 +186,6 @@ export const geoRewardService = createGeoRewardService({
 export const geoGameService = createGeoGameService({
   logger: serviceLogger,
   geoScoringService,
-  geoChallengeRepository,
   geoScreenshotRepository,
   geoPinRepository,
   geoMapRepository,

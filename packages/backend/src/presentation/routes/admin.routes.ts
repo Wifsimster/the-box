@@ -38,7 +38,6 @@ import {
   geoScreenshotRepository,
   geoPinRepository,
   geoMapRepository,
-  geoChallengeRepository,
   geoIngestFailureRepository,
   screenshotReportRepository,
   emailLogRepository,
@@ -2639,49 +2638,6 @@ router.get('/geo/run/state', async (_req, res, next) => {
   }
 })
 
-router.post('/geo/schedule', async (_req, res, next) => {
-  // Primary release path during slow rollout: enqueues the scheduler,
-  // which picks a random promoted screenshot, creates today's challenge,
-  // and flips it to `is_current = true` (rotating off the previous one).
-  // Admins call this when they're ready to move on from the current
-  // game; there is intentionally no recurring cron behind it.
-  try {
-    const job = await geoQueue.add('schedule-daily-challenge', {
-      kind: 'schedule-daily-challenge',
-    })
-    res.json({ success: true, data: { jobId: job.id } })
-  } catch (err) {
-    next(err)
-  }
-})
-
-router.post('/geo/challenges/:id/release', async (req, res, next) => {
-  // Manually promote a specific existing challenge to `is_current`.
-  // Useful for re-releasing a past challenge or staging a row created
-  // out-of-band (e.g. seed data) without re-running the random picker.
-  try {
-    const id = Number(req.params.id)
-    if (!Number.isFinite(id) || id <= 0) {
-      res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
-      return
-    }
-
-    const recent = await geoChallengeRepository.listRecent(365)
-    const exists = recent.some((c) => c.id === id)
-    if (!exists) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'CHALLENGE_NOT_FOUND', message: 'challenge not found' },
-      })
-      return
-    }
-
-    await geoChallengeRepository.setCurrent({ challengeId: id, tier: 1 })
-    res.json({ success: true, data: { challengeId: id, isCurrent: true } })
-  } catch (err) {
-    next(err)
-  }
-})
 
 // Demote a canonical meta back to an unlabeled candidate so an admin can
 // re-promote with corrected coordinates. FK RESTRICT on geo_challenge means

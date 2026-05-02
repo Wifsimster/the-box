@@ -2,17 +2,17 @@ import { test, expect } from '@playwright/test'
 import { loginAsUser } from './helpers/game-helpers'
 
 /**
- * E2E tests for the /geo/contribute pin mini-game and /geo/leaderboard.
+ * E2E tests for the /geo/contribute pin mini-game.
  *
  * Skipped gracefully when the geo API is unreachable (older backend) or
  * when there are no unlabeled candidates to tag for the default gameId.
  */
 
 async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {
-    const response = await page.request.get('/api/geo/daily/1970-01-01', {
+    const response = await page.request.get('/api/geo/games', {
         failOnStatusCode: false,
     })
-    return response.status() === 200 || response.status() === 404
+    return response.status() === 200
 }
 
 test.describe('Geo Contribute', () => {
@@ -54,32 +54,5 @@ test.describe('Geo Contribute', () => {
         const thanks = page.getByText(/thanks.*agree|merci.*confirmeront/i)
         const nextMap = page.getByRole('button', { name: /pin location on the map/i })
         await expect(thanks.or(nextMap).first()).toBeVisible({ timeout: 10_000 })
-    })
-})
-
-test.describe('Geo Leaderboard', () => {
-    test.beforeEach(async ({ page }) => {
-        await loginAsUser(page)
-    })
-
-    test('renders daily and monthly tabs', async ({ page }) => {
-        if (!(await geoRoutesAvailable(page))) test.skip(true, 'geo off')
-
-        await page.goto('/en/geo/leaderboard')
-
-        await expect(
-            page.getByRole('heading', { name: /geo leaderboard|classement géo/i }),
-        ).toBeVisible({ timeout: 10_000 })
-
-        const dailyTab = page.getByRole('tab', { name: /daily|journalier/i })
-        const monthlyTab = page.getByRole('tab', { name: /monthly|mensuel/i })
-
-        await expect(dailyTab).toBeVisible()
-        await expect(monthlyTab).toBeVisible()
-
-        await monthlyTab.click()
-        // Either we see at least one row or an empty-state message; both are valid.
-        const anyContent = page.locator('text=/top players|no entries yet|aucune entrée/i').first()
-        await expect(anyContent).toBeVisible({ timeout: 5_000 })
     })
 })

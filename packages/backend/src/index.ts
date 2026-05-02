@@ -470,11 +470,8 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to enqueue referral-announcement-email job')
     }
 
-    // Geo recurring jobs. Daily auto-rotation is intentionally NOT scheduled:
-    // the geo mode is in slow-rollout phase and challenges are released
-    // manually by admins via POST /api/admin/geo/schedule (or the dedicated
-    // release endpoint). Any leftover recurring scheduler from a previous
-    // boot is cleaned up here so a redeploy off the cron actually stops it.
+    // Geo recurring jobs. Sweep stale repeatables from previous boots before
+    // re-registering the metadata-resolve and ingest-tick crons below.
     try {
       const existing = await geoQueue.getRepeatableJobs()
       for (const job of existing) {
