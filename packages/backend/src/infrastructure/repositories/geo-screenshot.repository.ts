@@ -336,7 +336,13 @@ export const geoScreenshotRepository = {
         db.raw(
           `COUNT(*) FILTER (WHERE gsc.status = 'rejected') as rejected_count`,
         ),
-        db.raw('COUNT(*) as total_count'),
+        // Refused captures are soft-deleted (is_active=false) and hidden
+        // from the moderation listing, so the "all" filter count must
+        // exclude them — otherwise a game with only rejected captures
+        // would still show a non-zero badge with nothing to act on.
+        db.raw(
+          'COUNT(*) FILTER (WHERE gsc.is_active = true) as total_count',
+        ),
         db.raw(
           `MIN(CASE WHEN gsc.status = 'pending' THEN gsc.created_at END) as oldest_pending_at`,
         ),
@@ -387,7 +393,17 @@ export const geoScreenshotRepository = {
       .leftJoin('games as g', 'g.id', 'gsc.game_id')
       .orderBy('gsc.pin_count', 'desc')
       .limit(limit)
-    if (status) q.where('gsc.status', status)
+    // Refused captures soft-delete to is_active=false (see rejectCandidate).
+    // Hide them from the moderation listing so the queue, the per-game drill-
+    // down, and the prev/next picker stop re-surfacing a capture the
+    // moderator just refused. An explicit `status='rejected'` request still
+    // returns those rows so audit flows can opt in.
+    if (status === 'rejected') {
+      q.where('gsc.status', 'rejected')
+    } else {
+      q.where('gsc.is_active', true)
+      if (status) q.where('gsc.status', status)
+    }
     if (gameId !== undefined) q.where('gsc.game_id', gameId)
     const rows = await q.select<Array<GeoScreenshotCandidateRow & { game_name: string | null }>>(
       'gsc.*',
