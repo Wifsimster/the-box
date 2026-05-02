@@ -3,8 +3,6 @@ import { persist, devtools } from 'zustand/middleware'
 import type {
   GamePhase,
   GuessResult,
-  PowerUpType,
-  PowerUp,
   TierScreenshot,
   ScreenshotResponse,
   PositionStatus,
@@ -57,10 +55,6 @@ interface GameState {
     lastPlayedDate: string | null
   }
 
-  // Power-ups
-  availablePowerUps: PowerUp[]
-  activePowerUp: PowerUpType | null
-
   // UI state
   gamePhase: GamePhase
   isLoading: boolean
@@ -88,11 +82,6 @@ interface GameState {
 
   // Personal bests actions
   updatePersonalBests: (score: number, percentile?: number) => void
-
-  addPowerUp: (powerUp: PowerUp) => void
-  activatePowerUp: (type: PowerUpType) => void
-  clearActivePowerUp: () => void
-  usePowerUp: (type: PowerUpType) => void
 
   // Position navigation actions
   initializePositionStates: (total: number) => void
@@ -160,8 +149,6 @@ const initialState = {
     currentStreak: 0,
     lastPlayedDate: null,
   },
-  availablePowerUps: [],
-  activePowerUp: null,
   gamePhase: 'idle' as GamePhase,
   isLoading: false,
   lastResult: null,
@@ -245,30 +232,6 @@ export const useGameStore = create<GameState>()(
             },
           }))
         },
-
-        addPowerUp: (powerUp) => set((state) => ({
-          availablePowerUps: [...state.availablePowerUps, powerUp],
-        })),
-
-        activatePowerUp: (type) => {
-          const { availablePowerUps } = get()
-          const powerUp = availablePowerUps.find(p => p.powerUpType === type && !p.isUsed)
-          if (powerUp) {
-            set({ activePowerUp: type })
-            // Note: x2_timer power-up no longer affects time - could add score multiplier instead
-          }
-        },
-
-        clearActivePowerUp: () => set({ activePowerUp: null }),
-
-        usePowerUp: (type) => set((state) => ({
-          availablePowerUps: state.availablePowerUps.map(p =>
-            p.powerUpType === type && !p.isUsed
-              ? { ...p, isUsed: true, usedAtRound: state.currentPosition }
-              : p
-          ),
-          activePowerUp: null,
-        })),
 
         // Session restore action - restores full game state from backend data
         // Merges persisted local state with authoritative backend data
@@ -416,7 +379,6 @@ export const useGameStore = create<GameState>()(
             set({
               currentPosition: nextPos,
               lastResult: null,
-              activePowerUp: null,
             })
             // Mark as in_progress if was not_visited
             if (!nextState || nextState.status === 'not_visited') {
@@ -462,7 +424,6 @@ export const useGameStore = create<GameState>()(
           set({
             currentPosition: position,
             lastResult: null,
-            activePowerUp: null,
           })
 
           // Mark as in_progress only if not already correct
@@ -487,7 +448,6 @@ export const useGameStore = create<GameState>()(
             set({
               currentPosition: currentPosition + 1,
               lastResult: null,
-              activePowerUp: null,
             })
           } else {
             // Challenge complete
