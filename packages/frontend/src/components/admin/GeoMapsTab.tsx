@@ -67,6 +67,7 @@ interface CuratedGame {
     slug: string
     metadataStatus: 'pending' | 'resolved' | 'unresolved'
     hasMap: boolean
+    mapCount: number
     candidateCount: number
 }
 
@@ -586,8 +587,16 @@ export function GeoMapsTab({
                                     onClick={() => setSelectedId(g.id)}
                                 >
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="font-medium truncate">
-                                            {g.name}
+                                        <span className="font-medium truncate flex items-baseline gap-1.5 min-w-0">
+                                            <span className="truncate">{g.name}</span>
+                                            <span
+                                                className="shrink-0 text-[10px] font-normal text-muted-foreground tabular-nums"
+                                                title={t('admin.geo.maps.row.mapCountTooltip')}
+                                            >
+                                                {t('admin.geo.maps.row.mapCount', {
+                                                    count: g.mapCount,
+                                                })}
+                                            </span>
                                         </span>
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             {inflight && (
