@@ -1216,17 +1216,6 @@
         "failed": "Echoue"
       }
     },
-    "topupScreenshots": {
-      "title": "Compléter les Captures",
-      "description": "Compléter les jeux existants jusqu'au nombre cible de captures en récupérant les captures manquantes depuis RAWG.",
-      "targetPerGame": "Captures cibles par jeu",
-      "start": "Démarrer la complétion",
-      "completed": "Complétion terminée",
-      "gamesToppedUp": "jeux complétés",
-      "newScreenshots": "nouvelles captures",
-      "candidates": "Candidats",
-      "toppedUp": "Complétés"
-    },
     "email": {
       "title": "Paramètres Email",
       "description": "Configurer et tester l'envoi d'emails",

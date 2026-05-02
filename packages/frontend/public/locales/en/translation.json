@@ -1098,17 +1098,6 @@
         "failed": "Failed"
       }
     },
-    "topupScreenshots": {
-      "title": "Top-Up Screenshots",
-      "description": "Backfill existing games up to the target number of captures by pulling missing screenshots from RAWG.",
-      "targetPerGame": "Target captures per game",
-      "start": "Start top-up",
-      "completed": "Top-up complete",
-      "gamesToppedUp": "games topped up",
-      "newScreenshots": "new screenshots",
-      "candidates": "Candidates",
-      "toppedUp": "Topped up"
-    },
     "games": {
       "title": "Games",
       "addGame": "Add Game",
