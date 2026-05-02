@@ -1636,10 +1636,22 @@
       },
       "newBadge": "+{{count}} new",
       "newCaptures": "{{count}} new screenshots to guess",
+      "completedBadge": "All seen",
+      "ignoredBadge": "Ignored",
+      "markIgnored": "I don't know this game",
+      "markIgnoredShort": "Don't know",
+      "unmarkIgnored": "Restore this game",
+      "unmarkIgnoredShort": "Restore",
       "exhausted": {
         "title": "You've seen every screenshot",
         "body": "Nice run! You've guessed every available screenshot for this game. We'll let you know when new ones are added.",
-        "checkForNew": "Check for new screenshots"
+        "checkForNew": "Check for new screenshots",
+        "pickAnother": "Pick another game",
+        "markIgnored": "I don't want to see this game again"
+      },
+      "allDone": {
+        "title": "You've completed The Box!",
+        "body": "Bravo! You've guessed every screenshot in every game in your catalog. We'll ping you when new ones are added."
       }
     },
     "fullscreen": {

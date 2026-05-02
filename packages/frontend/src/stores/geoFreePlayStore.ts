@@ -52,6 +52,10 @@ interface GeoFreePlayState {
     // per map) so changing the map filter still hides already-seen
     // screenshots that happen to live on another map.
     playedByGame: Record<number, number[]>
+    // Games the player explicitly opted out of ("don't know this one").
+    // They're hidden from completion math so the all-time "done" message
+    // can fire even if the catalog has games the player will never touch.
+    ignoredGameIds: number[]
 
     // Actions
     loadGames(force?: boolean): Promise<void>
@@ -65,6 +69,7 @@ interface GeoFreePlayState {
     // exhausted state so a player who's seen everything can pull in
     // newly-promoted screenshots without a full page reload.
     checkForNewScreenshots(): Promise<void>
+    toggleIgnoreGame(gameId: number): void
     reset(): void
 }
 
@@ -85,6 +90,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             errorCode: null,
             round: 0,
             playedByGame: {},
+            ignoredGameIds: [],
 
             async loadGames(force) {
                 const { gamesFetchedAt } = get()
@@ -248,6 +254,14 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 await get().rerollScreenshot()
             },
 
+            toggleIgnoreGame(gameId) {
+                const current = get().ignoredGameIds
+                const next = current.includes(gameId)
+                    ? current.filter((id) => id !== gameId)
+                    : [...current, gameId]
+                set({ ignoredGameIds: next })
+            },
+
             reset() {
                 set({
                     currentGameId: null,
@@ -275,8 +289,9 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 currentGameId: state.currentGameId,
                 currentMapId: state.currentMapId,
                 playedByGame: state.playedByGame,
+                ignoredGameIds: state.ignoredGameIds,
             }),
-            version: 2,
+            version: 3,
         },
     ),
 )

@@ -1636,10 +1636,22 @@
       },
       "newBadge": "+{{count}} nouvelles",
       "newCaptures": "{{count}} nouvelles captures à deviner",
+      "completedBadge": "Tout vu",
+      "ignoredBadge": "Ignoré",
+      "markIgnored": "Je ne connais pas ce jeu",
+      "markIgnoredShort": "Inconnu",
+      "unmarkIgnored": "Restaurer ce jeu",
+      "unmarkIgnoredShort": "Restaurer",
       "exhausted": {
         "title": "Vous avez vu toutes les captures",
         "body": "Bravo ! Vous avez deviné toutes les captures disponibles pour ce jeu. Nous vous préviendrons quand de nouvelles seront ajoutées.",
-        "checkForNew": "Vérifier les nouvelles captures"
+        "checkForNew": "Vérifier les nouvelles captures",
+        "pickAnother": "Choisir un autre jeu",
+        "markIgnored": "Je ne veux plus voir ce jeu"
+      },
+      "allDone": {
+        "title": "Vous avez terminé The Box !",
+        "body": "Bravo ! Vous avez deviné toutes les captures de tous les jeux de votre catalogue. Nous vous préviendrons quand de nouvelles seront ajoutées."
       }
     },
     "fullscreen": {
