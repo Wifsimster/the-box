@@ -10,6 +10,10 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
 import {
+  connectNotificationsSocket,
+  disconnectNotificationsSocket,
+} from '@/lib/notifications-socket'
+import {
   SUPPORTED_LANGUAGES,
   getBrowserLanguage,
   type SupportedLanguage,
@@ -82,6 +86,17 @@ function LanguageLayout() {
       reset()
     }
   }, [session?.user?.id, session?.user?.role, fetchStatus, reset])
+
+  // Subscribe the authenticated user to the `/notifications` socket so account
+  // events (Premium grants, future alerts) reach them on any page.
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId) {
+      disconnectNotificationsSocket()
+      return
+    }
+    connectNotificationsSocket(userId)
+  }, [session?.user?.id])
 
   // Validate language parameter
   if (!lang || !SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {

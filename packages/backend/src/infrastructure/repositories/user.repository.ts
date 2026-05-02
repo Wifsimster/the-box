@@ -166,17 +166,20 @@ export const userRepository = {
     return row?.supporter_lifetime_at ?? null
   },
 
-  async grantSupporterLifetime(userId: string, grantedAt: Date = new Date()): Promise<void> {
+  async grantSupporterLifetime(userId: string, grantedAt: Date = new Date()): Promise<boolean> {
     log.info({ userId, grantedAt }, 'grantSupporterLifetime')
     // Idempotent: keep the earliest grant timestamp so a duplicate webhook
-    // doesn't overwrite the original supporter date.
-    await db('user')
+    // doesn't overwrite the original supporter date. Returns true only when
+    // a row was actually flipped, so callers can fire one-shot side effects
+    // (notifications, emails) without re-firing on a duplicate webhook.
+    const updated = await db('user')
       .where('id', userId)
       .whereNull('supporter_lifetime_at')
       .update({
         supporter_lifetime_at: grantedAt,
         updatedAt: new Date(),
       })
+    return updated > 0
   },
 
   async revokeSupporterLifetime(userId: string, reason: string): Promise<boolean> {

@@ -31,6 +31,8 @@ import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { renderEmailHtml, renderEmailText } from '../../infrastructure/email/template.js'
+import { sendPremiumGrantedEmail } from '../../infrastructure/email/premium-granted-email.js'
+import { emitUserPremiumGranted } from '../../infrastructure/socket/socket.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import {
   geoScreenshotRepository,
@@ -3003,12 +3005,40 @@ router.post('/users/:userId/grant-supporter', async (req, res, next) => {
       })
       return
     }
-    await userRepository.grantSupporterLifetime(userId)
+    const grantedAt = new Date()
+    const newlyGranted = await userRepository.grantSupporterLifetime(userId, grantedAt)
     const entitlement = await billingService.getEntitlement(userId)
     routeLogger.warn(
-      { adminId: req.userId, targetUserId: userId },
+      { adminId: req.userId, targetUserId: userId, newlyGranted },
       'admin granted supporter lifetime',
     )
+
+    // Fire one-shot notifications only on the transition from non-premium →
+    // premium so a duplicate grant click doesn't re-spam the user.
+    if (newlyGranted) {
+      emitUserPremiumGranted({
+        userId,
+        tier: 'supporter_lifetime',
+        grantedAt: grantedAt.toISOString(),
+      })
+
+      const target = await userRepository.findById(userId)
+      if (target?.email && !target.isGuest) {
+        // Don't block the admin response on the mail provider; failures are
+        // already captured in `email_log` by the sendEmail chokepoint.
+        void sendPremiumGrantedEmail({
+          userId,
+          to: target.email,
+          displayName: target.displayName ?? target.username,
+        }).catch((err) => {
+          routeLogger.warn(
+            { err, targetUserId: userId },
+            'premium-granted email send failed',
+          )
+        })
+      }
+    }
+
     res.json({ success: true, data: { entitlement } })
   } catch (err) {
     next(err)
