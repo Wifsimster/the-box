@@ -225,18 +225,6 @@ export const sessionRepository = {
     return count
   },
 
-  async getExhaustedPositionsCount(tierSessionId: string, maxTries: number): Promise<number> {
-    log.debug({ tierSessionId, maxTries }, 'getExhaustedPositionsCount')
-    // Count positions where tries >= maxTries and no correct answer
-    const result = await db('guesses')
-      .where('tier_session_id', tierSessionId)
-      .groupBy('position')
-      .havingRaw('COUNT(*) >= ? AND SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) = 0', [maxTries])
-      .count('* as exhausted_count')
-    log.debug({ tierSessionId, exhaustedCount: result.length }, 'getExhaustedPositionsCount result')
-    return result.length
-  },
-
   async getCorrectPositions(gameSessionId: string): Promise<number[]> {
     log.debug({ gameSessionId }, 'getCorrectPositions')
     // Get all positions with correct guesses across all tier sessions for this game
