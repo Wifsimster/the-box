@@ -41,13 +41,16 @@ export default function GeoFetchPanel() {
     socket.on('geo:fetch:progress', onProgress)
     socket.on('geo:fetch:gameDone', onGameDone)
     socket.on('geo:fetch:mapSelected', onMapSelected)
-    socket.on('reconnect', onReconnect)
+    // socket.io v4: 'reconnect' is fired by the Manager (`socket.io`),
+    // not by the Socket itself. The previous `socket.on('reconnect', ...)`
+    // never fired so the rehydrate-on-reconnect was effectively dead.
+    socket.io.on('reconnect', onReconnect)
 
     return () => {
       socket.off('geo:fetch:progress', onProgress)
       socket.off('geo:fetch:gameDone', onGameDone)
       socket.off('geo:fetch:mapSelected', onMapSelected)
-      socket.off('reconnect', onReconnect)
+      socket.io.off('reconnect', onReconnect)
     }
   }, [hydrate, applyProgress, applyGameDone, applyMapSelected])
 

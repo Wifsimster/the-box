@@ -238,6 +238,93 @@ async function createTodayChallenge(): Promise<void> {
 }
 
 /**
+ * Geo entities for the admin geo authz/UX specs.
+ *
+ * Idempotent: only creates the row if it doesn't already exist. The
+ * deterministic shape (one game, one map, one promoted candidate, one
+ * meta) lets the geo specs stop accepting "empty state" as success.
+ */
+async function createMockGeoData(): Promise<void> {
+  const game = await db('games').where('slug', 'e2e-test-game-1').first<{ id: number }>()
+  if (!game) {
+    console.warn('  ⚠ Mock game not seeded yet, skipping geo seed')
+    return
+  }
+
+  const existingMap = await db('geo_map').where({ game_id: game.id }).first<{ id: number }>()
+  let mapId: number
+  if (existingMap) {
+    console.log(`  ✓ Geo map already exists for game ${game.id} (ID: ${existingMap.id})`)
+    mapId = existingMap.id
+  } else {
+    const [row] = await db('geo_map')
+      .insert({
+        game_id: game.id,
+        source: 'manual',
+        source_url: 'https://example.com/e2e/map.png',
+        image_url: 'https://via.placeholder.com/2048x2048.png?text=E2E+Geo+Map',
+        width_px: 2048,
+        height_px: 2048,
+        consensus_radius: 0.05,
+        license: 'CC-BY-4.0',
+        attribution: 'E2E Test',
+        is_active: true,
+        is_selected: true,
+        selected_at: new Date(),
+      })
+      .returning<Array<{ id: number }>>('id')
+    mapId = row!.id
+    console.log(`  ✓ Created geo map for game ${game.id} (ID: ${mapId})`)
+  }
+
+  // One promoted candidate so the moderation queue has something concrete
+  // to render and the free-play picker has a screenshot to return.
+  const existingCandidate = await db('geo_screenshot_candidate')
+    .where({ game_id: game.id })
+    .first<{ id: number }>()
+  let candidateId: number
+  if (existingCandidate) {
+    candidateId = existingCandidate.id
+    console.log(`  ✓ Geo candidate already exists (ID: ${candidateId})`)
+  } else {
+    const [row] = await db('geo_screenshot_candidate')
+      .insert({
+        game_id: game.id,
+        geo_map_id: mapId,
+        image_url: 'https://via.placeholder.com/1920x1080.png?text=E2E+Capture',
+        thumbnail_url: 'https://via.placeholder.com/400x225.png?text=E2E+Capture',
+        source: 'manual',
+        external_id: `e2e-${game.id}-1`,
+        status: 'promoted',
+        pin_count: 5,
+        is_active: true,
+      })
+      .returning<Array<{ id: number }>>('id')
+    candidateId = row!.id
+    console.log(`  ✓ Created geo candidate (ID: ${candidateId})`)
+  }
+
+  const existingMeta = await db('geo_screenshot_meta')
+    .where({ geo_screenshot_candidate_id: candidateId })
+    .first<{ id: number }>()
+  if (!existingMeta) {
+    await db('geo_screenshot_meta').insert({
+      geo_screenshot_candidate_id: candidateId,
+      geo_map_id: mapId,
+      canonical_x: 0.5,
+      canonical_y: 0.5,
+      confidence: 0.95,
+      consensus_version: 1,
+      promoted_via: 'admin',
+      promoted_by: null,
+    })
+    console.log('  ✓ Created geo meta (canonical 0.5,0.5)')
+  } else {
+    console.log('  ✓ Geo meta already exists')
+  }
+}
+
+/**
  * Clear daily login claims for e2e test users so fresh login tests work
  */
 async function clearDailyLoginClaims(userIds: string[]): Promise<void> {
@@ -283,7 +370,11 @@ async function seed(): Promise<void> {
     console.log('\nCreating daily challenge...')
     await createTodayChallenge()
 
-    // Step 4: Clear daily login claims for fresh login tests
+    // Step 4: Geo entities so admin geo + free-play specs have data
+    console.log('\nCreating geo seed (map + candidate + meta)...')
+    await createMockGeoData()
+
+    // Step 5: Clear daily login claims for fresh login tests
     console.log('\nClearing daily login claims...')
     await clearDailyLoginClaims([e2eUserId, e2eAdminId])
 

@@ -44,6 +44,7 @@ import {
 } from '@/hooks/useGeoRunPolling'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
+import { getApiErrorMessage } from '@/lib/api-errors'
 import {
     Sheet,
     SheetContent,
@@ -206,7 +207,7 @@ export function GeoMapsTab({
             )
             setGames(data.games)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setLoading(false)
         }
@@ -220,7 +221,7 @@ export function GeoMapsTab({
             )
             setSources(data)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
             setSources(null)
         } finally {
             setSourcesLoading(false)
@@ -254,7 +255,7 @@ export function GeoMapsTab({
             armRunPolling()
             await Promise.all([reload(), reloadSources(game.id)])
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setBusyAction(null)
         }
@@ -299,7 +300,7 @@ export function GeoMapsTab({
             armRunPolling()
             await reloadSources(gameId)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setRetryingTier(null)
         }
@@ -317,7 +318,7 @@ export function GeoMapsTab({
             armRunPolling()
             await reloadSources(gameId)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setRunningTier(null)
         }
@@ -338,7 +339,7 @@ export function GeoMapsTab({
             setMessage(t('admin.geo.maps.tierStatus.activated'))
             await Promise.all([reload(), reloadSources(gameId)])
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setActivatingMapId(null)
         }
@@ -356,8 +357,11 @@ export function GeoMapsTab({
             setMessage(t('admin.geo.maps.multi.disabled', 'Map disabled.'))
             await Promise.all([reload(), reloadSources(gameId)])
         } catch (e) {
-            const message = String(e)
-            if (message.includes('LAST_ENABLED')) {
+            // Look at the structured ApiError code instead of stringifying —
+            // matching on substring of `String(e)` works for the happy path
+            // but breaks the moment the error message changes locale.
+            const code = (e as { code?: string } | null)?.code ?? ''
+            if (code === 'LAST_ENABLED') {
                 setError(
                     t(
                         'admin.geo.maps.multi.disableLastBlocked',
@@ -365,7 +369,7 @@ export function GeoMapsTab({
                     ),
                 )
             } else {
-                setError(message)
+                setError(getApiErrorMessage(e))
             }
         } finally {
             setActivatingMapId(null)
@@ -386,7 +390,7 @@ export function GeoMapsTab({
             )
             await reloadSources(gameId)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setActivatingMapId(null)
         }
@@ -407,7 +411,7 @@ export function GeoMapsTab({
             })
             await reloadSources(gameId)
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setActivatingMapId(null)
         }
@@ -434,7 +438,7 @@ export function GeoMapsTab({
             }
             await reload()
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setUncurating(false)
         }
@@ -458,7 +462,7 @@ export function GeoMapsTab({
             setSources(null)
             await reload()
         } catch (e) {
-            setError(String(e))
+            setError(getApiErrorMessage(e))
         } finally {
             setResetting(false)
         }

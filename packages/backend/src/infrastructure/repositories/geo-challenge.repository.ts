@@ -166,17 +166,25 @@ export const geoChallengeRepository = {
       'recordGuess',
     )
 
-    await db('geo_guess').insert({
-      user_id: data.userId,
-      geo_challenge_id: data.geoChallengeId,
-      x: data.guess.x,
-      y: data.guess.y,
-      distance: data.distance,
-      score: data.score,
-      score_version: data.scoreVersion,
-      duration_ms: data.durationMs ?? null,
-      geo_map_id_picked: data.geoMapIdPicked ?? null,
-    })
+    // ON CONFLICT DO NOTHING on the (user_id, geo_challenge_id) unique
+    // constraint so a duplicate submission (double-click, retry on flaky
+    // network) returns 200 with the original score instead of 500ing on
+    // a PK violation. The lookup below uses the canonical record from
+    // the FIRST insert regardless.
+    await db('geo_guess')
+      .insert({
+        user_id: data.userId,
+        geo_challenge_id: data.geoChallengeId,
+        x: data.guess.x,
+        y: data.guess.y,
+        distance: data.distance,
+        score: data.score,
+        score_version: data.scoreVersion,
+        duration_ms: data.durationMs ?? null,
+        geo_map_id_picked: data.geoMapIdPicked ?? null,
+      })
+      .onConflict(['user_id', 'geo_challenge_id'])
+      .ignore()
 
     const meta = await db('geo_challenge')
       .join(
@@ -210,17 +218,23 @@ export const geoChallengeRepository = {
   // and never upserted to the leaderboards.
   async recordSkip(data: { userId: string; geoChallengeId: number }): Promise<void> {
     log.info({ userId: data.userId, challengeId: data.geoChallengeId }, 'recordSkip')
-    await db('geo_guess').insert({
-      user_id: data.userId,
-      geo_challenge_id: data.geoChallengeId,
-      x: 0,
-      y: 0,
-      distance: 0,
-      score: 0,
-      score_version: 0,
-      duration_ms: null,
-      is_skip: true,
-    })
+    // ON CONFLICT DO NOTHING: if the user already guessed (or already
+    // skipped), don't blow up — the daily slot is already locked, and
+    // re-submitting a skip is a no-op semantically.
+    await db('geo_guess')
+      .insert({
+        user_id: data.userId,
+        geo_challenge_id: data.geoChallengeId,
+        x: 0,
+        y: 0,
+        distance: 0,
+        score: 0,
+        score_version: 0,
+        duration_ms: null,
+        is_skip: true,
+      })
+      .onConflict(['user_id', 'geo_challenge_id'])
+      .ignore()
   },
 
   // ---- Challenge stats ----

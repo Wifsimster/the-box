@@ -55,6 +55,16 @@ export interface UseGeoRunPolling {
     arm: (windowMs?: number) => void
 }
 
+export interface GeoRunPollingOptions {
+    /**
+     * When false, the hook stops scheduling new polls (e.g. the geo tab
+     * is not the active admin tab, or the page is hidden). Already-armed
+     * windows expire as normal. Defaults to true so existing call sites
+     * keep their behavior.
+     */
+    enabled?: boolean
+}
+
 const DEFAULT_INTERVAL_MS = 2000
 const ARM_FLOOR_MS = 5000
 
@@ -75,9 +85,27 @@ async function fetchState(): Promise<GeoRunStatePayload> {
  *  - `arm()` was called within the last `armWindowMs`.
  *
  * Stops on its own when both go false to avoid hammering the endpoint
- * during quiet periods.
+ * during quiet periods. Pass `{ enabled: false }` to suspend polling
+ * entirely (e.g. when the admin navigates away from the geo tab).
  */
-export function useGeoRunPolling(intervalMs = DEFAULT_INTERVAL_MS): UseGeoRunPolling {
+export function useGeoRunPolling(
+    intervalMs: number = DEFAULT_INTERVAL_MS,
+    options: GeoRunPollingOptions = {},
+): UseGeoRunPolling {
+    const enabled = options.enabled ?? true
+    // Page Visibility pause: when the browser tab goes to background we
+    // stop scheduling polls. Without this, an admin who leaves the geo
+    // panel open in a background tab keeps hitting /api/admin/geo/run/state
+    // every 2s indefinitely.
+    const [pageVisible, setPageVisible] = useState<boolean>(
+        typeof document === 'undefined' ? true : document.visibilityState !== 'hidden',
+    )
+    useEffect(() => {
+        if (typeof document === 'undefined') return undefined
+        const onVis = () => setPageVisible(document.visibilityState !== 'hidden')
+        document.addEventListener('visibilitychange', onVis)
+        return () => document.removeEventListener('visibilitychange', onVis)
+    }, [])
     const [state, setState] = useState<GeoRunStatePayload | null>(null)
     const [error, setError] = useState<string | null>(null)
     // Mutable refs so the interval callback always reads the latest values.
@@ -101,12 +129,17 @@ export function useGeoRunPolling(intervalMs = DEFAULT_INTERVAL_MS): UseGeoRunPol
                 setError(null)
             } catch (e) {
                 if (cancelled) return
-                setError(String(e))
+                // Surface a stable, parseable error code/message rather
+                // than the raw stack — admins shouldn't see "TypeError: …"
+                // strings in the toast.
+                setError((e as { message?: string } | null)?.message ?? 'fetch failed')
             }
         }
 
         const shouldPoll = () =>
-            Date.now() < armedUntilRef.current || isActiveRef.current
+            enabled &&
+            pageVisible &&
+            (Date.now() < armedUntilRef.current || isActiveRef.current)
 
         if (!shouldPoll()) return undefined
 
@@ -124,7 +157,7 @@ export function useGeoRunPolling(intervalMs = DEFAULT_INTERVAL_MS): UseGeoRunPol
             cancelled = true
             window.clearInterval(id)
         }
-    }, [intervalMs, pollNonce, state?.isActive])
+    }, [intervalMs, pollNonce, state?.isActive, enabled, pageVisible])
 
     const arm = useCallback((windowMs = ARM_FLOOR_MS) => {
         armedUntilRef.current = Date.now() + windowMs

@@ -33,6 +33,11 @@ export {
   type GeoIngestSource,
 } from './geo-ingest-failure.repository.js'
 export {
+  adminAuditRepository,
+  type AdminAuditEntry,
+  type AdminAuditRow,
+} from './admin-audit.repository.js'
+export {
   subscriptionRepository,
   stripeEventLogRepository,
   ENTITLED_STATUSES,

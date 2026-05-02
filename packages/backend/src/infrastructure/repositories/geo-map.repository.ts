@@ -219,9 +219,16 @@ export const geoMapRepository = {
     )
     const row = await db.transaction(async (trx) => {
       const isActive = data.isActive ?? false
-      // Promote to selected only if no map is selected for the same zone
-      // yet — keeps the very first map a game ever gets pointing at
-      // something sensible without overriding explicit admin choices.
+      // Two concurrent create() calls for the same (game, zone) at default
+      // READ COMMITTED could both observe "no existing selected" and both
+      // insert with is_selected=true. The partial unique index would 23505
+      // the loser. Lock the zone's rows so the loser sees the winner's
+      // selection and falls back to is_selected=false.
+      const lockQuery = trx('geo_map').where({ game_id: data.gameId }).forUpdate()
+      await (data.zoneSlug == null
+        ? lockQuery.whereNull('zone_slug')
+        : lockQuery.where({ zone_slug: data.zoneSlug })
+      ).select('id')
       const selectedQuery = trx('geo_map').where({
         game_id: data.gameId,
         is_selected: true,
@@ -298,20 +305,25 @@ export const geoMapRepository = {
   // the game with zero enabled maps. If we disable the currently selected
   // row in a zone and a sibling exists, the sibling is promoted (most-
   // recently enabled wins).
+  //
+  // Two concurrent disableForGame calls on different siblings could both
+  // pass the "remaining > 0" check at default READ COMMITTED isolation,
+  // leaving zero enabled. We `SELECT ... FOR UPDATE` the full row set for
+  // the game so the loser blocks until the winner commits.
   async disableForGame(gameId: number, mapId: number): Promise<DisableResult> {
     log.info({ gameId, mapId }, 'disableForGame')
     return await db.transaction(async (trx) => {
-      const target = await trx('geo_map')
-        .where({ id: mapId, game_id: gameId })
-        .first<GeoMapRow>()
+      // Lock all maps for this game so concurrent disable calls serialize.
+      // Cheap because a single game has on the order of dozens of rows.
+      const locked = await trx('geo_map')
+        .where({ game_id: gameId })
+        .forUpdate()
+        .select<GeoMapRow[]>('*')
+      const target = locked.find((r) => r.id === mapId)
       if (!target) return { ok: false as const, reason: 'NOT_FOUND' as const }
 
-      const remainingEnabled = await trx('geo_map')
-        .where({ game_id: gameId, is_active: true })
-        .whereNot({ id: mapId })
-        .count<{ count: string }[]>({ count: '*' })
-        .first()
-      if (Number(remainingEnabled?.count ?? 0) === 0) {
+      const remainingEnabled = locked.filter((r) => r.is_active && r.id !== mapId).length
+      if (remainingEnabled === 0) {
         return { ok: false as const, reason: 'LAST_ENABLED' as const }
       }
 
@@ -323,13 +335,16 @@ export const geoMapRepository = {
       // If the disabled row was the selected one for its zone, promote the
       // most-recently-created enabled sibling in the same zone.
       if (target.is_selected) {
-        const heirQuery = trx('geo_map')
-          .where({ game_id: gameId, is_active: true })
-          .orderBy('created_at', 'desc')
-        const heir = await (target.zone_slug == null
-          ? heirQuery.whereNull('zone_slug')
-          : heirQuery.where({ zone_slug: target.zone_slug })
-        ).first<GeoMapRow>()
+        const heir = locked
+          .filter(
+            (r) =>
+              r.is_active &&
+              r.id !== mapId &&
+              (target.zone_slug == null
+                ? r.zone_slug == null
+                : r.zone_slug === target.zone_slug),
+          )
+          .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0]
         if (heir) {
           await trx('geo_map')
             .where({ id: heir.id })
@@ -346,6 +361,10 @@ export const geoMapRepository = {
   // Atomically pick the selected map for a (game, zone). Other rows in the
   // same zone get is_selected=false. The partial unique index keeps us
   // honest: at most one selected row per (game, zone_slug).
+  //
+  // SELECT FOR UPDATE on the zone's rows so two concurrent selectMap calls
+  // can't both pass through (one clearing, the other inserting) and trip
+  // the partial unique index as a 23505 surfaced as 500.
   async selectMap(
     gameId: number,
     mapId: number,
@@ -357,6 +376,12 @@ export const geoMapRepository = {
         .where({ id: mapId, game_id: gameId, is_active: true })
         .first<GeoMapRow>()
       if (!target) return null
+      const lockQuery = trx('geo_map').where({ game_id: gameId }).forUpdate()
+      await (target.zone_slug == null
+        ? lockQuery.whereNull('zone_slug')
+        : lockQuery.where({ zone_slug: target.zone_slug })
+      ).select('id')
+
       const clearQuery = trx('geo_map').where({
         game_id: gameId,
         is_selected: true,

@@ -6,6 +6,7 @@ import {
   type GeoFetchStage,
   type GeoFetchStatus,
 } from '@/lib/api/geo-fetch'
+import { getApiErrorMessage } from '@/lib/api-errors'
 
 // Single store for the geo-fetch admin tab. Server is the source of truth on
 // initial mount + reconnect; sockets push deltas in between. Game rows are
@@ -63,7 +64,7 @@ export const useGeoFetchStore = create<GeoFetchState>()(
           for (const row of page.games) games[row.game_id] = row
           set({ status, games, isLoading: false })
         } catch (err) {
-          set({ isLoading: false, error: String(err) })
+          set({ isLoading: false, error: getApiErrorMessage(err) })
         }
       },
 

@@ -24,7 +24,16 @@ export const importQueueEvents = new QueueEvents('import-jobs', {
 // @the-box/types) because only the backend workers and the enqueueing route
 // need to know the shape.
 export type GeoJobData =
-  | { kind: 'evaluate-consensus'; geoScreenshotCandidateId: number }
+  | {
+      kind: 'evaluate-consensus'
+      geoScreenshotCandidateId: number
+      // Post-increment pin count captured at submit time. The worker uses
+      // this (not the freshly-read value) for the threshold gate so two
+      // pins arriving in quick succession can't *both* skip the same
+      // threshold (e.g. 5 → 6 with neither evaluating at 5). Optional for
+      // back-compat with already-queued jobs from older deploys.
+      pinCountAtEnqueue?: number
+    }
   | { kind: 'promote-contributor-tier'; userId: string }
   | {
       kind: 'import-registry-map'

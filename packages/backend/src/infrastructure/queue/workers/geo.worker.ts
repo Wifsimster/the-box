@@ -32,7 +32,10 @@ export const geoWorker = new Worker<GeoJobData>(
     log.info({ jobId: id, kind: data.kind }, 'processing geo job')
 
     if (data.kind === 'evaluate-consensus') {
-      const result = await evaluateConsensusForCandidate(data.geoScreenshotCandidateId)
+      const result = await evaluateConsensusForCandidate(
+        data.geoScreenshotCandidateId,
+        { pinCountAtEnqueue: data.pinCountAtEnqueue },
+      )
       log.info({ jobId: id, result }, 'consensus job done')
       return result
     }

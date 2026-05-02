@@ -708,7 +708,7 @@ export interface GeoPinRepository {
     status: GeoPinStatus
     distanceFromCentroid: number
   }): Promise<void>
-  countByUserInWindow(userId: string, intervalSql: string): Promise<number>
+  countByUserInWindow(userId: string, windowSeconds: number): Promise<number>
   userRejectionRatio7d(userId: string): Promise<{ submitted: number; rejected: number }>
 }
 

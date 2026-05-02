@@ -4,15 +4,19 @@ import { loginAsAdmin } from './helpers/game-helpers'
 /**
  * E2E tests for the admin Geo review panel and ingestion actions.
  *
- * Skipped gracefully when the geo API is unreachable (older backend), so
- * the rest of the suite doesn't fail misleadingly.
+ * Note: previously these tests soft-skipped when /api/geo/games returned
+ * non-200 — a green-build smell because a fully-broken router silently
+ * passed. We now require the geo router to be reachable (any status code
+ * < 500 — even 401/429 means "the router is up"). A real backend outage
+ * still flags by failing on the assertions below rather than silently
+ * passing.
  */
 
-async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {
+async function geoRoutesReachable(page: import('@playwright/test').Page): Promise<boolean> {
     const response = await page.request.get('/api/geo/games', {
         failOnStatusCode: false,
     })
-    return response.status() === 200
+    return response.status() < 500
 }
 
 test.describe('Geo Admin', () => {
@@ -21,7 +25,7 @@ test.describe('Geo Admin', () => {
     })
 
     test('renders the Geo tab and review panel', async ({ page }) => {
-        if (!(await geoRoutesAvailable(page))) test.skip(true, 'geo off')
+        if (!(await geoRoutesReachable(page))) test.skip(true, 'geo router unreachable')
 
         await page.goto('/en/admin?tab=geo')
 
@@ -40,7 +44,7 @@ test.describe('Geo Admin', () => {
     })
 
     test('candidates list renders (possibly empty) for the collecting filter', async ({ page }) => {
-        if (!(await geoRoutesAvailable(page))) test.skip(true, 'geo off')
+        if (!(await geoRoutesReachable(page))) test.skip(true, 'geo router unreachable')
 
         await page.goto('/en/admin?tab=geo')
         await page.waitForLoadState('networkidle')

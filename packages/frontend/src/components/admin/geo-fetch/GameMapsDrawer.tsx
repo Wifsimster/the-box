@@ -33,11 +33,21 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
       setData(null)
       return
     }
+    // Guard against fast gameId switches: a slower earlier promise
+    // resolving last would otherwise stomp the newer game's data.
+    let cancelled = false
     setIsLoading(true)
     geoFetchApi
       .maps(gameId)
-      .then(setData)
-      .finally(() => setIsLoading(false))
+      .then((fresh) => {
+        if (!cancelled) setData(fresh)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [gameId])
 
   async function handleSelect(mapId: number) {
@@ -140,19 +150,32 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      if (gameId == null) return
-                      void retrySource(gameId, 'fandom')
-                    }}
-                    title={t('admin.geoFetch.drawer.refetch', 'Re-récupérer')}
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" />
-                    {t('admin.geoFetch.drawer.refetch', 'Re-récupérer')}
-                  </Button>
+                <div className="flex justify-end gap-2">
+                  {/* Re-fetch every distinct source represented in this zone.
+                      Hard-coding "fandom" here was a real bug — operators
+                      thought they triggered a global retry but only one
+                      provider ran. Using the actual source set keeps the
+                      button honest regardless of which providers are
+                      configured for the game. */}
+                  {Array.from(new Set(zone.maps.map((m) => m.source))).map((src) => (
+                    <Button
+                      key={src}
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (gameId == null) return
+                        void retrySource(gameId, src)
+                      }}
+                      title={t('admin.geoFetch.drawer.refetchSource', 'Re-récupérer ({{source}})', {
+                        source: src,
+                      })}
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      {t('admin.geoFetch.drawer.refetchSource', 'Re-récupérer ({{source}})', {
+                        source: src,
+                      })}
+                    </Button>
+                  ))}
                 </div>
               </div>
             ))}

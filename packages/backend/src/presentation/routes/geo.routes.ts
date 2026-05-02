@@ -14,8 +14,12 @@ import {
   inventoryRepository,
   sessionRepository,
 } from '../../infrastructure/repositories/index.js'
-import { authMiddleware } from '../middleware/auth.middleware.js'
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+} from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
+import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
 import { emitGeoRewarded } from '../../infrastructure/socket/socket.js'
@@ -78,6 +82,19 @@ router.post(
   validateBody(contributePickBodySchema),
   async (req, res, next) => {
     try {
+      // Anonymous guest sessions can authenticate but should not consume
+      // the moderation pool — without this gate, a fresh guest spins up a
+      // session and can immediately pull a contribution candidate.
+      if (req.isGuest) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'CONTRIBUTE_GUEST_FORBIDDEN',
+            message: 'sign up to contribute to the geo dataset',
+          },
+        })
+        return
+      }
       const userId = req.userId!
       const { gameId } = req.body as z.infer<typeof contributePickBodySchema>
       const candidate = await geoGameService.pickContributionTarget({ gameId, userId })
@@ -114,6 +131,16 @@ router.post(
   validateBody(pinBodySchema),
   async (req, res, next) => {
     try {
+      if (req.isGuest) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'CONTRIBUTE_GUEST_FORBIDDEN',
+            message: 'sign up to contribute to the geo dataset',
+          },
+        })
+        return
+      }
       const userId = req.userId!
       const { geoScreenshotCandidateId, pin } = req.body as z.infer<typeof pinBodySchema>
 
@@ -164,12 +191,16 @@ router.post(
           }
         }
 
-        // Enqueue consensus evaluation; the worker itself decides (based on
-        // threshold gates) whether this pin count warrants a full pass.
+        // Enqueue consensus evaluation; carry the post-increment pin count
+        // in the payload so the worker can gate threshold checks on the
+        // value at submit-time. Without this, two near-simultaneous pins
+        // can both step past a threshold (e.g. 9 → 10 → 11) and the worker
+        // re-reads pin_count = 11 for both, never evaluating at 10.
         try {
           await geoQueue.add('evaluate-consensus', {
             kind: 'evaluate-consensus',
             geoScreenshotCandidateId,
+            pinCountAtEnqueue: newPinCount,
           })
         } catch (e) {
           log.warn({ err: String(e) }, 'failed to enqueue geo consensus job')
@@ -228,18 +259,35 @@ router.get('/contributor/me', authMiddleware, async (req, res, next) => {
 
 // ---------- Free-play (unranked, all-games-all-maps browser) ----------
 
-router.get('/games', async (_req, res, next) => {
-  try {
-    const games = await geoScreenshotRepository.listPlayableGames()
-    res.set('Cache-Control', 'public, max-age=300')
-    res.json({ success: true, data: games })
-  } catch (err) {
-    next(err)
-  }
-})
+// Rate limits for the free-play endpoints. Without these, an unauthenticated
+// scraper can systematically extract every promoted answer (canonical
+// coordinates) by submitting one fake guess per screenshot. Per-IP keying
+// because these routes use optionalAuthMiddleware (anon access is allowed
+// for browsing but bounded). Numbers chosen to be generous for legit play
+// but tight enough that bulk extraction is impractical.
+const freePlayPickLimiter = createRateLimiter({ windowMs: 60_000, max: 60 })
+const freePlayGuessLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
+const freePlayCatalogLimiter = createRateLimiter({ windowMs: 60_000, max: 120 })
+
+router.get(
+  '/games',
+  optionalAuthMiddleware,
+  freePlayCatalogLimiter,
+  async (_req, res, next) => {
+    try {
+      const games = await geoScreenshotRepository.listPlayableGames()
+      res.set('Cache-Control', 'public, max-age=300')
+      res.json({ success: true, data: games })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 router.get(
   '/games/:gameId/maps',
+  optionalAuthMiddleware,
+  freePlayCatalogLimiter,
   validateParams(gameIdParamSchema),
   async (req, res, next) => {
     try {
@@ -255,6 +303,8 @@ router.get(
 
 router.post(
   '/free-play/random',
+  optionalAuthMiddleware,
+  freePlayPickLimiter,
   validateBody(freePlayPickBodySchema),
   async (req, res, next) => {
     try {
@@ -312,6 +362,8 @@ router.post(
 
 router.post(
   '/free-play/guess',
+  optionalAuthMiddleware,
+  freePlayGuessLimiter,
   validateBody(freePlayGuessBodySchema),
   async (req, res, next) => {
     try {

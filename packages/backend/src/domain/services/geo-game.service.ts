@@ -212,7 +212,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
         )
       }
 
-      const hourly = await geoPinRepository.countByUserInWindow(userId, '1 hour')
+      const hourly = await geoPinRepository.countByUserInWindow(userId, 60 * 60)
       if (hourly >= GEO_CONTRIBUTE_HOURLY_LIMIT) {
         throw new GeoGameError(
           `rate limit: ${GEO_CONTRIBUTE_HOURLY_LIMIT} pins per hour`,
