@@ -15,12 +15,13 @@ import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { ReportsModerationPanel } from '@/components/admin/ReportsModerationPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
+import GeoFetchPanel from '@/components/admin/geo-fetch/GeoFetchPanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, MapPin, Flag } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, MapPin, Flag, Map as MapIcon } from 'lucide-react'
 
-const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo', 'reports']
+const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo', 'geoFetch', 'reports']
 const DEFAULT_TAB = 'jobs'
 
 export default function AdminPage() {
@@ -48,6 +49,7 @@ export default function AdminPage() {
     { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="h-4 w-4" /> },
     { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
     { id: 'geo', label: t('admin.tabs.geo', 'Geo'), icon: <MapPin className="h-4 w-4" /> },
+    { id: 'geoFetch', label: t('admin.tabs.geoFetch', 'Cartes'), icon: <MapIcon className="h-4 w-4" /> },
     { id: 'reports', label: t('admin.tabs.reports', 'Reports'), icon: <Flag className="h-4 w-4" /> },
   ]
 
@@ -158,6 +160,7 @@ export default function AdminPage() {
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}
               {activeTab === 'geo' && <GeoReviewPanel />}
+              {activeTab === 'geoFetch' && <GeoFetchPanel />}
               {activeTab === 'reports' && <ReportsModerationPanel />}
             </motion.div>
           </AnimatePresence>

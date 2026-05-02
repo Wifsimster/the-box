@@ -50,7 +50,7 @@ router.get('/status', async (_req, res, next) => {
       counts[row.current_stage] = Number(row.count)
     }
     const total = Object.values(counts).reduce((a, b) => a + b, 0)
-    res.json({ counts, total })
+    res.json({ success: true, data: { counts, total } })
   } catch (err) {
     next(err)
   }
@@ -89,7 +89,7 @@ router.get('/games', async (req, res, next) => {
       .orderBy('s.updated_at', 'desc')
       .limit(q.limit)
       .offset(q.offset)
-    res.json({ games: rows, limit: q.limit, offset: q.offset })
+    res.json({ success: true, data: { games: rows, limit: q.limit, offset: q.offset } })
   } catch (err) {
     next(err)
   }
@@ -115,7 +115,7 @@ router.post('/start', async (req, res, next) => {
       gameIds = rows.map((r) => r.id)
     }
     if (gameIds.length === 0) {
-      res.status(400).json({ error: 'no games to start' })
+      res.status(400).json({ success: false, error: { code: 'NO_GAMES', message: 'no games to start' } })
       return
     }
 
@@ -135,7 +135,7 @@ router.post('/start', async (req, res, next) => {
     }
     emitGeoFetchStarted({ totalGames: gameIds.length })
     log.info({ totalGames: gameIds.length }, 'geo-fetch started')
-    res.json({ totalGames: gameIds.length })
+    res.json({ success: true, data: { totalGames: gameIds.length } })
   } catch (err) {
     next(err)
   }
@@ -152,7 +152,7 @@ router.post('/cancel', async (_req, res, next) => {
       { wait: removed.length, delayed: removedDelayed.length },
       'geo-fetch cancelled',
     )
-    res.json({ removed: removed.length + removedDelayed.length })
+    res.json({ success: true, data: { removed: removed.length + removedDelayed.length } })
   } catch (err) {
     next(err)
   }
@@ -167,7 +167,7 @@ router.get('/:gameId', async (req, res, next) => {
     const { gameId } = gameIdParam.parse(req.params)
     const state = await geoPipelineStateRepository.findByGameId(gameId)
     const recentAttempts = await geoIngestAttemptRepository.listForGame(gameId, 20)
-    res.json({ state, recentAttempts })
+    res.json({ success: true, data: { state, recentAttempts } })
   } catch (err) {
     next(err)
   }
@@ -188,7 +188,7 @@ router.post('/:gameId/retry', async (req, res, next) => {
       { kind: 'maps:pipeline', gameId } as GeoJobData,
       { jobId: `maps:pipeline:retry:${gameId}:${Date.now()}` },
     )
-    res.json({ ok: true })
+    res.json({ success: true, data: { ok: true } })
   } catch (err) {
     next(err)
   }
@@ -204,7 +204,7 @@ router.post('/:gameId/:source/retry', async (req, res, next) => {
     const { gameId, source } = sourceParam.parse(req.params)
     const cfg = await geoSourceConfigRepository.findByName(source)
     if (!cfg) {
-      res.status(400).json({ error: `unknown source: ${source}` })
+      res.status(400).json({ success: false, error: { code: 'UNKNOWN_SOURCE', message: `unknown source: ${source}` } })
       return
     }
     const kind = `maps:fetch-from-${source}` as const
@@ -213,7 +213,7 @@ router.post('/:gameId/:source/retry', async (req, res, next) => {
       { kind, gameId } as GeoJobData,
       { jobId: `${kind}:manual-retry:${gameId}:${Date.now()}` },
     )
-    res.json({ ok: true })
+    res.json({ success: true, data: { ok: true } })
   } catch (err) {
     next(err)
   }
@@ -243,7 +243,7 @@ router.get('/:gameId/maps', async (req, res, next) => {
       }
       group.maps.push(m)
     }
-    res.json({ zones: Array.from(groups.values()) })
+    res.json({ success: true, data: { zones: Array.from(groups.values()) } })
   } catch (err) {
     next(err)
   }
@@ -262,18 +262,18 @@ router.post('/:gameId/maps/:mapId/select', async (req, res, next) => {
     // Make sure the map is enabled before selecting it (selectMap requires it).
     const target = await geoMapRepository.findById(mapId)
     if (!target || target.gameId !== gameId) {
-      res.status(404).json({ error: 'map not found for game' })
+      res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND', message: 'map not found for game' } })
       return
     }
     if (target.isSelected) {
-      res.json({ map: target })
+      res.json({ success: true, data: { map: target } })
       return
     }
     // Auto-enable if needed so admins don't need a separate click.
     await geoMapRepository.enableForGame(gameId, mapId)
     const updated = await geoMapRepository.selectMap(gameId, mapId, userId)
     if (!updated) {
-      res.status(409).json({ error: 'failed to select map' })
+      res.status(409).json({ success: false, error: { code: 'SELECT_FAILED', message: 'failed to select map' } })
       return
     }
     await geoPipelineStateRepository.recomputeZoneCounts(gameId)
@@ -292,7 +292,7 @@ router.post('/:gameId/maps/:mapId/select', async (req, res, next) => {
       mapId: updated.id,
       by: userId,
     })
-    res.json({ map: updated })
+    res.json({ success: true, data: { map: updated } })
   } catch (err) {
     next(err)
   }
@@ -314,7 +314,7 @@ router.delete('/:gameId/cooldown', async (req, res, next) => {
       currentStage: 'queued',
       nextEligibleAt: null,
     })
-    res.json({ ok: true })
+    res.json({ success: true, data: { ok: true } })
   } catch (err) {
     next(err)
   }
