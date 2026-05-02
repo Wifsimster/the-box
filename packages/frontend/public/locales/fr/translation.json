@@ -1632,6 +1632,11 @@
           "multi": "Ce jeu a plusieurs cartes. Choisissez-en une pour commencer.",
           "none": "Aucune carte jouable pour ce jeu."
         }
+      },
+      "exhausted": {
+        "title": "Vous avez vu toutes les captures",
+        "body": "Bravo ! Vous avez deviné toutes les captures disponibles pour ce jeu. Réinitialisez l'historique pour rejouer celles déjà vues.",
+        "reset": "Réinitialiser l'historique"
       }
     },
     "fullscreen": {

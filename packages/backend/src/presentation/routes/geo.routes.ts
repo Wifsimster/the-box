@@ -47,6 +47,10 @@ const gameIdParamSchema = z.object({
 const freePlayPickBodySchema = z.object({
   gameId: z.number().int().positive(),
   geoMapId: z.number().int().positive().optional(),
+  // Client-tracked list of meta IDs the user has already played. The
+  // server filters them out so a single session never sees the same
+  // screenshot twice. Capped to keep the WHERE NOT IN payload bounded.
+  excludeMetaIds: z.array(z.number().int().positive()).max(1000).optional(),
 })
 
 const freePlayGuessBodySchema = z.object({
@@ -221,9 +225,34 @@ router.post(
   validateBody(freePlayPickBodySchema),
   async (req, res, next) => {
     try {
-      const { gameId, geoMapId } = req.body as z.infer<typeof freePlayPickBodySchema>
-      const view = await geoGameService.pickFreePlayScreenshot({ gameId, geoMapId })
+      const { gameId, geoMapId, excludeMetaIds } = req.body as z.infer<
+        typeof freePlayPickBodySchema
+      >
+      const view = await geoGameService.pickFreePlayScreenshot({
+        gameId,
+        geoMapId,
+        excludeMetaIds,
+      })
       if (!view) {
+        // If the exclusion list ate the only remaining candidates,
+        // surface a distinct code so the UI can offer "reset history"
+        // instead of the generic empty-catalog message.
+        if (excludeMetaIds && excludeMetaIds.length > 0) {
+          const fallback = await geoGameService.pickFreePlayScreenshot({
+            gameId,
+            geoMapId,
+          })
+          if (fallback) {
+            res.status(409).json({
+              success: false,
+              error: {
+                code: 'ALL_PLAYED',
+                message: 'all available screenshots have been played',
+              },
+            })
+            return
+          }
+        }
         res.status(404).json({
           success: false,
           error: {

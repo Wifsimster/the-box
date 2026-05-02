@@ -70,6 +70,7 @@ export interface GeoGameService {
   pickFreePlayScreenshot(args: {
     gameId: number
     geoMapId?: number
+    excludeMetaIds?: number[]
   }): Promise<GeoFreePlayView | null>
 
   scoreFreePlayGuess(args: {
@@ -126,7 +127,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
     // (game, map) pair, surface every enabled map for the chooser, and
     // never write anything. Returns null when the game has no promoted
     // screenshots yet.
-    async pickFreePlayScreenshot({ gameId, geoMapId }) {
+    async pickFreePlayScreenshot({ gameId, geoMapId, excludeMetaIds }) {
       const enabledMaps = await geoMapRepository.listEnabledByGameId(gameId)
       if (enabledMaps.length === 0) return null
       if (geoMapId != null && !enabledMaps.some((m) => m.id === geoMapId)) {
@@ -138,6 +139,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       const meta = await geoScreenshotRepository.pickRandomPromotedForGame(
         gameId,
         geoMapId,
+        excludeMetaIds,
       )
       if (!meta) return null
       const candidate = await geoScreenshotRepository.findCandidateById(
