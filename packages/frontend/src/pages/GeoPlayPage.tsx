@@ -3,11 +3,13 @@ import { useTranslation } from 'react-i18next'
 import {
     ArrowLeft,
     ArrowRight,
+    EyeOff,
     Gamepad2,
     Loader2,
     Map as MapIcon,
     RefreshCw,
     Shuffle,
+    Sparkles,
     Trophy,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -49,6 +51,7 @@ export default function GeoPlayPage() {
         errorMessage,
         round,
         playedByGame,
+        ignoredGameIds,
         loadGames,
         selectGame,
         selectMap,
@@ -57,6 +60,7 @@ export default function GeoPlayPage() {
         submitGuess,
         nextRound,
         checkForNewScreenshots,
+        toggleIgnoreGame,
     } = useGeoFreePlayStore()
 
     const [gamePickerOpen, setGamePickerOpen] = useState(false)
@@ -101,6 +105,21 @@ export default function GeoPlayPage() {
         [games, currentGameId],
     )
 
+    const ignoredSet = useMemo(() => new Set(ignoredGameIds), [ignoredGameIds])
+
+    // "All-time done" — true when every catalog game the player hasn't
+    // ignored has its full set of screenshots already played. Computed
+    // from local state (playedByGame) plus the catalog `screenshotCount`,
+    // so it stays accurate as the catalog grows.
+    const allGamesCompleted = useMemo(() => {
+        const considered = games.filter((g) => !ignoredSet.has(g.id))
+        if (considered.length === 0) return false
+        return considered.every((g) => {
+            const played = playedByGame[g.id]?.length ?? 0
+            return g.screenshotCount > 0 && played >= g.screenshotCount
+        })
+    }, [games, ignoredSet, playedByGame])
+
     const canSubmit =
         phase === 'ready' &&
         !!pendingGuess &&
@@ -129,9 +148,21 @@ export default function GeoPlayPage() {
                         loading={phase === 'loading' || (currentGameId != null && phase === 'idle')}
                         empty={currentGameId == null}
                         exhausted={phase === 'exhausted'}
+                        allCompleted={allGamesCompleted}
+                        canIgnoreCurrent={
+                            phase === 'exhausted' &&
+                            currentGameId != null &&
+                            !ignoredSet.has(currentGameId)
+                        }
                         errorMessage={phase === 'error' ? errorMessage : null}
                         onPickGame={() => setGamePickerOpen(true)}
                         onCheckForNew={() => void checkForNewScreenshots()}
+                        onIgnoreCurrent={() => {
+                            if (currentGameId != null) {
+                                toggleIgnoreGame(currentGameId)
+                                setGamePickerOpen(true)
+                            }
+                        }}
                     />
                 }
                 map={
@@ -200,7 +231,9 @@ export default function GeoPlayPage() {
                 playedCountByGame={Object.fromEntries(
                     Object.entries(playedByGame).map(([id, ids]) => [id, ids.length]),
                 )}
+                ignoredGameIds={ignoredGameIds}
                 onSelect={(id) => void selectGame(id)}
+                onToggleIgnore={toggleIgnoreGame}
             />
             <MapPicker
                 open={mapPickerOpen}
@@ -219,20 +252,54 @@ function ScreenshotPanel({
     loading,
     empty,
     exhausted,
+    allCompleted,
+    canIgnoreCurrent,
     errorMessage,
     onPickGame,
     onCheckForNew,
+    onIgnoreCurrent,
 }: {
     imageUrl: string | null
     loading: boolean
     empty: boolean
     exhausted: boolean
+    allCompleted: boolean
+    canIgnoreCurrent: boolean
     errorMessage: string | null
     onPickGame: () => void
     onCheckForNew: () => void
+    onIgnoreCurrent: () => void
 }) {
     const { t } = useTranslation()
     const safeUrl = imageUrl && !isPlaceholderImageUrl(imageUrl) ? imageUrl : null
+
+    if (exhausted && allCompleted) {
+        return (
+            <div
+                className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4"
+                role="status"
+            >
+                <div className="rounded-full bg-neon-pink/10 p-4">
+                    <Sparkles className="h-8 w-8 text-neon-pink" aria-hidden />
+                </div>
+                <div className="space-y-1 max-w-sm">
+                    <h2 className="text-lg font-semibold">
+                        {t('geo.play.allDone.title', "You've completed The Box!")}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        {t(
+                            'geo.play.allDone.body',
+                            "Bravo! You've guessed every screenshot in every game in your catalog. We'll ping you when new ones are added.",
+                        )}
+                    </p>
+                </div>
+                <Button onClick={onCheckForNew} variant="outline">
+                    <RefreshCw className="h-4 w-4 mr-2" aria-hidden />
+                    {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
+                </Button>
+            </div>
+        )
+    }
 
     if (exhausted) {
         return (
@@ -254,13 +321,29 @@ function ScreenshotPanel({
                         )}
                     </p>
                 </div>
-                <Button
-                    onClick={onCheckForNew}
-                    variant="outline"
-                >
-                    <RefreshCw className="h-4 w-4 mr-2" aria-hidden />
-                    {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
-                </Button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90">
+                        <Gamepad2 className="h-4 w-4 mr-2" aria-hidden />
+                        {t('geo.play.exhausted.pickAnother', 'Pick another game')}
+                    </Button>
+                    <Button onClick={onCheckForNew} variant="outline">
+                        <RefreshCw className="h-4 w-4 mr-2" aria-hidden />
+                        {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
+                    </Button>
+                </div>
+                {canIgnoreCurrent && (
+                    <button
+                        type="button"
+                        onClick={onIgnoreCurrent}
+                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                    >
+                        <EyeOff className="h-3.5 w-3.5" aria-hidden />
+                        {t(
+                            'geo.play.exhausted.markIgnored',
+                            "I don't want to see this game again",
+                        )}
+                    </button>
+                )}
             </div>
         )
     }

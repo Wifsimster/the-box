@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoPlayableGame } from '@the-box/types'
-import { Search, MapPin, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react'
+import {
+    CheckCircle2,
+    Eye,
+    EyeOff,
+    Image as ImageIcon,
+    Loader2,
+    MapPin,
+    Search,
+    Sparkles,
+} from 'lucide-react'
 import {
     Sheet,
     SheetContent,
@@ -23,7 +32,11 @@ interface GamePickerProps {
     // How many screenshots the user has already played per game id, used
     // to flag games whose catalog has grown since their last visit.
     playedCountByGame?: Record<string, number>
+    // Game ids the player has opted out of — kept visible (so they can
+    // un-ignore) but visually de-emphasized and excluded from completion.
+    ignoredGameIds?: number[]
     onSelect: (gameId: number) => void
+    onToggleIgnore?: (gameId: number) => void
 }
 
 /**
@@ -39,11 +52,17 @@ export function GamePicker({
     isLoading,
     selectedGameId,
     playedCountByGame,
+    ignoredGameIds,
     onSelect,
+    onToggleIgnore,
 }: GamePickerProps) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
     const [query, setQuery] = useState('')
+    const ignoredSet = useMemo(
+        () => new Set(ignoredGameIds ?? []),
+        [ignoredGameIds],
+    )
 
     // Reset the search field every time the sheet re-opens — keeping a
     // stale query across opens reads as a bug ("why am I still seeing my
@@ -137,16 +156,26 @@ export function GamePicker({
                                 // actually started this game — otherwise
                                 // every entry would scream "NEW".
                                 const hasNew = played > 0 && newCount > 0
+                                const completed =
+                                    g.screenshotCount > 0 && played >= g.screenshotCount
+                                const ignored = ignoredSet.has(g.id)
                                 return (
                                     <li key={g.id}>
                                         <GameCard
                                             game={g}
                                             selected={selectedGameId === g.id}
                                             newCount={hasNew ? newCount : 0}
+                                            completed={completed}
+                                            ignored={ignored}
                                             onSelect={() => {
                                                 onSelect(g.id)
                                                 onOpenChange(false)
                                             }}
+                                            onToggleIgnore={
+                                                onToggleIgnore
+                                                    ? () => onToggleIgnore(g.id)
+                                                    : undefined
+                                            }
                                         />
                                     </li>
                                 )
@@ -163,72 +192,127 @@ function GameCard({
     game,
     selected,
     newCount,
+    completed,
+    ignored,
     onSelect,
+    onToggleIgnore,
 }: {
     game: GeoPlayableGame
     selected: boolean
     newCount: number
+    completed: boolean
+    ignored: boolean
     onSelect: () => void
+    onToggleIgnore?: () => void
 }) {
     const { t } = useTranslation()
     const cover = game.coverImageUrl && !isPlaceholderImageUrl(game.coverImageUrl)
         ? game.coverImageUrl
         : null
     return (
-        <button
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={onSelect}
+        <div
             className={cn(
                 'group relative w-full overflow-hidden rounded-lg border bg-card text-left transition',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink',
                 selected
                     ? 'border-neon-pink ring-2 ring-neon-pink/60'
                     : 'border-border hover:border-neon-pink/60',
+                ignored && 'opacity-60',
             )}
         >
-            {newCount > 0 && (
-                <span
-                    className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-neon-pink px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
-                    aria-label={t('geo.play.newCaptures', '{{count}} new screenshots to guess', {
-                        count: newCount,
-                    })}
-                >
-                    <Sparkles className="h-3 w-3" aria-hidden />
-                    {t('geo.play.newBadge', '+{{count}} new', { count: newCount })}
-                </span>
-            )}
-            <div className="aspect-video w-full bg-muted/30 sm:aspect-[16/7]">
-                {cover ? (
-                    <img
-                        src={cover}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                    />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                        {game.name}
-                    </div>
-                )}
-            </div>
-            <div className="p-3 space-y-1">
-                <p className="font-medium text-sm leading-tight line-clamp-2">{game.name}</p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3" aria-hidden />
-                        {t('geo.play.mapCount', '{{count}} maps', { count: game.mapCount })}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                        <ImageIcon className="h-3 w-3" aria-hidden />
-                        {t('geo.play.screenshotCount', '{{count}} shots', {
-                            count: game.screenshotCount,
+            <button
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={onSelect}
+                className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+            >
+                {newCount > 0 && !completed && !ignored && (
+                    <span
+                        className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-neon-pink px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
+                        aria-label={t('geo.play.newCaptures', '{{count}} new screenshots to guess', {
+                            count: newCount,
                         })}
+                    >
+                        <Sparkles className="h-3 w-3" aria-hidden />
+                        {t('geo.play.newBadge', '+{{count}} new', { count: newCount })}
                     </span>
+                )}
+                {completed && !ignored && (
+                    <span
+                        className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
+                    >
+                        <CheckCircle2 className="h-3 w-3" aria-hidden />
+                        {t('geo.play.completedBadge', 'All seen')}
+                    </span>
+                )}
+                {ignored && (
+                    <span
+                        className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-muted-foreground/80 px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
+                    >
+                        <EyeOff className="h-3 w-3" aria-hidden />
+                        {t('geo.play.ignoredBadge', 'Ignored')}
+                    </span>
+                )}
+                <div className="aspect-video w-full bg-muted/30 sm:aspect-[16/7]">
+                    {cover ? (
+                        <img
+                            src={cover}
+                            alt=""
+                            className={cn(
+                                'h-full w-full object-cover',
+                                ignored && 'grayscale',
+                            )}
+                            loading="lazy"
+                            decoding="async"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                            {game.name}
+                        </div>
+                    )}
                 </div>
-            </div>
-        </button>
+                <div className="p-3 space-y-1">
+                    <p className="font-medium text-sm leading-tight line-clamp-2">{game.name}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                            <MapPin className="h-3 w-3" aria-hidden />
+                            {t('geo.play.mapCount', '{{count}} maps', { count: game.mapCount })}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                            <ImageIcon className="h-3 w-3" aria-hidden />
+                            {t('geo.play.screenshotCount', '{{count}} shots', {
+                                count: game.screenshotCount,
+                            })}
+                        </span>
+                    </div>
+                </div>
+            </button>
+            {onToggleIgnore && (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onToggleIgnore()
+                    }}
+                    className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur hover:border-neon-pink/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                    aria-label={
+                        ignored
+                            ? t('geo.play.unmarkIgnored', 'Restore this game')
+                            : t('geo.play.markIgnored', "I don't know this game")
+                    }
+                >
+                    {ignored ? (
+                        <Eye className="h-3 w-3" aria-hidden />
+                    ) : (
+                        <EyeOff className="h-3 w-3" aria-hidden />
+                    )}
+                    <span className="hidden sm:inline">
+                        {ignored
+                            ? t('geo.play.unmarkIgnoredShort', 'Restore')
+                            : t('geo.play.markIgnoredShort', "Don't know")}
+                    </span>
+                </button>
+            )}
+        </div>
     )
 }
