@@ -41,11 +41,18 @@ jobs:
       major: ${{ steps.version.outputs.major }}
       minor: ${{ steps.version.outputs.minor }}
       short_sha: ${{ steps.version.outputs.short_sha }}
+      build_date: ${{ steps.build_date.outputs.value }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Capture build timestamp
+        id: build_date
+        # Captured once here so both arch matrix builds stamp the same
+        # value into the OCI image label, matching the manifest tag.
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Determine bump type from conventional commits
         id: bump
@@ -85,10 +92,10 @@ jobs:
             BUMP=major
           elif echo "$SUBJECTS" | grep -qE "^feat(\([^)]+\))?:"; then
             BUMP=minor
-          elif echo "$SUBJECTS" | grep -qE "^(fix|perf|revert)(\([^)]+\))?:"; then
+          elif echo "$SUBJECTS" | grep -qE "^(fix|perf|revert|refactor)(\([^)]+\))?:"; then
             BUMP=patch
           else
-            echo "Only non-releasable commits (chore/docs/style/refactor/test/ci/build) — skipping."
+            echo "Only non-releasable commits (chore/docs/style/test/ci/build) — skipping."
             echo "should_release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -194,7 +201,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             VERSION=${{ needs.decide.outputs.new_version }}
-            BUILD_DATE=${{ github.event.repository.updated_at }}
+            BUILD_DATE=${{ needs.decide.outputs.build_date }}
             VCS_REF=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.cache_scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
@@ -331,54 +338,15 @@ jobs:
           git tag -a "v${{ needs.decide.outputs.new_version }}" -m "Release v${{ needs.decide.outputs.new_version }}"
 
       - name: Push changes to repository
+        # The `release-main` concurrency group with cancel-in-progress: false
+        # serializes whole runs, so concurrent sibling runs cannot race here.
+        # If a push ever fails, fail loudly rather than swallow it — a silent
+        # exit upstream of the GitHub Release step would leave a dangling
+        # Docker manifest with no matching tag or release.
         run: |
           set -euo pipefail
-          NEW_VERSION="${{ needs.decide.outputs.new_version }}"
-
-          # Multi-arch Docker builds take ~5 minutes; if another PR merges
-          # to main during that window, a sibling Release run will have
-          # bumped main to the same target version (or beyond) by the time
-          # we try to push. The concurrency group on this workflow does not
-          # actually serialize the build matrix in practice, so handle the
-          # race here:
-          #   1. Try push.
-          #   2. On reject, fetch main. If our target tag already exists,
-          #      a sibling run won and the Docker manifest we already
-          #      published is co-tagged correctly — exit clean.
-          #   3. Otherwise rebase. If the rebase conflicts (typical: both
-          #      runs touched package.json version field), the sibling
-          #      released a different version that effectively supersedes
-          #      ours; exit clean rather than try to recover.
-          for attempt in 1 2 3; do
-            if git push origin HEAD:main 2>&1; then
-              break
-            fi
-            if [ $attempt -eq 3 ]; then
-              echo "::error::push to main failed after 3 attempts"
-              exit 1
-            fi
-
-            echo "Push rejected (attempt $attempt) — fetching origin/main…"
-            git fetch origin main
-
-            if git ls-remote --tags origin "v${NEW_VERSION}" | grep -q .; then
-              echo "v${NEW_VERSION} already exists on origin — sibling release won the race. Exiting clean."
-              exit 0
-            fi
-
-            if ! git rebase origin/main; then
-              git rebase --abort
-              echo "Rebase conflicted — sibling release bumped to a different version. Exiting clean."
-              exit 0
-            fi
-          done
-
-          # Tag push uses --force-with-lease=v…:''  semantics implicitly:
-          # the tag is local-only until this point, so a successful main
-          # push above means no other run holds the tag. If a sibling
-          # tagged the same v$NEW_VERSION between the two pushes, the
-          # second push will fail and we surface that as a real error.
-          git push origin "v${NEW_VERSION}"
+          git push origin HEAD:main
+          git push origin "v${{ needs.decide.outputs.new_version }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
