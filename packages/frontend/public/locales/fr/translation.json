@@ -773,6 +773,7 @@
       },
       "actions": {
         "makeOfficial": "Valider le pin",
+        "makeOfficialNoPin": "Valider sans pin",
         "removeOfficial": "Retirer du lieu officiel",
         "decline": "Refuser"
       },

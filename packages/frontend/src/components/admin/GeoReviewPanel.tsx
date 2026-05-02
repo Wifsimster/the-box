@@ -1079,7 +1079,11 @@ function CandidateDetailBody({
                             {saving && (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                             )}
-                            {t('admin.geo.actions.makeOfficial')}
+                            {t(
+                                pin
+                                    ? 'admin.geo.actions.makeOfficial'
+                                    : 'admin.geo.actions.makeOfficialNoPin',
+                            )}
                         </Button>
                     </div>
                 </div>
