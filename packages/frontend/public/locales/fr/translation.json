@@ -1589,7 +1589,57 @@
       },
       "reveal": {
         "correctMap": "Bonne carte : {{region}}"
-      }
+      },
+      "freePlayCta": "Jouer librement"
+    },
+    "play": {
+      "title": "Mode libre",
+      "pickGame": "Choisir un jeu",
+      "pickGameHint": "Tous les jeux avec au moins une capture jouable.",
+      "pickMap": "Choisir une carte",
+      "pickMapHint": "Choisissez la carte du jeu sur laquelle vous voulez deviner.",
+      "searchGames": "Rechercher un jeu",
+      "searchGamesPlaceholder": "Rechercher un jeu…",
+      "noGamesFound": "Aucun jeu ne correspond à votre recherche.",
+      "noGamesYet": "Aucun jeu n'est disponible en mode libre pour l'instant.",
+      "noMapsYet": "Aucune carte n'est encore disponible pour ce jeu.",
+      "mapCount": "{{count}} cartes",
+      "screenshotCount": "{{count}} captures",
+      "anyMap": "Au hasard",
+      "changeGame": "Changer de jeu",
+      "changeMap": "Changer de carte",
+      "submit": "Placer l'épingle",
+      "next": "Tour suivant",
+      "reroll": "Nouvelle capture",
+      "tabs": {
+        "screenshot": "Photo",
+        "map": "Carte"
+      },
+      "deck": {
+        "label": "Capture et carte"
+      },
+      "empty": {
+        "title": "Choisissez un jeu pour commencer",
+        "body": "Le mode libre couvre tous les jeux et toutes les cartes du catalogue. Sans limite quotidienne.",
+        "cta": "Parcourir les jeux"
+      },
+      "map": {
+        "empty": {
+          "noGame": "Choisissez d'abord un jeu — la liste des cartes apparaîtra ici.",
+          "multi": "Ce jeu a plusieurs cartes. Choisissez-en une pour commencer.",
+          "none": "Aucune carte jouable pour ce jeu."
+        }
+      },
+      "practiceNote": "Mode entraînement — votre score n'affecte pas le classement.",
+      "backToDaily": "Jouer le défi quotidien classé"
+    },
+    "fullscreen": {
+      "enter": "Passer en plein écran",
+      "enterImmersive": "Vue immersive",
+      "exit": "Quitter le mode immersif",
+      "entered": "Plein écran activé",
+      "exited": "Plein écran désactivé",
+      "unsupported": "Le plein écran n'est pas pris en charge sur cet appareil — vue immersive utilisée à la place."
     },
     "contribute": {
       "title": "Étiqueter une capture",

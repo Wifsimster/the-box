@@ -862,6 +862,49 @@ export interface GeoGuessResult {
   wrongMap?: boolean
 }
 
+// ---- Free-play (unranked, all-games-all-maps browser) ----
+
+// Catalog row: a game that the free-play picker can offer. mapCount and
+// screenshotCount let the UI render badges without an N+1 lookup; the cover
+// art is reused from the games table when available.
+export interface GeoPlayableGame {
+  id: number
+  name: string
+  coverImageUrl: string | null
+  mapCount: number
+  screenshotCount: number
+}
+
+// View returned by `POST /api/geo/free-play/random`. Mirrors the daily
+// challenge view minus the challenge wrapper — there is no challenge id
+// because nothing is persisted server-side.
+export interface GeoFreePlayView {
+  // Echoed back so the client doesn't have to hold onto its own request
+  // copy; `name` may be empty when the service couldn't cheaply look it
+  // up (the free-play picker fills it from its games-list cache anyway).
+  game: { id: number; name: string }
+  meta: GeoScreenshotMeta
+  candidate: GeoScreenshotCandidate
+  maps: GeoMap[]
+  // The map the screenshot canonically belongs to. Only populated AFTER
+  // a guess is scored (the pick endpoint never includes it).
+  map?: GeoMap
+}
+
+// Result of `POST /api/geo/free-play/guess`. Same shape as the daily
+// `GeoGuessResult` minus the leaderboard-only `averageScore` /
+// `playerCount` fields — free-play is unranked, so those would always
+// be empty.
+export interface GeoFreePlayResult {
+  guess: GeoPoint
+  canonical: GeoPoint
+  distance: number
+  score: number
+  scoreVersion: number
+  correctMapId: number
+  wrongMap: boolean
+}
+
 export interface GeoLeaderboardEntry {
   userId: string
   username: string

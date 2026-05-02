@@ -1589,7 +1589,57 @@
       },
       "reveal": {
         "correctMap": "Correct map: {{region}}"
-      }
+      },
+      "freePlayCta": "Free play any game"
+    },
+    "play": {
+      "title": "Free play",
+      "pickGame": "Pick a game",
+      "pickGameHint": "All games with at least one playable screenshot.",
+      "pickMap": "Pick a map",
+      "pickMapHint": "Pick the in-game map you want to guess on.",
+      "searchGames": "Search games",
+      "searchGamesPlaceholder": "Search games…",
+      "noGamesFound": "No games match your search.",
+      "noGamesYet": "No games are available for free play yet.",
+      "noMapsYet": "No maps are available for this game yet.",
+      "mapCount": "{{count}} maps",
+      "screenshotCount": "{{count}} shots",
+      "anyMap": "Surprise me",
+      "changeGame": "Choose game",
+      "changeMap": "Choose map",
+      "submit": "Drop pin",
+      "next": "Next round",
+      "reroll": "New screenshot",
+      "tabs": {
+        "screenshot": "Photo",
+        "map": "Map"
+      },
+      "deck": {
+        "label": "Screenshot and map"
+      },
+      "empty": {
+        "title": "Pick a game to start",
+        "body": "Free play covers every game and every map in the catalog. No daily limits.",
+        "cta": "Browse games"
+      },
+      "map": {
+        "empty": {
+          "noGame": "Pick a game first — the map list shows up here once you have one.",
+          "multi": "This game has several maps. Pick one to start guessing.",
+          "none": "No playable maps for this game yet."
+        }
+      },
+      "practiceNote": "Practice mode — your score does not affect the leaderboard.",
+      "backToDaily": "Play the ranked daily challenge"
+    },
+    "fullscreen": {
+      "enter": "Enter fullscreen",
+      "enterImmersive": "Enter immersive view",
+      "exit": "Exit immersive view",
+      "entered": "Fullscreen activated",
+      "exited": "Fullscreen exited",
+      "unsupported": "Fullscreen isn't supported on this device — using immersive view instead."
     },
     "contribute": {
       "title": "Tag a screenshot",

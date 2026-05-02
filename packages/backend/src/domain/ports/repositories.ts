@@ -629,7 +629,22 @@ export interface GeoScreenshotRepository {
     promotedBy?: string
   }): Promise<GeoScreenshotMeta>
   countPromotedForGame(gameId: number): Promise<number>
-  pickRandomPromotedForGame(gameId: number): Promise<GeoScreenshotMeta | null>
+  pickRandomPromotedForGame(
+    gameId: number,
+    geoMapId?: number,
+  ): Promise<GeoScreenshotMeta | null>
+  // Free-play catalog: games with at least one promoted screenshot, plus
+  // the per-game count of distinct maps and screenshots so the picker can
+  // render badges without an N+1 lookup.
+  listPlayableGames(): Promise<
+    Array<{
+      id: number
+      name: string
+      coverImageUrl: string | null
+      mapCount: number
+      screenshotCount: number
+    }>
+  >
 }
 
 export interface GeoChallengeRepository {
