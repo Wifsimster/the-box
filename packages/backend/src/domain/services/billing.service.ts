@@ -163,6 +163,20 @@ export const billingService = {
     if (!item) {
       throw new Error(`stripe subscription ${sub.id} has no items`)
     }
+    if (sub.items.data.length > 1) {
+      // We only sell single-line subscriptions today; if Stripe ever sends
+      // a multi-item subscription here it's either a config mistake or a
+      // future feature we forgot to teach this code. Logging the IDs makes
+      // it findable in prod without changing behavior.
+      log.warn(
+        {
+          subscriptionId: sub.id,
+          itemCount: sub.items.data.length,
+          priceIds: sub.items.data.map((i) => i.price.id),
+        },
+        'subscription has multiple items; using first',
+      )
+    }
     const periodEnd = (item as Stripe.SubscriptionItem & { current_period_end?: number })
       .current_period_end
     return {

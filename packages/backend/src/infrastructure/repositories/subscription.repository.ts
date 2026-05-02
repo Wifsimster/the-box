@@ -104,28 +104,34 @@ export const subscriptionRepository = {
   },
 }
 
-// Webhook idempotency: every event we accept is logged here in the same
-// transaction as its side effect. A duplicate event hits the unique PK and
-// the handler short-circuits without re-applying.
+// Webhook idempotency. Two-phase: claim first (insert row, processed_at
+// NULL), dispatch, then mark processed. A crash between claim and mark
+// leaves processed_at NULL, so Stripe's at-least-once retry will see the
+// event isn't finished and re-run dispatch — which is safe because every
+// side effect is independently idempotent (ON CONFLICT upserts, NULL-
+// guarded grants). Only a row with processed_at IS NOT NULL is treated as
+// fully applied and short-circuited.
 export const stripeEventLogRepository = {
-  async record(eventId: string, type: string): Promise<{ alreadyApplied: boolean }> {
-    try {
-      await db('stripe_event_log').insert({
-        event_id: eventId,
-        type,
-      })
-      return { alreadyApplied: false }
-    } catch (err) {
-      // Postgres unique violation → duplicate event, safe to ignore.
-      if (
-        err instanceof Error &&
-        'code' in err &&
-        (err as { code?: string }).code === '23505'
-      ) {
-        log.info({ eventId, type }, 'duplicate webhook event ignored')
-        return { alreadyApplied: true }
-      }
-      throw err
+  async claimEvent(eventId: string, type: string): Promise<{ alreadyProcessed: boolean }> {
+    // Insert-or-fetch in one round trip. ON CONFLICT DO UPDATE with a
+    // no-op SET (event_id = event_id) lets us read processed_at back from
+    // the existing row without a second SELECT.
+    const [row] = await db('stripe_event_log')
+      .insert({ event_id: eventId, type })
+      .onConflict('event_id')
+      .merge({ event_id: eventId })
+      .returning<{ processed_at: Date | null }[]>(['processed_at'])
+
+    const alreadyProcessed = row?.processed_at !== null && row?.processed_at !== undefined
+    if (alreadyProcessed) {
+      log.info({ eventId, type }, 'duplicate webhook event ignored')
     }
+    return { alreadyProcessed }
+  },
+
+  async markEventProcessed(eventId: string): Promise<void> {
+    await db('stripe_event_log').where({ event_id: eventId }).update({
+      processed_at: new Date(),
+    })
   },
 }

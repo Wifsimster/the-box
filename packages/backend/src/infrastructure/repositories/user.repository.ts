@@ -179,6 +179,31 @@ export const userRepository = {
       })
   },
 
+  async revokeSupporterLifetime(userId: string, reason: string): Promise<boolean> {
+    log.warn({ userId, reason }, 'revokeSupporterLifetime')
+    // Only act on users who actually had the grant; lets the webhook
+    // handler tell legitimate revocations (returning true) apart from
+    // benign duplicates (false) without an extra read.
+    const updated = await db('user')
+      .where('id', userId)
+      .whereNotNull('supporter_lifetime_at')
+      .update({
+        supporter_lifetime_at: null,
+        updatedAt: new Date(),
+      })
+    return updated > 0
+  },
+
+  async clearStripeCustomerId(userId: string): Promise<void> {
+    log.info({ userId }, 'clearStripeCustomerId')
+    await db('user')
+      .where('id', userId)
+      .update({
+        stripe_customer_id: null,
+        updatedAt: new Date(),
+      })
+  },
+
   async updateEmailMarketingConsent(userId: string, consent: boolean): Promise<User | null> {
     log.info({ userId, consent }, 'updateEmailMarketingConsent')
     await db('user')
