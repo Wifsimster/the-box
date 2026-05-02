@@ -237,11 +237,18 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 if (get().games.length === 0) {
                     await get().loadGames()
                 }
-                const { games, ignoredGameIds, currentGameId } = get()
+                const { games, ignoredGameIds, currentGameId, playedByGame } = get()
                 const ignored = new Set(ignoredGameIds)
-                const candidates = games.filter(
-                    (g) => !ignored.has(g.id) && g.screenshotCount > 0,
-                )
+                // Exclude games the player has already fully played — landing
+                // on one would just bounce back into the exhausted state and
+                // (with the auto-switch effect) thrash through games until
+                // every remaining candidate is also exhausted.
+                const candidates = games.filter((g) => {
+                    if (ignored.has(g.id)) return false
+                    if (g.screenshotCount <= 0) return false
+                    const played = playedByGame[g.id]?.length ?? 0
+                    return played < g.screenshotCount
+                })
                 if (candidates.length === 0) return
                 // Avoid landing back on the same game when there's an
                 // alternative — otherwise the shuffle feels broken on

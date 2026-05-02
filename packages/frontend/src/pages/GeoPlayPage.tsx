@@ -127,6 +127,16 @@ export default function GeoPlayPage() {
         })
     }, [games, ignoredSet, playedByGame])
 
+    // When the current game runs out of captures but the catalog still has
+    // unplayed screenshots elsewhere, silently switch to another game
+    // instead of showing a per-game "you've seen everything" notice. The
+    // exhausted UI is reserved for the all-catalog-done case.
+    useEffect(() => {
+        if (phase === 'exhausted' && !allGamesCompleted) {
+            void pickRandomAcrossGames()
+        }
+    }, [phase, allGamesCompleted, pickRandomAcrossGames])
+
     const canSubmit =
         phase === 'ready' &&
         !!pendingGuess &&
