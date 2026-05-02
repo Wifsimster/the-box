@@ -129,12 +129,14 @@ async function fetchCandidateDetail(id: number): Promise<CandidateDetail> {
     return json.data
 }
 
-async function overrideCandidate(id: number, pin: GeoPoint): Promise<void> {
+async function overrideCandidate(id: number, pin: GeoPoint | null): Promise<void> {
     const res = await fetch(`/api/admin/geo/candidates/${id}/override`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ canonicalX: pin.x, canonicalY: pin.y }),
+        body: JSON.stringify(
+            pin ? { canonicalX: pin.x, canonicalY: pin.y } : {},
+        ),
     })
     if (!res.ok) {
         const json = await res.json().catch(() => ({}))
@@ -286,7 +288,7 @@ export function GeoReviewPanel() {
     }
 
     const applyOverride = async () => {
-        if (!detail || !pin) return
+        if (!detail) return
         setSaving(true)
         try {
             const previousFlat = groupCandidatesByGame(candidates).flatMap(
@@ -1071,7 +1073,7 @@ function CandidateDetailBody({
                         <Button
                             size="sm"
                             onClick={() => void onPromote()}
-                            disabled={!pin || saving}
+                            disabled={saving}
                             className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
                         >
                             {saving && (

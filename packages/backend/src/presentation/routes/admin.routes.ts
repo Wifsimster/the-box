@@ -43,6 +43,7 @@ import {
   emailLogRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
+import { evaluateConsensus } from '../../domain/services/geo-consensus.service.js'
 import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service.js'
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
@@ -1468,10 +1469,18 @@ router.get('/geo/candidates/:id', async (req, res, next) => {
   }
 })
 
-const overrideBodySchema = z.object({
-  canonicalX: z.number().min(0).max(1),
-  canonicalY: z.number().min(0).max(1),
-})
+// Admin can either pin the canonical location themselves, or omit both
+// coordinates to let the centroid of player submissions stand in. The
+// "approach the right answer through participation" path: more pins
+// pull the centroid toward the true location.
+const overrideBodySchema = z
+  .object({
+    canonicalX: z.number().min(0).max(1).optional(),
+    canonicalY: z.number().min(0).max(1).optional(),
+  })
+  .refine((v) => (v.canonicalX === undefined) === (v.canonicalY === undefined), {
+    message: 'canonicalX and canonicalY must both be provided or both omitted',
+  })
 
 router.post('/geo/candidates/:id/override', async (req, res, next) => {
   try {
@@ -1507,14 +1516,51 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
       return
     }
 
+    let canonicalX: number
+    let canonicalY: number
+    let confidence: number
+    let promotedVia: 'consensus' | 'admin'
+
+    if (parse.data.canonicalX !== undefined && parse.data.canonicalY !== undefined) {
+      canonicalX = parse.data.canonicalX
+      canonicalY = parse.data.canonicalY
+      confidence = 1.0
+      promotedVia = 'admin'
+    } else {
+      const pins = await geoPinRepository.listByCandidate(id)
+      if (pins.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'NO_PINS',
+            message: 'no submissions to compute average from',
+          },
+        })
+        return
+      }
+      const map = await geoMapRepository.findById(candidate.geoMapId)
+      if (!map) {
+        res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND' } })
+        return
+      }
+      const consensus = evaluateConsensus(
+        pins.map((p) => ({ id: p.id, pin: p.pin })),
+        map.consensusRadius,
+      )
+      canonicalX = consensus.centroid.x
+      canonicalY = consensus.centroid.y
+      confidence = consensus.confidence
+      promotedVia = 'consensus'
+    }
+
     const meta = await geoScreenshotRepository.promoteCandidateToMeta({
       candidateId: id,
       geoMapId: candidate.geoMapId,
-      canonicalX: parse.data.canonicalX,
-      canonicalY: parse.data.canonicalY,
-      confidence: 1.0,
+      canonicalX,
+      canonicalY,
+      confidence,
       consensusVersion: GEO_CONSENSUS_VERSION,
-      promotedVia: 'admin',
+      promotedVia,
       promotedBy: req.userId,
     })
 
