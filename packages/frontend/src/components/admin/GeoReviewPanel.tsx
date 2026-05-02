@@ -43,6 +43,7 @@ import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
+    GeoCandidateGameSummary,
     GeoMap,
     GeoPinSubmission,
     GeoPoint,
@@ -103,6 +104,20 @@ async function fetchCandidates(args: {
     const qs = params.toString() ? `?${params.toString()}` : ''
     const res = await fetch(`/api/admin/geo/candidates${qs}`, { credentials: 'include' })
     if (!res.ok) throw new Error(`list failed: ${res.status}`)
+    const json = await res.json()
+    return json.data
+}
+
+async function fetchGameSummaries(args: {
+    status?: string
+}): Promise<GeoCandidateGameSummary[]> {
+    const params = new URLSearchParams()
+    if (args.status) params.set('status', args.status)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    const res = await fetch(`/api/admin/geo/candidates/by-game${qs}`, {
+        credentials: 'include',
+    })
+    if (!res.ok) throw new Error(`summary failed: ${res.status}`)
     const json = await res.json()
     return json.data
 }
@@ -187,6 +202,11 @@ export function GeoReviewPanel() {
         gameName: string
     } | null>(null)
     const [candidates, setCandidates] = useState<GeoScreenshotCandidate[]>([])
+    // Per-game summary for the overview list (one row per game, with the
+    // honest count of captures per status). Fetched whenever no `gameFilter`
+    // is active; the per-candidate list takes over once the moderator drills
+    // into a specific game.
+    const [summaries, setSummaries] = useState<GeoCandidateGameSummary[]>([])
     const [detail, setDetail] = useState<CandidateDetail | null>(null)
     const [pin, setPin] = useState<GeoPoint | null>(null)
     const [loading, setLoading] = useState(true)
@@ -206,13 +226,31 @@ export function GeoReviewPanel() {
     useEffect(() => {
         let cancelled = false
         setLoading(true)
-        fetchCandidates({
-            status: statusFilter === 'all' ? undefined : statusFilter,
-            gameId: gameFilter?.gameId,
-        })
-            .then((rows) => !cancelled && setCandidates(rows))
-            .catch((e) => !cancelled && setError(String(e)))
-            .finally(() => !cancelled && setLoading(false))
+        // Two modes:
+        //  - No game selected → fetch per-game summary (the "Propositions"
+        //    list shows one row per game with its capture counts).
+        //  - Game selected (drill-down) → fetch the candidates of that game
+        //    so the moderator can act on individual captures.
+        const status = statusFilter === 'all' ? undefined : statusFilter
+        const gameId = gameFilter?.gameId
+        if (gameId !== undefined) {
+            fetchCandidates({ status, gameId })
+                .then((rows) => !cancelled && setCandidates(rows))
+                .catch((e) => !cancelled && setError(String(e)))
+                .finally(() => !cancelled && setLoading(false))
+        } else {
+            fetchGameSummaries({ status })
+                .then((rows) => {
+                    if (cancelled) return
+                    setSummaries(rows)
+                    // Keep `candidates` empty in summary mode so the
+                    // detail/prev-next bookkeeping (which reads candidates)
+                    // doesn't carry stale rows from a previous drill-down.
+                    setCandidates([])
+                })
+                .catch((e) => !cancelled && setError(String(e)))
+                .finally(() => !cancelled && setLoading(false))
+        }
         return () => {
             cancelled = true
         }
@@ -267,6 +305,10 @@ export function GeoReviewPanel() {
                 await openDetail(next.id)
             } else {
                 setDetail(null)
+                // Game has no more captures matching the active filter —
+                // bounce back to the per-game summary so the moderator can
+                // pick the next game to triage.
+                if (rows.length === 0 && gameFilter) setGameFilter(null)
             }
         } catch (e) {
             setError(String(e))
@@ -304,6 +346,7 @@ export function GeoReviewPanel() {
                 await openDetail(next.id)
             } else {
                 setDetail(null)
+                if (rows.length === 0 && gameFilter) setGameFilter(null)
             }
         } catch (e) {
             setError(String(e))
@@ -353,6 +396,34 @@ export function GeoReviewPanel() {
         const key = `admin.geo.statusBadge.${status}`
         const translated = t(key)
         return translated === key ? status : translated
+    }
+
+    // Pick which count drives a summary row's primary number based on the
+    // active status filter. `all` shows the total so the row never hides
+    // captures when the moderator switches to the audit view.
+    const summaryCountFor = (s: GeoCandidateGameSummary): number => {
+        switch (statusFilter) {
+            case 'collecting':
+                return s.collectingCount
+            case 'pending':
+                return s.pendingCount
+            case 'promoted':
+                return s.promotedCount
+            case 'all':
+                return s.totalCount
+        }
+    }
+
+    // Days between `iso` and now, rounded down to whole days. Used to label
+    // the oldest pending capture per game so triage can prioritise stale
+    // ones. Returns null for invalid input so callers can skip the badge.
+    const daysSince = (iso: string | null): number | null => {
+        if (!iso) return null
+        const ts = Date.parse(iso)
+        if (Number.isNaN(ts)) return null
+        const ms = Date.now() - ts
+        if (ms <= 0) return 0
+        return Math.floor(ms / (1000 * 60 * 60 * 24))
     }
 
     return (
@@ -528,7 +599,11 @@ export function GeoReviewPanel() {
                         <CardHeader className="pb-2 p-4 sm:p-6">
                             <div className="flex items-center justify-between gap-2">
                                 <CardTitle className="text-sm">
-                                    {t('admin.geo.submissions')} ({candidates.length})
+                                    {gameFilter
+                                        ? `${t('admin.geo.submissions')} (${candidates.length})`
+                                        : t('admin.geo.gamesList.header', {
+                                              count: summaries.length,
+                                          })}
                                 </CardTitle>
                                 <Button
                                     type="button"
@@ -542,59 +617,131 @@ export function GeoReviewPanel() {
                                 </Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-4 lg:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
-                            {groupCandidatesByGame(candidates).map((group) => (
-                                <section key={group.gameId} className="space-y-2">
-                                    <header className="flex items-baseline justify-between gap-2 border-b border-border/40 pb-1">
-                                        <h3 className="truncate text-xs font-semibold text-foreground">
-                                            {group.gameName ??
-                                                t('admin.geo.groupHeader.unknownGame', {
-                                                    id: group.gameId,
+                        <CardContent className="space-y-3 lg:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
+                            {gameFilter ? (
+                                <>
+                                    {candidates.map((c) => (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => openDetail(c.id)}
+                                            className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 active:bg-muted/60 ${
+                                                detail?.candidate.id === c.id && !isMobile
+                                                    ? 'border-neon-pink'
+                                                    : ''
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-center gap-2">
+                                                <span className="truncate font-mono font-medium">
+                                                    #{c.id}
+                                                </span>
+                                                <Badge variant="outline">
+                                                    {statusLabel(c.status)}
+                                                </Badge>
+                                            </div>
+                                            <div className="mt-1 text-muted-foreground">
+                                                {t('admin.geo.submissionRow.pinCount', {
+                                                    count: c.pinCount,
                                                 })}
-                                        </h3>
-                                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                            {t('admin.geo.groupHeader.captureCount', {
-                                                count: group.candidates.length,
-                                            })}
-                                        </span>
-                                    </header>
-                                    <div className="space-y-2">
-                                        {group.candidates.map((c) => (
-                                            <button
-                                                key={c.id}
-                                                onClick={() => openDetail(c.id)}
-                                                className={`w-full text-left rounded border p-2 text-xs hover:bg-muted/40 active:bg-muted/60 ${
-                                                    detail?.candidate.id === c.id && !isMobile
-                                                        ? 'border-neon-pink'
-                                                        : ''
-                                                }`}
-                                            >
-                                                <div className="flex justify-between items-center gap-2">
-                                                    <span className="truncate font-mono font-medium">
-                                                        #{c.id}
-                                                    </span>
-                                                    <Badge variant="outline">
-                                                        {statusLabel(c.status)}
-                                                    </Badge>
-                                                </div>
-                                                <div className="mt-1 text-muted-foreground">
-                                                    {t('admin.geo.submissionRow.pinCount', {
-                                                        count: c.pinCount,
-                                                    })}
-                                                    {' · '}
-                                                    {t('admin.geo.submissionRow.source', {
-                                                        source: c.source,
-                                                    })}
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </section>
-                            ))}
-                            {candidates.length === 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                    {t('admin.geo.emptyQueue')}
-                                </p>
+                                                {' · '}
+                                                {t('admin.geo.submissionRow.source', {
+                                                    source: c.source,
+                                                })}
+                                            </div>
+                                        </button>
+                                    ))}
+                                    {candidates.length === 0 && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {t('admin.geo.emptyQueue')}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {summaries
+                                        .filter((s) => summaryCountFor(s) > 0)
+                                        .map((s) => {
+                                            const primary = summaryCountFor(s)
+                                            const days = daysSince(s.oldestPendingAt)
+                                            return (
+                                                <button
+                                                    key={s.gameId}
+                                                    onClick={() =>
+                                                        viewCapturesForGame(
+                                                            s.gameId,
+                                                            s.gameName ??
+                                                                t(
+                                                                    'admin.geo.groupHeader.unknownGame',
+                                                                    { id: s.gameId },
+                                                                ),
+                                                        )
+                                                    }
+                                                    className="w-full text-left rounded border p-3 text-xs hover:bg-muted/40 active:bg-muted/60 transition-colors"
+                                                >
+                                                    <div className="flex items-baseline justify-between gap-2">
+                                                        <h3 className="truncate text-sm font-semibold text-foreground">
+                                                            {s.gameName ??
+                                                                t(
+                                                                    'admin.geo.groupHeader.unknownGame',
+                                                                    { id: s.gameId },
+                                                                )}
+                                                        </h3>
+                                                        <span className="shrink-0 font-mono text-sm font-bold text-neon-pink">
+                                                            {primary}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                                                        <span>
+                                                            {t(
+                                                                `admin.geo.gamesList.count.${statusFilter}`,
+                                                                { count: primary },
+                                                            )}
+                                                        </span>
+                                                        {statusFilter !== 'pending' &&
+                                                            s.pendingCount > 0 && (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="h-4 px-1 text-[10px]"
+                                                                >
+                                                                    {t(
+                                                                        'admin.geo.gamesList.count.pending',
+                                                                        {
+                                                                            count: s.pendingCount,
+                                                                        },
+                                                                    )}
+                                                                </Badge>
+                                                            )}
+                                                        {days !== null && s.pendingCount > 0 && (
+                                                            <span>
+                                                                {' · '}
+                                                                {t(
+                                                                    'admin.geo.gamesList.oldestPending',
+                                                                    {
+                                                                        relative:
+                                                                            days === 0
+                                                                                ? t(
+                                                                                      'admin.geo.gamesList.relative.today',
+                                                                                  )
+                                                                                : t(
+                                                                                      'admin.geo.gamesList.relative.daysAgo',
+                                                                                      {
+                                                                                          count: days,
+                                                                                      },
+                                                                                  ),
+                                                                    },
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            )
+                                        })}
+                                    {summaries.filter((s) => summaryCountFor(s) > 0).length ===
+                                        0 && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {t('admin.geo.emptyQueue')}
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>

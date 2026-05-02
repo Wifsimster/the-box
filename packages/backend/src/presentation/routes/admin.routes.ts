@@ -1396,6 +1396,30 @@ router.get('/growth-stats', async (_req, res, next) => {
 
 // === Geolocation mode (admin review) ===
 
+// Per-game moderation summary. Replaces the flat "show every capture" list
+// the panel used to render: the moderator now sees one row per game with
+// the full per-status counts and the oldest pending date. Counts come from
+// a single GROUP BY in the repo so they're honest beyond the per-candidate
+// page size.
+router.get('/geo/candidates/by-game', async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined
+    const limit = req.query.limit ? Math.min(500, Number(req.query.limit)) : 100
+    const summaries = await geoScreenshotRepository.summarizeCandidatesByGame({
+      statusFilter: status as
+        | 'pending'
+        | 'collecting'
+        | 'promoted'
+        | 'rejected'
+        | undefined,
+      limit,
+    })
+    res.json({ success: true, data: summaries })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/geo/candidates', async (req, res, next) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status : undefined

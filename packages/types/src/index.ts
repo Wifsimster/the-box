@@ -897,6 +897,21 @@ export interface GeoScreenshotMeta {
   promotedVia: 'consensus' | 'admin'
 }
 
+// Per-game summary surfaced by the admin moderation list. Counts come from a
+// single GROUP BY on geo_screenshot_candidate so the moderator sees the true
+// number of captures per game (the per-candidate listing is paginated and
+// would lie if we summed a capped page client-side).
+export interface GeoCandidateGameSummary {
+  gameId: number
+  gameName: string | null
+  collectingCount: number
+  pendingCount: number
+  promotedCount: number
+  rejectedCount: number
+  totalCount: number
+  oldestPendingAt: string | null
+}
+
 export interface GeoChallenge {
   id: number
   challengeDate: string

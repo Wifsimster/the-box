@@ -734,6 +734,26 @@
         "captureCount_one": "{{count}} capture",
         "captureCount_other": "{{count}} captures"
       },
+      "gamesList": {
+        "header_one": "Jeux ({{count}})",
+        "header_other": "Jeux ({{count}})",
+        "count": {
+          "pending_one": "{{count}} à modérer",
+          "pending_other": "{{count}} à modérer",
+          "collecting_one": "{{count}} ouverte",
+          "collecting_other": "{{count}} ouvertes",
+          "promoted_one": "{{count}} officialisée",
+          "promoted_other": "{{count}} officialisées",
+          "all_one": "{{count}} capture au total",
+          "all_other": "{{count}} captures au total"
+        },
+        "oldestPending": "plus ancienne {{relative}}",
+        "relative": {
+          "today": "aujourd'hui",
+          "daysAgo_one": "il y a {{count}} j",
+          "daysAgo_other": "il y a {{count}} j"
+        }
+      },
       "statusFilter": {
         "label": "Filtrer par statut",
         "collecting": "Ouvert",
