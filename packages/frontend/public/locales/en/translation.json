@@ -785,6 +785,8 @@
       "submissions": "Submissions",
       "submissionsLoading": "Loading submissions…",
       "emptyQueue": "No submissions match this filter.",
+      "fetchMore": "Fetch more captures",
+      "fetchMoreQueued": "Fetch queued. New captures will appear here as soon as they are ingested.",
       "pickSubmission": "Pick a submission",
       "pickPointForOfficial": "Click to set a location, or validate without a pin to use the average of submissions",
       "pickPointRequired": "No submissions to average — click the map to set a location.",

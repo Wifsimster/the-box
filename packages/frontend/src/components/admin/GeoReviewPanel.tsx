@@ -26,6 +26,7 @@ import {
     ChevronRight,
     ArrowLeft,
     Workflow,
+    Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
@@ -34,6 +35,7 @@ import { GeoGamesTab } from './GeoGamesTab'
 import { ModerationStatusRail } from './ModerationStatusRail'
 import { ReportsModerationPanel } from './ReportsModerationPanel'
 import GeoFetchPanel from './geo-fetch/GeoFetchPanel'
+import { geoFetchApi } from '@/lib/api/geo-fetch'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
 import { useGeoHealth } from '@/hooks/useGeoHealth'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -213,6 +215,8 @@ export function GeoReviewPanel() {
     const [demoteOpen, setDemoteOpen] = useState(false)
     const [rejectOpen, setRejectOpen] = useState(false)
     const [introOpen, setIntroOpen] = useState(false)
+    const [fetchingMore, setFetchingMore] = useState(false)
+    const [fetchMoreNotice, setFetchMoreNotice] = useState<string | null>(null)
     // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
     // polling and the live banner stays visible when the operator switches
     // between Pins / Maps / Games tabs.
@@ -224,6 +228,7 @@ export function GeoReviewPanel() {
     useEffect(() => {
         let cancelled = false
         setLoading(true)
+        setFetchMoreNotice(null)
         // Two modes:
         //  - No game selected → fetch per-game summary (the "Propositions"
         //    list shows one row per game with its capture counts).
@@ -320,6 +325,27 @@ export function GeoReviewPanel() {
         setStatusFilter('all')
         setDetail(null)
         setActiveTab('queue')
+    }
+
+    // Re-runs the maps:pipeline for the currently filtered game so the
+    // ingestion sources fetch a fresh batch of candidate captures. Uses the
+    // same retry endpoint as the Acquisition tab — the orchestrator clears
+    // the cooldown gate and re-queries every configured source. New
+    // candidates flow back into this list as soon as the workers persist
+    // them; the moderator can hit Refresh on the status filter to see them.
+    const fetchMoreCaptures = async () => {
+        if (!gameFilter || fetchingMore) return
+        setFetchingMore(true)
+        setFetchMoreNotice(null)
+        setError(null)
+        try {
+            await geoFetchApi.retry(gameFilter.gameId)
+            setFetchMoreNotice(t('admin.geo.fetchMoreQueued'))
+        } catch (e) {
+            setError(String(e))
+        } finally {
+            setFetchingMore(false)
+        }
     }
 
     const confirmReject = async () => {
@@ -661,6 +687,32 @@ export function GeoReviewPanel() {
                                             {t('admin.geo.emptyQueue')}
                                         </p>
                                     )}
+                                    <div className="pt-2 border-t border-border/40 space-y-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => void fetchMoreCaptures()}
+                                            disabled={fetchingMore}
+                                            className="w-full justify-center gap-1.5 border-neon-pink/40 text-neon-pink hover:bg-neon-pink/10"
+                                        >
+                                            {fetchingMore ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                                            )}
+                                            {t('admin.geo.fetchMore')}
+                                        </Button>
+                                        {fetchMoreNotice && (
+                                            <p
+                                                className="text-[11px] text-muted-foreground"
+                                                role="status"
+                                                aria-live="polite"
+                                            >
+                                                {fetchMoreNotice}
+                                            </p>
+                                        )}
+                                    </div>
                                 </>
                             ) : (
                                 <>

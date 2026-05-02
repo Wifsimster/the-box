@@ -785,6 +785,8 @@
       "submissions": "Propositions",
       "submissionsLoading": "Chargement des propositions…",
       "emptyQueue": "Aucune proposition ne correspond à ce filtre.",
+      "fetchMore": "Récupérer plus de captures",
+      "fetchMoreQueued": "Récupération lancée. De nouvelles captures apparaîtront ici dès qu'elles seront ingérées.",
       "pickSubmission": "Choisir une proposition",
       "pickPointForOfficial": "Cliquez pour fixer un lieu, ou validez sans pin pour utiliser la moyenne des propositions",
       "pickPointRequired": "Aucune proposition à moyenner — cliquez sur la carte pour fixer un lieu.",
