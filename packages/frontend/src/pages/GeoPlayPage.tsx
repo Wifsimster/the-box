@@ -6,7 +6,7 @@ import {
     Gamepad2,
     Loader2,
     Map as MapIcon,
-    RotateCcw,
+    RefreshCw,
     Shuffle,
     Trophy,
 } from 'lucide-react'
@@ -48,6 +48,7 @@ export default function GeoPlayPage() {
         phase,
         errorMessage,
         round,
+        playedByGame,
         loadGames,
         selectGame,
         selectMap,
@@ -55,7 +56,7 @@ export default function GeoPlayPage() {
         setPendingGuess,
         submitGuess,
         nextRound,
-        resetPlayedHistory,
+        checkForNewScreenshots,
     } = useGeoFreePlayStore()
 
     const [gamePickerOpen, setGamePickerOpen] = useState(false)
@@ -130,7 +131,7 @@ export default function GeoPlayPage() {
                         exhausted={phase === 'exhausted'}
                         errorMessage={phase === 'error' ? errorMessage : null}
                         onPickGame={() => setGamePickerOpen(true)}
-                        onResetHistory={() => void resetPlayedHistory()}
+                        onCheckForNew={() => void checkForNewScreenshots()}
                     />
                 }
                 map={
@@ -196,6 +197,9 @@ export default function GeoPlayPage() {
                 games={games}
                 isLoading={gamesFetchedAt == null && games.length === 0}
                 selectedGameId={currentGameId}
+                playedCountByGame={Object.fromEntries(
+                    Object.entries(playedByGame).map(([id, ids]) => [id, ids.length]),
+                )}
                 onSelect={(id) => void selectGame(id)}
             />
             <MapPicker
@@ -217,7 +221,7 @@ function ScreenshotPanel({
     exhausted,
     errorMessage,
     onPickGame,
-    onResetHistory,
+    onCheckForNew,
 }: {
     imageUrl: string | null
     loading: boolean
@@ -225,7 +229,7 @@ function ScreenshotPanel({
     exhausted: boolean
     errorMessage: string | null
     onPickGame: () => void
-    onResetHistory: () => void
+    onCheckForNew: () => void
 }) {
     const { t } = useTranslation()
     const safeUrl = imageUrl && !isPlaceholderImageUrl(imageUrl) ? imageUrl : null
@@ -246,16 +250,16 @@ function ScreenshotPanel({
                     <p className="text-sm text-muted-foreground">
                         {t(
                             'geo.play.exhausted.body',
-                            "Nice run! You've guessed every available screenshot for this game. Reset the history to replay the ones you've already seen.",
+                            "Nice run! You've guessed every available screenshot for this game. We'll let you know when new ones are added.",
                         )}
                     </p>
                 </div>
                 <Button
-                    onClick={onResetHistory}
-                    className="gradient-gaming hover:opacity-90"
+                    onClick={onCheckForNew}
+                    variant="outline"
                 >
-                    <RotateCcw className="h-4 w-4 mr-2" aria-hidden />
-                    {t('geo.play.exhausted.reset', 'Reset history')}
+                    <RefreshCw className="h-4 w-4 mr-2" aria-hidden />
+                    {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
                 </Button>
             </div>
         )

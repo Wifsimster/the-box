@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoPlayableGame } from '@the-box/types'
-import { Search, MapPin, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Search, MapPin, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react'
 import {
     Sheet,
     SheetContent,
@@ -20,6 +20,9 @@ interface GamePickerProps {
     games: GeoPlayableGame[]
     isLoading: boolean
     selectedGameId: number | null
+    // How many screenshots the user has already played per game id, used
+    // to flag games whose catalog has grown since their last visit.
+    playedCountByGame?: Record<string, number>
     onSelect: (gameId: number) => void
 }
 
@@ -35,6 +38,7 @@ export function GamePicker({
     games,
     isLoading,
     selectedGameId,
+    playedCountByGame,
     onSelect,
 }: GamePickerProps) {
     const { t } = useTranslation()
@@ -124,18 +128,29 @@ export function GamePicker({
                             aria-label={t('geo.play.pickGame', 'Pick a game')}
                             className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-1"
                         >
-                            {filtered.map((g) => (
-                                <li key={g.id}>
-                                    <GameCard
-                                        game={g}
-                                        selected={selectedGameId === g.id}
-                                        onSelect={() => {
-                                            onSelect(g.id)
-                                            onOpenChange(false)
-                                        }}
-                                    />
-                                </li>
-                            ))}
+                            {filtered.map((g) => {
+                                const played = playedCountByGame?.[String(g.id)] ?? 0
+                                // Clamp to ≥0 in case the catalog count
+                                // shrank (e.g. an admin demoted a meta).
+                                const newCount = Math.max(0, g.screenshotCount - played)
+                                // Only flag "new" once the player has
+                                // actually started this game — otherwise
+                                // every entry would scream "NEW".
+                                const hasNew = played > 0 && newCount > 0
+                                return (
+                                    <li key={g.id}>
+                                        <GameCard
+                                            game={g}
+                                            selected={selectedGameId === g.id}
+                                            newCount={hasNew ? newCount : 0}
+                                            onSelect={() => {
+                                                onSelect(g.id)
+                                                onOpenChange(false)
+                                            }}
+                                        />
+                                    </li>
+                                )
+                            })}
                         </ul>
                     )}
                 </div>
@@ -147,10 +162,12 @@ export function GamePicker({
 function GameCard({
     game,
     selected,
+    newCount,
     onSelect,
 }: {
     game: GeoPlayableGame
     selected: boolean
+    newCount: number
     onSelect: () => void
 }) {
     const { t } = useTranslation()
@@ -171,6 +188,17 @@ function GameCard({
                     : 'border-border hover:border-neon-pink/60',
             )}
         >
+            {newCount > 0 && (
+                <span
+                    className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-neon-pink px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
+                    aria-label={t('geo.play.newCaptures', '{{count}} new screenshots to guess', {
+                        count: newCount,
+                    })}
+                >
+                    <Sparkles className="h-3 w-3" aria-hidden />
+                    {t('geo.play.newBadge', '+{{count}} new', { count: newCount })}
+                </span>
+            )}
             <div className="aspect-video w-full bg-muted/30 sm:aspect-[16/7]">
                 {cover ? (
                     <img
