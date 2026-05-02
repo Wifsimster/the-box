@@ -772,7 +772,7 @@
         "rejected": "Refusé"
       },
       "actions": {
-        "makeOfficial": "Officialiser",
+        "makeOfficial": "Valider le pin",
         "removeOfficial": "Retirer du lieu officiel",
         "decline": "Refuser"
       },
