@@ -4,7 +4,7 @@ import { motion, type MotionProps } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
-import { Play, Trophy, History, Clock, CalendarDays, MapPin, ArrowRight, Sparkles, Check } from 'lucide-react'
+import { Play, Trophy, History, Clock, CalendarDays, ArrowRight, Sparkles, Check } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, useMemo } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -410,78 +410,6 @@ export default function HomePage() {
             unearned set when authenticated). Fail-soft: renders nothing
             if the API errors. */}
         <HomeAchievementTeaser />
-
-        {/*
-          Geo Daily alpha teaser — sits *below* the panorama features grid
-          since it's a single-game pilot and shouldn't compete with the
-          primary daily-play CTA above the fold. The card itself is a
-          single Link covering the main CTA; the secondary leaderboard
-          link is rendered as a sibling so we never nest interactives.
-        */}
-        <motion.div
-          {...motionProps({
-            initial: { opacity: 0, y: 20 },
-            animate: { opacity: 1, y: 0 },
-            transition: { duration: 0.5, delay: 0.6 },
-          })}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="group relative overflow-hidden rounded-2xl border border-neon-purple/40 bg-linear-to-br from-neon-purple/20 via-background/60 to-neon-pink/20 backdrop-blur-sm transition-colors hover:border-neon-pink/70 focus-within:border-neon-pink/70">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
-            />
-
-            {/* Primary affordance: a real <Link> wrapping the CTA region. */}
-            <Link
-              to={localizedPath('/geo/daily')}
-              className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 p-5 sm:p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-2xl"
-            >
-              <GradientIcon
-                icon={<MapPin className="h-6 w-6 sm:h-7 sm:w-7 text-white" />}
-                className="shrink-0 h-12 w-12 sm:h-14 sm:w-14"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <Badge
-                    variant="outline"
-                    className="border-neon-pink/50 bg-neon-pink/15 text-neon-pink uppercase tracking-wider"
-                  >
-                    {t('home.geoAlpha.badge')}
-                  </Badge>
-                  <span className="text-[11px] sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground">
-                    {t('home.geoAlpha.eyebrow')}
-                  </span>
-                </div>
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight gradient-gaming bg-clip-text text-transparent">
-                  {t('home.geoAlpha.title')}
-                </h2>
-                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
-                  {t('home.geoAlpha.subtitle')}
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground group-hover:text-neon-pink transition-colors">
-                  {t('home.geoAlpha.cta')}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </div>
-            </Link>
-
-            {/* Secondary leaderboard link — sibling to the primary <Link>
-                so we don't nest interactive elements. */}
-            <div className="relative px-5 sm:px-6 pb-5 sm:pb-6 -mt-2">
-              <Link
-                to={localizedPath('/geo/leaderboard')}
-                className="inline-block text-xs sm:text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:text-foreground focus-visible:underline"
-              >
-                {t('home.geoAlpha.secondary')}
-              </Link>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </>
   )

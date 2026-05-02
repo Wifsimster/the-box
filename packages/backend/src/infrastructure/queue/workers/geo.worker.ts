@@ -11,7 +11,6 @@ import { importWandMap } from './geo-wand-import-logic.js'
 import { importWikidataMap } from './geo-wikidata-import-logic.js'
 import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { importRawgScreenshots } from './geo-rawg-import-logic.js'
-import { scheduleDailyGeoChallenge } from './geo-schedule-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
 import { runMapsPipeline } from './maps-pipeline-logic.js'
@@ -112,10 +111,6 @@ export const geoWorker = new Worker<GeoJobData>(
         rawgId: data.rawgId,
         maxItems: data.maxItems,
       })
-    }
-
-    if (data.kind === 'schedule-daily-challenge') {
-      return await scheduleDailyGeoChallenge(data.date)
     }
 
     if (data.kind === 'resolve-metadata') {

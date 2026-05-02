@@ -74,8 +74,9 @@ export interface JobServiceDeps {
   logger: DomainLogger
   importQueue: ImportQueuePort
   // Optional secondary queue whose repeatable jobs should also surface in
-  // the admin job list. Read-only here: triggering geo jobs goes through
-  // the dedicated `/api/admin/geo/schedule` route.
+  // the admin job list. Currently nothing operator-facing flows through it,
+  // so the surfacing list is empty — the queue is kept around so future
+  // geo cron-style jobs can opt in.
   geoQueue?: ReadOnlyQueuePort
 }
 
@@ -213,10 +214,9 @@ export function createJobService(deps: JobServiceDeps): JobService {
           geoQueue.getRepeatableJobs(),
           geoQueue.getJobs(['active']),
         ])
-        // Surface only the operator-facing geo job. `resolve-metadata` and
-        // `ingest-tick` are background plumbing — admins shouldn't see them
-        // in the manual run-now list alongside the daily challenge.
-        const geoSurfaced = new Set(['schedule-daily-challenge'])
+        // No operator-facing geo cron jobs are surfaced today; `resolve-metadata`
+        // and `ingest-tick` stay hidden as background plumbing.
+        const geoSurfaced = new Set<string>()
         allRepeats.push(...geoRepeats.filter(j => geoSurfaced.has(j.name)))
         allActive.push(...geoActive.filter(j => geoSurfaced.has(j.name)))
       }

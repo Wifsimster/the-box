@@ -1,24 +1,19 @@
 import { useTranslation } from 'react-i18next'
 import {
     AlertTriangle,
-    CalendarCheck,
-    CalendarClock,
     Compass,
     ListChecks,
     Loader2,
     Map,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { GeoHealth } from '@/hooks/useGeoHealth'
 import type { GeoRunStatePayload } from '@/hooks/useGeoRunPolling'
 
 // One status surface for the moderation tab. Sections in priority order:
 //   1. Counter row — always visible when health is loaded.
-//   2. Cold-start guidance if `curated === 0` or `withMap === 0`; this
-//      hides readiness (no daily challenge can exist yet).
-//   3. Otherwise, daily-challenge readiness with the Planifier action.
-//   4. Compact run-state row appears when a manual ingestion run is in
+//   2. Cold-start guidance if `curated === 0` or `withMap === 0`.
+//   3. Compact run-state row appears when a manual ingestion run is in
 //      flight, regardless of the section above.
 //
 // Data is owned by the parent so all sections agree without duplicate
@@ -29,8 +24,6 @@ interface ModerationStatusRailProps {
     healthLoading: boolean
     healthError: boolean
     runState: GeoRunStatePayload | null
-    onSchedule: () => void
-    scheduling: boolean
     onMapsClick?: () => void
     onPinsClick?: () => void
 }
@@ -47,8 +40,6 @@ export function ModerationStatusRail({
     healthLoading,
     healthError,
     runState,
-    onSchedule,
-    scheduling,
     onMapsClick,
     onPinsClick,
 }: ModerationStatusRailProps) {
@@ -79,11 +70,7 @@ export function ModerationStatusRail({
                 onMapsClick={onMapsClick}
                 onPinsClick={onPinsClick}
             />
-            <GuidanceRow
-                health={health}
-                scheduling={scheduling}
-                onSchedule={onSchedule}
-            />
+            <ColdStartRow health={health} />
             <RunStateRow state={runState} />
         </div>
     )
@@ -98,8 +85,8 @@ function CounterRow({
     onMapsClick?: () => void
     onPinsClick?: () => void
 }) {
-    const { t, i18n } = useTranslation()
-    const { coverage, queue, nextChallenge } = health
+    const { t } = useTranslation()
+    const { coverage, queue } = health
     const errorsCount = queue.failed + (health.failures?.length ?? 0)
     const pinsToReview = queue.waiting + queue.active
     const failures = (health.failures as HealthFailureRow[] | undefined) ?? []
@@ -133,93 +120,28 @@ function CounterRow({
                 failures={failures}
                 queueFailed={queue.failed}
             />
-            {nextChallenge && (
-                <>
-                    <Divider />
-                    <Counter
-                        icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden />}
-                        value={new Date(nextChallenge.date).toLocaleDateString(i18n.language, {
-                            day: '2-digit',
-                            month: 'short',
-                        })}
-                        label={t('admin.geo.strip.nextChallenge')}
-                        tone="neutral"
-                    />
-                </>
-            )}
         </div>
     )
 }
 
-function GuidanceRow({
-    health,
-    onSchedule,
-    scheduling,
-}: {
-    health: GeoHealth
-    onSchedule: () => void
-    scheduling: boolean
-}) {
-    const { t, i18n } = useTranslation()
+function ColdStartRow({ health }: { health: GeoHealth }) {
+    const { t } = useTranslation()
     const { curated, withMap } = health.coverage
 
-    if (curated === 0 || withMap === 0) {
-        const stage: 'no-curated' | 'no-maps' = curated === 0 ? 'no-curated' : 'no-maps'
-        return (
-            <Section role="note" tone="accent">
-                <Compass className="h-4 w-4 text-neon-pink shrink-0 mt-0.5" aria-hidden />
-                <div className="space-y-1 leading-relaxed">
-                    <p className="font-semibold text-foreground">
-                        {t(`admin.geo.coldStart.${stage}.title`)}
-                    </p>
-                    <p className="text-muted-foreground">
-                        {t(`admin.geo.coldStart.${stage}.body`)}
-                    </p>
-                </div>
-            </Section>
-        )
-    }
+    if (curated > 0 && withMap > 0) return null
 
-    const next = health.nextChallenge
-    if (next) {
-        const date = new Date(next.date).toLocaleDateString(i18n.language, {
-            day: '2-digit',
-            month: 'long',
-        })
-        return (
-            <Section role="status" tone="success">
-                <CalendarCheck className="h-4 w-4 text-success shrink-0" aria-hidden />
-                <p className="font-semibold text-foreground flex-1">
-                    {t('admin.geo.readiness.ready', { date })}
-                </p>
-            </Section>
-        )
-    }
-
+    const stage: 'no-curated' | 'no-maps' = curated === 0 ? 'no-curated' : 'no-maps'
     return (
-        <Section role="status" tone="warn">
-            <CalendarClock className="h-4 w-4 text-warning shrink-0" aria-hidden />
-            <div className="flex-1 space-y-0.5 leading-relaxed">
+        <Section role="note" tone="accent">
+            <Compass className="h-4 w-4 text-neon-pink shrink-0 mt-0.5" aria-hidden />
+            <div className="space-y-1 leading-relaxed">
                 <p className="font-semibold text-foreground">
-                    {t('admin.geo.readiness.notReady')}
+                    {t(`admin.geo.coldStart.${stage}.title`)}
                 </p>
                 <p className="text-muted-foreground">
-                    {t('admin.geo.readiness.notReadyHint')}
+                    {t(`admin.geo.coldStart.${stage}.body`)}
                 </p>
             </div>
-            <Button
-                size="sm"
-                onClick={onSchedule}
-                disabled={scheduling}
-                className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
-            >
-                {scheduling ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                ) : (
-                    <CalendarClock className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                {t('admin.geo.readiness.scheduleAction')}
-            </Button>
         </Section>
     )
 }

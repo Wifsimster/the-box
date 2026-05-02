@@ -13,7 +13,7 @@
     "back": "Retour",
     "home": "Accueil",
     "leaderboard": "Classement",
-    "geoDaily": "Geo",
+    "geo": "Géo",
     "alpha": "Alpha",
     "premium": "Premium",
     "settings": "Paramètres",
@@ -266,14 +266,6 @@
       "dailyDesc": "Un nouveau puzzle chaque jour. Même défi pour tous — dominez le classement mondial !",
       "multiplayer": "Mode Multijoueur",
       "multiplayerDesc": "Défiez vos amis en temps réel avec scoring en direct"
-    },
-    "geoAlpha": {
-      "badge": "Alpha",
-      "eyebrow": "Nouveau : Mode Géo",
-      "title": "Trouve l'endroit. Pose l'épingle.",
-      "subtitle": "Pour l'instant, c'est Elden Ring. Plante ton épingle pile où la capture a été prise — d'autres mondes arrivent au fil du déploiement.",
-      "cta": "Jouer Géo",
-      "secondary": "Voir le classement"
     },
     "premium": {
       "badge": "Premium",
@@ -562,12 +554,6 @@
         "subtoggleLabel": "Sous-section du catalogue",
         "maps": "Cartes",
         "games": "Jeux"
-      },
-      "readiness": {
-        "ready": "Défi prêt pour le {{date}}",
-        "notReady": "Aucun défi programmé",
-        "notReadyHint": "Lancez la planification pour préparer le prochain défi quotidien.",
-        "scheduleAction": "Planifier"
       },
       "strip": {
         "loading": "Chargement de l'état du dataset…",
@@ -1589,54 +1575,20 @@
   },
   "geo": {
     "daily": {
-      "title": "Défi Géo",
-      "subtitle": "Épinglez l'endroit exact où cette capture a été prise.",
       "screenshot": "Capture d'écran",
-      "map": "Carte",
-      "hint": "Cliquez sur la carte pour placer votre épingle",
-      "submit": "Valider ma réponse",
       "score": "Score",
       "distance": "Distance",
-      "formula": "Formule",
-      "average": "Moyenne",
-      "players": "{{count}} joueurs",
-      "comparisonAria": "Votre score comparé à la moyenne",
-      "skip": {
-        "action": "Passer",
-        "tooltip": "Je ne reconnais pas ce jeu",
-        "title": "Passé",
-        "body": "Aucun score enregistré — ce défi ne comptera pas dans le classement pour vous."
-      },
-      "next": {
-        "action": "Défi géo suivant",
-        "casualNote": "Manche d'entraînement — n'affectera pas votre classement.",
-        "exhausted": "Vous avez joué tous les défis géo récents. Revenez demain pour un nouveau.",
-        "viewLeaderboard": "Voir le classement"
-      },
-      "screenshotUnavailable": "Aperçu de la capture indisponible.",
       "mapUnavailable": "Carte indisponible.",
-      "loading": "Chargement du défi…",
-      "errors": {
-        "noChallenge": "Aucun défi géo n'est en ligne pour le moment. On les déploie progressivement — revenez bientôt.",
-        "comingSoon": "Nouveau défi à venir",
-        "viewHistory": "Voir les défis passés"
-      },
       "chooseMap": {
         "title": "Quelle carte ?",
         "hint": "Choisissez la carte où se trouve la capture, puis posez votre épingle.",
-        "required": "Choisissez une carte avant de poser une épingle.",
         "worldFallback": "Carte du monde",
         "correct": "Bonne carte",
         "incorrect": "Mauvaise carte"
       },
       "wrongMap": {
-        "banner": "Mauvaise carte — score plancher.",
-        "chip": "Mauvaise carte"
-      },
-      "reveal": {
-        "correctMap": "Bonne carte : {{region}}"
-      },
-      "freePlayCta": "Jouer librement"
+        "banner": "Mauvaise carte — score plancher."
+      }
     },
     "play": {
       "title": "Mode libre",
@@ -1675,9 +1627,7 @@
           "multi": "Ce jeu a plusieurs cartes. Choisissez-en une pour commencer.",
           "none": "Aucune carte jouable pour ce jeu."
         }
-      },
-      "practiceNote": "Mode entraînement — votre score n'affecte pas le classement.",
-      "backToDaily": "Jouer le défi quotidien classé"
+      }
     },
     "fullscreen": {
       "enter": "Passer en plein écran",
@@ -1699,14 +1649,6 @@
       "recent": "Récompenses récentes",
       "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",
       "lockedProgress": "Progression"
-    },
-    "leaderboard": {
-      "title": "Classement Géo",
-      "subtitle": "Classé indépendamment du jeu principal.",
-      "daily": "Journalier",
-      "monthly": "Mensuel",
-      "topPlayers": "Meilleurs joueurs",
-      "noEntries": "Aucune entrée pour l'instant — soyez le premier."
     },
     "profile": {
       "title": "Contributeur Géo",

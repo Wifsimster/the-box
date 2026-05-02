@@ -244,14 +244,6 @@ export function emitGeoTierUp(event: GeoTierUpEvent): void {
     ns.to(`user:${event.userId}`).emit('geo:contributor:tier_up', event)
 }
 
-export function emitGeoLeaderboardUpdate(payload: {
-    challengeDate: string
-}): void {
-    const ns = geoNamespace()
-    if (!ns) return
-    ns.emit('geo:leaderboard:update', payload)
-}
-
 // ---------- User-targeted notifications ----------
 //
 // Generic per-user notification channel (Premium grants, future account-level

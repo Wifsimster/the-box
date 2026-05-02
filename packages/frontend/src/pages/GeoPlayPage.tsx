@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import {
     ArrowLeft,
     ArrowRight,
@@ -13,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { useFullscreen } from '@/hooks/useFullscreen'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { GamePicker } from '@/components/geo/GamePicker'
 import { MapPicker } from '@/components/geo/MapPicker'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
@@ -34,8 +32,7 @@ import { cn } from '@/lib/utils'
  * leaderboard or pollute the daily resume.
  */
 export default function GeoPlayPage() {
-    const { t, i18n } = useTranslation()
-    const { localizedPath } = useLocalizedPath()
+    const { i18n } = useTranslation()
 
     const {
         games,
@@ -205,27 +202,6 @@ export default function GeoPlayPage() {
                 onSelect={(id) => void selectMap(id)}
                 showAnyMapOption={isMultiMap}
             />
-
-            {/* Practice-mode disclaimer + back-to-daily link. Hidden when
-                immersive so it doesn't break the cinematic feel. */}
-            {!fullscreen.isImmersive && (
-                <div className="container mx-auto max-w-5xl px-4 py-4 text-center text-xs text-muted-foreground space-y-1">
-                    <p>
-                        {t(
-                            'geo.play.practiceNote',
-                            'Practice mode — your score does not affect the leaderboard.',
-                        )}
-                    </p>
-                    <p className="flex items-center justify-center gap-3">
-                        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
-                            <Link to={localizedPath('/geo')}>
-                                <Trophy className="h-3 w-3 mr-1" aria-hidden />
-                                {t('geo.play.backToDaily', 'Play the ranked daily challenge')}
-                            </Link>
-                        </Button>
-                    </p>
-                </div>
-            )}
         </div>
     )
 }

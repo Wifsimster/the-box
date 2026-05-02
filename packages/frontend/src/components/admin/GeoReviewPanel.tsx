@@ -175,7 +175,6 @@ export function GeoReviewPanel() {
     const [demoteOpen, setDemoteOpen] = useState(false)
     const [rejectOpen, setRejectOpen] = useState(false)
     const [introOpen, setIntroOpen] = useState(false)
-    const [scheduling, setScheduling] = useState(false)
     // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
     // polling and the live banner stays visible when the operator switches
     // between Pins / Maps / Games tabs.
@@ -183,27 +182,6 @@ export function GeoReviewPanel() {
     // Single health subscription shared between the counter strip and the
     // cold-start banner — keeps them in sync without a duplicate poll.
     const { data: health, loading: healthLoading, error: healthError } = useGeoHealth()
-
-    const triggerSchedule = async () => {
-        setScheduling(true)
-        setError(null)
-        try {
-            const res = await fetch('/api/admin/geo/schedule', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: '{}',
-            })
-            if (!res.ok) {
-                const json = await res.json().catch(() => ({}))
-                throw new Error(json?.error?.code ?? `schedule failed: ${res.status}`)
-            }
-        } catch (e) {
-            setError(String(e))
-        } finally {
-            setScheduling(false)
-        }
-    }
 
     useEffect(() => {
         let cancelled = false
@@ -356,8 +334,6 @@ export function GeoReviewPanel() {
                 healthLoading={healthLoading}
                 healthError={healthError}
                 runState={runState}
-                onSchedule={() => void triggerSchedule()}
-                scheduling={scheduling}
                 onMapsClick={() => {
                     setActiveTab('catalog')
                     setCatalogView('maps')

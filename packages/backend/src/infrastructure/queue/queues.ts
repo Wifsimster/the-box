@@ -74,7 +74,6 @@ export type GeoJobData =
       rawgId: number
       maxItems?: number
     }
-  | { kind: 'schedule-daily-challenge'; date?: string }
   | { kind: 'resolve-metadata'; batchSize?: number; gameId?: number }
   | { kind: 'ingest-tick'; batchSize?: number; gameId?: number }
   // ===== Multi-source map fetch pipeline (replaces topup-screenshots) =====

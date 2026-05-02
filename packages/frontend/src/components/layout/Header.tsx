@@ -56,9 +56,9 @@ function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick, sh
       </Button>
 
       <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-        <Link to={localizedPath('/geo/daily')} onClick={handleClick}>
+        <Link to={localizedPath('/geo')} onClick={handleClick}>
           <MapPin className={`w-4 h-4 ${iconClass}`} />
-          {t('common.geoDaily')}
+          {t('common.geo')}
           <Badge variant="outline" className="ml-2 h-4 px-1 text-[10px] font-semibold uppercase tracking-wide border-neon-pink/50 text-neon-pink">
             {t('common.alpha')}
           </Badge>

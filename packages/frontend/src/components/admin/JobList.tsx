@@ -199,7 +199,6 @@ export function JobList() {
     isLoading,
     recurringJobs,
     triggerDailyChallengeJob,
-    triggerScheduleDailyGeoChallengeJob,
     triggerSyncAllJob,
     cancelActiveSyncAll,
     triggerCleanupAnonymousUsersJob,
@@ -247,8 +246,6 @@ export function JobList() {
     try {
       if (jobName === 'create-daily-challenge') {
         await triggerDailyChallengeJob()
-      } else if (jobName === 'schedule-daily-challenge') {
-        await triggerScheduleDailyGeoChallengeJob()
       } else if (jobName === 'sync-all-games') {
         await triggerSyncAllJob()
       } else if (jobName === 'cleanup-anonymous-users') {
