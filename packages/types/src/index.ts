@@ -747,6 +747,7 @@ export type GeoMapSource =
   | 'strategywiki'
   | 'fextralife'
   | 'wand'
+  | 'mapgenie'
   | 'wikidata'
   | 'steam'
   | 'manual'
@@ -771,10 +772,95 @@ export interface GeoMap {
   // the JSON revisionId at import time, used for change detection.
   wikiMapName?: string
   wikiRevisionId?: number
-  // True when Steam/RAWG capture providers should attach new candidates to
-  // this map. Exactly one row per game_id is the capture default; for a
-  // single-map game it's the only enabled row.
+  // Zone the map covers. NULL zone_slug = single-zone / world map.
+  zoneName?: string
+  zoneSlug?: string
+  // Provider that produced this candidate (mirrors `source` for now;
+  // diverges if we ever ingest a wand-sourced map under a custom ingest tag).
+  provider?: string
+  // Admin chose this map for its (game, zone). Exactly one selected map per
+  // (game, zone). For multi-source pipelines, only the selected one is shown
+  // to players.
+  isSelected?: boolean
+  /** @deprecated Kept for one release; mirrors `isSelected`. */
   isCaptureDefault?: boolean
+}
+
+// =====
+// Multi-source map fetch pipeline (BullMQ-driven, replaces topup screenshots).
+// =====
+
+export type GeoSourceKind = 'map' | 'candidates'
+
+// Providers tracked by the new pipeline. Keep in sync with the
+// `geo_source_config` table seed.
+export type GeoSourceName =
+  | 'fandom'
+  | 'strategywiki'
+  | 'mapgenie'
+  | 'wand'
+  | 'steam'
+  | 'rawg'
+  | 'manual'
+
+export interface GeoSourceConfig {
+  source: GeoSourceName
+  kind: GeoSourceKind
+  priority: number
+  isEnabled: boolean
+  rateLimitPerMin?: number
+  cooldownSecondsOnEmpty: number
+}
+
+export type MapPipelineStage =
+  | 'queued'
+  | 'fetching_map'
+  | 'fetching_candidates'
+  | 'awaiting_curation'
+  | 'ready'
+  | 'blocked'
+
+export interface MapPipelineState {
+  gameId: number
+  currentStage: MapPipelineStage
+  activeSource?: GeoSourceName
+  nextSourceIdx: number
+  attemptsTotal: number
+  zonesTotal: number
+  zonesCovered: number
+  zonesSelected: number
+  needsCuration: boolean
+  lastAttemptAt?: string
+  nextEligibleAt?: string
+  updatedAt: string
+}
+
+export type GeoIngestOutcome =
+  | 'success'
+  | 'not_found'
+  | 'rate_limited'
+  | 'parse_error'
+  | 'http_5xx'
+  | 'http_4xx'
+  | 'timeout'
+  | 'empty'
+  | 'circuit_open'
+
+export type GeoIngestAttemptKind = 'map' | 'candidates'
+
+export interface GeoIngestAttempt {
+  id: number
+  gameId: number
+  source: GeoSourceName
+  attemptKind: GeoIngestAttemptKind
+  outcome: GeoIngestOutcome
+  httpStatus?: number
+  errorCode?: string
+  errorDetail?: Record<string, unknown>
+  itemsIngested: number
+  latencyMs?: number
+  correlationId?: string
+  attemptedAt: string
 }
 
 // Lightweight subset of GeoMap surfaced to the daily challenge chooser. The

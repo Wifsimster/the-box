@@ -18,8 +18,14 @@ export interface GeoMapRow {
   region: string | null
   wiki_map_name: string | null
   wiki_revision_id: string | number | null
+  zone_name: string | null
+  zone_slug: string | null
+  provider: string | null
   is_active: boolean
-  is_capture_default: boolean
+  is_selected: boolean
+  selected_by: string | null
+  selected_at: Date | null
+  content_sha256: string | null
   created_at: Date
 }
 
@@ -45,7 +51,12 @@ function mapRow(row: GeoMapRow): GeoMap {
     region: row.region ?? undefined,
     wikiMapName: row.wiki_map_name ?? undefined,
     wikiRevisionId: revision,
-    isCaptureDefault: row.is_capture_default,
+    zoneName: row.zone_name ?? undefined,
+    zoneSlug: row.zone_slug ?? undefined,
+    provider: row.provider ?? undefined,
+    isSelected: row.is_selected,
+    // Mirror for one release while old call sites migrate off the alias.
+    isCaptureDefault: row.is_selected,
   }
 }
 
@@ -64,7 +75,7 @@ export const geoMapRepository = {
   },
 
   // First enabled map for a game. Kept for legacy single-map callers
-  // (`pickContributionTarget`, ingest tick when no capture default is set).
+  // (`pickContributionTarget`, ingest tick when no selection is set).
   // Multi-map callers should prefer `listEnabledByGameId`.
   async findFirstEnabledByGameId(gameId: number): Promise<GeoMap | null> {
     const row = await db('geo_map')
@@ -74,15 +85,27 @@ export const geoMapRepository = {
     return row ? mapRow(row) : null
   },
 
-  // Back-compat alias — old call sites still reference this name.
   async findActiveByGameId(gameId: number): Promise<GeoMap | null> {
     return this.findFirstEnabledByGameId(gameId)
   },
 
   async findCaptureDefaultByGameId(gameId: number): Promise<GeoMap | null> {
+    // Capture-default is now the selected single-zone (NULL zone_slug) map.
     const row = await db('geo_map')
-      .where({ game_id: gameId, is_capture_default: true })
+      .where({ game_id: gameId, is_selected: true })
+      .whereNull('zone_slug')
       .first<GeoMapRow>()
+    return row ? mapRow(row) : null
+  },
+
+  async findSelectedByZone(
+    gameId: number,
+    zoneSlug: string | null,
+  ): Promise<GeoMap | null> {
+    const q = db('geo_map').where({ game_id: gameId, is_selected: true })
+    const row = await (zoneSlug == null
+      ? q.whereNull('zone_slug').first<GeoMapRow>()
+      : q.where({ zone_slug: zoneSlug }).first<GeoMapRow>())
     return row ? mapRow(row) : null
   },
 
@@ -108,6 +131,16 @@ export const geoMapRepository = {
     return row ? mapRow(row) : null
   },
 
+  async findByContentHash(
+    gameId: number,
+    contentSha256: string,
+  ): Promise<GeoMap | null> {
+    const row = await db('geo_map')
+      .where({ game_id: gameId, content_sha256: contentSha256 })
+      .first<GeoMapRow>()
+    return row ? mapRow(row) : null
+  },
+
   // Delete a single row by id. Used by the Fextralife importer to prune a
   // pre-existing generic-index map after per-region pages are discovered
   // (the index's og:image is a wiki banner, not a usable region map).
@@ -124,6 +157,18 @@ export const geoMapRepository = {
     const rows = await db('geo_map')
       .where({ game_id: gameId })
       .orderBy('created_at', 'desc')
+      .select<GeoMapRow[]>('*')
+    return rows.map((r) => ({ ...mapRow(r), isActive: r.is_active }))
+  },
+
+  // All candidates fetched by any provider, regardless of active/selected
+  // state. Powers the admin curation drawer (group by zone, side-by-side).
+  async listCandidatesByGameId(
+    gameId: number,
+  ): Promise<Array<GeoMap & { isActive: boolean }>> {
+    const rows = await db('geo_map')
+      .where({ game_id: gameId })
+      .orderBy(['zone_slug', 'created_at'])
       .select<GeoMapRow[]>('*')
     return rows.map((r) => ({ ...mapRow(r), isActive: r.is_active }))
   },
@@ -158,22 +203,34 @@ export const geoMapRepository = {
     region?: string | null
     wikiMapName?: string | null
     wikiRevisionId?: number | null
+    zoneName?: string | null
+    zoneSlug?: string | null
+    provider?: string | null
+    contentSha256?: string | null
     // When omitted, defaults to false. Multi-map mode no longer auto-flips
     // the first-to-land row to active — admins explicitly enable maps from
     // the Cartes side panel. Pass `isActive: true` to short-circuit (used
     // by manual upload + the seed).
     isActive?: boolean
   }): Promise<GeoMap> {
-    log.info({ gameId: data.gameId, source: data.source }, 'create')
+    log.info(
+      { gameId: data.gameId, source: data.source, zoneSlug: data.zoneSlug ?? null },
+      'create',
+    )
     const row = await db.transaction(async (trx) => {
       const isActive = data.isActive ?? false
-      // Promote to capture-default only if the game has none yet — keeps
-      // the very first map a game ever gets pointing capture providers
-      // somewhere sensible without overriding explicit admin choices.
-      const existingCaptureDefault = await trx('geo_map')
-        .where({ game_id: data.gameId, is_capture_default: true })
-        .first<{ id: number }>('id')
-      const isCaptureDefault = isActive && !existingCaptureDefault
+      // Promote to selected only if no map is selected for the same zone
+      // yet — keeps the very first map a game ever gets pointing at
+      // something sensible without overriding explicit admin choices.
+      const selectedQuery = trx('geo_map').where({
+        game_id: data.gameId,
+        is_selected: true,
+      })
+      const existingSelected = await (data.zoneSlug == null
+        ? selectedQuery.whereNull('zone_slug')
+        : selectedQuery.where({ zone_slug: data.zoneSlug })
+      ).first<{ id: number }>('id')
+      const isSelected = isActive && !existingSelected
       const [inserted] = await trx('geo_map')
         .insert({
           game_id: data.gameId,
@@ -188,8 +245,13 @@ export const geoMapRepository = {
           region: data.region ?? null,
           wiki_map_name: data.wikiMapName ?? null,
           wiki_revision_id: data.wikiRevisionId ?? null,
+          zone_name: data.zoneName ?? null,
+          zone_slug: data.zoneSlug ?? null,
+          provider: data.provider ?? data.source,
+          content_sha256: data.contentSha256 ?? null,
           is_active: isActive,
-          is_capture_default: isCaptureDefault,
+          is_selected: isSelected,
+          selected_at: isSelected ? new Date() : null,
         })
         .returning<GeoMapRow[]>('*')
       return inserted!
@@ -199,12 +261,12 @@ export const geoMapRepository = {
 
   async deactivate(id: number): Promise<void> {
     log.info({ id }, 'deactivate')
-    await db('geo_map').where({ id }).update({ is_active: false, is_capture_default: false })
+    await db('geo_map').where({ id }).update({ is_active: false, is_selected: false })
   },
 
-  // Multi-map enable: flip just this row to enabled. If the game had no
-  // enabled maps before this call, also promote it to capture-default so
-  // ingest has a target.
+  // Multi-map enable: flip just this row to enabled. If no map is selected
+  // for the same zone, also promote it to selected so the pipeline has a
+  // target.
   async enableForGame(gameId: number, mapId: number): Promise<GeoMap | null> {
     log.info({ gameId, mapId }, 'enableForGame')
     return await db.transaction(async (trx) => {
@@ -212,17 +274,20 @@ export const geoMapRepository = {
         .where({ id: mapId, game_id: gameId })
         .first<GeoMapRow>()
       if (!target) return null
-      const otherEnabled = await trx('geo_map')
-        .where({ game_id: gameId, is_active: true })
+      const selectedQuery = trx('geo_map')
+        .where({ game_id: gameId, is_selected: true })
         .whereNot({ id: mapId })
-        .first<{ id: number }>('id')
+      const otherSelected = await (target.zone_slug == null
+        ? selectedQuery.whereNull('zone_slug')
+        : selectedQuery.where({ zone_slug: target.zone_slug })
+      ).first<{ id: number }>('id')
       const [updated] = await trx('geo_map')
         .where({ id: mapId })
         .update({
           is_active: true,
-          // Only promote to capture-default if there isn't another
-          // enabled sibling that already holds the role.
-          ...(otherEnabled ? {} : { is_capture_default: true }),
+          ...(otherSelected
+            ? {}
+            : { is_selected: true, selected_at: new Date() }),
         })
         .returning<GeoMapRow[]>('*')
       return updated ? mapRow(updated) : null
@@ -230,9 +295,9 @@ export const geoMapRepository = {
   },
 
   // Multi-map disable: flip a single row off. Refuses if it would leave
-  // the game with zero enabled maps. If we disable the current capture
-  // default and a sibling exists, the sibling is promoted (most-recently
-  // enabled wins).
+  // the game with zero enabled maps. If we disable the currently selected
+  // row in a zone and a sibling exists, the sibling is promoted (most-
+  // recently enabled wins).
   async disableForGame(gameId: number, mapId: number): Promise<DisableResult> {
     log.info({ gameId, mapId }, 'disableForGame')
     return await db.transaction(async (trx) => {
@@ -252,22 +317,23 @@ export const geoMapRepository = {
 
       const [updated] = await trx('geo_map')
         .where({ id: mapId })
-        .update({ is_active: false, is_capture_default: false })
+        .update({ is_active: false, is_selected: false })
         .returning<GeoMapRow[]>('*')
 
-      // If the disabled row was the capture default, hand the role to the
-      // most-recently-created enabled sibling. The partial unique index
-      // `geo_map_one_capture_default_per_game` ensures we never end up
-      // with two defaults.
-      if (target.is_capture_default) {
-        const heir = await trx('geo_map')
+      // If the disabled row was the selected one for its zone, promote the
+      // most-recently-created enabled sibling in the same zone.
+      if (target.is_selected) {
+        const heirQuery = trx('geo_map')
           .where({ game_id: gameId, is_active: true })
           .orderBy('created_at', 'desc')
-          .first<GeoMapRow>()
+        const heir = await (target.zone_slug == null
+          ? heirQuery.whereNull('zone_slug')
+          : heirQuery.where({ zone_slug: target.zone_slug })
+        ).first<GeoMapRow>()
         if (heir) {
           await trx('geo_map')
             .where({ id: heir.id })
-            .update({ is_capture_default: true })
+            .update({ is_selected: true, selected_at: new Date() })
         }
       }
 
@@ -277,25 +343,43 @@ export const geoMapRepository = {
     })
   },
 
-  // Atomically pick the new capture-default for a game. The partial unique
-  // index keeps us honest: clear all rows for the game first, then set
-  // the target.
-  async setCaptureDefault(gameId: number, mapId: number): Promise<GeoMap | null> {
-    log.info({ gameId, mapId }, 'setCaptureDefault')
+  // Atomically pick the selected map for a (game, zone). Other rows in the
+  // same zone get is_selected=false. The partial unique index keeps us
+  // honest: at most one selected row per (game, zone_slug).
+  async selectMap(
+    gameId: number,
+    mapId: number,
+    selectedBy: string | null = null,
+  ): Promise<GeoMap | null> {
+    log.info({ gameId, mapId, selectedBy }, 'selectMap')
     return await db.transaction(async (trx) => {
       const target = await trx('geo_map')
         .where({ id: mapId, game_id: gameId, is_active: true })
         .first<GeoMapRow>()
       if (!target) return null
-      await trx('geo_map')
-        .where({ game_id: gameId })
-        .update({ is_capture_default: false })
+      const clearQuery = trx('geo_map').where({
+        game_id: gameId,
+        is_selected: true,
+      })
+      await (target.zone_slug == null
+        ? clearQuery.whereNull('zone_slug')
+        : clearQuery.where({ zone_slug: target.zone_slug })
+      ).update({ is_selected: false })
       const [updated] = await trx('geo_map')
         .where({ id: mapId })
-        .update({ is_capture_default: true })
+        .update({
+          is_selected: true,
+          selected_by: selectedBy,
+          selected_at: new Date(),
+        })
         .returning<GeoMapRow[]>('*')
       return updated ? mapRow(updated) : null
     })
+  },
+
+  // Back-compat alias used by single-zone admin endpoints.
+  async setCaptureDefault(gameId: number, mapId: number): Promise<GeoMap | null> {
+    return this.selectMap(gameId, mapId, null)
   },
 
   async updateRegion(mapId: number, region: string | null): Promise<GeoMap | null> {
