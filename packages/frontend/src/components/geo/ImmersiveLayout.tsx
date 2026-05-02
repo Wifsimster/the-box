@@ -50,6 +50,7 @@ export function ImmersiveLayout({
     // see the new screenshot first; if they were on the map mid-pin they
     // can swipe back.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local tab to the parent-driven `roundKey` change; no external system to subscribe to.
         setTab('photo')
     }, [roundKey])
 

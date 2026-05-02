@@ -45,6 +45,7 @@ export function GamePicker({
     // stale query across opens reads as a bug ("why am I still seeing my
     // last search?") more often than as a convenience.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state to the parent-controlled `open` transition; no external system to subscribe to.
         if (open) setQuery('')
     }, [open])
 
