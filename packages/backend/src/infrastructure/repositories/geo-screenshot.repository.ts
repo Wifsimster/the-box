@@ -1,7 +1,11 @@
 import type { Knex } from 'knex'
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
-import type { GeoScreenshotCandidate, GeoScreenshotMeta } from '@the-box/types'
+import type {
+  GeoCandidateGameSummary,
+  GeoScreenshotCandidate,
+  GeoScreenshotMeta,
+} from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'geo-screenshot' })
 
@@ -278,6 +282,96 @@ export const geoScreenshotRepository = {
       mapCount: Number(r.map_count ?? 0),
       screenshotCount: Number(r.screenshot_count ?? 0),
     }))
+  },
+
+  /**
+   * Per-game summary for the moderation overview. One row per game that has
+   * any candidate (active or not — we still want rejected/promoted counts so
+   * the moderator can audit). Counts are computed via conditional aggregates
+   * on a single GROUP BY so the totals are honest even when the per-candidate
+   * listing is paginated. `oldestPendingAt` drives the default sort: games
+   * with the longest-waiting captures float to the top.
+   */
+  async summarizeCandidatesByGame(args: {
+    statusFilter?: GeoScreenshotCandidateRow['status']
+    limit?: number
+  } = {}): Promise<GeoCandidateGameSummary[]> {
+    const { statusFilter, limit = 100 } = args
+    const rows = await db('geo_screenshot_candidate as gsc')
+      .leftJoin('games as g', 'g.id', 'gsc.game_id')
+      .groupBy('gsc.game_id', 'g.name')
+      .orderByRaw(
+        // Games with the oldest pending capture come first. NULLS LAST so
+        // games without any pending captures fall to the bottom regardless
+        // of their other counts. Tie-break on pending count desc, then game id
+        // for a stable ordering.
+        `MIN(CASE WHEN gsc.status = 'pending' THEN gsc.created_at END) ASC NULLS LAST,
+         COUNT(*) FILTER (WHERE gsc.status = 'pending') DESC,
+         gsc.game_id ASC`,
+      )
+      .limit(limit)
+      .select<
+        Array<{
+          game_id: number
+          game_name: string | null
+          collecting_count: string
+          pending_count: string
+          promoted_count: string
+          rejected_count: string
+          total_count: string
+          oldest_pending_at: Date | null
+        }>
+      >(
+        'gsc.game_id',
+        db.raw('g.name as game_name'),
+        db.raw(
+          `COUNT(*) FILTER (WHERE gsc.status = 'collecting') as collecting_count`,
+        ),
+        db.raw(
+          `COUNT(*) FILTER (WHERE gsc.status = 'pending') as pending_count`,
+        ),
+        db.raw(
+          `COUNT(*) FILTER (WHERE gsc.status = 'promoted') as promoted_count`,
+        ),
+        db.raw(
+          `COUNT(*) FILTER (WHERE gsc.status = 'rejected') as rejected_count`,
+        ),
+        db.raw('COUNT(*) as total_count'),
+        db.raw(
+          `MIN(CASE WHEN gsc.status = 'pending' THEN gsc.created_at END) as oldest_pending_at`,
+        ),
+      )
+
+    const summaries: GeoCandidateGameSummary[] = rows.map((r) => ({
+      gameId: r.game_id,
+      gameName: r.game_name,
+      collectingCount: Number(r.collecting_count ?? 0),
+      pendingCount: Number(r.pending_count ?? 0),
+      promotedCount: Number(r.promoted_count ?? 0),
+      rejectedCount: Number(r.rejected_count ?? 0),
+      totalCount: Number(r.total_count ?? 0),
+      oldestPendingAt: r.oldest_pending_at
+        ? new Date(r.oldest_pending_at).toISOString()
+        : null,
+    }))
+
+    // Status filter is applied AFTER aggregation so a "pending" view only
+    // surfaces games that actually have pending captures while still
+    // exposing the full counts the row needs to render context (e.g.
+    // showing how many promoted captures the same game has).
+    if (statusFilter === 'collecting') {
+      return summaries.filter((s) => s.collectingCount > 0)
+    }
+    if (statusFilter === 'pending') {
+      return summaries.filter((s) => s.pendingCount > 0)
+    }
+    if (statusFilter === 'promoted') {
+      return summaries.filter((s) => s.promotedCount > 0)
+    }
+    if (statusFilter === 'rejected') {
+      return summaries.filter((s) => s.rejectedCount > 0)
+    }
+    return summaries
   },
 
   async listCandidatesForReview(args: {

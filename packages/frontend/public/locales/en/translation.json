@@ -731,6 +731,26 @@
         "captureCount_one": "{{count}} capture",
         "captureCount_other": "{{count}} captures"
       },
+      "gamesList": {
+        "header_one": "Games ({{count}})",
+        "header_other": "Games ({{count}})",
+        "count": {
+          "pending_one": "{{count}} awaiting review",
+          "pending_other": "{{count}} awaiting review",
+          "collecting_one": "{{count}} open",
+          "collecting_other": "{{count}} open",
+          "promoted_one": "{{count}} made official",
+          "promoted_other": "{{count}} made official",
+          "all_one": "{{count}} capture total",
+          "all_other": "{{count}} captures total"
+        },
+        "oldestPending": "oldest {{relative}}",
+        "relative": {
+          "today": "today",
+          "daysAgo_one": "{{count}} day ago",
+          "daysAgo_other": "{{count}} days ago"
+        }
+      },
       "statusFilter": {
         "label": "Filter by status",
         "collecting": "Open",
