@@ -632,6 +632,7 @@ export interface GeoScreenshotRepository {
   pickRandomPromotedForGame(
     gameId: number,
     geoMapId?: number,
+    excludeMetaIds?: number[],
   ): Promise<GeoScreenshotMeta | null>
   // Free-play catalog: games with at least one promoted screenshot, plus
   // the per-game count of distinct maps and screenshots so the picker can

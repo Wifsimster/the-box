@@ -212,6 +212,7 @@ export const geoScreenshotRepository = {
   async pickRandomPromotedForGame(
     gameId: number,
     geoMapId?: number,
+    excludeMetaIds?: number[],
   ): Promise<GeoScreenshotMeta | null> {
     const q = db('geo_screenshot_meta')
       .join(
@@ -225,6 +226,9 @@ export const geoScreenshotRepository = {
       .select<GeoScreenshotMetaRow>('geo_screenshot_meta.*')
     if (geoMapId !== undefined) {
       q.where('geo_screenshot_meta.geo_map_id', geoMapId)
+    }
+    if (excludeMetaIds && excludeMetaIds.length > 0) {
+      q.whereNotIn('geo_screenshot_meta.id', excludeMetaIds)
     }
     const row = await q.first()
     return row ? mapMeta(row) : null

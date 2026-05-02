@@ -100,6 +100,7 @@ export const geoApi = {
     pickFreePlay(input: {
         gameId: number
         geoMapId?: number
+        excludeMetaIds?: number[]
     }): Promise<GeoFreePlayView> {
         return request<GeoFreePlayView>('/api/geo/free-play/random', {
             method: 'POST',

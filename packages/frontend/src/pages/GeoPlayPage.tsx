@@ -6,6 +6,7 @@ import {
     Gamepad2,
     Loader2,
     Map as MapIcon,
+    RotateCcw,
     Shuffle,
     Trophy,
 } from 'lucide-react'
@@ -54,6 +55,7 @@ export default function GeoPlayPage() {
         setPendingGuess,
         submitGuess,
         nextRound,
+        resetPlayedHistory,
     } = useGeoFreePlayStore()
 
     const [gamePickerOpen, setGamePickerOpen] = useState(false)
@@ -125,8 +127,10 @@ export default function GeoPlayPage() {
                         imageUrl={view?.candidate.imageUrl ?? null}
                         loading={phase === 'loading' || (currentGameId != null && phase === 'idle')}
                         empty={currentGameId == null}
+                        exhausted={phase === 'exhausted'}
                         errorMessage={phase === 'error' ? errorMessage : null}
                         onPickGame={() => setGamePickerOpen(true)}
+                        onResetHistory={() => void resetPlayedHistory()}
                     />
                 }
                 map={
@@ -210,17 +214,52 @@ function ScreenshotPanel({
     imageUrl,
     loading,
     empty,
+    exhausted,
     errorMessage,
     onPickGame,
+    onResetHistory,
 }: {
     imageUrl: string | null
     loading: boolean
     empty: boolean
+    exhausted: boolean
     errorMessage: string | null
     onPickGame: () => void
+    onResetHistory: () => void
 }) {
     const { t } = useTranslation()
     const safeUrl = imageUrl && !isPlaceholderImageUrl(imageUrl) ? imageUrl : null
+
+    if (exhausted) {
+        return (
+            <div
+                className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4"
+                role="status"
+            >
+                <div className="rounded-full bg-neon-pink/10 p-4">
+                    <Trophy className="h-8 w-8 text-neon-pink" aria-hidden />
+                </div>
+                <div className="space-y-1 max-w-xs">
+                    <h2 className="text-lg font-semibold">
+                        {t('geo.play.exhausted.title', "You've seen every screenshot")}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        {t(
+                            'geo.play.exhausted.body',
+                            "Nice run! You've guessed every available screenshot for this game. Reset the history to replay the ones you've already seen.",
+                        )}
+                    </p>
+                </div>
+                <Button
+                    onClick={onResetHistory}
+                    className="gradient-gaming hover:opacity-90"
+                >
+                    <RotateCcw className="h-4 w-4 mr-2" aria-hidden />
+                    {t('geo.play.exhausted.reset', 'Reset history')}
+                </Button>
+            </div>
+        )
+    }
 
     if (errorMessage) {
         return (
@@ -392,6 +431,7 @@ function Dock({
     const { t } = useTranslation()
     const submitting = phase === 'submitting'
     const revealed = phase === 'revealed'
+    const exhausted = phase === 'exhausted'
     return (
         <div className="flex flex-col gap-2">
             {/* Context row — game / map labels with quick-change links.
@@ -428,7 +468,7 @@ function Dock({
                     variant="ghost"
                     onClick={onReroll}
                     className="text-white/80 hover:text-white"
-                    disabled={submitting || gameLabel == null}
+                    disabled={submitting || exhausted || gameLabel == null}
                     aria-label={t('geo.play.reroll', 'New screenshot')}
                 >
                     <Shuffle className="h-4 w-4 mr-1.5" aria-hidden />

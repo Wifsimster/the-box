@@ -10,9 +10,21 @@ import type {
 import { geoApi, GeoApiError } from '../lib/api/geo'
 import { getApiErrorMessage } from '../lib/api-errors'
 
-type Phase = 'idle' | 'loading' | 'ready' | 'submitting' | 'revealed' | 'error'
+type Phase =
+    | 'idle'
+    | 'loading'
+    | 'ready'
+    | 'submitting'
+    | 'revealed'
+    | 'error'
+    | 'exhausted'
 
 const GAMES_TTL_MS = 5 * 60 * 1000
+// WHERE NOT IN payload cap on the backend. Older plays simply roll off
+// the front of the array once we hit it — re-seeing the very oldest
+// screenshot after hundreds of rounds is acceptable, while letting the
+// list grow unbounded would balloon both storage and the request body.
+const MAX_PLAYED_PER_GAME = 1000
 
 interface GeoFreePlayState {
     // Catalog
@@ -34,6 +46,12 @@ interface GeoFreePlayState {
     // Round counter so the screenshot/map components can re-key on
     // each new pick (prevents Embla / stale-pin glitches between rounds).
     round: number
+    // History of meta IDs the user has already played per game. Used as
+    // the exclusion list on each reroll so the same screenshot is never
+    // served twice in a row to the same client. Tracked per game (not
+    // per map) so changing the map filter still hides already-seen
+    // screenshots that happen to live on another map.
+    playedByGame: Record<number, number[]>
 
     // Actions
     loadGames(force?: boolean): Promise<void>
@@ -43,6 +61,7 @@ interface GeoFreePlayState {
     setPendingGuess(p: GeoPoint | null): void
     submitGuess(): Promise<GeoFreePlayResult | null>
     nextRound(): Promise<void>
+    resetPlayedHistory(): Promise<void>
     reset(): void
 }
 
@@ -62,6 +81,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             errorMessage: null,
             errorCode: null,
             round: 0,
+            playedByGame: {},
 
             async loadGames(force) {
                 const { gamesFetchedAt } = get()
@@ -122,7 +142,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             },
 
             async rerollScreenshot() {
-                const { currentGameId, currentMapId } = get()
+                const { currentGameId, currentMapId, playedByGame } = get()
                 if (currentGameId == null) return
                 set({
                     phase: 'loading',
@@ -134,9 +154,12 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     errorCode: null,
                 })
                 try {
+                    const excludeMetaIds = playedByGame[currentGameId] ?? []
                     const view = await geoApi.pickFreePlay({
                         gameId: currentGameId,
                         geoMapId: currentMapId ?? undefined,
+                        excludeMetaIds:
+                            excludeMetaIds.length > 0 ? excludeMetaIds : undefined,
                     })
                     set({
                         view,
@@ -148,10 +171,15 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                         round: get().round + 1,
                     })
                 } catch (err) {
+                    // The server returns ALL_PLAYED when the exclusion
+                    // list ate the only remaining candidates. Surface a
+                    // dedicated phase so the UI can offer a "reset
+                    // history" affordance instead of looking broken.
+                    const code = err instanceof GeoApiError ? err.code : null
                     set({
-                        phase: 'error',
+                        phase: code === 'ALL_PLAYED' ? 'exhausted' : 'error',
                         errorMessage: getApiErrorMessage(err),
-                        errorCode: err instanceof GeoApiError ? err.code : null,
+                        errorCode: code,
                     })
                 }
             },
@@ -161,7 +189,8 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             },
 
             async submitGuess() {
-                const { view, pendingGuess, currentMapId, maps } = get()
+                const { view, pendingGuess, currentMapId, currentGameId, maps } =
+                    get()
                 if (!view || !pendingGuess) return null
                 // Multi-map games require an explicit pick. Single-map
                 // games auto-selected at load time so this is a no-op there.
@@ -176,6 +205,21 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                         guess: pendingGuess,
                     })
                     const correctMap = maps.find((m) => m.id === result.correctMapId) ?? null
+                    // Record this metaId as played so the next reroll
+                    // (and every future session — see persist config)
+                    // excludes it from the random pool.
+                    if (currentGameId != null) {
+                        const prev = get().playedByGame[currentGameId] ?? []
+                        const next = prev.includes(view.meta.id)
+                            ? prev
+                            : [...prev, view.meta.id].slice(-MAX_PLAYED_PER_GAME)
+                        set({
+                            playedByGame: {
+                                ...get().playedByGame,
+                                [currentGameId]: next,
+                            },
+                        })
+                    }
                     set({ result, correctMap, phase: 'revealed' })
                     return result
                 } catch (err) {
@@ -189,6 +233,15 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             },
 
             async nextRound() {
+                await get().rerollScreenshot()
+            },
+
+            async resetPlayedHistory() {
+                const { currentGameId } = get()
+                if (currentGameId == null) return
+                const next = { ...get().playedByGame }
+                delete next[currentGameId]
+                set({ playedByGame: next })
                 await get().rerollScreenshot()
             },
 
@@ -209,15 +262,18 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
         }),
         {
             name: 'geo-free-play-store-v1',
-            // Only persist the user's last picked game + map so a reload
-            // resumes the same context. Screenshots and results are
-            // intentionally re-fetched from the network — stale state
-            // would resurrect a round the player already finished.
+            // Persist the user's last picked game + map so a reload
+            // resumes the same context, and the played-meta history so
+            // we don't reshow the same screenshots after a refresh.
+            // Live round state (view, result, etc.) is intentionally
+            // re-fetched from the network — stale state would
+            // resurrect a round the player already finished.
             partialize: (state) => ({
                 currentGameId: state.currentGameId,
                 currentMapId: state.currentMapId,
+                playedByGame: state.playedByGame,
             }),
-            version: 1,
+            version: 2,
         },
     ),
 )

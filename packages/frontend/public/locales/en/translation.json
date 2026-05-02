@@ -1627,6 +1627,11 @@
           "multi": "This game has several maps. Pick one to start guessing.",
           "none": "No playable maps for this game yet."
         }
+      },
+      "exhausted": {
+        "title": "You've seen every screenshot",
+        "body": "Nice run! You've guessed every available screenshot for this game. Reset the history to replay the ones you've already seen.",
+        "reset": "Reset history"
       }
     },
     "fullscreen": {
