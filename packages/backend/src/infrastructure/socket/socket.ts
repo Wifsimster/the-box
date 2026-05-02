@@ -3,7 +3,11 @@ import { Server as SocketIOServer } from 'socket.io'
 import { env } from '../../config/env.js'
 import { logger } from '../logger/logger.js'
 import { importQueueEvents } from '../queue/queues.js'
-import type { GeoRewardedEvent, GeoTierUpEvent } from '@the-box/types'
+import type {
+    GeoRewardedEvent,
+    GeoTierUpEvent,
+    UserPremiumGrantedEvent,
+} from '@the-box/types'
 
 let io: SocketIOServer | null = null
 
@@ -46,6 +50,7 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
     setupQueueEventListeners(adminNamespace)
 
     ensureGeoNamespace()
+    ensureUserNotificationsNamespace()
 
     logger.info('Socket.IO server initialized')
     return io
@@ -245,6 +250,37 @@ export function emitGeoLeaderboardUpdate(payload: {
     const ns = geoNamespace()
     if (!ns) return
     ns.emit('geo:leaderboard:update', payload)
+}
+
+// ---------- User-targeted notifications ----------
+//
+// Generic per-user notification channel (Premium grants, future account-level
+// alerts). Lives under `/notifications` so it stays mounted regardless of which
+// page the user is on, unlike `/geo` which only connects on Geo screens.
+
+function userNotificationsNamespace(): ReturnType<SocketIOServer['of']> | null {
+    return io ? io.of('/notifications') : null
+}
+
+export function ensureUserNotificationsNamespace(): void {
+    const ns = userNotificationsNamespace()
+    if (!ns) return
+    if ((ns as unknown as { _the_box_user_wired?: boolean })._the_box_user_wired) return
+    ns.on('connection', (socket) => {
+        logger.debug({ socketId: socket.id }, 'user-notifications client connected')
+        socket.on('join_user', (userId: unknown) => {
+            if (typeof userId === 'string' && userId.length > 0) {
+                socket.join(`user:${userId}`)
+            }
+        })
+    })
+    ;(ns as unknown as { _the_box_user_wired?: boolean })._the_box_user_wired = true
+}
+
+export function emitUserPremiumGranted(event: UserPremiumGrantedEvent): void {
+    const ns = userNotificationsNamespace()
+    if (!ns) return
+    ns.to(`user:${event.userId}`).emit('user:premium-granted', event)
 }
 
 // ---------- Geo-fetch pipeline (admin-only) ----------

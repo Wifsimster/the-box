@@ -11,6 +11,7 @@ export type EmailType =
   | 'inactive-reminder'
   | 'referral-announcement'
   | 'admin-test'
+  | 'premium-granted'
 
 export type EmailStatus = 'sent' | 'failed' | 'skipped'
 

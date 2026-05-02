@@ -1045,6 +1045,15 @@ export interface GeoTierUpEvent {
   newTier: GeoContributorTier
 }
 
+// Realtime payload for the `/notifications` namespace, fired when an admin
+// grants a user lifetime Premium. The frontend listens for this event and
+// surfaces it as a toast — the user is also notified by email.
+export interface UserPremiumGrantedEvent {
+  userId: string
+  tier: 'supporter_lifetime'
+  grantedAt: string
+}
+
 // Capture eligibility reporting. A user can flag a screenshot they believe
 // shouldn't be playable (wrong game, unreadable, inappropriate, etc.). After
 // enough distinct users report the same target it is auto-deactivated for

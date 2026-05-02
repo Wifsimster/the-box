@@ -1766,5 +1766,11 @@
       "too_easy": "Too easy",
       "other": "Other"
     }
+  },
+  "notifications": {
+    "premiumGranted": {
+      "title": "Premium unlocked!",
+      "body": "An admin just granted you lifetime Premium. Enjoy the archive, unlimited hints and the Premium badge."
+    }
   }
 }

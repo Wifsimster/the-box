@@ -1766,5 +1766,11 @@
       "too_easy": "Trop facile",
       "other": "Autre"
     }
+  },
+  "notifications": {
+    "premiumGranted": {
+      "title": "Premium activé !",
+      "body": "Un administrateur vient de t'offrir le Premium à vie. Profite des archives, des indices illimités et du badge Premium."
+    }
   }
 }
