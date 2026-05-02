@@ -221,7 +221,6 @@ export interface SessionRepository {
     scoreEarned: number
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
-  getExhaustedPositionsCount(tierSessionId: string, maxTries: number): Promise<number>
   getCorrectPositions(gameSessionId: string): Promise<number[]>
   deleteGameSession(userId: string, challengeId: number): Promise<boolean>
   findUserGameHistory(userId: string): Promise<GameHistoryRecord[]>

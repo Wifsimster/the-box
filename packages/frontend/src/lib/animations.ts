@@ -31,22 +31,10 @@ export const fadeInUp: Variants = {
   exit: { opacity: 0, y: -10 },
 }
 
-export const fadeInDown: Variants = {
-  initial: { opacity: 0, y: -20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 10 },
-}
-
 export const fadeInLeft: Variants = {
   initial: { opacity: 0, x: -20 },
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: 20 },
-}
-
-export const fadeInRight: Variants = {
-  initial: { opacity: 0, x: 20 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -20 },
 }
 
 // ============================================================================
@@ -116,38 +104,6 @@ export const tableRow: Variants = {
 }
 
 // ============================================================================
-// Interactive Animations (Hover/Tap)
-// ============================================================================
-
-export const hoverScale = {
-  whileHover: { scale: 1.02 },
-  whileTap: { scale: 0.98 },
-  transition: springConfig.snappy,
-}
-
-export const hoverScaleSmall = {
-  whileHover: { scale: 1.01 },
-  whileTap: { scale: 0.99 },
-  transition: springConfig.snappy,
-}
-
-export const hoverGlow = {
-  whileHover: {
-    boxShadow: 'var(--glow-md)',
-    borderColor: 'var(--border-interactive)',
-  },
-  transition: { duration: 0.2 },
-}
-
-export const hoverLift = {
-  whileHover: {
-    y: -2,
-    boxShadow: 'var(--shadow-lift)',
-  },
-  transition: springConfig.gentle,
-}
-
-// ============================================================================
 // Page and Tab Transitions
 // ============================================================================
 
@@ -195,21 +151,6 @@ export const pulse: Variants = {
   },
 }
 
-export const glowPulse: Variants = {
-  animate: {
-    boxShadow: [
-      'var(--glow-md)',
-      'var(--glow-lg)',
-      'var(--glow-md)',
-    ],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    },
-  },
-}
-
 // ============================================================================
 // Accessibility Utilities
 // ============================================================================
@@ -221,16 +162,4 @@ export const glowPulse: Variants = {
 export function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-/**
- * Get transition based on reduced motion preference
- * @param transition - The transition configuration
- * @returns The transition with duration 0 if reduced motion is preferred
- */
-export function getTransition(transition: Transition): Transition {
-  if (prefersReducedMotion()) {
-    return { duration: 0 }
-  }
-  return transition
 }
