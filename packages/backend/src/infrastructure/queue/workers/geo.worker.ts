@@ -16,6 +16,8 @@ import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
 import { runMapsPipeline } from './maps-pipeline-logic.js'
 import { runMapsFetchStub } from './maps-fetch-stub.js'
+import { runMapsFetchSteam } from './maps-fetch-steam.js'
+import { runMapsFetchRawg } from './maps-fetch-rawg.js'
 import { geoContributorService } from '../../../domain/services/index.js'
 import { emitGeoTierUp } from '../../socket/socket.js'
 
@@ -128,21 +130,31 @@ export const geoWorker = new Worker<GeoJobData>(
       })
     }
 
+    if (data.kind === 'maps:fetch-from-steam') {
+      return await runMapsFetchSteam({
+        gameId: data.gameId,
+        correlationId: data.correlationId,
+      })
+    }
+
+    if (data.kind === 'maps:fetch-from-rawg') {
+      return await runMapsFetchRawg({
+        gameId: data.gameId,
+        correlationId: data.correlationId,
+      })
+    }
+
     if (
       data.kind === 'maps:fetch-from-fandom' ||
       data.kind === 'maps:fetch-from-strategywiki' ||
       data.kind === 'maps:fetch-from-mapgenie' ||
-      data.kind === 'maps:fetch-from-wand' ||
-      data.kind === 'maps:fetch-from-steam' ||
-      data.kind === 'maps:fetch-from-rawg'
+      data.kind === 'maps:fetch-from-wand'
     ) {
       const source = data.kind.replace('maps:fetch-from-', '') as
         | 'fandom'
         | 'strategywiki'
         | 'mapgenie'
         | 'wand'
-        | 'steam'
-        | 'rawg'
       return await runMapsFetchStub({
         gameId: data.gameId,
         source,
