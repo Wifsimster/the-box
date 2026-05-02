@@ -97,6 +97,27 @@ export const geoMapRepository = {
     return row ? mapRow(row) : null
   },
 
+  // Per-page dedupe for sources that produce multiple rows per game
+  // (Fextralife discovers per-region map pages — Nautiloid / Wilderness /
+  // Shadow-Cursed Lands / Baldur's Gate for BG3 — and we want each page to
+  // land exactly once even if the importer re-runs).
+  async findBySourceUrl(gameId: number, sourceUrl: string): Promise<GeoMap | null> {
+    const row = await db('geo_map')
+      .where({ game_id: gameId, source_url: sourceUrl })
+      .first<GeoMapRow>()
+    return row ? mapRow(row) : null
+  },
+
+  // Delete a single row by id. Used by the Fextralife importer to prune a
+  // pre-existing generic-index map after per-region pages are discovered
+  // (the index's og:image is a wiki banner, not a usable region map).
+  // Returns whether a row was deleted.
+  async deleteById(id: number): Promise<boolean> {
+    log.info({ id }, 'deleteById')
+    const count = await db('geo_map').where({ id }).delete()
+    return count > 0
+  },
+
   async listByGameId(
     gameId: number,
   ): Promise<Array<GeoMap & { isActive: boolean }>> {
