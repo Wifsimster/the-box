@@ -998,6 +998,11 @@ export interface GeoFreePlayResult {
   scoreVersion: number
   correctMapId: number
   wrongMap: boolean
+  // Total contribution pins recorded against this capture so far. Surfaced
+  // on submit so the player can see how many people have pinned the same
+  // screenshot. Free-play guesses don't bump this — only crowdsourced
+  // contributions do.
+  pinCount: number
 }
 
 export interface GeoLeaderboardEntry {

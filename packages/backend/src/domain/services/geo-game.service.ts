@@ -59,6 +59,7 @@ export interface GeoFreePlayResult {
   scoreVersion: number
   correctMapId: number
   wrongMap: boolean
+  pinCount: number
 }
 
 export interface GeoGameService {
@@ -196,6 +197,7 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
         scoreVersion,
         correctMapId: meta.geoMapId,
         wrongMap,
+        pinCount: candidate.pinCount,
       }
     },
 
