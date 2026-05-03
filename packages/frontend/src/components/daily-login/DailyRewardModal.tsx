@@ -10,10 +10,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
-import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
-import { Flame, Gift, Info, Sparkles } from 'lucide-react'
+import { Flame, Gift, Sparkles } from 'lucide-react'
 
 export function DailyRewardModal() {
     const { t } = useTranslation()
@@ -28,7 +27,6 @@ export function DailyRewardModal() {
     } = useDailyLoginStore()
 
     const [isAnimating, setIsAnimating] = useState(false)
-    const { hours, minutes } = useNextDailyCountdown()
 
     if (!status) return null
 
@@ -91,14 +89,6 @@ export function DailyRewardModal() {
                             count: justClaimed?.newStreak ?? status.currentStreak,
                         })}
                     </span>
-                    <button
-                        type="button"
-                        title={t('dailyLogin.streakPolicyTooltip')}
-                        aria-label={t('dailyLogin.streakPolicyTooltip')}
-                        className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
-                    >
-                        <Info className="w-4 h-4" />
-                    </button>
                     {status.currentStreak >= 7 && (
                         <Badge variant="outline" className="bg-neon-pink/10 border-neon-pink/30 text-neon-pink">
                             {t('dailyLogin.onFire')}
@@ -150,11 +140,6 @@ export function DailyRewardModal() {
                     currentDayInCycle={justClaimed?.newDayInCycle || status.currentDayInCycle}
                     hasClaimedToday={showClaimSuccess || status.hasClaimedToday}
                 />
-
-                {/* Countdown to next reward */}
-                <p className="text-xs text-muted-foreground text-center">
-                    {t('dailyLogin.nextRewardIn', { hours, minutes })}
-                </p>
 
                 {/* Action Button */}
                 <div className="flex justify-center pt-2">
