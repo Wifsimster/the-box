@@ -337,6 +337,31 @@ async function clearDailyLoginClaims(userIds: string[]): Promise<void> {
   }
 }
 
+// Stable source_ref used by the IDOR spec to find the grant for the
+// non-admin user. Idempotent via the (user_id, source, source_ref) unique
+// key; reseeding does not duplicate. We insert only the reward_grants row
+// — no inventory side-effect — so re-runs leave inventory untouched.
+const IDOR_GRANT_SOURCE = 'milestone'
+const IDOR_GRANT_SOURCE_REF = 'milestone:e2e_idor_test_grant'
+
+async function seedIdorRewardGrant(userId: string): Promise<void> {
+  const payload = JSON.stringify({
+    items: [{ itemType: 'powerup', itemKey: 'hint_year', quantity: 1 }],
+  })
+  await db.raw(
+    `
+    INSERT INTO reward_grants (user_id, source, source_ref, payload, unlocked_at)
+    VALUES (?, ?, ?, ?::jsonb, NOW())
+    ON CONFLICT (user_id, source, source_ref) DO NOTHING
+    `,
+    [userId, IDOR_GRANT_SOURCE, IDOR_GRANT_SOURCE_REF, payload]
+  )
+  const row = await db('reward_grants')
+    .where({ user_id: userId, source: IDOR_GRANT_SOURCE, source_ref: IDOR_GRANT_SOURCE_REF })
+    .first()
+  console.log(`  ✓ IDOR test grant ready for user ${userId} (id: ${row?.id})`)
+}
+
 /**
  * Main seeding function
  */
@@ -377,6 +402,21 @@ async function seed(): Promise<void> {
     // Step 5: Clear daily login claims for fresh login tests
     console.log('\nClearing daily login claims...')
     await clearDailyLoginClaims([e2eUserId, e2eAdminId])
+
+    // Step 6: Reward grant for the IDOR Playwright spec. The grant belongs
+    // to e2e_user; the spec logs in as e2e_admin and asserts they cannot
+    // claim it. Skipping silently if the reward_grants table is missing
+    // keeps the seed forward-compatible with backends that haven't run the
+    // rewards migration yet.
+    console.log('\nSeeding reward grant for IDOR spec...')
+    try {
+      await seedIdorRewardGrant(e2eUserId)
+    } catch (error) {
+      console.warn(
+        '  ⚠ Skipped IDOR grant seed (reward_grants table missing or schema drift):',
+        (error as Error).message,
+      )
+    }
 
     console.log('\n✅ E2E seeding completed successfully!')
   } catch (error) {
