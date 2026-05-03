@@ -370,8 +370,12 @@ export function MapCanvas({
                     aria-hidden
                 />
 
-                {/* Crosshair at hover position */}
-                {!disabled && hover && !kbCursor && (
+                {/* Hover crosshair — only while the user is still aiming.
+                    Once a pin is placed the crosshair anchors to the pin
+                    (below) so blurring the canvas (e.g. clicking a zoom
+                    button) doesn't leave the crosshair drifting away from
+                    the marker. */}
+                {!disabled && hover && !kbCursor && !pin && (
                     <Crosshair x={hover.x} y={hover.y} faint />
                 )}
 
@@ -379,10 +383,10 @@ export function MapCanvas({
                     from the mouse-hover crosshair. */}
                 {kbCursor && <Crosshair x={kbCursor.x} y={kbCursor.y} />}
 
-                {/* Pin axis guide — when no hover/keyboard crosshair is active,
-                    draw faint X/Y lines through the placed pin so the operator
-                    can read its coordinates at a glance. */}
-                {pin && !hover && !kbCursor && (
+                {/* Pin axis guide — anchored to the placed pin so the
+                    crosshair always reads its coordinates, regardless of
+                    where the mouse currently is. */}
+                {pin && !kbCursor && (
                     <Crosshair x={pin.x} y={pin.y} faint />
                 )}
 
