@@ -576,11 +576,13 @@
       "coldStart": {
         "no-curated": {
           "title": "Aucun jeu activé pour le moment",
-          "body": "Allez dans l'onglet Jeux pour activer le mode Géo sur un ou plusieurs jeux. Une fois activés, le pipeline ingère leurs cartes automatiquement."
+          "body": "Activez le mode Géo sur un ou plusieurs jeux. Le pipeline ingèrera leurs cartes automatiquement.",
+          "cta": "Activer un jeu"
         },
         "no-maps": {
           "title": "Aucune carte importée",
-          "body": "Vos jeux activés n'ont pas encore de carte active. Ouvrez le sous-onglet « Acquisition » pour démarrer le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête."
+          "body": "Vos jeux activés n'ont pas encore de carte active. Lancez le pipeline d'ingestion, puis planifiez un défi quand au moins une carte est prête.",
+          "cta": "Ouvrir l'acquisition"
         }
       },
       "games": {

@@ -165,31 +165,54 @@ async function rejectCandidate(id: number): Promise<void> {
     }
 }
 
-type GeoSubTab = 'queue' | 'acquisition' | 'reports' | 'catalog'
-const SUB_TABS: GeoSubTab[] = ['queue', 'acquisition', 'reports', 'catalog']
+type GeoSubTab = 'catalog' | 'acquisition' | 'queue' | 'reports'
+const SUB_TABS: GeoSubTab[] = ['catalog', 'acquisition', 'queue', 'reports']
+type CatalogView = 'maps' | 'games'
+const CATALOG_VIEWS: CatalogView[] = ['maps', 'games']
 
 export function GeoReviewPanel() {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    // Sub-tab state lives in the URL (`?sub=…`) so AdminPage's redirect
-    // map can deep-link `?tab=geoFetch` straight into Acquisition and so
-    // the moderator's tab choice survives a refresh.
+    // Sub-tab and Catalogue view both live in the URL (`?sub=…&view=…`) so
+    // AdminPage's redirect map can deep-link `?tab=geoFetch` straight into
+    // Acquisition, the moderator's tab choice survives a refresh, AND
+    // empty-state CTAs can link to a specific Catalogue view (e.g. straight
+    // to the Jeux activation list when no game is curated yet). `view` is
+    // only meaningful when `sub=catalog` and is ignored otherwise.
     const [searchParams, setSearchParams] = useSearchParams()
     const subFromUrl = searchParams.get('sub')
-    const activeTab: GeoSubTab =
+    const subInUrl: GeoSubTab | null =
         subFromUrl && (SUB_TABS as string[]).includes(subFromUrl)
             ? (subFromUrl as GeoSubTab)
-            : 'queue'
+            : null
+    const viewFromUrl = searchParams.get('view')
+    const catalogView: CatalogView =
+        viewFromUrl && (CATALOG_VIEWS as string[]).includes(viewFromUrl)
+            ? (viewFromUrl as CatalogView)
+            : 'maps'
     const setActiveTab = useCallback(
         (next: GeoSubTab) => {
             const params = new URLSearchParams(searchParams)
             if (next === 'queue') params.delete('sub')
             else params.set('sub', next)
+            // `view` is meaningful only on the Catalogue tab — strip it
+            // when navigating away so URLs stay clean and predictable.
+            if (next !== 'catalog') params.delete('view')
             setSearchParams(params, { replace: true })
         },
         [searchParams, setSearchParams],
     )
-    const [catalogView, setCatalogView] = useState<'maps' | 'games'>('maps')
+    const setCatalogView = useCallback(
+        (next: CatalogView) => {
+            const params = new URLSearchParams(searchParams)
+            params.set('sub', 'catalog')
+            // Default `maps` is the implicit one — keep the URL minimal.
+            if (next === 'maps') params.delete('view')
+            else params.set('view', next)
+            setSearchParams(params, { replace: true })
+        },
+        [searchParams, setSearchParams],
+    )
     // Default to the only status that needs the moderator's attention. The
     // other statuses are still reachable via the chip row, but the page
     // should not open on `collecting` (no decision possible) or `all` (mixes
@@ -225,6 +248,31 @@ export function GeoReviewPanel() {
     // Single health subscription shared between the counter strip and the
     // cold-start banner — keeps them in sync without a duplicate poll.
     const { data: health, loading: healthLoading, error: healthError } = useGeoHealth()
+
+    // When the URL doesn't pin a `sub`, route the moderator to the tab
+    // where their next action lives, derived from the live health snapshot:
+    //   queue.pending > 0       → queue        (steady-state daily routine)
+    //   curated === 0           → catalog      (cold start: activate a game)
+    //   withMap === 0           → acquisition  (games activated, ingest maps)
+    //   otherwise               → queue        (empty queue is diagnostic)
+    // We DON'T rewrite the URL — `subInUrl === null` keeps the URL clean
+    // and explicit clicks still set `?sub=…` as before.
+    const resolvedDefault: GeoSubTab | null = (() => {
+        if (!health) return null
+        const queueCount = health.queue.active + health.queue.waiting
+        if (queueCount > 0) return 'queue'
+        if (health.coverage.curated === 0) return 'catalog'
+        if (health.coverage.withMap === 0) return 'acquisition'
+        return 'queue'
+    })()
+    const activeTab: GeoSubTab = subInUrl ?? resolvedDefault ?? 'queue'
+    // When the cold-start state-machine routes to `catalog`, pre-select the
+    // Jeux view so the CTA the moderator sees in the empty state is the
+    // game-activation list (the actual first action they need to take).
+    const effectiveCatalogView: CatalogView =
+        !subInUrl && resolvedDefault === 'catalog' && !viewFromUrl
+            ? 'games'
+            : catalogView
 
     useEffect(() => {
         let cancelled = false
@@ -476,6 +524,8 @@ export function GeoReviewPanel() {
                     setStatusFilter('pending')
                     setGameFilter(null)
                 }}
+                onActivateGames={() => setCatalogView('games')}
+                onGoToAcquisition={() => setActiveTab('acquisition')}
             />
 
             <Tabs
@@ -484,21 +534,21 @@ export function GeoReviewPanel() {
                 className="space-y-4"
             >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
-                    <TabsTrigger value="queue" className="gap-1.5 shrink-0">
-                        <ListChecks className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.queue')}
+                    <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
+                        <Library className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                     <TabsTrigger value="acquisition" className="gap-1.5 shrink-0">
                         <Workflow className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.acquisition')}
                     </TabsTrigger>
+                    <TabsTrigger value="queue" className="gap-1.5 shrink-0">
+                        <ListChecks className="h-3.5 w-3.5" />
+                        {t('admin.geo.tabs.queue')}
+                    </TabsTrigger>
                     <TabsTrigger value="reports" className="gap-1.5 shrink-0">
                         <Flag className="h-3.5 w-3.5" />
                         {t('admin.geo.tabs.reports')}
-                    </TabsTrigger>
-                    <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
-                        <Library className="h-3.5 w-3.5" />
-                        {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                 </TabsList>
 
@@ -529,7 +579,7 @@ export function GeoReviewPanel() {
                     >
                         {(['maps', 'games'] as const).map((view) => {
                             const Icon = view === 'maps' ? MapIcon : Library
-                            const active = catalogView === view
+                            const active = effectiveCatalogView === view
                             return (
                                 <button
                                     key={view}
@@ -549,7 +599,7 @@ export function GeoReviewPanel() {
                             )
                         })}
                     </div>
-                    {catalogView === 'maps' ? (
+                    {effectiveCatalogView === 'maps' ? (
                         <GeoMapsTab
                             runState={runState}
                             runError={runError}

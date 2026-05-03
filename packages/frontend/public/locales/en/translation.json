@@ -576,11 +576,13 @@
       "coldStart": {
         "no-curated": {
           "title": "No curated games yet",
-          "body": "Open the Games tab and curate one or more games for Geo. Once curated, the pipeline imports their maps automatically."
+          "body": "Curate one or more games for Geo. Once curated, the pipeline imports their maps automatically.",
+          "cta": "Curate a game"
         },
         "no-maps": {
           "title": "No maps imported yet",
-          "body": "Your curated games don't have an active map yet. Open the \"Acquisition\" sub-tab to start the ingestion pipeline, then schedule a challenge once at least one map is ready."
+          "body": "Your curated games don't have an active map yet. Start the ingestion pipeline, then schedule a challenge once at least one map is ready.",
+          "cta": "Open Acquisition"
         }
       },
       "games": {

@@ -26,6 +26,11 @@ interface ModerationStatusRailProps {
     runState: GeoRunStatePayload | null
     onMapsClick?: () => void
     onPinsClick?: () => void
+    // Cold-start CTAs — the empty-state copy used to point at the Jeux tab
+    // in prose only, leaving the moderator to scan the tab list. The parent
+    // wires these so the button deep-links straight to the right surface.
+    onActivateGames?: () => void
+    onGoToAcquisition?: () => void
 }
 
 interface HealthFailureRow {
@@ -42,6 +47,8 @@ export function ModerationStatusRail({
     runState,
     onMapsClick,
     onPinsClick,
+    onActivateGames,
+    onGoToAcquisition,
 }: ModerationStatusRailProps) {
     const { t } = useTranslation()
 
@@ -63,14 +70,33 @@ export function ModerationStatusRail({
         )
     }
 
+    // On a brand-new instance every counter is 0/0 and the row is just
+    // noise — three zeros pretending to be data. Hide the counters until
+    // there's something to count; the cold-start row carries the message
+    // in that state. The Stripe Dashboard does the same with its "Today"
+    // metrics row before the first payment.
+    const errorsCount = health.queue.failed + (health.failures?.length ?? 0)
+    const pinsToReview = health.queue.waiting + health.queue.active
+    const allZeros =
+        health.coverage.curated === 0 &&
+        health.coverage.withMap === 0 &&
+        pinsToReview === 0 &&
+        errorsCount === 0
+
     return (
         <div className="rounded-md border border-border/40 bg-muted/10">
-            <CounterRow
+            {!allZeros && (
+                <CounterRow
+                    health={health}
+                    onMapsClick={onMapsClick}
+                    onPinsClick={onPinsClick}
+                />
+            )}
+            <ColdStartRow
                 health={health}
-                onMapsClick={onMapsClick}
-                onPinsClick={onPinsClick}
+                onActivateGames={onActivateGames}
+                onGoToAcquisition={onGoToAcquisition}
             />
-            <ColdStartRow health={health} />
             <RunStateRow state={runState} />
         </div>
     )
@@ -124,17 +150,26 @@ function CounterRow({
     )
 }
 
-function ColdStartRow({ health }: { health: GeoHealth }) {
+function ColdStartRow({
+    health,
+    onActivateGames,
+    onGoToAcquisition,
+}: {
+    health: GeoHealth
+    onActivateGames?: () => void
+    onGoToAcquisition?: () => void
+}) {
     const { t } = useTranslation()
     const { curated, withMap } = health.coverage
 
     if (curated > 0 && withMap > 0) return null
 
     const stage: 'no-curated' | 'no-maps' = curated === 0 ? 'no-curated' : 'no-maps'
+    const ctaHandler = stage === 'no-curated' ? onActivateGames : onGoToAcquisition
     return (
         <Section role="note" tone="accent">
             <Compass className="h-4 w-4 text-neon-pink shrink-0 mt-0.5" aria-hidden />
-            <div className="space-y-1 leading-relaxed">
+            <div className="space-y-1 leading-relaxed flex-1">
                 <p className="font-semibold text-foreground">
                     {t(`admin.geo.coldStart.${stage}.title`)}
                 </p>
@@ -142,6 +177,15 @@ function ColdStartRow({ health }: { health: GeoHealth }) {
                     {t(`admin.geo.coldStart.${stage}.body`)}
                 </p>
             </div>
+            {ctaHandler && (
+                <button
+                    type="button"
+                    onClick={ctaHandler}
+                    className="self-start sm:self-auto shrink-0 inline-flex items-center gap-1.5 rounded-md border border-neon-pink/40 bg-neon-pink/10 px-3 py-1.5 text-xs font-semibold text-neon-pink hover:bg-neon-pink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
+                >
+                    {t(`admin.geo.coldStart.${stage}.cta`)}
+                </button>
+            )}
         </Section>
     )
 }
