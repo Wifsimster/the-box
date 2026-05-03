@@ -1,32 +1,47 @@
-# Authentication
+# Authentification
 
-The Box uses [Better Auth](https://better-auth.com) for authentication, providing email/password login with session management.
+The Box utilise [Better Auth](https://better-auth.com) pour l'inscription, la connexion et la gestion de session par e-mail/mot de passe. Document destiné aux développeurs qui ajoutent ou modifient des flux d'authentification.
 
-## Setup
+## Vue d'ensemble du flux
 
-### Backend Configuration
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur
+    participant F as Frontend
+    participant B as Backend (Better Auth)
+    participant DB as PostgreSQL
 
-Authentication is configured in `packages/backend/src/infrastructure/auth/auth.ts`:
+    U->>F: Renseigne e-mail + mot de passe
+    F->>B: POST /api/auth/sign-in/email
+    B->>DB: Vérifie l'utilisateur
+    DB-->>B: Utilisateur trouvé
+    B->>DB: Crée la session
+    B-->>F: Cookie de session
+    F-->>U: Connexion réussie
+```
+
+Better Auth gère automatiquement la persistance des sessions, le hash des mots de passe et la création des tables nécessaires.
+
+## Configuration
+
+### Backend
+
+Le client Better Auth est configuré dans `packages/backend/src/infrastructure/auth/auth.ts` :
 
 ```typescript
-import { betterAuth } from 'better-auth'
-import { Pool } from 'pg'
-
 export const auth = betterAuth({
   database: new Pool({ connectionString: env.DATABASE_URL }),
-  emailAndPassword: {
-    enabled: true,
-  },
+  emailAndPassword: { enabled: true },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24,     // 1 day
+    expiresIn: 60 * 60 * 24 * 7, // 7 jours
+    updateAge: 60 * 60 * 24,     // 1 jour
   },
 })
 ```
 
-### Frontend Configuration
+### Frontend
 
-Client setup in `packages/frontend/src/lib/auth-client.ts`:
+Le client React est exposé dans `packages/frontend/src/lib/auth-client.ts` :
 
 ```typescript
 import { createAuthClient } from 'better-auth/react'
@@ -38,159 +53,123 @@ export const authClient = createAuthClient({
 export const { signIn, signUp, signOut, useSession } = authClient
 ```
 
-## Environment Variables
+## Variables d'environnement
 
-```bash
-# Required for Better Auth
-BETTER_AUTH_SECRET=your-secret-key-min-32-chars
-API_URL=http://localhost:3000
+| Variable | Rôle |
+|----------|------|
+| `BETTER_AUTH_SECRET` | Clé secrète (≥ 32 caractères) — `openssl rand -base64 32` |
+| `API_URL` | URL publique de l'API (callbacks Better Auth) |
+| `CORS_ORIGIN` | URL du frontend autorisée à appeler l'API |
+| `RESEND_API_KEY` | Clé Resend pour les e-mails (optionnel en dev) |
+| `EMAIL_FROM` | Adresse d'envoi des e-mails transactionnels |
 
-# Optional: Email verification with Resend
-RESEND_API_KEY=re_xxxxxxxxxxxx
-EMAIL_FROM=noreply@yourdomain.com
-```
+## Endpoints fournis par Better Auth
 
-## API Endpoints
+> **Détail technique.** Better Auth expose automatiquement ces endpoints sous `/api/auth/*`. Aucune route Express à écrire.
 
-Better Auth automatically handles these endpoints at `/api/auth/*`:
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/auth/sign-up/email` | Inscription par e-mail/mot de passe |
+| POST | `/api/auth/sign-in/email` | Connexion par e-mail |
+| POST | `/api/auth/sign-in/username` | Connexion par nom d'utilisateur |
+| POST | `/api/auth/sign-in/anonymous` | Connexion invité |
+| POST | `/api/auth/sign-out` | Déconnexion |
+| GET | `/api/auth/session` | Récupère la session courante |
+| POST | `/api/auth/forget-password` | Demande de réinitialisation |
+| POST | `/api/auth/reset-password` | Validation de la réinitialisation |
 
-| Endpoint | Method | Description |
-| -------- | ------ | ----------- |
-| `/api/auth/sign-up/email` | POST | Register with email/password |
-| `/api/auth/sign-in/email` | POST | Login with email/password |
-| `/api/auth/sign-out` | POST | Logout current session |
-| `/api/auth/session` | GET | Get current session |
-| `/api/auth/user` | GET | Get current user |
+## Utilisation côté frontend
 
-## Usage in Frontend
-
-### Sign Up
+### Inscription
 
 ```typescript
 import { signUp } from '@/lib/auth-client'
 
-const handleSignUp = async (email: string, password: string, name: string) => {
-  const { data, error } = await signUp.email({
-    email,
-    password,
-    name,
-  })
-
-  if (error) {
-    console.error(error.message)
-    return
-  }
-
-  // User is now signed in
-  console.log('Welcome', data.user.name)
-}
+const { data, error } = await signUp.email({ email, password, name })
+if (error) return console.error(error.message)
+// L'utilisateur est connecté
 ```
 
-### Sign In
+### Connexion
 
 ```typescript
 import { signIn } from '@/lib/auth-client'
 
-const handleSignIn = async (email: string, password: string) => {
-  const { data, error } = await signIn.email({
-    email,
-    password,
-  })
-
-  if (error) {
-    console.error(error.message)
-    return
-  }
-
-  // Redirect to game
-  navigate('/play')
-}
+const { data, error } = await signIn.email({ email, password })
+if (error) return console.error(error.message)
+navigate('/play')
 ```
 
-### Session Hook
+### Hook de session
 
 ```typescript
 import { useSession } from '@/lib/auth-client'
 
 function Header() {
   const { data: session, isPending } = useSession()
-
   if (isPending) return <Spinner />
-
-  if (!session) {
-    return <LoginButton />
-  }
-
-  return <UserMenu user={session.user} />
+  return session ? <UserMenu user={session.user} /> : <LoginButton />
 }
 ```
 
-### Sign Out
+### Déconnexion
 
 ```typescript
-import { signOut } from '@/lib/auth-client'
-
-const handleSignOut = async () => {
-  await signOut()
-  navigate('/')
-}
+await signOut()
+navigate('/')
 ```
 
-## Protected Routes
+## Routes protégées
 
-### Backend Middleware
+### Backend — middleware
 
 ```typescript
 import { auth } from '../infrastructure/auth/auth.js'
 
 export async function authMiddleware(req, res, next) {
   const session = await auth.api.getSession({ headers: req.headers })
-
   if (!session) {
     return res.status(401).json({
       success: false,
-      error: { code: 'UNAUTHORIZED', message: 'Authentication required' }
+      error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
     })
   }
-
   req.userId = session.user.id
   next()
 }
 ```
 
-### Frontend Route Protection
+### Frontend — composant de garde
 
 ```typescript
-import { useSession } from '@/lib/auth-client'
-import { Navigate } from 'react-router-dom'
-
 function ProtectedRoute({ children }) {
   const { data: session, isPending } = useSession()
-
   if (isPending) return <LoadingScreen />
   if (!session) return <Navigate to="/login" />
-
   return children
 }
 ```
 
-## Guest Mode
+## Mode invité
 
-For users who want to play without creating an account:
+Better Auth supporte la connexion anonyme via `signIn.anonymous()`. Une session temporaire est créée et liée à un utilisateur sans e-mail.
 
-```typescript
-// Generate a temporary guest session
-const playAsGuest = async () => {
-  const guestId = `guest_${Date.now()}`
-  // Store in localStorage, create temporary user
-}
-```
+## Tables créées par Better Auth
 
-## Database Tables
+> **Détail technique.** Better Auth crée et maintient ces tables automatiquement au premier `migrate`.
 
-Better Auth creates these tables automatically:
+| Table | Contenu |
+|-------|---------|
+| `user` | Comptes utilisateurs |
+| `session` | Sessions actives |
+| `account` | Comptes OAuth ou e-mail/mot de passe |
+| `verification` | Jetons de vérification d'e-mail |
 
-- `user` - User accounts
-- `session` - Active sessions
-- `account` - OAuth accounts (if enabled)
-- `verification` - Email verification tokens
+## Premier admin
+
+Au premier enregistrement, l'utilisateur reçoit automatiquement le rôle `admin`. Voir `auth.service.ts` pour la logique exacte.
+
+## Pour aller plus loin
+
+- [Mise en place Better Auth](./better-auth-setup.md) — étapes de configuration et d'intégration initiale
+- [Référence API](./api.md) — autres endpoints (jeu, classement, utilisateur)

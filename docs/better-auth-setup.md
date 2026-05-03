@@ -1,158 +1,146 @@
-# Better Auth Setup Guide
+# Mise en place Better Auth
 
-This guide covers the remaining steps to complete the better-auth migration.
+Guide pas-à-pas pour terminer la configuration de Better Auth dans un environnement neuf.
 
-## Prerequisites
+## Prérequis
 
-- PostgreSQL running (via Docker: `docker compose up -d`)
-- Node.js 18+
-- npm workspaces installed (`npm install` from root)
+- PostgreSQL en marche (Docker : `docker compose -f compose.local.yml up -d`)
+- Node.js ≥ 24
+- Dépendances installées (`npm install` à la racine)
 
-## Step 1: Generate Database Schema
+## Étape 1 — Générer le schéma de base de données
 
-Better-auth requires specific database tables. Run the CLI to generate and apply migrations:
+Better Auth requiert ses propres tables. Lancez la CLI pour les créer :
 
 ```bash
 cd packages/backend
-
-# Generate the migration file
-npx @better-auth/cli generate
-
-# Apply migrations to the database
-npx @better-auth/cli migrate
+npx @better-auth/cli generate   # Génère le fichier de migration
+npx @better-auth/cli migrate    # Applique les migrations
 ```
 
-This creates the following tables:
-- `user` - User accounts
-- `session` - Active sessions
-- `account` - OAuth/credential accounts
-- `verification` - Email verification tokens
+Tables créées :
 
-## Step 2: Configure Environment Variables
+| Table | Rôle |
+|-------|------|
+| `user` | Comptes utilisateurs |
+| `session` | Sessions actives |
+| `account` | Comptes OAuth ou e-mail/mot de passe |
+| `verification` | Jetons de vérification d'e-mail |
 
-Copy the example environment file and configure your values:
+## Étape 2 — Configurer les variables d'environnement
 
 ```bash
 cp .env.example .env
 ```
 
-### Required Variables
+### Variables obligatoires
 
-| Variable | Description | Example |
+| Variable | Description | Exemple |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://thebox:thebox_secret@localhost:5432/thebox` |
-| `BETTER_AUTH_SECRET` | Secret key for signing (min 32 chars) | Generate with `openssl rand -base64 32` |
-| `API_URL` | Backend URL | `http://localhost:3000` |
-| `CORS_ORIGIN` | Frontend URL | `http://localhost:5173` |
+| `DATABASE_URL` | Chaîne de connexion PostgreSQL | `postgresql://thebox:thebox_secret@localhost:5432/thebox` |
+| `BETTER_AUTH_SECRET` | Clé de signature (≥ 32 caractères) | `openssl rand -base64 32` |
+| `API_URL` | URL publique du backend | `http://localhost:3000` |
+| `CORS_ORIGIN` | URL du frontend | `http://localhost:5173` |
 
-### Email Configuration (Optional for Development)
+### Configuration e-mail (optionnelle en dev)
 
-For password reset and email verification to work in production:
+| Variable | Description |
+|----------|-------------|
+| `RESEND_API_KEY` | Clé Resend pour envoyer les e-mails |
+| `EMAIL_FROM` | Adresse d'expéditeur |
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `RESEND_API_KEY` | Resend API key | `re_xxxxxxxxxxxx` |
-| `EMAIL_FROM` | Sender email address | `noreply@yourdomain.com` |
+> **À noter.** Sans `RESEND_API_KEY`, les liens de réinitialisation s'affichent dans la console (mode dev).
 
-> **Note**: In development mode without `RESEND_API_KEY`, password reset links are logged to the console.
+## Étape 3 — Récupérer une clé Resend (production)
 
-## Step 3: Get Resend API Key (Production)
+1. Créez un compte sur [resend.com](https://resend.com)
+2. Vérifiez votre domaine ou utilisez le domaine sandbox pour les tests
+3. Générez une clé API depuis le tableau de bord
+4. Renseignez-la dans `.env`
 
-1. Create an account at [resend.com](https://resend.com)
-2. Verify your domain or use the sandbox domain for testing
-3. Generate an API key from the dashboard
-4. Add it to your `.env` file
-
-## Step 4: Start the Application
+## Étape 4 — Lancer l'application
 
 ```bash
-# From the root directory
+# Depuis la racine
 npm run dev
 ```
 
-Or start backend and frontend separately:
+Backend disponible sur `http://localhost:3000`, frontend sur `http://localhost:5173`.
 
-```bash
-# Terminal 1 - Backend
-cd packages/backend
-npm run dev
+## Étape 5 — Tester les flux
 
-# Terminal 2 - Frontend
-cd packages/frontend
-npm run dev
-```
+### Inscription
 
-## Step 5: Test Authentication Flows
+1. Rendez-vous sur `http://localhost:5173/register`
+2. Renseignez nom d'utilisateur, e-mail, mot de passe
+3. Validez — vous êtes redirigé vers l'accueil
 
-### Registration
-1. Navigate to `http://localhost:5173/register`
-2. Fill in username, email, and password
-3. Submit the form
-4. You should be redirected to the home page
+### Connexion
 
-### Login
-1. Navigate to `http://localhost:5173/login`
-2. Enter email or username and password
-3. Submit the form
-4. You should see your username in the header
+1. `http://localhost:5173/login`
+2. Saisissez vos identifiants
+3. Votre nom d'utilisateur apparaît dans le header
 
-### Guest Login
-1. On the login page, click "Continue as Guest"
-2. You should be logged in with an anonymous account
+### Mode invité
 
-### Password Reset
-1. Navigate to `http://localhost:5173/forgot-password`
-2. Enter your email
-3. Check your email (or console in development) for the reset link
-4. Click the link and set a new password
+Cliquez sur « Continuer en tant qu'invité » sur la page de connexion.
 
-### Logout
-1. Click on your username in the header
-2. Click "Logout"
-3. You should be redirected to the home page
+### Réinitialisation de mot de passe
 
-## API Endpoints
+1. `http://localhost:5173/forgot-password`
+2. Saisissez votre e-mail
+3. Consultez votre boîte de réception (ou la console en dev) pour le lien
+4. Cliquez et choisissez un nouveau mot de passe
 
-Better-auth handles these endpoints automatically:
+### Déconnexion
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/sign-up/email` | Register with email/password |
-| POST | `/api/auth/sign-in/email` | Login with email |
-| POST | `/api/auth/sign-in/username` | Login with username |
-| POST | `/api/auth/sign-in/anonymous` | Guest login |
-| POST | `/api/auth/sign-out` | Logout |
-| GET | `/api/auth/session` | Get current session |
-| POST | `/api/auth/forget-password` | Request password reset |
-| POST | `/api/auth/reset-password` | Complete password reset |
+Cliquez sur votre nom d'utilisateur dans le header puis sur « Déconnexion ».
 
-## Troubleshooting
+## Endpoints exposés
 
-### "Browser is not installed" error
-If using Playwright for testing:
+> **Détail technique.** Better Auth route automatiquement ces endpoints sous `/api/auth/*`.
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/auth/sign-up/email` | Inscription par e-mail/mot de passe |
+| POST | `/api/auth/sign-in/email` | Connexion par e-mail |
+| POST | `/api/auth/sign-in/username` | Connexion par nom d'utilisateur |
+| POST | `/api/auth/sign-in/anonymous` | Connexion invité |
+| POST | `/api/auth/sign-out` | Déconnexion |
+| GET | `/api/auth/session` | Session courante |
+| POST | `/api/auth/forget-password` | Demande de réinitialisation |
+| POST | `/api/auth/reset-password` | Validation de la réinitialisation |
+
+## Dépannage
+
+### Erreur « Browser is not installed » (Playwright)
+
 ```bash
 npx playwright install chromium
 ```
 
-### Session not persisting
-- Check that `CORS_ORIGIN` matches your frontend URL exactly
-- Ensure cookies are being sent with `credentials: 'include'`
+### La session ne persiste pas
 
-### Password reset email not sending
-- Verify `RESEND_API_KEY` is set correctly
-- Check the console for logged reset links in development mode
-- Ensure your domain is verified in Resend dashboard
+- Vérifiez que `CORS_ORIGIN` correspond exactement à l'URL du frontend
+- Côté frontend, utilisez `credentials: 'include'` sur les requêtes
 
-### Database connection errors
-- Ensure PostgreSQL is running: `docker compose up -d`
-- Check `DATABASE_URL` matches your Docker configuration
+### L'e-mail de réinitialisation n'arrive pas
 
-## Migration from Existing Users
+- Vérifiez que `RESEND_API_KEY` est bien renseigné
+- En dev, le lien s'affiche dans la console
+- Vérifiez que votre domaine est validé dans Resend
 
-If you have existing users in the old `users` table, you'll need to migrate them:
+### Erreur de connexion à la base de données
 
-1. Export existing user data
-2. Create users via better-auth API or direct database insertion
-3. Link game-specific data via `auth_user_id` foreign key
+- PostgreSQL doit tourner : `docker compose -f compose.local.yml up -d`
+- `DATABASE_URL` doit correspondre à votre configuration Docker
 
-A migration script can be created based on your specific requirements.
+## Migration depuis un système existant
+
+Si vous avez déjà une table `users` à migrer vers Better Auth :
+
+1. Exporter les données existantes
+2. Recréer les utilisateurs via l'API Better Auth ou en SQL direct
+3. Lier les données métier (sessions, scores) via `auth_user_id`
+
+Un script de migration peut être écrit en fonction de votre cas.

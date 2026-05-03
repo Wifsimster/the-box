@@ -1,14 +1,14 @@
-# Oxygen Design System — Principles Reference
+# Design System Oxygen — référence des principes
 
-This document captures the principles of [Doctolib's Oxygen design system](https://oxygen.doctolib.design) and how we apply them to The Box.
+Ce document reprend les principes du [design system Oxygen de Doctolib](https://oxygen.doctolib.design) et explique comment nous les appliquons à The Box. Destiné aux développeurs frontend et designers.
 
-> **Scope.** Oxygen is Doctolib's healthcare design system: light, blue, professional, WCAG-AA-first. The Box is a dark gaming product with a deliberately distinct visual identity (see `docs/ui-tokens.md`). We **do not** adopt Oxygen's visual language. We adopt its **principles**: accessibility-first, token discipline, action hierarchy, decision-tree-driven component choice, and documented exceptions.
+> **Périmètre.** Oxygen est le design system santé de Doctolib : clair, bleu, professionnel, axé WCAG-AA. The Box est un produit gaming sombre avec une identité visuelle volontairement distincte (voir `docs/ui-tokens.md`). Nous **n'adoptons pas** le langage visuel d'Oxygen. Nous adoptons ses **principes** : accessibilité d'abord, discipline des tokens, hiérarchie d'actions, arbre de décision pour le choix des composants et exceptions documentées.
 >
-> Tokens, palettes and shadcn/Radix variants remain governed by `docs/ui-tokens.md`. This document is the **principles** layer; `ui-tokens.md` is the **values** layer.
+> Les tokens, palettes et variantes shadcn/Radix restent gouvernés par `docs/ui-tokens.md`. Ce document est la couche **principes** ; `ui-tokens.md` est la couche **valeurs**.
 
 ---
 
-## 1. Sources
+## 1. Sources externes
 
 - Oxygen public site: <https://oxygen.doctolib.design>
 - Oxygen Storybook: <https://doctolib.github.io/storybook/>
@@ -21,131 +21,131 @@ This document captures the principles of [Doctolib's Oxygen design system](https
 
 ---
 
-## 2. Core principles (and how we apply them)
+## 2. Principes fondateurs (et application chez nous)
 
-### 2.1 Accessible by design
+### 2.1 Accessible par construction
 
-Oxygen's first principle: as healthcare software, accessibility is non-negotiable. The Box is a game, not a healthcare product, but we adopt the same posture — accessibility issues are **bugs**, not polish.
+Premier principe d'Oxygen : pour un logiciel santé, l'accessibilité n'est pas négociable. The Box est un jeu, pas un produit santé, mais nous adoptons la même posture — les problèmes d'accessibilité sont des **bugs**, pas du « polish ».
 
-Concrete rules we follow:
+Règles concrètes :
 
-- **Visible text labels are mandatory in forms.** Even when `aria-label` would technically satisfy WCAG, a visible `<Label htmlFor="…">` is required for every `<Input>`, `<Textarea>`, `<Select>`, and grouped `<RadioGroup>`/`<Checkbox>`. Search inputs that have a magnifying-glass icon and an `aria-label` are an allowed, **documented** exception (Oxygen calls this "documented compromise").
-- **Icon-only interactive elements need an accessible name.** Any `<button>` or `<a>` whose only child is an `<Icon />` MUST have `aria-label="…"` (or a visually hidden `<span className="sr-only">`).
-- **No color-only state signaling.** Errors, success, warnings must always pair color with an icon, label, or copy. Score tier colors (`text-score-*` from `ui-tokens.md`) must not be the only differentiator on metacritic chips, speed badges, etc.
-- **`focus-visible` is mandatory.** If you set `focus:outline-none` you MUST replace it with a `focus-visible:ring-…` style (token-driven, see `--ring`). Never strip focus without a replacement.
-- **Native semantics first.** Use `<button>` for actions, `<a href>` for navigation, `<nav>`, `<main>`, `<header>`, `<footer>`, `<section>` where applicable. Interactive `<div onClick>` is forbidden unless it carries `role`, `tabIndex` and keyboard handlers.
-- **Heading order.** A page exposes one `<h1>` and headings descend without skipping (no jumping `h1 → h3`).
-- **Images.** Every meaningful `<img>` has a non-empty `alt`; decorative images use `alt=""` (and are usually backgrounds anyway).
-- **Reduced motion.** `index.css` already neutralises animation durations under `prefers-reduced-motion: reduce`. Do not add `!important` rules that override it.
+- **Labels textuels visibles obligatoires dans les formulaires.** Même si `aria-label` satisfait techniquement WCAG, un `<Label htmlFor="…">` visible est requis pour chaque `<Input>`, `<Textarea>`, `<Select>` et groupes `<RadioGroup>`/`<Checkbox>`. Les inputs de recherche avec icône loupe et `aria-label` sont une exception **documentée** (« compromis documenté » selon Oxygen).
+- **Les éléments interactifs sans texte ont besoin d'un nom accessible.** Tout `<button>` ou `<a>` dont l'unique enfant est une `<Icon />` DOIT avoir `aria-label="…"` (ou un `<span className="sr-only">` masqué visuellement).
+- **Pas de signal d'état par la couleur seule.** Erreurs, succès, avertissements doivent toujours combiner couleur + icône, label ou texte. Les couleurs de paliers de score (`text-score-*` dans `ui-tokens.md`) ne doivent pas être l'unique différenciateur sur les chips Metacritic, badges de vitesse, etc.
+- **`focus-visible` obligatoire.** Si vous mettez `focus:outline-none`, vous DEVEZ le remplacer par un style `focus-visible:ring-…` (basé sur tokens, voir `--ring`). Ne jamais retirer le focus sans alternative.
+- **Sémantique HTML native d'abord.** Utilisez `<button>` pour les actions, `<a href>` pour la navigation, `<nav>`, `<main>`, `<header>`, `<footer>`, `<section>` quand pertinent. `<div onClick>` est interdit sans `role`, `tabIndex` et gestionnaires clavier.
+- **Ordre des titres.** Une page expose un `<h1>` et les titres descendent sans saut (pas de `h1 → h3`).
+- **Images.** Toute `<img>` significative a un `alt` non vide ; les images décoratives utilisent `alt=""` (et sont généralement déjà des arrière-plans).
+- **Reduced motion.** `index.css` neutralise déjà les durées d'animation sous `prefers-reduced-motion: reduce`. Ne pas ajouter de règles `!important` qui contournent ce comportement.
 
-### 2.2 Token-driven, never raw
+### 2.2 Tokens d'abord, jamais de valeurs brutes
 
-Oxygen treats tokens as the only legitimate channel for design decisions. We already enforce this via `docs/ui-tokens.md` and the local ESLint rule `design-tokens/no-raw-design-tokens` (`packages/frontend/eslint-local/`). The Oxygen principle to remember:
+Oxygen considère les tokens comme l'unique canal légitime pour les décisions de design. Nous l'imposons via `docs/ui-tokens.md` et la règle ESLint locale `design-tokens/no-raw-design-tokens`. Principe à retenir :
 
-> **A token is a design decision. A raw value is a leak.**
+> **Un token est une décision de design. Une valeur brute est une fuite.**
 
-If you find yourself reaching for `#xxxxxx`, `rgba(…)`, `oklch(…)`, or a Tailwind palette utility (`bg-red-500`, `text-amber-400`, `from-green-500`), stop and add a token first. The same applies to inline `style={{ marginTop: '13px' }}` — use the spacing scale.
+Si vous tendez la main vers `#xxxxxx`, `rgba(…)`, `oklch(…)` ou un utilitaire de palette Tailwind (`bg-red-500`, `text-amber-400`, `from-green-500`), arrêtez-vous et ajoutez d'abord un token. Idem pour `style={{ marginTop: '13px' }}` inline — utilisez l'échelle d'espacement.
 
-### 2.3 Action hierarchy
+### 2.3 Hiérarchie d'actions
 
-Oxygen's "Choosing actions" guide is built around a strict hierarchy:
+Le guide « Choosing actions » d'Oxygen impose une hiérarchie stricte :
 
-| Level | When | The Box mapping |
-|---|---|---|
-| **Primary** | The single most important action in the current view | `<Button variant="default">` (violet primary) |
-| **Secondary** | Important alternatives or co-actions | `<Button variant="secondary">` or `outline` |
-| **Tertiary** | Low-priority, dismissible, ancillary actions | `<Button variant="ghost">` or `<Button variant="link">` |
-| **Destructive** | Anything that deletes / cannot be undone | `<Button variant="destructive">` |
+| Niveau | Quand | Mapping The Box |
+|--------|-------|-----------------|
+| **Primaire** | Action la plus importante de la vue | `<Button variant="default">` (violet primary) |
+| **Secondaire** | Alternatives importantes ou co-actions | `<Button variant="secondary">` ou `outline` |
+| **Tertiaire** | Actions de faible priorité, dismissibles, annexes | `<Button variant="ghost">` ou `<Button variant="link">` |
+| **Destructif** | Tout ce qui supprime / ne peut être annulé | `<Button variant="destructive">` |
 
-Rules:
+Règles :
 
-- **One primary action per context.** A page, modal, card, or form must have at most one primary CTA. If you need two equally important actions, both should be secondary.
-- **Same intent → same variant.** "Cancel" must look the same across all dialogs. "Save" must look the same across all admin forms.
-- **Destructive is its own category.** Never style a destructive action as primary. Never put it on the same axis as the safe action without separation (modal footer rule: destructive on the left, safe on the right, or vice versa, but consistent).
+- **Une seule action primaire par contexte.** Une page, modale, carte ou formulaire n'a au plus qu'une CTA primaire. Si deux actions sont d'égale importance, les deux doivent être secondaires.
+- **Même intention → même variante.** « Annuler » doit avoir le même rendu dans tous les dialogues. « Sauvegarder » doit avoir le même rendu dans tous les formulaires admin.
+- **Le destructif est sa propre catégorie.** Ne jamais styler une action destructrice en primaire. Ne jamais la mettre sur le même axe qu'une action sûre sans séparation (règle des footers de modale : destructif à gauche, sûr à droite — ou inverse, mais constant).
 
-### 2.4 Decision trees for component choice
+### 2.4 Arbres de décision pour le choix des composants
 
-Oxygen ships decision trees instead of catalogs. The two most-cited:
+Oxygen livre des arbres de décision plutôt que des catalogues. Les deux plus cités :
 
-**Form component choice**
+**Choix d'un composant de formulaire**
 
-- 1 of N, ≤4 options, all visible at once → **RadioGroup**
-- 1 of N, ≥5 options or limited space → **Select**
-- M of N (multi-select) → **Checkbox group**
-- Free-text short → **Input**
-- Free-text long → **Textarea**
-- Boolean toggle that has immediate effect → **Switch**
-- Boolean toggle that is part of a form submitted later → **Checkbox**
+- 1 parmi N, ≤4 options, toutes visibles → **RadioGroup**
+- 1 parmi N, ≥5 options ou espace limité → **Select**
+- M parmi N (multi-sélection) → **groupe de Checkbox**
+- Texte libre court → **Input**
+- Texte libre long → **Textarea**
+- Toggle booléen avec effet immédiat → **Switch**
+- Toggle booléen dans un formulaire à soumettre → **Checkbox**
 
-**Action choice**
+**Choix d'un type d'action**
 
-- Triggers an action on the current page / submits a form → **`<Button>`**
-- Navigates to a different URL → **`<a>` / `<Link>`**
-- Looks like a button but really navigates → **`<Button asChild><Link/></Button>`** (never style an `<a>` as a button manually)
-- Iconic shortcut with no label → forbidden unless `aria-label` is provided
+- Déclenche une action sur la page courante / soumet un formulaire → **`<Button>`**
+- Navigue vers une autre URL → **`<a>` / `<Link>`**
+- Ressemble à un bouton mais navigue → **`<Button asChild><Link/></Button>`** (ne jamais styler une `<a>` en bouton à la main)
+- Raccourci iconique sans label → interdit sans `aria-label`
 
-When in doubt: ask "is this an action or a navigation?" If you can't answer, you're picking the wrong component.
+En cas de doute : « est-ce une action ou une navigation ? ». Si vous ne pouvez pas répondre, vous choisissez le mauvais composant.
 
-### 2.5 Documented compromise
+### 2.5 Compromis documenté
 
-Every design system has exceptions. Oxygen's rule: an exception that is documented is a feature; an exception that is not is a bug.
+Tout design system a ses exceptions. Règle d'Oxygen : une exception documentée est une feature ; une exception non documentée est un bug.
 
-In The Box this means:
+Chez nous :
 
-- Components in `src/components/backgrounds/` legitimately need raw hex colors (Three.js materials). The ESLint rule excludes them — that exclusion is the documentation.
-- Search inputs without visible labels are allowed when (a) a magnifying-glass icon makes intent obvious, (b) `aria-label` is set, (c) the component is reused via a documented pattern.
-- Any other deviation must be called out in the PR description with rationale.
+- Les composants dans `src/components/backgrounds/` ont légitimement besoin d'hex bruts (matériaux Three.js). La règle ESLint les exclut — cette exclusion est la documentation.
+- Les inputs de recherche sans label visible sont autorisés quand (a) une icône loupe rend l'intention évidente, (b) `aria-label` est défini, (c) le composant est réutilisé via un pattern documenté.
+- Toute autre déviation doit être justifiée dans la description de la PR.
 
-### 2.6 Consistency over cleverness
+### 2.6 Cohérence avant ingéniosité
 
-Two equally valid solutions to the same problem are worse than one slightly-imperfect-but-shared solution. Before adding a new component, check whether a Radix/shadcn primitive in `src/components/ui/` already covers the case. Before adding a new variant, check whether existing variants in `Card`, `Alert`, `Button` already express the intent.
+Deux solutions également valables au même problème valent moins qu'une seule solution légèrement imparfaite mais partagée. Avant d'ajouter un composant, vérifiez qu'une primitive Radix/shadcn dans `src/components/ui/` ne couvre pas déjà le cas. Avant d'ajouter une variante, vérifiez que les variantes existantes de `Card`, `Alert`, `Button` n'expriment pas déjà l'intention.
 
 ---
 
-## 3. Principles → file map
+## 3. Principes → fichiers
 
-| Principle | Where it's enforced or expressed |
-|---|---|
-| Token discipline | `docs/ui-tokens.md`, `packages/frontend/src/index.css`, `packages/frontend/eslint-local/no-raw-design-tokens.js` |
-| Action hierarchy | `packages/frontend/src/components/ui/button.tsx` (`buttonVariants`) |
-| Card hierarchy | `packages/frontend/src/components/ui/card.tsx` (CVA variants) |
-| Alert hierarchy | `packages/frontend/src/components/ui/alert.tsx` |
+| Principe | Où il est appliqué ou exprimé |
+|----------|-------------------------------|
+| Discipline des tokens | `docs/ui-tokens.md`, `packages/frontend/src/index.css`, `packages/frontend/eslint-local/no-raw-design-tokens.js` |
+| Hiérarchie d'actions | `packages/frontend/src/components/ui/button.tsx` (`buttonVariants`) |
+| Hiérarchie de cartes | `packages/frontend/src/components/ui/card.tsx` (variantes CVA) |
+| Hiérarchie d'alertes | `packages/frontend/src/components/ui/alert.tsx` |
 | Toasts | `packages/frontend/src/components/ui/sonner.tsx`, `packages/frontend/src/lib/toast.ts` |
 | Reduced motion | `packages/frontend/src/index.css` (`@media (prefers-reduced-motion: reduce)`) |
-| Focus rings | `--ring` token, `focus-visible:ring-ring` utility |
+| Anneaux de focus | token `--ring`, utilitaire `focus-visible:ring-ring` |
 | i18n | `packages/frontend/public/locales/{en,fr}/` |
 
 ---
 
-## 4. Audit checklist
+## 4. Checklist d'audit
 
-Use this list when reviewing a PR or auditing a page for Oxygen compliance.
+À utiliser en revue de PR ou en audit de page pour la conformité Oxygen.
 
-**Accessibility**
+**Accessibilité**
 
-- [ ] Every form input has a visible `<Label>` linked via `htmlFor` / `id`
-- [ ] Every icon-only `<button>` / `<a>` has `aria-label` or `<span className="sr-only">`
-- [ ] No `focus:outline-none` without a `focus-visible:` replacement
-- [ ] No `<div onClick>` without `role`, `tabIndex`, and keyboard handler
-- [ ] Headings descend in order; one `<h1>` per page
-- [ ] All `<img>` have `alt` (empty for decorative)
-- [ ] State is never communicated by color alone
+- [ ] Chaque input de formulaire a un `<Label>` visible lié via `htmlFor` / `id`
+- [ ] Chaque `<button>` / `<a>` purement iconique a `aria-label` ou `<span className="sr-only">`
+- [ ] Aucun `focus:outline-none` sans remplacement `focus-visible:`
+- [ ] Aucun `<div onClick>` sans `role`, `tabIndex` et gestionnaire clavier
+- [ ] Les titres descendent dans l'ordre ; un seul `<h1>` par page
+- [ ] Toutes les `<img>` ont un `alt` (vide pour les décoratives)
+- [ ] L'état n'est jamais communiqué par la couleur seule
 
 **Tokens**
 
-- [ ] No raw `#hex`, `rgb()`, `rgba()`, `oklch()`, `hsl()` in JSX (ESLint catches this; don't disable the rule)
-- [ ] No Tailwind palette utilities (`bg-red-500`, etc.) outside the token layer
-- [ ] No `style={{ … }}` for spacing/colors that could be utility classes
+- [ ] Aucun `#hex`, `rgb()`, `rgba()`, `oklch()`, `hsl()` brut en JSX (ESLint l'attrape ; ne pas désactiver la règle)
+- [ ] Aucun utilitaire de palette Tailwind (`bg-red-500`, etc.) hors couche de tokens
+- [ ] Aucun `style={{ … }}` pour des espacements / couleurs qui pourraient être des classes utilitaires
 
-**Action hierarchy**
+**Hiérarchie d'actions**
 
-- [ ] At most one primary CTA per view / modal / form
-- [ ] Cancel/Save labels and variants consistent across dialogs
-- [ ] Destructive actions use `variant="destructive"` and are separated from safe actions
-- [ ] Buttons that navigate use `<Button asChild><Link/></Button>`, not styled `<a>`s
+- [ ] Au plus une CTA primaire par vue / modale / formulaire
+- [ ] Labels et variantes Annuler/Sauvegarder cohérents entre dialogues
+- [ ] Les actions destructrices utilisent `variant="destructive"` et sont séparées des actions sûres
+- [ ] Les boutons qui naviguent utilisent `<Button asChild><Link/></Button>`, pas une `<a>` stylée
 
-**Component choice**
+**Choix des composants**
 
-- [ ] Form pickers follow the decision tree in §2.4
-- [ ] No new custom component when a `ui/*` primitive would do
-- [ ] No new variant when an existing CVA variant matches the intent
+- [ ] Les sélecteurs de formulaire suivent l'arbre de décision §2.4
+- [ ] Pas de nouveau composant custom si une primitive `ui/*` suffit
+- [ ] Pas de nouvelle variante si une variante CVA existante exprime déjà l'intention

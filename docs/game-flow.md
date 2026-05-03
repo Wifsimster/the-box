@@ -1,133 +1,117 @@
-# Game Flow
+# Mécanique de jeu
 
-This document explains the game mechanics, scoring system, and player progression.
+Document destiné aux Product Owners et développeurs qui souhaitent comprendre les règles, le scoring et la progression d'une partie.
 
-## Overview
+## Vue d'ensemble
 
-Players identify video games from 360° panoramic screenshots. Each daily challenge consists of 10 screenshots to identify.
+Les joueurs identifient un jeu vidéo à partir d'une capture d'écran. Chaque défi quotidien comporte une série de captures à reconnaître.
 
-## Game Structure
-
-```text
-Daily Challenge
-    │
-    └── 10 Screenshots - Speed-based scoring with penalty system
+```mermaid
+graph LR
+    A[Défi du jour] --> B[10 captures à identifier]
+    B --> C[Score basé sur la vitesse]
+    C --> D[Récompenses + classement]
 ```
 
-## Game Phases
+## Phases d'une partie
 
-```text
-idle ──► tier_intro ──► playing ──► result ──► tier_complete ──► challenge_complete
-                            │           │
-                            └───────────┘
-                           (next screenshot)
+```mermaid
+stateDiagram-v2
+    [*] --> idle
+    idle --> tier_intro: démarrage
+    tier_intro --> playing: début du palier
+    playing --> result: réponse soumise
+    result --> playing: capture suivante
+    result --> tier_complete: palier terminé
+    tier_complete --> challenge_complete: défi terminé
+    challenge_complete --> [*]
 ```
 
 | Phase | Description |
-| ----- | ----------- |
-| `idle` | Waiting to start |
-| `tier_intro` | Showing tier name and rules |
-| `playing` | Active gameplay, timer running |
-| `result` | Showing correct answer |
-| `tier_complete` | Tier summary |
-| `challenge_complete` | Final results |
+|-------|-------------|
+| `idle` | En attente du démarrage |
+| `tier_intro` | Présentation du palier et des règles |
+| `playing` | Partie active, chronomètre en cours |
+| `result` | Affichage de la bonne réponse |
+| `tier_complete` | Bilan du palier |
+| `challenge_complete` | Bilan global du défi |
 
-## Scoring System
+## Système de scoring
 
-### Speed-Based Scoring
+### Score basé sur la vitesse
 
-The game uses a speed-based scoring system where points are awarded based on how quickly you identify each screenshot:
+Plus la réponse est rapide, plus le score est élevé.
 
-- **Base score**: 100 points per screenshot
-- **Speed multiplier**: Applied based on time taken to find the screenshot
-- **Maximum score per screenshot**: 200 points (capped)
+| Temps de réponse | Multiplicateur | Points obtenus |
+|------------------|----------------|----------------|
+| < 3 secondes | 2,0x | 200 points |
+| < 5 secondes | 1,75x | 175 points |
+| < 10 secondes | 1,5x | 150 points |
+| < 20 secondes | 1,25x | 125 points |
+| ≥ 20 secondes | 1,0x | 100 points |
 
-#### Speed Multiplier Tiers
+> **Détail technique.** Score de base : 100 points par capture. Plafond : 200 points par capture. Calcul dans `domain/services/game.service.ts` :
+>
+> ```typescript
+> function calculateSpeedMultiplier(timeTakenMs: number): number {
+>   const t = timeTakenMs / 1000
+>   if (t < 3) return 2.0
+>   if (t < 5) return 1.75
+>   if (t < 10) return 1.5
+>   if (t < 20) return 1.25
+>   return 1.0
+> }
+> scoreEarned = Math.min(200, Math.round(100 * calculateSpeedMultiplier(timeTakenMs)))
+> ```
 
-| Time Taken | Multiplier | Points Earned |
-| ---------- | ---------- | ------------ |
-| < 3 seconds | 2.0x | 200 points |
-| < 5 seconds | 1.75x | 175 points |
-| < 10 seconds | 1.5x | 150 points |
-| < 20 seconds | 1.25x | 125 points |
-| 20+ seconds | 1.0x | 100 points |
+### Pénalités
 
-```typescript
-function calculateSpeedMultiplier(timeTakenMs: number): number {
-  const timeTakenSeconds = timeTakenMs / 1000
-  
-  if (timeTakenSeconds < 3) return 2.0    // 200 points
-  if (timeTakenSeconds < 5) return 1.75  // 175 points
-  if (timeTakenSeconds < 10) return 1.5  // 150 points
-  if (timeTakenSeconds < 20) return 1.25 // 125 points
-  return 1.0                              // 100 points
-}
+- **Mauvaise réponse :** aucune pénalité — les essais multiples sont autorisés
+- **Indice utilisé :** −20 % du score gagné sur la capture concernée
+- **Capture non trouvée :** aucune pénalité (en cas d'arrêt anticipé)
 
-scoreEarned = Math.min(200, Math.round(100 * calculateSpeedMultiplier(timeTakenMs)))
+### Score maximal
+
+- 200 points par capture (vitesse parfaite, sans indice)
+- 2 000 points pour un défi de 10 captures (théorique)
+
+## Bonus et indices
+
+| Bonus | Effet | Obtention |
+|-------|-------|-----------|
+| `x2_timer` | Double le temps restant | Toutes les 6 bonnes réponses |
+| `hint` | Révèle la première lettre | Tour bonus aléatoire |
+
+Des tours bonus peuvent apparaître après les positions 6, 12 et 18 et offrir un bonus.
+
+## Boucle de jeu
+
+```mermaid
+graph TD
+    A[Affichage de la capture] --> B[Démarrage du chronomètre]
+    B --> C[Le joueur saisit le nom]
+    C --> D[Suggestions auto-complétées]
+    D --> E[Soumission de la réponse]
+    E --> F{Correct ?}
+    F -->|Oui| G[Calcul du score, indice appliqué si utilisé]
+    F -->|Non| H[Aucune pénalité, nouvel essai possible]
+    G --> I[Affichage du résultat]
+    H --> I
+    I --> J{Capture suivante ?}
+    J -->|Oui| A
+    J -->|Non| K[Défi terminé]
 ```
 
-### Penalty System
+## Flux API
 
-Players can guess unlimited times:
+> **Détail technique.** Les endpoints suivants supportent un cycle complet de partie. Voir [Référence API](./api.md) pour les schémas complets.
 
-- **Wrong guess penalty**: 0 points (no penalty for incorrect attempts)
-- **Hint penalty**: -20% of earned score (percentage-based, applied after speed multiplier)
-- **Unfound penalty**: 0 points (no penalty for unfound screenshots when ending game early)
-
-The system allows unlimited guessing attempts without penalties, encouraging players to try different answers.
-
-### Maximum Score
-
-- Per screenshot: 200 points (with perfect speed and no penalties)
-- Per challenge (10 screenshots): 2,000 points maximum theoretical score
-
-## Power-ups
-
-| Power-up | Effect | Earned |
-| -------- | ------ | ------ |
-| `x2_timer` | Doubles remaining time | Every 6 correct answers |
-| `hint` | Reveals first letter | Random bonus rounds |
-
-### Bonus Rounds
-
-After positions 6, 12, and 18, a bonus round may appear offering power-ups.
-
-## Gameplay Loop
-
-```text
-1. Show screenshot (360° panorama)
-         │
-         ▼
-2. Timer starts (speed-based scoring begins)
-         │
-         ▼
-3. Player types game name
-         │
-         ├──► Autocomplete suggestions appear (fuzzy matching)
-         │
-         ▼
-4. Player submits guess
-         │
-         ├──► Correct? Calculate speed multiplier, apply hint penalty if used, next screenshot
-         │
-         └──► Wrong? -30 penalty, try again (timer continues)
-         │
-         ▼
-5. Show result (correct game, score earned, penalties applied)
-         │
-         ▼
-6. Next screenshot OR challenge complete (after 10)
-```
-
-## API Flow
-
-### Starting a Challenge
+### Récupérer le défi du jour
 
 ```http
 GET /api/game/today
 ```
 
-Response:
 ```json
 {
   "challengeId": 1,
@@ -138,13 +122,12 @@ Response:
 }
 ```
 
-### Starting a Challenge Session
+### Démarrer une session
 
 ```http
 POST /api/game/start/:challengeId
 ```
 
-Response:
 ```json
 {
   "sessionId": "uuid",
@@ -154,31 +137,29 @@ Response:
 }
 ```
 
-### Getting a Screenshot
+### Récupérer une capture
 
 ```http
 GET /api/game/screenshot?sessionId=xxx&position=1
 ```
 
-Response:
 ```json
 {
   "position": 1,
   "imageUrl": "/uploads/screenshots/game1.jpg",
-  "haov": 180,
-  "vaov": 90,
   "timeLimit": 30,
   "bonusMultiplier": 1.0
 }
 ```
 
-### Submitting a Guess
+### Soumettre une réponse
 
 ```http
 POST /api/game/guess
 ```
 
-Request:
+Requête :
+
 ```json
 {
   "tierSessionId": "uuid",
@@ -189,59 +170,33 @@ Request:
 }
 ```
 
-Response (correct guess):
+Réponse correcte :
+
 ```json
 {
   "isCorrect": true,
-  "correctGame": {
-    "id": 42,
-    "name": "The Witcher 3: Wild Hunt",
-    "coverImageUrl": "/covers/witcher3.jpg"
-  },
+  "correctGame": { "id": 42, "name": "The Witcher 3: Wild Hunt" },
   "scoreEarned": 175,
   "totalScore": 175,
   "nextPosition": 2,
-  "isCompleted": false,
-  "hintPenalty": 35
-}
-```
-
-Response (wrong guess):
-```json
-{
-  "isCorrect": false,
-  "correctGame": {
-    "id": 42,
-    "name": "The Witcher 3: Wild Hunt",
-    "coverImageUrl": "/covers/witcher3.jpg"
-  },
-  "scoreEarned": 0,
-  "totalScore": -30,
-  "wrongGuessPenalty": 30,
-  "nextPosition": null,
   "isCompleted": false
 }
 ```
 
-## State Management
+## État côté frontend
 
-The frontend uses Zustand to track game state:
+> **Détail technique.** Le store Zustand `gameStore` conserve l'état de la session.
 
 ```typescript
 interface GameState {
-  // Session
   sessionId: string | null
   challengeId: number | null
   currentPosition: number
   sessionStartedAt: string | null
-
-  // Scoring
   totalScore: number
-  screenshotsFound: number    // Correct answers count
-  correctPositions: number[]  // Positions correctly guessed
+  screenshotsFound: number
+  correctPositions: number[]
   guessResults: GuessResult[]
-
-  // Power-ups
   availablePowerUps: PowerUp[]
 }
 ```

@@ -1,370 +1,108 @@
 # The Box
 
-A gaming screenshot guessing game where players identify video games from 360° panoramic screenshots. Features daily challenges, power-ups, and live leaderboards.
+Plateforme de jeu où les joueurs identifient des jeux vidéo à partir de captures d'écran. Défis quotidiens, classements en direct, mode géo-localisation, abonnements et tournois — pensé pour une communauté gaming engagée.
 
-## Features
+## Table des matières
 
-- **360° Panoramic Screenshots** - Immersive game identification powered by Three.js / React Three Fiber
-- **Tiered Difficulty** - Daily challenges with increasing challenge levels (Easy → Hard)
-- **Daily Challenges** - New challenges every day
-- **Catch-Up Mode** - Play missed challenges from the last 7 days (scores don't count for leaderboard)
-- **Power-ups & Hints** - Timer extensions and reveal hints (release year, publisher, developer)
-- **Live Leaderboard** - Real-time daily and monthly rankings via Socket.io
-- **Tournaments** - Tournament-style competitions
-- **Achievements** - Unlockable achievements including beginner-tier entries
-- **Daily Login Rewards** - Streak-based rewards with calendar display
-- **User Profiles** - Stats, game history, and achievements display
-- **Admin Panel** - Game management, user management, job queue monitoring, challenge management
-- **Authentication** - Session-based email/password auth with Better Auth
-- **Internationalization** - French (default) and English support
+- [À quoi sert ce produit ?](#à-quoi-sert-ce-produit-)
+- [Fonctionnalités principales](#fonctionnalités-principales)
+- [Comment ça fonctionne](#comment-ça-fonctionne)
+- [Environnements](#environnements)
+- [Déploiement](#déploiement)
+- [Stack technique](#stack-technique)
+- [Documentation complémentaire](#documentation-complémentaire)
 
-## Tech Stack
+### Documentation technique
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, Vite 7, TypeScript, TailwindCSS v4, Zustand, react-router-dom 7, i18next |
-| 3D / UI | Three.js, React Three Fiber, Framer Motion, Radix UI, shadcn/ui, Lucide |
-| Backend | Node.js 24, Express 5, Better Auth, Socket.io 4, BullMQ, Pino |
-| Database | PostgreSQL 16, Knex.js, Kysely |
-| Cache/Queue | Redis |
-| Validation | Zod (frontend + backend) |
-| Testing | Playwright (E2E) |
-| Monorepo | npm workspaces |
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/architecture.md) | Vue d'ensemble du monorepo et de l'architecture en couches du backend |
+| [Référence API](docs/api.md) | Endpoints REST exposés sous `/api/` (jeu, classement, utilisateur, admin) |
+| [Authentification](docs/authentication.md) | Flux d'inscription, connexion et gestion de session via Better Auth |
+| [Mise en place Better Auth](docs/better-auth-setup.md) | Étapes de configuration et de migration vers Better Auth |
+| [Schéma de base de données](docs/database.md) | Modèle de données PostgreSQL et relations entre entités |
+| [Mécanique de jeu](docs/game-flow.md) | Phases d'une partie, calcul des scores et système d'indices |
+| [Mode Géo](docs/geo-mode.md) | Localisation sur carte, contribution crowdsourcée et pipeline d'ingestion |
+| [Abonnements Stripe](docs/billing-stripe.md) | Catalogue d'offres, flux Checkout et webhooks de facturation |
+| [Événements temps réel](docs/realtime.md) | Événements Socket.io pour les classements en direct |
+| [Tokens UI](docs/ui-tokens.md) | Contrat des tokens de design (couleurs, ombres, rayons, typographie) |
+| [Design System Oxygen](docs/oxygen-design-system.md) | Principes Oxygen appliqués à The Box (accessibilité, hiérarchie d'actions) |
 
-## Project Structure
+## À quoi sert ce produit ?
 
-```
-the-box/
-├── packages/
-│   ├── types/          # @the-box/types - Shared TypeScript types
-│   ├── backend/        # @the-box/backend - Express API (Clean Architecture)
-│   │   ├── src/
-│   │   │   ├── config/
-│   │   │   ├── domain/services/
-│   │   │   ├── infrastructure/
-│   │   │   │   ├── auth/
-│   │   │   │   ├── database/
-│   │   │   │   ├── repositories/
-│   │   │   │   └── socket/
-│   │   │   └── presentation/
-│   │   │       ├── routes/
-│   │   │       └── middleware/
-│   │   └── migrations/
-│   └── frontend/       # @the-box/frontend - React SPA
-│       └── src/
-│           ├── components/
-│           ├── pages/
-│           ├── stores/
-│           └── lib/
-├── docs/               # Feature documentation
-├── uploads/            # Screenshot storage
-├── backups/            # Database backup storage
-├── compose.yml         # Production: Full stack with Traefik
-└── compose.local.yml   # Development: PostgreSQL + Redis only
-```
+- Tester votre culture jeu vidéo en identifiant des captures d'écran
+- Relever un défi quotidien avec une difficulté progressive
+- Vous comparer aux autres joueurs grâce à des classements en direct
+- Localiser des scènes de jeu sur une carte avec le mode Géo
+- Soutenir le projet via un abonnement et débloquer des avantages premium
 
-## Quick Start
+## Fonctionnalités principales
 
-### Option 1: Docker (Recommended)
+- **Défi quotidien** — Une nouvelle série de captures à identifier chaque jour, avec une difficulté qui grimpe (Facile → Difficile)
+- **Mode rattrapage** — Rejouez les défis manqués des 7 derniers jours (hors classement)
+- **Mode Géo** — Localisez la scène d'un jeu sur une carte interactive (Elden Ring, etc.)
+- **Indices et bonus** — Révélez l'année de sortie, le studio ou l'éditeur, ou prolongez le chronomètre
+- **Classements en direct** — Tableaux du jour et du mois mis à jour en temps réel via WebSocket
+- **Tournois** — Compétitions ponctuelles entre joueurs
+- **Récompenses de connexion** — Calendrier de connexions quotidiennes et bonus de série
+- **Succès** — Trophées débloquables, du débutant à l'expert
+- **Profils publics** — Statistiques, historique de parties, succès affichés
+- **Parrainage** — Inviter des amis et profiter d'avantages communs
+- **Abonnement** — Gestion des abonnements payants (Stripe) avec offres à vie
+- **Espace administration** — Gestion des jeux, utilisateurs, défis, files de tâches et journal d'audit
+- **Internationalisation** — Français par défaut, anglais disponible
 
-Pull and run the pre-built image from Docker Hub:
+## Comment ça fonctionne
 
-```bash
-# Pull specific version (recommended for production)
-docker pull wifsimster/the-box:2.10
-
-# Or pull latest
-docker pull wifsimster/the-box:latest
-
-docker run -d \
-  --name the-box \
-  -p 80:80 \
-  -e DATABASE_URL=postgresql://user:pass@host:5432/thebox \
-  -e REDIS_URL=redis://host:6379 \
-  -e BETTER_AUTH_SECRET=your-secret-min-32-chars \
-  -e RESEND_API_KEY=your-resend-key \
-  -e EMAIL_FROM=noreply@yourdomain.com \
-  -v thebox-uploads:/app/uploads \
-  wifsimster/the-box:2.10
-
-# Migrations run automatically on container start via docker-entrypoint.sh.
-# Seed the database (creates the first admin user) if needed:
-docker exec the-box npm run --workspace=@the-box/backend db:seed
+```mermaid
+graph LR
+    A[Joueur] --> B[Application Web]
+    B --> C[API Backend]
+    C --> D[(Base PostgreSQL)]
+    C --> E[(Redis + BullMQ)]
+    C --> F[Socket.io]
+    C --> G[Stripe]
+    C --> H[Resend Email]
+    C --> I[Sources externes]
 ```
 
-Or use Docker Compose for a complete stack (see `compose.yml` for a ready-to-use production example):
+Le joueur utilise l'application web qui consomme l'API backend. L'API stocke les données dans PostgreSQL et délègue les tâches longues (imports de jeux, génération du défi quotidien, e-mails) à une file Redis pilotée par BullMQ. Les classements sont diffusés en temps réel par Socket.io. Les paiements passent par Stripe, les e-mails transactionnels par Resend, et les imports de captures par des sources externes (RAWG, Steam, etc.).
 
-```yaml
-services:
-  app:
-    image: wifsimster/the-box:latest
-    ports:
-      - "80:80"
-    environment:
-      DATABASE_URL: postgresql://thebox:thebox_secret@postgres:5432/thebox
-      REDIS_URL: redis://redis:6379
-      BETTER_AUTH_SECRET: your-secret-min-32-chars-here
-      RESEND_API_KEY: your-resend-api-key
-      EMAIL_FROM: noreply@yourdomain.com
-    volumes:
-      - uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+## Environnements
 
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: thebox
-      POSTGRES_PASSWORD: thebox_secret
-      POSTGRES_DB: thebox
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U thebox -d thebox"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+| Environnement | URL | Description |
+|---------------|-----|-------------|
+| Développement | `http://localhost:5173` | Frontend Vite (dev local) |
+| Développement (API) | `http://localhost:3000` | Backend Express (dev local) |
+| Production | `https://the-box.battistella.ovh` | Image Docker unique sur le port 80 |
 
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+## Déploiement
 
-volumes:
-  uploads:
-  postgres-data:
-  redis-data:
+```mermaid
+graph LR
+    A[Développeur] -->|Push sur main| B[GitHub Actions CI]
+    B -->|Lint + Build + Tests| C{Vert ?}
+    C -->|Oui| D[Workflow Release]
+    D -->|Bump de version + changelog| E[Build image multi-arch]
+    E -->|Push sur Docker Hub| F[Image wifsimster/the-box]
+    F --> G[Workflow Deploy]
+    G -->|Pull + reconcile compose| H[Serveur de production]
 ```
 
-### Option 2: Local Development
+Le pipeline d'Intégration Continue (CI) lance les contrôles de qualité à chaque push. Le workflow Release est déclenché manuellement, calcule la nouvelle version, génère le changelog, construit une image multi-architecture (amd64, arm64) et la publie sur Docker Hub. Le workflow Deploy s'exécute ensuite sur un runner auto-hébergé pour récupérer la nouvelle image et reconcilier la pile docker-compose en production.
 
-#### Prerequisites
+## Stack technique
 
-- Node.js >= 24
-- Docker (for PostgreSQL and Redis)
+- **Frontend :** React 19, Vite 7, TypeScript, TailwindCSS 4, Zustand, react-router 7, i18next, Framer Motion, Radix UI / shadcn
+- **Backend :** Node.js 24, Express 5, Better Auth, Socket.io 4, BullMQ, Pino (architecture en couches)
+- **Base de données :** PostgreSQL 16 (Knex.js + Kysely)
+- **File de tâches :** Redis + BullMQ (workers d'import, défi quotidien, e-mails, pipeline géo)
+- **Paiement & e-mail :** Stripe (abonnements), Resend (e-mails transactionnels)
+- **Tests :** Playwright (E2E)
+- **Infrastructure :** Docker multi-stage, GitHub Actions, Docker Hub, runner auto-hébergé
 
-#### Installation
+## Documentation complémentaire
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd the-box
+L'ensemble de la documentation technique se trouve dans le dossier [`docs/`](./docs/). Voir le tableau de la section [Documentation technique](#documentation-technique) ci-dessus.
 
-# Install dependencies
-npm install
-
-# Copy environment variables
-cp .env.example .env
-
-# Start PostgreSQL and Redis (uses compose.local.yml)
-docker compose -f compose.local.yml up -d
-
-# Run database migrations
-npm run db:migrate
-
-# Seed database with admin user
-npm run db:seed
-
-# Start development servers
-npm run dev
-```
-
-### Development Commands
-
-```bash
-# Start all services
-npm run dev
-
-# Start individual services
-npm run dev:backend     # Backend on port 3000
-npm run dev:frontend    # Frontend on port 5173
-
-# Build
-npm run build           # Build all packages
-npm run build:types     # Build types package
-npm run build:backend   # Build backend
-npm run build:frontend  # Build frontend
-
-# Database
-npm run db:migrate      # Run migrations
-npm run db:rollback     # Rollback last migration
-npm run db:seed         # Seed database
-npm run db:seed:geo     # Seed geographic data
-
-# Testing
-npm test                # Run unit tests across all workspaces
-# From packages/frontend:
-npm run test:e2e        # Playwright headless
-npm run test:e2e:ui     # Playwright interactive UI mode
-
-# Version management
-npm run version:patch   # Bump patch version (2.10.0 -> 2.10.1)
-npm run version:minor   # Bump minor version (2.10.0 -> 2.11.0)
-npm run version:major   # Bump major version (2.10.0 -> 3.0.0)
-
-# Docker
-npm run docker:build    # Build Docker image with version
-npm run docker:tag      # Tag image with semantic versions
-npm run docker:push     # Push all tags to Docker Hub
-npm run release         # Complete release (build + docker + push)
-```
-
-## Contributing
-
-### Commit Message Convention
-
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated changelog generation. All commits must follow this format:
-
-```text
-<type>(<scope>): <subject>
-
-<body>
-```
-
-**Types:**
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, semicolons, etc.)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `build`: Build system or dependencies
-- `ci`: CI/CD changes
-- `chore`: Other changes (maintenance, etc.)
-
-**Examples:**
-
-```bash
-feat(game): add power-up system for hints
-fix(auth): resolve session expiration issue
-docs(readme): update installation instructions
-```
-
-Commits are validated automatically via husky git hooks. Non-compliant commits will be rejected.
-
-## CI/CD Pipeline
-
-### GitHub Actions Workflows
-
-**Continuous Integration (`.github/workflows/ci.yml`)**
-
-- Runs on all pushes and pull requests
-- Linting, type checking, and building all packages
-- E2E tests with Playwright (optional, non-blocking)
-- Docker build validation
-
-**Release (`.github/workflows/release.yml`)**
-
-- Manual trigger via GitHub Actions UI
-- Select version bump: patch, minor, or major
-- Generates changelog from conventional commits
-- Builds and publishes multi-arch Docker images (amd64, arm64)
-- Creates GitHub release with notes
-- Tags: `latest`, `v2.10.0`, `2.10`, `2`
-
-**Deploy (`.github/workflows/deploy.yml`)**
-
-- Handles deployment of published images to the target environment
-
-### Docker Hub Setup
-
-To enable automated Docker publishing, add these secrets to your GitHub repository:
-
-1. Go to **Settings → Secrets and variables → Actions**
-2. Add the following repository secrets:
-   - `DOCKERHUB_USERNAME` - Your Docker Hub username
-   - `DOCKERHUB_TOKEN` - Docker Hub access token ([create one here](https://hub.docker.com/settings/security))
-
-### Creating a Release
-
-1. Ensure all changes are committed and pushed to `main`
-2. Go to **Actions** tab in GitHub
-3. Select **Release** workflow
-4. Click **Run workflow**
-5. Choose version bump type (patch/minor/major)
-6. The workflow will:
-   - Bump versions in all `package.json` files
-   - Generate changelog from commits
-   - Build and push Docker images with all tags
-   - Create GitHub release
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://thebox:thebox_secret@localhost:5432/thebox` |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379` |
-| `BETTER_AUTH_SECRET` | Auth secret (min 32 chars) | - |
-| `API_URL` | Backend API URL | `http://localhost:3000` |
-| `RESEND_API_KEY` | Resend API key for emails | - |
-| `EMAIL_FROM` | Email sender address | - |
-| `RAWG_API_KEY` | RAWG API key for game imports | - |
-| `PORT` | Backend port | `3000` |
-| `CORS_ORIGIN` | Frontend URL | `http://localhost:5173` |
-
-## Docker
-
-### Pre-built Image
-
-The application is available as a single Docker image on Docker Hub:
-
-```bash
-docker pull wifsimster/the-box:latest
-```
-
-### Build Locally
-
-```bash
-# Build the image
-docker build -t the-box:latest .
-
-# Run the container
-docker run -p 80:80 -e DATABASE_URL=... the-box:latest
-```
-
-### Architecture
-
-The Docker image uses a multi-stage build and includes:
-
-- **Node.js 24 Alpine** - Runs the full-stack application (frontend + backend)
-- **Single port 80** - Node.js serves both static frontend and API routes
-- **Automated migrations** - Database setup via docker-entrypoint.sh
-
-**Docker Image Tags:**
-
-- `latest` - Most recent stable release
-- `v2.10.0` - Specific version (immutable)
-- `2.10` - Minor version (receives patches)
-- `2` - Major version (receives minors and patches)
-
-Exposed port: **80**
-
-## Documentation
-
-See the [docs/](./docs/) folder for detailed documentation:
-
-- [Architecture](./docs/architecture.md) - Clean architecture overview
-- [Authentication](./docs/authentication.md) - Auth flow
-- [Better Auth Setup](./docs/better-auth-setup.md) - Better Auth configuration
-- [Game Flow](./docs/game-flow.md) - Game mechanics and scoring
-- [API Reference](./docs/api.md) - REST API endpoints
-- [Database Schema](./docs/database.md) - Database structure
-- [Real-time Events](./docs/realtime.md) - Socket.io events
-- [UI Tokens](./docs/ui-tokens.md) - Design tokens
-
-## License
-
-MIT
+Les directives spécifiques aux assistants IA sont dans [`CLAUDE.md`](./CLAUDE.md) (Claude Code) et [`AGENT.md`](./AGENT.md) (agents autonomes).

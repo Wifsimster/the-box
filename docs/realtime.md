@@ -1,28 +1,38 @@
-# Real-time Events
+# Événements temps réel
 
-The Box uses Socket.io for real-time features like live leaderboards during gameplay.
+The Box utilise Socket.io pour les classements en direct et le suivi de progression des tâches admin. Document destiné aux développeurs frontend et backend.
 
-## Setup
+## Vue d'ensemble
+
+```mermaid
+graph LR
+    P1[Joueur 1] --> S[Serveur Socket.io]
+    P2[Joueur 2] --> S
+    P3[Joueur 3] --> S
+    A[Admin] --> S
+    S --> R1[Salle challenge_1]
+    S --> R2[Salle challenge_2]
+    S --> RA[Salle admin]
+```
+
+Chaque défi a sa propre salle. Un changement de score est diffusé à tous les joueurs présents dans la salle correspondante. Les administrateurs reçoivent les mises à jour de progression des tâches en arrière-plan.
+
+## Configuration
 
 ### Backend
 
-Socket.io is initialized in `packages/backend/src/infrastructure/socket/socket.ts`:
+> **Détail technique.** Initialisation dans `packages/backend/src/infrastructure/socket/socket.ts`.
 
 ```typescript
 import { Server } from 'socket.io'
 
 export function initializeSocket(httpServer) {
   const io = new Server(httpServer, {
-    cors: {
-      origin: env.CORS_ORIGIN,
-      methods: ['GET', 'POST'],
-    },
+    cors: { origin: env.CORS_ORIGIN, methods: ['GET', 'POST'] },
   })
-
   io.on('connection', (socket) => {
-    // Handle events
+    // Gestion des événements
   })
-
   return io
 }
 ```
@@ -32,311 +42,142 @@ export function initializeSocket(httpServer) {
 ```typescript
 import { io } from 'socket.io-client'
 
-const socket = io(import.meta.env.VITE_API_URL, {
-  autoConnect: false,
-})
+const socket = io(import.meta.env.VITE_API_URL, { autoConnect: false })
 
-// Connect when starting a challenge
-socket.connect()
-
-// Disconnect when leaving
-socket.disconnect()
+socket.connect()    // À l'entrée d'un défi
+socket.disconnect() // À la sortie
 ```
 
-## Events
+## Événements joueur
 
-### Client to Server
+### Du client vers le serveur
 
-#### `join_challenge`
-
-Join a challenge room to receive live updates.
+| Événement | Description |
+|-----------|-------------|
+| `join_challenge` | Rejoint la salle d'un défi pour recevoir les mises à jour |
+| `score_update` | Diffuse le score courant aux autres joueurs |
+| `player_finished` | Notifie la fin d'un palier ou du défi |
 
 ```typescript
-socket.emit('join_challenge', {
-  challengeId: 1,
-  username: 'Player1'
-})
+socket.emit('join_challenge', { challengeId: 1, username: 'Player1' })
+socket.emit('score_update', { challengeId: 1, score: 500 })
+socket.emit('player_finished', { challengeId: 1, score: 3600, tier: 1 })
 ```
 
-#### `score_update`
+### Du serveur vers le client
 
-Broadcast score update to other players.
+| Événement | Description |
+|-----------|-------------|
+| `player_joined` | Un autre joueur a rejoint la salle |
+| `player_left` | Un joueur s'est déconnecté |
+| `leaderboard_update` | Le classement en direct a changé |
+| `player_finished` | Un autre joueur a terminé un palier |
+
+> **Détail technique.** Charges utiles :
 
 ```typescript
-socket.emit('score_update', {
-  challengeId: 1,
-  score: 500
-})
+// player_joined / player_left
+{ username: string, totalPlayers: number }
+
+// leaderboard_update
+Array<{ username: string, score: number }>
+
+// player_finished
+{ username: string, score: number, tier: number }
 ```
 
-#### `player_finished`
+## Événements admin
 
-Notify when completing a tier or challenge.
+Les administrateurs peuvent suivre la progression des tâches en arrière-plan.
 
-```typescript
-socket.emit('player_finished', {
-  challengeId: 1,
-  score: 3600,
-  tier: 1
-})
-```
+### Du client vers le serveur
 
-### Server to Client
+| Événement | Description |
+|-----------|-------------|
+| `join_admin` | Rejoint la salle admin |
+| `leave_admin` | Quitte la salle admin |
 
-#### `player_joined`
+### Du serveur vers le client
 
-Received when another player joins the challenge.
-
-```typescript
-socket.on('player_joined', (data) => {
-  console.log(`${data.username} joined! ${data.totalPlayers} players`)
-})
-```
-
-**Payload:**
-```typescript
-{
-  username: string
-  totalPlayers: number
-}
-```
-
-#### `player_left`
-
-Received when a player disconnects.
-
-```typescript
-socket.on('player_left', (data) => {
-  console.log(`${data.username} left. ${data.totalPlayers} remaining`)
-})
-```
-
-#### `leaderboard_update`
-
-Received when the live leaderboard changes.
-
-```typescript
-socket.on('leaderboard_update', (entries) => {
-  setLiveLeaderboard(entries)
-})
-```
-
-**Payload:**
-```typescript
-Array<{
-  username: string
-  score: number
-}>
-```
-
-#### `player_finished`
-
-Received when another player finishes a tier.
-
-```typescript
-socket.on('player_finished', (data) => {
-  showNotification(`${data.username} finished tier ${data.tier} with ${data.score} points!`)
-})
-```
-
-**Payload:**
-```typescript
-{
-  username: string
-  score: number
-  tier: number
-}
-```
-
-## Admin Events
-
-Admin users can subscribe to job progress updates in real-time.
-
-### Client to Server
-
-#### `join_admin`
-
-Join the admin room to receive job updates.
-
-```typescript
-socket.emit('join_admin')
-```
-
-#### `leave_admin`
-
-Leave the admin room.
-
-```typescript
-socket.emit('leave_admin')
-```
-
-### Server to Client (Admin)
-
-#### `job_progress`
-
-Received when a background job makes progress.
+| Événement | Description | Charge utile |
+|-----------|-------------|--------------|
+| `job_progress` | Avancement d'une tâche | `{ jobId, progress (0-100), message }` |
+| `job_completed` | Tâche terminée avec succès | `{ jobId, result }` |
+| `job_failed` | Tâche échouée | `{ jobId, error }` |
 
 ```typescript
 socket.on('job_progress', (data) => {
   console.log(`Job ${data.jobId}: ${data.progress}% - ${data.message}`)
 })
+socket.on('job_completed', (data) => console.log('OK', data.result))
+socket.on('job_failed', (data) => console.error('KO', data.error))
 ```
 
-**Payload:**
-```typescript
-{
-  jobId: string
-  progress: number  // 0-100
-  message: string
-}
-```
+## Gestion des salles
 
-#### `job_completed`
-
-Received when a job finishes successfully.
+> **Détail technique.** Les joueurs sont placés dans une salle nommée `challenge_<id>`. Les admins dans la salle `admin`.
 
 ```typescript
-socket.on('job_completed', (data) => {
-  console.log(`Job ${data.jobId} completed!`, data.result)
-})
-```
-
-**Payload:**
-```typescript
-{
-  jobId: string
-  result: any
-}
-```
-
-#### `job_failed`
-
-Received when a job fails.
-
-```typescript
-socket.on('job_failed', (data) => {
-  console.error(`Job ${data.jobId} failed:`, data.error)
-})
-```
-
-**Payload:**
-```typescript
-{
-  jobId: string
-  error: string
-}
-```
-
-## Room Management
-
-Players are automatically placed in rooms based on challenge ID:
-
-```text
-Room: challenge_1          # Game challenge rooms
-├── Player A (socket.id: abc123)
-├── Player B (socket.id: def456)
-└── Player C (socket.id: ghi789)
-
-Room: admin                # Admin room for job updates
-└── Admin User (socket.id: xyz789)
-```
-
-### Server-side Room Logic
-
-```typescript
-// Join room
 socket.join(`challenge_${challengeId}`)
-
-// Broadcast to room
 io.to(`challenge_${challengeId}`).emit('leaderboard_update', entries)
-
-// Broadcast to others in room (not sender)
-socket.to(`challenge_${challengeId}`).emit('player_joined', data)
+socket.to(`challenge_${challengeId}`).emit('player_joined', data) // exclut l'émetteur
 ```
 
-## Live Leaderboard Component
+## Composant de classement en direct
 
 ```typescript
-import { useEffect, useState } from 'react'
-import { socket } from '@/lib/socket'
-
 function LiveLeaderboard({ challengeId }) {
   const [entries, setEntries] = useState([])
 
   useEffect(() => {
-    socket.emit('join_challenge', {
-      challengeId,
-      username: currentUser.displayName
-    })
-
+    socket.emit('join_challenge', { challengeId, username: currentUser.displayName })
     socket.on('leaderboard_update', setEntries)
-
-    return () => {
-      socket.off('leaderboard_update')
-    }
+    return () => socket.off('leaderboard_update')
   }, [challengeId])
 
   return (
     <ul>
-      {entries.map((entry, index) => (
-        <li key={index}>
-          #{index + 1} {entry.username}: {entry.score}
-        </li>
+      {entries.map((e, i) => (
+        <li key={i}>#{i + 1} {e.username} : {e.score}</li>
       ))}
     </ul>
   )
 }
 ```
 
-## Score Broadcasting
+## Diffusion automatique des scores
 
-The game store automatically broadcasts score updates:
+Le store de jeu diffuse les scores à chaque bonne réponse :
 
 ```typescript
-// In gameStore.ts
 submitGuess: async (guess) => {
   const result = await api.submitGuess(guess)
-
   if (result.isCorrect) {
-    // Update local state
     set({ totalScore: result.totalScore })
-
-    // Broadcast to other players
-    socket.emit('score_update', {
-      challengeId: get().challengeId,
-      score: result.totalScore
-    })
+    socket.emit('score_update', { challengeId: get().challengeId, score: result.totalScore })
   }
 }
 ```
 
-## Connection States
+## Reconnexion
 
-```typescript
-socket.on('connect', () => {
-  console.log('Connected to game server')
-})
-
-socket.on('disconnect', () => {
-  console.log('Disconnected from game server')
-})
-
-socket.on('connect_error', (error) => {
-  console.error('Connection error:', error)
-})
-```
-
-## Reconnection
-
-Socket.io handles reconnection automatically. On reconnect, rejoin the challenge room:
+Socket.io tente la reconnexion automatique. Côté client, il faut rejoindre la salle au retour :
 
 ```typescript
 socket.on('connect', () => {
   if (currentChallengeId) {
     socket.emit('join_challenge', {
       challengeId: currentChallengeId,
-      username: currentUser.displayName
+      username: currentUser.displayName,
     })
   }
 })
 ```
+
+## États de connexion
+
+| Événement | Quand |
+|-----------|-------|
+| `connect` | Connexion établie |
+| `disconnect` | Connexion perdue |
+| `connect_error` | Échec de connexion |

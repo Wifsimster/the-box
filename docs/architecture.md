@@ -1,214 +1,162 @@
 # Architecture
 
-The Box follows a **monorepo structure** with **clean architecture** principles in the backend.
+Vue d'ensemble de l'organisation en monorepo et de l'architecture en couches du backend. Destiné aux développeurs et architectes qui interviennent sur le code.
 
-## Monorepo Structure
+## Structure du monorepo
 
-The project uses npm workspaces to manage three packages:
+Le projet utilise les workspaces npm pour gérer trois packages :
 
-```text
-packages/
-├── types/      # @the-box/types - Shared TypeScript definitions
-├── backend/    # @the-box/backend - Express API server
-└── frontend/   # @the-box/frontend - React SPA
+| Package | Rôle |
+|---------|------|
+| `@the-box/types` | Types TypeScript partagés entre frontend et backend |
+| `@the-box/backend` | API Express, workers BullMQ, serveur Socket.io |
+| `@the-box/frontend` | Application React (SPA) |
+
+```mermaid
+graph LR
+    F[Frontend] --> T[Types partagés]
+    B[Backend] --> T
 ```
 
-### Package Dependencies
+> **Détail technique.** Toujours rebuilder `@the-box/types` après modification (`npm run build:types`) avant que les autres packages ne consomment les changements.
 
-```text
-@the-box/frontend ──► @the-box/types
-@the-box/backend  ──► @the-box/types
+## Architecture backend en couches
+
+Le backend suit une architecture pragmatique en trois couches, avec une dépendance unidirectionnelle.
+
+```mermaid
+graph TD
+    P[Présentation<br/>Routes, middleware, contrôleurs] --> D[Domaine<br/>Logique métier, scoring, validation]
+    D --> I[Infrastructure<br/>Repositories, Better Auth, Socket.io, BullMQ]
 ```
 
-## Backend Clean Architecture (3-Layer)
+La couche `domain` ne dépend jamais de l'infrastructure. Elle exprime des règles métier pures et reste testable en isolation.
 
-The backend follows a pragmatic 3-layer clean architecture:
+### Couche présentation (`src/presentation/`)
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                   PRESENTATION LAYER                     │
-│  Routes, Controllers, Middleware, HTTP Request/Response  │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                     DOMAIN LAYER                         │
-│    Services, Business Logic, Scoring, Validation         │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                 INFRASTRUCTURE LAYER                     │
-│ Repositories, Database, Auth, Socket.io, Queue, Redis   │
-└─────────────────────────────────────────────────────────┘
-```
+- Définit les endpoints HTTP et délègue au domaine
+- Middleware : authentification, validation Zod, journalisation des requêtes
+- Les contrôleurs restent fins : ils ne contiennent jamais de logique métier
 
-### Layer Responsibilities
+### Couche domaine (`src/domain/services/`)
 
-#### Presentation Layer (`src/presentation/`)
+Services principaux :
 
-- **Routes**: Define HTTP endpoints, parse request params
-- **Middleware**: Authentication, validation, error handling
-- **Controllers**: Thin handlers that delegate to services
+| Service | Responsabilité |
+|---------|----------------|
+| `game.service.ts` | Gestion des défis et des captures d'écran |
+| `user.service.ts` | Profils et historique de parties |
+| `leaderboard.service.ts` | Classements et calcul des centiles |
+| `auth.service.ts` | Logique d'authentification |
+| `fuzzy-match.service.ts` | Matching tolérant pour les noms de jeux |
+| `achievement.service.ts` | Évaluation et déblocage des succès |
+| `daily-login.service.ts` | Logique de série de connexions quotidiennes |
+| `billing.service.ts` | Abonnements et facturation Stripe |
+| `referral.service.ts` | Programme de parrainage |
+| `geo-*.service.ts` | Mode Géo (consensus, scoring, métadonnées, récompenses) |
+| `admin.service.ts` | Opérations administratives |
+| `job.service.ts` | Gestion des tâches en arrière-plan |
 
-```typescript
-// Example: Thin route handler
-router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
-  try {
-    const data = await gameService.getTodayChallenge(req.userId)
-    res.json({ success: true, data })
-  } catch (error) {
-    next(error)
-  }
-})
-```
-
-#### Domain Layer (`src/domain/services/`)
-
-- **Business Logic**: Scoring algorithms, game rules
-- **Validation**: Domain-level data validation
-- **Orchestration**: Coordinate between repositories
-- **Services**:
-  - `game.service.ts` - Challenge and screenshot management
-  - `user.service.ts` - User profiles and game history
-  - `leaderboard.service.ts` - Rankings and percentile calculations
-  - `job.service.ts` - Background job management
-  - `admin.service.ts` - Admin operations
-  - `auth.service.ts` - Authentication logic
-  - `fuzzy-match.service.ts` - Game name matching for guesses
-
-```typescript
-// Example: Countdown score calculation in game.service.ts
-calculateCurrentScore(sessionStartedAt: Date, initialScore: number, decayRate: number): number {
-  const elapsedMs = Date.now() - sessionStartedAt.getTime()
-  const elapsedSeconds = Math.floor(elapsedMs / 1000)
-  return Math.max(0, initialScore - (elapsedSeconds * decayRate))
-}
-```
-
-#### Infrastructure Layer (`src/infrastructure/`)
-
-- **Repositories**: Database access, query building
-- **Database**: Connection management
-- **Auth**: Better Auth integration
-- **Socket**: Real-time communication
-- **Queue**: BullMQ job queue with Redis for background imports
+### Couche infrastructure (`src/infrastructure/`)
 
 ```text
 infrastructure/
-├── auth/           # Better Auth setup
-├── database/       # PostgreSQL connection
-├── logger/         # Pino structured logging
-├── queue/          # BullMQ job queue with Redis
-│   ├── connection.ts    # Redis connection pool
-│   ├── queues.ts        # Queue definitions (import, daily-challenge, sync)
-│   └── workers/         # Job processors
-│       ├── import.worker.ts
-│       ├── import-logic.ts
-│       ├── batch-import-logic.ts
-│       ├── daily-challenge-logic.ts
-│       └── sync-all-logic.ts
-├── repositories/   # Data access layer
-└── socket/         # Socket.io setup
+├── auth/              # Better Auth
+├── database/          # Connexion PostgreSQL (Knex + Kysely)
+├── logger/            # Pino structuré
+├── queue/             # BullMQ + Redis
+│   ├── connection.ts
+│   ├── queues.ts
+│   └── workers/       # Workers d'imports, défi quotidien, géo, e-mails
+├── repositories/      # Couche d'accès aux données
+└── socket/            # Serveur Socket.io
 ```
 
-```typescript
-// Example: Repository pattern
-export const userRepository = {
-  async findById(id: string): Promise<User | null> {
-    const row = await db('users').where('id', id).first()
-    return row ? mapRowToUser(row) : null
-  },
+## Architecture frontend
 
-  async create(data: CreateUserData): Promise<User> {
-    const [row] = await db('users').insert({...}).returning('*')
-    return mapRowToUser(row)
-  }
-}
-```
-
-## Frontend Architecture
-
-The frontend follows a feature-based organization:
+Le frontend suit une organisation par fonctionnalité.
 
 ```text
 src/
 ├── components/
-│   ├── ui/          # Reusable UI components (Button, Card, etc.)
-│   ├── game/        # Game-specific components
-│   └── layout/      # Layout components (Header, etc.)
-├── pages/           # Route pages
-├── stores/          # Zustand state management
-├── lib/             # Utilities (i18n, cn())
-└── types/           # Re-exports from @the-box/types
+│   ├── ui/            # Primitives shadcn/Radix (Button, Card, etc.)
+│   ├── game/          # Composants de jeu (viewer, hints, input, results)
+│   ├── achievement/   # Cards, grille, notifications de succès
+│   ├── daily-login/   # Modal de récompense, calendrier
+│   ├── admin/         # Panneaux d'administration
+│   └── layout/        # Header, Footer, PageHero
+├── pages/             # Pages routées (Home, Game, Leaderboard, Geo, Profile…)
+├── stores/            # Zustand (auth, game, achievement, dailyLogin, admin)
+├── services/          # Logique côté client (scoring, recherche, soumission)
+├── hooks/             # Hooks personnalisés (useAuth, useGameGuess, etc.)
+└── lib/               # Utilitaires, client API, configuration i18n
 ```
 
-### State Management
+### Gestion d'état (Zustand)
 
-Zustand stores with persistence:
+Stores principaux avec persistance :
 
-- **authStore**: User authentication state
-- **gameStore**: Game session, timer, scores
+- `authStore` : utilisateur courant et session
+- `gameStore` : session de jeu, chronomètre, scores
+- `achievementStore` : succès et notifications
+- `dailyLoginStore` : récompenses de connexion
+- `adminStore` : état de l'espace administration
 
-## Data Flow
+## Flux de données
 
-```text
-User Action
-    │
-    ▼
-React Component ──► Zustand Store ──► API Call
-                                          │
-                                          ▼
-                                    Express Route
-                                          │
-                                          ▼
-                                    Domain Service
-                                          │
-                                          ▼
-                                    Repository ──► PostgreSQL
+```mermaid
+graph LR
+    U[Action utilisateur] --> R[Composant React]
+    R --> Z[Store Zustand]
+    Z --> A[Appel API]
+    A --> X[Route Express]
+    X --> S[Service domaine]
+    S --> P[Repository]
+    P --> DB[(PostgreSQL)]
 ```
 
-## Background Job System
+## Système de tâches en arrière-plan
 
-The application uses BullMQ with Redis for background processing:
+L'application s'appuie sur BullMQ et Redis pour les traitements asynchrones.
 
-### Job Types
+| Type de tâche | Description | Fréquence |
+|---------------|-------------|-----------|
+| `import-games` | Importer des jeux depuis RAWG | À la demande |
+| `import-screenshots` | Récupérer des captures pour les jeux | À la demande |
+| `create-daily-challenge` | Générer le défi quotidien | Tous les jours à 00:00 UTC |
+| `sync-all-games` | Synchroniser les données RAWG | Hebdomadaire (dim. 02:00 UTC) |
+| `geo-*-import` | Importer des données géo (Wikidata, Steam, Fandom, etc.) | À la demande |
+| `streak-risk-email` | Envoyer un rappel aux joueurs en risque de perdre leur série | Programmé |
+| `referral-announcement-email` | Annonce d'arrivée d'un filleul | Sur événement |
 
-| Job Type | Description | Schedule |
-| -------- | ----------- | -------- |
-| `import-games` | Import games from RAWG API | On demand |
-| `import-screenshots` | Fetch screenshots for games | On demand |
-| `create-daily-challenge` | Generate daily challenge | Daily at midnight UTC |
-| `sync-all-games` | Sync game data from RAWG | Weekly (Sundays 2 AM UTC) |
-
-### Job Flow
-
-```text
-Admin triggers import ──► Job added to queue ──► Worker processes
-                                                      │
-                                                      ▼
-                              Socket.io broadcasts progress to admin UI
-                                                      │
-                                                      ▼
-                                              Job completed/failed
+```mermaid
+graph LR
+    A[Admin déclenche un import] --> Q[Tâche ajoutée à la file]
+    Q --> W[Worker traite]
+    W --> S[Socket.io diffuse la progression]
+    W --> E{Succès ?}
+    E -->|Oui| OK[Tâche complétée]
+    E -->|Non| KO[Tâche échouée + retry]
 ```
 
-## External Integrations
+## Intégrations externes
 
-### RAWG API
+| Service | Usage |
+|---------|-------|
+| RAWG | Catalogue de jeux et captures |
+| Steam | Captures de jeux Steam |
+| Wikidata, Fandom, StrategyWiki, Wand, Fextralife | Données pour le mode Géo |
+| Stripe | Abonnements et paiements |
+| Resend | E-mails transactionnels (réinitialisation de mot de passe, rappels) |
+| Better Auth | Authentification (sessions, e-mail/mot de passe) |
 
-Games and screenshots are imported from [RAWG](https://rawg.io/apidocs):
+## Décisions structurantes
 
-- `rawg_id`: Unique RAWG game identifier stored in `games` table
-- `last_synced_at`: Tracks when game data was last synchronized
-- Automatic sync via scheduled background jobs
-
-## Key Design Decisions
-
-1. **Shared Types Package**: Single source of truth for TypeScript interfaces
-2. **Repository Pattern**: Abstracts database access from business logic
-3. **Service Layer**: Centralizes business rules, testable in isolation
-4. **Thin Controllers**: Routes only handle HTTP concerns
-5. **Zustand over Redux**: Simpler API, less boilerplate
-6. **BullMQ + Redis**: Reliable background job processing with retry support
-7. **Fuzzy Matching**: Forgiving game name validation for better UX
+1. **Package de types unique** — source de vérité pour toutes les interfaces TypeScript partagées
+2. **Pattern repository** — abstraction de l'accès base de données
+3. **Couche services** — règles métier centralisées et testables en isolation
+4. **Contrôleurs fins** — les routes ne traitent que la couche HTTP
+5. **Zustand plutôt que Redux** — API plus simple, moins de boilerplate
+6. **BullMQ + Redis** — file de tâches fiable avec mécanisme de retry
+7. **Fuzzy matching** — tolérance sur les noms de jeux pour une meilleure expérience joueur
+8. **Image Docker unique** — Node sert le frontend buildé et l'API sur le port 80 en production

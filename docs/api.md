@@ -1,28 +1,33 @@
-# API Reference
+# Référence API
 
-Base URL: `http://localhost:3000/api`
+Référence des endpoints REST exposés par le backend. Pour les développeurs côté client ou intégrateurs.
 
-## Authentication
+> **Note.** Ce document couvre les principaux endpoints `game`, `leaderboard`, `user`, `admin`. Pour les modules récents — `geo`, `billing`, `referral`, `daily-login`, `achievement`, `screenshot-report`, `og` — se référer directement aux fichiers `packages/backend/src/presentation/routes/*.routes.ts`.
 
-Authentication is handled by Better Auth. See [authentication.md](./authentication.md).
+URL de base : `http://localhost:3000/api` (dev) ou `https://the-box.battistella.ovh/api` (prod).
 
-| Endpoint | Method | Description |
-| -------- | ------ | ----------- |
-| `/auth/sign-up/email` | POST | Register |
-| `/auth/sign-in/email` | POST | Login |
-| `/auth/sign-out` | POST | Logout |
-| `/auth/session` | GET | Get session |
+Toutes les réponses suivent le format `{ success: boolean, data?: ..., error?: ... }`.
 
-## Game Endpoints
+## Authentification
 
-### Get Today's Challenge
+Gérée par Better Auth — voir [authentication.md](./authentication.md).
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/auth/sign-up/email` | POST | Inscription |
+| `/auth/sign-in/email` | POST | Connexion |
+| `/auth/sign-out` | POST | Déconnexion |
+| `/auth/session` | GET | Récupère la session |
+
+## Endpoints Game
+
+### Récupérer le défi du jour
 
 ```http
 GET /api/game/today
-Authorization: Bearer <token> (optional)
+Authorization: Bearer <token> (optionnel)
 ```
 
-**Response:**
 ```json
 {
   "success": true,
@@ -36,14 +41,13 @@ Authorization: Bearer <token> (optional)
 }
 ```
 
-### Start Challenge
+### Démarrer un défi
 
 ```http
 POST /api/game/start/:challengeId
 Authorization: Bearer <token>
 ```
 
-**Response:**
 ```json
 {
   "success": true,
@@ -52,22 +56,18 @@ Authorization: Bearer <token>
     "tierSessionId": "550e8400-e29b-41d4-a716-446655440001",
     "totalScreenshots": 10,
     "sessionStartedAt": "2025-01-10T14:30:00.000Z",
-    "scoringConfig": {
-      "initialScore": 1000,
-      "decayRate": 2
-    }
+    "scoringConfig": { "initialScore": 1000, "decayRate": 2 }
   }
 }
 ```
 
-### Get Screenshot
+### Récupérer une capture
 
 ```http
 GET /api/game/screenshot?sessionId=<uuid>&position=<number>
 Authorization: Bearer <token>
 ```
 
-**Response:**
 ```json
 {
   "success": true,
@@ -82,7 +82,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### Submit Guess
+### Soumettre une réponse
 
 ```http
 POST /api/game/guess
@@ -90,7 +90,8 @@ Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-**Request:**
+Requête :
+
 ```json
 {
   "tierSessionId": "550e8400-e29b-41d4-a716-446655440001",
@@ -101,7 +102,8 @@ Content-Type: application/json
 }
 ```
 
-**Response (correct):**
+Réponse correcte :
+
 ```json
 {
   "success": true,
@@ -111,7 +113,6 @@ Content-Type: application/json
       "id": 42,
       "name": "The Witcher 3: Wild Hunt",
       "slug": "the-witcher-3",
-      "aliases": [],
       "coverImageUrl": "/covers/witcher3.jpg"
     },
     "scoreEarned": 850,
@@ -122,19 +123,14 @@ Content-Type: application/json
 }
 ```
 
-**Response (wrong):**
+Réponse incorrecte :
+
 ```json
 {
   "success": true,
   "data": {
     "isCorrect": false,
-    "correctGame": {
-      "id": 42,
-      "name": "The Witcher 3: Wild Hunt",
-      "slug": "the-witcher-3",
-      "aliases": [],
-      "coverImageUrl": "/covers/witcher3.jpg"
-    },
+    "correctGame": { "id": 42, "name": "The Witcher 3: Wild Hunt" },
     "scoreEarned": 0,
     "scorePenalty": 50,
     "totalScore": -50,
@@ -144,13 +140,12 @@ Content-Type: application/json
 }
 ```
 
-### Search Games (Autocomplete)
+### Auto-complétion de jeux
 
 ```http
 GET /api/game/games/search?q=<query>
 ```
 
-**Response:**
 ```json
 {
   "success": true,
@@ -163,15 +158,14 @@ GET /api/game/games/search?q=<query>
 }
 ```
 
-## Leaderboard Endpoints
+## Endpoints Leaderboard
 
-### Get Today's Leaderboard
+### Classement du jour
 
 ```http
 GET /api/leaderboard/today
 ```
 
-**Response:**
 ```json
 {
   "success": true,
@@ -192,43 +186,37 @@ GET /api/leaderboard/today
 }
 ```
 
-### Get Leaderboard by Date
+### Classement à une date donnée
 
 ```http
 GET /api/leaderboard/:date
 ```
 
-Date format: `YYYY-MM-DD`
+Format : `YYYY-MM-DD`.
 
-### Get Today's Percentile
+### Centile du joueur courant
 
 ```http
 GET /api/leaderboard/today/percentile
 Authorization: Bearer <token>
 ```
 
-**Response:**
 ```json
 {
   "success": true,
-  "data": {
-    "percentile": 85,
-    "rank": 15,
-    "totalPlayers": 100
-  }
+  "data": { "percentile": 85, "rank": 15, "totalPlayers": 100 }
 }
 ```
 
-## User Endpoints
+## Endpoints User
 
-### Get Game History
+### Historique de parties
 
 ```http
 GET /api/user/history
 Authorization: Bearer <token>
 ```
 
-**Response:**
 ```json
 {
   "success": true,
@@ -240,9 +228,7 @@ Authorization: Bearer <token>
         "totalScore": 5400,
         "completedAt": "2025-01-10T14:30:00Z",
         "tierResults": [
-          { "tierNumber": 1, "score": 1800, "correctAnswers": 15 },
-          { "tierNumber": 2, "score": 1800, "correctAnswers": 14 },
-          { "tierNumber": 3, "score": 1800, "correctAnswers": 12 }
+          { "tierNumber": 1, "score": 1800, "correctAnswers": 15 }
         ]
       }
     ]
@@ -250,34 +236,35 @@ Authorization: Bearer <token>
 }
 ```
 
-## Admin Endpoints
+## Endpoints Admin
 
-All admin endpoints require authentication and admin privileges.
+> **Détail technique.** Toutes les routes admin requièrent une session authentifiée et le flag `is_admin`. Le journal d'audit (`admin-audit`) trace toutes les opérations.
 
-### Games
-
-```http
-GET    /api/admin/games           # List all games
-POST   /api/admin/games           # Create game
-PUT    /api/admin/games/:id       # Update game
-DELETE /api/admin/games/:id       # Delete game
-```
-
-### Screenshots
+### Jeux
 
 ```http
-GET  /api/admin/screenshots       # List all screenshots
-POST /api/admin/screenshots       # Create screenshot
+GET    /api/admin/games           # Lister
+POST   /api/admin/games           # Créer
+PUT    /api/admin/games/:id       # Mettre à jour
+DELETE /api/admin/games/:id       # Supprimer
 ```
 
-### Challenges
+### Captures
 
 ```http
-GET  /api/admin/challenges        # List all challenges
-POST /api/admin/challenges        # Create challenge
+GET  /api/admin/screenshots
+POST /api/admin/screenshots
 ```
 
-**Create Challenge Request:**
+### Défis
+
+```http
+GET  /api/admin/challenges
+POST /api/admin/challenges
+```
+
+Création d'un défi :
+
 ```json
 {
   "challengeDate": "2025-01-15",
@@ -286,41 +273,31 @@ POST /api/admin/challenges        # Create challenge
       "tierNumber": 1,
       "name": "Facile",
       "timeLimitSeconds": 30,
-      "screenshotIds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+      "screenshotIds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     }
   ]
 }
 ```
 
-### Jobs (Background Tasks)
-
-Manage background import jobs for games and screenshots.
+### Tâches en arrière-plan
 
 ```http
-GET    /api/admin/jobs                    # List all jobs
-GET    /api/admin/jobs/stats              # Get job statistics
-GET    /api/admin/jobs/:id                # Get job details
-POST   /api/admin/jobs                    # Create generic job
-POST   /api/admin/jobs/import-games       # Import games from RAWG API
-POST   /api/admin/jobs/import-screenshots # Import screenshots for games
-POST   /api/admin/jobs/full-import        # Full import with pause/resume
-POST   /api/admin/jobs/full-import/pause  # Pause full import
-POST   /api/admin/jobs/full-import/resume # Resume full import
-POST   /api/admin/jobs/sync-all           # Sync all games from RAWG
-DELETE /api/admin/jobs/:id                # Cancel a job
-DELETE /api/admin/jobs/completed          # Clear completed jobs
+GET    /api/admin/jobs                    # Lister
+GET    /api/admin/jobs/stats              # Statistiques
+GET    /api/admin/jobs/:id                # Détails
+POST   /api/admin/jobs                    # Créer une tâche générique
+POST   /api/admin/jobs/import-games       # Importer depuis RAWG
+POST   /api/admin/jobs/import-screenshots # Importer des captures
+POST   /api/admin/jobs/full-import        # Import complet (pause/resume)
+POST   /api/admin/jobs/full-import/pause
+POST   /api/admin/jobs/full-import/resume
+POST   /api/admin/jobs/sync-all
+DELETE /api/admin/jobs/:id                # Annuler
+DELETE /api/admin/jobs/completed          # Purger les tâches terminées
 ```
 
-**Import Games Request:**
-```json
-{
-  "query": "action rpg",
-  "page": 1,
-  "pageSize": 20
-}
-```
+Réponse type d'une tâche :
 
-**Job Response:**
 ```json
 {
   "success": true,
@@ -334,29 +311,25 @@ DELETE /api/admin/jobs/completed          # Clear completed jobs
 }
 ```
 
-## Error Responses
-
-All errors follow this format:
+## Format des erreurs
 
 ```json
 {
   "success": false,
   "error": {
     "code": "ERROR_CODE",
-    "message": "Human readable message"
+    "message": "Message lisible"
   }
 }
 ```
 
-### Common Error Codes
-
-| Code | HTTP Status | Description |
-| ---- | ----------- | ----------- |
-| `UNAUTHORIZED` | 401 | Missing or invalid token |
-| `INVALID_TOKEN` | 401 | Token expired or invalid |
-| `NOT_FOUND` | 404 | Resource not found |
-| `VALIDATION_ERROR` | 400 | Invalid request data |
-| `INTERNAL_ERROR` | 500 | Server error |
-| `SESSION_NOT_FOUND` | 404 | Game session not found |
-| `TIER_NOT_FOUND` | 404 | Tier not found |
-| `SCREENSHOT_NOT_FOUND` | 404 | Screenshot not found |
+| Code | HTTP | Description |
+|------|------|-------------|
+| `UNAUTHORIZED` | 401 | Jeton manquant ou invalide |
+| `INVALID_TOKEN` | 401 | Jeton expiré |
+| `NOT_FOUND` | 404 | Ressource introuvable |
+| `VALIDATION_ERROR` | 400 | Données de requête invalides |
+| `INTERNAL_ERROR` | 500 | Erreur serveur |
+| `SESSION_NOT_FOUND` | 404 | Session de jeu introuvable |
+| `TIER_NOT_FOUND` | 404 | Palier introuvable |
+| `SCREENSHOT_NOT_FOUND` | 404 | Capture introuvable |

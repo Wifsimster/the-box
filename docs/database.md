@@ -1,8 +1,10 @@
-# Database Schema
+# Schéma de base de données
 
-The Box uses PostgreSQL with Knex.js for database access and migrations.
+The Box stocke ses données dans PostgreSQL et gère ses migrations avec Knex.js. Document destiné aux développeurs backend et aux personnes en charge des données.
 
-## Entity Relationship Diagram
+> **À noter.** Ce document décrit les tables historiques du jeu. Les modules récents — **mode Géo** (`geo_*`), **abonnements Stripe** (`subscriptions`, `stripe_event_processed`), **parrainage** (`referral_*`), **journal d'audit admin** (`admin_audit_log`), **signalements de captures** (`screenshot_reports`), **e-mails envoyés** (`email_log`) et **Better Auth** (`user`, `session`, `account`, `verification`) — ne sont pas encore documentés ici. Référez-vous aux migrations sous `packages/backend/migrations/` pour le détail à jour.
+
+## Diagramme entité-relation
 
 ```mermaid
 erDiagram
@@ -178,9 +180,11 @@ erDiagram
 
 ## Tables
 
+> **Détail technique.** Les colonnes ci-dessous reflètent l'état documenté historiquement. Les colonnes ajoutées par migrations récentes (par ex. `last_login_at` sur `users`) doivent être vérifiées dans les fichiers de migration correspondants.
+
 ### users
 
-Player accounts and statistics.
+Comptes des joueurs et statistiques associées.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -201,7 +205,7 @@ Player accounts and statistics.
 
 ### games
 
-Video game catalog with RAWG integration.
+Catalogue de jeux vidéo, alimenté par l'intégration RAWG.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -221,7 +225,7 @@ Video game catalog with RAWG integration.
 
 ### screenshots
 
-360° panoramic screenshots.
+Captures d'écran de jeux (panoramiques 360° pour les anciennes versions, classiques aujourd'hui).
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -239,7 +243,7 @@ Video game catalog with RAWG integration.
 
 ### daily_challenges
 
-Daily game configurations.
+Configuration des défis quotidiens.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -250,7 +254,7 @@ Daily game configurations.
 
 ### tiers
 
-Difficulty tiers within challenges.
+Paliers de difficulté à l'intérieur d'un défi.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -262,7 +266,7 @@ Difficulty tiers within challenges.
 
 ### tier_screenshots
 
-Screenshots assigned to tiers.
+Captures rattachées à un palier.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -274,7 +278,7 @@ Screenshots assigned to tiers.
 
 ### game_sessions
 
-Player attempts at challenges.
+Tentatives des joueurs sur un défi.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -292,7 +296,7 @@ Player attempts at challenges.
 
 ### tier_sessions
 
-Per-tier progress tracking.
+Suivi de la progression palier par palier.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -307,7 +311,7 @@ Per-tier progress tracking.
 
 ### guesses
 
-Individual player guesses.
+Réponses individuelles des joueurs.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -326,7 +330,7 @@ Individual player guesses.
 
 ### power_ups
 
-Available power-ups for players.
+Bonus disponibles pour les joueurs.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -339,7 +343,7 @@ Available power-ups for players.
 
 ### bonus_rounds
 
-Bonus rounds completed during tier sessions.
+Tours bonus complétés pendant un palier.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -351,7 +355,7 @@ Bonus rounds completed during tier sessions.
 
 ### live_events
 
-Scheduled competitive events.
+Événements compétitifs programmés.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -364,7 +368,7 @@ Scheduled competitive events.
 
 ### live_event_participants
 
-Players participating in live events.
+Participants à un événement en direct.
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -376,7 +380,7 @@ Players participating in live events.
 
 ### import_states
 
-Tracks background import job progress for pause/resume functionality.
+Suit la progression des imports en arrière-plan (pause / reprise).
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -392,43 +396,47 @@ Tracks background import job progress for pause/resume functionality.
 ## Migrations
 
 ```bash
-# Run all pending migrations
+# Jouer toutes les migrations en attente
 npm run db:migrate
 
-# Rollback last migration
+# Annuler la dernière migration
 npm run db:rollback
 
-# Create new migration
-npm run db:make-migration -- migration_name
+# Créer une nouvelle migration
+npm run db:make-migration -- nom_migration
 
-# Seed database (creates admin user)
+# Seeder la base (crée l'utilisateur admin)
 npm run db:seed
 ```
+
+> **Convention.** Les fichiers de migration sont préfixés par la date (`YYYYMMDD_nom.ts`) et exécutés dans l'ordre chronologique. Ne jamais éditer une migration déjà appliquée en production — créer une nouvelle migration.
 
 ## Seeding
 
-The database includes a seed file that creates an initial admin user:
+Un fichier de seed initial crée un utilisateur administrateur :
 
-**Admin Credentials:**
-- Email: `admin@thebox.local`
-- Username: `admin`
-- Password: `admin123`
-- Role: `admin`
+| Champ | Valeur |
+|-------|--------|
+| E-mail | `admin@thebox.local` |
+| Nom d'utilisateur | `admin` |
+| Mot de passe | `admin123` |
+| Rôle | `admin` |
 
-**Run seed:**
+Lancement :
+
 ```bash
-# Local development
+# Dev local
 npm run db:seed
 
-# Docker container
+# Conteneur Docker
 docker exec the-box npm run --workspace=@the-box/backend db:seed
 ```
 
-Note: The seed will skip if the admin user already exists.
+Le seed s'arrête si l'admin existe déjà.
 
-## Indexes
+## Index
 
-Key indexes for performance:
+Index principaux pour la performance :
 
 - `users.username` - Unique
 - `users.email` - Unique
