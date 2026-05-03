@@ -16,6 +16,7 @@ import {
     Trophy,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PremiumGate } from '@/components/PremiumGate'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { useFullscreen } from '@/hooks/useFullscreen'
 import { GamePicker } from '@/components/geo/GamePicker'
@@ -37,7 +38,11 @@ import { cn } from '@/lib/utils'
  * the daily-challenge store, so a free-play round can never write to the
  * leaderboard or pollute the daily resume.
  */
-export default function GeoPlayPage() {
+// Default export at the bottom wraps this in `<PremiumGate>` so all the
+// hooks inside still run unconditionally — putting the gate above the
+// hooks would skip them on the upsell render and break Rules of Hooks
+// the next time entitlement flips. Keep this as a named function.
+function GeoPlayContent() {
     const { i18n } = useTranslation()
 
     const {
@@ -656,5 +661,13 @@ function Dock({
                 )}
             </div>
         </div>
+    )
+}
+
+export default function GeoPlayPage() {
+    return (
+        <PremiumGate feature="geo" alpha>
+            <GeoPlayContent />
+        </PremiumGate>
     )
 }

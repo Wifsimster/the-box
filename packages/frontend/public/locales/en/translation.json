@@ -1367,7 +1367,8 @@
         "advancedStats": "Advanced profile statistics",
         "cosmetics": "Premium badge and animated frames",
         "themes": "Extra themes",
-        "earlyAccess": "Early access to new game packs"
+        "earlyAccess": "Early access to new game packs",
+        "geoMode": "Geo mode (alpha)"
       },
       "yes": "Yes",
       "no": "No"
@@ -1895,7 +1896,8 @@
     }
   },
   "premium": {
-    "badge": "Premium"
+    "badge": "Premium",
+    "alpha": "Alpha"
   },
   "advancedStats": {
     "title": "Advanced stats",
@@ -1930,6 +1932,18 @@
       "default": "Violet (default)",
       "neonPink": "Neon pink",
       "cyberBlue": "Cyber blue"
+    }
+  },
+  "premiumGate": {
+    "default": {
+      "title": "Premium members only",
+      "description": "This feature is part of The Box Premium.",
+      "ctaLabel": "See Premium plans"
+    },
+    "geo": {
+      "title": "Geo mode — Premium access",
+      "description": "Geo mode is in alpha and reserved for Premium subscribers during this phase. You can still contribute to grow the dataset for free from your profile.",
+      "ctaLabel": "Unlock Geo with Premium"
     }
   }
 }

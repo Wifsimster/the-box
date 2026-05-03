@@ -18,6 +18,7 @@ import {
   authMiddleware,
   optionalAuthMiddleware,
 } from '../middleware/auth.middleware.js'
+import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
@@ -301,9 +302,14 @@ router.get(
   },
 )
 
+// Free-play (the guessing surface) is premium-gated while the mode is
+// in alpha. authMiddleware before requirePremium so anonymous callers
+// get 401 (login flow) and authenticated free users get 402 (upsell
+// flow), matching the UX everywhere else premium gates exist.
 router.post(
   '/free-play/random',
-  optionalAuthMiddleware,
+  authMiddleware,
+  requirePremium,
   freePlayPickLimiter,
   validateBody(freePlayPickBodySchema),
   async (req, res, next) => {
@@ -362,7 +368,8 @@ router.post(
 
 router.post(
   '/free-play/guess',
-  optionalAuthMiddleware,
+  authMiddleware,
+  requirePremium,
   freePlayGuessLimiter,
   validateBody(freePlayGuessBodySchema),
   async (req, res, next) => {

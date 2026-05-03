@@ -20,6 +20,7 @@ const ROWS: FeatureRow[] = [
   { key: 'cosmetics', free: false, premium: true },
   { key: 'themes', free: false, premium: true },
   { key: 'earlyAccess', free: false, premium: true },
+  { key: 'geoMode', free: false, premium: true },
 ]
 
 function FeatureCell({ on, label }: { on: boolean; label: string }) {

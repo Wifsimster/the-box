@@ -1367,7 +1367,8 @@
         "advancedStats": "Statistiques avancées du profil",
         "cosmetics": "Badge et cadres animés",
         "themes": "Thèmes supplémentaires",
-        "earlyAccess": "Accès anticipé aux nouveaux packs"
+        "earlyAccess": "Accès anticipé aux nouveaux packs",
+        "geoMode": "Mode Geo (alpha)"
       },
       "yes": "Oui",
       "no": "Non"
@@ -1895,7 +1896,8 @@
     }
   },
   "premium": {
-    "badge": "Premium"
+    "badge": "Premium",
+    "alpha": "Alpha"
   },
   "advancedStats": {
     "title": "Statistiques avancées",
@@ -1930,6 +1932,18 @@
       "default": "Violet (par défaut)",
       "neonPink": "Rose néon",
       "cyberBlue": "Bleu cyber"
+    }
+  },
+  "premiumGate": {
+    "default": {
+      "title": "Réservé aux membres Premium",
+      "description": "Cette fonctionnalité est incluse dans l'abonnement Premium.",
+      "ctaLabel": "Voir les offres Premium"
+    },
+    "geo": {
+      "title": "Mode Geo — accès Premium",
+      "description": "Le mode Geo est en alpha et réservé aux abonnés Premium pendant cette phase. Tu peux toujours contribuer à enrichir le dataset gratuitement depuis ton profil.",
+      "ctaLabel": "Débloquer Geo avec Premium"
     }
   }
 }
