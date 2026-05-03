@@ -102,10 +102,11 @@ function LanguageLayout() {
     return <Navigate to={`/${browserLang}`} replace />
   }
 
-  // Check if current route is fullscreen (game / geo play page).
-  const isFullscreen =
-    location.pathname.endsWith('/play') ||
-    /\/geo\/?$/.test(location.pathname)
+  // Geo play takes the full viewport (no header, no footer). The daily-game
+  // page keeps the global Header so the hamburger / sidebar stays reachable,
+  // but hides the footer to preserve an immersive in-game feel.
+  const isFullscreen = /\/geo\/?$/.test(location.pathname)
+  const hideFooter = isFullscreen || location.pathname.endsWith('/play')
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -117,7 +118,7 @@ function LanguageLayout() {
           </Suspense>
         </LazyComponentErrorBoundary>
       </main>
-      {!isFullscreen && <Footer />}
+      {!hideFooter && <Footer />}
 
       {/* Daily Login Reward Modal */}
       <DailyRewardModal />
