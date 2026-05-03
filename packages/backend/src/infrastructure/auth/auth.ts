@@ -193,6 +193,13 @@ function createAuth() {
         updatedAt: "updatedAt",
         isAnonymous: "isAnonymous",
       },
+      additionalFields: {
+        lastLoginAt: {
+          type: "date",
+          required: false,
+          input: false,
+        },
+      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
