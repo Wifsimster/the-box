@@ -104,6 +104,11 @@ router.post('/checkout', authMiddleware, validateBody(checkoutBodySchema), async
       // charging for a different price than the user clicked.
       allow_promotion_codes: true,
       automatic_tax: { enabled: true },
+      // automatic_tax needs an address on the Customer; existing customers
+      // created before address collection won't have one. Collect it at
+      // checkout and write it back so subsequent invoices keep computing VAT.
+      billing_address_collection: 'required',
+      customer_update: { address: 'auto', name: 'auto' },
       // Carry the user back through the webhook even if the customer
       // metadata round-trip is somehow missed.
       client_reference_id: user.id,

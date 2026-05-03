@@ -17,7 +17,7 @@ export function getStripe(): Stripe {
   }
   client = new Stripe(env.STRIPE_SECRET_KEY)
   logger.info(
-    { mode: env.STRIPE_SECRET_KEY.startsWith('sk_live_') ? 'live' : 'test' },
+    { mode: env.STRIPE_SECRET_KEY.includes('_live_') ? 'live' : 'test' },
     'stripe client initialized',
   )
   return client
