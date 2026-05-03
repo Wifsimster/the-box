@@ -2,11 +2,13 @@ import { Router } from 'express'
 import { userService } from '../../domain/services/index.js'
 import { billingService } from '../../domain/services/billing.service.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
+import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { db } from '../../infrastructure/database/connection.js'
-import type { PublicProfile } from '@the-box/types'
+import { PREMIUM_THEME_KEYS, DEFAULT_THEME_KEY, isValidThemeKey } from '../../config/themes.js'
+import type { AdvancedStats, PublicProfile } from '@the-box/types'
 
 const router = Router()
 
@@ -234,6 +236,195 @@ router.delete('/avatar', authMiddleware, async (req, res, next) => {
       success: true,
       data: updatedUser,
     })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== Premium-only: advanced profile stats =====
+//
+// Aggregates over the caller's completed daily sessions only; catch-up
+// sessions are excluded so the numbers line up with the leaderboard view
+// rather than counting practice runs as ranked play. Single endpoint
+// returning everything the AdvancedStatsPanel renders so the panel does
+// one round-trip on mount instead of a fan-out per stat.
+router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, next) => {
+  try {
+    const userId = req.userId!
+
+    // Score aggregates across completed, non-catch-up daily sessions.
+    const scoreRow = await db('game_sessions')
+      .where({ user_id: userId, is_completed: true, is_catch_up: false })
+      .select<{
+        best: string | null
+        avg: string | null
+        total: string | null
+        perfect: string | null
+      }>(
+        db.raw('MAX(total_score) as best'),
+        db.raw('AVG(total_score) as avg'),
+        db.raw('COUNT(*) as total'),
+        db.raw('COUNT(*) FILTER (WHERE total_score = 2000) as perfect'),
+      )
+      .first()
+
+    // Solve-time percentiles + mean over correct guesses, joined to the
+    // user's tier sessions so we don't pick up other players' guesses.
+    const timeRow = await db('guesses')
+      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+      .where('game_sessions.user_id', userId)
+      .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false)
+      .andWhere('guesses.is_correct', true)
+      .select<{
+        p25: string | null
+        median: string | null
+        p75: string | null
+        mean: string | null
+      }>(
+        db.raw(
+          'PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY guesses.time_taken_ms) as p25',
+        ),
+        db.raw(
+          'PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY guesses.time_taken_ms) as median',
+        ),
+        db.raw(
+          'PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY guesses.time_taken_ms) as p75',
+        ),
+        db.raw('AVG(guesses.time_taken_ms) as mean'),
+      )
+      .first()
+
+    // Hint usage: per-type counts. Filter to the four hint types we
+    // surface in the matrix; "free" entries (no power_up_used) are
+    // ignored. Same join shape as the time aggregation.
+    const hintRows = await db('guesses')
+      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+      .where('game_sessions.user_id', userId)
+      .whereIn('guesses.power_up_used', [
+        'hint_year',
+        'hint_publisher',
+        'hint_developer',
+        'hint_genre',
+      ])
+      .groupBy('guesses.power_up_used')
+      .select<Array<{ power_up_used: string; count: string }>>(
+        'guesses.power_up_used',
+        db.raw('COUNT(*) as count'),
+      )
+
+    const hintUsage = {
+      hint_year: 0,
+      hint_publisher: 0,
+      hint_developer: 0,
+      hint_genre: 0,
+    }
+    for (const row of hintRows) {
+      const key = row.power_up_used as keyof typeof hintUsage
+      if (key in hintUsage) hintUsage[key] = Number(row.count)
+    }
+
+    // Last-six-months progression. Bucketing on completed_at gives the
+    // calendar months the user actually finished sessions in; an empty
+    // month is omitted (the panel decides whether to fill gaps).
+    const sixMonthsAgo = new Date()
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
+    sixMonthsAgo.setDate(1)
+    sixMonthsAgo.setHours(0, 0, 0, 0)
+
+    const monthlyRows = await db('game_sessions')
+      .where({ user_id: userId, is_completed: true, is_catch_up: false })
+      .andWhere('completed_at', '>=', sixMonthsAgo)
+      .groupByRaw("to_char(date_trunc('month', completed_at), 'YYYY-MM')")
+      .orderByRaw("to_char(date_trunc('month', completed_at), 'YYYY-MM') ASC")
+      .select<Array<{ month: string; total: string; sessions: string }>>(
+        db.raw("to_char(date_trunc('month', completed_at), 'YYYY-MM') as month"),
+        db.raw('SUM(total_score) as total'),
+        db.raw('COUNT(*) as sessions'),
+      )
+
+    const user = await userRepository.findById(userId)
+    const stats: AdvancedStats = {
+      bestScore: Number(scoreRow?.best ?? 0),
+      averageScore: Math.round(Number(scoreRow?.avg ?? 0)),
+      totalCompletedSessions: Number(scoreRow?.total ?? 0),
+      perfectSessions: Number(scoreRow?.perfect ?? 0),
+      solveTimeMs: {
+        p25: Math.round(Number(timeRow?.p25 ?? 0)),
+        median: Math.round(Number(timeRow?.median ?? 0)),
+        p75: Math.round(Number(timeRow?.p75 ?? 0)),
+        mean: Math.round(Number(timeRow?.mean ?? 0)),
+      },
+      hintUsage,
+      monthlyScores: monthlyRows.map((r) => ({
+        month: r.month,
+        totalScore: Number(r.total),
+        sessionCount: Number(r.sessions),
+      })),
+      streaks: {
+        current: user?.currentStreak ?? 0,
+        longest: user?.longestStreak ?? 0,
+      },
+    }
+
+    res.json({ success: true, data: stats })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== Premium-only: UI theme switch =====
+//
+// Free users can only set `default`. Anything else needs an active
+// entitlement; we 402 to let the frontend route to the upsell modal,
+// matching how `requirePremium` behaves on other gated endpoints.
+// Validation against the catalog happens here rather than relying on
+// a Postgres enum so adding a theme stays a code-only change.
+router.put('/theme', authMiddleware, async (req, res, next) => {
+  try {
+    const { theme } = (req.body ?? {}) as { theme?: unknown }
+    if (!isValidThemeKey(theme)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_THEME', message: 'Unknown theme key' },
+      })
+      return
+    }
+    if (theme !== DEFAULT_THEME_KEY) {
+      const isPremium = await billingService.isPremium(req.userId!)
+      if (!isPremium) {
+        res.status(402).json({
+          success: false,
+          error: {
+            code: 'PREMIUM_REQUIRED',
+            message: 'This theme requires The Box Premium',
+          },
+        })
+        return
+      }
+      // Belt-and-braces: theme must be in the premium catalog. Catches a
+      // future bug where someone adds a key to VALID_KEYS without putting
+      // it in either default or PREMIUM_THEME_KEYS.
+      if (!(PREMIUM_THEME_KEYS as readonly string[]).includes(theme)) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_THEME', message: 'Theme not in catalog' },
+        })
+        return
+      }
+    }
+    const updated = await userRepository.updateSelectedTheme(req.userId!, theme)
+    if (!updated) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+      return
+    }
+    logger.info({ userId: req.userId, theme }, 'theme updated')
+    res.json({ success: true, data: updated })
   } catch (error) {
     next(error)
   }

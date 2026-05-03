@@ -1278,10 +1278,6 @@
           "unknown": "Premium"
         }
       },
-      "role": {
-        "user": "User",
-        "admin": "Admin"
-      },
       "messages": {
         "roleUpdated": "User role updated successfully",
         "banned": "User banned successfully",
@@ -1512,7 +1508,7 @@
     "discord": "Share to Discord",
     "whatsapp": "Share on WhatsApp",
     "sms": "Share via SMS",
-    "native": "Share\u2026",
+    "native": "Share…",
     "copyLink": "Copy to Clipboard",
     "copied": "Copied!",
     "copyError": "Failed to copy to clipboard",
@@ -1699,7 +1695,7 @@
   },
   "streakRisk": {
     "title": "Your {{count}}-day streak is at risk!",
-    "subtitle": "Play today\u2019s challenge before midnight UTC to keep it alive.",
+    "subtitle": "Play today’s challenge before midnight UTC to keep it alive.",
     "cta": "Play now"
   },
   "publicProfile": {
@@ -1896,6 +1892,44 @@
     "premiumGranted": {
       "title": "Premium unlocked!",
       "body": "An admin just granted you lifetime Premium. Enjoy the archive, unlimited hints and the Premium badge."
+    }
+  },
+  "premium": {
+    "badge": "Premium"
+  },
+  "advancedStats": {
+    "title": "Advanced stats",
+    "description": "Detailed performance on your daily challenges (catch-up sessions excluded).",
+    "errorMessage": "Failed to load stats.",
+    "emptyState": "Play your first daily challenge to unlock advanced stats.",
+    "bestScore": "Best score",
+    "averageScore": "Average score",
+    "completedSessions": "Completed sessions",
+    "perfectSessions": "Perfect sessions",
+    "solveTime": "Solve time",
+    "p25": "25th percentile",
+    "median": "Median",
+    "p75": "75th percentile",
+    "mean": "Mean",
+    "hintUsage": "Hint usage",
+    "hintYear": "Year",
+    "hintPublisher": "Publisher",
+    "hintDeveloper": "Developer",
+    "hintGenre": "Genre",
+    "monthlyProgression": "6-month progression"
+  },
+  "themes": {
+    "title": "Theme",
+    "description": "Customize the interface colors. Premium themes are subscriber-only.",
+    "premiumLabel": "Premium",
+    "locked": "Locked",
+    "selected": "Selected",
+    "errorMessage": "Failed to change theme.",
+    "upgradeCta": "Unlock Premium themes",
+    "options": {
+      "default": "Violet (default)",
+      "neonPink": "Neon pink",
+      "cyberBlue": "Cyber blue"
     }
   }
 }

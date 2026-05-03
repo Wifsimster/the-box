@@ -320,3 +320,77 @@ body {
 [role="region"][aria-roledescription="carousel"] > div {
   height: 100% !important;
 }
+
+/* =====================================================================
+   Premium themes
+   ---------------------------------------------------------------------
+   Applied as `data-theme` on <html>. Each theme overrides a small set
+   of CSS variables on top of the base dark-violet palette so components
+   that stick to semantic tokens (per the design-tokens lint rule) all
+   re-skin in one go. Free users stay on default.
+   ===================================================================== */
+
+[data-theme="neon_pink"] {
+  --primary: oklch(0.74 0.22 350);
+  --ring: oklch(0.78 0.2 350);
+  --neon-purple: #f472b6;
+  --neon-pink: #ec4899;
+  --border-interactive: oklch(0.74 0.22 350 / 0.55);
+}
+
+[data-theme="cyber_blue"] {
+  --primary: oklch(0.74 0.18 230);
+  --ring: oklch(0.78 0.2 230);
+  --neon-purple: #38bdf8;
+  --neon-pink: #22d3ee;
+  --border-interactive: oklch(0.74 0.18 230 / 0.55);
+}
+
+/* =====================================================================
+   Premium cosmetics (entitlement-derived, not stored in inventory)
+   ---------------------------------------------------------------------
+   `.premium-frame` wraps an avatar with an animated conic-gradient ring;
+   `.premium-badge` is a small chip rendered next to the display name.
+   Both are pure CSS and disappear when the entitlement evaporates.
+   ===================================================================== */
+
+@keyframes premium-frame-spin {
+  to {
+    --premium-frame-angle: 360deg;
+  }
+}
+
+@property --premium-frame-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.premium-frame {
+  position: relative;
+  border-radius: 9999px;
+  padding: 3px;
+  background: conic-gradient(
+    from var(--premium-frame-angle),
+    var(--neon-purple),
+    var(--neon-pink),
+    var(--neon-cyan),
+    var(--neon-pink),
+    var(--neon-purple)
+  );
+  animation: premium-frame-spin 6s linear infinite;
+  box-shadow: var(--glow-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-frame {
+    animation: none;
+  }
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+  color: white;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}

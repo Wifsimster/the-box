@@ -1252,10 +1252,6 @@
           "unknown": "Premium"
         }
       },
-      "role": {
-        "user": "Utilisateur",
-        "admin": "Administrateur"
-      },
       "messages": {
         "roleUpdated": "Rôle de l'utilisateur mis à jour avec succès",
         "banned": "Utilisateur banni avec succès",
@@ -1512,7 +1508,7 @@
     "discord": "Partager sur Discord",
     "whatsapp": "Partager sur WhatsApp",
     "sms": "Partager par SMS",
-    "native": "Partager\u2026",
+    "native": "Partager…",
     "copyLink": "Copier dans le presse-papiers",
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
@@ -1698,20 +1694,20 @@
     "continueGuest": "Continuer en invité"
   },
   "streakRisk": {
-    "title": "Ta s\u00e9rie de {{count}} jours est en danger !",
-    "subtitle": "Joue le d\u00e9fi d\u2019aujourd\u2019hui avant minuit UTC pour la prolonger.",
+    "title": "Ta série de {{count}} jours est en danger !",
+    "subtitle": "Joue le défi d’aujourd’hui avant minuit UTC pour la prolonger.",
     "cta": "Jouer maintenant"
   },
   "publicProfile": {
     "notFound": "Profil introuvable",
-    "notFoundDescription": "Ce joueur n\u2019existe pas ou son profil est priv\u00e9.",
-    "error": "\u00c9chec du chargement du profil",
+    "notFoundDescription": "Ce joueur n’existe pas ou son profil est privé.",
+    "error": "Échec du chargement du profil",
     "memberSince": "Membre depuis {{date}}",
     "totalScore": "Score total",
-    "currentStreak": "S\u00e9rie en cours",
-    "longestStreak": "Plus longue s\u00e9rie",
-    "gamesPlayed": "Parties jou\u00e9es",
-    "recentGames": "Parties r\u00e9centes",
+    "currentStreak": "Série en cours",
+    "longestStreak": "Plus longue série",
+    "gamesPlayed": "Parties jouées",
+    "recentGames": "Parties récentes",
     "badges": "Badges",
     "badgeLabels": {
       "ambassador": "Ambassadeur"
@@ -1896,6 +1892,44 @@
     "premiumGranted": {
       "title": "Premium activé !",
       "body": "Un administrateur vient de t'offrir le Premium à vie. Profite des archives, des indices illimités et du badge Premium."
+    }
+  },
+  "premium": {
+    "badge": "Premium"
+  },
+  "advancedStats": {
+    "title": "Statistiques avancées",
+    "description": "Performances détaillées sur tes défis quotidiens (mode rattrapage exclu).",
+    "errorMessage": "Impossible de charger les statistiques.",
+    "emptyState": "Joue ton premier défi quotidien pour voir tes stats avancées.",
+    "bestScore": "Meilleur score",
+    "averageScore": "Score moyen",
+    "completedSessions": "Parties terminées",
+    "perfectSessions": "Scores parfaits",
+    "solveTime": "Temps de réponse",
+    "p25": "25e centile",
+    "median": "Médiane",
+    "p75": "75e centile",
+    "mean": "Moyenne",
+    "hintUsage": "Utilisation des indices",
+    "hintYear": "Année",
+    "hintPublisher": "Éditeur",
+    "hintDeveloper": "Studio",
+    "hintGenre": "Genre",
+    "monthlyProgression": "Progression sur 6 mois"
+  },
+  "themes": {
+    "title": "Thème",
+    "description": "Personnalise les couleurs de l'interface. Les thèmes Premium sont réservés aux abonnés.",
+    "premiumLabel": "Premium",
+    "locked": "Verrouillé",
+    "selected": "Sélectionné",
+    "errorMessage": "Impossible de changer de thème.",
+    "upgradeCta": "Débloquer les thèmes Premium",
+    "options": {
+      "default": "Violet (par défaut)",
+      "neonPink": "Rose néon",
+      "cyberBlue": "Bleu cyber"
     }
   }
 }

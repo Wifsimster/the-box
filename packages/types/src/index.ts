@@ -19,6 +19,10 @@ export interface User {
   createdAt: string
   emailMarketingConsent: boolean
   emailConsentUpdatedAt?: string
+  // Selected UI theme. Defaults to 'default' for everyone. Non-default
+  // values are premium-only; the frontend renders the user's selection
+  // and falls back to 'default' if the catalog drops a theme later.
+  selectedTheme: string
 }
 
 // Minimal public profile — safe to expose to unauthenticated visitors.
@@ -1258,4 +1262,51 @@ export interface BillingEntitlement {
   validUntil: string | null
   cancelAtPeriodEnd: boolean
   source: 'subscription' | 'supporter' | null
+}
+
+// ============================================
+// Premium-only profile stats (advanced view)
+// ============================================
+//
+// Returned by GET /api/user/advanced-stats (premium-gated). Aggregates
+// over the user's completed daily sessions only — catch-up sessions are
+// excluded so the numbers don't drift from the leaderboard view. All
+// time values are milliseconds.
+
+export interface AdvancedStats {
+  // Headline aggregates over completed daily sessions.
+  bestScore: number
+  averageScore: number
+  totalCompletedSessions: number
+  perfectSessions: number // sessions at 2000pts (the perfect ceiling)
+
+  // Solve-time distribution across correct guesses (ms).
+  solveTimeMs: {
+    p25: number
+    median: number
+    p75: number
+    mean: number
+  }
+
+  // How often the user reaches for each hint type. Counts only.
+  hintUsage: {
+    hint_year: number
+    hint_publisher: number
+    hint_developer: number
+    hint_genre: number
+  }
+
+  // Last-six-months progression (oldest → newest). `month` is YYYY-MM.
+  monthlyScores: Array<{
+    month: string
+    totalScore: number
+    sessionCount: number
+  }>
+
+  // Streaks pulled from the user record so the panel can render them
+  // without a second round-trip.
+  streaks: {
+    current: number
+    longest: number
+  }
 }

@@ -9,6 +9,7 @@ import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
+import { useApplyUserTheme } from '@/hooks/useApplyUserTheme'
 import {
   connectNotificationsSocket,
   disconnectNotificationsSocket,
@@ -95,6 +96,11 @@ function LanguageLayout() {
     }
     connectNotificationsSocket(userId)
   }, [session?.user?.id])
+
+  // Apply the user's chosen UI theme on every session change. Free users
+  // are pinned to default; premium users see their selected theme as
+  // soon as /api/user/me resolves.
+  useApplyUserTheme(session?.user?.id)
 
   // Validate language parameter
   if (!lang || !SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {

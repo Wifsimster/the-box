@@ -1,4 +1,4 @@
-import type { User } from '@the-box/types'
+import type { AdvancedStats, User } from '@the-box/types'
 
 interface ApiResponse<T> {
   success: boolean
@@ -78,6 +78,30 @@ export const userApi = {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ consent }),
+    })
+    return handleResponse<User>(response)
+  },
+
+  // Premium-only. Resolves with a typed payload on 200; the caller is
+  // responsible for hiding the panel for free users so we never see a
+  // 402 here in practice — but if we do, handleResponse throws a
+  // PREMIUM_REQUIRED UserApiError the panel can swallow.
+  async getAdvancedStats(): Promise<AdvancedStats> {
+    const response = await fetch('/api/user/advanced-stats', {
+      credentials: 'include',
+    })
+    return handleResponse<AdvancedStats>(response)
+  },
+
+  // Free users can only set `default`; premium themes 402 server-side.
+  // Returns the updated User so callers can refresh local state without
+  // a follow-up GET /me.
+  async updateTheme(theme: string): Promise<User> {
+    const response = await fetch('/api/user/theme', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme }),
     })
     return handleResponse<User>(response)
   },

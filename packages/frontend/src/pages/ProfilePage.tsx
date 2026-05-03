@@ -13,8 +13,18 @@ import { AchievementGrid } from '@/components/achievement'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
-import { AvatarUpload, ReferralCard, EmailConsentCard } from '@/components/profile'
+import {
+  AvatarUpload,
+  ReferralCard,
+  EmailConsentCard,
+  AdvancedStatsPanel,
+  PremiumBadge,
+  ThemeSwitcher,
+} from '@/components/profile'
 import { GeoContributorCard } from '@/components/profile/GeoContributorCard'
+import { useBillingStore } from '@/stores/billingStore'
+import { isThemeKey, type ThemeKey } from '@/lib/themes'
+import { cn } from '@/lib/utils'
 import type { User as UserType } from '@the-box/types'
 
 /**
@@ -40,6 +50,26 @@ export default function ProfilePage() {
     const inventory = useDailyLoginStore((s) => s.inventory)
     const fetchInventory = useDailyLoginStore((s) => s.fetchInventory)
     const streakFreezeCount = inventory?.powerups['streak_freeze'] ?? 0
+
+    // Premium-derived UI: cosmetic frame, badge chip, advanced stats panel,
+    // and the unlock state of premium themes. Pulled from the same store
+    // the Header reads, so cancellations / grants reach this page without
+    // a manual refetch as long as the store has been hydrated by the layout.
+    const billingEntitlement = useBillingStore((state) => state.entitlement)
+    const fetchBillingEntitlement = useBillingStore((state) => state.fetchEntitlement)
+    const isPremium = !!billingEntitlement?.isPremium
+    const [selectedTheme, setSelectedTheme] = useState<ThemeKey>('default')
+
+    useEffect(() => {
+        void fetchBillingEntitlement()
+    }, [fetchBillingEntitlement, session?.user?.id])
+
+    /* eslint-disable react-hooks/set-state-in-effect -- Sync server-fetched theme into local state for optimistic switching */
+    useEffect(() => {
+        const fetched = userProfile?.selectedTheme
+        if (fetched && isThemeKey(fetched)) setSelectedTheme(fetched)
+    }, [userProfile?.selectedTheme])
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     useEffect(() => {
         if (session?.user?.id) {
@@ -148,6 +178,7 @@ export default function ProfilePage() {
                                             initial={{ scale: 0.8, opacity: 0 }}
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                                            className={cn(isPremium && 'premium-frame')}
                                         >
                                             <AvatarUpload
                                                 currentAvatarUrl={avatarUrl}
@@ -157,8 +188,9 @@ export default function ProfilePage() {
                                             />
                                         </motion.div>
                                         <div className="flex-1 space-y-2 text-center sm:text-left">
-                                            <h2 className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                                                {session.user.name || session.user.username}
+                                            <h2 className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
+                                                <span>{session.user.name || session.user.username}</span>
+                                                {isPremium && <PremiumBadge compact />}
                                             </h2>
                                             <div className="space-y-1 text-xs text-muted-foreground">
                                                 {session.user.email && <div>{session.user.email}</div>}
@@ -326,6 +358,35 @@ export default function ProfilePage() {
                             transition={{ delay: 0.45 }}
                         >
                             <GeoContributorCard />
+                        </motion.div>
+                    )}
+
+                    {/* Advanced stats — premium-only. Free users see nothing here
+                        (the upsell lives on /pricing) so the section disappears
+                        cleanly on cancellation. */}
+                    {isPremium && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.47 }}
+                        >
+                            <AdvancedStatsPanel />
+                        </motion.div>
+                    )}
+
+                    {/* Theme switcher — always visible so free users can preview
+                        the catalog (locked themes route to /pricing). */}
+                    {userProfile && !userProfile.isGuest && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.48 }}
+                        >
+                            <ThemeSwitcher
+                                selected={selectedTheme}
+                                isPremium={isPremium}
+                                onChange={setSelectedTheme}
+                            />
                         </motion.div>
                     )}
 

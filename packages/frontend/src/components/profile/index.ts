@@ -1,3 +1,6 @@
 export { AvatarUpload } from './AvatarUpload'
 export { ReferralCard } from './ReferralCard'
 export { EmailConsentCard } from './EmailConsentCard'
+export { AdvancedStatsPanel } from './AdvancedStatsPanel'
+export { PremiumBadge } from './PremiumBadge'
+export { ThemeSwitcher } from './ThemeSwitcher'

@@ -35,6 +35,7 @@ export interface UserRow {
   lastLoginAt: Date | null
   email_marketing_consent: boolean
   email_consent_updated_at: Date | null
+  selected_theme: string | null
 }
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
@@ -56,6 +57,7 @@ function mapRowToUser(row: UserRow): User {
     createdAt: row.createdAt.toISOString(),
     emailMarketingConsent: row.email_marketing_consent ?? false,
     emailConsentUpdatedAt: row.email_consent_updated_at?.toISOString(),
+    selectedTheme: row.selected_theme ?? 'default',
   }
 }
 
@@ -278,6 +280,17 @@ export const userRepository = {
       .where('id', userId)
       .first<{ current_streak: number | null }>('current_streak')
     return Number(row?.current_streak ?? 0)
+  },
+
+  async updateSelectedTheme(userId: string, theme: string): Promise<User | null> {
+    log.info({ userId, theme }, 'updateSelectedTheme')
+    await db('user')
+      .where('id', userId)
+      .update({
+        selected_theme: theme,
+        updatedAt: new Date(),
+      })
+    return this.findById(userId)
   },
 }
 
