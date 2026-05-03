@@ -4,7 +4,7 @@ import { motion, type MotionProps } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
-import { Play, Trophy, History, Clock, CalendarDays, ArrowRight, Sparkles, Check } from 'lucide-react'
+import { Play, Trophy, History, Clock, CalendarDays, ArrowRight, Sparkles, Check, MapPin } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, useMemo } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth-client'
@@ -232,34 +232,51 @@ export default function HomePage() {
 
           {/* Show appropriate button based on completion status */}
           {!isLoading && (
-            isTodayCompleted ? (
-              <Button
-                variant="outline"
-                size="xl"
-                onClick={() => navigate(localizedPath('/history'))}
-                className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
-              >
-                <History className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                {t('common.history')}
-              </Button>
-            ) : (
-              <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
-                <Button
-                  variant="gaming"
-                  size="xl"
-                  onClick={() => navigate(localizedPath('/play'))}
-                  className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
-                >
-                  <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                  {t('home.dailyGuess')}
-                </Button>
-                {!session && (
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {t('home.guestHint')}
-                  </p>
+            <div className="flex flex-col items-center gap-3 sm:gap-4 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+                {isTodayCompleted ? (
+                  <Button
+                    variant="outline"
+                    size="xl"
+                    onClick={() => navigate(localizedPath('/history'))}
+                    className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
+                  >
+                    <History className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                    {t('common.history')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="gaming"
+                    size="xl"
+                    onClick={() => navigate(localizedPath('/play'))}
+                    className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
+                  >
+                    <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                    {t('home.dailyGuess')}
+                  </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate(localizedPath('/geo'))}
+                  className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto border-neon-pink/40 text-neon-pink hover:border-neon-pink hover:text-neon-pink"
+                >
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                  {t('home.geoCta')}
+                  <Badge
+                    variant="outline"
+                    className="ml-1 h-5 px-1.5 text-[10px] font-semibold uppercase tracking-wide border-neon-pink/50 text-neon-pink"
+                  >
+                    {t('common.alpha')}
+                  </Badge>
+                </Button>
               </div>
-            )
+              {!isTodayCompleted && !session && (
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {t('home.guestHint')}
+                </p>
+              )}
+            </div>
           )}
 
           {/* Public teaser — renders today's first screenshot for anonymous visitors */}
