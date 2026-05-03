@@ -1066,6 +1066,18 @@
           "confirmLabel": "Type {{word}} to confirm",
           "confirm": "Reset everything"
         }
+      },
+      "workspace": {
+        "capture": "Player capture",
+        "map": "Game map",
+        "captureAlt": "Submitted capture #{{id}}"
+      },
+      "keyboard": {
+        "next": "next",
+        "previous": "previous",
+        "approve": "approve",
+        "reject": "reject",
+        "close": "close"
       }
     },
     "growth": {
