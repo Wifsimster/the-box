@@ -14,7 +14,7 @@ import { GradientIcon } from '@/components/ui/gradient-icon'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { useSession } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { prefersReducedMotion } from '@/lib/animations'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { cn } from '@/lib/utils'
 import type { Achievement, AchievementWithProgress } from '@the-box/types'
 
@@ -108,7 +108,7 @@ export function HomeAchievementTeaser() {
   const { localizedPath } = useLocalizedPath()
   const userId = session?.user?.id
 
-  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
+  const reducedMotion = useReducedMotionSafe()
   const motionProps = (props: MotionProps): MotionProps =>
     reducedMotion ? {} : props
 

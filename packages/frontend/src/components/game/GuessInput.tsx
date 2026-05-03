@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
 import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2, Tag } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -53,9 +54,7 @@ export function GuessInput() {
     }
   }, [gamePhase])
 
-  const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const prefersReducedMotion = useReducedMotionSafe()
 
   const vibrate = (pattern: number | number[]) => {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {

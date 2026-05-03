@@ -14,7 +14,7 @@ import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { useBillingStore } from '@/stores/billingStore'
-import { prefersReducedMotion } from '@/lib/animations'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
 // CubeBackground pulls in Three.js + react-three-fiber, so split it into
 // its own chunk and skip rendering entirely when the visitor prefers
@@ -65,8 +65,7 @@ export default function HomePage() {
     }).format(monthly.unitAmount / 100)
   }, [billingPrices, i18n.language])
 
-  // Read once; entrance animations don't need to react mid-session.
-  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
+  const reducedMotion = useReducedMotionSafe()
 
   // Helper: drop `initial`/`animate`/`transition` when reduced motion is
   // preferred so motion components render statically without changing layout.
