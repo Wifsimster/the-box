@@ -481,6 +481,12 @@ export interface GameSessionDetailsResponse {
   isCompleted: boolean
   completedAt: string | null
   totalScreenshots: number
+  /**
+   * True when this session's totalScore equals the user's all-time
+   * highest completed-session score (and totalScore > 0). Drives the
+   * "personal best" gold hero treatment on the details page.
+   */
+  isPersonalBest: boolean
   guesses: Array<{
     position: number
     isCorrect: boolean
@@ -825,6 +831,24 @@ export interface RewardGrantedEvent {
   items: RewardGrantItem[]
   grantedAt: string
   unlockedAt: string | null
+}
+
+// ============================================
+// Cosmetic equipment (V2b)
+// ============================================
+
+export type CosmeticSlot = 'avatar_frame' | 'name_title'
+
+export interface OwnedCosmetic {
+  itemKey: string
+  quantity: number
+  slot: CosmeticSlot
+  equipped: boolean
+}
+
+export interface CosmeticsState {
+  owned: OwnedCosmetic[]
+  equipped: Partial<Record<CosmeticSlot, string | null>>
 }
 
 // ============================================

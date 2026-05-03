@@ -303,6 +303,15 @@ export const sessionRepository = {
     return rows as GameHistoryRow[]
   },
 
+  async findMaxCompletedScore(userId: string): Promise<number> {
+    log.debug({ userId }, 'findMaxCompletedScore')
+    const row = await db('game_sessions')
+      .where({ user_id: userId, is_completed: true })
+      .max<{ max: number | null }>({ max: 'total_score' })
+      .first()
+    return row?.max ?? 0
+  },
+
   async findAllInProgressSessions(): Promise<GameSessionRow[]> {
     log.debug('findAllInProgressSessions')
     const rows = await db('game_sessions')

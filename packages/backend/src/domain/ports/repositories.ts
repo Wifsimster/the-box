@@ -228,6 +228,7 @@ export interface SessionRepository {
   getCorrectPositions(gameSessionId: string): Promise<number[]>
   deleteGameSession(userId: string, challengeId: number): Promise<boolean>
   findUserGameHistory(userId: string): Promise<GameHistoryRecord[]>
+  findMaxCompletedScore(userId: string): Promise<number>
   findAllInProgressSessions(): Promise<GameSessionRecord[]>
   findGuessesByGameSession(gameSessionId: string): Promise<GuessWithGameRecord[]>
   /**

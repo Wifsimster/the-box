@@ -128,16 +128,29 @@ export default function GameHistoryDetailsPage() {
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
         {sessionData.totalScore > 0 ? (
-          <motion.div
-            initial={reducedMotion ? false : { scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.2, type: reducedMotion ? 'tween' : 'spring' }}
-            style={{ boxShadow: 'var(--glow-md)' }}
-            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink"
-            aria-hidden="true"
-          >
-            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-          </motion.div>
+          <>
+            <motion.div
+              initial={reducedMotion ? false : { scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.2, type: reducedMotion ? 'tween' : 'spring' }}
+              style={{ boxShadow: sessionData.isPersonalBest ? 'var(--glow-lg)' : 'var(--glow-md)' }}
+              className={`inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br ${sessionData.isPersonalBest
+                ? 'from-medal-gold to-medal-gold/70'
+                : 'from-neon-purple to-neon-pink'
+                }`}
+              aria-hidden="true"
+            >
+              <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </motion.div>
+            {sessionData.isPersonalBest && (
+              <div className="mb-2">
+                <Badge variant="warning" className="text-medal-gold border-medal-gold/40 bg-medal-gold/10">
+                  <Trophy className="w-3 h-3 mr-1" aria-hidden="true" />
+                  {t('history.personalBest')}
+                </Badge>
+              </div>
+            )}
+          </>
         ) : (
           <div
             className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-secondary border border-border"
@@ -169,8 +182,13 @@ export default function GameHistoryDetailsPage() {
           initial={reducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.4 }}
-          className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 ${sessionData.totalScore > 0 ? 'text-primary' : 'text-muted-foreground'}`}
-          aria-label={`${sessionData.totalScore} ${t('game.totalScore')}`}
+          className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 ${sessionData.totalScore === 0
+            ? 'text-muted-foreground'
+            : sessionData.isPersonalBest
+              ? 'text-medal-gold'
+              : 'text-primary'
+            }`}
+          aria-label={`${sessionData.totalScore} ${t('game.totalScore')}${sessionData.isPersonalBest ? ` — ${t('history.personalBest')}` : ''}`}
         >
           {sessionData.totalScore} pts
         </motion.div>

@@ -390,6 +390,7 @@
     "scoreWontCount": "Les scores de rattrapage ne comptent pas au classement",
     "viewDetails": "Voir le détail de la partie du {{date}}",
     "resumeGame": "Reprendre la partie du {{date}}",
+    "personalBest": "Record personnel",
     "stats": {
       "label": "Ton parcours",
       "streak": "Série en cours",

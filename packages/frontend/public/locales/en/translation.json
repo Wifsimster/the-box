@@ -390,6 +390,7 @@
     "scoreWontCount": "Catch-up scores won't count on the leaderboard",
     "viewDetails": "See details for the {{date}} game",
     "resumeGame": "Resume the {{date}} game",
+    "personalBest": "Personal best",
     "stats": {
       "label": "Your journey",
       "streak": "Current streak",

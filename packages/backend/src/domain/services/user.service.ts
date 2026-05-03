@@ -169,6 +169,11 @@ export function createUserService(deps: UserServiceDeps): UserService {
       }
     }
 
+    // Personal best is the user's highest completed score; tag this session
+    // when its score equals that maximum (and is non-zero — a 0 isn't a PB).
+    const userMaxScore = await sessionRepository.findMaxCompletedScore(gameSession.user_id)
+    const isPersonalBest = gameSession.total_score > 0 && gameSession.total_score === userMaxScore
+
     return {
       sessionId: gameSession.id,
       challengeDate: challenge.challenge_date,
@@ -176,6 +181,7 @@ export function createUserService(deps: UserServiceDeps): UserService {
       isCompleted: gameSession.is_completed,
       completedAt: gameSession.completed_at?.toISOString() ?? null,
       totalScreenshots: TOTAL_SCREENSHOTS,
+      isPersonalBest,
       guesses,
       unfoundGames,
     }
