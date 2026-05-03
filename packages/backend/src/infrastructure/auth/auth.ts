@@ -199,6 +199,18 @@ function createAuth() {
           required: false,
           input: false,
         },
+        totalScore: {
+          type: "number",
+          required: false,
+          input: false,
+          fieldName: "total_score",
+        },
+        currentStreak: {
+          type: "number",
+          required: false,
+          input: false,
+          fieldName: "current_streak",
+        },
       },
     },
     session: {
