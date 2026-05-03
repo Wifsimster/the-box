@@ -3,30 +3,24 @@ import type {
   DomainLogger,
   DailyLoginRepository,
   InventoryRepository,
-  UserRepository,
 } from '../ports/index.js'
 
 /**
- * Get today's date as YYYY-MM-DD string using local timezone
+ * Today as YYYY-MM-DD (UTC). All daily-login date math runs in UTC so the
+ * outcome is independent of process TZ (Docker UTC vs. dev local) and of
+ * PostgreSQL session TZ.
  */
 function getToday(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return new Date().toISOString().slice(0, 10)
 }
 
 /**
- * Get yesterday's date as YYYY-MM-DD string using local timezone
+ * Yesterday as YYYY-MM-DD (UTC).
  */
 function getYesterday(): string {
   const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  const year = yesterday.getFullYear()
-  const month = String(yesterday.getMonth() + 1).padStart(2, '0')
-  const day = String(yesterday.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+  return yesterday.toISOString().slice(0, 10)
 }
 
 /**
@@ -81,17 +75,13 @@ function calculateStreak(
 }
 
 /**
- * Normalize date from database (PostgreSQL returns Date object for DATE columns)
- * Uses local date components to avoid timezone issues with toISOString()
+ * Normalize date from database. PostgreSQL returns Date objects for DATE
+ * columns; render them in UTC so they line up with `getToday()` above.
  */
 function normalizeDate(date: string | Date | null): string | null {
   if (!date) return null
   if (date instanceof Date) {
-    // Use local date components to avoid UTC conversion issues
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    return date.toISOString().slice(0, 10)
   }
   return date
 }
@@ -138,14 +128,13 @@ export interface DailyLoginServiceDeps {
   logger: DomainLogger
   dailyLoginRepository: DailyLoginRepository
   inventoryRepository: InventoryRepository
-  userRepository: UserRepository
 }
 
 /**
  * Create a DailyLoginService with injected dependencies.
  */
 export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLoginService {
-  const { dailyLoginRepository, inventoryRepository, userRepository } = deps
+  const { dailyLoginRepository, inventoryRepository } = deps
   const log = deps.logger.child({ service: 'daily-login' })
 
   const service: DailyLoginService = {
@@ -182,7 +171,9 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
 
       log.info({ userId, isNewLogin, newStreak, newDayInCycle }, 'calculateStreak result')
 
-      // Update streak if this is a new login day
+      // Update streak if this is a new login day. updateUserStreak guards
+      // on `last_login_date IS DISTINCT FROM today`, so concurrent
+      // /status calls collapse to a single write.
       if (isNewLogin) {
         await dailyLoginRepository.updateUserStreak(userId, {
           currentLoginStreak: newStreak,
@@ -233,34 +224,29 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
       const reward = status.todayReward
 
       // Process reward items
-      const itemsToAdd: Array<{ itemType: string; itemKey: string; quantity: number }> = []
-      for (const item of reward.rewardValue.items) {
-        itemsToAdd.push({
-          itemType: 'powerup',
-          itemKey: item.key,
-          quantity: item.quantity,
-        })
-      }
+      const itemsToAdd = reward.rewardValue.items.map(item => ({
+        itemType: 'powerup',
+        itemKey: item.key,
+        quantity: item.quantity,
+      }))
 
-      // Add items to inventory
-      if (itemsToAdd.length > 0) {
-        await inventoryRepository.addMultipleItems(userId, itemsToAdd)
-      }
-
-      // Add points to user score
-      if (reward.rewardValue.points > 0) {
-        await userRepository.updateScore(userId, reward.rewardValue.points)
-      }
-
-      // Mark reward as claimed
-      await dailyLoginRepository.markRewardClaimed(
+      // Atomic: insert claim, update streak, upsert inventory, bump score.
+      // The DB unique index on (user_id, UTC claim date) is what actually
+      // protects against double-claim from concurrent requests.
+      const result = await dailyLoginRepository.claimDailyReward({
         userId,
-        reward.id,
-        status.currentDayInCycle,
-        status.currentStreak
-      )
+        rewardId: reward.id,
+        dayNumber: status.currentDayInCycle,
+        streakAtClaim: status.currentStreak,
+        items: itemsToAdd,
+        points: reward.rewardValue.points,
+      })
 
-      // Get updated inventory
+      if (!result.ok) {
+        throw new DailyLoginError('ALREADY_CLAIMED', 'You have already claimed your reward today')
+      }
+
+      // Get updated inventory (post-commit)
       const inventory = await inventoryRepository.getUserInventory(userId)
 
       log.info(

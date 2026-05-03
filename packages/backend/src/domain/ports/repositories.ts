@@ -403,12 +403,21 @@ export interface DailyLoginRepository {
       currentDayInCycle: number
     }
   ): Promise<void>
-  markRewardClaimed(
-    userId: string,
-    rewardId: number,
-    dayNumber: number,
+  /**
+   * Atomically claim today's reward (insert claim row, bump streak's
+   * last_claimed_date, upsert inventory items, increment total score).
+   * The DB enforces "one claim per (user, UTC day)" via a unique index;
+   * on collision the call returns `{ ok: false, reason: 'ALREADY_CLAIMED' }`
+   * so the domain doesn't need to inspect SQLSTATE.
+   */
+  claimDailyReward(input: {
+    userId: string
+    rewardId: number
+    dayNumber: number
     streakAtClaim: number
-  ): Promise<void>
+    items: Array<{ itemType: string; itemKey: string; quantity: number }>
+    points: number
+  }): Promise<{ ok: true } | { ok: false; reason: 'ALREADY_CLAIMED' }>
   hasClaimedToday(userId: string): Promise<boolean>
   getClaimHistory(userId: string, limit?: number): Promise<LoginRewardClaimRecord[]>
 }

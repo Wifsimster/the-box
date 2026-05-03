@@ -112,7 +112,6 @@ export const dailyLoginService = createDailyLoginService({
   logger: serviceLogger,
   dailyLoginRepository,
   inventoryRepository,
-  userRepository,
 })
 
 export const jobService = createJobService({

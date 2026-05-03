@@ -70,7 +70,9 @@ export function DailyRewardModal() {
                 <div className="flex items-center justify-center gap-2 py-2">
                     <Flame className="w-5 h-5 text-neon-pink" />
                     <span className="text-lg font-bold">
-                        {justClaimed?.newStreak || status.currentStreak} {t('dailyLogin.dayStreak')}
+                        {t('dailyLogin.dayStreak', {
+                            count: justClaimed?.newStreak ?? status.currentStreak,
+                        })}
                     </span>
                     {status.currentStreak >= 7 && (
                         <Badge variant="outline" className="bg-neon-pink/10 border-neon-pink/30 text-neon-pink">

@@ -4,6 +4,13 @@ import type { DailyReward } from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'daily-login' })
 
+// PostgreSQL unique-violation SQLSTATE
+const PG_UNIQUE_VIOLATION = '23505'
+
+function todayUtc(): string {
+    return new Date().toISOString().slice(0, 10)
+}
+
 // Database row types
 export interface DailyLoginRewardRow {
     id: number
@@ -111,7 +118,9 @@ export const dailyLoginRepository = {
     },
 
     /**
-     * Update user streak for a new login
+     * Update user streak for a new login. Conditional on last_login_date
+     * actually changing — concurrent /status calls from the same tab pair
+     * become harmless no-ops instead of redundant writes.
      */
     async updateUserStreak(
         userId: string,
@@ -125,6 +134,7 @@ export const dailyLoginRepository = {
         log.info({ userId, ...data }, 'updateUserStreak')
         await db('user_login_streaks')
             .where('user_id', userId)
+            .whereRaw('last_login_date IS DISTINCT FROM ?', [data.lastLoginDate])
             .update({
                 current_login_streak: data.currentLoginStreak,
                 longest_login_streak: data.longestLoginStreak,
@@ -135,65 +145,79 @@ export const dailyLoginRepository = {
     },
 
     /**
-     * Mark reward as claimed for today
+     * Atomically claim today's reward: insert claim row, bump
+     * `last_claimed_date`, upsert powerups, increment user score — all in
+     * one transaction. The unique index on
+     * (user_id, (claimed_at AT TIME ZONE 'UTC')::date) is the source of
+     * truth for "one claim per UTC day"; on conflict we surface
+     * { ok: false, reason: 'ALREADY_CLAIMED' } so the caller can map it
+     * to a domain error without inspecting SQLSTATE.
      */
-    async markRewardClaimed(
-        userId: string,
-        rewardId: number,
-        dayNumber: number,
+    async claimDailyReward(input: {
+        userId: string
+        rewardId: number
+        dayNumber: number
         streakAtClaim: number
-    ): Promise<void> {
-        // Use local date for consistency
-        const now = new Date()
-        const year = now.getFullYear()
-        const month = String(now.getMonth() + 1).padStart(2, '0')
-        const day = String(now.getDate()).padStart(2, '0')
-        const today = `${year}-${month}-${day}`
-        log.info({ userId, rewardId, dayNumber, streakAtClaim, today }, 'markRewardClaimed starting')
+        items: Array<{ itemType: string; itemKey: string; quantity: number }>
+        points: number
+    }): Promise<{ ok: true } | { ok: false; reason: 'ALREADY_CLAIMED' }> {
+        const { userId, rewardId, dayNumber, streakAtClaim, items, points } = input
+        const today = todayUtc()
 
-        await db.transaction(async (trx) => {
-            // Insert claim record
-            const [insertedClaim] = await trx('login_reward_claims')
-                .insert({
+        try {
+            await db.transaction(async (trx) => {
+                await trx('login_reward_claims').insert({
                     user_id: userId,
                     reward_id: rewardId,
                     day_number: dayNumber,
                     streak_at_claim: streakAtClaim,
                 })
-                .returning('*')
 
-            log.info({ userId, claimId: insertedClaim?.id, claimedAt: insertedClaim?.claimed_at }, 'claim record inserted')
+                await trx('user_login_streaks')
+                    .where('user_id', userId)
+                    .update({
+                        last_claimed_date: today,
+                        updated_at: new Date(),
+                    })
 
-            // Update last claimed date
-            await trx('user_login_streaks')
-                .where('user_id', userId)
-                .update({
-                    last_claimed_date: today,
-                    updated_at: new Date(),
-                })
+                for (const item of items) {
+                    await trx.raw(
+                        `
+                        INSERT INTO user_inventory (user_id, item_type, item_key, quantity, updated_at)
+                        VALUES (?, ?, ?, ?, NOW())
+                        ON CONFLICT (user_id, item_type, item_key)
+                        DO UPDATE SET quantity = user_inventory.quantity + ?, updated_at = NOW()
+                    `,
+                        [userId, item.itemType, item.itemKey, item.quantity, item.quantity],
+                    )
+                }
 
-            log.info({ userId, today }, 'user_login_streaks updated')
-        })
+                if (points > 0) {
+                    await trx('user').where('id', userId).increment('total_score', points)
+                }
+            })
 
-        log.info({ userId, rewardId }, 'markRewardClaimed completed successfully')
+            log.info({ userId, rewardId, dayNumber, streakAtClaim }, 'claimDailyReward committed')
+            return { ok: true }
+        } catch (err) {
+            const code = (err as { code?: string }).code
+            if (code === PG_UNIQUE_VIOLATION) {
+                log.info({ userId, rewardId }, 'claimDailyReward already claimed (unique violation)')
+                return { ok: false, reason: 'ALREADY_CLAIMED' }
+            }
+            throw err
+        }
     },
 
     /**
-     * Check if user has claimed reward today
-     * Uses the login_reward_claims table directly for reliability
+     * Check if user has claimed reward today (UTC).
      */
     async hasClaimedToday(userId: string): Promise<boolean> {
-        // Use local date for consistency
-        const now = new Date()
-        const year = now.getFullYear()
-        const month = String(now.getMonth() + 1).padStart(2, '0')
-        const day = String(now.getDate()).padStart(2, '0')
-        const today = `${year}-${month}-${day}`
+        const today = todayUtc()
 
-        // Query using PostgreSQL DATE() function with local timezone
         const claim = await db('login_reward_claims')
             .where('user_id', userId)
-            .whereRaw("DATE(claimed_at) = ?", [today])
+            .whereRaw("(claimed_at AT TIME ZONE 'UTC')::date = ?", [today])
             .first()
 
         const hasClaimed = !!claim
