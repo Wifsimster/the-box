@@ -11,6 +11,7 @@ const cardVariants = cva(
         default: "border-border",
         neon: "border-primary/40",
         success: "border-success/50",
+        warning: "border-warning/50",
         error: "border-error/50",
       },
     },
@@ -119,4 +120,4 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants }
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }

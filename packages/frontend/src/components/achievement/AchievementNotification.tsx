@@ -89,13 +89,3 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
     )
 }
 
-/**
- * Fire a rich, gaming-styled achievement toast through sonner. Replaces
- * the pre-sprint-3 `<AchievementNotificationContainer>` component.
- */
-export function showAchievementToast(achievement: NewlyEarnedAchievement): void {
-    sonner.custom(
-        (id) => <AchievementToastBody achievement={achievement} toastId={id} />,
-        { duration: 5000 }
-    )
-}
