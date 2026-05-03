@@ -1272,7 +1272,7 @@
         "free": "Free",
         "cancelling": "Cancelling",
         "tier": {
-          "supporterLifetime": "Lifetime",
+          "supporterLifetime": "Granted",
           "premiumAnnual": "Annual",
           "premiumMonthly": "Monthly",
           "unknown": "Premium"
