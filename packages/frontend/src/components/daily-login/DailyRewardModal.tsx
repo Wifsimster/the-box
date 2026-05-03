@@ -10,9 +10,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
-import { Flame, Gift, Sparkles } from 'lucide-react'
+import { Flame, Gift, Info, Sparkles } from 'lucide-react'
 
 export function DailyRewardModal() {
     const { t } = useTranslation()
@@ -27,6 +28,7 @@ export function DailyRewardModal() {
     } = useDailyLoginStore()
 
     const [isAnimating, setIsAnimating] = useState(false)
+    const { hours, minutes } = useNextDailyCountdown()
 
     if (!status) return null
 
@@ -40,7 +42,14 @@ export function DailyRewardModal() {
         }, 800)
     }
 
+    // Closing the modal while a reward is still claimable would otherwise
+    // strand the player on a "you forgot to click Récupérer" path. Fire
+    // the claim and let the store update; the badge in the header reflects
+    // the result. We don't await — a closed dialog shouldn't block on IO.
     const handleClose = () => {
+        if (status.canClaim && !isClaiming && !justClaimed) {
+            void claimReward()
+        }
         closeModal()
         // Clear the just claimed state after a delay to allow exit animation
         setTimeout(clearJustClaimed, 300)
@@ -49,8 +58,16 @@ export function DailyRewardModal() {
     const reward = justClaimed?.reward || status.todayReward
     const showClaimSuccess = !!justClaimed
 
+    const renderItemLabel = (item: { key: string; quantity: number }) => {
+        const label =
+            item.key === 'hint_year'
+                ? t('dailyLogin.hintYear')
+                : t('dailyLogin.hintPublisher')
+        return `${item.quantity}× ${label}`
+    }
+
     return (
-        <Dialog open={isModalOpen} onOpenChange={handleClose}>
+        <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
@@ -74,6 +91,14 @@ export function DailyRewardModal() {
                             count: justClaimed?.newStreak ?? status.currentStreak,
                         })}
                     </span>
+                    <button
+                        type="button"
+                        title={t('dailyLogin.streakPolicyTooltip')}
+                        aria-label={t('dailyLogin.streakPolicyTooltip')}
+                        className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
+                    >
+                        <Info className="w-4 h-4" />
+                    </button>
                     {status.currentStreak >= 7 && (
                         <Badge variant="outline" className="bg-neon-pink/10 border-neon-pink/30 text-neon-pink">
                             {t('dailyLogin.onFire')}
@@ -107,7 +132,7 @@ export function DailyRewardModal() {
                         <div className="flex flex-wrap gap-2 mt-4 justify-center">
                             {reward.rewardValue.items.map((item: { key: string; quantity: number }, idx: number) => (
                                 <Badge key={idx} variant="secondary" className="bg-primary/20">
-                                    {item.quantity}x {item.key === 'hint_year' ? t('dailyLogin.hintYear') : t('dailyLogin.hintPublisher')}
+                                    {renderItemLabel(item)}
                                 </Badge>
                             ))}
                             {reward.rewardValue.points > 0 && (
@@ -125,6 +150,11 @@ export function DailyRewardModal() {
                     currentDayInCycle={justClaimed?.newDayInCycle || status.currentDayInCycle}
                     hasClaimedToday={showClaimSuccess || status.hasClaimedToday}
                 />
+
+                {/* Countdown to next reward */}
+                <p className="text-xs text-muted-foreground text-center">
+                    {t('dailyLogin.nextRewardIn', { hours, minutes })}
+                </p>
 
                 {/* Action Button */}
                 <div className="flex justify-center pt-2">
