@@ -789,7 +789,11 @@
           "region": "région : {{region}}",
           "previewAlt": "Carte active pour {{name}} (cliquez pour ouvrir en taille réelle)",
           "previewDimensions": "{{width}} × {{height}} px",
-          "loading": "Chargement des sources…"
+          "loading": "Chargement des sources…",
+          "pipelineTitle": "Pipeline d'ingestion",
+          "pipelineSubtitle": "Cascade des sources — la première qui matche fournit la carte active.",
+          "addMap": "Ajouter une carte",
+          "moreActions": "Plus d'actions"
         },
         "multi": {
           "enabledTitle": "Cartes activées",

@@ -29,6 +29,8 @@ import {
     Search,
     RefreshCcw,
     ListChecks,
+    MoreHorizontal,
+    Target,
 } from 'lucide-react'
 import { AddMapDialog, type AddMapStrategy } from './AddMapDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
@@ -40,6 +42,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
     isGameInFlight,
     tiersInFlightForGame,
@@ -944,22 +953,6 @@ export function GeoMapsTab({
                                 ? selectedGame.name
                                 : t('admin.geo.maps.sidePanel.empty')}
                         </SheetTitle>
-                        {selectedGame && sources?.activeMap && (
-                            <SheetDescription className="text-xs">
-                                {t('admin.geo.maps.sidePanel.activeViaTier', {
-                                    tier: t(`admin.geo.maps.tiers.${sources.activeMap.source}`),
-                                    license: sources.activeMap.license,
-                                })}
-                                {sources.activeMap.region && (
-                                    <span className="ml-1 text-muted-foreground">
-                                        {' · '}
-                                        {t('admin.geo.maps.sidePanel.region', {
-                                            region: sources.activeMap.region,
-                                        })}
-                                    </span>
-                                )}
-                            </SheetDescription>
-                        )}
                         {selectedGame && sources && !sources.activeMap && (
                             <SheetDescription className="text-xs text-warning">
                                 {t('admin.geo.maps.sidePanel.noActive')}
@@ -1091,9 +1084,9 @@ export function GeoMapsTab({
     )
 }
 
-// Renders the description line under the side panel title (active tier +
-// license, or "no active map" warning). Shared by the desktop card header
-// and the mobile sheet header so both surfaces stay in lock-step.
+// Description line under the side panel title. The active source/license
+// is now rendered inside the ActiveMapHero block below, so this only
+// surfaces the empty-state warning when no map is active yet.
 function SidePanelDescription({
     selected,
     sources,
@@ -1104,24 +1097,6 @@ function SidePanelDescription({
     t: ReturnType<typeof useTranslation>['t']
 }) {
     if (!selected) return null
-    if (sources?.activeMap) {
-        return (
-            <CardDescription className="text-xs">
-                {t('admin.geo.maps.sidePanel.activeViaTier', {
-                    tier: t(`admin.geo.maps.tiers.${sources.activeMap.source}`),
-                    license: sources.activeMap.license,
-                })}
-                {sources.activeMap.region && (
-                    <span className="ml-1 text-muted-foreground">
-                        {' · '}
-                        {t('admin.geo.maps.sidePanel.region', {
-                            region: sources.activeMap.region,
-                        })}
-                    </span>
-                )}
-            </CardDescription>
-        )
-    }
     if (sources && !sources.activeMap) {
         return (
             <CardDescription className="text-xs text-warning">
@@ -1210,94 +1185,76 @@ function SidePanelBody({
     }
     if (!sources) return null
     const enabledMaps = sources.enabledMaps ?? (sources.activeMap ? [sources.activeMap] : [])
+    const captureCount = selectedGame.candidateCount
     return (
         <>
-            <EnabledMapsPanel
+            <ActiveMapHero
                 gameId={sources.gameId}
+                gameName={selectedGame.name}
                 enabledMaps={enabledMaps}
                 activatingMapId={activatingMapId}
+                captureCount={captureCount}
                 onDisable={onDisableMap}
                 onSetCaptureDefault={onSetCaptureDefault}
                 onUpdateRegion={onUpdateRegion}
+                onViewCaptures={
+                    onViewCaptures
+                        ? () => onViewCaptures(selectedGame.id, selectedGame.name)
+                        : undefined
+                }
                 t={t}
             />
-            <ol className="space-y-2">
-                {sources.sources.map((s) => {
-                    const tiers = tiersInFlightForGame(runState, sources.gameId)
-                    // 'manual' is operator-uploaded, never a background job —
-                    // never flag it running.
-                    const running =
-                        s.tier !== 'manual' &&
-                        tiers.has(
-                            s.tier as
-                                | 'registry'
-                                | 'fandom'
-                                | 'strategywiki'
-                                | 'fextralife'
-                                | 'wikidata',
+
+            <div>
+                <div className="mb-1.5 flex items-baseline justify-between">
+                    <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {t('admin.geo.maps.sidePanel.pipelineTitle')}
+                    </h4>
+                </div>
+                <ol className="overflow-hidden rounded-md border border-border/40 divide-y divide-border/40">
+                    {sources.sources.map((s) => {
+                        const tiers = tiersInFlightForGame(runState, sources.gameId)
+                        // 'manual' is operator-uploaded, never a background job —
+                        // never flag it running.
+                        const running =
+                            s.tier !== 'manual' &&
+                            tiers.has(
+                                s.tier as
+                                    | 'registry'
+                                    | 'fandom'
+                                    | 'strategywiki'
+                                    | 'fextralife'
+                                    | 'wikidata',
+                            )
+                        return (
+                            <TierRow
+                                key={s.tier}
+                                state={s}
+                                t={t}
+                                running={running}
+                                onRetry={
+                                    s.tier !== 'manual'
+                                        ? () => void onRetryTier(sources.gameId, s.tier)
+                                        : undefined
+                                }
+                                retrying={retryingTier === s.tier}
+                                onRunNow={
+                                    s.tier !== 'manual'
+                                        ? () => void onRunTierNow(sources.gameId, s.tier)
+                                        : undefined
+                                }
+                                runningNow={runningTier === s.tier}
+                                onActivate={(mapId) =>
+                                    void onActivateMap(sources.gameId, mapId)
+                                }
+                                activatingMapId={activatingMapId}
+                            />
                         )
-                    return (
-                        <TierRow
-                            key={s.tier}
-                            state={s}
-                            t={t}
-                            running={running}
-                            onRetry={
-                                s.tier !== 'manual'
-                                    ? () => void onRetryTier(sources.gameId, s.tier)
-                                    : undefined
-                            }
-                            retrying={retryingTier === s.tier}
-                            onRunNow={
-                                s.tier !== 'manual'
-                                    ? () => void onRunTierNow(sources.gameId, s.tier)
-                                    : undefined
-                            }
-                            runningNow={runningTier === s.tier}
-                            onActivate={(mapId) =>
-                                void onActivateMap(sources.gameId, mapId)
-                            }
-                            activatingMapId={activatingMapId}
-                        />
-                    )
-                })}
-            </ol>
-            <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
-                    disabled={busyAction !== null}
-                    onClick={() => void onReimport(selectedGame)}
-                    title={t('admin.geo.maps.actions.rerunTooltip')}
-                >
-                    {busyAction === 'reimport' ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    ) : (
-                        <RotateCw className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    {t('admin.geo.maps.actions.rerun')}
-                </Button>
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => onResearch(selectedGame)}
-                    title={t('admin.geo.maps.actions.researchTooltip')}
-                >
-                    <Search className="h-3.5 w-3.5 mr-1.5" />
-                    {t('admin.geo.maps.actions.research')}
-                </Button>
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => onWandImport(selectedGame)}
-                    title={t('admin.geo.maps.actions.importWandTooltip')}
-                >
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                    {t('admin.geo.maps.actions.importWand')}
-                </Button>
+                    })}
+                </ol>
+            </div>
+
+            <div className="flex items-center gap-2 border-t border-border/40 pt-3">
                 <Button
                     size="sm"
                     variant="outline"
@@ -1307,53 +1264,77 @@ function SidePanelBody({
                     <Upload className="h-3.5 w-3.5 mr-1.5" />
                     {t('admin.geo.maps.actions.uploadManual')}
                 </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            aria-label={t('admin.geo.maps.sidePanel.moreActions')}
+                            title={t('admin.geo.maps.sidePanel.moreActions')}
+                        >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onSelect={() => onWandImport(selectedGame)}>
+                            <Sparkles className="h-3.5 w-3.5 mr-2" />
+                            {t('admin.geo.maps.actions.importWand')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onResearch(selectedGame)}>
+                            <Search className="h-3.5 w-3.5 mr-2" />
+                            {t('admin.geo.maps.actions.research')}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            disabled={busyAction !== null}
+                            onSelect={() => void onReimport(selectedGame)}
+                            className="text-destructive focus:text-destructive"
+                        >
+                            {busyAction === 'reimport' ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                            ) : (
+                                <RotateCw className="h-3.5 w-3.5 mr-2" />
+                            )}
+                            {t('admin.geo.maps.actions.rerun')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => onUncurate(selectedGame)}
+                            className="text-destructive focus:text-destructive"
+                        >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            {t('admin.geo.maps.actions.uncurate')}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-            {onViewCaptures && (
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-center text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() =>
-                        onViewCaptures(selectedGame.id, selectedGame.name)
-                    }
-                    title={t('admin.geo.maps.actions.viewCapturesTooltip')}
-                >
-                    <ListChecks className="h-3.5 w-3.5 mr-1.5" />
-                    {t('admin.geo.maps.actions.viewCaptures', {
-                        count: selectedGame.candidateCount,
-                    })}
-                </Button>
-            )}
-            <Button
-                size="sm"
-                variant="ghost"
-                className="w-full justify-center text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => onUncurate(selectedGame)}
-                title={t('admin.geo.maps.actions.uncurateTooltip')}
-            >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                {t('admin.geo.maps.actions.uncurate')}
-            </Button>
         </>
     )
 }
 
-// Multi-map: lists every enabled map for the game with per-map controls
-// (disable, promote to capture-default, edit region inline). Renders nothing
-// when the game has no enabled map yet — the tier cascade below still
-// surfaces the "Use this map" affordance on per-source candidates.
-function EnabledMapsPanel({
+// Hero block at the top of the side panel. Replaces the framed "Cartes
+// activées" sub-panel + the redundant "Actif via Niveau X" header line:
+// shows a thumbnail-led row for each enabled map with inline region edit,
+// capture-target indicator, "Voir captures" link, and an overflow menu
+// (set as capture default, disable). Empty when no map is enabled — the
+// tier cascade below still surfaces "Use this map" on per-source candidates.
+function ActiveMapHero({
     gameId,
+    gameName,
     enabledMaps,
     activatingMapId,
+    captureCount,
     onDisable,
     onSetCaptureDefault,
     onUpdateRegion,
+    onViewCaptures,
     t,
 }: {
     gameId: number
+    gameName: string
     enabledMaps: ActiveMapInfo[]
     activatingMapId: number | null
+    captureCount: number
     onDisable: (gameId: number, mapId: number) => void | Promise<void>
     onSetCaptureDefault: (gameId: number, mapId: number) => void | Promise<void>
     onUpdateRegion: (
@@ -1361,56 +1342,52 @@ function EnabledMapsPanel({
         mapId: number,
         region: string | null,
     ) => void | Promise<void>
+    onViewCaptures?: () => void
     t: ReturnType<typeof useTranslation>['t']
 }) {
     if (enabledMaps.length === 0) return null
     const canDisable = enabledMaps.length > 1
     return (
-        <div className="rounded border border-border/40 bg-muted/10 p-2 space-y-2">
-            <div className="flex items-baseline justify-between">
-                <h4 className="text-xs font-medium">
-                    {t('admin.geo.maps.multi.enabledTitle', 'Enabled maps')}
-                </h4>
-                <span className="text-[10px] text-muted-foreground">
-                    {t('admin.geo.maps.multi.enabledCount', {
-                        defaultValue: '{{count}} enabled',
-                        count: enabledMaps.length,
-                    })}
-                </span>
-            </div>
-            <ul className="space-y-1.5">
-                {enabledMaps.map((m) => (
-                    <EnabledMapRow
-                        key={m.id}
-                        gameId={gameId}
-                        map={m}
-                        canDisable={canDisable}
-                        busy={activatingMapId === m.id}
-                        onDisable={onDisable}
-                        onSetCaptureDefault={onSetCaptureDefault}
-                        onUpdateRegion={onUpdateRegion}
-                        t={t}
-                    />
-                ))}
-            </ul>
-        </div>
+        <ul className="space-y-1.5">
+            {enabledMaps.map((m) => (
+                <ActiveMapHeroRow
+                    key={m.id}
+                    gameId={gameId}
+                    gameName={gameName}
+                    map={m}
+                    canDisable={canDisable}
+                    busy={activatingMapId === m.id}
+                    captureCount={captureCount}
+                    onDisable={onDisable}
+                    onSetCaptureDefault={onSetCaptureDefault}
+                    onUpdateRegion={onUpdateRegion}
+                    onViewCaptures={onViewCaptures}
+                    t={t}
+                />
+            ))}
+        </ul>
     )
 }
 
-function EnabledMapRow({
+function ActiveMapHeroRow({
     gameId,
+    gameName,
     map,
     canDisable,
     busy,
+    captureCount,
     onDisable,
     onSetCaptureDefault,
     onUpdateRegion,
+    onViewCaptures,
     t,
 }: {
     gameId: number
+    gameName: string
     map: ActiveMapInfo
     canDisable: boolean
     busy: boolean
+    captureCount: number
     onDisable: (gameId: number, mapId: number) => void | Promise<void>
     onSetCaptureDefault: (gameId: number, mapId: number) => void | Promise<void>
     onUpdateRegion: (
@@ -1418,6 +1395,7 @@ function EnabledMapRow({
         mapId: number,
         region: string | null,
     ) => void | Promise<void>
+    onViewCaptures?: () => void
     t: ReturnType<typeof useTranslation>['t']
 }) {
     const [editing, setEditing] = useState(false)
@@ -1432,15 +1410,23 @@ function EnabledMapRow({
         setEditing(false)
     }
     return (
-        <li className="flex items-center gap-2 rounded border border-border/30 bg-background/40 px-2 py-1.5 text-xs">
-            <img
-                src={map.imageUrl}
-                alt=""
-                loading="lazy"
-                className="h-10 w-10 flex-none rounded object-cover bg-black/40"
-            />
+        <li className="flex items-center gap-3 rounded-md border border-success/30 bg-success/5 p-2.5 text-xs">
+            <a
+                href={map.imageUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="block shrink-0 overflow-hidden rounded bg-black/40"
+                aria-label={t('admin.geo.maps.sidePanel.previewAlt', { name: gameName })}
+            >
+                <img
+                    src={map.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="h-14 w-20 object-cover"
+                />
+            </a>
             <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                     {editing ? (
                         <input
                             autoFocus
@@ -1464,7 +1450,7 @@ function EnabledMapRow({
                     ) : (
                         <button
                             type="button"
-                            className="truncate text-left font-medium hover:underline"
+                            className="truncate text-left text-sm font-medium hover:underline"
                             onClick={() => setEditing(true)}
                             title={t('admin.geo.maps.multi.regionEdit', 'Edit region')}
                         >
@@ -1473,7 +1459,14 @@ function EnabledMapRow({
                         </button>
                     )}
                     {map.isCaptureDefault && (
-                        <span className="rounded-full border border-neon-pink/40 bg-neon-pink/10 px-1.5 py-px text-[9px] uppercase tracking-wide text-neon-pink">
+                        <span
+                            className="inline-flex items-center gap-0.5 rounded-full border border-neon-pink/40 bg-neon-pink/10 px-1.5 py-px text-[9px] uppercase tracking-wide text-neon-pink"
+                            title={t(
+                                'admin.geo.maps.multi.setCaptureDefault',
+                                'Set as capture default',
+                            )}
+                        >
+                            <Target className="h-2.5 w-2.5" aria-hidden />
                             {t(
                                 'admin.geo.maps.multi.captureDefaultBadge',
                                 'Capture default',
@@ -1483,44 +1476,67 @@ function EnabledMapRow({
                 </div>
                 <p className="truncate text-[10px] text-muted-foreground">
                     {t(`admin.geo.maps.tiers.${map.source}`)}
+                    {map.license && ` · ${map.license}`}
                 </p>
+                {onViewCaptures && (
+                    <button
+                        type="button"
+                        onClick={onViewCaptures}
+                        className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
+                        title={t('admin.geo.maps.actions.viewCapturesTooltip')}
+                    >
+                        <ListChecks className="h-2.5 w-2.5" aria-hidden />
+                        {t('admin.geo.maps.actions.viewCaptures', {
+                            count: captureCount,
+                        })}
+                    </button>
+                )}
             </div>
-            <div className="flex flex-none gap-1">
-                {!map.isCaptureDefault && (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => void onSetCaptureDefault(gameId, map.id)}
-                        title={t(
-                            'admin.geo.maps.multi.setCaptureDefault',
-                            'Set as capture default',
-                        )}
+                        className="h-7 w-7 flex-none p-0"
+                        aria-label={t('admin.geo.maps.sidePanel.moreActions')}
+                        title={t('admin.geo.maps.sidePanel.moreActions')}
                     >
-                        {t('admin.geo.maps.multi.captureDefaultAction', 'Default')}
+                        {busy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                        )}
                     </Button>
-                )}
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy || !canDisable}
-                    className="h-6 px-2 text-[10px] text-destructive hover:text-destructive"
-                    onClick={() => void onDisable(gameId, map.id)}
-                    title={
-                        canDisable
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    {!map.isCaptureDefault && (
+                        <DropdownMenuItem
+                            onSelect={() => void onSetCaptureDefault(gameId, map.id)}
+                        >
+                            <Target className="h-3.5 w-3.5 mr-2" />
+                            {t(
+                                'admin.geo.maps.multi.setCaptureDefault',
+                                'Set as capture default',
+                            )}
+                        </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                        disabled={!canDisable}
+                        onSelect={() => void onDisable(gameId, map.id)}
+                        className="text-destructive focus:text-destructive"
+                    >
+                        <XCircle className="h-3.5 w-3.5 mr-2" />
+                        {canDisable
                             ? t('admin.geo.maps.multi.disable', 'Disable map')
                             : t(
                                   'admin.geo.maps.multi.disableLastBlocked',
                                   'Cannot disable the last enabled map for a game.',
-                              )
-                    }
-                >
-                    {t('admin.geo.maps.multi.disableAction', 'Disable')}
-                </Button>
-            </div>
+                              )}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </li>
     )
 }
@@ -1671,6 +1687,16 @@ function CatalogStatusBadge({
     )
 }
 
+// Visual style for the row's status indicator. One source of truth keeps
+// the dot, label color, row tint, and icon aligned across all 5 branches.
+type TierVisual = {
+    icon: typeof Sparkles
+    rowBg: string
+    iconColor: string
+    labelColor: string
+    label: string
+}
+
 function TierRow({
     state,
     t,
@@ -1694,231 +1720,252 @@ function TierRow({
 }) {
     const tierLabel = t(`admin.geo.maps.tiers.${state.tier}`)
 
-    // While this tier's job is in flight, override status visuals with a
-    // "running" badge so the operator sees live movement instead of a stale
-    // matched/eligible/tombstoned label.
+    // Resolve visual style first so the row chrome stays uniform; per-branch
+    // affordances (retry, run-now, candidate list) are layered below.
+    let visual: TierVisual
     if (running) {
-        return (
-            <li className="rounded border border-neon-pink/40 bg-neon-pink/5 p-2.5 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium flex items-center gap-1.5">
-                        <Loader2 className="h-3 w-3 animate-spin text-neon-pink" aria-hidden />
-                        {tierLabel}
+        visual = {
+            icon: Loader2,
+            rowBg: 'bg-neon-pink/5',
+            iconColor: 'text-neon-pink',
+            labelColor: 'text-neon-pink',
+            label: t('admin.geo.run.tierRunning'),
+        }
+    } else if (state.status === 'matched') {
+        visual = {
+            icon: Sparkles,
+            rowBg: 'bg-success/5',
+            iconColor: 'text-success',
+            labelColor: 'text-success',
+            label: t('admin.geo.maps.tierStatus.matched'),
+        }
+    } else if (state.status === 'tombstoned') {
+        visual = {
+            icon: XCircle,
+            rowBg: '',
+            iconColor: 'text-destructive',
+            labelColor: 'text-destructive',
+            label: t('admin.geo.maps.tierStatus.tombstoned', {
+                count: state.attempts,
+            }),
+        }
+    } else if (state.status === 'eligible') {
+        visual = {
+            icon: Clock,
+            rowBg: '',
+            iconColor: 'text-warning',
+            labelColor: 'text-warning',
+            label: t('admin.geo.maps.tierStatus.eligible'),
+        }
+    } else {
+        visual = {
+            icon: MinusCircle,
+            rowBg: '',
+            iconColor: 'text-muted-foreground',
+            labelColor: 'text-muted-foreground',
+            label: t('admin.geo.maps.tierStatus.untried'),
+        }
+    }
+
+    const Icon = visual.icon
+    const showAction =
+        running ||
+        (state.status === 'tombstoned' && onRetry) ||
+        (state.status === 'eligible' && onRunNow)
+
+    return (
+        <li className={`text-xs ${visual.rowBg}`}>
+            <div className="flex items-center gap-2 px-2.5 py-1.5">
+                <Icon
+                    className={`h-3 w-3 shrink-0 ${visual.iconColor} ${
+                        running ? 'animate-spin' : ''
+                    }`}
+                    aria-hidden
+                />
+                <span className="truncate text-[11px] font-medium">{tierLabel}</span>
+                <span
+                    className={`ml-auto shrink-0 text-[10px] uppercase tracking-wide ${visual.labelColor}`}
+                >
+                    {visual.label}
+                </span>
+                {showAction && (
+                    <span className="shrink-0">
+                        {state.status === 'tombstoned' && onRetry && !running && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={retrying}
+                                onClick={onRetry}
+                                className="h-6 gap-1 px-2 text-[10px] text-destructive hover:text-destructive"
+                                title={t('admin.geo.maps.tierStatus.retryNowTooltip')}
+                            >
+                                {retrying ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <RefreshCcw className="h-3 w-3" />
+                                )}
+                                {t('admin.geo.maps.tierStatus.retryNow')}
+                            </Button>
+                        )}
+                        {state.status === 'eligible' && onRunNow && !running && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={runningNow}
+                                onClick={onRunNow}
+                                className="h-6 gap-1 px-2 text-[10px] text-warning hover:text-warning"
+                                title={t('admin.geo.maps.tierStatus.runNowTooltip')}
+                            >
+                                {runningNow ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <Play className="h-3 w-3" />
+                                )}
+                                {t('admin.geo.maps.tierStatus.runNow')}
+                            </Button>
+                        )}
                     </span>
-                    <span className="text-[10px] uppercase tracking-wide text-neon-pink">
-                        {t('admin.geo.run.tierRunning')}
-                    </span>
-                </div>
-                <p className="pt-1 text-[11px] text-muted-foreground leading-snug">
+                )}
+            </div>
+            {/* Per-branch detail line: kept on a second line only when it's
+                load-bearing (running hint, matched candidates, tombstone reason +
+                retry timer). Untried/eligible remain single-line by default. */}
+            {running && (
+                <p className="px-2.5 pb-1.5 text-[11px] text-muted-foreground leading-snug">
                     {t('admin.geo.run.tierRunningHint')}
                 </p>
-            </li>
-        )
-    }
-
-    if (state.status === 'matched') {
-        const candidates = state.candidates ?? []
-        return (
-            <li className="rounded border border-success/30 bg-success/5 p-2.5 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium flex items-center gap-1.5">
-                        <Sparkles className="h-3 w-3 text-success" aria-hidden />
-                        {tierLabel}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wide text-success">
-                        {t('admin.geo.maps.tierStatus.matched')}
-                    </span>
-                </div>
-                <p className="pt-1 text-[11px] text-muted-foreground leading-snug">
-                    {state.via}
-                    {state.license && ` · ${state.license}`}
-                </p>
-                {candidates.length > 0 && (
-                    <ul className="mt-2 space-y-1.5">
-                        {candidates.map((c) => {
-                            const activating = activatingMapId === c.id
-                            return (
-                                <li
-                                    key={c.id}
-                                    className={`flex gap-2 rounded border p-1.5 ${
-                                        c.isActive
-                                            ? 'border-success/50 bg-success/10'
-                                            : 'border-border/40 bg-background/40'
-                                    }`}
-                                >
-                                    <a
-                                        href={c.imageUrl}
-                                        target="_blank"
-                                        rel="noreferrer noopener"
-                                        className="block shrink-0 overflow-hidden rounded bg-black/40"
-                                        aria-label={t(
-                                            'admin.geo.maps.tierStatus.candidatePreviewAria',
-                                        )}
-                                    >
-                                        <img
-                                            src={c.imageUrl}
-                                            alt=""
-                                            loading="lazy"
-                                            className="block h-12 w-16 object-contain"
-                                        />
-                                    </a>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-[10px] text-muted-foreground">
-                                            {c.widthPx} × {c.heightPx} px
-                                            {c.region && ` · ${c.region}`}
-                                        </p>
-                                        {c.sourceUrl && (
-                                            <a
-                                                href={c.sourceUrl}
-                                                target="_blank"
-                                                rel="noreferrer noopener"
-                                                className="text-[10px] text-primary hover:underline"
-                                            >
-                                                {t('admin.geo.maps.viewSource')}
-                                            </a>
-                                        )}
-                                    </div>
-                                    <div className="flex shrink-0 items-center">
-                                        {c.isActive ? (
-                                            <span className="text-[10px] uppercase tracking-wide text-success px-1.5">
-                                                {t(
-                                                    'admin.geo.maps.tierStatus.active',
-                                                )}
-                                            </span>
-                                        ) : onActivate ? (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                disabled={activating}
-                                                onClick={() => onActivate(c.id)}
-                                                className="h-6 gap-1 px-2 text-[10px]"
-                                                title={t(
-                                                    'admin.geo.maps.tierStatus.useThisMapTooltip',
-                                                )}
-                                            >
-                                                {activating ? (
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                ) : (
-                                                    <CheckCircle2 className="h-3 w-3" />
-                                                )}
-                                                {t(
-                                                    'admin.geo.maps.tierStatus.useThisMap',
-                                                )}
-                                            </Button>
-                                        ) : null}
-                                    </div>
-                                </li>
-                            )
-                        })}
-                    </ul>
-                )}
-            </li>
-        )
-    }
-
-    if (state.status === 'tombstoned') {
-        const retry = new Date(state.retryAfter)
-        return (
-            <li className="rounded border border-destructive/30 bg-destructive/5 p-2.5 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium flex items-center gap-1.5">
-                        <XCircle className="h-3 w-3 text-destructive" aria-hidden />
-                        {tierLabel}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wide text-destructive">
-                        {t('admin.geo.maps.tierStatus.tombstoned', { count: state.attempts })}
-                    </span>
-                </div>
-                <p
-                    className="pt-1 text-[11px] text-muted-foreground leading-snug break-words"
-                    title={state.reason}
-                >
-                    {state.reason}
-                </p>
-                <div className="pt-0.5 flex items-center justify-between gap-2">
-                    <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+            )}
+            {!running && state.status === 'matched' && (
+                <MatchedTierDetails
+                    state={state}
+                    onActivate={onActivate}
+                    activatingMapId={activatingMapId}
+                    t={t}
+                />
+            )}
+            {!running && state.status === 'tombstoned' && (
+                <div className="px-2.5 pb-1.5">
+                    <p
+                        className="text-[11px] text-muted-foreground leading-snug break-words"
+                        title={state.reason}
+                    >
+                        {state.reason}
+                    </p>
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                         <Clock className="h-2.5 w-2.5" aria-hidden />
                         {t('admin.geo.maps.tierStatus.retryAfter', {
-                            time: retry.toLocaleString(),
+                            time: new Date(state.retryAfter).toLocaleString(),
                         })}
                     </p>
-                    {onRetry && (
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={retrying}
-                            onClick={onRetry}
-                            className="h-6 gap-1 px-2 text-[10px] text-destructive hover:text-destructive"
-                            title={t('admin.geo.maps.tierStatus.retryNowTooltip')}
-                        >
-                            {retrying ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                                <RefreshCcw className="h-3 w-3" />
-                            )}
-                            {t('admin.geo.maps.tierStatus.retryNow')}
-                        </Button>
-                    )}
                 </div>
-            </li>
-        )
-    }
-
-    if (state.status === 'eligible') {
-        return (
-            <li className="rounded border border-warning/30 bg-warning/5 p-2.5 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium flex items-center gap-1.5">
-                        <Clock className="h-3 w-3 text-warning" aria-hidden />
-                        {tierLabel}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wide text-warning">
-                        {t('admin.geo.maps.tierStatus.eligible')}
-                    </span>
-                </div>
-                <div className="pt-1 flex items-center justify-between gap-2">
-                    <p className="text-[11px] text-muted-foreground leading-snug">
-                        {t('admin.geo.maps.tierStatus.eligibleHint')}
-                    </p>
-                    {onRunNow && (
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={runningNow}
-                            onClick={onRunNow}
-                            className="h-6 gap-1 px-2 text-[10px] text-warning hover:text-warning"
-                            title={t('admin.geo.maps.tierStatus.runNowTooltip')}
-                        >
-                            {runningNow ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                                <Play className="h-3 w-3" />
-                            )}
-                            {t('admin.geo.maps.tierStatus.runNow')}
-                        </Button>
-                    )}
-                </div>
-            </li>
-        )
-    }
-
-    // untried
-    return (
-        <li className="rounded border border-border/40 bg-muted/10 p-2.5 text-xs">
-            <div className="flex items-center justify-between gap-2">
-                <span className="font-medium flex items-center gap-1.5 text-muted-foreground">
-                    <MinusCircle className="h-3 w-3" aria-hidden />
-                    {tierLabel}
-                </span>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {t('admin.geo.maps.tierStatus.untried')}
-                </span>
-            </div>
-            {state.reason && (
-                <p className="pt-1 text-[11px] text-muted-foreground leading-snug">
+            )}
+            {!running && state.status === 'untried' && state.reason && (
+                <p className="px-2.5 pb-1.5 text-[11px] text-muted-foreground leading-snug">
                     {state.reason}
                 </p>
             )}
         </li>
+    )
+}
+
+// Inline expansion of the matched tier — preserves the candidate list with
+// per-row "Use this map" affordance. Lives in its own component so the
+// status-row chrome of TierRow stays compact and uniform.
+function MatchedTierDetails({
+    state,
+    onActivate,
+    activatingMapId,
+    t,
+}: {
+    state: Extract<TierState, { status: 'matched' }>
+    onActivate?: (mapId: number) => void
+    activatingMapId?: number | null
+    t: ReturnType<typeof useTranslation>['t']
+}) {
+    const candidates = state.candidates ?? []
+    return (
+        <div className="px-2.5 pb-2">
+            <p className="text-[11px] text-muted-foreground leading-snug">
+                {state.via}
+                {state.license && ` · ${state.license}`}
+            </p>
+            {candidates.length > 0 && (
+                <ul className="mt-1.5 space-y-1.5">
+                    {candidates.map((c) => {
+                        const activating = activatingMapId === c.id
+                        return (
+                            <li
+                                key={c.id}
+                                className={`flex gap-2 rounded border p-1.5 ${
+                                    c.isActive
+                                        ? 'border-success/50 bg-success/10'
+                                        : 'border-border/40 bg-background/40'
+                                }`}
+                            >
+                                <a
+                                    href={c.imageUrl}
+                                    target="_blank"
+                                    rel="noreferrer noopener"
+                                    className="block shrink-0 overflow-hidden rounded bg-black/40"
+                                    aria-label={t(
+                                        'admin.geo.maps.tierStatus.candidatePreviewAria',
+                                    )}
+                                >
+                                    <img
+                                        src={c.imageUrl}
+                                        alt=""
+                                        loading="lazy"
+                                        className="block h-12 w-16 object-contain"
+                                    />
+                                </a>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] text-muted-foreground">
+                                        {c.widthPx} × {c.heightPx} px
+                                        {c.region && ` · ${c.region}`}
+                                    </p>
+                                    {c.sourceUrl && (
+                                        <a
+                                            href={c.sourceUrl}
+                                            target="_blank"
+                                            rel="noreferrer noopener"
+                                            className="text-[10px] text-primary hover:underline"
+                                        >
+                                            {t('admin.geo.maps.viewSource')}
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="flex shrink-0 items-center">
+                                    {c.isActive ? (
+                                        <span className="text-[10px] uppercase tracking-wide text-success px-1.5">
+                                            {t('admin.geo.maps.tierStatus.active')}
+                                        </span>
+                                    ) : onActivate ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={activating}
+                                            onClick={() => onActivate(c.id)}
+                                            className="h-6 gap-1 px-2 text-[10px]"
+                                            title={t(
+                                                'admin.geo.maps.tierStatus.useThisMapTooltip',
+                                            )}
+                                        >
+                                            {activating ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                                <CheckCircle2 className="h-3 w-3" />
+                                            )}
+                                            {t(
+                                                'admin.geo.maps.tierStatus.useThisMap',
+                                            )}
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            </li>
+                        )
+                    })}
+                </ul>
+            )}
+        </div>
     )
 }
