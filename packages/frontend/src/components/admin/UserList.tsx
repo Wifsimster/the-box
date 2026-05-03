@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Tooltip } from '@/components/ui/tooltip'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { Search, Loader2, ArrowUpDown, ArrowUp, Trash2, Ban, Unlock, Crown } from 'lucide-react'
 import { toast } from '@/lib/toast'
@@ -429,53 +430,63 @@ export function UserList() {
 
                       <div className="flex justify-end gap-1 pt-1 border-t border-white/5">
                         {usersBilling[user.id]?.source === 'supporter' ? (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setRevokingUser(user)}
-                            aria-label={t('admin.users.revokePremium')}
-                            className="hover:text-warning"
-                          >
-                            <Crown className="h-4 w-4 text-neon-pink" />
-                          </Button>
+                          <Tooltip content={t('admin.users.revokePremium')}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setRevokingUser(user)}
+                              aria-label={t('admin.users.revokePremium')}
+                              className="hover:text-warning"
+                            >
+                              <Crown className="h-4 w-4 text-neon-pink" />
+                            </Button>
+                          </Tooltip>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setGrantingUser(user)}
-                            aria-label={t('admin.users.grantPremium')}
-                            className="hover:text-neon-pink"
-                          >
-                            <Crown className="h-4 w-4" />
-                          </Button>
+                          <Tooltip content={t('admin.users.grantPremium')}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setGrantingUser(user)}
+                              aria-label={t('admin.users.grantPremium')}
+                              className="hover:text-neon-pink"
+                            >
+                              <Crown className="h-4 w-4" />
+                            </Button>
+                          </Tooltip>
                         )}
                         {user.isAdmin ? (
-                          <Button
-                            variant="unban"
-                            size="icon"
-                            onClick={() => setUnbanningUser(user)}
-                            aria-label={t('admin.users.unbanUser')}
-                          >
-                            <Unlock className="h-4 w-4" />
-                          </Button>
+                          <Tooltip content={t('admin.users.unbanUser')}>
+                            <Button
+                              variant="unban"
+                              size="icon"
+                              onClick={() => setUnbanningUser(user)}
+                              aria-label={t('admin.users.unbanUser')}
+                            >
+                              <Unlock className="h-4 w-4" />
+                            </Button>
+                          </Tooltip>
                         ) : (
-                          <Button
-                            variant="ban"
-                            size="icon"
-                            onClick={() => setBanningUser(user)}
-                            aria-label={t('admin.users.banUser')}
-                          >
-                            <Ban className="h-4 w-4" />
-                          </Button>
+                          <Tooltip content={t('admin.users.banUser')}>
+                            <Button
+                              variant="ban"
+                              size="icon"
+                              onClick={() => setBanningUser(user)}
+                              aria-label={t('admin.users.banUser')}
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          </Tooltip>
                         )}
-                        <Button
-                          variant="dangerGhost"
-                          size="icon"
-                          onClick={() => setDeletingUser(user)}
-                          aria-label={t('admin.users.deleteUser')}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Tooltip content={t('admin.users.deleteUser')}>
+                          <Button
+                            variant="dangerGhost"
+                            size="icon"
+                            onClick={() => setDeletingUser(user)}
+                            aria-label={t('admin.users.deleteUser')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </Tooltip>
                       </div>
                     </motion.div>
                   ))}
@@ -556,63 +567,73 @@ export function UserList() {
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                               {usersBilling[user.id]?.source === 'supporter' ? (
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setRevokingUser(user)}
-                                    aria-label={t('admin.users.revokePremium')}
-                                    className="hover:text-warning"
-                                  >
-                                    <Crown className="h-4 w-4 text-neon-pink" />
-                                  </Button>
-                                </motion.div>
+                                <Tooltip content={t('admin.users.revokePremium')}>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setRevokingUser(user)}
+                                      aria-label={t('admin.users.revokePremium')}
+                                      className="hover:text-warning"
+                                    >
+                                      <Crown className="h-4 w-4 text-neon-pink" />
+                                    </Button>
+                                  </motion.div>
+                                </Tooltip>
                               ) : (
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setGrantingUser(user)}
-                                    aria-label={t('admin.users.grantPremium')}
-                                    className="hover:text-neon-pink"
-                                  >
-                                    <Crown className="h-4 w-4" />
-                                  </Button>
-                                </motion.div>
+                                <Tooltip content={t('admin.users.grantPremium')}>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setGrantingUser(user)}
+                                      aria-label={t('admin.users.grantPremium')}
+                                      className="hover:text-neon-pink"
+                                    >
+                                      <Crown className="h-4 w-4" />
+                                    </Button>
+                                  </motion.div>
+                                </Tooltip>
                               )}
                               {user.isAdmin ? (
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                  <Button
-                                    variant="unban"
-                                    size="icon"
-                                    onClick={() => setUnbanningUser(user)}
-                                    aria-label={t('admin.users.unbanUser')}
-                                  >
-                                    <Unlock className="h-4 w-4" />
-                                  </Button>
-                                </motion.div>
+                                <Tooltip content={t('admin.users.unbanUser')}>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      variant="unban"
+                                      size="icon"
+                                      onClick={() => setUnbanningUser(user)}
+                                      aria-label={t('admin.users.unbanUser')}
+                                    >
+                                      <Unlock className="h-4 w-4" />
+                                    </Button>
+                                  </motion.div>
+                                </Tooltip>
                               ) : (
+                                <Tooltip content={t('admin.users.banUser')}>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      variant="ban"
+                                      size="icon"
+                                      onClick={() => setBanningUser(user)}
+                                      aria-label={t('admin.users.banUser')}
+                                    >
+                                      <Ban className="h-4 w-4" />
+                                    </Button>
+                                  </motion.div>
+                                </Tooltip>
+                              )}
+                              <Tooltip content={t('admin.users.deleteUser')}>
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                   <Button
-                                    variant="ban"
+                                    variant="dangerGhost"
                                     size="icon"
-                                    onClick={() => setBanningUser(user)}
-                                    aria-label={t('admin.users.banUser')}
+                                    onClick={() => setDeletingUser(user)}
+                                    aria-label={t('admin.users.deleteUser')}
                                   >
-                                    <Ban className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </motion.div>
-                              )}
-                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                <Button
-                                  variant="dangerGhost"
-                                  size="icon"
-                                  onClick={() => setDeletingUser(user)}
-                                  aria-label={t('admin.users.deleteUser')}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </motion.div>
+                              </Tooltip>
                             </div>
                           </TableCell>
                         </motion.tr>
