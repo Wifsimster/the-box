@@ -7,8 +7,8 @@ import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screen
  * the backend's `error.code` on failure so callers don't have to re-check
  * the envelope.
  *
- * Replaces the per-tab `fetchJson` helper that lived in GeoMapsTab and
- * GeoGamesTab — same signature, single source of truth.
+ * Replaces the per-tab `fetchJson` helper that lived in the legacy
+ * GeoMapsTab / GeoGamesTab — same signature, single source of truth.
  */
 export async function fetchAdminJson<T>(
   path: string,
