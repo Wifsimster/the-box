@@ -758,7 +758,11 @@
           "region": "region: {{region}}",
           "previewAlt": "Active map for {{name}} (click to open full size)",
           "previewDimensions": "{{width}} × {{height}} px",
-          "loading": "Loading sources…"
+          "loading": "Loading sources…",
+          "pipelineTitle": "Ingestion pipeline",
+          "pipelineSubtitle": "Source cascade — the first match becomes the active map.",
+          "addMap": "Add a map",
+          "moreActions": "More actions"
         },
         "multi": {
           "enabledTitle": "Enabled maps",
