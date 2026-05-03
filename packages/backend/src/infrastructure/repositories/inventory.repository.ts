@@ -115,6 +115,22 @@ export const inventoryRepository = {
     },
 
     /**
+     * List every owned item of a given `itemType` for a user (qty > 0).
+     * Used by cosmetics where `getUserInventory` is powerup-shaped and
+     * skips non-powerup item_types.
+     */
+    async listByType(
+        userId: string,
+        itemType: string
+    ): Promise<Array<{ itemKey: string; quantity: number }>> {
+        const rows = await db('user_inventory')
+            .where({ user_id: userId, item_type: itemType })
+            .where('quantity', '>', 0)
+            .select<Array<{ item_key: string; quantity: number }>>('item_key', 'quantity')
+        return rows.map((r) => ({ itemKey: r.item_key, quantity: r.quantity }))
+    },
+
+    /**
      * Add multiple items in a single transaction
      */
     async addMultipleItems(

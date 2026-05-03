@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import { db } from '../../database/connection.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
@@ -6,6 +5,10 @@ import { rewardsService } from '../../../domain/services/index.js'
 import { sendEmail } from '../../email/email-sender.js'
 import { buildReactivationEmail } from '../../email/reactivation-email.js'
 import { emitRewardGranted } from '../../socket/socket.js'
+import {
+    reactivationBucket,
+    isHoldoutUser,
+} from './reactivation-bucket.js'
 import type { RewardGrantedEvent } from '@the-box/types'
 
 const log = queueLogger.child({ worker: 'reactivation-scan' })
@@ -29,12 +32,6 @@ const MIN_ACCOUNT_AGE_HOURS = 48
 // worse than aborting.
 const MAX_CANDIDATES_PER_RUN = 5000
 
-// Holdout share, in [0, 100). Per PRD: 10% of eligible users skip the
-// chest grant but still receive the warm welcome-back email so we can
-// measure D30 lift treatment-vs-holdout. Hash is on user_id only so a
-// user is permanently in one cohort across weeks.
-const HOLDOUT_PERCENT = 10
-
 const REACTIVATION_ITEMS = [
     { itemType: 'powerup', itemKey: 'hint_developer', quantity: 1 },
     { itemType: 'powerup', itemKey: 'second_chance', quantity: 1 },
@@ -57,22 +54,11 @@ interface ReactivationCandidate {
     locale: string | null
 }
 
-/**
- * Stable per-user 0-99 bucket. Hash is on user_id only — NOT user_id+week
- * — so a given user is always treatment OR always holdout for this
- * feature, regardless of when the worker fires.
- */
-export function reactivationBucket(userId: string): number {
-    const digest = createHash('sha256').update(userId).digest()
-    // First 4 bytes as unsigned int, mod 100. 4 bytes is plenty of entropy
-    // for a 100-bucket split and avoids BigInt for a uint64.
-    const n = digest.readUInt32BE(0)
-    return n % 100
-}
-
-export function isHoldoutUser(userId: string): boolean {
-    return reactivationBucket(userId) < HOLDOUT_PERCENT
-}
+// `reactivationBucket` and `isHoldoutUser` live in a sibling module so
+// unit tests can import them without dragging this file's BullMQ /
+// Redis / socket imports into the test process. Re-exported here for
+// existing callers.
+export { reactivationBucket, isHoldoutUser }
 
 /** ISO-week label `YYYY-Www`, lowercase. UTC. */
 function isoWeekLabel(now: Date = new Date()): string {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -12,7 +12,7 @@ import { gameApi } from '@/lib/api/game'
 import { getApiErrorMessage } from '@/lib/api-errors'
 import type { GameSessionDetailsResponse } from '@/types'
 import { calculateSpeedMultiplier } from '@/lib/utils'
-import { prefersReducedMotion } from '@/lib/animations'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
 export default function GameHistoryDetailsPage() {
   const { t, i18n } = useTranslation()
@@ -22,7 +22,7 @@ export default function GameHistoryDetailsPage() {
   const [sessionData, setSessionData] = useState<GameSessionDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
+  const reducedMotion = useReducedMotionSafe()
 
   /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {

@@ -7,12 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, RefreshCw, Calendar, Play, Flame, Gamepad2, Sparkles, Target } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
-import { prefersReducedMotion } from '@/lib/animations'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import type { GameHistoryEntry, MissedChallenge } from '@/types'
 
 type ScoreTier = 'mastered' | 'solid' | 'shaky'
@@ -69,7 +70,7 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
   const [missedChallenges, setMissedChallenges] = useState<MissedChallenge[]>([])
   const [loading, setLoading] = useState(true)
-  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
+  const reducedMotion = useReducedMotionSafe()
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
@@ -250,44 +251,29 @@ export default function HistoryPage() {
                     />
                   </div>
 
-                  {/* Status Filter Buttons */}
-                  <div className="flex flex-wrap gap-2" role="group" aria-label={t('common.filters')}>
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('all')}
-                      aria-pressed={statusFilter === 'all'}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${statusFilter === 'all'
-                        ? 'bg-primary text-primary-foreground font-medium'
-                        : 'bg-secondary/50 hover:bg-secondary'
-                        }`}
-                    >
+                  {/* Status Filter — Radix ToggleGroup gives aria-pressed + roving tabindex */}
+                  <ToggleGroup
+                    type="single"
+                    value={statusFilter}
+                    onValueChange={(value) => {
+                      if (value === 'all' || value === 'completed' || value === 'inProgress') {
+                        setStatusFilter(value)
+                      }
+                    }}
+                    aria-label={t('common.filters')}
+                  >
+                    <ToggleGroupItem value="all" aria-label={t('common.all')}>
                       {t('common.all')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('completed')}
-                      aria-pressed={statusFilter === 'completed'}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${statusFilter === 'completed'
-                        ? 'bg-primary text-primary-foreground font-medium'
-                        : 'bg-secondary/50 hover:bg-secondary'
-                        }`}
-                    >
-                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" aria-hidden="true" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="completed" aria-label={t('history.completed')}>
+                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" aria-hidden="true" />
                       {t('history.completed')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('inProgress')}
-                      aria-pressed={statusFilter === 'inProgress'}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${statusFilter === 'inProgress'
-                        ? 'bg-primary text-primary-foreground font-medium'
-                        : 'bg-secondary/50 hover:bg-secondary'
-                        }`}
-                    >
-                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" aria-hidden="true" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="inProgress" aria-label={t('history.inProgress')}>
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4" aria-hidden="true" />
                       {t('history.inProgress')}
-                    </button>
-                  </div>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
 
                   {/* Active Filters Display */}
                   {(statusFilter !== 'all' || searchQuery) && (
