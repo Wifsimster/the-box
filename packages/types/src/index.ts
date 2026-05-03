@@ -876,6 +876,31 @@ export type GeoMapSource =
   | 'steam'
   | 'manual'
 
+// 'image' = single flat PNG/JPG (most games today). 'tiles' = Leaflet-style
+// tile pyramid (e.g. World of Warcraft via World-of-MapCraft, Hollow Knight
+// at higher resolutions). Both kinds share widthPx/heightPx as the world
+// rectangle in pixels at the deepest zoom — pin coordinates stay normalized
+// [0..1] regardless of kind.
+export type GeoMapKind = 'image' | 'tiles'
+
+// Naming schemes for tile URL templates. Kept as a strict union (rather than
+// free-form strings) so the formatter, the worker probe, and the renderer
+// all agree on what a registry entry means.
+//
+//  - 'xyz': vanilla `{z}/{x}/{y}` substitution; Leaflet's default. Z grows
+//    with zoom (z=0 most zoomed-out).
+//  - 'xyz-padded2-inverted': zero-pad x and y to 2 digits, and invert z so
+//    the URL's z=0 is the deepest layer (used by World-of-MapCraft).
+export type GeoTileScheme = 'xyz' | 'xyz-padded2-inverted'
+
+export interface GeoMapTilesConfig {
+  urlTemplate: string
+  minZoom: number
+  maxZoom: number
+  tileSize: number
+  scheme: GeoTileScheme
+}
+
 export interface GeoMap {
   id: number
   gameId: number
@@ -884,6 +909,9 @@ export interface GeoMap {
   imageUrl: string
   widthPx: number
   heightPx: number
+  kind: GeoMapKind
+  // Set when kind === 'tiles'. Undefined for kind === 'image'.
+  tiles?: GeoMapTilesConfig
   consensusRadius: number
   license: string
   attribution?: string
@@ -996,6 +1024,8 @@ export interface GeoMapOption {
   imageUrl: string
   widthPx: number
   heightPx: number
+  kind: GeoMapKind
+  tiles?: GeoMapTilesConfig
 }
 
 export interface GeoScreenshotCandidate {

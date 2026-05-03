@@ -1,7 +1,7 @@
 {
   "$schema": "./geo-map-registry.schema.json",
   "version": 1,
-  "description": "Tier 1 ingestion source for geo_map. Each entry maps a game (matched by `match.slug` or any string in `match.aliases`) to a permissively-licensed external image URL with declared license + attribution. The geo-registry-import worker fetches imageUrl, infers dimensions, and writes a geo_map row with source='registry'. To add a new entry: (1) find a real GitHub repo / wiki tile-source hosting a flat world-map image — verify the URL returns an image with `curl -I`; (2) confirm the license in the repo's README/LICENSE; (3) record license + attribution. Prefer MIT/GPL/CC-BY/CC-BY-SA over CC-BY-NC. The `aliases` array catches RAWG slug variations: GOTY/Legendary/Definitive editions, DLCs that share the base game's map, abbreviations (e.g. `gta-5`, `botw`). Optional `region` field labels which slice of a multi-region game the entry represents (e.g. \"Velen\", \"Act II\"); omit it for the canonical world / mosaic map. Today's runtime still picks a single active map per game — region is informational + future-proofing.",
+  "description": "Tier 1 ingestion source for geo_map. Each entry maps a game (matched by `match.slug` or any string in `match.aliases`) to either (a) a permissively-licensed flat world-map image, or (b) a Leaflet-style tile pyramid via the optional `tiles` block (urlTemplate + minZoom/maxZoom/tileSize/scheme). For tiled entries, `imageUrl` still acts as a single-tile thumbnail for admin grids and non-Leaflet renderers; the player canvas uses TileLayer when `tiles` is set. The worker HEAD-probes the imageUrl for image entries and the deepest-zoom (0,0) tile for tile entries before writing the row. To add an entry: (1) verify the image / tile URL returns 2xx with `curl -I`; (2) record license + attribution; (3) for tile sources, declare the scheme — `xyz` for vanilla `{z}/{x}/{y}` substitution, `xyz-padded2-inverted` for World-of-MapCraft-style zero-padding + inverted z. Prefer MIT/GPL/CC-BY/CC-BY-SA over CC-BY-NC. The `aliases` array catches RAWG slug variations (GOTY/Legendary/Definitive editions, abbreviations e.g. `gta-5`, `botw`). Optional `region` field labels which slice of a multi-region game the entry represents — omit for the canonical world / mosaic map.",
   "entries": [
     {
       "match": { "slug": "elden-ring" },
@@ -103,6 +103,26 @@
       "attribution": "henpemaz/Rain-World-Interactive-Map (MIT)",
       "sourceUrl": "https://github.com/henpemaz/Rain-World-Interactive-Map",
       "commercialUseOk": true
+    },
+    {
+      "match": {
+        "slug": "world-of-warcraft",
+        "aliases": ["wow", "world-of-warcraft-classic"]
+      },
+      "imageUrl": "https://cdn.iamcal.com/mapcraft/mopv1/azeroth/tile_z5_00_00.png",
+      "widthPx": 21760,
+      "heightPx": 17664,
+      "license": "Unknown",
+      "attribution": "iamcal/World-of-MapCraft (derivative of Blizzard assets)",
+      "sourceUrl": "https://github.com/iamcal/World-of-MapCraft",
+      "commercialUseOk": false,
+      "tiles": {
+        "urlTemplate": "https://cdn.iamcal.com/mapcraft/mopv1/azeroth/tile_z{z}_{x}_{y}.png",
+        "minZoom": 0,
+        "maxZoom": 5,
+        "tileSize": 256,
+        "scheme": "xyz-padded2-inverted"
+      }
     }
   ]
 }

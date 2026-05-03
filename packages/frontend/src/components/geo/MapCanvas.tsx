@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Minus, Plus, RotateCcw } from 'lucide-react'
-import type { GeoPoint } from '@the-box/types'
+import type { GeoMapTilesConfig, GeoPoint } from '@the-box/types'
 import { cn } from '@/lib/utils'
 import { clamp01, isPlaceholderImageUrl } from '@/lib/geo-image'
 import { MapErrorFallback } from './MapErrorFallback'
@@ -19,6 +19,10 @@ export interface MapCanvasProps {
     imageUrl: string
     widthPx: number
     heightPx: number
+    // Optional tile source. Only honored by MapCanvasLeaflet — the legacy
+    // DIY canvas (this file) ignores it and falls back to the imageUrl
+    // thumbnail. Pages should set VITE_GEO_USE_LEAFLET=true for tile games.
+    tiles?: GeoMapTilesConfig
     pin?: GeoPoint | null
     canonical?: GeoPoint | null // shown as a target when revealed
     onPin?: (p: GeoPoint) => void

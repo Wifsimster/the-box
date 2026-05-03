@@ -194,6 +194,7 @@ function GeoPlayContent() {
                             imageUrl={selectedMap.imageUrl}
                             widthPx={selectedMap.widthPx}
                             heightPx={selectedMap.heightPx}
+                            tiles={selectedMap.tiles}
                             pin={pendingGuess ?? result?.guess ?? null}
                             canonical={
                                 phase === 'revealed' &&

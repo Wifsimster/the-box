@@ -1,6 +1,12 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
-import type { GeoMap, GeoMapSource } from '@the-box/types'
+import type {
+  GeoMap,
+  GeoMapKind,
+  GeoMapSource,
+  GeoMapTilesConfig,
+  GeoTileScheme,
+} from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'geo-map' })
 
@@ -12,6 +18,12 @@ export interface GeoMapRow {
   image_url: string
   width_px: number
   height_px: number
+  kind: GeoMapKind
+  tile_url_template: string | null
+  tile_min_zoom: number | null
+  tile_max_zoom: number | null
+  tile_size: number | null
+  tile_scheme: GeoTileScheme | null
   consensus_radius: number
   license: string
   attribution: string | null
@@ -37,6 +49,25 @@ function mapRow(row: GeoMapRow): GeoMap {
       : typeof row.wiki_revision_id === 'string'
         ? Number(row.wiki_revision_id)
         : row.wiki_revision_id
+  // Build tiles config only when the row is fully populated. The CHECK
+  // constraint guarantees this on insert, but defend in depth — a partial
+  // row from manual SQL would surface as `kind: 'image'` here, not a NaN
+  // tile pyramid downstream.
+  const tiles: GeoMapTilesConfig | undefined =
+    row.kind === 'tiles' &&
+    row.tile_url_template &&
+    row.tile_min_zoom != null &&
+    row.tile_max_zoom != null &&
+    row.tile_size != null &&
+    row.tile_scheme
+      ? {
+          urlTemplate: row.tile_url_template,
+          minZoom: row.tile_min_zoom,
+          maxZoom: row.tile_max_zoom,
+          tileSize: row.tile_size,
+          scheme: row.tile_scheme,
+        }
+      : undefined
   return {
     id: row.id,
     gameId: row.game_id,
@@ -45,6 +76,8 @@ function mapRow(row: GeoMapRow): GeoMap {
     imageUrl: row.image_url,
     widthPx: row.width_px,
     heightPx: row.height_px,
+    kind: tiles ? 'tiles' : 'image',
+    tiles,
     consensusRadius: row.consensus_radius,
     license: row.license,
     attribution: row.attribution ?? undefined,
@@ -197,6 +230,10 @@ export const geoMapRepository = {
     imageUrl: string
     widthPx: number
     heightPx: number
+    // Tiles is opt-in: when set, the row is stored with kind='tiles' and the
+    // five tile_* columns; the imageUrl still gets stored as a thumbnail so
+    // admin grids and non-Leaflet renderers keep working.
+    tiles?: GeoMapTilesConfig
     consensusRadius?: number
     license: string
     attribution?: string
@@ -246,6 +283,12 @@ export const geoMapRepository = {
           image_url: data.imageUrl,
           width_px: data.widthPx,
           height_px: data.heightPx,
+          kind: data.tiles ? 'tiles' : 'image',
+          tile_url_template: data.tiles?.urlTemplate ?? null,
+          tile_min_zoom: data.tiles?.minZoom ?? null,
+          tile_max_zoom: data.tiles?.maxZoom ?? null,
+          tile_size: data.tiles?.tileSize ?? null,
+          tile_scheme: data.tiles?.scheme ?? null,
           consensus_radius: data.consensusRadius ?? 0.03,
           license: data.license,
           attribution: data.attribution ?? null,

@@ -157,6 +157,7 @@ export default function GeoContributePage() {
                                 imageUrl={currentCandidateMap.imageUrl}
                                 widthPx={currentCandidateMap.widthPx}
                                 heightPx={currentCandidateMap.heightPx}
+                                tiles={currentCandidateMap.tiles}
                                 pin={pendingPin}
                                 onPin={setPendingPin}
                             />

@@ -1122,6 +1122,7 @@ function CandidateDetailBody({
                 imageUrl={detail.map.imageUrl}
                 widthPx={detail.map.widthPx}
                 heightPx={detail.map.heightPx}
+                tiles={detail.map.tiles}
                 pin={pin}
                 canonical={
                     detail.meta
