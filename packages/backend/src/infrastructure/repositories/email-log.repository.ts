@@ -12,6 +12,7 @@ export type EmailType =
   | 'referral-announcement'
   | 'admin-test'
   | 'premium-granted'
+  | 'reactivation-chest'
 
 export type EmailStatus = 'sent' | 'failed' | 'skipped'
 

@@ -8,6 +8,8 @@ export { importStateRepository } from './import-state.repository.js'
 export { achievementRepository } from './achievement.repository.js'
 export { dailyLoginRepository } from './daily-login.repository.js'
 export { inventoryRepository } from './inventory.repository.js'
+export { rewardRepository } from './reward.repository.js'
+export { positionSecondChanceRepository } from './position-second-chance.repository.js'
 export { funnelEventRepository } from './funnel-event.repository.js'
 export {
   emailLogRepository,

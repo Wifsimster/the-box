@@ -24,6 +24,23 @@ function getYesterday(): string {
 }
 
 /**
+ * Whole-day gap between two YYYY-MM-DD dates (UTC). Returns Infinity when
+ * `from` is null. Used to decide whether a streak freeze can cover the
+ * gap: exactly one missed day (`gap === 2`, e.g. Mon→Wed) is forgivable;
+ * two-or-more missed days resets unconditionally per the streak-freeze
+ * PRD ("one freeze = one day, period").
+ */
+function daysBetween(from: string | null, to: string): number {
+  if (!from) return Infinity
+  const start = new Date(`${from}T00:00:00Z`).getTime()
+  const end = new Date(`${to}T00:00:00Z`).getTime()
+  return Math.round((end - start) / (24 * 60 * 60 * 1000))
+}
+
+const STREAK_FREEZE_ITEM_TYPE = 'powerup'
+const STREAK_FREEZE_ITEM_KEY = 'streak_freeze'
+
+/**
  * Calculate streak based on last login date
  * Returns: { newStreak, newDayInCycle, isNewLogin }
  */
@@ -162,7 +179,7 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
       )
 
       // Calculate new streak values
-      const { newStreak, newLongestStreak, newDayInCycle, isNewLogin } = calculateStreak(
+      let { newStreak, newLongestStreak, newDayInCycle, isNewLogin } = calculateStreak(
         lastLoginDate,
         streakRecord.current_login_streak,
         streakRecord.longest_login_streak,
@@ -170,6 +187,57 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
       )
 
       log.info({ userId, isNewLogin, newStreak, newDayInCycle }, 'calculateStreak result')
+
+      // Streak-freeze auto-consume: when the streak would reset because the
+      // user missed EXACTLY one day AND has at least one freeze in
+      // inventory, consume the freeze and behave as if they had logged in
+      // yesterday. Multi-day gaps are NOT covered (one freeze = one day,
+      // per the streak-freeze PRD). Invariant: freezes are never
+      // purchasable; this is the SOLE consumption path. Race window note:
+      // two near-simultaneous /status calls on a new day could both reach
+      // this branch and decrement twice — acceptable for v1; mitigation is
+      // moving the consume into the same transaction as updateUserStreak.
+      const previousStreak = streakRecord.current_login_streak
+      const wouldReset =
+        isNewLogin && newStreak === 1 && previousStreak > 0
+      const missedExactlyOneDay = daysBetween(lastLoginDate, today) === 2
+      let streakFreezeConsumed: DailyLoginStatus['streakFreezeConsumed'] = null
+
+      if (wouldReset && missedExactlyOneDay) {
+        const consumed = await inventoryRepository.useItems(
+          userId,
+          STREAK_FREEZE_ITEM_TYPE,
+          STREAK_FREEZE_ITEM_KEY,
+          1
+        )
+        if (consumed) {
+          // Re-run streak math as if last login was yesterday (case 2):
+          // continue, advance day-in-cycle, bump longest if needed.
+          const continued = calculateStreak(
+            getYesterday(),
+            previousStreak,
+            streakRecord.longest_login_streak,
+            streakRecord.current_day_in_cycle
+          )
+          newStreak = continued.newStreak
+          newLongestStreak = continued.newLongestStreak
+          newDayInCycle = continued.newDayInCycle
+          const freezesRemaining = await inventoryRepository.getItemQuantity(
+            userId,
+            STREAK_FREEZE_ITEM_TYPE,
+            STREAK_FREEZE_ITEM_KEY
+          )
+          streakFreezeConsumed = {
+            previousStreak,
+            newStreak,
+            freezesRemaining,
+          }
+          log.info(
+            { userId, previousStreak, newStreak, freezesRemaining },
+            'streak-freeze auto-consumed — streak preserved'
+          )
+        }
+      }
 
       // Update streak if this is a new login day. updateUserStreak guards
       // on `last_login_date IS DISTINCT FROM today`, so concurrent
@@ -203,6 +271,7 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
         currentDayInCycle: newDayInCycle,
         todayReward,
         allRewards,
+        streakFreezeConsumed,
       }
     },
 

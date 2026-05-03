@@ -6,6 +6,7 @@ import { importQueueEvents } from '../queue/queues.js'
 import type {
     GeoRewardedEvent,
     GeoTierUpEvent,
+    RewardGrantedEvent,
     UserPremiumGrantedEvent,
 } from '@the-box/types'
 
@@ -273,6 +274,20 @@ export function emitUserPremiumGranted(event: UserPremiumGrantedEvent): void {
     const ns = userNotificationsNamespace()
     if (!ns) return
     ns.to(`user:${event.userId}`).emit('user:premium-granted', event)
+}
+
+/**
+ * Emit a generic reward grant to the user-notifications namespace. Called
+ * by every async reward path (reactivation, milestones, payouts, …) AFTER
+ * `rewardsService.grant(...)` returns wasNew=true so the inbox UI updates
+ * live without polling. The grant row is already persisted, so a missed
+ * emit (offline client) is reconciled on reconnect via the unclaimed-list
+ * endpoint — this emit is best-effort, not authoritative.
+ */
+export function emitRewardGranted(userId: string, event: RewardGrantedEvent): void {
+    const ns = userNotificationsNamespace()
+    if (!ns) return
+    ns.to(`user:${userId}`).emit('reward:granted', event)
 }
 
 // ---------- Geo-fetch pipeline (admin-only) ----------

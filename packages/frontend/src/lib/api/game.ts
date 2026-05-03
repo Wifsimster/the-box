@@ -117,6 +117,28 @@ export const gameApi = {
   },
 
   /**
+   * Activate the `second_chance` powerup for a specific position. The
+   * server decrements inventory and records the activation atomically.
+   * The next correct guess on this (tierSession, position) will have
+   * its score floor clamped to 70 — see backend game.service for the
+   * canonical contract.
+   */
+  async activateSecondChance(params: {
+    tierSessionId: string
+    position: number
+  }): Promise<{ activated: true }> {
+    const response = await fetch('/api/game/second-chance', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    })
+    return handleResponse<{ activated: true }>(response)
+  },
+
+  /**
    * End game early (forfeit)
    */
   async endGame(sessionId: string): Promise<EndGameResponse> {

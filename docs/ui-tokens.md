@@ -241,6 +241,7 @@ Propulsée par `class-variance-authority`. Préférez les variantes aux classes 
 | `default` | Surfaces génériques : lignes de classement, cartes de profil, panneaux admin |
 | `neon` | Accents gaming — révélation de palier, panneaux de score, cartes d'onboarding |
 | `success` | Résultat de bonne réponse, succès débloqué, retour positif |
+| `warning` | Action disponible à durée limitée (rattrapages, fenêtre de jeu), avertissement non bloquant |
 | `error` | Résultat de mauvaise réponse, série rompue, retour négatif |
 
 ```tsx

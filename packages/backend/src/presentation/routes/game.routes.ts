@@ -258,6 +258,58 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
   }
 })
 
+// Activate the second-chance powerup for a specific position. Decrements
+// inventory and inserts a position_second_chances row atomically. The next
+// correct guess on (tier_session_id, position) will have its score floor
+// clamped to 70. See game.service.activateSecondChance for the contract.
+router.post('/second-chance', authMiddleware, async (req, res, next) => {
+  try {
+    const { tierSessionId, position } = req.body ?? {}
+
+    if (typeof tierSessionId !== 'string' || typeof position !== 'number') {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_PARAMS',
+          message: 'tierSessionId (string) and position (number) required',
+        },
+      })
+      return
+    }
+
+    const result = await gameService.activateSecondChance({
+      tierSessionId,
+      position,
+      userId: req.userId!,
+    })
+
+    if (!result.ok) {
+      const status =
+        result.reason === 'SESSION_NOT_FOUND'
+          ? 404
+          : result.reason === 'NO_INVENTORY'
+            ? 402
+            : 409
+      res.status(status).json({
+        success: false,
+        error: { code: result.reason, message: `second-chance: ${result.reason}` },
+      })
+      return
+    }
+
+    res.json({ success: true, data: { activated: true } })
+  } catch (error) {
+    if (error instanceof GameError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: { code: error.code, message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
 // End game early (forfeit)
 router.post('/end', authMiddleware, async (req, res, next) => {
   try {

@@ -1,29 +1,61 @@
 import express, { Router } from 'express'
 import type Stripe from 'stripe'
-import { getStripe } from '../../infrastructure/stripe/stripe.client.js'
+import { getStripe as getStripeProd } from '../../infrastructure/stripe/stripe.client.js'
 import { env } from '../../config/env.js'
 import {
-  subscriptionRepository,
-  stripeEventLogRepository,
+  subscriptionRepository as subscriptionRepoProd,
+  stripeEventLogRepository as stripeEventLogRepoProd,
+  type UpsertSubscriptionInput,
 } from '../../infrastructure/repositories/subscription.repository.js'
-import { userRepository } from '../../infrastructure/repositories/user.repository.js'
-import { billingService } from '../../domain/services/billing.service.js'
-import { logger } from '../../infrastructure/logger/logger.js'
-
-const log = logger.child({ route: 'billing-webhook' })
+import { userRepository as userRepoProd } from '../../infrastructure/repositories/user.repository.js'
+import { billingService as billingServiceProd } from '../../domain/services/billing.service.js'
+import { logger as loggerProd } from '../../infrastructure/logger/logger.js'
+import type { DomainLogger } from '../../domain/ports/logger.js'
 
 // Mounted at the very top of index.ts BEFORE express.json(), because Stripe
 // signature verification requires the raw request bytes. Using a path-scoped
 // raw parser keeps every other route on the existing JSON pipeline.
 
-const router = Router()
+// ---- Dependency-injection ports ----------------------------------------
+
+export interface BillingWebhookEventLogRepo {
+  claimEvent(eventId: string, type: string): Promise<{ alreadyProcessed: boolean }>
+  markEventProcessed(eventId: string): Promise<void>
+}
+
+export interface BillingWebhookUserRepo {
+  grantSupporterLifetime(userId: string, grantedAt?: Date): Promise<boolean>
+  revokeSupporterLifetime(userId: string, reason: string): Promise<boolean>
+  clearStripeCustomerId(userId: string): Promise<void>
+}
+
+export interface BillingWebhookSubscriptionRepo {
+  upsert(input: UpsertSubscriptionInput): Promise<unknown>
+}
+
+export interface BillingWebhookBillingService {
+  resolveUserIdFromCustomer(customerId: string): Promise<string | null>
+  fromStripeSubscription(sub: Stripe.Subscription): Omit<UpsertSubscriptionInput, 'userId'>
+}
+
+export interface BillingWebhookDeps {
+  stripeEventLogRepository: BillingWebhookEventLogRepo
+  userRepository: BillingWebhookUserRepo
+  subscriptionRepository: BillingWebhookSubscriptionRepo
+  billingService: BillingWebhookBillingService
+  getStripe: () => Stripe
+  getSecrets: () => string[]
+  logger: DomainLogger
+}
+
+// ---- Pure helpers (exported for tests) ---------------------------------
 
 // STRIPE_WEBHOOK_SECRET supports comma-separated values so a rolling
 // rotation (Stripe lets you keep both an old and a new signing secret on
 // the same endpoint for a short window) doesn't drop events while ops
 // updates the env. We try each secret in turn and accept the first that
 // verifies; if none verify, we 400 like before.
-function parseWebhookSecrets(raw: string): string[] {
+export function parseWebhookSecrets(raw: string): string[] {
   return raw
     .split(',')
     .map((s) => s.trim())
@@ -42,61 +74,70 @@ function verifyEvent(stripe: Stripe, body: Buffer, signature: string, secrets: s
   throw lastErr ?? new Error('no webhook secret provided')
 }
 
-router.post(
-  '/',
-  express.raw({ type: 'application/json' }),
-  async (req, res) => {
-    const signature = req.headers['stripe-signature']
-    if (!signature || typeof signature !== 'string') {
-      res.status(400).send('missing stripe-signature header')
-      return
-    }
-    const secrets = parseWebhookSecrets(env.STRIPE_WEBHOOK_SECRET)
-    if (secrets.length === 0) {
-      log.error('STRIPE_WEBHOOK_SECRET is not configured — refusing webhook')
-      res.status(503).send('webhook not configured')
-      return
-    }
+// ---- Factory -----------------------------------------------------------
 
-    let event: Stripe.Event
-    try {
-      const stripe = getStripe()
-      event = verifyEvent(stripe, req.body as Buffer, signature, secrets)
-    } catch (err) {
-      log.warn({ err: String(err) }, 'webhook signature verification failed')
-      res.status(400).send(`signature verification failed: ${err instanceof Error ? err.message : 'unknown'}`)
-      return
-    }
+export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
+  const log = deps.logger.child({ route: 'billing-webhook' })
+  const router = Router()
 
-    // Two-phase idempotency. Claim the event first so concurrent retries
-    // see processed_at IS NULL and don't both run side effects naïvely (the
-    // writes themselves are idempotent, but skipping needless work is
-    // cheaper). Only after dispatch returns successfully do we stamp
-    // processed_at — a 5xx mid-dispatch keeps processed_at NULL so the
-    // next retry re-runs the handler instead of being silently skipped.
-    try {
-      const { alreadyProcessed } = await stripeEventLogRepository.claimEvent(event.id, event.type)
-      if (alreadyProcessed) {
-        res.json({ received: true, duplicate: true })
+  router.post(
+    '/',
+    express.raw({ type: 'application/json' }),
+    async (req, res) => {
+      const signature = req.headers['stripe-signature']
+      if (!signature || typeof signature !== 'string') {
+        res.status(400).send('missing stripe-signature header')
+        return
+      }
+      const secrets = deps.getSecrets()
+      if (secrets.length === 0) {
+        log.error('STRIPE_WEBHOOK_SECRET is not configured — refusing webhook')
+        res.status(503).send('webhook not configured')
         return
       }
 
-      await dispatch(event)
-      await stripeEventLogRepository.markEventProcessed(event.id)
-      res.json({ received: true })
-    } catch (err) {
-      log.error(
-        { err: String(err), eventId: event.id, type: event.type },
-        'webhook handler failed',
-      )
-      // 5xx signals Stripe to retry; processed_at stays NULL so the retry
-      // will re-dispatch instead of seeing a stale "applied" claim.
-      res.status(500).send(`webhook handler error (event ${event.id})`)
-    }
-  },
-)
+      let event: Stripe.Event
+      try {
+        const stripe = deps.getStripe()
+        event = verifyEvent(stripe, req.body as Buffer, signature, secrets)
+      } catch (err) {
+        log.warn({ err: String(err) }, 'webhook signature verification failed')
+        res.status(400).send(`signature verification failed: ${err instanceof Error ? err.message : 'unknown'}`)
+        return
+      }
 
-async function dispatch(event: Stripe.Event): Promise<void> {
+      // Two-phase idempotency. Claim the event first so concurrent retries
+      // see processed_at IS NULL and don't both run side effects naïvely (the
+      // writes themselves are idempotent, but skipping needless work is
+      // cheaper). Only after dispatch returns successfully do we stamp
+      // processed_at — a 5xx mid-dispatch keeps processed_at NULL so the
+      // next retry re-runs the handler instead of being silently skipped.
+      try {
+        const { alreadyProcessed } = await deps.stripeEventLogRepository.claimEvent(event.id, event.type)
+        if (alreadyProcessed) {
+          res.json({ received: true, duplicate: true })
+          return
+        }
+
+        await dispatch(deps, log, event)
+        await deps.stripeEventLogRepository.markEventProcessed(event.id)
+        res.json({ received: true })
+      } catch (err) {
+        log.error(
+          { err: String(err), eventId: event.id, type: event.type },
+          'webhook handler failed',
+        )
+        // 5xx signals Stripe to retry; processed_at stays NULL so the retry
+        // will re-dispatch instead of seeing a stale "applied" claim.
+        res.status(500).send(`webhook handler error (event ${event.id})`)
+      }
+    },
+  )
+
+  return router
+}
+
+async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stripe.Event): Promise<void> {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
@@ -129,7 +170,7 @@ async function dispatch(event: Stripe.Event): Promise<void> {
         return
       }
 
-      await userRepository.grantSupporterLifetime(userId)
+      await deps.userRepository.grantSupporterLifetime(userId)
       log.info({ userId, sessionId: session.id }, 'supporter lifetime granted')
       return
     }
@@ -139,7 +180,7 @@ async function dispatch(event: Stripe.Event): Promise<void> {
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription
       const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
-      const userId = await billingService.resolveUserIdFromCustomer(customerId)
+      const userId = await deps.billingService.resolveUserIdFromCustomer(customerId)
       if (!userId) {
         log.warn(
           { eventType: event.type, customerId, subscriptionId: sub.id },
@@ -147,8 +188,8 @@ async function dispatch(event: Stripe.Event): Promise<void> {
         )
         return
       }
-      const fields = billingService.fromStripeSubscription(sub)
-      await subscriptionRepository.upsert({
+      const fields = deps.billingService.fromStripeSubscription(sub)
+      await deps.subscriptionRepository.upsert({
         userId,
         ...fields,
       })
@@ -185,12 +226,12 @@ async function dispatch(event: Stripe.Event): Promise<void> {
       // tripping over a stale customer ID; subscriptions row is left for
       // history (FK to user, status will already be canceled by Stripe).
       const customer = event.data.object as Stripe.Customer
-      const userId = await billingService.resolveUserIdFromCustomer(customer.id)
+      const userId = await deps.billingService.resolveUserIdFromCustomer(customer.id)
       if (!userId) {
         log.debug({ customerId: customer.id }, 'customer.deleted for unknown customer')
         return
       }
-      await userRepository.clearStripeCustomerId(userId)
+      await deps.userRepository.clearStripeCustomerId(userId)
       log.info({ userId, customerId: customer.id }, 'cleared stripe_customer_id after customer.deleted')
       return
     }
@@ -216,7 +257,7 @@ async function dispatch(event: Stripe.Event): Promise<void> {
           charge = chargeRef
         } else {
           try {
-            charge = await getStripe().charges.retrieve(chargeRef)
+            charge = await deps.getStripe().charges.retrieve(chargeRef)
           } catch (err) {
             log.error(
               { err: String(err), disputeId: dispute.id, chargeRef },
@@ -257,7 +298,7 @@ async function dispatch(event: Stripe.Event): Promise<void> {
         )
         return
       }
-      const userId = await billingService.resolveUserIdFromCustomer(customerId)
+      const userId = await deps.billingService.resolveUserIdFromCustomer(customerId)
       if (!userId) {
         log.warn(
           { customerId, chargeId: charge.id, type: event.type },
@@ -265,7 +306,7 @@ async function dispatch(event: Stripe.Event): Promise<void> {
         )
         return
       }
-      const revoked = await userRepository.revokeSupporterLifetime(userId, event.type)
+      const revoked = await deps.userRepository.revokeSupporterLifetime(userId, event.type)
       log.info(
         { userId, chargeId: charge.id, type: event.type, revoked },
         revoked ? 'supporter lifetime revoked' : 'supporter lifetime already absent',
@@ -279,5 +320,17 @@ async function dispatch(event: Stripe.Event): Promise<void> {
       log.debug({ eventType: event.type }, 'webhook event ignored')
   }
 }
+
+// ---- Default production-wired router -----------------------------------
+
+const router = createBillingWebhookRouter({
+  stripeEventLogRepository: stripeEventLogRepoProd,
+  userRepository: userRepoProd,
+  subscriptionRepository: subscriptionRepoProd,
+  billingService: billingServiceProd,
+  getStripe: getStripeProd,
+  getSecrets: () => parseWebhookSecrets(env.STRIPE_WEBHOOK_SECRET),
+  logger: loggerProd,
+})
 
 export default router

@@ -1,16 +1,65 @@
-import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, Gamepad2, Target, RefreshCw, Calendar, Play } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { History, Trophy, Loader2, ChevronRight, CheckCircle2, Clock, RefreshCw, Calendar, Play, Flame, Gamepad2, Sparkles, Target } from 'lucide-react'
 import { PageHero } from '@/components/layout/PageHero'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
+import { prefersReducedMotion } from '@/lib/animations'
 import type { GameHistoryEntry, MissedChallenge } from '@/types'
+
+type ScoreTier = 'mastered' | 'solid' | 'shaky'
+
+function getScoreTier(score: number): ScoreTier {
+  if (score >= 1200) return 'mastered'
+  if (score >= 600) return 'solid'
+  return 'shaky'
+}
+
+const tierBadgeVariant: Record<ScoreTier, 'success' | 'warning' | 'destructive'> = {
+  mastered: 'success',
+  solid: 'warning',
+  shaky: 'destructive',
+}
+
+function ymd(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// Current streak = consecutive completed days ending today (or yesterday if today not yet played).
+// Counts back from the most recent of {today, yesterday} that the user actually played.
+function calculateStreak(entries: GameHistoryEntry[]): number {
+  const playedDates = new Set(entries.filter(e => e.isCompleted).map(e => e.challengeDate))
+  if (playedDates.size === 0) return 0
+
+  const today = new Date()
+  const todayStr = ymd(today)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const yesterdayStr = ymd(yesterday)
+
+  let cursor: Date
+  if (playedDates.has(todayStr)) cursor = today
+  else if (playedDates.has(yesterdayStr)) cursor = yesterday
+  else return 0
+
+  let count = 0
+  while (playedDates.has(ymd(cursor))) {
+    count++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return count
+}
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation()
@@ -20,6 +69,7 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<GameHistoryEntry[]>([])
   const [missedChallenges, setMissedChallenges] = useState<MissedChallenge[]>([])
   const [loading, setLoading] = useState(true)
+  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
@@ -76,18 +126,12 @@ export default function HistoryPage() {
     })
   }
 
-  // Get score badge variant based on score
-  const getScoreBadgeVariant = (score: number): 'success' | 'warning' | 'destructive' => {
-    if (score >= 1200) return 'success'
-    if (score >= 600) return 'warning'
-    return 'destructive'
-  }
-
-  // Calculate accuracy percentage (approximate based on score)
-  const calculateAccuracy = (score: number): number => {
-    const maxScore = 1600
-    return Math.round((score / maxScore) * 100)
-  }
+  // Aggregate stats — computed client-side from already-fetched entries (no extra API call).
+  const aggregates = useMemo(() => {
+    const playedCount = history.filter(e => e.isCompleted).length
+    const streak = calculateStreak(history)
+    return { playedCount, streak }
+  }, [history])
 
   // Filter history entries
   const filteredHistory = history.filter(entry => {
@@ -107,25 +151,70 @@ export default function HistoryPage() {
   })
 
   return (
-    <PageHero icon={History} iconStyle="simple" title={t('history.title')}>
+    <PageHero icon={History} iconStyle="simple" title={t('history.title')} subtitle={t('history.subtitle')}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Loading State */}
         {loading && (
-          <div className="flex justify-center py-8 sm:py-12">
-            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary" />
+          <div className="flex justify-center py-8 sm:py-12" role="status" aria-live="polite">
+            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary" aria-hidden="true" />
+            <span className="sr-only">{t('common.loading')}</span>
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Empty State — sells today's challenge */}
         {!loading && history.length === 0 && (
-          <div className="text-center py-8 sm:py-12 text-sm sm:text-base text-muted-foreground">
-            {t('history.noResults')}
-          </div>
+          <Card variant="neon" className="bg-card/50 max-w-xl mx-auto text-center">
+            <CardContent className="py-10 sm:py-12 px-6 sm:px-8 flex flex-col items-center gap-4">
+              <div
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center bg-linear-to-br from-neon-purple to-neon-pink"
+                style={{ boxShadow: 'var(--glow-md)' }}
+                aria-hidden="true"
+              >
+                <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-foreground">
+                {t('history.empty.title')}
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground max-w-md">
+                {t('history.empty.subtitle')}
+              </p>
+              <Button asChild size="lg" className="mt-2">
+                <Link to={localizedPath('/play')}>
+                  <Play className="w-4 h-4 mr-2" aria-hidden="true" />
+                  {t('history.empty.cta')}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* History List */}
         {!loading && history.length > 0 && (
           <div className="space-y-4 sm:space-y-6">
+            {/* Stats Strip — Série · Joué (computed client-side, no extra API call) */}
+            <Card className="bg-card/50 border-border" aria-label={t('history.stats.label')}>
+              <CardContent className="p-4 sm:p-5 flex flex-row items-stretch divide-x divide-border">
+                <div className="flex-1 flex flex-col items-center gap-1 px-3">
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                    <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-pink" aria-hidden="true" />
+                    <span>{t('history.stats.streak')}</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                    {t('history.stats.streakUnit', { count: aggregates.streak })}
+                  </span>
+                </div>
+                <div className="flex-1 flex flex-col items-center gap-1 px-3">
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                    <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-cyan" aria-hidden="true" />
+                    <span>{t('history.stats.played')}</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                    {t('history.stats.playedUnit', { count: aggregates.playedCount })}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Filters Section */}
             <Card className="bg-card/50 border-border">
               <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
@@ -134,12 +223,14 @@ export default function HistoryPage() {
                     {t('common.filters')}
                   </CardTitle>
                   <button
+                    type="button"
                     onClick={fetchHistory}
                     disabled={loading}
-                    className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                    title={t('common.refresh')}
+                    aria-label={t('history.refreshLabel')}
+                    aria-busy={loading}
+                    className="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-1 transition-colors disabled:opacity-50"
                   >
-                    <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
                   </button>
                 </div>
               </CardHeader>
@@ -147,20 +238,25 @@ export default function HistoryPage() {
                 <div className="flex flex-col gap-3 sm:gap-4">
                   {/* Search Bar */}
                   <div className="flex-1">
-                    <input
-                      type="text"
+                    <Label htmlFor="history-search" className="sr-only">
+                      {t('history.searchLabel')}
+                    </Label>
+                    <Input
+                      id="history-search"
+                      type="search"
                       placeholder={t('history.searchPlaceholder')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-secondary/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                     />
                   </div>
 
                   {/* Status Filter Buttons */}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2" role="group" aria-label={t('common.filters')}>
                     <button
+                      type="button"
                       onClick={() => setStatusFilter('all')}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'all'
+                      aria-pressed={statusFilter === 'all'}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${statusFilter === 'all'
                         ? 'bg-primary text-primary-foreground font-medium'
                         : 'bg-secondary/50 hover:bg-secondary'
                         }`}
@@ -168,23 +264,27 @@ export default function HistoryPage() {
                       {t('common.all')}
                     </button>
                     <button
+                      type="button"
                       onClick={() => setStatusFilter('completed')}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'completed'
+                      aria-pressed={statusFilter === 'completed'}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${statusFilter === 'completed'
                         ? 'bg-primary text-primary-foreground font-medium'
                         : 'bg-secondary/50 hover:bg-secondary'
                         }`}
                     >
-                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" aria-hidden="true" />
                       {t('history.completed')}
                     </button>
                     <button
+                      type="button"
                       onClick={() => setStatusFilter('inProgress')}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all ${statusFilter === 'inProgress'
+                      aria-pressed={statusFilter === 'inProgress'}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${statusFilter === 'inProgress'
                         ? 'bg-primary text-primary-foreground font-medium'
                         : 'bg-secondary/50 hover:bg-secondary'
                         }`}
                     >
-                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 animate-pulse" />
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" aria-hidden="true" />
                       {t('history.inProgress')}
                     </button>
                   </div>
@@ -222,28 +322,28 @@ export default function HistoryPage() {
 
             {/* Missed Challenges Section */}
             {missedChallenges.length > 0 && (
-              <Card className="bg-card/50 border-border border-warning/30">
+              <Card variant="warning" className="bg-card/50" aria-labelledby="missed-challenges-heading">
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-lg sm:text-xl font-extrabold flex items-center gap-2">
-                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
-                    <span className="bg-linear-to-r from-warning to-score-low bg-clip-text text-transparent">
+                  <CardTitle id="missed-challenges-heading" className="text-base sm:text-lg font-bold flex items-center gap-2 text-warning">
+                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
+                    <span>
                       {t('history.missedChallenges')} ({missedChallenges.length})
                     </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0">
-                  <div className="space-y-2 sm:space-y-3">
+                  <ul className="space-y-2 sm:space-y-3 list-none">
                     {missedChallenges.map((challenge, index) => (
-                      <motion.div
+                      <motion.li
                         key={challenge.challengeId}
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={reducedMotion ? false : { opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
                         className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-warning/10 border border-warning/20"
                       >
                         {/* Left Section: Icon and Date */}
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low" aria-hidden="true">
                             <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -261,17 +361,18 @@ export default function HistoryPage() {
                           <Button
                             size="sm"
                             onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
+                            aria-label={t('history.resumeGame', { date: formatDate(challenge.date) })}
                             className="bg-linear-to-r from-warning to-score-low hover:from-warning hover:to-score-low text-white"
                           >
-                            <Play className="w-4 h-4 mr-1" />
+                            <Play className="w-4 h-4 mr-1" aria-hidden="true" />
                             {t('history.playCatchUp')}
                           </Button>
                         </div>
-                      </motion.div>
+                      </motion.li>
                     ))}
-                  </div>
+                  </ul>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-3 text-center">
-                    {t('history.scoreWontCount')}
+                    {t('history.catchUpHint')}
                   </p>
                 </CardContent>
               </Card>
@@ -280,7 +381,7 @@ export default function HistoryPage() {
             {/* Games List */}
             <Card className="bg-card/50 border-border">
               <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl font-extrabold gradient-gaming bg-clip-text text-transparent drop-shadow-lg">
+                <CardTitle className="text-base sm:text-lg font-bold text-foreground">
                   {t('history.yourGames')}
                 </CardTitle>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -293,81 +394,98 @@ export default function HistoryPage() {
                     {t('history.noMatchingResults')}
                   </div>
                 ) : (
-                  <div className="space-y-2 sm:space-y-3">
-                    {filteredHistory.map((entry, index) => (
-                      <motion.div
-                        key={entry.sessionId}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        onClick={() => {
-                          if (entry.isCompleted) {
-                            navigate(`${localizedPath('/history')}/${entry.sessionId}`)
-                          } else {
-                            navigate(`${localizedPath('/play')}?date=${encodeURIComponent(entry.challengeDate)}`)
-                          }
-                        }}
-                        className={`group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 transition-all cursor-pointer hover:bg-secondary/70 hover:scale-[1.01] hover:shadow-lg hover:ring-2 hover:ring-primary/50`}
-                      >
-                        {/* Left Section: Icon, Date, Status */}
-                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          {/* Dynamic Icon based on completion status */}
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${entry.isCompleted
-                            ? 'bg-linear-to-br from-success to-success/80'
-                            : 'bg-linear-to-br from-neon-purple to-neon-pink animate-pulse'
-                            }`}>
-                            {entry.isCompleted ? (
-                              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                            ) : (
-                              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <ul className="space-y-2 sm:space-y-3 list-none">
+                    {filteredHistory.map((entry, index) => {
+                      const tier = getScoreTier(entry.totalScore)
+                      const tierLabel = t(`game.scoreQuality.${tier}`)
+                      const dateLabel = formatDate(entry.challengeDate)
+                      const isCompleted = entry.isCompleted
+                      const to = isCompleted
+                        ? `${localizedPath('/history')}/${entry.sessionId}`
+                        : `${localizedPath('/play')}?date=${encodeURIComponent(entry.challengeDate)}`
+                      const ariaLabel = isCompleted
+                        ? t('history.viewDetails', { date: dateLabel })
+                        : t('history.resumeGame', { date: dateLabel })
+
+                      return (
+                        <motion.li
+                          key={entry.sessionId}
+                          initial={reducedMotion ? false : { opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
+                        >
+                          <Link
+                            to={to}
+                            aria-label={ariaLabel}
+                            className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 transition-all hover:bg-secondary/70 hover:ring-2 hover:ring-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:bg-secondary/70 no-underline"
+                          >
+                            {/* Left Section: Icon, Date, Status */}
+                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                              {/* Dynamic icon — three-channel signal (icon + color + Badge label) */}
+                              <div
+                                className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${isCompleted
+                                  ? 'bg-linear-to-br from-success to-success/80'
+                                  : 'bg-linear-to-br from-neon-blue to-neon-cyan'
+                                  }`}
+                                aria-hidden="true"
+                              >
+                                {isCompleted ? (
+                                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                ) : (
+                                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-sm sm:text-base font-semibold wrap-break-word text-foreground">
+                                    {dateLabel}
+                                  </span>
+                                  {!isCompleted && (
+                                    <Badge variant="info" className="w-fit text-xs">
+                                      <Clock className="w-3 h-3 mr-1" aria-hidden="true" />
+                                      {t('history.inProgress')}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Middle Section: X / N correct (primary) + tier label (secondary) */}
+                            {isCompleted && (
+                              <div className="flex flex-col items-start sm:items-end gap-0.5">
+                                <div className="flex items-center gap-1.5 text-sm sm:text-base font-semibold text-foreground tabular-nums">
+                                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" aria-hidden="true" />
+                                  <span aria-label={t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}>
+                                    {t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  <span className="sr-only">{t('game.scoreQuality.label')}: </span>
+                                  {tierLabel}
+                                </span>
+                              </div>
                             )}
-                          </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-sm sm:text-base font-semibold wrap-break-word">
-                                {formatDate(entry.challengeDate)}
-                              </span>
-                              {!entry.isCompleted && (
-                                <Badge variant="outline" className="w-fit text-xs border-neon-purple/50 bg-neon-purple/10 text-neon-purple animate-pulse">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {t('history.inProgress')}
+                            {/* Right Section: Score & Chevron */}
+                            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+                              <div className="flex items-center gap-2">
+                                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden="true" />
+                                <Badge
+                                  variant={tierBadgeVariant[tier]}
+                                  className="text-base sm:text-xl font-bold px-3 sm:px-4 py-1 sm:py-1.5"
+                                  aria-label={`${entry.totalScore} ${t('game.totalScore')} — ${tierLabel}`}
+                                >
+                                  {entry.totalScore}
                                 </Badge>
-                              )}
+                              </div>
+                              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-hover:text-primary group-focus-visible:text-primary group-hover:translate-x-1 group-focus-visible:translate-x-1 transition-all" aria-hidden="true" />
                             </div>
-                          </div>
-                        </div>
-
-                        {/* Middle Section: Additional Stats */}
-                        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            <span>{calculateAccuracy(entry.totalScore)}%</span>
-                          </div>
-                          {entry.isCompleted && (
-                            <div className="flex items-center gap-1.5">
-                              <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              <span>10</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Right Section: Score & Chevron */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                          <div className="flex items-center gap-2">
-                            <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                            <Badge
-                              variant={getScoreBadgeVariant(entry.totalScore)}
-                              className="text-base sm:text-xl font-bold px-3 sm:px-4 py-1 sm:py-1.5"
-                            >
-                              {entry.totalScore}
-                            </Badge>
-                          </div>
-                          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                          </Link>
+                        </motion.li>
+                      )
+                    })}
+                  </ul>
                 )}
               </CardContent>
             </Card>

@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client'
-import type { UserPremiumGrantedEvent } from '@the-box/types'
+import type { RewardGrantedEvent, UserPremiumGrantedEvent } from '@the-box/types'
 import { toast as sonner } from 'sonner'
 import i18n from '@/lib/i18n'
 
@@ -56,6 +56,18 @@ export function connectNotificationsSocket(userId: string | null | undefined): v
         s.on('connect', join)
         s.on('user:premium-granted', (e: UserPremiumGrantedEvent) => {
             showPremiumGrantedToast(e)
+        })
+        // Async reward grants land in the RewardsInbox — no toast on
+        // arrival, by design. The bell-badge counter (driven by the
+        // rewards store) is the only visual cue. This forwards the
+        // payload to a window event so the store can subscribe without
+        // creating a socket↔store import cycle.
+        s.on('reward:granted', (e: RewardGrantedEvent) => {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                    new CustomEvent('reward:granted', { detail: e })
+                )
+            }
         })
         ;(s as unknown as { _wired?: boolean })._wired = true
     }

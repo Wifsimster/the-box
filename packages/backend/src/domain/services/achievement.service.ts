@@ -66,6 +66,14 @@ export interface AchievementService {
    */
   checkAchievementsAfterGame(data: GameCompletionData): Promise<NewlyEarnedAchievement[]>
   /**
+   * Evaluate account-age milestones for a single user. Triggered by the
+   * `milestone-account-age` BullMQ worker rather than from a game flow,
+   * since account age advances by wall-clock time. Idempotent — already-
+   * earned milestones are skipped via the existing `user_achievements`
+   * unique constraint.
+   */
+  evaluateAccountAgeMilestones(userId: string): Promise<NewlyEarnedAchievement[]>
+  /**
    * Get all achievements with user's progress
    */
   getAllAchievementsWithProgress(userId: string): Promise<AchievementWithProgressRow[]>
@@ -418,6 +426,49 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
     return false
   }
 
+  async function checkPerfectScoreCount(
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ): Promise<boolean> {
+    // Includes the just-completed session in the count. The DB already
+    // has the row for `data.sessionId` with `is_completed=true` because
+    // checkAchievementsAfterGame is called AFTER the session is finalized.
+    const total = await achievementRepository.countPerfectSessions(data.userId)
+    if (total >= criteria.count) {
+      await achievementRepository.awardAchievement(
+        data.userId,
+        achievement.key,
+        total,
+        criteria.count
+      )
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Account-age check. Not part of the post-game evaluator switch — fired
+   * separately from the BullMQ `milestone-account-age` worker.
+   */
+  async function checkAccountAgeDays(
+    achievement: AchievementRow,
+    userId: string,
+    accountAgeDays: number,
+    criteria: Criteria
+  ): Promise<boolean> {
+    if (accountAgeDays >= criteria.days) {
+      await achievementRepository.awardAchievement(
+        userId,
+        achievement.key,
+        accountAgeDays,
+        criteria.days
+      )
+      return true
+    }
+    return false
+  }
+
   async function checkSingleAchievement(
     achievement: AchievementRow,
     data: GameCompletionData
@@ -460,6 +511,8 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
           return checkTotalCorrectGuesses(achievement, data, criteria)
         case 'correct_in_game':
           return checkCorrectInGame(achievement, data, criteria)
+        case 'perfect_score_count':
+          return checkPerfectScoreCount(achievement, data, criteria)
         default:
           log.warn({ type: criteria.type }, 'Unknown achievement criteria type')
           return false
@@ -594,6 +647,59 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
       }
 
       log.info({ userId: data.userId, count: newlyEarned.length }, 'Achievement check complete')
+      return newlyEarned
+    },
+
+    async evaluateAccountAgeMilestones(
+      userId: string
+    ): Promise<NewlyEarnedAchievement[]> {
+      const newlyEarned: NewlyEarnedAchievement[] = []
+
+      const user = await userRepository.findById(userId)
+      if (!user) return newlyEarned
+
+      // `users.createdAt` is an ISO string from the repository. Compute
+      // age in whole days using UTC to keep behaviour identical across
+      // process timezones (matches the rest of the rewards stack).
+      const createdAtMs = new Date(user.createdAt).getTime()
+      const accountAgeDays = Math.floor(
+        (Date.now() - createdAtMs) / (24 * 60 * 60 * 1000)
+      )
+      if (accountAgeDays < 1) return newlyEarned
+
+      const allAchievements = await achievementRepository.findAll()
+      const userProgress = await achievementRepository.getUserProgress(userId)
+
+      for (const achievement of allAchievements) {
+        if (userProgress[achievement.key]) continue
+        const criteria = achievement.criteria
+        if (!criteria || criteria.type !== 'account_age_days') continue
+
+        const earned = await checkAccountAgeDays(
+          achievement,
+          userId,
+          accountAgeDays,
+          criteria
+        )
+        if (earned) {
+          newlyEarned.push({
+            key: achievement.key,
+            name: achievement.name,
+            description: achievement.description || '',
+            category: achievement.category,
+            iconUrl: achievement.icon_url,
+            points: achievement.points,
+            tier: achievement.tier,
+          })
+        }
+      }
+
+      if (newlyEarned.length > 0) {
+        log.info(
+          { userId, accountAgeDays, count: newlyEarned.length },
+          'Account-age milestones unlocked'
+        )
+      }
       return newlyEarned
     },
 

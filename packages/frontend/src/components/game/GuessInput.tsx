@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
-import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2 } from 'lucide-react'
+import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2, Tag } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { toast } from '@/lib/toast'
@@ -160,6 +160,7 @@ export function GuessInput() {
   const hintYearUsed = currentPosState?.hintYearUsed || false
   const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
   const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
+  const hintGenreUsed = currentPosState?.hintGenreUsed || false
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -171,7 +172,8 @@ export function GuessInput() {
   const hasRevealedHints =
     (hintYearUsed && availableHints?.year) ||
     (hintPublisherUsed && availableHints?.publisher) ||
-    (hintDeveloperUsed && availableHints?.developer)
+    (hintDeveloperUsed && availableHints?.developer) ||
+    (hintGenreUsed && availableHints?.genre)
 
   return (
     <div className="relative">
@@ -213,6 +215,13 @@ export function GuessInput() {
                   <Code2 className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <span className="sr-only">{t('game.hints.developerHint')}: </span>
                   <span className="truncate">{availableHints.developer}</span>
+                </Badge>
+              )}
+              {hintGenreUsed && availableHints?.genre && (
+                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
+                  <Tag className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="sr-only">{t('game.hints.genreHint')}: </span>
+                  <span className="truncate">{availableHints.genre}</span>
                 </Badge>
               )}
             </div>

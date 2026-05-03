@@ -29,6 +29,12 @@ interface GameState {
   // Position tracking for navigation
   positionStates: Record<number, PositionState>
 
+  // Second-chance modal state. When non-null, the SecondChanceModal
+  // renders for the given position. Set by useGameGuess after a wrong
+  // guess if the player has the inventory and has not yet activated for
+  // this position; cleared on accept/dismiss.
+  secondChancePrompt: { position: number } | null
+
   screenshotsFound: number
 
   // Available hints data for current position
@@ -36,6 +42,7 @@ interface GameState {
     year: string | null
     publisher: string | null
     developer: string | null
+    genre: string | null
   } | null
 
   // Round timing (for per-screenshot time tracking)
@@ -92,11 +99,20 @@ interface GameState {
   canNavigateTo: (position: number) => boolean
 
   // Hint actions
-  setAvailableHints: (hints: { year: string | null; publisher: string | null; developer: string | null }) => void
+  setAvailableHints: (hints: {
+    year: string | null
+    publisher: string | null
+    developer: string | null
+    genre: string | null
+  }) => void
   markIncorrectGuess: (position: number) => void
   useHintYear: (position: number) => void
   useHintPublisher: (position: number) => void
   useHintDeveloper: (position: number) => void
+  useHintGenre: (position: number) => void
+  showSecondChancePrompt: (position: number) => void
+  dismissSecondChancePrompt: () => void
+  markSecondChanceActivated: (position: number) => void
 
   // Session restore action
   restoreSessionState: (data: {
@@ -132,6 +148,7 @@ const initialState = {
   currentScreenshotData: null,
   // Position tracking for navigation
   positionStates: {} as Record<number, PositionState>,
+  secondChancePrompt: null,
   screenshotsFound: 0,
   // Available hints
   availableHints: null,
@@ -550,6 +567,39 @@ export const useGameStore = create<GameState>()(
               [position]: {
                 ...state.positionStates[position],
                 hintDeveloperUsed: true,
+              },
+            },
+          }))
+        },
+
+        useHintGenre: (position) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                hintGenreUsed: true,
+              },
+            },
+          }))
+        },
+
+        showSecondChancePrompt: (position) => {
+          set({ secondChancePrompt: { position } })
+        },
+
+        dismissSecondChancePrompt: () => {
+          set({ secondChancePrompt: null })
+        },
+
+        markSecondChanceActivated: (position) => {
+          set((state) => ({
+            secondChancePrompt: null,
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                secondChanceActivated: true,
               },
             },
           }))

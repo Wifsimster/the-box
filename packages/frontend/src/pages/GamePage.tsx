@@ -9,6 +9,7 @@ import { DailyIntro } from '@/components/game/TierIntro'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
 import { HintButtons } from '@/components/game/HintButtons'
+import { SecondChanceModal } from '@/components/game/SecondChanceModal'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
 import { CompletionChoiceModal } from '@/components/game/CompletionChoiceModal'
@@ -696,6 +697,7 @@ export default function GamePage() {
                 </div>
                 <GuessInput />
               </div>
+              <SecondChanceModal />
             </div>
 
             {/* Result Card Overlay */}

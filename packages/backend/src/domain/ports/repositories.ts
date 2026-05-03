@@ -16,6 +16,8 @@ import type {
   LeaderboardEntry,
   MonthlyLeaderboardEntry,
   PercentileResponse,
+  RewardGrant,
+  RewardGrantPayload,
   Screenshot,
   User,
   UserInventory,
@@ -164,6 +166,8 @@ export interface GameHistoryRecord {
   total_score: number
   is_completed: boolean
   completed_at: Date | null
+  rounds_correct: number
+  total_screenshots: number
 }
 
 export interface GuessWithGameRecord {
@@ -273,7 +277,11 @@ export interface ScreenshotRepository {
   } | null>
   getGameByScreenshotId(
     screenshotId: number
-  ): Promise<{ publisher: string | null; developer: string | null } | null>
+  ): Promise<{
+    publisher: string | null
+    developer: string | null
+    genres: string[] | null
+  } | null>
   findAll(): Promise<ScreenshotWithGameRecord[]>
   create(data: {
     gameId: number
@@ -345,6 +353,12 @@ export interface AchievementRepository {
   countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number>
   countHintFreeCompletedGames(userId: string): Promise<number>
   countGenreCorrectGuesses(userId: string, genre: string): Promise<number>
+  /**
+   * Counts the number of completed game sessions where the user achieved
+   * a perfect 2000-point score. Drives the `perfect_score_count` mastery
+   * milestone (Sphinx).
+   */
+  countPerfectSessions(userId: string): Promise<number>
   /**
    * Returns the most recent guesses for a user (newest first), up to `limit`.
    * Only `isCorrect` and `createdAt` are exposed; used to detect streaks of
@@ -428,6 +442,88 @@ export interface LeaderboardRepository {
   findByChallenge(challengeId: number, limit?: number): Promise<LeaderboardEntry[]>
   getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>
+}
+
+// ---------- Rewards ----------
+
+/**
+ * Idempotent grant layer used by every async reward stream (reactivation,
+ * milestones, leaderboard payouts, cosmetic unlocks, streak freeze).
+ * Atomicity contract: `grantAtomic` writes the `reward_grants` row AND
+ * upserts the inventory items in the same transaction. On unique-constraint
+ * conflict (same `(user, source, source_ref)`), the existing row is
+ * returned with `wasNew: false` and inventory is NOT upserted again — the
+ * caller (service or BullMQ retry) gets a safe no-op.
+ */
+export interface RewardRepository {
+  grantAtomic(input: {
+    userId: string
+    source: string
+    sourceRef: string
+    payload: RewardGrantPayload
+    autoUnlock: boolean
+  }): Promise<{ wasNew: boolean; grant: RewardGrant }>
+  findById(id: string, userId: string): Promise<RewardGrant | null>
+  markUnlocked(id: string, userId: string): Promise<RewardGrant | null>
+  markClaimed(id: string, userId: string): Promise<RewardGrant | null>
+  /**
+   * Unlock every pending (`unlocked_at IS NULL`) grant for `(userId,
+   * source)` in a single UPDATE. Used by sources that gate the unlock
+   * on a user action — currently only `reactivation` (must play to
+   * earn the chest). Returns the rows that flipped, so callers can emit
+   * one socket event per newly unlocked grant.
+   */
+  unlockPendingByUserAndSource(userId: string, source: string): Promise<RewardGrant[]>
+  listForUser(
+    userId: string,
+    options?: { onlyUnclaimed?: boolean; limit?: number }
+  ): Promise<RewardGrant[]>
+}
+
+// ---------- Position second chance (powerup activation log) ----------
+
+export interface PositionSecondChanceRow {
+  id: number
+  tier_session_id: string
+  position: number
+  consumed_at: Date
+  applied_to_guess_id: number | null
+}
+
+export interface PositionSecondChanceRepository {
+  /**
+   * Atomic activation: decrement inventory, insert the activation row.
+   * The unique key on (tier_session_id, position) plus a transaction
+   * gives us "max one per slot" without a service-layer counter.
+   * Returns:
+   *   - `{ ok: true, row }` on first successful activation
+   *   - `{ ok: false, reason: 'ALREADY_ACTIVE' }` if a row already exists
+   *   - `{ ok: false, reason: 'NO_INVENTORY' }` if the user has no
+   *     `second_chance` powerup
+   */
+  activate(input: {
+    userId: string
+    tierSessionId: string
+    position: number
+  }): Promise<
+    | { ok: true; row: PositionSecondChanceRow }
+    | { ok: false; reason: 'ALREADY_ACTIVE' | 'NO_INVENTORY' }
+  >
+  /**
+   * Returns the activation row for `(tierSessionId, position)` IF the
+   * floor has not yet been applied (`applied_to_guess_id IS NULL`).
+   * `submitGuess` calls this on every correct guess to decide whether
+   * to clamp the score floor.
+   */
+  findPending(
+    tierSessionId: string,
+    position: number
+  ): Promise<PositionSecondChanceRow | null>
+  /**
+   * Mark the activation as applied to a specific guess row. Called from
+   * `submitGuess` after the floor is applied and the guess is saved.
+   */
+  markApplied(activationId: number, guessId: number | null): Promise<void>
 }
 
 // ---------- Inventory ----------

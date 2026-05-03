@@ -19,6 +19,7 @@ import geoFetchRoutes from './presentation/routes/geo-fetch.routes.js'
 import userRoutes from './presentation/routes/user.routes.js'
 import achievementRoutes from './presentation/routes/achievement.routes.js'
 import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
+import rewardsRoutes from './presentation/routes/rewards.routes.js'
 import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
@@ -188,6 +189,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/achievements', achievementRoutes)
 app.use('/api/daily-login', dailyLoginRoutes)
 app.use('/api/inventory', dailyLoginRoutes)
+app.use('/api/rewards', rewardsRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
 app.use('/api/geo', geoRoutes)
@@ -311,6 +313,10 @@ async function start(): Promise<void> {
       'streak-risk-email',
       'relance-email',
       'inactive-user-reminder',
+      'streak-freeze-grant',
+      'reactivation-scan',
+      'milestone-account-age',
+      'leaderboard-payout-monthly',
     ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
@@ -448,6 +454,87 @@ async function start(): Promise<void> {
       )
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring inactive-user-reminder job')
+    }
+
+    // Daily reactivation-scan — 03:00 UTC. Targets users who have not
+    // played in the last 7 days, splits 10% to a holdout cohort
+    // (deterministic per user_id), stages a chest via rewardsService.grant
+    // (autoUnlock=false — the chest unlocks on the user's next guess), and
+    // emails BOTH cohorts a warm welcome-back. Per-user cadence is 28
+    // days (enforced via a NOT EXISTS clause in the candidate query).
+    // Copy follows a strict ban-list — see infrastructure/email/reactivation-email.ts.
+    try {
+      await importQueue.add(
+        'reactivation-scan',
+        {},
+        {
+          repeat: { pattern: '0 3 * * *', tz: 'UTC' },
+          jobId: 'reactivation-scan-recurring',
+        }
+      )
+      logger.info('scheduled recurring reactivation-scan job (daily at 03:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring reactivation-scan job')
+    }
+
+    // Monthly streak-freeze grant — 1st of each month at 06:00 UTC. Grants
+    // 1× streak_freeze to every active user (last_played_at within 60 days)
+    // who is below the per-user cap (2). Idempotent on YYYY-MM source_ref.
+    // Streak freezes auto-consume in daily-login when a user misses exactly
+    // one day; they are NEVER purchasable (see docs/game-flow.md).
+    try {
+      await importQueue.add(
+        'streak-freeze-grant',
+        {},
+        {
+          repeat: { pattern: '0 6 1 * *', tz: 'UTC' },
+          jobId: 'streak-freeze-grant-recurring',
+        }
+      )
+      logger.info('scheduled recurring streak-freeze-grant job (monthly, 1st @ 06:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring streak-freeze-grant job')
+    }
+
+    // Daily milestone-account-age — 04:00 UTC. Scans active users
+    // (last_played_at < 60 days) old enough to have crossed the smallest
+    // account-age threshold (365 d) and evaluates account-age milestones
+    // for each. Per-user idempotency comes from the existing
+    // user_achievements unique constraint, so re-runs are no-ops once
+    // a user has earned a milestone.
+    try {
+      await importQueue.add(
+        'milestone-account-age',
+        {},
+        {
+          repeat: { pattern: '0 4 * * *', tz: 'UTC' },
+          jobId: 'milestone-account-age-recurring',
+        }
+      )
+      logger.info('scheduled recurring milestone-account-age job (daily at 04:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring milestone-account-age job')
+    }
+
+    // Monthly leaderboard payout — 1st of each month at 00:30 UTC. Awards
+    // a time-stamped cosmetic frame (`frame_top100_YYYY_MM`) to the top
+    // 100 players of the PRIOR calendar month. Idempotent on YYYY-MM
+    // source_ref via reward_grants unique constraint, so re-running the
+    // cron the same day is a no-op. Per the rewards meeting (Nour's
+    // recognition-tier framing): cosmetic only, never points/cash, never
+    // a countdown UI on the leaderboard page.
+    try {
+      await importQueue.add(
+        'leaderboard-payout-monthly',
+        {},
+        {
+          repeat: { pattern: '30 0 1 * *', tz: 'UTC' },
+          jobId: 'leaderboard-payout-monthly-recurring',
+        }
+      )
+      logger.info('scheduled recurring leaderboard-payout-monthly job (1st @ 00:30 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring leaderboard-payout-monthly job')
     }
 
     // One-shot announcement email for the new referral feature.

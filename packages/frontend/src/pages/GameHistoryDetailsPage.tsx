@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Trophy, ArrowLeft, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
+import { Trophy, Target, ArrowLeft, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
 import { getApiErrorMessage } from '@/lib/api-errors'
 import type { GameSessionDetailsResponse } from '@/types'
 import { calculateSpeedMultiplier } from '@/lib/utils'
+import { prefersReducedMotion } from '@/lib/animations'
 
 export default function GameHistoryDetailsPage() {
   const { t, i18n } = useTranslation()
@@ -22,6 +22,7 @@ export default function GameHistoryDetailsPage() {
   const [sessionData, setSessionData] = useState<GameSessionDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const reducedMotion = useMemo(() => prefersReducedMotion(), [])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
@@ -121,29 +122,55 @@ export default function GameHistoryDetailsPage() {
   return (
     <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={reducedMotion ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: reducedMotion ? 0 : 0.5 }}
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-          className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
-        >
-          <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-        </motion.div>
+        {sessionData.totalScore > 0 ? (
+          <motion.div
+            initial={reducedMotion ? false : { scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.2, type: reducedMotion ? 'tween' : 'spring' }}
+            style={{ boxShadow: 'var(--glow-md)' }}
+            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink"
+            aria-hidden="true"
+          >
+            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+          </motion.div>
+        ) : (
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-secondary border border-border"
+            aria-hidden="true"
+          >
+            <Target className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
+          </div>
+        )}
 
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 gradient-gaming bg-clip-text text-transparent">
-          {formatDate(sessionData.challengeDate)}
-        </h1>
+        {sessionData.totalScore > 0 ? (
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 gradient-gaming bg-clip-text text-transparent">
+            {formatDate(sessionData.challengeDate)}
+          </h1>
+        ) : (
+          <>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-foreground">
+              {t('history.zeroScore.title')}
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4 max-w-md mx-auto">
+              {t('history.zeroScore.subtitle')}
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+              {formatDate(sessionData.challengeDate)}
+            </p>
+          </>
+        )}
 
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={reducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary mb-3 sm:mb-4"
+          transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.4 }}
+          className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 ${sessionData.totalScore > 0 ? 'text-primary' : 'text-muted-foreground'}`}
+          aria-label={`${sessionData.totalScore} ${t('game.totalScore')}`}
         >
           {sessionData.totalScore} pts
         </motion.div>
@@ -171,192 +198,94 @@ export default function GameHistoryDetailsPage() {
           size="lg"
           onClick={() => navigate(localizedPath('/history'))}
         >
-          <ArrowLeft className="w-4 h-4 sm:mr-2" />
-          <span className="hidden sm:inline">{t('common.back')}</span>
-          <span className="sm:hidden">{t('common.back')}</span>
+          <ArrowLeft className="w-4 h-4 sm:mr-2" aria-hidden="true" />
+          <span>{t('common.back')}</span>
         </Button>
       </div>
 
-      {/* Results Summary */}
+      {/* Results Summary — single render, page scrolls naturally on mobile + desktop */}
       <Card className="bg-card/50 border-border">
         <CardContent className="pt-4 sm:pt-6">
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{t('game.resultsSummary')}</h3>
-          {/* ScrollArea only on mobile, full list on desktop */}
-          <div className="md:hidden">
-            <ScrollArea className="h-[calc(100vh-500px)]">
-              <div className="space-y-2 pr-2">
-                {allResults.map((result: typeof allResults[0], index: number) => {
-                  const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
-                  return (
-                    <motion.div
-                      key={result.position}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                        <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0">{result.position}.</span>
-                        {result.isCorrect ? (
-                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0" />
-                        ) : (
-                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" />
-                        )}
-                        {/* Show screenshot thumbnail for all games */}
-                        {result.screenshot && (
-                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0">
-                            <img
-                              src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
-                              alt="Screenshot"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
-                          {result.userGuess && !result.isCorrect && (
-                            <span className="text-xs sm:text-sm text-muted-foreground block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
-                              (guessed: {result.userGuess})
-                            </span>
-                          )}
-                          {isUnguessed && (
-                            <span className="text-xs sm:text-sm text-destructive block mt-0.5">
-                              {t('game.notFound') || 'Not Found'}
-                            </span>
-                          )}
-                        </div>
+          <h2 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{t('game.resultsSummary')}</h2>
+          <ul className="space-y-2 sm:space-y-3 list-none">
+            {allResults.map((result: typeof allResults[0], index: number) => {
+              const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
+              const multiplier = result.isCorrect && result.scoreEarned > 0 ? calculateSpeedMultiplier(result.timeTakenMs) : 1
+              return (
+                <motion.li
+                  key={result.position}
+                  initial={reducedMotion ? false : { opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
+                  className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
+                    }`}
+                >
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                    <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0" aria-hidden="true">{result.position}.</span>
+                    {result.isCorrect ? (
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0" aria-hidden="true" />
+                    ) : (
+                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" aria-hidden="true" />
+                    )}
+                    {result.screenshot && (
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0">
+                        <img
+                          src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
+                          alt={t('game.screenshotOf', { game: result.correctGame.name })}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
                       </div>
-                      <div className="flex items-center justify-between sm:justify-end sm:text-right gap-2 sm:gap-0">
-                        {result.isCorrect && result.scoreEarned > 0 ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge variant="success" className="text-xs sm:text-sm font-bold">
-                              +{result.scoreEarned}
-                            </Badge>
-                            {(() => {
-                              const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                              if (multiplier > 1.0) {
-                                return (
-                                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
-                                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                    <span className="whitespace-nowrap">
-                                      100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                    </span>
-                                  </div>
-                                )
-                              }
-                              return null
-                            })()}
-                          </div>
-                        ) : isUnguessed ? (
-                          <Badge variant="destructive" className="text-xs sm:text-sm font-bold">
-                            {result.scoreEarned}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs sm:text-sm">
-                            +{result.scoreEarned}
-                          </Badge>
-                        )}
-                      </div>
-                    </motion.div>
-                  )
-                })}
-
-                {allResults.length === 0 && sessionData.totalScreenshots === 0 && (
-                  <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
-                    {t('game.noResults')}
-                  </p>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-          {/* Full list on desktop - no scroll */}
-          <div className="hidden md:block">
-            <div className="space-y-3">
-              {allResults.map((result: typeof allResults[0], index: number) => {
-                const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
-                return (
-                  <motion.div
-                    key={result.position}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
-                      }`}
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-muted-foreground text-base w-6 shrink-0">{result.position}.</span>
-                      {result.isCorrect ? (
-                        <CheckCircle className="w-5 h-5 text-success shrink-0" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-error shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
+                      {result.userGuess && !result.isCorrect && (
+                        <span className="text-xs sm:text-sm text-muted-foreground block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
+                          {t('game.userGuessed', { guess: result.userGuess })}
+                        </span>
                       )}
-                      {/* Show screenshot thumbnail for all games */}
-                      {result.screenshot && (
-                        <div className="w-16 h-16 rounded overflow-hidden shrink-0">
-                          <img
-                            src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
-                            alt="Screenshot"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                      {isUnguessed && (
+                        <span className="text-xs sm:text-sm text-destructive block mt-0.5">
+                          {t('game.notFound')}
+                        </span>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium text-base block truncate">{result.correctGame.name}</span>
-                        {result.userGuess && !result.isCorrect && (
-                          <span className="text-sm text-muted-foreground inline ml-2">
-                            (guessed: {result.userGuess})
-                          </span>
-                        )}
-                        {isUnguessed && (
-                          <span className="text-sm text-destructive block mt-0.5">
-                            {t('game.notFound') || 'Not Found'}
-                          </span>
-                        )}
-                      </div>
                     </div>
-                    <div className="text-right">
-                      {result.isCorrect && result.scoreEarned > 0 ? (
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge variant="success" className="text-sm font-bold">
-                            +{result.scoreEarned}
-                          </Badge>
-                          {(() => {
-                            const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                            if (multiplier > 1.0) {
-                              return (
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span className="whitespace-nowrap">
-                                    100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                  </span>
-                                </div>
-                              )
-                            }
-                            return null
-                          })()}
-                        </div>
-                      ) : isUnguessed ? (
-                        <Badge variant="destructive" className="text-sm font-bold">
-                          {result.scoreEarned}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-sm">
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-end sm:text-right gap-2 sm:gap-0">
+                    {result.isCorrect && result.scoreEarned > 0 ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant="success" className="text-xs sm:text-sm font-bold">
                           +{result.scoreEarned}
                         </Badge>
-                      )}
-                    </div>
-                  </motion.div>
-                )
-              })}
+                        {multiplier > 1.0 && (
+                          <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" aria-hidden="true" />
+                            <span className="whitespace-nowrap">
+                              100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : isUnguessed ? (
+                      <Badge variant="destructive" className="text-xs sm:text-sm font-bold">
+                        {result.scoreEarned}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs sm:text-sm">
+                        +{result.scoreEarned}
+                      </Badge>
+                    )}
+                  </div>
+                </motion.li>
+              )
+            })}
 
-              {allResults.length === 0 && sessionData.totalScreenshots === 0 && (
-                <p className="text-center text-muted-foreground py-8 text-base">
-                  {t('game.noResults')}
-                </p>
-              )}
-            </div>
-          </div>
+            {allResults.length === 0 && sessionData.totalScreenshots === 0 && (
+              <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
+                {t('game.noResults')}
+              </p>
+            )}
+          </ul>
         </CardContent>
       </Card>
     </div>

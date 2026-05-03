@@ -21,6 +21,7 @@ import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPi
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
+import { RewardsInboxBell } from '@/components/rewards'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useBillingStore } from '@/stores/billingStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
@@ -190,7 +191,10 @@ export function Header() {
                             </span>
                           )}
                           {/* Daily Reward Badge for mobile */}
-                          <DailyRewardBadge onClick={() => setMobileMenuOpen(false)} />
+                          <div className="flex items-center gap-1">
+                            <RewardsInboxBell />
+                            <DailyRewardBadge onClick={() => setMobileMenuOpen(false)} />
+                          </div>
                         </div>
                         <Button variant="ghost" size="sm" asChild className="w-full justify-start">
                           <Link to={localizedPath('/profile')} onClick={() => setMobileMenuOpen(false)}>
@@ -266,6 +270,8 @@ export function Header() {
           )}
           {hasValidSession && !isPending && (
             <>
+              {/* Async Rewards Inbox */}
+              <RewardsInboxBell />
               {/* Daily Login Reward Badge */}
               <DailyRewardBadge />
             <DropdownMenu>

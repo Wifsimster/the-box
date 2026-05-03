@@ -16,6 +16,13 @@ export {
 } from './achievement.service.js'
 export { createDailyLoginService, type DailyLoginService } from './daily-login.service.js'
 export { DailyLoginError } from './daily-login.service.js'
+export {
+  createRewardsService,
+  type RewardsService,
+  type GrantInput,
+  type GrantResult,
+  RewardsError,
+} from './rewards.service.js'
 export { createJobService, type JobService } from './job.service.js'
 export {
   createReferralService,
@@ -75,6 +82,7 @@ export {
 // ---------------------------------------------------------------------------
 import { createFuzzyMatchService } from './fuzzy-match.service.js'
 import { createDailyLoginService } from './daily-login.service.js'
+import { createRewardsService } from './rewards.service.js'
 import { createJobService } from './job.service.js'
 import { createLeaderboardService } from './leaderboard.service.js'
 import { createAdminService } from './admin.service.js'
@@ -89,6 +97,7 @@ import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import { importQueue, geoQueue } from '../../infrastructure/queue/queues.js'
+import { emitRewardGranted } from '../../infrastructure/socket/socket.js'
 import {
   achievementRepository,
   challengeRepository,
@@ -97,6 +106,8 @@ import {
   gameRepository,
   inventoryRepository,
   leaderboardRepository,
+  positionSecondChanceRepository,
+  rewardRepository,
   screenshotRepository,
   sessionRepository,
   userRepository,
@@ -112,6 +123,11 @@ export const dailyLoginService = createDailyLoginService({
   logger: serviceLogger,
   dailyLoginRepository,
   inventoryRepository,
+})
+
+export const rewardsService = createRewardsService({
+  logger: serviceLogger,
+  rewardRepository,
 })
 
 export const jobService = createJobService({
@@ -152,6 +168,30 @@ export const referralService = createReferralService({
   inventoryRepository,
 })
 
+/**
+ * Post-guess reward side-effects. Currently unlocks any pending
+ * reactivation chests for the user (per the reactivation PRD: the chest
+ * is staged when the user is flagged inactive, then becomes claimable on
+ * the user's next guess so re-entry is earned through play). Errors are
+ * swallowed by the caller — this hook must never break a guess submit.
+ */
+async function onAfterGuessSubmitted(userId: string): Promise<void> {
+  const unlocked = await rewardsService.unlockPendingByUserAndSource(
+    userId,
+    'reactivation'
+  )
+  for (const grant of unlocked) {
+    emitRewardGranted(userId, {
+      rewardId: grant.id,
+      source: grant.source,
+      sourceRef: grant.sourceRef,
+      items: grant.payload.items,
+      grantedAt: grant.grantedAt,
+      unlockedAt: grant.unlockedAt,
+    })
+  }
+}
+
 export const gameService = createGameService({
   logger: serviceLogger,
   fuzzyMatchService,
@@ -163,6 +203,8 @@ export const gameService = createGameService({
   inventoryRepository,
   gameRepository,
   funnelEventRepository,
+  positionSecondChanceRepository,
+  onAfterGuessSubmitted,
 })
 
 export const geoScoringService = createGeoScoringService({ logger: serviceLogger })

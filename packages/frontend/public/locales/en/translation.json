@@ -118,6 +118,15 @@
     "totalScore": "Total Score",
     "correctAnswers": "Correct Answers",
     "accuracy": "Accuracy",
+    "scoreQuality": {
+      "label": "Score quality",
+      "mastered": "Mastered",
+      "solid": "Solid",
+      "shaky": "Shaky"
+    },
+    "userGuessed": "(your answer: {{guess}})",
+    "screenshotOf": "Screenshot of {{game}}",
+    "correctOutOf": "{{correct}} / {{total}} found",
     "viewResults": "View Results",
     "pressEnterToContinue": "Press Enter to continue",
     "worldTotal": "World Total",
@@ -217,19 +226,31 @@
       "yearTooltip": "Show release year (-20%)",
       "publisherTooltip": "Show publisher (-20%)",
       "developerTooltip": "Show developer (-20%)",
+      "genreTooltip": "Show genre (-20%)",
       "yearTooltipFree": "Show release year ({{count}} free)",
       "publisherTooltipFree": "Show publisher ({{count}} free)",
       "developerTooltipFree": "Show developer ({{count}} free)",
+      "genreTooltipFree": "Show genre ({{count}} free)",
       "lockedTooltip": "Available after first wrong guess",
       "unavailableYear": "Release year not available",
       "unavailablePublisher": "Publisher not available",
       "unavailableDeveloper": "Developer not available",
+      "unavailableGenre": "Genre not available",
       "alreadyUsed": "Already used",
       "yearHint": "Release Year",
       "publisherHint": "Publisher",
       "developerHint": "Developer",
+      "genreHint": "Genre",
       "penalty": "-20%",
       "penaltyApplied": "Hint penalty: -{{penalty}} points"
+    },
+    "secondChance": {
+      "title": "Activate a second chance?",
+      "description": "A second chance guarantees at least 70 points on your next correct answer for this position.",
+      "accept": "Activate (-1)",
+      "dismiss": "Later",
+      "activating": "Activating…",
+      "activationFailed": "Could not activate the second chance right now."
     },
     "notFound": "Not Found",
     "completionChoice": {
@@ -351,18 +372,42 @@
   },
   "history": {
     "title": "Game History",
+    "subtitle": "Replay past games, resume the ones in progress, catch up on what you missed.",
     "yourGames": "Your Games",
     "noResults": "No games played yet. Play your first daily challenge!",
     "inProgress": "In Progress",
     "completed": "Completed",
     "searchPlaceholder": "Search by date...",
+    "searchLabel": "Filter games by date",
+    "refreshLabel": "Refresh list",
     "noMatchingResults": "No games match your filters",
     "game": "game",
     "games": "games",
     "missedChallenges": "Missed Challenges",
-    "playCatchUp": "Play",
+    "playCatchUp": "Catch up",
     "catchUpBadge": "Catch-up",
-    "scoreWontCount": "Catch-up scores won't count on leaderboard"
+    "catchUpHint": "For your own progress — outside the daily leaderboard",
+    "scoreWontCount": "Catch-up scores won't count on the leaderboard",
+    "viewDetails": "See details for the {{date}} game",
+    "resumeGame": "Resume the {{date}} game",
+    "stats": {
+      "label": "Your journey",
+      "streak": "Current streak",
+      "streakUnit_one": "{{count}} day",
+      "streakUnit_other": "{{count}} days",
+      "played": "Games played",
+      "playedUnit_one": "{{count}} game",
+      "playedUnit_other": "{{count}} games"
+    },
+    "empty": {
+      "title": "No games yet",
+      "subtitle": "Play today's challenge to start your history.",
+      "cta": "Play today's challenge"
+    },
+    "zeroScore": {
+      "title": "Zero this time — it happens.",
+      "subtitle": "Check the hints, spot the game, and come back stronger tomorrow."
+    }
   },
   "auth": {
     "login": "Login",
@@ -1505,6 +1550,8 @@
     "pageTitle": "Profile",
     "totalScore": "Total Score",
     "currentStreak": "Current Streak",
+    "streakFreezeTooltip_one": "{{count}} freeze — auto-consumed if you miss a day.",
+    "streakFreezeTooltip_other": "{{count}} freezes — auto-consumed if you miss a day.",
     "achievements": "Achievements",
     "achievementPoints": "Achievement Points",
     "total": "Total",
@@ -1547,6 +1594,60 @@
       "deleteError": "Failed to remove avatar. Please try again."
     }
   },
+  "rewards": {
+    "inboxTitle": "Your rewards",
+    "inboxAria": "Open my rewards",
+    "loading": "Loading…",
+    "empty": "Nothing to claim right now.",
+    "claim": "Claim",
+    "claiming": "Claiming…",
+    "locked": "Locked",
+    "items": {
+      "hint_year": "Year hint",
+      "hint_publisher": "Publisher hint",
+      "hint_developer": "Developer hint",
+      "hint_genre": "Genre hint",
+      "second_chance": "Second chance",
+      "streak_freeze": "Streak freeze"
+    },
+    "sources": {
+      "reactivation": {
+        "title": "Welcome back",
+        "ready": "Your welcome chest is ready.",
+        "pending": "Play one screenshot to open your chest."
+      },
+      "milestone": {
+        "title": "Milestone reached",
+        "ready": "A reward to celebrate your progress.",
+        "pending": "Unlocking soon."
+      },
+      "streak_freeze": {
+        "title": "Streak protection",
+        "ready": "Your streak is protected this month.",
+        "pending": "Prepared for this month."
+      },
+      "leaderboard_payout": {
+        "title": "Leaderboard reward",
+        "ready": "Your placement earned you a reward.",
+        "pending": "Reward in progress."
+      },
+      "cosmetic_unlock": {
+        "title": "Cosmetic unlocked",
+        "ready": "A personal touch for your profile.",
+        "pending": "Preparing."
+      },
+      "powerup_drop": {
+        "title": "New hints",
+        "ready": "Added to your inventory.",
+        "pending": "Available soon."
+      },
+      "daily_login": {
+        "title": "Daily reward",
+        "ready": "Your daily gift is waiting.",
+        "pending": "Come back tomorrow."
+      }
+    }
+  },
   "dailyLogin": {
     "dailyReward": "Daily Reward",
     "rewardClaimed": "Reward Claimed!",
@@ -1565,6 +1666,10 @@
     "day": "D",
     "hintYear": "Year Hint",
     "hintPublisher": "Publisher Hint",
+    "hintDeveloper": "Developer Hint",
+    "hintGenre": "Genre Hint",
+    "streakFreeze": "Streak freeze",
+    "secondChance": "Second chance",
     "points": "points"
   },
   "onboarding": {

@@ -22,6 +22,8 @@ export interface GameHistoryRow {
   total_score: number
   is_completed: boolean
   completed_at: Date | null
+  rounds_correct: number
+  total_screenshots: number
 }
 
 export interface TierSessionRow {
@@ -279,14 +281,23 @@ export const sessionRepository = {
     log.debug({ userId }, 'findUserGameHistory')
     const rows = await db('game_sessions')
       .join('daily_challenges', 'game_sessions.daily_challenge_id', 'daily_challenges.id')
+      .leftJoin('tier_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
       .where('game_sessions.user_id', userId)
+      .groupBy('game_sessions.id', 'daily_challenges.id')
       .orderBy('daily_challenges.challenge_date', 'desc')
       .select(
         'game_sessions.id as session_id',
         db.raw('daily_challenges.challenge_date::text as challenge_date'),
         'game_sessions.total_score',
         'game_sessions.is_completed',
-        'game_sessions.completed_at'
+        'game_sessions.completed_at',
+        db.raw('COALESCE(SUM(tier_sessions.correct_answers), 0)::int as rounds_correct'),
+        db.raw(`(
+          SELECT COUNT(*)::int
+          FROM tier_screenshots ts
+          JOIN tiers t ON ts.tier_id = t.id
+          WHERE t.daily_challenge_id = game_sessions.daily_challenge_id
+        ) as total_screenshots`)
       )
     log.debug({ userId, count: rows.length }, 'findUserGameHistory result')
     return rows as GameHistoryRow[]

@@ -57,10 +57,18 @@ export function DailyRewardModal() {
     const showClaimSuccess = !!justClaimed
 
     const renderItemLabel = (item: { key: string; quantity: number }) => {
-        const label =
-            item.key === 'hint_year'
-                ? t('dailyLogin.hintYear')
-                : t('dailyLogin.hintPublisher')
+        // i18n key per item_key. New keys (hint_developer, hint_genre,
+        // streak_freeze, second_chance) fall back to the raw item_key so
+        // a missing translation does not break the modal.
+        const i18nKey: Record<string, string> = {
+            hint_year: 'dailyLogin.hintYear',
+            hint_publisher: 'dailyLogin.hintPublisher',
+            hint_developer: 'dailyLogin.hintDeveloper',
+            hint_genre: 'dailyLogin.hintGenre',
+            streak_freeze: 'dailyLogin.streakFreeze',
+            second_chance: 'dailyLogin.secondChance',
+        }
+        const label = t(i18nKey[item.key] ?? '', { defaultValue: item.key })
         return `${item.quantity}× ${label}`
     }
 

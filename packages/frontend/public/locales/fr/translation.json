@@ -118,6 +118,15 @@
     "totalScore": "Score Total",
     "correctAnswers": "Bonnes Réponses",
     "accuracy": "Précision",
+    "scoreQuality": {
+      "label": "Qualité du score",
+      "mastered": "Maîtrisé",
+      "solid": "Correct",
+      "shaky": "Fragile"
+    },
+    "userGuessed": "(ta réponse : {{guess}})",
+    "screenshotOf": "Capture du jeu {{game}}",
+    "correctOutOf": "{{correct}} / {{total}} trouvés",
     "viewResults": "Voir les Résultats",
     "pressEnterToContinue": "Appuie sur Entrée pour continuer",
     "worldTotal": "Score Mondial",
@@ -217,19 +226,31 @@
       "yearTooltip": "Afficher l'année de sortie (-20%)",
       "publisherTooltip": "Afficher l'éditeur (-20%)",
       "developerTooltip": "Afficher le développeur (-20%)",
+      "genreTooltip": "Afficher le genre (-20%)",
       "yearTooltipFree": "Afficher l'année de sortie ({{count}} gratuit)",
       "publisherTooltipFree": "Afficher l'éditeur ({{count}} gratuit)",
       "developerTooltipFree": "Afficher le développeur ({{count}} gratuit)",
+      "genreTooltipFree": "Afficher le genre ({{count}} gratuit)",
       "lockedTooltip": "Disponible après la première mauvaise réponse",
       "unavailableYear": "Année de sortie non disponible",
       "unavailablePublisher": "Éditeur non disponible",
       "unavailableDeveloper": "Développeur non disponible",
+      "unavailableGenre": "Genre non disponible",
       "alreadyUsed": "Déjà utilisé",
       "yearHint": "Année de sortie",
       "publisherHint": "Éditeur",
       "developerHint": "Développeur",
+      "genreHint": "Genre",
       "penalty": "-20%",
       "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
+    },
+    "secondChance": {
+      "title": "Activer une seconde chance ?",
+      "description": "Une seconde chance garantit au moins 70 points sur ta prochaine bonne réponse à cette position.",
+      "accept": "Activer (-1)",
+      "dismiss": "Plus tard",
+      "activating": "Activation…",
+      "activationFailed": "Impossible d'activer la seconde chance pour l'instant."
     },
     "notFound": "Jeu Introuvable",
     "completionChoice": {
@@ -351,18 +372,42 @@
   },
   "history": {
     "title": "Historique des Parties",
+    "subtitle": "Revis tes parties, reprends celles en cours, rattrape les manquées.",
     "yourGames": "Vos Parties",
     "noResults": "Aucune partie jouée. Jouez votre premier défi quotidien !",
     "inProgress": "En cours",
     "completed": "Terminées",
     "searchPlaceholder": "Rechercher par date...",
+    "searchLabel": "Filtrer les parties par date",
+    "refreshLabel": "Rafraîchir la liste",
     "noMatchingResults": "Aucune partie ne correspond à vos filtres",
     "game": "partie",
     "games": "parties",
     "missedChallenges": "Défis Manqués",
-    "playCatchUp": "Jouer",
+    "playCatchUp": "Rattraper",
     "catchUpBadge": "Rattrapage",
-    "scoreWontCount": "Les scores de rattrapage ne comptent pas au classement"
+    "catchUpHint": "Pour ta progression — hors classement quotidien",
+    "scoreWontCount": "Les scores de rattrapage ne comptent pas au classement",
+    "viewDetails": "Voir le détail de la partie du {{date}}",
+    "resumeGame": "Reprendre la partie du {{date}}",
+    "stats": {
+      "label": "Ton parcours",
+      "streak": "Série en cours",
+      "streakUnit_one": "{{count}} jour",
+      "streakUnit_other": "{{count}} jours",
+      "played": "Parties jouées",
+      "playedUnit_one": "{{count}} partie",
+      "playedUnit_other": "{{count}} parties"
+    },
+    "empty": {
+      "title": "Pas encore de parties",
+      "subtitle": "Joue le défi du jour pour commencer ton historique.",
+      "cta": "Jouer le défi du jour"
+    },
+    "zeroScore": {
+      "title": "Zéro cette fois — ça arrive.",
+      "subtitle": "Regarde les indices, repère le jeu, et reviens plus fort demain."
+    }
   },
   "auth": {
     "login": "Connexion",
@@ -1505,6 +1550,8 @@
     "pageTitle": "Profil",
     "totalScore": "Score Total",
     "currentStreak": "Série Actuelle",
+    "streakFreezeTooltip_one": "{{count}} protection — consommée automatiquement si tu manques un jour.",
+    "streakFreezeTooltip_other": "{{count}} protections — consommées automatiquement si tu manques un jour.",
     "achievements": "Succès",
     "achievementPoints": "Points de Succès",
     "total": "Total",
@@ -1547,6 +1594,60 @@
       "deleteError": "Échec de la suppression de l'avatar. Veuillez réessayer."
     }
   },
+  "rewards": {
+    "inboxTitle": "Tes récompenses",
+    "inboxAria": "Ouvrir mes récompenses",
+    "loading": "Chargement…",
+    "empty": "Rien à réclamer pour l'instant.",
+    "claim": "Réclamer",
+    "claiming": "En cours…",
+    "locked": "À débloquer",
+    "items": {
+      "hint_year": "Indice Année",
+      "hint_publisher": "Indice Éditeur",
+      "hint_developer": "Indice Développeur",
+      "hint_genre": "Indice Genre",
+      "second_chance": "Seconde chance",
+      "streak_freeze": "Protection de série"
+    },
+    "sources": {
+      "reactivation": {
+        "title": "Bon retour",
+        "ready": "Ton coffre de retour est prêt.",
+        "pending": "Joue un screenshot pour ouvrir ton coffre."
+      },
+      "milestone": {
+        "title": "Nouveau cap atteint",
+        "ready": "Une récompense célèbre ton parcours.",
+        "pending": "Bientôt débloqué."
+      },
+      "streak_freeze": {
+        "title": "Protection de série",
+        "ready": "Ta série est couverte ce mois-ci.",
+        "pending": "Préparée pour ce mois-ci."
+      },
+      "leaderboard_payout": {
+        "title": "Récompense de classement",
+        "ready": "Ta place sur le tableau t'a valu une récompense.",
+        "pending": "Récompense en préparation."
+      },
+      "cosmetic_unlock": {
+        "title": "Cosmétique débloqué",
+        "ready": "Une touche personnelle pour ton profil.",
+        "pending": "Préparation en cours."
+      },
+      "powerup_drop": {
+        "title": "Nouveaux indices",
+        "ready": "Ajoutés à ton inventaire.",
+        "pending": "Bientôt disponibles."
+      },
+      "daily_login": {
+        "title": "Récompense quotidienne",
+        "ready": "Ton cadeau du jour t'attend.",
+        "pending": "Reviens demain."
+      }
+    }
+  },
   "dailyLogin": {
     "dailyReward": "Récompense Quotidienne",
     "rewardClaimed": "Récompense Récupérée !",
@@ -1565,6 +1666,10 @@
     "day": "J",
     "hintYear": "Indice Année",
     "hintPublisher": "Indice Éditeur",
+    "hintDeveloper": "Indice Développeur",
+    "hintGenre": "Indice Genre",
+    "streakFreeze": "Protection de série",
+    "secondChance": "Seconde chance",
     "points": "points"
   },
   "onboarding": {

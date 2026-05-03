@@ -319,21 +319,23 @@ export function GeoReviewPanel() {
         }
     }
 
-    // Returns the candidate the moderator should triage *after* `currentId`
-    // is removed from the visible list. Uses the same flat (group-aware)
-    // ordering the UI renders, so "next" mirrors what the eye expects.
-    // Falls back to the first row, then to nothing when the queue empties.
+    // Returns the candidate the moderator should triage *after* `currentId`.
+    // Uses the same flat (group-aware) ordering the UI renders, so "next"
+    // mirrors what the eye expects. Filters out `currentId` first so the
+    // advance still works on the `all` filter (where rejected/promoted
+    // rows stay visible) — without this, `flat[oldIdx]` would re-open the
+    // candidate we just acted on.
     const pickNextAfter = (
         rows: GeoScreenshotCandidate[],
         currentId: number,
         previousFlat: GeoScreenshotCandidate[],
     ): GeoScreenshotCandidate | null => {
-        const flat = groupCandidatesByGame(rows).flatMap((g) => g.candidates)
+        const flat = groupCandidatesByGame(rows)
+            .flatMap((g) => g.candidates)
+            .filter((c) => c.id !== currentId)
         if (flat.length === 0) return null
         const oldIdx = previousFlat.findIndex((c) => c.id === currentId)
-        // After a successful action the row drops out of the filtered list,
-        // so the candidate now sitting at `oldIdx` IS the next one.
-        if (oldIdx >= 0 && oldIdx < flat.length) return flat[oldIdx]
+        if (oldIdx >= 0) return flat[Math.min(oldIdx, flat.length - 1)]
         return flat[0]
     }
 
@@ -469,6 +471,25 @@ export function GeoReviewPanel() {
         const key = `admin.geo.statusBadge.${status}`
         const translated = t(key)
         return translated === key ? status : translated
+    }
+
+    // Map each candidate status to a Badge variant so the operator can
+    // tell at a glance which rows are awaiting their action vs. already
+    // resolved. Variants come from the design tokens (success/warning/
+    // destructive) — no raw Tailwind palette.
+    const statusVariant = (
+        status: string,
+    ): 'success' | 'warning' | 'destructive' | 'outline' => {
+        switch (status) {
+            case 'promoted':
+                return 'success'
+            case 'pending':
+                return 'warning'
+            case 'rejected':
+                return 'destructive'
+            default:
+                return 'outline'
+        }
     }
 
     // Pick which count drives a summary row's primary number based on the
@@ -718,7 +739,7 @@ export function GeoReviewPanel() {
                                                 <span className="truncate font-mono font-medium">
                                                     #{c.id}
                                                 </span>
-                                                <Badge variant="outline">
+                                                <Badge variant={statusVariant(c.status)}>
                                                     {statusLabel(c.status)}
                                                 </Badge>
                                             </div>

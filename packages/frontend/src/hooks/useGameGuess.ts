@@ -47,14 +47,22 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
       const hintYearUsed = currentPosState?.hintYearUsed || false
       const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
       const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
+      const hintGenreUsed = currentPosState?.hintGenreUsed || false
 
       // Determine which power-up was used (send one hint type for penalty calculation)
-      // Priority: developer > publisher > year (most valuable first)
-      let powerUpUsed: 'hint_year' | 'hint_publisher' | 'hint_developer' | undefined
+      // Priority: developer > publisher > genre > year (most → least specific)
+      let powerUpUsed:
+        | 'hint_year'
+        | 'hint_publisher'
+        | 'hint_developer'
+        | 'hint_genre'
+        | undefined
       if (hintDeveloperUsed) {
         powerUpUsed = 'hint_developer'
       } else if (hintPublisherUsed) {
         powerUpUsed = 'hint_publisher'
+      } else if (hintGenreUsed) {
+        powerUpUsed = 'hint_genre'
       } else if (hintYearUsed) {
         powerUpUsed = 'hint_year'
       }
@@ -106,6 +114,18 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             isCorrect: false,
           })
           store.markIncorrectGuess(currentPos)
+
+          // Surface the second-chance modal: only when the user actually
+          // owns the powerup AND has not already activated it for this
+          // position in this session. The modal is dismissable; declining
+          // does NOT consume inventory (per the powerups PRD).
+          const inv = dailyLoginStore.inventory
+          const ownsSecondChance = (inv?.powerups['second_chance'] ?? 0) > 0
+          const alreadyActive =
+            store.positionStates[currentPos]?.secondChanceActivated === true
+          if (ownsSecondChance && !alreadyActive) {
+            store.showSecondChancePrompt(currentPos)
+          }
         }
 
         // Determine if we should advance to next screenshot (only on correct)

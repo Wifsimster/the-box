@@ -16,6 +16,7 @@ import type {
   InventoryRepository,
   GameRepository,
   FunnelEventRepository,
+  PositionSecondChanceRepository,
 } from '../ports/repositories.js'
 import type { FuzzyMatchService } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
@@ -76,6 +77,16 @@ export interface GameServiceDeps {
   inventoryRepository: InventoryRepository
   gameRepository: GameRepository
   funnelEventRepository: FunnelEventRepository
+  positionSecondChanceRepository: PositionSecondChanceRepository
+  /**
+   * Optional fire-and-forget hook called after a guess is persisted.
+   * Wired by the composition root to unlock any pending rewards that
+   * gate on a user action (currently: reactivation chest unlocks on
+   * the user's next guess) and emit `reward:granted` over Socket.io.
+   * Errors from the hook are logged but never thrown — the guess
+   * submission must not fail because a side-effect failed.
+   */
+  onAfterGuessSubmitted?: (userId: string) => Promise<void>
 }
 
 export interface GameService {
@@ -90,10 +101,28 @@ export interface GameService {
     guessText: string
     roundTimeTakenMs: number
     userId: string
-    powerUpUsed?: 'hint_year' | 'hint_publisher'
+    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
     isPremium?: boolean
   }): Promise<GuessResponse>
   endGame(sessionId: string, userId: string): Promise<EndGameResponse>
+  /**
+   * Activate the `second_chance` powerup for a specific position. Decrements
+   * inventory and records the activation atomically. Returns the result of
+   * the underlying repository call so the route can return semantic 4xx
+   * codes for the failure modes ('ALREADY_ACTIVE', 'NO_INVENTORY').
+   *
+   * **Scoring contract** (interpretation of the powerups PRD): once an
+   * activation exists for `(tier_session_id, position)`, the next correct
+   * guess on that position has its `scoreEarned` clamped to a FLOOR of
+   * `0.7 × BASE_SCORE = 70`. We do not apply a CAP — the literal PRD
+   * wording would make the powerup punitive in the current retry-friendly
+   * model. See `docs/game-flow.md` for the canonical contract.
+   */
+  activateSecondChance(input: {
+    tierSessionId: string
+    position: number
+    userId: string
+  }): Promise<{ ok: true } | { ok: false; reason: 'ALREADY_ACTIVE' | 'NO_INVENTORY' | 'SESSION_NOT_FOUND' }>
 }
 
 export function createGameService(deps: GameServiceDeps): GameService {
@@ -107,8 +136,15 @@ export function createGameService(deps: GameServiceDeps): GameService {
     inventoryRepository,
     gameRepository,
     funnelEventRepository,
+    positionSecondChanceRepository,
   } = deps
   const log = deps.logger.child({ service: 'game' })
+
+  // Score floor applied on the next correct guess after a `second_chance`
+  // activation. 70 % of the BASE_SCORE per the powerups PRD; expressed as
+  // an absolute integer so the math stays in sync with `scoreEarned` (also
+  // an integer).
+  const SECOND_CHANCE_FLOOR = 70
 
   async function calculateAndUpdateStreak(
     userId: string,
@@ -379,7 +415,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     guessText: string
     roundTimeTakenMs: number
     userId: string
-    powerUpUsed?: 'hint_year' | 'hint_publisher'
+    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
     isPremium?: boolean
   }): Promise<GuessResponse> {
     log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
@@ -413,7 +449,12 @@ export function createGameService(deps: GameServiceDeps): GameService {
       scoreEarned = Math.min(scoreEarned, 200)
 
       // Check if hint was used and handle penalty/inventory
-      if (data.powerUpUsed === 'hint_year' || data.powerUpUsed === 'hint_publisher' || data.powerUpUsed === 'hint_developer') {
+      if (
+        data.powerUpUsed === 'hint_year' ||
+        data.powerUpUsed === 'hint_publisher' ||
+        data.powerUpUsed === 'hint_developer' ||
+        data.powerUpUsed === 'hint_genre'
+      ) {
         // Premium entitlement bypasses the hint cost ENTIRELY in catch-up
         // sessions only — never on today's daily, since today is what
         // feeds the leaderboard and ranked integrity is non-negotiable.
@@ -444,6 +485,39 @@ export function createGameService(deps: GameServiceDeps): GameService {
             scoreEarned -= hintPenalty
             log.info({ userId: data.userId, hintType: data.powerUpUsed, penalty: hintPenalty }, 'hint used with penalty (no inventory)')
           }
+        }
+      }
+    }
+
+    // Second-chance score floor — applies to the next correct guess on
+    // a position where the user previously activated the powerup. The
+    // activation row is created by POST /api/game/second-chance and lives
+    // in `position_second_chances`. We treat 70 % of BASE_SCORE as a
+    // FLOOR (not a cap, despite the literal PRD wording — see service
+    // contract above). The activation is marked applied AFTER the guess
+    // is saved so the row's `applied_to_guess_id` points at the
+    // surviving guess record.
+    let secondChanceFloorBoost: number | undefined
+    let pendingSecondChanceActivationId: number | null = null
+    if (isCorrect) {
+      const activation = await positionSecondChanceRepository.findPending(
+        data.tierSessionId,
+        data.position
+      )
+      if (activation) {
+        pendingSecondChanceActivationId = activation.id
+        if (scoreEarned < SECOND_CHANCE_FLOOR) {
+          secondChanceFloorBoost = SECOND_CHANCE_FLOOR - scoreEarned
+          scoreEarned = SECOND_CHANCE_FLOOR
+          log.info(
+            {
+              userId: data.userId,
+              position: data.position,
+              boost: secondChanceFloorBoost,
+              floor: SECOND_CHANCE_FLOOR,
+            },
+            'second_chance floor applied'
+          )
         }
       }
     }
@@ -484,6 +558,29 @@ export function createGameService(deps: GameServiceDeps): GameService {
       sessionElapsedMs: data.roundTimeTakenMs, // Store round time as sessionElapsedMs for backward compatibility
       scoreEarned,
     })
+
+    if (pendingSecondChanceActivationId !== null) {
+      // Best-effort traceability link. We keep `applied_to_guess_id` null
+      // (saveGuess doesn't return the new row id) — the activation row
+      // is now flagged "applied" so future correct guesses on this slot
+      // (e.g. retried after navigation) won't re-floor.
+      await positionSecondChanceRepository.markApplied(
+        pendingSecondChanceActivationId,
+        null
+      )
+    }
+
+    // Fire-and-forget reactivation chest unlock + any other post-guess
+    // reward side-effects. Wired in the composition root so this domain
+    // service stays infrastructure-free (no socket import here).
+    if (deps.onAfterGuessSubmitted) {
+      void deps.onAfterGuessSubmitted(data.userId).catch((error) => {
+        log.warn(
+          { userId: data.userId, error: String(error) },
+          'onAfterGuessSubmitted hook failed (non-fatal)'
+        )
+      })
+    }
 
     void funnelEventRepository.record({
       eventName: 'guess_submitted',
@@ -615,10 +712,15 @@ export function createGameService(deps: GameServiceDeps): GameService {
         hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
         hintFromInventory: hintFromInventory || undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
+        secondChanceFloorBoost,
         availableHints: {
           year: releaseYear?.toString() ?? null,
           publisher: fullGameData?.publisher ?? null,
           developer: fullGameData?.developer ?? null,
+          // Primary genre only — exposing the full tag list would tip the
+          // game (e.g. "Action / Stealth / WW2" ≈ Wolfenstein). Picks the
+          // first tag, which RAWG returns ordered by relevance.
+          genre: fullGameData?.genres?.[0] ?? null,
         },
         newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
@@ -655,12 +757,36 @@ export function createGameService(deps: GameServiceDeps): GameService {
       hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
       hintFromInventory: hintFromInventory || undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
+      secondChanceFloorBoost,
       availableHints: {
         year: releaseYear?.toString() ?? null,
         publisher: fullGameData?.publisher ?? null,
         developer: fullGameData?.developer ?? null,
+        genre: fullGameData?.genres?.[0] ?? null,
       },
     }
+  },
+
+  async activateSecondChance(input: {
+    tierSessionId: string
+    position: number
+    userId: string
+  }): Promise<{ ok: true } | { ok: false; reason: 'ALREADY_ACTIVE' | 'NO_INVENTORY' | 'SESSION_NOT_FOUND' }> {
+    const { tierSessionId, position, userId } = input
+    log.info({ tierSessionId, position, userId }, 'activateSecondChance')
+
+    // Validate session ownership before touching inventory.
+    const ts = await sessionRepository.findTierSessionWithContext(tierSessionId)
+    if (!ts || ts.user_id !== userId) {
+      return { ok: false, reason: 'SESSION_NOT_FOUND' }
+    }
+
+    const result = await positionSecondChanceRepository.activate({
+      userId,
+      tierSessionId,
+      position,
+    })
+    return result.ok ? { ok: true } : { ok: false, reason: result.reason }
   },
 
 

@@ -84,6 +84,39 @@ Plus la réponse est rapide, plus le score est élevé.
 
 Des tours bonus peuvent apparaître après les positions 6, 12 et 18 et offrir un bonus.
 
+### Catalogue des power-ups (`item_type='powerup'`)
+
+| `item_key` | Effet | Sources d'obtention |
+|---|---|---|
+| `hint_year` | Révèle l'année de sortie | Daily-login (jours 1, 4, 7), parrainage |
+| `hint_publisher` | Révèle l'éditeur | Daily-login (jours 2, 5, 7), parrainage |
+| `hint_developer` | Révèle le développeur | Daily-login (jour 7), parrainage |
+| `hint_genre` | Révèle le tag de genre principal | Daily-login (jour 7), parrainage |
+| `streak_freeze` | Préserve la série lorsqu'un jour est manqué | Octroi mensuel automatique uniquement |
+| `second_chance` | Garantit un score plancher (FLOOR) de 70 points sur la prochaine bonne réponse à la position | Daily-login (jour 7), parrainage |
+
+### Invariants de l'économie de récompense
+
+- **`streak_freeze` n'est jamais achetable.** L'unique chemin d'acquisition est l'octroi mensuel automatique (worker BullMQ `streak-freeze-grant`, plafonné à 2 par utilisateur). Vendre cet objet recréerait le piège de coût irrécupérable qu'il a été conçu pour désamorcer. Toute future boutique doit explicitement exclure `streak_freeze` de son catalogue de SKU.
+- **L'auto-consommation du `streak_freeze`** ne couvre **qu'un seul jour manqué**. Plusieurs jours d'absence consécutifs réinitialisent la série normalement, indépendamment du stock de protections.
+- **L'usage d'un indice** (year / publisher / developer / genre) coûte soit un item d'inventaire (gratuit), soit -20 % du score gagné sur la position.
+- **`second_chance` est un PLANCHER, pas un plafond.** Le PRD initial évoquait littéralement « score plafonné à 70 % », mais cette interprétation rendrait le power-up punitif dans le modèle actuel (les essais multiples sont déjà permis, l'objet ne peut donc pas accorder une chance qui n'existe pas déjà). Implémenté comme : une activation pour une position garantit `max(scoreEarned, 70)` sur la prochaine bonne réponse à cette position. C'est la seule lecture qui rend le power-up à valeur positive pour le joueur. Toute évolution future de cette sémantique doit être discutée dans une réunion design avant d'être codée.
+- **Activation `second_chance` réactive (modale)** déclenchée après une mauvaise réponse, dismissable. Refuser ne consomme pas l'inventaire. Une activation au plus par couple `(tier_session, position)`.
+
+### Payout mensuel du classement
+
+Le worker BullMQ `leaderboard-payout-monthly` s'exécute le 1er de chaque mois à 00:30 UTC et accorde un cadre cosmétique au top 100 du **mois précédent**.
+
+| Aspect | Décision |
+|---|---|
+| Récompense | Cadre cosmétique horodaté `frame_top100_YYYY_MM` (ex. `frame_top100_2026_05`) |
+| Type d'item | `cosmetic` dans `user_inventory` (jamais des points ni de l'argent virtuel) |
+| Bénéficiaires | Top 100 mensuel uniquement (pas de top quotidien dans cette première itération) |
+| Idempotence | `reward_grants` UNIQUE sur `(user_id, leaderboard_payout, leaderboard_payout:monthly:YYYY-MM)` — relancer le cron est sûr |
+| Échangeable | **Non** — l'inventaire n'a aucun mécanisme de transfert |
+| Cadence | Une SKU distincte par mois ; un cadre obtenu en mai 2026 reste un témoignage historique |
+| **UI à bannir** | **Aucun countdown** sur la page leaderboard (« plus que 3 jours pour entrer dans le top 100 ! »). Per la réunion (veto Nour) : la rareté est *historique* (datée), pas *manufacturée* (FOMO). Le badge se découvre comme une reconnaissance silencieuse, pas comme une carotte de pression temporelle. |
+
 ## Boucle de jeu
 
 ```mermaid

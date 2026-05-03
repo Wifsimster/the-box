@@ -215,6 +215,8 @@ export function createUserService(deps: UserServiceDeps): UserService {
           totalScore: entry.total_score,
           isCompleted: entry.is_completed,
           completedAt: entry.completed_at?.toISOString() ?? null,
+          roundsCorrect: entry.rounds_correct,
+          totalScreenshots: entry.total_screenshots,
         })),
         missedChallenges,
       }

@@ -265,6 +265,13 @@ export interface PositionState {
   hintYearUsed?: boolean
   hintPublisherUsed?: boolean
   hintDeveloperUsed?: boolean
+  hintGenreUsed?: boolean
+  /**
+   * True once the user has spent a `second_chance` for this position in
+   * the current tier session. Drives the modal's "show once" behaviour
+   * and the disabled state of the inventory item.
+   */
+  secondChanceActivated?: boolean
 }
 
 // ============================================
@@ -355,7 +362,7 @@ export interface GuessRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer'
+  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
 }
 
 export interface GuessResponse {
@@ -370,10 +377,26 @@ export interface GuessResponse {
   hintPenalty?: number
   hintFromInventory?: boolean
   wrongGuessPenalty?: number
+  /**
+   * Set on the response that follows a correct guess where a previously
+   * activated `second_chance` floor was applied. The frontend uses it to
+   * surface a small "+X (seconde chance)" badge so the player understands
+   * why their score was bumped up. Absent (`undefined`) when no floor was
+   * applied, including when the player guessed correctly without an
+   * active activation.
+   */
+  secondChanceFloorBoost?: number
   availableHints?: {
     year: string | null
     publisher: string | null
     developer: string | null
+    /**
+     * Primary genre tag for the screenshot's game, or null when the
+     * game has no genres set. Frontend renders the first tag only —
+     * genre arrays are intentionally not exposed (privacy/discriminative
+     * value: revealing all tags ≈ revealing the game).
+     */
+    genre: string | null
   }
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
@@ -437,6 +460,8 @@ export interface GameHistoryEntry {
   totalScore: number
   isCompleted: boolean
   completedAt: string | null
+  roundsCorrect: number
+  totalScreenshots: number
 }
 
 export interface MissedChallenge {
@@ -704,6 +729,17 @@ export interface DailyLoginStatus {
   currentDayInCycle: number
   todayReward: DailyReward | null
   allRewards: DailyReward[]
+  /**
+   * Set on the SINGLE response that follows a streak-freeze auto-consume
+   * (the user missed exactly one day and a freeze was available). Frontend
+   * shows a non-blocking toast; never null on subsequent calls within the
+   * same login day. Absent (`null`) when no freeze was consumed.
+   */
+  streakFreezeConsumed?: {
+    previousStreak: number
+    newStreak: number
+    freezesRemaining: number
+  } | null
 }
 
 export interface ClaimRewardResponse {
@@ -723,6 +759,72 @@ export interface LoginRewardClaim {
   dayNumber: number
   streakAtClaim: number
   claimedAt: string
+}
+
+// ============================================
+// Generic Rewards (idempotent grants surfaced in RewardsInbox)
+// ============================================
+
+/**
+ * Discriminator for the source of a reward grant. Each source pairs with a
+ * `source_ref` natural key documented in `migrations/*_reward_grants.ts`.
+ */
+export type RewardSource =
+  | 'reactivation'
+  | 'milestone'
+  | 'streak_freeze'
+  | 'leaderboard_payout'
+  | 'cosmetic_unlock'
+  | 'powerup_drop'
+  | 'daily_login'
+
+/**
+ * One inventory item granted as part of a reward. The shape mirrors
+ * `user_inventory` rows.
+ */
+export interface RewardGrantItem {
+  itemType: string
+  itemKey: string
+  quantity: number
+}
+
+/**
+ * Persistent payload stored in `reward_grants.payload`. Kept narrow on
+ * purpose: items are the only thing inboxes need to render. Source-specific
+ * metadata (e.g. milestone display name) is resolved client-side via i18n
+ * keys derived from `source` + `sourceRef`, not embedded here.
+ */
+export interface RewardGrantPayload {
+  items: RewardGrantItem[]
+}
+
+/**
+ * Domain representation of a reward grant. Repositories return rows mapped
+ * to this shape; routes serialize to JSON directly.
+ */
+export interface RewardGrant {
+  id: string
+  userId: string
+  source: RewardSource
+  sourceRef: string
+  payload: RewardGrantPayload
+  grantedAt: string
+  unlockedAt: string | null
+  claimedAt: string | null
+}
+
+/**
+ * Socket.io event emitted to room `user:${userId}` AFTER the inventory
+ * upsert commits. Frontend stores subscribe once and update the inbox
+ * + Zustand inventory cache on receipt.
+ */
+export interface RewardGrantedEvent {
+  rewardId: string
+  source: RewardSource
+  sourceRef: string
+  items: RewardGrantItem[]
+  grantedAt: string
+  unlockedAt: string | null
 }
 
 // ============================================

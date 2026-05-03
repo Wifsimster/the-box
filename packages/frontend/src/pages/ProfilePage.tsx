@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { Trophy, Award, TrendingUp, Flame, Calendar } from 'lucide-react'
+import { Trophy, Award, TrendingUp, Flame, Calendar, Snowflake } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAchievementStore } from '@/stores/achievementStore'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { AchievementGrid } from '@/components/achievement'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,6 +37,15 @@ export default function ProfilePage() {
         fetchUserAchievements,
         isLoadingUserAchievements
     } = useAchievementStore()
+    const inventory = useDailyLoginStore((s) => s.inventory)
+    const fetchInventory = useDailyLoginStore((s) => s.fetchInventory)
+    const streakFreezeCount = inventory?.powerups['streak_freeze'] ?? 0
+
+    useEffect(() => {
+        if (session?.user?.id) {
+            void fetchInventory()
+        }
+    }, [session?.user?.id, fetchInventory])
 
     const handleAvatarChange = useCallback((newAvatarUrl: string | null) => {
         setAvatarUrl(newAvatarUrl)
@@ -206,12 +216,23 @@ export default function ProfilePage() {
                                                         <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
                                                             {t('profile.days')}
                                                         </div>
+                                                        {streakFreezeCount > 0 && (
+                                                            <div className="flex items-center gap-1 text-[10px] text-neon-blue">
+                                                                <Snowflake className="h-3 w-3" />
+                                                                <span>× {streakFreezeCount}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <div className="text-center">
                                                         <p className="font-semibold">{t('profile.currentStreak')}</p>
                                                         <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.currentStreakDescription')}</p>
+                                                        {streakFreezeCount > 0 && (
+                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                {t('profile.streakFreezeTooltip', { count: streakFreezeCount })}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </TooltipContent>
                                             </TooltipRoot>

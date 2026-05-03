@@ -5,7 +5,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
-import { Calendar, Building2, Code2 } from 'lucide-react'
+import { Calendar, Building2, Code2, Tag } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +30,7 @@ export function HintButtons() {
   const yearHintsInInventory = inventory?.powerups?.hint_year ?? 0
   const publisherHintsInInventory = inventory?.powerups?.hint_publisher ?? 0
   const developerHintsInInventory = inventory?.powerups?.hint_developer ?? 0
+  const genreHintsInInventory = inventory?.powerups?.hint_genre ?? 0
 
   // Fetch inventory on mount if not loaded
   useEffect(() => {
@@ -47,6 +48,7 @@ export function HintButtons() {
     useHintYear,
     useHintPublisher,
     useHintDeveloper,
+    useHintGenre,
   } = useGameStore()
 
   // Daily challenge game mode
@@ -61,11 +63,13 @@ export function HintButtons() {
   const hintYearUsed = currentPosState?.hintYearUsed || false
   const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
   const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
+  const hintGenreUsed = currentPosState?.hintGenreUsed || false
 
   // Check if hints are available (data exists)
   const yearAvailable = availableHints?.year !== null && availableHints?.year !== undefined
   const publisherAvailable = availableHints?.publisher !== null && availableHints?.publisher !== undefined
   const developerAvailable = availableHints?.developer !== null && availableHints?.developer !== undefined
+  const genreAvailable = availableHints?.genre !== null && availableHints?.genre !== undefined
 
   const handleHintYear = () => {
     if (!hasIncorrectGuess || hintYearUsed || !yearAvailable) return
@@ -83,6 +87,12 @@ export function HintButtons() {
     if (!hasIncorrectGuess || hintDeveloperUsed || !developerAvailable) return
     // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintDeveloper is a store action, not a React hook
     useHintDeveloper(currentPosition)
+  }
+
+  const handleHintGenre = () => {
+    if (!hasIncorrectGuess || hintGenreUsed || !genreAvailable) return
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintGenre is a store action, not a React hook
+    useHintGenre(currentPosition)
   }
 
   return (
@@ -191,6 +201,45 @@ export function HintButtons() {
                 className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
               >
                 {developerHintsInInventory}
+              </Badge>
+            ) : (
+              <Badge
+                variant="destructive"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-0.5 flex items-center justify-center text-[10px] font-bold"
+              >
+                -20%
+              </Badge>
+            )
+          )}
+        </Button>
+      </Tooltip>
+
+      <Tooltip content={
+        !hasIncorrectGuess
+          ? t('game.hints.lockedTooltip')
+          : !genreAvailable
+            ? t('game.hints.unavailableGenre')
+            : hintGenreUsed
+              ? t('game.hints.alreadyUsed')
+              : genreHintsInInventory > 0
+                ? t('game.hints.genreTooltipFree', { count: genreHintsInInventory, defaultValue: `Genre Hint (${genreHintsInInventory} free)` })
+                : t('game.hints.genreTooltip', { defaultValue: 'Genre Hint (-20%)' })
+      }>
+        <Button
+          variant={hintVariant(hintGenreUsed, genreHintsInInventory)}
+          size="sm"
+          onClick={handleHintGenre}
+          disabled={!hasIncorrectGuess || hintGenreUsed || !genreAvailable || gamePhase !== 'playing'}
+          className="relative h-11 w-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
+        >
+          <Tag className={cn('h-4 w-4 transition-colors duration-300', hintGenreUsed && 'text-warning')} />
+          {!hintGenreUsed && hasIncorrectGuess && genreAvailable && (
+            genreHintsInInventory > 0 ? (
+              <Badge
+                variant="success"
+                className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
+              >
+                {genreHintsInInventory}
               </Badge>
             ) : (
               <Badge
