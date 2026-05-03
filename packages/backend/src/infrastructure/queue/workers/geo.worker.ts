@@ -13,7 +13,7 @@ import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { importRawgScreenshots } from './geo-rawg-import-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
-import { runMapsPipeline } from './maps-pipeline-logic.js'
+import { advancePipeline, runMapsPipeline } from './maps-pipeline-logic.js'
 import { runMapsFetchSteam } from './maps-fetch-steam.js'
 import { runMapsFetchRawg } from './maps-fetch-rawg.js'
 import { runMapsFetchFandom } from './maps-fetch-fandom.js'
@@ -187,11 +187,41 @@ geoWorker.on('error', (err) => {
   log.error({ err: String(err) }, 'geo worker error')
 })
 
+type MapsFetchChildJob = Extract<GeoJobData, { kind: `maps:fetch-from-${string}` }>
+
+function isMapsFetchChildJob(data: GeoJobData | undefined): data is MapsFetchChildJob {
+  return !!data && typeof data.kind === 'string' && data.kind.startsWith('maps:fetch-from-')
+}
+
 geoWorker.on('failed', (job, err) => {
+  const data = job?.data as GeoJobData | undefined
   log.error(
-    { jobId: job?.id, kind: (job?.data as GeoJobData | undefined)?.kind, err: String(err) },
+    { jobId: job?.id, kind: data?.kind, attemptsMade: job?.attemptsMade, err: String(err) },
     'geo job failed',
   )
+
+  if (!job || !isMapsFetchChildJob(data)) return
+
+  // BullMQ fires 'failed' for every failed attempt. Only act on the terminal
+  // failure — otherwise we'd advance mid-retry and the next attempt would
+  // race the orchestrator picking another source.
+  const maxAttempts = job.opts.attempts ?? 1
+  if (job.attemptsMade < maxAttempts) return
+
+  // Without this, runSourceFetch's catch-and-rethrow path leaves pipeline
+  // state stuck at fetching_* with active_source pinned to the dead source:
+  // recordAttempt runs, but advancePipeline doesn't, and BullMQ has no more
+  // retries to run. Re-enqueue the orchestrator so it picks the next source
+  // (or transitions to awaiting_curation / blocked).
+  void advancePipeline({
+    gameId: data.gameId,
+    correlationId: data.correlationId,
+  }).catch((advanceErr) => {
+    log.error(
+      { jobId: job.id, gameId: data.gameId, err: String(advanceErr) },
+      'failed to advance pipeline after maps:fetch-from-* exhaustion',
+    )
+  })
 })
 
 geoWorker.on('completed', (job) => {
