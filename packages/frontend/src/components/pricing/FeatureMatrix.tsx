@@ -13,7 +13,7 @@ const ROWS: FeatureRow[] = [
   { key: 'leaderboards', free: true, premium: true },
   { key: 'achievements', free: true, premium: true },
   { key: 'hintsBaseline', free: true, premium: true },
-  { key: 'catchUp7d', free: true, premium: true },
+  { key: 'catchUp7d', free: false, premium: true },
   { key: 'catchUpFull', free: false, premium: true },
   { key: 'hintsUnlimitedCatchUp', free: false, premium: true },
   { key: 'advancedStats', free: false, premium: true },

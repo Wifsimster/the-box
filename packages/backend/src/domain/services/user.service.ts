@@ -14,9 +14,11 @@ import type {
 
 const TOTAL_SCREENSHOTS = 10
 const WRONG_GUESS_PENALTY = 0
-const CATCH_UP_DAYS = 7
-// Mirror of game.service.ts. Kept duplicated rather than cross-imported
-// to avoid pulling game.service into user.service's dependency graph.
+// Free tier has no catch-up — only today's daily. Premium gets the full
+// 365-day archive. Mirrors game.service.ts (kept duplicated rather than
+// cross-imported to avoid pulling game.service into user.service's
+// dependency graph).
+const CATCH_UP_DAYS = 0
 const PREMIUM_CATCH_UP_DAYS = 365
 
 export interface UserService {

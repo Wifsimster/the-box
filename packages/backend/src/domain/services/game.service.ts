@@ -36,7 +36,11 @@ const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 100
 const UNFOUND_PENALTY = 0
 const WRONG_GUESS_PENALTY = 0
-const CATCH_UP_DAYS = 7
+// Free tier no longer gets a catch-up window — only today's daily is
+// playable. Premium keeps the 365-day archive. Setting this to 0 (rather
+// than removing the constant) keeps the conditional shape downstream so
+// the lookback math still validates "challengeDate < today" naturally.
+const CATCH_UP_DAYS = 0
 // Premium tier extends the catch-up window. 365 days is generous enough
 // to feel like "the full archive" for end-users while still bounding the
 // challenge-list query — the recurring `create-daily-challenge` job
@@ -316,17 +320,17 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     const isCatchUp = challengeDateStr !== todayStr
     if (isCatchUp && challengeDate < oldestAllowed) {
-      // Premium would already have allowedDays === PREMIUM_CATCH_UP_DAYS,
-      // so reaching this branch as a free user with a 7..365 day-old
-      // challenge is the upgrade moment. 402 lets the frontend route to
-      // the upsell instead of rendering a generic error.
+      // Free users have allowedDays=0, so any past challenge falls into
+      // the upsell branch as long as it's still inside the premium
+      // 365-day window. 402 lets the frontend route to the upsell
+      // instead of rendering a generic error.
       if (!isPremium) {
         const freeOldest = new Date(today)
         freeOldest.setDate(freeOldest.getDate() - CATCH_UP_DAYS)
         if (challengeDate >= new Date(today.getTime() - PREMIUM_CATCH_UP_DAYS * 24 * 60 * 60 * 1000) && challengeDate < freeOldest) {
           throw new GameError(
             'PREMIUM_REQUIRED_FOR_OLD_CATCHUP',
-            `Challenges older than ${CATCH_UP_DAYS} days require Premium`,
+            'Catch-up requires Premium',
             402,
           )
         }
