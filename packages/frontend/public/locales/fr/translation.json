@@ -604,9 +604,40 @@
         }
       },
       "catalog": {
-        "subtoggleLabel": "Sous-section du catalogue",
-        "maps": "Cartes",
-        "games": "Jeux"
+        "title": "Catalogue des jeux",
+        "subtitle": "Cliquez sur un jeu activé pour voir l'état d'ingestion par tier. Utilisez les filtres pour basculer entre les jeux activés, sans carte, candidats ou tous.",
+        "empty": "Aucun jeu ne correspond à ce filtre.",
+        "searchPlaceholder": "Rechercher un jeu par nom ou studio…",
+        "select": "Sélectionner",
+        "deselect": "Désélectionner",
+        "selectAll": "Tout sélectionner",
+        "deselectAll": "Tout désélectionner",
+        "filter": {
+          "label": "Filtre",
+          "enabled": "Activés",
+          "no-map": "Sans carte",
+          "candidates": "Candidats",
+          "all": "Tous"
+        },
+        "col": {
+          "name": "Jeu",
+          "maps": "Cartes",
+          "status": "Statut"
+        },
+        "status": {
+          "candidate": "Candidat"
+        },
+        "bulk": {
+          "selected_one": "{{count}} sélectionné",
+          "selected_other": "{{count}} sélectionnés",
+          "curate": "Activer",
+          "remove": "Retirer",
+          "clear": "Effacer",
+          "curatedMessage_one": "{{count}} jeu activé.",
+          "curatedMessage_other": "{{count}} jeux activés.",
+          "removedMessage_one": "{{count}} jeu retiré du catalogue.",
+          "removedMessage_other": "{{count}} jeux retirés du catalogue."
+        }
       },
       "strip": {
         "loading": "Chargement de l'état du dataset…",

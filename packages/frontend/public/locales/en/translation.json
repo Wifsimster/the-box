@@ -604,9 +604,40 @@
         }
       },
       "catalog": {
-        "subtoggleLabel": "Catalog sub-section",
-        "maps": "Maps",
-        "games": "Games"
+        "title": "Game catalog",
+        "subtitle": "Click an enabled game to inspect its tier ingestion. Use the filter pills to pivot between enabled, missing-map, candidate, or all games.",
+        "empty": "No game matches this filter.",
+        "searchPlaceholder": "Search a game by name or studio…",
+        "select": "Select",
+        "deselect": "Deselect",
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
+        "filter": {
+          "label": "Filter",
+          "enabled": "Enabled",
+          "no-map": "Missing map",
+          "candidates": "Candidates",
+          "all": "All"
+        },
+        "col": {
+          "name": "Game",
+          "maps": "Maps",
+          "status": "Status"
+        },
+        "status": {
+          "candidate": "Candidate"
+        },
+        "bulk": {
+          "selected_one": "{{count}} selected",
+          "selected_other": "{{count}} selected",
+          "curate": "Enable",
+          "remove": "Remove",
+          "clear": "Clear",
+          "curatedMessage_one": "{{count}} game enabled.",
+          "curatedMessage_other": "{{count}} games enabled.",
+          "removedMessage_one": "{{count}} game removed from the catalog.",
+          "removedMessage_other": "{{count}} games removed from the catalog."
+        }
       },
       "strip": {
         "loading": "Loading dataset health…",

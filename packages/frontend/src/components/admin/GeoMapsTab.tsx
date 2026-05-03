@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     Card,
@@ -9,18 +9,21 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
     Loader2,
     RefreshCw,
     Upload,
     RotateCw,
     CheckCircle2,
+    CheckSquare,
     XCircle,
     AlertTriangle,
     ArrowUpRight,
     Clock,
     MinusCircle,
     Sparkles,
+    Square,
     Trash2,
     Play,
     Search,
@@ -43,6 +46,7 @@ import {
     type GeoRunStatePayload,
 } from '@/hooks/useGeoRunPolling'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { cn } from '@/lib/utils'
 import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
 import { getApiErrorMessage } from '@/lib/api-errors'
 import {
@@ -53,13 +57,15 @@ import {
     SheetDescription,
 } from '@/components/ui/sheet'
 
-// Per-game ingestion-state surface. Replaces the global metric-tile grid +
-// failures table from GeoAdminActions with a focused, drill-down table where
-// each row's side panel shows which of the four geo_map ingestion tiers
-// (registry / fandom / wikidata / manual) ran or would run next, and why
-// any failed. Triage flow: scan rows for ⚠/✗, click row, side panel
-// explains the cascade state, fix via "Re-run" or "Upload manually".
+// Single Catalogue surface. Absorbs the former Maps + Games sub-tabs into one
+// datatable: default view shows curated games with at least one enabled map,
+// and filter pills (Activés / Sans carte / Candidats / Tous) reach the rest of
+// the catalog without changing screens. Curated rows still open the per-tier
+// cascade side panel; non-curated rows participate in bulk curate via the
+// row checkbox + bulk action bar.
 
+// Used by the side panel and the row-action helpers — all of those only
+// operate on curated games, where map count / candidate count are known.
 interface CuratedGame {
     id: number
     name: string
@@ -69,6 +75,27 @@ interface CuratedGame {
     mapCount: number
     candidateCount: number
 }
+
+// Unified row shape used by the table. `curated` is the discriminator —
+// when false, the map/candidate counts are not returned by the backend.
+interface CatalogRow {
+    id: number
+    name: string
+    slug: string
+    releaseYear: number | null
+    developer: string | null
+    metacritic: number | null
+    genres: string[] | null
+    mapEligibility: boolean | null
+    curated: boolean
+    metadataStatus?: 'pending' | 'resolved' | 'unresolved'
+    hasMap?: boolean
+    mapCount?: number
+    candidateCount?: number
+}
+
+type FilterMode = 'enabled' | 'no-map' | 'candidates' | 'all'
+const FILTER_MODES: FilterMode[] = ['enabled', 'no-map', 'candidates', 'all']
 
 interface ActiveMapInfo {
     id: number
@@ -149,7 +176,7 @@ interface SourcesResponse {
 interface GeoMapsTabProps {
     // The run-progress hook is owned by the parent (GeoReviewPanel) so that
     // polling and the live banner survive when an admin switches between
-    // Pins / Maps / Games tabs mid-run.
+    // Pins / Maps / Catalogue tabs mid-run.
     runState: GeoRunStatePayload | null
     runError: string | null
     armRunPolling: (windowMs?: number) => void
@@ -166,6 +193,12 @@ interface GeoMapsTabProps {
      * read-and-curate surface; ingestion is run from one place.
      */
     onGoToAcquisition?: () => void
+    /**
+     * Pre-selected filter when the parent state-machine routes here from a
+     * cold-start CTA (e.g. "Activer un jeu" → opens with the Candidats pill
+     * pre-applied so the moderator lands directly on the curation funnel).
+     */
+    initialFilter?: FilterMode
 }
 
 export function GeoMapsTab({
@@ -174,10 +207,12 @@ export function GeoMapsTab({
     armRunPolling,
     onViewCaptures,
     onGoToAcquisition,
+    initialFilter,
 }: GeoMapsTabProps) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    const [games, setGames] = useState<CuratedGame[] | null>(null)
+    const [curated, setCurated] = useState<CuratedGame[] | null>(null)
+    const [candidates, setCandidates] = useState<CatalogRow[] | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -185,6 +220,10 @@ export function GeoMapsTab({
     const [sourcesLoading, setSourcesLoading] = useState(false)
     const [busyAction, setBusyAction] = useState<'reimport' | null>(null)
     const [message, setMessage] = useState<string | null>(null)
+    const [filter, setFilter] = useState<FilterMode>(initialFilter ?? 'enabled')
+    const [search, setSearch] = useState('')
+    const [selected, setSelected] = useState<Set<number>>(new Set())
+    const [bulkBusy, setBulkBusy] = useState(false)
     // One state for the unified Add-Map dialog. The three side-panel
     // buttons (Research, Wand, Manual) all open it, each at its preferred
     // strategy tab; the operator can switch tabs without closing.
@@ -199,13 +238,23 @@ export function GeoMapsTab({
     const [runningTier, setRunningTier] = useState<string | null>(null)
     const [activatingMapId, setActivatingMapId] = useState<number | null>(null)
 
+    // Loaded together so the count badges on the filter pills stay
+    // accurate regardless of which filter is active. The non-curated list
+    // returns a leaner shape (no hasMap / mapCount), which is fine — those
+    // columns are only meaningful for curated rows.
     const reload = useCallback(async () => {
         setLoading(true)
         try {
-            const data = await fetchJson<{ games: CuratedGame[] }>(
-                '/api/admin/geo/games?curated=true&limit=100',
-            )
-            setGames(data.games)
+            const [c, k] = await Promise.all([
+                fetchJson<{ games: CuratedGame[] }>(
+                    '/api/admin/geo/games?curated=true&limit=200',
+                ),
+                fetchJson<{ games: Omit<CatalogRow, 'curated'>[] }>(
+                    '/api/admin/geo/games?curated=false&limit=200',
+                ),
+            ])
+            setCurated(c.games)
+            setCandidates(k.games.map((g) => ({ ...g, curated: false })))
         } catch (e) {
             setError(getApiErrorMessage(e))
         } finally {
@@ -468,7 +517,138 @@ export function GeoMapsTab({
         }
     }
 
-    const selectedGame = games?.find((g) => g.id === selectedId) ?? null
+    const selectedGame =
+        curated?.find((g) => g.id === selectedId) ?? null
+
+    // Build a unified row list. Curated rows carry the rich
+    // metadataStatus/hasMap/mapCount info needed by the status badges and
+    // the side panel; candidate rows are flat. Counts are computed from the
+    // raw lists so the filter pills always show the true totals — never the
+    // post-search ones.
+    const allRows = useMemo<CatalogRow[]>(() => {
+        const fromCurated: CatalogRow[] = (curated ?? []).map((g) => ({
+            id: g.id,
+            name: g.name,
+            slug: g.slug,
+            releaseYear: null,
+            developer: null,
+            metacritic: null,
+            genres: null,
+            mapEligibility: null,
+            curated: true,
+            metadataStatus: g.metadataStatus,
+            hasMap: g.hasMap,
+            mapCount: g.mapCount,
+            candidateCount: g.candidateCount,
+        }))
+        return [...fromCurated, ...(candidates ?? [])]
+    }, [curated, candidates])
+
+    const counts = useMemo(() => {
+        const enabled = (curated ?? []).filter((g) => g.hasMap).length
+        const noMap = (curated ?? []).filter((g) => !g.hasMap).length
+        const candidatesCount = candidates?.length ?? 0
+        return {
+            enabled,
+            'no-map': noMap,
+            candidates: candidatesCount,
+            all: enabled + noMap + candidatesCount,
+        }
+    }, [curated, candidates])
+
+    const visibleRows = useMemo(() => {
+        const matchesFilter = (r: CatalogRow): boolean => {
+            switch (filter) {
+                case 'enabled':
+                    return r.curated && r.hasMap === true
+                case 'no-map':
+                    return r.curated && r.hasMap === false
+                case 'candidates':
+                    return !r.curated
+                case 'all':
+                    return true
+            }
+        }
+        const q = search.trim().toLowerCase()
+        return allRows.filter(
+            (r) =>
+                matchesFilter(r) &&
+                (!q ||
+                    r.name.toLowerCase().includes(q) ||
+                    (r.developer ?? '').toLowerCase().includes(q)),
+        )
+    }, [allRows, filter, search])
+
+    // Drop selected ids that no longer pass the visible filter so the
+    // bulk-action bar count stays honest after a filter change.
+    useEffect(() => {
+        setSelected((prev) => {
+            if (prev.size === 0) return prev
+            const visibleIds = new Set(visibleRows.map((r) => r.id))
+            const next = new Set<number>()
+            prev.forEach((id) => {
+                if (visibleIds.has(id)) next.add(id)
+            })
+            return next.size === prev.size ? prev : next
+        })
+    }, [visibleRows])
+
+    const toggleSelect = (id: number) => {
+        setSelected((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const selectAllVisible = () => {
+        if (selected.size === visibleRows.length && visibleRows.length > 0) {
+            setSelected(new Set())
+        } else {
+            setSelected(new Set(visibleRows.map((r) => r.id)))
+        }
+    }
+
+    // Bulk curate / un-curate. Mixed selections are allowed — the verb
+    // determines the target state for every row.
+    const applyBulk = async (target: boolean) => {
+        if (selected.size === 0) return
+        setBulkBusy(true)
+        setMessage(null)
+        setError(null)
+        try {
+            const items = [...selected].map((gameId) => ({ gameId, curated: target }))
+            const data = await fetchJson<{ updated: number; notFound: number }>(
+                '/api/admin/geo/curated/bulk',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ items }),
+                },
+            )
+            setMessage(
+                t(
+                    target
+                        ? 'admin.geo.catalog.bulk.curatedMessage'
+                        : 'admin.geo.catalog.bulk.removedMessage',
+                    { count: data.updated },
+                ),
+            )
+            setSelected(new Set())
+            // If the side-panel target just lost its curated state, drop it.
+            if (!target && selectedId !== null && selected.has(selectedId)) {
+                setSelectedId(null)
+                setSources(null)
+            }
+            await reload()
+        } catch (e) {
+            setError(getApiErrorMessage(e))
+        } finally {
+            setBulkBusy(false)
+        }
+    }
+
+    const isLoadingInitial = loading && curated === null && candidates === null
 
     return (
         <div className="space-y-4">
@@ -479,10 +659,10 @@ export function GeoMapsTab({
                     <div className="flex items-start justify-between gap-2">
                         <div>
                             <CardTitle className="text-sm">
-                                {t('admin.geo.maps.title')}
+                                {t('admin.geo.catalog.title')}
                             </CardTitle>
                             <CardDescription className="text-xs">
-                                {t('admin.geo.maps.subtitle')}
+                                {t('admin.geo.catalog.subtitle')}
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-1">
@@ -519,6 +699,46 @@ export function GeoMapsTab({
                     )}
                 </CardHeader>
                 <CardContent className="p-0">
+                    {/* Filter pills + search live above the table so the
+                        operator can pivot between Activés / Sans carte /
+                        Candidats / Tous without leaving the page. */}
+                    <div className="px-4 pb-3 space-y-2">
+                        <div
+                            className="flex flex-wrap items-center gap-1.5"
+                            role="group"
+                            aria-label={t('admin.geo.catalog.filter.label')}
+                        >
+                            {FILTER_MODES.map((f) => (
+                                <Button
+                                    key={f}
+                                    size="sm"
+                                    variant={filter === f ? 'default' : 'outline'}
+                                    onClick={() => {
+                                        setFilter(f)
+                                        setSelected(new Set())
+                                    }}
+                                    className="h-7 text-xs"
+                                >
+                                    {t(`admin.geo.catalog.filter.${f}`)}
+                                    {` (${counts[f]})`}
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                className="h-8 pl-9 text-xs"
+                                placeholder={t('admin.geo.catalog.searchPlaceholder')}
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value)
+                                    setSelected(new Set())
+                                }}
+                                aria-label={t('admin.geo.catalog.searchPlaceholder')}
+                            />
+                        </div>
+                    </div>
                     {message && (
                         <div className="mx-4 mb-3 rounded border border-success/40 bg-success/10 p-2 text-xs text-success">
                             {message}
@@ -529,7 +749,51 @@ export function GeoMapsTab({
                             {error}
                         </div>
                     )}
-                    {loading && games === null ? (
+                    {selected.size > 0 && (
+                        <div className="mx-4 mb-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+                            <span className="font-medium">
+                                {t('admin.geo.catalog.bulk.selected', {
+                                    count: selected.size,
+                                })}
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={bulkBusy}
+                                    onClick={() => void applyBulk(true)}
+                                    className="h-7 text-xs"
+                                >
+                                    {bulkBusy && (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    )}
+                                    {t('admin.geo.catalog.bulk.curate')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={bulkBusy}
+                                    onClick={() => void applyBulk(false)}
+                                    className="h-7 text-xs"
+                                >
+                                    {bulkBusy && (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    )}
+                                    {t('admin.geo.catalog.bulk.remove')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setSelected(new Set())}
+                                    disabled={bulkBusy}
+                                    className="h-7 text-xs"
+                                >
+                                    {t('admin.geo.catalog.bulk.clear')}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                    {isLoadingInitial ? (
                         <div
                             className="flex justify-center py-12"
                             role="status"
@@ -542,52 +806,78 @@ export function GeoMapsTab({
                                 aria-hidden
                             />
                         </div>
-                    ) : games && games.length > 0 ? (
-                        <ul className="divide-y divide-border/40">
-                            {games.map((g) => {
-                                const inflight = isGameInFlight(runState, g.id)
-                                return (
-                                <li
-                                    key={g.id}
-                                    className={`px-4 py-2.5 text-xs cursor-pointer transition-colors ${
-                                        selectedId === g.id
-                                            ? 'bg-muted/40'
-                                            : 'hover:bg-muted/20'
-                                    }`}
-                                    onClick={() => setSelectedId(g.id)}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="font-medium truncate flex items-baseline gap-1.5 min-w-0">
-                                            <span className="truncate">{g.name}</span>
-                                            <span
-                                                className="shrink-0 text-[10px] font-normal text-muted-foreground tabular-nums"
-                                                title={t('admin.geo.maps.row.mapCountTooltip')}
+                    ) : visibleRows.length > 0 ? (
+                        <div className="overflow-hidden border-t border-border/40">
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="border-b border-border/40 bg-muted/20 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                        <th
+                                            scope="col"
+                                            className="w-8 px-3 py-2 text-left font-medium"
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={selectAllVisible}
+                                                className="flex h-4 w-4 items-center justify-center"
+                                                aria-label={
+                                                    selected.size === visibleRows.length &&
+                                                    visibleRows.length > 0
+                                                        ? t('admin.geo.catalog.deselectAll')
+                                                        : t('admin.geo.catalog.selectAll')
+                                                }
                                             >
-                                                {t('admin.geo.maps.row.mapCount', {
-                                                    count: g.mapCount,
-                                                })}
-                                            </span>
-                                        </span>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                            {inflight && (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="gap-1 text-[10px] px-1.5 py-0 border-neon-pink/40 text-neon-pink"
-                                                >
-                                                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                                                    {t('admin.geo.run.inFlight')}
-                                                </Badge>
+                                                {selected.size === visibleRows.length &&
+                                                visibleRows.length > 0 ? (
+                                                    <CheckSquare className="h-3.5 w-3.5" />
+                                                ) : (
+                                                    <Square className="h-3.5 w-3.5" />
+                                                )}
+                                            </button>
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-2 text-left font-medium"
+                                        >
+                                            {t('admin.geo.catalog.col.name')}
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-2 text-right font-medium w-28"
+                                        >
+                                            {t('admin.geo.catalog.col.maps')}
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-2 text-right font-medium w-32"
+                                        >
+                                            {t('admin.geo.catalog.col.status')}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/40">
+                                    {visibleRows.map((row) => (
+                                        <CatalogRowItem
+                                            key={row.id}
+                                            row={row}
+                                            selected={selected.has(row.id)}
+                                            isOpen={selectedId === row.id}
+                                            inflight={isGameInFlight(
+                                                runState,
+                                                row.id,
                                             )}
-                                            <MapStatusBadge game={g} t={t} />
-                                        </div>
-                                    </div>
-                                </li>
-                                )
-                            })}
-                        </ul>
+                                            onToggleSelect={() => toggleSelect(row.id)}
+                                            onOpen={() => {
+                                                if (row.curated) setSelectedId(row.id)
+                                            }}
+                                            t={t}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     ) : (
                         <p className="px-4 py-6 text-xs text-muted-foreground">
-                            {t('admin.geo.maps.empty')}
+                            {t('admin.geo.catalog.empty')}
                         </p>
                     )}
                 </CardContent>
@@ -1235,14 +1525,129 @@ function EnabledMapRow({
     )
 }
 
-function MapStatusBadge({
-    game,
+function CatalogRowItem({
+    row,
+    selected,
+    isOpen,
+    inflight,
+    onToggleSelect,
+    onOpen,
     t,
 }: {
-    game: CuratedGame
+    row: CatalogRow
+    selected: boolean
+    isOpen: boolean
+    inflight: boolean
+    onToggleSelect: () => void
+    onOpen: () => void
     t: ReturnType<typeof useTranslation>['t']
 }) {
-    if (game.hasMap) {
+    const noMapLikely = !row.curated && row.mapEligibility === false
+    const rowClickable = row.curated
+    return (
+        <tr
+            className={cn(
+                'text-xs transition-colors',
+                rowClickable && 'cursor-pointer',
+                isOpen
+                    ? 'bg-muted/40'
+                    : selected
+                      ? 'bg-primary/5'
+                      : rowClickable
+                        ? 'hover:bg-muted/20'
+                        : '',
+            )}
+            onClick={(e) => {
+                // Skip when the click landed on the checkbox cell — it has
+                // its own handler and we don't want it to also toggle the
+                // side panel.
+                const target = e.target as HTMLElement
+                if (target.closest('[data-row-checkbox]')) return
+                if (rowClickable) onOpen()
+            }}
+        >
+            <td className="px-3 py-2 align-middle" data-row-checkbox>
+                <button
+                    type="button"
+                    onClick={onToggleSelect}
+                    className="flex h-4 w-4 items-center justify-center"
+                    aria-label={
+                        selected
+                            ? t('admin.geo.catalog.deselect')
+                            : t('admin.geo.catalog.select')
+                    }
+                >
+                    {selected ? (
+                        <CheckSquare className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                        <Square className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                </button>
+            </td>
+            <td className="px-3 py-2 align-middle">
+                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                    <span className="font-medium truncate">{row.name}</span>
+                    {row.releaseYear && (
+                        <span className="text-[10px] text-muted-foreground">
+                            ({row.releaseYear})
+                        </span>
+                    )}
+                    {noMapLikely && (
+                        <span
+                            className="inline-flex items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0 text-[10px] text-warning"
+                            title={t('admin.geo.games.noMapLikelyTooltip', {
+                                genres: (row.genres ?? []).join(', '),
+                            })}
+                        >
+                            <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                            {t('admin.geo.games.noMapLikely')}
+                        </span>
+                    )}
+                </div>
+                {row.developer && (
+                    <p className="text-[10px] text-muted-foreground truncate">
+                        {row.developer}
+                    </p>
+                )}
+            </td>
+            <td className="px-3 py-2 align-middle text-right tabular-nums text-muted-foreground">
+                {row.curated && row.mapCount !== undefined
+                    ? t('admin.geo.maps.row.mapCount', { count: row.mapCount })
+                    : '—'}
+            </td>
+            <td className="px-3 py-2 align-middle text-right">
+                <div className="inline-flex items-center gap-1.5">
+                    {inflight && (
+                        <Badge
+                            variant="outline"
+                            className="gap-1 text-[10px] px-1.5 py-0 border-neon-pink/40 text-neon-pink"
+                        >
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                            {t('admin.geo.run.inFlight')}
+                        </Badge>
+                    )}
+                    <CatalogStatusBadge row={row} t={t} />
+                </div>
+            </td>
+        </tr>
+    )
+}
+
+function CatalogStatusBadge({
+    row,
+    t,
+}: {
+    row: CatalogRow
+    t: ReturnType<typeof useTranslation>['t']
+}) {
+    if (!row.curated) {
+        return (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {t('admin.geo.catalog.status.candidate')}
+            </Badge>
+        )
+    }
+    if (row.hasMap) {
         return (
             <Badge variant="success" className="gap-1 text-[10px] px-1.5 py-0">
                 <CheckCircle2 className="h-3 w-3" aria-hidden />
@@ -1250,7 +1655,7 @@ function MapStatusBadge({
             </Badge>
         )
     }
-    if (game.metadataStatus === 'unresolved') {
+    if (row.metadataStatus === 'unresolved') {
         return (
             <Badge variant="destructive" className="gap-1 text-[10px] px-1.5 py-0">
                 <XCircle className="h-3 w-3" aria-hidden />
