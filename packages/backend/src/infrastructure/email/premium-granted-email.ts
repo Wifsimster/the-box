@@ -27,7 +27,7 @@ function copyFor(displayName: string, locale: 'fr' | 'en'): Copy {
       eyebrow: 'Premium unlocked',
       heading: `Welcome to Premium, ${displayName}!`,
       paragraphs: [
-        'An admin just granted you <strong style="color:#f0abfc;">lifetime Premium</strong> on The Box. No charge, no expiration — it\'s yours.',
+        'An admin just granted you <strong style="color:#f0abfc;">Premium</strong> on The Box. No charge — it\'s yours.',
         'You now have access to the full archive of past challenges, unlimited hints in catch-up mode, and the Premium badge on your profile.',
       ],
       ctaLabel: 'Open my profile',
@@ -39,7 +39,7 @@ function copyFor(displayName: string, locale: 'fr' | 'en'): Copy {
     eyebrow: 'Premium activé',
     heading: `Bienvenue dans Premium, ${displayName} !`,
     paragraphs: [
-      'Un administrateur vient de t\'offrir le <strong style="color:#f0abfc;">Premium à vie</strong> sur The Box. Aucun paiement, aucune expiration — c\'est pour toi.',
+      'Un administrateur vient de t\'offrir le <strong style="color:#f0abfc;">Premium</strong> sur The Box. Aucun paiement — c\'est pour toi.',
       'Tu as désormais accès à toutes les archives de défis, aux indices illimités en mode rattrapage, et au badge Premium sur ton profil.',
     ],
     ctaLabel: 'Voir mon profil',

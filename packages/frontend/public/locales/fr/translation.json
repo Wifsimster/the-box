@@ -1239,8 +1239,8 @@
       "confirmDelete": "Êtes-vous sûr de vouloir supprimer l'utilisateur \"{{email}}\" ? Cette action est irréversible.",
       "confirmBan": "Êtes-vous sûr de vouloir bannir l'utilisateur \"{{email}}\" ?",
       "confirmUnban": "Êtes-vous sûr de vouloir débannir l'utilisateur \"{{email}}\" ?",
-      "confirmGrant": "Accorder un accès premium à vie (gratuit) à \"{{email}}\" ? Cela ne crée aucune charge Stripe.",
-      "confirmRevoke": "Retirer l'accès premium à vie de \"{{email}}\" ? Cela n'annule pas un éventuel abonnement payant.",
+      "confirmGrant": "Accorder un accès premium (gratuit) à \"{{email}}\" ? Cela ne crée aucune charge Stripe.",
+      "confirmRevoke": "Retirer l'accès premium de \"{{email}}\" ? Cela n'annule pas un éventuel abonnement payant.",
       "premium": {
         "label": "Premium",
         "free": "Gratuit",
@@ -1892,7 +1892,7 @@
   "notifications": {
     "premiumGranted": {
       "title": "Premium activé !",
-      "body": "Un administrateur vient de t'offrir le Premium à vie. Profite des archives, des indices illimités et du badge Premium."
+      "body": "Un administrateur vient de t'offrir le Premium. Profite des archives, des indices illimités et du badge Premium."
     }
   },
   "premium": {

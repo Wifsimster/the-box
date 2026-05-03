@@ -1265,8 +1265,8 @@
       "confirmDelete": "Are you sure you want to delete user \"{{email}}\"? This action cannot be undone.",
       "confirmBan": "Are you sure you want to ban user \"{{email}}\"?",
       "confirmUnban": "Are you sure you want to unban user \"{{email}}\"?",
-      "confirmGrant": "Grant lifetime premium (free) to \"{{email}}\"? This does not create any Stripe charge.",
-      "confirmRevoke": "Revoke lifetime premium from \"{{email}}\"? This does not cancel any paid Stripe subscription.",
+      "confirmGrant": "Grant premium (free) to \"{{email}}\"? This does not create any Stripe charge.",
+      "confirmRevoke": "Revoke premium from \"{{email}}\"? This does not cancel any paid Stripe subscription.",
       "premium": {
         "label": "Premium",
         "free": "Free",
@@ -1892,7 +1892,7 @@
   "notifications": {
     "premiumGranted": {
       "title": "Premium unlocked!",
-      "body": "An admin just granted you lifetime Premium. Enjoy the archive, unlimited hints and the Premium badge."
+      "body": "An admin just granted you Premium. Enjoy the archive, unlimited hints and the Premium badge."
     }
   },
   "premium": {
