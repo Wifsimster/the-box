@@ -6,7 +6,9 @@ import { cn } from '@/lib/utils'
 interface ImmersiveLayoutProps {
     screenshot: ReactNode
     map: ReactNode
-    // Top-right overlay (the fullscreen toggle, plus optional report button).
+    // Top-right overlay anchored to the screenshot panel (the fullscreen
+    // toggle, plus optional report button). Sits on the photo side so it
+    // never overlaps the map's own top-right controls (zoom / reset).
     topRight?: ReactNode
     // Sticky bottom dock (skip / submit / next).
     bottomDock?: ReactNode
@@ -46,16 +48,6 @@ export function ImmersiveLayout({
             )}
             data-immersive={isImmersive ? 'true' : 'false'}
         >
-            {/* Top-right overlay (fullscreen toggle, etc.) */}
-            {topRight && (
-                <div
-                    className="absolute right-3 top-3 z-30 flex items-center gap-2"
-                    style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-                >
-                    {topRight}
-                </div>
-            )}
-
             {/* Deck — both panels are always visible. Stacked rows on mobile,
                 two columns on desktop. */}
             <div className="flex-1 relative overflow-hidden">
@@ -70,6 +62,7 @@ export function ImmersiveLayout({
                                 </span>
                             </>
                         }
+                        topRight={topRight}
                         className="border-b border-white/10 md:border-b-0 md:border-r"
                     >
                         {screenshot}
@@ -122,11 +115,13 @@ export function ImmersiveLayout({
 function Panel({
     id,
     tag,
+    topRight,
     className,
     children,
 }: {
     id: string
     tag: ReactNode
+    topRight?: ReactNode
     className?: string
     children: ReactNode
 }) {
@@ -142,6 +137,14 @@ function Panel({
             <div className="pointer-events-none absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white shadow backdrop-blur">
                 {tag}
             </div>
+            {topRight && (
+                <div
+                    className="absolute right-3 top-3 z-30 flex items-center gap-2"
+                    style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+                >
+                    {topRight}
+                </div>
+            )}
         </div>
     )
 }
