@@ -4,13 +4,15 @@ import {
     MapContainer,
     Marker,
     Polyline,
+    useMap,
     useMapEvents,
 } from 'react-leaflet'
 import L, { CRS, type LatLngBoundsExpression, type LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { GeoPoint } from '@the-box/types'
+import type { GeoMapTilesConfig, GeoPoint } from '@the-box/types'
 import { cn } from '@/lib/utils'
 import { clamp01, isPlaceholderImageUrl } from '@/lib/geo-image'
+import { formatTileUrl } from '@/lib/geo-tile-url'
 import { MapErrorFallback } from './MapErrorFallback'
 import type { MapCanvasProps } from './MapCanvas'
 
@@ -40,6 +42,7 @@ export function MapCanvasLeaflet({
     imageUrl,
     widthPx,
     heightPx,
+    tiles,
     pin,
     canonical,
     onPin,
@@ -59,7 +62,8 @@ export function MapCanvasLeaflet({
 
     // See MapCanvas.tsx for the rationale: placeholder URLs may load OK, real
     // 404s won't surface through Leaflet's ImageOverlay, so probe with a hidden
-    // <img> in addition to the proactive placeholder check.
+    // <img> in addition to the proactive placeholder check. For tile maps,
+    // the thumbnail probe is decorative — TileLayer handles its own errors.
     const [errored, setErrored] = useState(() => isPlaceholderImageUrl(imageUrl))
 
     useEffect(() => {
@@ -83,13 +87,15 @@ export function MapCanvasLeaflet({
             className={cn('w-full overflow-hidden rounded-lg', className)}
             style={{ aspectRatio: `${widthPx} / ${heightPx}` }}
         >
-            <img
-                src={imageUrl}
-                alt=""
-                className="hidden"
-                onError={() => setErrored(true)}
-                aria-hidden
-            />
+            {!tiles && (
+                <img
+                    src={imageUrl}
+                    alt=""
+                    className="hidden"
+                    onError={() => setErrored(true)}
+                    aria-hidden
+                />
+            )}
             <MapContainer
                 crs={CRS.Simple}
                 bounds={bounds}
@@ -100,7 +106,15 @@ export function MapCanvasLeaflet({
                 doubleClickZoom={false}
                 style={{ height: '100%', width: '100%', background: 'var(--background)' }}
             >
-                <ImageOverlay url={imageUrl} bounds={bounds} />
+                {tiles ? (
+                    <TilePyramidLayer
+                        tiles={tiles}
+                        widthPx={widthPx}
+                        heightPx={heightPx}
+                    />
+                ) : (
+                    <ImageOverlay url={imageUrl} bounds={bounds} />
+                )}
                 {!disabled && onPin && (
                     <ClickHandler
                         widthPx={widthPx}
@@ -121,6 +135,56 @@ export function MapCanvasLeaflet({
             </MapContainer>
         </div>
     )
+}
+
+// Renders a Leaflet tile pyramid using a custom L.TileLayer subclass so we
+// can express schemes that the standard {z}/{x}/{y} template can't (zero-pad,
+// inverted z). The world rectangle in CRS.Simple stays [0..heightPx,widthPx]
+// so click→[0..1] math is identical to the ImageOverlay path.
+function TilePyramidLayer({
+    tiles,
+    widthPx,
+    heightPx,
+}: {
+    tiles: GeoMapTilesConfig
+    widthPx: number
+    heightPx: number
+}) {
+    const map = useMap()
+    useEffect(() => {
+        const TemplatedTileLayer = L.TileLayer.extend({
+            getTileUrl(coords: { x: number; y: number; z: number }) {
+                return formatTileUrl(tiles, coords.z, coords.x, coords.y)
+            },
+        })
+        const layer = new (TemplatedTileLayer as unknown as new (
+            urlTemplate: string,
+            opts: L.TileLayerOptions,
+        ) => L.TileLayer)(tiles.urlTemplate, {
+            tileSize: tiles.tileSize,
+            minZoom: tiles.minZoom,
+            maxZoom: tiles.maxZoom,
+            // Clamp tile requests to the world rectangle so OOB tiles (e.g.
+            // the asymmetric 85x69 grid in WoW) don't 404-spam.
+            bounds: [
+                [0, 0],
+                [heightPx, widthPx],
+            ],
+            noWrap: true,
+            // Decorative placeholder for missing tiles — Leaflet's default
+            // is a transparent gap that looks like a successful load.
+            errorTileUrl:
+                'data:image/svg+xml;utf8,' +
+                encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="%23111" /><text x="50%" y="50%" fill="%23555" font-family="sans-serif" font-size="14" text-anchor="middle" dominant-baseline="central">tile missing</text></svg>',
+                ),
+        })
+        layer.addTo(map)
+        return () => {
+            layer.remove()
+        }
+    }, [map, tiles, widthPx, heightPx])
+    return null
 }
 
 function ClickHandler({

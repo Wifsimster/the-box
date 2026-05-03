@@ -1,12 +1,14 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve as resolvePath } from 'node:path'
+import type { GeoMapTilesConfig } from '@the-box/types'
 import { queueLogger } from '../../logger/logger.js'
 import {
   geoIngestFailureRepository,
   geoMapRepository,
 } from '../../repositories/index.js'
 import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.service.js'
+import { formatTileUrl } from '../../../domain/services/geo-tile-url.service.js'
 
 const log = queueLogger.child({ worker: 'geo-registry-import' })
 
@@ -20,6 +22,9 @@ const DEFAULT_USER_AGENT =
 
 export interface RegistryEntry {
   match: { slug?: string; aliases?: string[] }
+  // Always-set thumbnail / fallback PNG. For tile entries, the registry
+  // points this at one canonical tile (e.g. the upper-left tile at the
+  // most-zoomed-out layer) so admin grids keep showing a preview.
   imageUrl: string
   widthPx: number
   heightPx: number
@@ -31,6 +36,10 @@ export interface RegistryEntry {
   // world / mosaic map. Stored on geo_map.region for admin visibility; the
   // runtime still selects a single is_active row per game today.
   region?: string
+  // Set to enable Leaflet tile rendering. The worker probes one canonical
+  // tile (deepest zoom, 0/0) before persisting; failure tombstones go
+  // through the same path as broken image URLs.
+  tiles?: GeoMapTilesConfig
 }
 
 interface RegistryFile {
@@ -90,18 +99,22 @@ export async function importRegistryMap(
     }
   }
 
-  log.info({ gameId, imageUrl: entry.imageUrl }, 'fetching registry map')
+  // For tile entries, the canonical probe target is the deepest-zoom (0,0)
+  // tile — it always exists when the source is functional. The thumbnail
+  // imageUrl is HEAD-checked too: if the registry author got the URL wrong,
+  // we want to tombstone before admins see a broken thumbnail.
+  const probeUrl = entry.tiles
+    ? formatTileUrl(entry.tiles, entry.tiles.maxZoom, 0, 0)
+    : entry.imageUrl
+  log.info({ gameId, probeUrl, kind: entry.tiles ? 'tiles' : 'image' }, 'fetching registry map')
 
-  // HEAD-check the image to fail fast with a useful tombstone reason if the
-  // upstream repo moved the file. Full download happens on first Leaflet
-  // request — we just record the reference here.
   try {
-    const res = await fetch(entry.imageUrl, {
+    const res = await fetch(probeUrl, {
       method: 'HEAD',
       headers: { 'User-Agent': DEFAULT_USER_AGENT },
     })
     if (!res.ok) {
-      await recordRegistryTombstone(gameId, `HEAD ${entry.imageUrl} → ${res.status}`)
+      await recordRegistryTombstone(gameId, `HEAD ${probeUrl} → ${res.status}`)
       return { imported: false, reason: `HEAD failed: ${res.status}` }
     }
   } catch (err) {
@@ -116,6 +129,7 @@ export async function importRegistryMap(
     imageUrl: entry.imageUrl,
     widthPx: entry.widthPx,
     heightPx: entry.heightPx,
+    tiles: entry.tiles,
     license: entry.license,
     attribution: entry.attribution,
     region: entry.region ?? null,
