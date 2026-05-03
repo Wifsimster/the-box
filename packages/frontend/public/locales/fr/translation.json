@@ -1728,7 +1728,10 @@
       "ariaPin": "Épinglez l'emplacement sur la carte. Utilisez les flèches du clavier pour déplacer le curseur, puis Entrée pour valider.",
       "ariaPinDisabled": "Carte",
       "labelYou": "Votre épingle",
-      "labelActual": "Emplacement réel"
+      "labelActual": "Emplacement réel",
+      "zoomIn": "Zoom avant",
+      "zoomOut": "Zoom arrière",
+      "zoomReset": "Réinitialiser le zoom"
     }
   },
   "apiErrors": {

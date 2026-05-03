@@ -1728,7 +1728,10 @@
       "ariaPin": "Pin a location on the map. Use the arrow keys to move the cursor, then press Enter to drop the pin.",
       "ariaPinDisabled": "Map",
       "labelYou": "Your pin",
-      "labelActual": "Actual location"
+      "labelActual": "Actual location",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomReset": "Reset zoom"
     }
   },
   "apiErrors": {

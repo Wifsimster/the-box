@@ -95,8 +95,8 @@ export function MapCanvasLeaflet({
                 bounds={bounds}
                 maxBounds={bounds}
                 attributionControl={false}
-                zoomControl={!disabled}
-                scrollWheelZoom={!disabled}
+                zoomControl
+                scrollWheelZoom
                 doubleClickZoom={false}
                 style={{ height: '100%', width: '100%', background: 'var(--background)' }}
             >
