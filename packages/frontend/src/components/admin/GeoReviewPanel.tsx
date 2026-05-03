@@ -574,6 +574,9 @@ export function GeoReviewPanel() {
                 </TabsList>
 
                 <TabsContent value="acquisition" className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                        {t('admin.geo.tabs.acquisitionDescription')}
+                    </p>
                     {/* Folded the standalone "Cartes" admin tab in here so
                         ingestion controls live next door to the moderation
                         queue and the catalog they feed. The previous tab
@@ -584,10 +587,16 @@ export function GeoReviewPanel() {
                 </TabsContent>
 
                 <TabsContent value="reports" className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                        {t('admin.geo.tabs.reportsDescription')}
+                    </p>
                     <ReportsModerationPanel />
                 </TabsContent>
 
                 <TabsContent value="catalog" className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                        {t('admin.geo.tabs.catalogDescription')}
+                    </p>
                     {/* Maps and Games are both reference data; previously
                         they each had a top-level tab. Collapsed into one
                         Catalogue tab with a segmented sub-control so the
@@ -634,6 +643,9 @@ export function GeoReviewPanel() {
                 </TabsContent>
 
                 <TabsContent value="queue" className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+                {t('admin.geo.tabs.queueDescription')}
+            </p>
             {/* Status filter */}
             <div
                 className="flex flex-wrap items-center gap-2"

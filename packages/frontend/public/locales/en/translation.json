@@ -587,7 +587,11 @@
         "queue": "Review queue",
         "acquisition": "Acquisition",
         "reports": "Reports",
-        "catalog": "Catalog"
+        "catalog": "Catalog",
+        "catalogDescription": "Curate playable games and their reference maps: activate titles and adjust the maps used in-game.",
+        "acquisitionDescription": "Run and monitor the map ingestion pipeline that pulls from external sources (registry, Fandom, Wikidata…).",
+        "queueDescription": "Moderate community-submitted pin proposals: promote, reposition, or reject pending screenshots.",
+        "reportsDescription": "Resolve player reports: misplaced pins, stale maps, or problematic content."
       },
       "addMap": {
         "title": "Add a map — {{name}}",

@@ -587,7 +587,11 @@
         "queue": "À examiner",
         "acquisition": "Acquisition",
         "reports": "Signalements",
-        "catalog": "Catalogue"
+        "catalog": "Catalogue",
+        "catalogDescription": "Curez les jeux jouables et leurs cartes de référence : activez les titres, ajustez la carte utilisée en jeu.",
+        "acquisitionDescription": "Lancez et suivez le pipeline d'ingestion qui récupère les cartes depuis les sources externes (registry, Fandom, Wikidata…).",
+        "queueDescription": "Modérez les propositions d'épingles soumises par la communauté : promouvez, repositionnez ou rejetez les captures en attente.",
+        "reportsDescription": "Traitez les signalements envoyés par les joueurs : épingles incorrectes, cartes périmées ou contenu problématique."
       },
       "addMap": {
         "title": "Ajouter une carte — {{name}}",
