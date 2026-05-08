@@ -8,6 +8,11 @@ interface ImmersiveLayoutProps {
     map: ReactNode
     // Top-right overlay (the fullscreen toggle, plus optional report button).
     topRight?: ReactNode
+    // Top header strip rendered above the deck. Used for context
+    // metadata that isn't itself an action — game/map labels, alpha
+    // banner, etc. Sized by its own intrinsic height so passing null
+    // collapses cleanly.
+    topBar?: ReactNode
     // Sticky bottom dock (skip / submit / next).
     bottomDock?: ReactNode
     // Result panel rendered as a non-blocking overlay above the dock.
@@ -30,6 +35,7 @@ export function ImmersiveLayout({
     screenshot,
     map,
     topRight,
+    topBar,
     bottomDock,
     resultOverlay,
     isImmersive,
@@ -56,6 +62,18 @@ export function ImmersiveLayout({
                     }}
                 >
                     {topRight}
+                </div>
+            )}
+
+            {/* Top context bar — game/map labels and any informational
+                copy. Sits above the deck so the dock can stay focused on
+                actions. Collapses to nothing when no children are passed. */}
+            {topBar && (
+                <div
+                    className="z-30 border-b border-white/10 bg-black/70 backdrop-blur"
+                    style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+                >
+                    <div className="px-3 py-2 pr-16">{topBar}</div>
                 </div>
             )}
 
@@ -94,13 +112,15 @@ export function ImmersiveLayout({
             </div>
 
             {/* Result overlay — sits above the deck but below the dock so
-                the dock's Next button is always reachable. */}
+                the dock's Next button is always reachable. The bottom
+                offset clears the redesigned two-row dock (secondary
+                actions + primary CTA). */}
             {resultOverlay && (
                 <div
                     className="absolute left-0 right-0 z-30 px-3"
                     style={{
                         bottom:
-                            'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
+                            'calc(env(safe-area-inset-bottom, 0px) + 7.5rem)',
                     }}
                 >
                     {resultOverlay}
