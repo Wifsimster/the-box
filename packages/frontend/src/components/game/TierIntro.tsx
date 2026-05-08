@@ -1,9 +1,7 @@
-import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Play, Calendar, Home, AlertTriangle, Zap, Images, Gift, Info } from 'lucide-react'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { Play, Calendar, AlertTriangle, Zap, Images, Gift, Info } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 interface DailyIntroProps {
@@ -15,7 +13,6 @@ interface DailyIntroProps {
 
 export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: DailyIntroProps) {
   const { t } = useTranslation()
-  const { localizedPath } = useLocalizedPath()
   const { isAuthenticated } = useAuth()
 
   // Format date for display
@@ -33,16 +30,6 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
       exit={{ opacity: 0 }}
       className="fixed inset-0 flex items-center justify-center bg-linear-to-b from-background via-card to-background h-dvh"
     >
-      {/* Home Button - Mobile-first positioning */}
-      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20">
-        <Button variant="ghost" size="sm" asChild className="h-8 sm:h-9 px-2 sm:px-3">
-          <Link to={localizedPath('/')}>
-            <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
-            <span className="text-xs sm:text-sm">{t('common.home')}</span>
-          </Link>
-        </Button>
-      </div>
-
       {/* Background grid effect */}
       <div className="absolute inset-0 opacity-20">
         <div className="w-full h-full bg-grid-neon" />
