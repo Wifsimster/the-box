@@ -22,6 +22,7 @@
     "fetch:steam-all": "tsx src/tools/steam-screenshot-fetcher.ts all --screenshots-per-game 5",
     "e2e:seed": "tsx scripts/e2e-seed.ts",
     "stripe:check": "tsx scripts/stripe-check.ts",
+    "vapid:generate": "tsx scripts/generate-vapid.ts",
     "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "socket.io": "^4.8.3",
     "stripe": "^22.1.0",
     "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
     "zod": "^4.3.5"
   },
   "devDependencies": {
@@ -51,6 +53,7 @@
     "@types/node": "^25.0.6",
     "@types/pg": "^8.16.0",
     "@types/uuid": "^11.0.0",
+    "@types/web-push": "^3.6.4",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

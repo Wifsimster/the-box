@@ -24,6 +24,7 @@ import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
 import screenshotReportRoutes from './presentation/routes/screenshot-report.routes.js'
+import pushRoutes from './presentation/routes/push.routes.js'
 import billingRoutes from './presentation/routes/billing.routes.js'
 import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
@@ -194,6 +195,7 @@ app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
 app.use('/api/geo', geoRoutes)
 app.use('/api/screenshot-reports', screenshotReportRoutes)
+app.use('/api/push', pushRoutes)
 app.use('/api/billing', billingRoutes)
 
 // Serve frontend static files (after API routes)
