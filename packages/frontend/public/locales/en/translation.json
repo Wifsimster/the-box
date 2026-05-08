@@ -2002,6 +2002,13 @@
     "updateAvailable": "A new version is available",
     "refresh": "Refresh",
     "offlineReady": "Ready to work offline",
-    "offlineBanner": "You are offline — some features are unavailable"
+    "offlineBanner": "You are offline — some features are unavailable",
+    "iosInstall": {
+      "title": "Install The Box on your home screen",
+      "tap": "Tap",
+      "then": "then",
+      "addToHome": "Add to Home Screen",
+      "dismiss": "Dismiss"
+    }
   }
 }
