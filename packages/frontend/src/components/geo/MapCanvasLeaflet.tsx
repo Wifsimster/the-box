@@ -6,6 +6,7 @@ import {
     Polyline,
     useMap,
     useMapEvents,
+    ZoomControl,
 } from 'react-leaflet'
 import L, { CRS, type LatLngBoundsExpression, type LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -106,7 +107,11 @@ export function MapCanvasLeaflet({
                 bounds={bounds}
                 maxBounds={bounds}
                 attributionControl={false}
-                zoomControl
+                // Default top-left collides with the panel's "Map" badge at
+                // left-3 top-3 (see ImmersiveLayout). Anchor the +/- pair
+                // bottom-right so it stays reachable on mobile (right thumb)
+                // and clear of the FullscreenToggle in the deck's top-right.
+                zoomControl={false}
                 scrollWheelZoom
                 doubleClickZoom={false}
                 bounceAtZoomLimits={false}
@@ -117,6 +122,7 @@ export function MapCanvasLeaflet({
                 keyboardPanDelta={50}
                 style={{ height: '100%', width: '100%', background: 'var(--background)' }}
             >
+                <ZoomControl position="bottomright" />
                 {tiles ? (
                     <TilePyramidLayer
                         tiles={tiles}
