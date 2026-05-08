@@ -104,6 +104,12 @@ export function MapCanvasLeaflet({
                 zoomControl
                 scrollWheelZoom
                 doubleClickZoom={false}
+                bounceAtZoomLimits={false}
+                touchZoom
+                zoomSnap={0.5}
+                zoomDelta={0.5}
+                keyboard
+                keyboardPanDelta={50}
                 style={{ height: '100%', width: '100%', background: 'var(--background)' }}
             >
                 {tiles ? (
@@ -122,7 +128,30 @@ export function MapCanvasLeaflet({
                         onPick={(p) => onPin(p)}
                     />
                 )}
-                {pinLatLng && <Marker position={pinLatLng} icon={FUCHSIA_DIVICON} />}
+                {pinLatLng && (
+                    <Marker
+                        position={pinLatLng}
+                        icon={FUCHSIA_DIVICON}
+                        draggable={!disabled && !!onPin}
+                        eventHandlers={
+                            !disabled && onPin
+                                ? {
+                                      // Drag-to-refine: after the initial
+                                      // tap-drop, the player can slide the
+                                      // pin into a better spot without
+                                      // re-aiming.
+                                      dragend: (e) => {
+                                          const { lat, lng } = (e.target as L.Marker).getLatLng()
+                                          onPin({
+                                              x: clamp01(lng / widthPx),
+                                              y: clamp01(lat / heightPx),
+                                          })
+                                      },
+                                  }
+                                : undefined
+                        }
+                    />
+                )}
                 {canonicalLatLng && (
                     <Marker position={canonicalLatLng} icon={EMERALD_DIVICON} />
                 )}

@@ -17,7 +17,17 @@ type Phase =
     | 'submitting'
     | 'revealed'
     | 'error'
+    | 'authRequired'
     | 'exhausted'
+
+// Returns true when the API rejected us because we're not signed in. We
+// look at both the HTTP status and the error code so the UI can show the
+// same login prompt regardless of which auth path the backend hit.
+function isAuthError(err: unknown): boolean {
+    if (!(err instanceof GeoApiError)) return false
+    if (err.status === 401) return true
+    return err.code === 'UNAUTHORIZED' || err.code === 'AUTH_ERROR'
+}
 
 const GAMES_TTL_MS = 5 * 60 * 1000
 // WHERE NOT IN payload cap on the backend. Older plays simply roll off
@@ -156,7 +166,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     await get().rerollScreenshot()
                 } catch (err) {
                     set({
-                        phase: 'error',
+                        phase: isAuthError(err) ? 'authRequired' : 'error',
                         errorMessage: getApiErrorMessage(err),
                         errorCode: err instanceof GeoApiError ? err.code : null,
                     })
@@ -223,8 +233,11 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     // dedicated phase so the UI can offer a "reset
                     // history" affordance instead of looking broken.
                     const code = err instanceof GeoApiError ? err.code : null
+                    let phase: Phase = 'error'
+                    if (code === 'ALL_PLAYED') phase = 'exhausted'
+                    else if (isAuthError(err)) phase = 'authRequired'
                     set({
-                        phase: code === 'ALL_PLAYED' ? 'exhausted' : 'error',
+                        phase,
                         errorMessage: getApiErrorMessage(err),
                         errorCode: code,
                     })
@@ -313,6 +326,13 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             },
 
             setPendingGuess(p) {
+                const prev = get().pendingGuess
+                // Skip the set when the click landed on the exact same
+                // normalized point — Leaflet emits redundant clicks
+                // during pinch-zoom on Android and we don't want every
+                // one to trigger a re-render of the map canvas.
+                if (prev && p && prev.x === p.x && prev.y === p.y) return
+                if (!prev && !p) return
                 set({ pendingGuess: p })
             },
 
@@ -352,7 +372,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     return result
                 } catch (err) {
                     set({
-                        phase: 'error',
+                        phase: isAuthError(err) ? 'authRequired' : 'error',
                         errorMessage: getApiErrorMessage(err),
                         errorCode: err instanceof GeoApiError ? err.code : null,
                     })

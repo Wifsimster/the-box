@@ -394,3 +394,19 @@ body {
   font-weight: 600;
   letter-spacing: 0.04em;
 }
+
+/* Leaflet zoom controls — Leaflet's default 26x26 px buttons fail
+   WCAG 2.5.5 / 2.5.8 on mobile. Bump them to 44 px so thumb taps land
+   reliably. Visual style is otherwise inherited from Leaflet's CSS. */
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 18px;
+}
+
+.leaflet-container:focus-visible {
+  outline: 2px solid var(--neon-pink);
+  outline-offset: -2px;
+}
