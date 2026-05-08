@@ -102,6 +102,22 @@ export const geoPinRepository = {
     return Number(result?.count ?? 0)
   },
 
+  // Total pins submitted today (UTC). Cheap aggregate read used by the
+  // public "X épingles posées aujourd'hui" social-proof counter on the
+  // empty/first-run state. Counts every submission regardless of status
+  // — a contribution is a contribution, accepted or not.
+  async countSinceUtcMidnight(): Promise<number> {
+    const result = await db('geo_pin_submission')
+      .where(
+        'created_at',
+        '>=',
+        db.raw(`date_trunc('day', NOW() AT TIME ZONE 'UTC')`),
+      )
+      .count<{ count: string }[]>('id as count')
+      .first()
+    return Number(result?.count ?? 0)
+  },
+
   async userRejectionRatio7d(userId: string): Promise<{ submitted: number; rejected: number }> {
     // 7 days = 604800 seconds, expressed as a bound parameter for the same
     // reason as countByUserInWindow.

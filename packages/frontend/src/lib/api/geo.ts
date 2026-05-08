@@ -8,6 +8,7 @@ import type {
     GeoPlayableGame,
     GeoPoint,
     GeoScreenshotCandidate,
+    GeoTodayStats,
 } from '@the-box/types'
 
 export class GeoApiError extends Error {
@@ -95,6 +96,10 @@ export const geoApi = {
 
     listGameMaps(gameId: number): Promise<GeoMap[]> {
         return request<GeoMap[]>(`/api/geo/games/${gameId}/maps`)
+    },
+
+    getTodayStats(): Promise<GeoTodayStats> {
+        return request<GeoTodayStats>('/api/geo/stats/today')
     },
 
     pickFreePlay(input: {

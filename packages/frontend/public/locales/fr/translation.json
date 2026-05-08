@@ -1812,6 +1812,8 @@
           "two": "Tape sur la carte là où tu penses que la capture a été prise.",
           "three": "Confirme — ton épingle rejoint le dataset."
         },
+        "pinsToday_one": "{{formatted}} épingle posée aujourd'hui par la communauté",
+        "pinsToday_other": "{{formatted}} épingles posées aujourd'hui par la communauté",
         "cta": "Choisir un jeu"
       },
       "map": {

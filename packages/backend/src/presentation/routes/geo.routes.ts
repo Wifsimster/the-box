@@ -284,6 +284,25 @@ router.get(
   },
 )
 
+// Public dataset social-proof counter: total pins submitted today
+// (UTC). Surfaced on the empty/first-run state so a cold visitor
+// immediately sees they're joining an active community. Cached for
+// 30 s so a paged hit doesn't translate to a per-request COUNT(*).
+router.get(
+  '/stats/today',
+  optionalAuthMiddleware,
+  freePlayCatalogLimiter,
+  async (_req, res, next) => {
+    try {
+      const totalPinsToday = await geoPinRepository.countSinceUtcMidnight()
+      res.set('Cache-Control', 'public, max-age=30')
+      res.json({ success: true, data: { totalPinsToday } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
 router.get(
   '/games/:gameId/maps',
   optionalAuthMiddleware,

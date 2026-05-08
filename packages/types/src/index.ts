@@ -1130,6 +1130,13 @@ export interface GeoPlayableGame {
   screenshotCount: number
 }
 
+// Public dataset social-proof counter — total pins submitted since UTC
+// midnight. Surfaced on the empty/first-run state so a cold visitor
+// immediately sees they're joining an active community.
+export interface GeoTodayStats {
+  totalPinsToday: number
+}
+
 // View returned by `POST /api/geo/free-play/random`. Mirrors the daily
 // challenge view minus the challenge wrapper — there is no challenge id
 // because nothing is persisted server-side.
