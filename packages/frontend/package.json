@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
+    "pwa:assets": "pwa-assets-generator",
     "lint": "eslint .",
     "preview": "vite preview",
     "clean": "rm -rf dist",
@@ -70,6 +71,7 @@
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.182.0",
+    "@vite-pwa/assets-generator": "^1.0.2",
     "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
