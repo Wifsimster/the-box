@@ -2,6 +2,7 @@ import { Component, type ReactNode, type ErrorInfo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { reportError } from '@/lib/errorReporter'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -41,16 +42,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
-    if (import.meta.env.DEV) {
-      console.error('Error Boundary caught an error:', error, errorInfo)
-    }
-
-    // Store error info in state
     this.setState({ errorInfo })
-
-    // TODO: Log error to error reporting service (e.g., Sentry)
-    // logErrorToService(error, errorInfo)
+    reportError(error, errorInfo)
   }
 
   handleReset = (): void => {
