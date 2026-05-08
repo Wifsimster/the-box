@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -159,6 +160,9 @@ export function Header() {
             <SheetContent side="left" className="w-[280px] sm:w-[320px]">
               <SheetHeader>
                 <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
+                <SheetDescription className="sr-only">
+                  {t('common.menuDescription', 'Site navigation and account links')}
+                </SheetDescription>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
                 <NavigationLinks isMobile={true} t={t} localizedPath={localizedPath} onMobileClick={() => setMobileMenuOpen(false)} showPremiumUpsell={showPremiumUpsell} />

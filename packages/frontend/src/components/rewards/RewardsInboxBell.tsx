@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import {
     Sheet,
     SheetContent,
+    SheetDescription,
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet'
@@ -93,6 +94,12 @@ export function RewardsInboxBell({ className }: RewardsInboxBellProps) {
             <SheetContent side="right" className="w-full sm:max-w-md">
                 <SheetHeader>
                     <SheetTitle>{t('rewards.inboxTitle')}</SheetTitle>
+                    <SheetDescription className="sr-only">
+                        {t(
+                            'rewards.inboxDescription',
+                            'Recent reward grants from milestones, payouts, and reactivation campaigns.',
+                        )}
+                    </SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 flex flex-col gap-3 overflow-y-auto pb-4">
                     {isLoading && unclaimed.length === 0 ? (
