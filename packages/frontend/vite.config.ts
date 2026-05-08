@@ -79,6 +79,25 @@ export default defineConfig({
         theme_color: '#0a0a0f',
         lang: 'fr',
         categories: ['games', 'entertainment'],
+        launch_handler: {
+          client_mode: 'navigate-existing',
+        },
+        shortcuts: [
+          {
+            name: 'Défi du jour',
+            short_name: 'Jouer',
+            description: 'Lancer le défi quotidien',
+            url: '/fr/play',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Classement',
+            short_name: 'Classement',
+            description: 'Voir le classement quotidien et mensuel',
+            url: '/fr/leaderboard',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
         icons: [
           {
             src: 'pwa-64x64.png',
