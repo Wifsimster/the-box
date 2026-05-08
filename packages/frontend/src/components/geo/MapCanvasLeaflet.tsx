@@ -27,11 +27,18 @@ const FUCHSIA_DIVICON = createDiv('fuchsia')
 const EMERALD_DIVICON = createDiv('emerald')
 
 // Colors + box-shadow are sourced from the design tokens exposed on :root
-// in src/index.css so this stays in sync with the rest of the UI.
+// in src/index.css so this stays in sync with the rest of the UI. The
+// fuchsia variant carries `geo-map-marker-pop` so the player's pin
+// animates in on placement (CSS keyframe in index.css, gated on
+// prefers-reduced-motion). The emerald canonical marker is intentionally
+// static — it appears at round-end and shouldn't compete with the result
+// overlay for attention.
 function createDiv(color: 'fuchsia' | 'emerald'): L.DivIcon {
     const fill = color === 'fuchsia' ? 'var(--neon-pink)' : 'var(--success)'
+    const className =
+        color === 'fuchsia' ? 'geo-map-marker geo-map-marker-pop' : 'geo-map-marker'
     return L.divIcon({
-        className: 'geo-map-marker',
+        className,
         html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${fill};box-shadow:var(--glow-md);"></span>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
