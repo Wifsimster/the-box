@@ -2001,6 +2001,13 @@
     "updateAvailable": "Une nouvelle version est disponible",
     "refresh": "Actualiser",
     "offlineReady": "Prêt à fonctionner hors ligne",
-    "offlineBanner": "Vous êtes hors ligne — certaines fonctionnalités sont indisponibles"
+    "offlineBanner": "Vous êtes hors ligne — certaines fonctionnalités sont indisponibles",
+    "iosInstall": {
+      "title": "Installez The Box sur votre écran d'accueil",
+      "tap": "Touchez",
+      "then": "puis",
+      "addToHome": "Ajouter à l'écran d'accueil",
+      "dismiss": "Fermer"
+    }
   }
 }
