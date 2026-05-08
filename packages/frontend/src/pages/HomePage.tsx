@@ -7,6 +7,7 @@ import { GradientIcon } from '@/components/ui/gradient-icon'
 import { Play, Trophy, History, Clock, CalendarDays, ArrowRight, Sparkles, Check, MapPin } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState, useMemo } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useOnline } from '@/hooks/useOnline'
 import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
@@ -40,6 +41,7 @@ export default function HomePage() {
   } | null>(null)
   const [previewAvailable, setPreviewAvailable] = useState(false)
   const timeRemaining = useNextDailyCountdown()
+  const isOnline = useOnline()
   const billingEntitlement = useBillingStore((state) => state.entitlement)
   const billingPrices = useBillingStore((state) => state.prices)
   const fetchBillingPrices = useBillingStore((state) => state.fetchPrices)
@@ -248,6 +250,7 @@ export default function HomePage() {
                   <Button
                     variant="gaming"
                     size="xl"
+                    disabled={!isOnline}
                     onClick={() => navigate(localizedPath('/play'))}
                     className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
                   >
@@ -274,6 +277,11 @@ export default function HomePage() {
               {!isTodayCompleted && !session && (
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   {t('home.guestHint')}
+                </p>
+              )}
+              {!isTodayCompleted && !isOnline && (
+                <p className="text-xs sm:text-sm text-warning">
+                  {t('home.offlineHint')}
                 </p>
               )}
             </div>
