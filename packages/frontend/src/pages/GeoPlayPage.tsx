@@ -1,5 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import {
+    TransformComponent,
+    TransformWrapper,
+    useControls,
+} from 'react-zoom-pan-pinch'
 import type { GeoPoint } from '@the-box/types'
 import {
     ArrowRight,
@@ -606,15 +611,81 @@ function ScreenshotPanel({
     const altText = gameName
         ? t('geo.daily.screenshotOf', 'Screenshot from {{game}}', { game: gameName })
         : t('geo.daily.screenshot', 'Screenshot')
+    return <ZoomablePhoto src={safeUrl} alt={altText} />
+}
+
+/**
+ * Wraps a screenshot in a pinch/wheel/double-tap zoomable surface.
+ * Keyed on `src` so each new screenshot resets the transform — saves
+ * us from imperative `resetTransform()` calls on every round change.
+ *
+ * The persona designer flagged the letterboxed photo as the #1
+ * recognizability problem on mobile (a 16:9 cap squeezed into a
+ * third of the viewport kills detail). Pinch + drag-to-pan + a
+ * tap-and-hold reset gives players a way to inspect a region
+ * without leaving the deck or expanding into a separate dialog.
+ */
+function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
+    // Tracked via the library's onTransformed callback rather than a
+    // hook lookup — useTransformContext doesn't expose `transformState`
+    // in the public type, and reading it via `as any` would defeat
+    // strict typing. A scale state in the parent is cheap (one render
+    // per zoom transition) and works across library versions.
+    const [scale, setScale] = useState(1)
     return (
-        <img
-            src={safeUrl}
-            alt={altText}
-            className="h-full w-full object-contain"
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-        />
+        <TransformWrapper
+            key={src}
+            initialScale={1}
+            minScale={1}
+            maxScale={5}
+            centerOnInit
+            doubleClick={{ mode: 'toggle', step: 1.5 }}
+            wheel={{ step: 0.2 }}
+            pinch={{ step: 5 }}
+            // Disable pan inertia so the photo stops the moment the
+            // finger lifts — keeps the photo predictable on a tiny
+            // mobile viewport. Pan itself stays enabled at all scales
+            // so a player who zooms in by accident can still drag.
+            panning={{ disabled: false, velocityDisabled: true }}
+            onTransform={(ref) => setScale(ref.state.scale)}
+        >
+            {scale > 1.01 && <ResetZoomButton />}
+            <TransformComponent
+                wrapperClass="!h-full !w-full"
+                contentClass="!h-full !w-full"
+            >
+                <img
+                    src={src}
+                    alt={alt}
+                    className="h-full w-full object-contain select-none"
+                    draggable={false}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                />
+            </TransformComponent>
+        </TransformWrapper>
+    )
+}
+
+/**
+ * Reset-zoom affordance. Mounted only when the photo is zoomed (the
+ * parent gates it), so this component can assume a useControls call is
+ * meaningful — at scale=1 it would have nothing to do.
+ */
+function ResetZoomButton() {
+    const { t } = useTranslation()
+    const { resetTransform } = useControls()
+    return (
+        <button
+            type="button"
+            onClick={() => resetTransform()}
+            className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white shadow backdrop-blur min-h-9 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+            aria-label={t('geo.play.resetZoom', 'Reset zoom')}
+        >
+            <RefreshCw className="h-3 w-3" aria-hidden />
+            {t('geo.play.resetZoom', 'Reset zoom')}
+        </button>
     )
 }
 
