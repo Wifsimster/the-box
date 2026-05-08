@@ -1793,6 +1793,14 @@
       "confirm": "Confirm pin",
       "pinPlacedAria": "Pin placed at {{x}}%, {{y}}%",
       "skip": "I don't know — skip this one",
+      "coords": {
+        "toggle": "Place pin by coordinates",
+        "formLabel": "Place a pin using x/y coordinates",
+        "x": "X (%)",
+        "y": "Y (%)",
+        "place": "Place pin",
+        "hint": "0% is the top-left corner of the map, 100% is the bottom-right."
+      },
       "next": "Next round",
       "reroll": "New screenshot",
       "shuffleAllGames": "Random game",
