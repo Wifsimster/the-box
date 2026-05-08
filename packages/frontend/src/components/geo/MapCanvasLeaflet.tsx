@@ -205,7 +205,11 @@ function TilePyramidLayer({
             errorTileUrl:
                 'data:image/svg+xml;utf8,' +
                 encodeURIComponent(
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="%23111" /><text x="50%" y="50%" fill="%23555" font-family="sans-serif" font-size="14" text-anchor="middle" dominant-baseline="central">tile missing</text></svg>',
+                    // Text contrast bumped from #555 (~3:1 on #111) to
+                    // #999 (~7:1) to clear WCAG 1.4.11 for informational
+                    // text. The label is sub-fold rare, but readable
+                    // when it does appear.
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="%23111" /><text x="50%" y="50%" fill="%23999" font-family="sans-serif" font-size="14" text-anchor="middle" dominant-baseline="central">tile missing</text></svg>',
                 ),
         })
         layer.addTo(map)
