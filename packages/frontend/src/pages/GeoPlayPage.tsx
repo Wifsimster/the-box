@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoPoint } from '@the-box/types'
 import {
@@ -337,6 +337,7 @@ export default function GeoPlayPage() {
                         onSubmit={handleSubmit}
                         onNextRound={() => void nextRound()}
                         onSkip={() => void rerollScreenshot()}
+                        onPlaceByCoords={handleMapPin}
                         canSubmit={canSubmit}
                         phase={phase}
                     />
@@ -753,6 +754,7 @@ function Dock({
     onSubmit,
     onNextRound,
     onSkip,
+    onPlaceByCoords,
     canSubmit,
     phase,
 }: {
@@ -764,6 +766,7 @@ function Dock({
     onSubmit: () => void
     onNextRound: () => void
     onSkip: () => void
+    onPlaceByCoords: (point: GeoPoint) => void
     canSubmit: boolean
     phase: ReturnType<typeof useGeoFreePlayStore.getState>['phase']
 }) {
@@ -865,7 +868,105 @@ function Dock({
                     {t('geo.play.skip', "I don't know — skip this one")}
                 </button>
             )}
+
+            {/* Non-tap pin-placement alternative for keyboard, switch
+                control and screen-reader users — Leaflet's keyboard
+                pan doesn't synthesize a click on Enter, so without
+                this they can't drop a pin at all. Native <details>
+                gives full keyboard support out of the box and stays
+                collapsed for sighted/touch users so it doesn't add
+                visual noise. WCAG 2.1.1 (Keyboard). */}
+            {!revealed && !canSubmit && (
+                <CoordinateInput
+                    onPlace={onPlaceByCoords}
+                    disabled={submitting || loading}
+                />
+            )}
         </div>
+    )
+}
+
+function CoordinateInput({
+    onPlace,
+    disabled,
+}: {
+    onPlace: (point: GeoPoint) => void
+    disabled: boolean
+}) {
+    const { t } = useTranslation()
+    const [x, setX] = useState('')
+    const [y, setY] = useState('')
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault()
+        const xNum = Number.parseFloat(x)
+        const yNum = Number.parseFloat(y)
+        if (!Number.isFinite(xNum) || !Number.isFinite(yNum)) return
+        // Inputs are 0-100 percent; clamp + normalize to the [0..1]
+        // space the rest of the pipeline uses.
+        const clamp = (n: number) => Math.min(100, Math.max(0, n)) / 100
+        onPlace({ x: clamp(xNum), y: clamp(yNum) })
+    }
+
+    return (
+        <details className="self-center text-xs text-white/60">
+            <summary className="cursor-pointer underline-offset-4 hover:text-white hover:underline min-h-9 inline-flex items-center px-2">
+                {t('geo.play.coords.toggle', 'Place pin by coordinates')}
+            </summary>
+            <form
+                onSubmit={submit}
+                className="mt-2 flex flex-wrap items-end justify-center gap-2"
+                aria-label={t(
+                    'geo.play.coords.formLabel',
+                    'Place a pin using x/y coordinates',
+                )}
+            >
+                <label className="flex flex-col items-start gap-1 text-white/80">
+                    <span>{t('geo.play.coords.x', 'X (%)')}</span>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={x}
+                        onChange={(e) => setX(e.target.value)}
+                        disabled={disabled}
+                        required
+                        className="w-20 rounded border border-white/20 bg-black/40 px-2 py-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                    />
+                </label>
+                <label className="flex flex-col items-start gap-1 text-white/80">
+                    <span>{t('geo.play.coords.y', 'Y (%)')}</span>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={y}
+                        onChange={(e) => setY(e.target.value)}
+                        disabled={disabled}
+                        required
+                        className="w-20 rounded border border-white/20 bg-black/40 px-2 py-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                    />
+                </label>
+                <Button
+                    type="submit"
+                    variant="outline"
+                    className="min-h-11"
+                    disabled={disabled || x === '' || y === ''}
+                >
+                    {t('geo.play.coords.place', 'Place pin')}
+                </Button>
+            </form>
+            <p className="mt-1 text-[11px] text-white/50 max-w-xs mx-auto text-center">
+                {t(
+                    'geo.play.coords.hint',
+                    '0% is the top-left corner of the map, 100% is the bottom-right.',
+                )}
+            </p>
+        </details>
     )
 }
 

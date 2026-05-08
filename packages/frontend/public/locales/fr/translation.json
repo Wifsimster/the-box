@@ -1793,6 +1793,14 @@
       "confirm": "Confirmer la position",
       "pinPlacedAria": "Épingle posée à {{x}} %, {{y}} %",
       "skip": "Je ne sais pas — passer celle-ci",
+      "coords": {
+        "toggle": "Placer l'épingle par coordonnées",
+        "formLabel": "Placer une épingle avec des coordonnées x/y",
+        "x": "X (%)",
+        "y": "Y (%)",
+        "place": "Placer l'épingle",
+        "hint": "0 % correspond au coin haut-gauche de la carte, 100 % au coin bas-droit."
+      },
       "next": "Suivant",
       "reroll": "Nouvelle capture",
       "shuffleAllGames": "Jeu aléatoire",
