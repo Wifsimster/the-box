@@ -1804,9 +1804,14 @@
         "label": "Screenshot and map"
       },
       "empty": {
-        "title": "Pick a game to start",
-        "body": "Free play covers every game and every map in the catalog. No daily limits.",
-        "cta": "Browse games"
+        "title": "Help us map the world of video games",
+        "body": "Look at a screenshot, then drop a pin where the scene takes place on the game world map. Every pin grows a shared atlas that powers future location-guessing modes.",
+        "steps": {
+          "one": "Pick a game from your catalog.",
+          "two": "Tap the map where you think the screenshot was taken.",
+          "three": "Confirm — your pin joins the dataset."
+        },
+        "cta": "Pick a game"
       },
       "map": {
         "empty": {

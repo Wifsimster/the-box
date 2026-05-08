@@ -471,22 +471,36 @@ function ScreenshotPanel({
         return (
             <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4">
                 <div className="rounded-full bg-neon-pink/10 p-4">
-                    <Gamepad2 className="h-8 w-8 text-neon-pink" aria-hidden />
+                    <MapPin className="h-8 w-8 text-neon-pink" aria-hidden />
                 </div>
-                <div className="space-y-1 max-w-xs">
+                <div className="space-y-2 max-w-md">
                     <h2 className="text-lg font-semibold">
-                        {t('geo.play.empty.title', 'Pick a game to start')}
+                        {t('geo.play.empty.title', 'Help us map the world of video games')}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                         {t(
                             'geo.play.empty.body',
-                            'Free play covers every game and every map in the catalog. No daily limits.',
+                            'Look at a screenshot, then drop a pin where the scene takes place on the game world map. Every pin grows a shared atlas that powers future location-guessing modes.',
                         )}
                     </p>
                 </div>
-                <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90">
+                <ol className="text-left text-xs text-muted-foreground/90 space-y-1.5 max-w-xs">
+                    <li className="flex gap-2">
+                        <span className="font-semibold text-neon-pink">1.</span>
+                        <span>{t('geo.play.empty.steps.one', 'Pick a game from your catalog.')}</span>
+                    </li>
+                    <li className="flex gap-2">
+                        <span className="font-semibold text-neon-pink">2.</span>
+                        <span>{t('geo.play.empty.steps.two', 'Tap the map where you think the screenshot was taken.')}</span>
+                    </li>
+                    <li className="flex gap-2">
+                        <span className="font-semibold text-neon-pink">3.</span>
+                        <span>{t('geo.play.empty.steps.three', 'Confirm — your pin joins the dataset.')}</span>
+                    </li>
+                </ol>
+                <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90 min-h-12">
                     <Gamepad2 className="h-4 w-4 mr-2" aria-hidden />
-                    {t('geo.play.empty.cta', 'Browse games')}
+                    {t('geo.play.empty.cta', 'Pick a game')}
                 </Button>
             </div>
         )

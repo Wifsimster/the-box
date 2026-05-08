@@ -1804,9 +1804,14 @@
         "label": "Capture et carte"
       },
       "empty": {
-        "title": "Choisissez un jeu pour commencer",
-        "body": "Le mode libre couvre tous les jeux et toutes les cartes du catalogue. Sans limite quotidienne.",
-        "cta": "Parcourir les jeux"
+        "title": "Aide-nous à cartographier l'univers du jeu vidéo",
+        "body": "Regarde la capture d'écran, puis pose une épingle là où la scène se passe sur la carte du jeu. Chaque épingle enrichit un atlas partagé qui alimentera de futurs modes \"devine le lieu\".",
+        "steps": {
+          "one": "Choisis un jeu dans ton catalogue.",
+          "two": "Tape sur la carte là où tu penses que la capture a été prise.",
+          "three": "Confirme — ton épingle rejoint le dataset."
+        },
+        "cta": "Choisir un jeu"
       },
       "map": {
         "empty": {
