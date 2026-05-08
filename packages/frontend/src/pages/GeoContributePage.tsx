@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
+import type { GeoPinConfidence } from '@the-box/types'
 import { useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { HandCoins, Loader2, Lock, SkipForward } from 'lucide-react'
 
 export default function GeoContributePage() {
@@ -21,9 +23,11 @@ export default function GeoContributePage() {
         currentCandidate,
         currentCandidateMap,
         pendingPin,
+        pendingConfidence,
         errorMessage,
         pickContribution,
         setPendingPin,
+        setPendingConfidence,
         submitPin,
         recentRewards,
         contributor,
@@ -161,6 +165,18 @@ export default function GeoContributePage() {
                                 pin={pendingPin}
                                 onPin={setPendingPin}
                             />
+                            {/* Confidence chip — shown only after a pin is
+                                placed so it doesn't pre-bias the player.
+                                Skipping the chip is allowed; the server
+                                treats unspecified as "sure" today, and a
+                                follow-up will weight low-confidence pins
+                                proportionally less in consensus. */}
+                            {pendingPin && (
+                                <ConfidenceChips
+                                    value={pendingConfidence}
+                                    onChange={setPendingConfidence}
+                                />
+                            )}
                             <div className="flex items-center justify-between">
                                 <Button
                                     variant="outline"
@@ -212,6 +228,54 @@ export default function GeoContributePage() {
                     </CardContent>
                 </Card>
             )}
+        </div>
+    )
+}
+
+function ConfidenceChips({
+    value,
+    onChange,
+}: {
+    value: GeoPinConfidence | null
+    onChange: (c: GeoPinConfidence | null) => void
+}) {
+    const { t } = useTranslation()
+    // Three buckets, each carrying its weight intent for the future
+    // consensus tweak. The label keys live under
+    // geo.contribute.confidence.* so a translator can rephrase
+    // "Sure / Approx / Guess" without touching code.
+    const options: Array<{ value: GeoPinConfidence; key: string; fallback: string }> = [
+        { value: 1, key: 'geo.contribute.confidence.sure', fallback: 'Sure' },
+        { value: 2, key: 'geo.contribute.confidence.approx', fallback: 'Approximate' },
+        { value: 3, key: 'geo.contribute.confidence.guess', fallback: 'Guessing' },
+    ]
+    return (
+        <div role="radiogroup" aria-label={t('geo.contribute.confidence.label', 'How confident are you?')}>
+            <p className="text-xs text-muted-foreground mb-1.5">
+                {t('geo.contribute.confidence.label', 'How confident are you?')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+                {options.map((opt) => {
+                    const selected = value === opt.value
+                    return (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => onChange(selected ? null : opt.value)}
+                            className={cn(
+                                'inline-flex items-center min-h-11 px-3 py-2 rounded-full border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink',
+                                selected
+                                    ? 'border-neon-pink bg-neon-pink/15 text-foreground'
+                                    : 'border-border text-muted-foreground hover:border-neon-pink/60 hover:text-foreground',
+                            )}
+                        >
+                            {t(opt.key, opt.fallback)}
+                        </button>
+                    )
+                })}
+            </div>
         </div>
     )
 }

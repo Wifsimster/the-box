@@ -44,9 +44,17 @@ const pointSchema = z.object({
   y: z.number().min(0).max(1),
 })
 
+// Self-reported confidence on a pin: 1 = sure, 2 = approximate,
+// 3 = pure guess. Optional — an unspecified value is treated as
+// "sure" by the consensus weighter (defined in a follow-up).
+const confidenceSchema = z
+  .union([z.literal(1), z.literal(2), z.literal(3)])
+  .optional()
+
 const pinBodySchema = z.object({
   geoScreenshotCandidateId: z.number().int().positive(),
   pin: pointSchema,
+  confidence: confidenceSchema,
 })
 
 const contributePickBodySchema = z.object({
@@ -142,7 +150,7 @@ router.post(
         return
       }
       const userId = req.userId!
-      const { geoScreenshotCandidateId, pin } = req.body as z.infer<typeof pinBodySchema>
+      const { geoScreenshotCandidateId, pin, confidence } = req.body as z.infer<typeof pinBodySchema>
 
       const candidate = await geoScreenshotRepository.findCandidateById(geoScreenshotCandidateId)
       if (!candidate) {
@@ -165,6 +173,7 @@ router.post(
         userId,
         geoScreenshotCandidateId,
         pin,
+        confidence,
       })
 
       if (submission) {

@@ -1877,7 +1877,13 @@
       "thanks": "Merci — nous vous préviendrons quand d'autres joueurs confirmeront l'emplacement.",
       "recent": "Récompenses récentes",
       "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",
-      "lockedProgress": "Progression"
+      "lockedProgress": "Progression",
+      "confidence": {
+        "label": "Tu es sûr de toi ?",
+        "sure": "Sûr",
+        "approx": "À peu près",
+        "guess": "Au pif"
+      }
     },
     "profile": {
       "title": "Contributeur Géo",

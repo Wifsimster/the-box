@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type {
     GeoMap,
+    GeoPinConfidence,
     GeoPoint,
     GeoRewardedEvent,
     GeoScreenshotCandidate,
@@ -19,6 +20,10 @@ interface GeoState {
     currentCandidate: GeoScreenshotCandidate | null
     currentCandidateMap: GeoMap | null
     pendingPin: GeoPoint | null
+    // Self-reported confidence on the pending pin (1=sure, 2=approx,
+    // 3=guess). Optional — null means the player hasn't picked,
+    // which the server treats as "sure".
+    pendingConfidence: GeoPinConfidence | null
 
     // Contributor profile block
     contributor: GeoContributorMe | null
@@ -29,6 +34,7 @@ interface GeoState {
 
     pickContribution: (gameId: number) => Promise<void>
     setPendingPin: (p: GeoPoint | null) => void
+    setPendingConfidence: (c: GeoPinConfidence | null) => void
     submitPin: () => Promise<boolean>
 
     loadContributor: () => Promise<void>
@@ -47,6 +53,7 @@ export const useGeoStore = create<GeoState>()((set, get) => ({
     currentCandidate: null,
     currentCandidateMap: null,
     pendingPin: null,
+    pendingConfidence: null,
     contributor: null,
     recentRewards: [],
     latestTierUp: null,
@@ -60,6 +67,7 @@ export const useGeoStore = create<GeoState>()((set, get) => ({
                 currentCandidate: candidate,
                 currentCandidateMap: map,
                 pendingPin: null,
+                pendingConfidence: null,
             })
         } catch (err) {
             set({
@@ -73,16 +81,22 @@ export const useGeoStore = create<GeoState>()((set, get) => ({
         set({ pendingPin: p })
     },
 
+    setPendingConfidence(c) {
+        set({ pendingConfidence: c })
+    },
+
     async submitPin() {
-        const { currentCandidate, pendingPin } = get()
+        const { currentCandidate, pendingPin, pendingConfidence } = get()
         if (!currentCandidate || !pendingPin) return false
         try {
             await geoApi.submitPin({
                 geoScreenshotCandidateId: currentCandidate.id,
                 pin: pendingPin,
+                confidence: pendingConfidence ?? undefined,
             })
             set({
                 pendingPin: null,
+                pendingConfidence: null,
                 currentCandidate: null,
                 currentCandidateMap: null,
                 phase: 'idle',
@@ -132,6 +146,7 @@ export const useGeoStore = create<GeoState>()((set, get) => ({
             currentCandidate: null,
             currentCandidateMap: null,
             pendingPin: null,
+            pendingConfidence: null,
         })
     },
 }))
