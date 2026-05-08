@@ -1128,6 +1128,12 @@ export interface GeoPlayableGame {
   coverImageUrl: string | null
   mapCount: number
   screenshotCount: number
+  // True when the game is set in real geography (GTA → LA, Yakuza →
+  // Tokyo). The cold-start shuffle uses this to bias first-time
+  // visitors toward titles where the pin task has an obvious mental
+  // model. Defaults to false for fictional-world games (Zelda's
+  // Hyrule, Elden Ring's Lands Between, etc.).
+  realWorldSetting: boolean
 }
 
 // Public dataset social-proof counter — total pins submitted since UTC
