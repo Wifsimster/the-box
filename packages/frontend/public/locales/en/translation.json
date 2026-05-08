@@ -1575,6 +1575,16 @@
     "optedOut": "You won't receive marketing emails.",
     "updateError": "Failed to update preference. Please try again."
   },
+  "pushNotifications": {
+    "title": "Push notifications",
+    "description": "Get the daily challenge and streak reminders pushed to your browser, even when the tab is closed.",
+    "label": "Enable push notifications on this device.",
+    "optedIn": "Notifications enabled on this device.",
+    "optedOut": "Notifications disabled on this device.",
+    "permissionDenied": "You blocked notifications in your browser.",
+    "permissionDeniedHint": "Notifications are blocked at the browser level. Allow them in your site settings, then come back here.",
+    "updateError": "Couldn't update notifications. Try again later."
+  },
   "personalBests": {
     "title": "Personal Bests",
     "highestScore": "Highest Score",

@@ -27,44 +27,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['logo.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,ico,png,webp,woff,woff2}'],
-        cleanupOutdatedCaches: true,
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/, /^\/uploads/],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/uploads/'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'screenshots',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/locales/') && url.pathname.endsWith('.json'),
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'i18n-locales',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: ({ url }) =>
-              url.pathname.startsWith('/api/') &&
-              !url.pathname.startsWith('/api/auth/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api',
-              networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
       manifest: {
         id: '/',
