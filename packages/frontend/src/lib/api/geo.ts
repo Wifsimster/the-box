@@ -5,6 +5,7 @@ import type {
     GeoFreePlayResult,
     GeoFreePlayView,
     GeoMap,
+    GeoPinConfidence,
     GeoPlayableGame,
     GeoPoint,
     GeoScreenshotCandidate,
@@ -77,6 +78,7 @@ export const geoApi = {
     submitPin(input: {
         geoScreenshotCandidateId: number
         pin: GeoPoint
+        confidence?: GeoPinConfidence
     }): Promise<{ received: boolean }> {
         return request<{ received: boolean }>('/api/geo/contribute/pin', {
             method: 'POST',

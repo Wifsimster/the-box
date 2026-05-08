@@ -1878,7 +1878,13 @@
       "thanks": "Thanks — we'll let you know once other players agree on the spot.",
       "recent": "Recent rewards",
       "lockedTitle": "Tagging unlocks after a few daily games.",
-      "lockedProgress": "Progress"
+      "lockedProgress": "Progress",
+      "confidence": {
+        "label": "How confident are you?",
+        "sure": "Sure",
+        "approx": "Approximate",
+        "guess": "Guessing"
+      }
     },
     "profile": {
       "title": "Geo Crowdsourcer",

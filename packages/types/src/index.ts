@@ -1184,7 +1184,17 @@ export interface GeoLeaderboardEntry {
 export interface GeoPinSubmissionInput {
   geoScreenshotCandidateId: number
   pin: GeoPoint
+  // Optional self-reported confidence — 1 = sure, 2 = approximate,
+  // 3 = pure guess. The consensus algorithm uses it as a weight; an
+  // unspecified value is treated as "sure".
+  confidence?: GeoPinConfidence
 }
+
+// Self-reported confidence on a pin submission. Stored as a smallint
+// in `geo_pin_submission.confidence` (CHECK 1–3); the type narrows to
+// the same domain on the wire so a future weighting tweak doesn't
+// have to chase string-vs-int representations.
+export type GeoPinConfidence = 1 | 2 | 3
 
 export type GeoPinStatus = 'pending' | 'accepted' | 'rejected'
 
@@ -1194,6 +1204,7 @@ export interface GeoPinSubmission {
   geoScreenshotCandidateId: number
   pin: GeoPoint
   status: GeoPinStatus
+  confidence?: GeoPinConfidence
   distanceFromCentroid?: number
   reviewedAt?: string
   createdAt: string

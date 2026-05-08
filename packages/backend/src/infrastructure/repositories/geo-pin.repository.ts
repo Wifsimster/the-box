@@ -1,6 +1,11 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
-import type { GeoPinStatus, GeoPinSubmission, GeoPoint } from '@the-box/types'
+import type {
+  GeoPinConfidence,
+  GeoPinStatus,
+  GeoPinSubmission,
+  GeoPoint,
+} from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'geo-pin' })
 
@@ -11,18 +16,26 @@ export interface GeoPinSubmissionRow {
   x: number
   y: number
   status: GeoPinStatus
+  confidence: number | null
   distance_from_centroid: number | null
   reviewed_at: Date | null
   created_at: Date
 }
 
 function mapPin(row: GeoPinSubmissionRow): GeoPinSubmission {
+  // CHECK constraint already restricts confidence to {1,2,3}; the cast
+  // is just to match the narrowed wire type without re-validating.
+  const confidence =
+    row.confidence === 1 || row.confidence === 2 || row.confidence === 3
+      ? (row.confidence as GeoPinConfidence)
+      : undefined
   return {
     id: row.id,
     userId: row.user_id,
     geoScreenshotCandidateId: row.geo_screenshot_candidate_id,
     pin: { x: row.x, y: row.y },
     status: row.status,
+    confidence,
     distanceFromCentroid: row.distance_from_centroid ?? undefined,
     reviewedAt: row.reviewed_at?.toISOString(),
     createdAt: row.created_at.toISOString(),
@@ -34,6 +47,7 @@ export const geoPinRepository = {
     userId: string
     geoScreenshotCandidateId: number
     pin: GeoPoint
+    confidence?: GeoPinConfidence
   }): Promise<GeoPinSubmission | null> {
     log.info(
       { userId: data.userId, candidateId: data.geoScreenshotCandidateId },
@@ -48,6 +62,7 @@ export const geoPinRepository = {
         geo_screenshot_candidate_id: data.geoScreenshotCandidateId,
         x: data.pin.x,
         y: data.pin.y,
+        confidence: data.confidence ?? null,
       })
       .onConflict(['user_id', 'geo_screenshot_candidate_id'])
       .ignore()
