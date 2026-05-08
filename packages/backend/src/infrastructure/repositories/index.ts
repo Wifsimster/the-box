@@ -46,3 +46,8 @@ export {
   type SubscriptionRow,
   type UpsertSubscriptionInput,
 } from './subscription.repository.js'
+export {
+  pushSubscriptionRepository,
+  type PushSubscriptionRow,
+  type UpsertSubscriptionInput as UpsertPushSubscriptionInput,
+} from './push-subscription.repository.js'

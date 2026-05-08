@@ -47,6 +47,13 @@ export const env = {
   STRIPE_CHECKOUT_SUCCESS_URL: process.env['STRIPE_CHECKOUT_SUCCESS_URL'] || 'http://localhost:5173/fr/premium?checkout=success',
   STRIPE_CHECKOUT_CANCEL_URL: process.env['STRIPE_CHECKOUT_CANCEL_URL'] || 'http://localhost:5173/fr/premium?checkout=cancel',
   STRIPE_PORTAL_RETURN_URL: process.env['STRIPE_PORTAL_RETURN_URL'] || 'http://localhost:5173/fr/profile',
+
+  // Web Push (VAPID). Required to send notifications. Generate a keypair
+  // with `npm run vapid:generate -w @the-box/backend`. Without all three
+  // values present, the push.service refuses to send and routes return 503.
+  VAPID_PUBLIC_KEY: process.env['VAPID_PUBLIC_KEY'] || '',
+  VAPID_PRIVATE_KEY: process.env['VAPID_PRIVATE_KEY'] || '',
+  VAPID_SUBJECT: process.env['VAPID_SUBJECT'] || '',
 }
 
 export function validateEnv(): void {
