@@ -4,6 +4,7 @@ import { Star, Check, RotateCcw } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -67,6 +68,12 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
       <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t('admin.geoFetch.drawer.title', 'Cartes du jeu')}</SheetTitle>
+          <SheetDescription className="sr-only">
+            {t(
+              'admin.geoFetch.drawer.description',
+              'Side-by-side map candidates per zone. Click "Choisir" to set the canonical map for this game.',
+            )}
+          </SheetDescription>
         </SheetHeader>
 
         {isLoading && (

@@ -61,7 +61,6 @@ const SheetContent = React.forwardRef<
       ref={ref}
       data-slot="sheet-content"
       className={cn(sheetVariants({ side }), className)}
-      aria-describedby={undefined}
       {...props}
     >
       {children}

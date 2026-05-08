@@ -103,13 +103,6 @@ export default function GeoPlayPage() {
     // One-shot fetch on mount; null until it lands so the empty state
     // doesn't flash a misleading "0 pins today" placeholder.
     const [pinsToday, setPinsToday] = useState<number | null>(null)
-    // Screen-reader announcement for the placed pin. The CTA's
-    // aria-live carries the action signal ("Drop pin" → "Confirm
-    // pin"); this carries the spatial signal ("placed at 42 %, 67 %")
-    // so an AT user knows roughly where their pin landed without
-    // sighted feedback. Mirrors what the persona a11y review asked
-    // for under WCAG 2.4.6 / 4.1.3.
-    const [pinAnnouncement, setPinAnnouncement] = useState('')
 
     // Fullscreen target: the entire immersive deck. Putting the wrapper
     // ref on the outer container means the screenshot, map, dock and
@@ -146,25 +139,21 @@ export default function GeoPlayPage() {
         }
     }, [currentGameId, view, phase, rerollScreenshot])
 
-    // Announce the placed pin to screen readers. Coordinates are
-    // rounded to whole percent so the message stays terse — anything
-    // finer is noise once verbalized. Cleared when the pin is removed
-    // (e.g. after a round resets) so the live region doesn't replay
-    // the last announcement on phase changes.
-    useEffect(() => {
-        if (!pendingGuess) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing an aria-live region; the rule's docs flag the React→external pattern as a legitimate exception.
-            setPinAnnouncement('')
-            return
-        }
-        setPinAnnouncement(
-            t('geo.play.pinPlacedAria', {
-                defaultValue: 'Pin placed at {{x}}%, {{y}}%',
-                x: Math.round(pendingGuess.x * 100),
-                y: Math.round(pendingGuess.y * 100),
-            }),
-        )
-    }, [pendingGuess, t])
+    // Screen-reader announcement for the placed pin. Derived directly
+    // from `pendingGuess` so the live region updates on the same render
+    // that drops the pin — no useState/useEffect dance, no cascading
+    // re-renders, no risk of stale strings (cf. WCAG 2.4.6 / 4.1.3).
+    // Coordinates are rounded to whole percent so the message stays
+    // terse — finer detail is noise once verbalized. Empty string when
+    // there's no draft pin so the live region doesn't replay the last
+    // announcement on phase changes.
+    const pinAnnouncement = pendingGuess
+        ? t('geo.play.pinPlacedAria', {
+              defaultValue: 'Pin placed at {{x}}%, {{y}}%',
+              x: Math.round(pendingGuess.x * 100),
+              y: Math.round(pendingGuess.y * 100),
+          })
+        : ''
 
     // Open the game picker for a fresh visitor with no selection — gives
     // them an obvious "what do I do here" cue instead of a blank canvas.
