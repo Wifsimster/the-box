@@ -280,6 +280,7 @@ export default function GeoPlayPage() {
                         }
                         onSubmit={handleSubmit}
                         onNextRound={() => void nextRound()}
+                        onSkip={() => void rerollScreenshot()}
                         canSubmit={canSubmit}
                         phase={phase}
                     />
@@ -674,6 +675,7 @@ function Dock({
     canGoNext,
     onSubmit,
     onNextRound,
+    onSkip,
     canSubmit,
     phase,
 }: {
@@ -684,6 +686,7 @@ function Dock({
     canGoNext: boolean
     onSubmit: () => void
     onNextRound: () => void
+    onSkip: () => void
     canSubmit: boolean
     phase: ReturnType<typeof useGeoFreePlayStore.getState>['phase']
 }) {
@@ -767,6 +770,23 @@ function Dock({
                         ? t('geo.play.confirm', 'Confirm pin')
                         : t('geo.play.submit', 'Drop pin')}
                 </Button>
+            )}
+
+            {/* Skip affordance — shown only while waiting for a pin (no
+                draft, not yet revealed). A discoverable "I don't know"
+                escape hatch protects dataset quality: a player who'd
+                otherwise drop a random guess can roll forward instead.
+                Hidden once a pin is placed so it doesn't fight the
+                primary "Confirm pin" CTA for attention. */}
+            {!revealed && !canSubmit && (
+                <button
+                    type="button"
+                    onClick={onSkip}
+                    disabled={submitting || loading}
+                    className="self-center text-xs text-white/60 underline-offset-4 hover:text-white hover:underline disabled:opacity-40 min-h-9 px-2"
+                >
+                    {t('geo.play.skip', "I don't know — skip this one")}
+                </button>
             )}
         </div>
     )

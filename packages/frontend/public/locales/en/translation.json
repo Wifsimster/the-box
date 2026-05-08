@@ -1791,6 +1791,7 @@
       "changeMap": "Choose map",
       "submit": "Drop pin",
       "confirm": "Confirm pin",
+      "skip": "I don't know — skip this one",
       "next": "Next round",
       "reroll": "New screenshot",
       "shuffleAllGames": "Random game",
