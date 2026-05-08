@@ -20,6 +20,10 @@ interface ImmersiveLayoutProps {
     // True when the page should pin itself to the viewport (CSS immersive
     // fallback for browsers without native fullscreen).
     isImmersive: boolean
+    // True when a modal sheet (game/map picker) is open. We mark the map
+    // panel as `inert` so Leaflet's pan/zoom and keyboard controls cannot
+    // steal events from the panel above it.
+    mapInert?: boolean
     // Kept for API compatibility with consumers that pass it; the layout
     // no longer needs to reset any internal state per round.
     roundKey?: number | string
@@ -39,6 +43,7 @@ export function ImmersiveLayout({
     bottomDock,
     resultOverlay,
     isImmersive,
+    mapInert = false,
 }: ImmersiveLayoutProps) {
     const { t } = useTranslation()
 
@@ -99,6 +104,7 @@ export function ImmersiveLayout({
                     </Panel>
                     <Panel
                         id="geo-panel-map"
+                        inert={mapInert}
                         tag={
                             <>
                                 <MapPin className="h-3.5 w-3.5" aria-hidden />
@@ -149,11 +155,13 @@ function Panel({
     tag,
     className,
     children,
+    inert: inertProp,
 }: {
     id: string
     tag: ReactNode
     className?: string
     children: ReactNode
+    inert?: boolean
 }) {
     return (
         <div
@@ -162,6 +170,7 @@ function Panel({
                 'relative h-full w-full overflow-hidden',
                 className,
             )}
+            inert={inertProp || undefined}
         >
             {children}
             <div className="pointer-events-none absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white shadow backdrop-blur">

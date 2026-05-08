@@ -147,6 +147,7 @@ export default function GeoPlayPage() {
     // the last announcement on phase changes.
     useEffect(() => {
         if (!pendingGuess) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing an aria-live region; the rule's docs flag the React→external pattern as a legitimate exception.
             setPinAnnouncement('')
             return
         }
@@ -161,14 +162,20 @@ export default function GeoPlayPage() {
 
     // Open the game picker for a fresh visitor with no selection — gives
     // them an obvious "what do I do here" cue instead of a blank canvas.
+    // Guarded by a ref so a later catalog refresh (checkForNewScreenshots,
+    // websocket sync, etc.) can't yank the picker back open over the player.
+    const hasAutoOpenedPickerRef = useRef(false)
     useEffect(() => {
-        if (currentGameId == null && games.length > 0 && !gamePickerOpen) {
+        if (
+            !hasAutoOpenedPickerRef.current &&
+            currentGameId == null &&
+            games.length > 0
+        ) {
+            hasAutoOpenedPickerRef.current = true
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot opener that keys off games-list arrival; the ref ensures it fires at most once per session.
             setGamePickerOpen(true)
         }
-        // We deliberately depend on `games.length` going from 0 → N once;
-        // re-opening on every change would fight the player.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [games.length])
+    }, [games.length, currentGameId])
 
     const isMultiMap = maps.length > 1
     const selectedMap = useMemo(
@@ -236,6 +243,7 @@ export default function GeoPlayPage() {
             </div>
             <ImmersiveLayout
                 isImmersive={fullscreen.isImmersive}
+                mapInert={gamePickerOpen || mapPickerOpen}
                 roundKey={`${currentGameId ?? 'none'}-${round}`}
                 topRight={
                     <FullscreenToggle
