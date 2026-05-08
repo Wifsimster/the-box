@@ -1211,6 +1211,11 @@ export interface GeoPinSubmission {
   pin: GeoPoint
   status: GeoPinStatus
   confidence?: GeoPinConfidence
+  // True when the submitter was a Better Auth anonymous (guest)
+  // session at submit time. Persisted so the consensus pipeline and
+  // admin moderation can downweight or filter without re-deriving
+  // provenance after the fact.
+  isAnonymous: boolean
   distanceFromCentroid?: number
   reviewedAt?: string
   createdAt: string
