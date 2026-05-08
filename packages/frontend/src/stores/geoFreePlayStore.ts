@@ -229,8 +229,14 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             },
 
             async rerollScreenshot() {
-                const { currentGameId, currentMapId, playedByGame } = get()
+                const { currentGameId, currentMapId, playedByGame, view: currentView } = get()
                 if (currentGameId == null) return
+                // Capture the current screenshot's metaId before clearing
+                // the view. It isn't in `playedByGame` yet (only submitted
+                // guesses are), so without this the API can re-roll onto
+                // the same screenshot — making "I don't know / skip" look
+                // broken on small per-game pools.
+                const currentMetaId = currentView?.meta.id ?? null
                 set({
                     phase: 'loading',
                     view: null,
@@ -241,7 +247,11 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     errorCode: null,
                 })
                 try {
-                    const excludeMetaIds = playedByGame[currentGameId] ?? []
+                    const playedIds = playedByGame[currentGameId] ?? []
+                    const excludeMetaIds =
+                        currentMetaId != null && !playedIds.includes(currentMetaId)
+                            ? [...playedIds, currentMetaId]
+                            : playedIds
                     const view = await geoApi.pickFreePlay({
                         gameId: currentGameId,
                         geoMapId: currentMapId ?? undefined,
