@@ -1545,7 +1545,7 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
         return
       }
       const consensus = evaluateConsensus(
-        pins.map((p) => ({ id: p.id, pin: p.pin })),
+        pins.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence })),
         map.consensusRadius,
       )
       canonicalX = consensus.centroid.x

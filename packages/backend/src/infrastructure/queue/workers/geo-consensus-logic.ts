@@ -121,7 +121,7 @@ export async function evaluateConsensusForCandidate(
   for (const p of pending) pinOwners.set(p.id, p.userId)
 
   const result = geoConsensusService.evaluate(
-    pending.map((p) => ({ id: p.id, pin: p.pin })),
+    pending.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence })),
     map.consensusRadius,
   )
 

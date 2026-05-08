@@ -1,8 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import type { GeoPinConfidence } from '@the-box/types'
 import {
   evaluateConsensus,
   grantsForAcceptedPin,
+  GEO_CONSENSUS_CONFIDENCE_WEIGHTS,
   GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
   GEO_CONSENSUS_VERSION,
   type GeoPinLike,
@@ -10,8 +12,8 @@ import {
 
 const RADIUS = 0.05
 
-function pin(id: number, x: number, y: number): GeoPinLike {
-  return { id, pin: { x, y } }
+function pin(id: number, x: number, y: number, confidence?: GeoPinConfidence): GeoPinLike {
+  return confidence == null ? { id, pin: { x, y } } : { id, pin: { x, y }, confidence }
 }
 
 describe('evaluateConsensus', () => {
@@ -104,6 +106,102 @@ describe('evaluateConsensus', () => {
     // decisions apart on a retroactive re-run.
     const out = evaluateConsensus([pin(1, 0.5, 0.5)], RADIUS)
     assert.equal(out.version, GEO_CONSENSUS_VERSION)
+  })
+
+  it('confidence weights pull the centroid toward the "sure" pin', () => {
+    // Three pins on a horizontal line. The lone "sure" (weight 1.0)
+    // pin sits at x=0.4; the two "guess" (weight 0.33) pins sit at
+    // x=0.6. Unweighted mean would land at 0.533; weighted mean must
+    // be < 0.5 because the "sure" pin outweighs both "guess" pins
+    // combined (1.0 vs 0.66).
+    const pins: GeoPinLike[] = [
+      pin(1, 0.4, 0.5, 1),
+      pin(2, 0.6, 0.5, 3),
+      pin(3, 0.6, 0.5, 3),
+    ]
+    const out = evaluateConsensus(pins, RADIUS)
+    assert.ok(
+      out.centroid.x < 0.5,
+      `expected weighted centroid < 0.5 but got ${out.centroid.x}`,
+    )
+    assert.ok(out.centroid.x < 0.533) // strictly tighter than unweighted
+  })
+
+  it('all-equal confidences match the unweighted result', () => {
+    // Same set of pin positions, once with no confidence and once
+    // with every pin marked "approx" (weight 0.66). Centroids and
+    // sigmas must agree because the weights factor out of both the
+    // numerator and the denominator.
+    const positions: Array<[number, number]> = [
+      [0.4, 0.4],
+      [0.45, 0.42],
+      [0.5, 0.5],
+      [0.52, 0.48],
+      [0.48, 0.45],
+    ]
+    const unweighted = evaluateConsensus(
+      positions.map(([x, y], i) => pin(i + 1, x, y)),
+      RADIUS,
+    )
+    const weighted = evaluateConsensus(
+      positions.map(([x, y], i) => pin(i + 1, x, y, 2)),
+      RADIUS,
+    )
+    assert.ok(Math.abs(unweighted.centroid.x - weighted.centroid.x) < 1e-9)
+    assert.ok(Math.abs(unweighted.centroid.y - weighted.centroid.y) < 1e-9)
+    assert.ok(Math.abs(unweighted.sigmaX - weighted.sigmaX) < 1e-9)
+    assert.ok(Math.abs(unweighted.sigmaY - weighted.sigmaY) < 1e-9)
+  })
+
+  it('exposes a 1.0/0.66/0.33 weight table for confidences 1/2/3', () => {
+    // The weights are part of the algorithm's public contract — if a
+    // future tweak changes them, the version bump will trip the
+    // version test, and this test pins the values themselves.
+    assert.equal(GEO_CONSENSUS_CONFIDENCE_WEIGHTS[1], 1.0)
+    assert.equal(GEO_CONSENSUS_CONFIDENCE_WEIGHTS[2], 0.66)
+    assert.equal(GEO_CONSENSUS_CONFIDENCE_WEIGHTS[3], 0.33)
+  })
+
+  it('a low-confidence outlier shifts the centroid less than a high-confidence one', () => {
+    // Tight cluster of four "sure" pins around (0.5, 0.5) plus one
+    // outlier at (0.7, 0.5). When the outlier is "sure" it pulls the
+    // mean further than when it is a "guess".
+    const cluster: GeoPinLike[] = [
+      pin(1, 0.5, 0.5, 1),
+      pin(2, 0.501, 0.5, 1),
+      pin(3, 0.499, 0.5, 1),
+      pin(4, 0.5, 0.501, 1),
+    ]
+    const sureOut = evaluateConsensus([...cluster, pin(5, 0.7, 0.5, 1)], RADIUS)
+    const guessOut = evaluateConsensus([...cluster, pin(5, 0.7, 0.5, 3)], RADIUS)
+    assert.ok(
+      guessOut.centroid.x < sureOut.centroid.x,
+      `guess outlier should pull less: sure ${sureOut.centroid.x}, guess ${guessOut.centroid.x}`,
+    )
+  })
+
+  it('mixing legacy (no confidence) pins with rated pins is supported', () => {
+    // Legacy rows have NULL confidence; the formula treats them as
+    // "sure" so a v2 re-run over a pre-confidence dataset produces
+    // the same result as v1 would on it.
+    const allLegacy = evaluateConsensus(
+      [
+        pin(1, 0.5, 0.5),
+        pin(2, 0.501, 0.5),
+        pin(3, 0.499, 0.5),
+      ],
+      RADIUS,
+    )
+    const allSure = evaluateConsensus(
+      [
+        pin(1, 0.5, 0.5, 1),
+        pin(2, 0.501, 0.5, 1),
+        pin(3, 0.499, 0.5, 1),
+      ],
+      RADIUS,
+    )
+    assert.ok(Math.abs(allLegacy.centroid.x - allSure.centroid.x) < 1e-9)
+    assert.ok(Math.abs(allLegacy.sigmaX - allSure.sigmaX) < 1e-9)
   })
 })
 

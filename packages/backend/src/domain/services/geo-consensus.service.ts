@@ -1,5 +1,5 @@
 import type { DomainLogger } from '../ports/logger.js'
-import type { GeoPoint, GeoPinStatus } from '@the-box/types'
+import type { GeoPinConfidence, GeoPoint, GeoPinStatus } from '@the-box/types'
 
 // Pin count thresholds at which the consensus worker should recompute.
 export const GEO_CONSENSUS_THRESHOLDS = [5, 10, 20, 50] as const
@@ -12,12 +12,31 @@ export const GEO_CONSENSUS_MIN_PINS_TO_PROMOTE = 5
 export const GEO_CONSENSUS_SIGMA_MULTIPLIER = 2
 
 // Current consensus algorithm version; bumped alongside formula changes so a
-// retroactive re-run can distinguish old vs new decisions.
-export const GEO_CONSENSUS_VERSION = 1
+// retroactive re-run can distinguish old vs new decisions. v2 introduces
+// confidence-weighted centroid + variance.
+export const GEO_CONSENSUS_VERSION = 2
+
+// Self-reported confidence buckets translate to multiplicative weights on
+// the pin's contribution to centroid + variance. "Sure" pins count
+// fully; "approximate" pins ⅔; "guesses" ⅓. Pins without a recorded
+// confidence (legacy rows or contributors who skipped the chip) are
+// treated as "sure" — same behaviour as v1, so re-running v2 over a
+// pre-confidence dataset is a no-op.
+export const GEO_CONSENSUS_CONFIDENCE_WEIGHTS: Record<GeoPinConfidence, number> = {
+  1: 1.0,
+  2: 0.66,
+  3: 0.33,
+}
+
+function weightFor(confidence: GeoPinConfidence | undefined): number {
+  if (confidence == null) return 1.0
+  return GEO_CONSENSUS_CONFIDENCE_WEIGHTS[confidence]
+}
 
 export interface GeoPinLike {
   id: number
   pin: GeoPoint
+  confidence?: GeoPinConfidence
 }
 
 export interface GeoConsensusDecision {
@@ -39,12 +58,19 @@ export interface GeoConsensusResult {
 }
 
 /**
- * Compute mean/σ on each axis and mark pins outside σ-multiplier * σ OR
- * outside the map's consensus radius as rejected. Promotion to canonical
- * requires ≥ min-pins AND a tight enough cluster (confidence > 0.5).
+ * Compute weighted mean/σ on each axis and mark pins outside σ-multiplier
+ * * σ OR outside the map's consensus radius as rejected. Promotion to
+ * canonical requires ≥ min-pins AND a tight enough cluster (confidence
+ * > 0.5).
  *
- * Confidence is a bounded, interpretable signal: 1 when all pins sit on top
- * of each other, 0 when the spread equals the map's consensus radius.
+ * Each pin contributes proportionally to its self-reported confidence:
+ * "sure" (1.0), "approx" (0.66), "guess" (0.33). Pins without a
+ * recorded confidence count fully — preserving v1 behaviour for the
+ * historical dataset and for contributors who skip the chip.
+ *
+ * Cluster confidence is a bounded, interpretable signal: 1 when all
+ * pins sit on top of each other, 0 when the spread equals the map's
+ * consensus radius.
  */
 export function evaluateConsensus(
   pins: GeoPinLike[],
@@ -65,25 +91,36 @@ export function evaluateConsensus(
     }
   }
 
-  let sumX = 0
-  let sumY = 0
-  for (const { pin } of pins) {
-    sumX += pin.x
-    sumY += pin.y
+  // Weighted centroid. Total weight is also the divisor for variance,
+  // so a "guess"-only cluster has the same shape as the equivalent
+  // "sure" cluster — the weights only matter when confidences are mixed.
+  let sumW = 0
+  let sumWX = 0
+  let sumWY = 0
+  for (const { pin, confidence } of pins) {
+    const w = weightFor(confidence)
+    sumW += w
+    sumWX += w * pin.x
+    sumWY += w * pin.y
   }
-  const meanX = sumX / n
-  const meanY = sumY / n
+  // Defensive: every weight in our table is > 0 and we just rejected n=0,
+  // so sumW can never legitimately be 0. Falling back to 1 keeps a future
+  // weight=0 bucket from short-circuiting into a NaN centroid.
+  const denom = sumW > 0 ? sumW : 1
+  const meanX = sumWX / denom
+  const meanY = sumWY / denom
 
   let sqX = 0
   let sqY = 0
-  for (const { pin } of pins) {
+  for (const { pin, confidence } of pins) {
+    const w = weightFor(confidence)
     const dx = pin.x - meanX
     const dy = pin.y - meanY
-    sqX += dx * dx
-    sqY += dy * dy
+    sqX += w * dx * dx
+    sqY += w * dy * dy
   }
-  const sigmaX = Math.sqrt(sqX / n)
-  const sigmaY = Math.sqrt(sqY / n)
+  const sigmaX = Math.sqrt(sqX / denom)
+  const sigmaY = Math.sqrt(sqY / denom)
 
   const cutoffX = GEO_CONSENSUS_SIGMA_MULTIPLIER * sigmaX
   const cutoffY = GEO_CONSENSUS_SIGMA_MULTIPLIER * sigmaY
