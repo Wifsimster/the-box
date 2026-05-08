@@ -10,6 +10,7 @@ import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2, Tag }
 import { createGuessSubmissionService } from '@/services'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { useGameGuess } from '@/hooks/useGameGuess'
+import { useOnline } from '@/hooks/useOnline'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils'
  */
 export function GuessInput() {
   const { t } = useTranslation()
+  const isOnline = useOnline()
   const [query, setQuery] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
@@ -276,7 +278,7 @@ export function GuessInput() {
             variant="ghost"
             size="icon"
             onClick={handleSubmit}
-            disabled={!query.trim() || isSubmitting || gamePhase !== 'playing'}
+            disabled={!query.trim() || isSubmitting || gamePhase !== 'playing' || !isOnline}
             aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
             className={cn(
               'absolute right-1.5 sm:right-2 inset-y-0 my-auto size-9 sm:size-10 max-[360px]:size-8 p-0 touch-manipulation transition-all duration-300',
