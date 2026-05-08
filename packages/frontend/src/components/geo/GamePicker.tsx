@@ -145,7 +145,7 @@ export function GamePicker({
                         <ul
                             role="radiogroup"
                             aria-label={t('geo.play.pickGame', 'Pick a game')}
-                            className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-1"
+                            className="grid grid-cols-1 gap-3 pt-2"
                         >
                             {filtered.map((g) => {
                                 const played = playedCountByGame?.[String(g.id)] ?? 0

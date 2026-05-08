@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoPoint } from '@the-box/types'
 import {
@@ -24,11 +24,17 @@ import { useFullscreen } from '@/hooks/useFullscreen'
 import { geoApi } from '@/lib/api/geo'
 import { GamePicker } from '@/components/geo/GamePicker'
 import { MapPicker } from '@/components/geo/MapPicker'
-import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { ImmersiveLayout } from '@/components/geo/ImmersiveLayout'
 import { FullscreenToggle } from '@/components/geo/FullscreenToggle'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { cn } from '@/lib/utils'
+
+// Defer the Leaflet bundle (~150KB gz 47KB) until the player has actually
+// chosen a game + map. Cold visitors land on the empty/auth state and
+// shouldn't pay tile/marker code on first paint.
+const GeoMapCanvas = lazy(() =>
+    import('@/components/geo/GeoMapCanvas').then((m) => ({ default: m.GeoMapCanvas })),
+)
 
 /**
  * Free-play geo browser. Pick any game, any map, any time — unranked. The
@@ -283,28 +289,30 @@ export default function GeoPlayPage() {
                 }
                 map={
                     selectedMap ? (
-                        <GeoMapCanvas
-                            imageUrl={selectedMap.imageUrl}
-                            widthPx={selectedMap.widthPx}
-                            heightPx={selectedMap.heightPx}
-                            tiles={selectedMap.tiles}
-                            pin={pendingGuess ?? result?.guess ?? null}
-                            canonical={
-                                phase === 'revealed' &&
-                                correctMap &&
-                                selectedMap.id === correctMap.id
-                                    ? result?.canonical ?? null
-                                    : null
-                            }
-                            disabled={phase !== 'ready'}
-                            onPin={handleMapPin}
-                            showGuessLine={
-                                phase === 'revealed' &&
-                                !!correctMap &&
-                                selectedMap.id === correctMap.id
-                            }
-                            className="!rounded-none h-full"
-                        />
+                        <Suspense fallback={<MapChunkLoader />}>
+                            <GeoMapCanvas
+                                imageUrl={selectedMap.imageUrl}
+                                widthPx={selectedMap.widthPx}
+                                heightPx={selectedMap.heightPx}
+                                tiles={selectedMap.tiles}
+                                pin={pendingGuess ?? result?.guess ?? null}
+                                canonical={
+                                    phase === 'revealed' &&
+                                    correctMap &&
+                                    selectedMap.id === correctMap.id
+                                        ? result?.canonical ?? null
+                                        : null
+                                }
+                                disabled={phase !== 'ready'}
+                                onPin={handleMapPin}
+                                showGuessLine={
+                                    phase === 'revealed' &&
+                                    !!correctMap &&
+                                    selectedMap.id === correctMap.id
+                                }
+                                className="!rounded-none h-full"
+                            />
+                        </Suspense>
                     ) : (
                         <MapPlaceholder
                             hasGame={currentGameId != null}
@@ -621,6 +629,20 @@ function ScreenshotPanel({
     )
 }
 
+function MapChunkLoader() {
+    const { t } = useTranslation()
+    return (
+        <div
+            className="flex h-full w-full items-center justify-center"
+            role="status"
+            aria-busy="true"
+        >
+            <Loader2 className="h-8 w-8 animate-spin text-neon-pink" aria-hidden />
+            <span className="sr-only">{t('common.loading', 'Loading…')}</span>
+        </div>
+    )
+}
+
 function MapPlaceholder({
     hasGame,
     multiMap,
@@ -871,7 +893,7 @@ function Dock({
                     type="button"
                     onClick={onSkip}
                     disabled={submitting || loading}
-                    className="self-center text-xs text-white/60 underline-offset-4 hover:text-white hover:underline disabled:opacity-40 min-h-9 px-2"
+                    className="self-center text-xs text-white/80 underline-offset-4 hover:text-white hover:underline disabled:opacity-40 min-h-11 px-2"
                 >
                     {t('geo.play.skip', "I don't know — skip this one")}
                 </button>
@@ -917,8 +939,8 @@ function CoordinateInput({
     }
 
     return (
-        <details className="self-center text-xs text-white/60">
-            <summary className="cursor-pointer underline-offset-4 hover:text-white hover:underline min-h-9 inline-flex items-center px-2">
+        <details className="self-center text-xs text-white/80">
+            <summary className="cursor-pointer underline-offset-4 hover:text-white hover:underline min-h-11 inline-flex items-center px-2">
                 {t('geo.play.coords.toggle', 'Place pin by coordinates')}
             </summary>
             <form
@@ -968,7 +990,7 @@ function CoordinateInput({
                     {t('geo.play.coords.place', 'Place pin')}
                 </Button>
             </form>
-            <p className="mt-1 text-[11px] text-white/50 max-w-xs mx-auto text-center">
+            <p className="mt-1 text-[11px] text-white/75 max-w-xs mx-auto text-center">
                 {t(
                     'geo.play.coords.hint',
                     '0% is the top-left corner of the map, 100% is the bottom-right.',
