@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { forwardRef, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { useRovingTabindex } from '@/hooks/useRovingTabindex'
 import { useTranslation } from 'react-i18next'
 import type { GeoPlayableGame } from '@the-box/types'
 import {
@@ -83,6 +84,19 @@ export function GamePicker({
         return games.filter((g) => g.name.toLowerCase().includes(q))
     }, [games, query])
 
+    // Roving tabindex for the radiogroup — Tab moves into the group at
+    // the currently-selected (or first) card, arrow keys cycle focus
+    // inside without firing onSelect, Space/Enter on a focused card
+    // commits via the button's native click semantics.
+    const initialIndex = Math.max(
+        0,
+        filtered.findIndex((g) => g.id === selectedGameId),
+    )
+    const { getItemProps } = useRovingTabindex<HTMLButtonElement>({
+        count: filtered.length,
+        initialIndex,
+    })
+
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetContent
@@ -152,7 +166,7 @@ export function GamePicker({
                             aria-label={t('geo.play.pickGame', 'Pick a game')}
                             className="grid grid-cols-1 gap-3 pt-2"
                         >
-                            {filtered.map((g) => {
+                            {filtered.map((g, index) => {
                                 const played = playedCountByGame?.[String(g.id)] ?? 0
                                 // Clamp to ≥0 in case the catalog count
                                 // shrank (e.g. an admin demoted a meta).
@@ -167,6 +181,7 @@ export function GamePicker({
                                 return (
                                     <li key={g.id}>
                                         <GameCard
+                                            {...getItemProps(index)}
                                             game={g}
                                             selected={selectedGameId === g.id}
                                             newCount={hasNew ? newCount : 0}
@@ -174,7 +189,7 @@ export function GamePicker({
                                             ignored={ignored}
                                             onSelect={() => {
                                                 onSelect(g.id)
-                                                onOpenChange(false)
+                                                handleOpenChange(false)
                                             }}
                                             onToggleIgnore={
                                                 onToggleIgnore
@@ -193,23 +208,32 @@ export function GamePicker({
     )
 }
 
-function GameCard({
-    game,
-    selected,
-    newCount,
-    completed,
-    ignored,
-    onSelect,
-    onToggleIgnore,
-}: {
+interface GameCardProps {
     game: GeoPlayableGame
     selected: boolean
     newCount: number
     completed: boolean
     ignored: boolean
+    tabIndex: number
+    onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
     onToggleIgnore?: () => void
-}) {
+}
+
+const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
+    {
+        game,
+        selected,
+        newCount,
+        completed,
+        ignored,
+        tabIndex,
+        onKeyDown,
+        onSelect,
+        onToggleIgnore,
+    },
+    ref,
+) {
     const { t } = useTranslation()
     const cover = game.coverImageUrl && !isPlaceholderImageUrl(game.coverImageUrl)
         ? game.coverImageUrl
@@ -225,9 +249,12 @@ function GameCard({
             )}
         >
             <button
+                ref={ref}
                 type="button"
                 role="radio"
                 aria-checked={selected}
+                tabIndex={tabIndex}
+                onKeyDown={onKeyDown}
                 onClick={onSelect}
                 className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
             >
@@ -320,4 +347,4 @@ function GameCard({
             )}
         </div>
     )
-}
+})
