@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { GeoPoint } from '@the-box/types'
 import {
-    ArrowLeft,
     ArrowRight,
+    Check,
     ChevronLeft,
     ChevronRight,
     EyeOff,
@@ -39,6 +40,21 @@ import { cn } from '@/lib/utils'
  * the daily-challenge store, so a free-play round can never write to the
  * leaderboard or pollute the daily resume.
  */
+// Light haptic feedback for the two-step pin flow. Called on the
+// initial pin drop (single tick) and again on submit (longer pulse).
+// `navigator.vibrate` is a no-op on iOS Safari and any browser without
+// the Vibration API — failure is silent and there's nothing to fall
+// back to, so we just guard the call.
+function vibrate(pattern: number | number[]): void {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        try {
+            navigator.vibrate(pattern)
+        } catch {
+            /* ignore — Android sometimes throws if the page is hidden */
+        }
+    }
+}
+
 export default function GeoPlayPage() {
     const { i18n } = useTranslation()
     const { localizedPath } = useLocalizedPath()
@@ -147,7 +163,18 @@ export default function GeoPlayPage() {
         !!view &&
         (selectedMap != null || maps.length === 1)
 
+    // Two-step pin: first map tap drops a draft (light tick), then the
+    // dock CTA confirms (longer pulse). Haptics are a no-op on iOS Safari
+    // and any browser without the Vibration API, which is fine — the
+    // visual CTA flip carries the same signal.
+    const handleMapPin = (p: GeoPoint | null) => {
+        const wasEmpty = !pendingGuess
+        setPendingGuess(p)
+        if (p && wasEmpty) vibrate(10)
+    }
+
     const handleSubmit = async () => {
+        vibrate([15, 25, 15])
         await submitGuess()
     }
 
@@ -206,7 +233,7 @@ export default function GeoPlayPage() {
                                     : null
                             }
                             disabled={phase !== 'ready'}
-                            onPin={setPendingGuess}
+                            onPin={handleMapPin}
                             showGuessLine={
                                 phase === 'revealed' &&
                                 !!correctMap &&
@@ -701,13 +728,18 @@ function Dock({
                         onClick={onSubmit}
                         disabled={!canSubmit || submitting}
                         className="gradient-gaming hover:opacity-90 min-h-12 min-w-32"
+                        aria-live="polite"
                     >
                         {submitting ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden />
+                        ) : canSubmit ? (
+                            <Check className="h-4 w-4 mr-2" aria-hidden />
                         ) : (
-                            <ArrowLeft className="h-4 w-4 mr-2 rotate-180" aria-hidden />
+                            <MapPin className="h-4 w-4 mr-2" aria-hidden />
                         )}
-                        {t('geo.play.submit', 'Drop pin')}
+                        {canSubmit
+                            ? t('geo.play.confirm', 'Confirm pin')
+                            : t('geo.play.submit', 'Drop pin')}
                     </Button>
                 )}
             </div>

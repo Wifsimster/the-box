@@ -1790,6 +1790,7 @@
       "changeGame": "Choose game",
       "changeMap": "Choose map",
       "submit": "Drop pin",
+      "confirm": "Confirm pin",
       "next": "Next round",
       "reroll": "New screenshot",
       "shuffleAllGames": "Random game",
