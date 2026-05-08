@@ -1,3 +1,4 @@
+import { forwardRef, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoMap } from '@the-box/types'
 import { Shuffle } from 'lucide-react'
@@ -9,6 +10,7 @@ import {
     SheetDescription,
 } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useRovingTabindex } from '@/hooks/useRovingTabindex'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +41,23 @@ export function MapPicker({
 }: MapPickerProps) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
+
+    // Total radio count includes the optional "any map" pseudo-option at
+    // index 0. Initial focus lands on the currently-selected map (or the
+    // "any" option / first map when none is selected) so Tab moves the
+    // ring to a sensible spot.
+    const itemCount = (showAnyMapOption ? 1 : 0) + maps.length
+    const initialIndex = (() => {
+        if (selectedMapId == null) return 0
+        const i = maps.findIndex((m) => m.id === selectedMapId)
+        if (i < 0) return 0
+        return showAnyMapOption ? i + 1 : i
+    })()
+    const { getItemProps } = useRovingTabindex<HTMLButtonElement>({
+        count: itemCount,
+        initialIndex,
+    })
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
@@ -74,6 +93,7 @@ export function MapPicker({
                             {showAnyMapOption && (
                                 <li>
                                     <AnyMapCard
+                                        {...getItemProps(0)}
                                         selected={selectedMapId == null}
                                         onSelect={() => {
                                             onSelect(null)
@@ -82,18 +102,22 @@ export function MapPicker({
                                     />
                                 </li>
                             )}
-                            {maps.map((m) => (
-                                <li key={m.id}>
-                                    <MapCard
-                                        map={m}
-                                        selected={selectedMapId === m.id}
-                                        onSelect={() => {
-                                            onSelect(m.id)
-                                            onOpenChange(false)
-                                        }}
-                                    />
-                                </li>
-                            ))}
+                            {maps.map((m, i) => {
+                                const index = showAnyMapOption ? i + 1 : i
+                                return (
+                                    <li key={m.id}>
+                                        <MapCard
+                                            {...getItemProps(index)}
+                                            map={m}
+                                            selected={selectedMapId === m.id}
+                                            onSelect={() => {
+                                                onSelect(m.id)
+                                                onOpenChange(false)
+                                            }}
+                                        />
+                                    </li>
+                                )
+                            })}
                         </ul>
                     )}
                 </div>
@@ -102,13 +126,26 @@ export function MapPicker({
     )
 }
 
-function AnyMapCard({ selected, onSelect }: { selected: boolean; onSelect: () => void }) {
+interface AnyMapCardProps {
+    selected: boolean
+    tabIndex: number
+    onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
+    onSelect: () => void
+}
+
+const AnyMapCard = forwardRef<HTMLButtonElement, AnyMapCardProps>(function AnyMapCard(
+    { selected, tabIndex, onKeyDown, onSelect },
+    ref,
+) {
     const { t } = useTranslation()
     return (
         <button
+            ref={ref}
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={tabIndex}
+            onKeyDown={onKeyDown}
             onClick={onSelect}
             className={cn(
                 'group relative aspect-square w-full overflow-hidden rounded-lg border text-left transition',
@@ -126,26 +163,32 @@ function AnyMapCard({ selected, onSelect }: { selected: boolean; onSelect: () =>
             </div>
         </button>
     )
-}
+})
 
-function MapCard({
-    map,
-    selected,
-    onSelect,
-}: {
+interface MapCardProps {
     map: GeoMap
     selected: boolean
+    tabIndex: number
+    onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
-}) {
+}
+
+const MapCard = forwardRef<HTMLButtonElement, MapCardProps>(function MapCard(
+    { map, selected, tabIndex, onKeyDown, onSelect },
+    ref,
+) {
     const { t } = useTranslation()
     const label = map.region ?? t('geo.daily.chooseMap.worldFallback', 'World map')
     const placeholder = isPlaceholderImageUrl(map.imageUrl)
     return (
         <button
+            ref={ref}
             type="button"
             role="radio"
             aria-checked={selected}
             aria-label={label}
+            tabIndex={tabIndex}
+            onKeyDown={onKeyDown}
             onClick={onSelect}
             className={cn(
                 'group relative aspect-square w-full overflow-hidden rounded-lg border bg-muted/30 text-left transition',
@@ -175,4 +218,4 @@ function MapCard({
             </div>
         </button>
     )
-}
+})
