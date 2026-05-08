@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import type { GeoPinConfidence } from '@the-box/types'
-import { useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
@@ -13,7 +13,7 @@ import { HandCoins, Loader2, Lock, SkipForward } from 'lucide-react'
 
 export default function GeoContributePage() {
     const { t } = useTranslation()
-    const { data: session } = useSession()
+    const { data: session, isPending: isSessionPending } = useSession()
     const [searchParams] = useSearchParams()
     const gameIdParam = searchParams.get('gameId')
     const gameId = gameIdParam ? Number(gameIdParam) : 1
@@ -35,14 +35,39 @@ export default function GeoContributePage() {
     } = useGeoStore()
 
     const [message, setMessage] = useState<string | null>(null)
+    // Anonymous bootstrap: a guest landing here has no session, so the
+    // contributor + pick endpoints would 401 and the page would blank
+    // out. Auto-creating a Better Auth anonymous session keeps the
+    // contribute path frictionless — pins land flagged `is_anonymous`
+    // server-side so consensus and admin moderation can still
+    // distinguish them. The ref guards against duplicate calls in
+    // React 18 strict-mode dev.
+    const anonSignInTriggered = useRef(false)
+
+    useEffect(() => {
+        if (isSessionPending) return
+        if (session?.user?.id) return
+        if (anonSignInTriggered.current) return
+        anonSignInTriggered.current = true
+        ;(async () => {
+            try {
+                await authClient.signIn.anonymous()
+            } catch {
+                // Failure here just means the user stays unauthenticated
+                // and the contributor/pick endpoints will surface their
+                // own 401 — nothing else to do client-side.
+            }
+        })()
+    }, [isSessionPending, session?.user?.id])
 
     useEffect(() => {
         connectGeoSocket(session?.user?.id)
     }, [session?.user?.id])
 
     useEffect(() => {
+        if (!session?.user?.id) return
         loadContributor()
-    }, [loadContributor])
+    }, [loadContributor, session?.user?.id])
 
     const unlock = contributor?.unlock
     const isLocked = !!unlock && !unlock.unlocked

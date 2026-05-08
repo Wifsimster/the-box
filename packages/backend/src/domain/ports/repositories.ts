@@ -30,6 +30,7 @@ import type {
   GeoGuessResult,
   GeoLeaderboardEntry,
   GeoMap,
+  GeoPinConfidence,
   GeoPinStatus,
   GeoPinSubmission,
   GeoPoint,
@@ -806,6 +807,8 @@ export interface GeoPinRepository {
     userId: string
     geoScreenshotCandidateId: number
     pin: GeoPoint
+    confidence?: GeoPinConfidence
+    isAnonymous?: boolean
   }): Promise<GeoPinSubmission | null>
   listByCandidate(candidateId: number): Promise<GeoPinSubmission[]>
   listPendingByCandidate(candidateId: number): Promise<GeoPinSubmission[]>

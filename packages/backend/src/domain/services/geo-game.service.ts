@@ -66,6 +66,11 @@ export interface GeoGameService {
   pickContributionTarget(args: {
     gameId: number
     userId: string
+    // Anonymous (Better Auth guest) sessions can't accumulate
+    // distinct-days-played, so the unlock gate is skipped for them.
+    // Spam protection still flows through the per-user hourly rate
+    // limit and the consensus pipeline (which downweights anon pins).
+    isAnonymous?: boolean
   }): Promise<GeoScreenshotCandidate>
 
   pickFreePlayScreenshot(args: {
@@ -201,15 +206,19 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       }
     },
 
-    async pickContributionTarget({ gameId, userId }) {
+    async pickContributionTarget({ gameId, userId, isAnonymous }) {
       // Unlock gate first: cheaper than the rate-limit query in the hot
       // (not-yet-unlocked) path because we hit a single indexed aggregate.
-      const daysPlayed = await sessionRepository.countDistinctDaysPlayed(userId)
-      if (daysPlayed < GEO_CONTRIBUTE_MIN_DAYS_PLAYED) {
-        throw new GeoGameError(
-          `contribute unlocks after ${GEO_CONTRIBUTE_MIN_DAYS_PLAYED} days of activity (${daysPlayed}/${GEO_CONTRIBUTE_MIN_DAYS_PLAYED})`,
-          'CONTRIBUTE_NOT_UNLOCKED',
-        )
+      // Skipped for anonymous sessions — they can't build days-of-play
+      // history, so the gate would be a hard wall instead of a delay.
+      if (!isAnonymous) {
+        const daysPlayed = await sessionRepository.countDistinctDaysPlayed(userId)
+        if (daysPlayed < GEO_CONTRIBUTE_MIN_DAYS_PLAYED) {
+          throw new GeoGameError(
+            `contribute unlocks after ${GEO_CONTRIBUTE_MIN_DAYS_PLAYED} days of activity (${daysPlayed}/${GEO_CONTRIBUTE_MIN_DAYS_PLAYED})`,
+            'CONTRIBUTE_NOT_UNLOCKED',
+          )
+        }
       }
 
       const hourly = await geoPinRepository.countByUserInWindow(userId, 60 * 60)

@@ -17,6 +17,7 @@ export interface GeoPinSubmissionRow {
   y: number
   status: GeoPinStatus
   confidence: number | null
+  is_anonymous: boolean
   distance_from_centroid: number | null
   reviewed_at: Date | null
   created_at: Date
@@ -36,6 +37,7 @@ function mapPin(row: GeoPinSubmissionRow): GeoPinSubmission {
     pin: { x: row.x, y: row.y },
     status: row.status,
     confidence,
+    isAnonymous: row.is_anonymous === true,
     distanceFromCentroid: row.distance_from_centroid ?? undefined,
     reviewedAt: row.reviewed_at?.toISOString(),
     createdAt: row.created_at.toISOString(),
@@ -48,9 +50,14 @@ export const geoPinRepository = {
     geoScreenshotCandidateId: number
     pin: GeoPoint
     confidence?: GeoPinConfidence
+    isAnonymous?: boolean
   }): Promise<GeoPinSubmission | null> {
     log.info(
-      { userId: data.userId, candidateId: data.geoScreenshotCandidateId },
+      {
+        userId: data.userId,
+        candidateId: data.geoScreenshotCandidateId,
+        isAnonymous: data.isAnonymous ?? false,
+      },
       'submit pin',
     )
 
@@ -63,6 +70,7 @@ export const geoPinRepository = {
         x: data.pin.x,
         y: data.pin.y,
         confidence: data.confidence ?? null,
+        is_anonymous: data.isAnonymous ?? false,
       })
       .onConflict(['user_id', 'geo_screenshot_candidate_id'])
       .ignore()

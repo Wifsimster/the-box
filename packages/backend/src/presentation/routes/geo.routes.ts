@@ -90,22 +90,18 @@ router.post(
   validateBody(contributePickBodySchema),
   async (req, res, next) => {
     try {
-      // Anonymous guest sessions can authenticate but should not consume
-      // the moderation pool — without this gate, a fresh guest spins up a
-      // session and can immediately pull a contribution candidate.
-      if (req.isGuest) {
-        res.status(403).json({
-          success: false,
-          error: {
-            code: 'CONTRIBUTE_GUEST_FORBIDDEN',
-            message: 'sign up to contribute to the geo dataset',
-          },
-        })
-        return
-      }
+      // Anonymous (guest) sessions are accepted: skipping the days-played
+      // unlock gate, but their pins are flagged `is_anonymous` and
+      // downweighted by the consensus pipeline. Per-user hourly rate
+      // limit still applies via geo-game.service.
       const userId = req.userId!
+      const isAnonymous = req.isGuest === true
       const { gameId } = req.body as z.infer<typeof contributePickBodySchema>
-      const candidate = await geoGameService.pickContributionTarget({ gameId, userId })
+      const candidate = await geoGameService.pickContributionTarget({
+        gameId,
+        userId,
+        isAnonymous,
+      })
       const map = await geoMapRepository.findById(candidate.geoMapId)
       if (!map) {
         res.status(404).json({
@@ -139,17 +135,8 @@ router.post(
   validateBody(pinBodySchema),
   async (req, res, next) => {
     try {
-      if (req.isGuest) {
-        res.status(403).json({
-          success: false,
-          error: {
-            code: 'CONTRIBUTE_GUEST_FORBIDDEN',
-            message: 'sign up to contribute to the geo dataset',
-          },
-        })
-        return
-      }
       const userId = req.userId!
+      const isAnonymous = req.isGuest === true
       const { geoScreenshotCandidateId, pin, confidence } = req.body as z.infer<typeof pinBodySchema>
 
       const candidate = await geoScreenshotRepository.findCandidateById(geoScreenshotCandidateId)
@@ -174,6 +161,7 @@ router.post(
         geoScreenshotCandidateId,
         pin,
         confidence,
+        isAnonymous,
       })
 
       if (submission) {
