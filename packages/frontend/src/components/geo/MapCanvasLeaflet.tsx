@@ -83,9 +83,14 @@ export function MapCanvasLeaflet({
     }
 
     return (
+        // `isolate` (CSS isolation) opens a fresh stacking context so
+        // Leaflet's baked-in z-indexes on `.leaflet-pane` (200-700) and
+        // `.leaflet-control` (800-1000) stay scoped to this container.
+        // Without it, the +/- zoom controls and tile layers paint over
+        // any Radix Sheet/Dialog (z-50) that opens above the page.
         <div
-            className={cn('w-full overflow-hidden rounded-lg', className)}
-            style={{ aspectRatio: `${widthPx} / ${heightPx}` }}
+            className={cn('relative isolate w-full overflow-hidden rounded-lg', className)}
+            style={{ aspectRatio: `${widthPx} / ${heightPx}`, zIndex: 0 }}
         >
             {!tiles && (
                 <img
