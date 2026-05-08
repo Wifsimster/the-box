@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import { readFileSync } from 'fs'
 
@@ -20,7 +21,84 @@ const buildTime = new Date().toISOString()
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: false,
+      includeAssets: ['logo.svg'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,ico,png,webp,woff,woff2}'],
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/, /^\/uploads/],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/uploads/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'screenshots',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/locales/') && url.pathname.endsWith('.json'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'i18n-locales',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/api/') &&
+              !url.pathname.startsWith('/api/auth/'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+      manifest: {
+        name: 'The Box — Daily Video Game Guessing Challenge',
+        short_name: 'The Box',
+        description:
+          'Identify video games from 360° panoramic screenshots. New daily challenge, live leaderboards, achievements.',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        orientation: 'portrait',
+        background_color: '#0a0a0f',
+        theme_color: '#0a0a0f',
+        lang: 'fr',
+        categories: ['games', 'entertainment'],
+        icons: [
+          {
+            src: '/logo.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+          {
+            src: '/logo.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_TIME__: JSON.stringify(buildTime),

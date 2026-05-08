@@ -25,6 +25,7 @@ import { RewardsInboxBell } from '@/components/rewards'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useBillingStore } from '@/stores/billingStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
+import { InstallPromptButton } from '@/components/pwa'
 import { cn } from '@/lib/utils'
 
 interface NavigationLinksProps {
@@ -162,6 +163,8 @@ export function Header() {
               <div className="flex flex-col gap-2 mt-6">
                 <NavigationLinks isMobile={true} t={t} localizedPath={localizedPath} onMobileClick={() => setMobileMenuOpen(false)} showPremiumUpsell={showPremiumUpsell} />
 
+                <InstallPromptButton variant="mobile" onInstalled={() => setMobileMenuOpen(false)} />
+
                 {/* Mobile Auth Section */}
                 <div className="border-t border-border pt-4 mt-4">
                   {showAuthButtons ? (
@@ -256,6 +259,7 @@ export function Header() {
 
         {/* Auth Buttons - Desktop - hidden on mobile, shown on md and up */}
         <div className="hidden md:flex items-center gap-2 lg:gap-3">
+          <InstallPromptButton variant="desktop" />
           {showAuthButtons && (
             <>
               <Button variant="ghost" size="sm" asChild>

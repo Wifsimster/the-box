@@ -1987,5 +1987,12 @@
       "description": "Cette fonctionnalité est incluse dans l'abonnement Premium.",
       "ctaLabel": "Voir les offres Premium"
     }
+  },
+  "pwa": {
+    "install": "Installer l'app",
+    "updateAvailable": "Une nouvelle version est disponible",
+    "refresh": "Actualiser",
+    "offlineReady": "Prêt à fonctionner hors ligne",
+    "offlineBanner": "Vous êtes hors ligne — certaines fonctionnalités sont indisponibles"
   }
 }

@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { PWAUpdatePrompt, OfflineIndicator } from '@/components/pwa'
 import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useSession } from '@/lib/auth-client'
@@ -179,6 +180,10 @@ function App() {
 
       {/* Global toast notifications (sonner) */}
       <Toaster />
+
+      {/* PWA: offline banner + service-worker update toast */}
+      <OfflineIndicator />
+      <PWAUpdatePrompt />
     </ErrorBoundary>
   )
 }
