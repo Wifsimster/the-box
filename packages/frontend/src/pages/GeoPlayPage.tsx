@@ -15,9 +15,10 @@ import {
     Sparkles,
     Trophy,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { PremiumGate } from '@/components/PremiumGate'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useFullscreen } from '@/hooks/useFullscreen'
 import { GamePicker } from '@/components/geo/GamePicker'
 import { MapPicker } from '@/components/geo/MapPicker'
@@ -38,12 +39,9 @@ import { cn } from '@/lib/utils'
  * the daily-challenge store, so a free-play round can never write to the
  * leaderboard or pollute the daily resume.
  */
-// Default export at the bottom wraps this in `<PremiumGate>` so all the
-// hooks inside still run unconditionally — putting the gate above the
-// hooks would skip them on the upsell render and break Rules of Hooks
-// the next time entitlement flips. Keep this as a named function.
-function GeoPlayContent() {
+export default function GeoPlayPage() {
     const { i18n } = useTranslation()
+    const { localizedPath } = useLocalizedPath()
 
     const {
         games,
@@ -168,10 +166,14 @@ function GeoPlayContent() {
                 screenshot={
                     <ScreenshotPanel
                         imageUrl={view?.candidate.imageUrl ?? null}
+                        gameName={currentGame?.name ?? null}
                         loading={phase === 'loading' || (currentGameId != null && phase === 'idle')}
                         empty={currentGameId == null}
                         exhausted={phase === 'exhausted'}
                         allCompleted={allGamesCompleted}
+                        authRequired={phase === 'authRequired'}
+                        loginHref={localizedPath('/login')}
+                        registerHref={localizedPath('/register')}
                         canIgnoreCurrent={
                             phase === 'exhausted' &&
                             currentGameId != null &&
@@ -280,10 +282,14 @@ function GeoPlayContent() {
 
 function ScreenshotPanel({
     imageUrl,
+    gameName,
     loading,
     empty,
     exhausted,
     allCompleted,
+    authRequired,
+    loginHref,
+    registerHref,
     canIgnoreCurrent,
     errorMessage,
     onPickGame,
@@ -291,10 +297,14 @@ function ScreenshotPanel({
     onIgnoreCurrent,
 }: {
     imageUrl: string | null
+    gameName: string | null
     loading: boolean
     empty: boolean
     exhausted: boolean
     allCompleted: boolean
+    authRequired: boolean
+    loginHref: string
+    registerHref: string
     canIgnoreCurrent: boolean
     errorMessage: string | null
     onPickGame: () => void
@@ -379,6 +389,42 @@ function ScreenshotPanel({
         )
     }
 
+    if (authRequired) {
+        return (
+            <div
+                className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4"
+                role="status"
+            >
+                <div className="rounded-full bg-neon-pink/10 p-4">
+                    <MapPin className="h-8 w-8 text-neon-pink" aria-hidden />
+                </div>
+                <div className="space-y-1 max-w-sm">
+                    <h2 className="text-lg font-semibold">
+                        {t('geo.play.auth.title', 'Sign in to drop pins')}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        {t(
+                            'geo.play.auth.body',
+                            'Help us map the world of video games — drop a pin where each scene takes place.',
+                        )}
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button asChild className="gradient-gaming hover:opacity-90 min-h-12">
+                        <Link to={loginHref}>
+                            {t('geo.play.auth.login', 'Sign in')}
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="min-h-12">
+                        <Link to={registerHref}>
+                            {t('geo.play.auth.register', 'Create account')}
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     if (errorMessage) {
         return (
             <div
@@ -428,13 +474,17 @@ function ScreenshotPanel({
         )
     }
 
+    const altText = gameName
+        ? t('geo.daily.screenshotOf', 'Screenshot from {{game}}', { game: gameName })
+        : t('geo.daily.screenshot', 'Screenshot')
     return (
         <img
             src={safeUrl}
-            alt={t('geo.daily.screenshot', 'Screenshot')}
+            alt={altText}
             className="h-full w-full object-contain"
             loading="eager"
             decoding="async"
+            fetchPriority="high"
         />
     )
 }
@@ -573,10 +623,10 @@ function Dock({
                 <button
                     type="button"
                     onClick={onChangeGame}
-                    className="inline-flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-0.5 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                 >
                     <Gamepad2 className="h-3 w-3" aria-hidden />
-                    <span className="max-w-[10rem] truncate">
+                    <span className="max-w-[12rem] truncate" lang={gameLabel ? 'en' : undefined}>
                         {gameLabel ?? t('geo.play.changeGame', 'Choose game')}
                     </span>
                 </button>
@@ -584,10 +634,10 @@ function Dock({
                     <button
                         type="button"
                         onClick={onChangeMap}
-                        className="inline-flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-0.5 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                     >
                         <MapIcon className="h-3 w-3" aria-hidden />
-                        <span className="max-w-[10rem] truncate">
+                        <span className="max-w-[12rem] truncate" lang={mapLabel ? 'en' : undefined}>
                             {mapLabel ?? t('geo.play.changeMap', 'Choose map')}
                         </span>
                     </button>
@@ -600,7 +650,7 @@ function Dock({
                     variant="ghost"
                     size="icon"
                     onClick={onPrevious}
-                    className="text-white/80 hover:text-white"
+                    className="h-12 w-12 min-h-12 min-w-12 text-white/80 hover:text-white"
                     disabled={!canGoPrevious || submitting || loading}
                     aria-label={t('geo.play.previous', 'Previous screenshot')}
                     title={t('geo.play.previous', 'Previous screenshot')}
@@ -611,7 +661,7 @@ function Dock({
                     type="button"
                     variant="ghost"
                     onClick={onShuffleAllGames}
-                    className="text-white/80 hover:text-white"
+                    className="min-h-12 text-white/80 hover:text-white"
                     disabled={submitting || loading}
                     aria-label={t('geo.play.shuffleAllGames', 'Random game')}
                     title={t('geo.play.shuffleAllGames', 'Random game')}
@@ -626,7 +676,7 @@ function Dock({
                     variant="ghost"
                     size="icon"
                     onClick={onNext}
-                    className="text-white/80 hover:text-white"
+                    className="h-12 w-12 min-h-12 min-w-12 text-white/80 hover:text-white"
                     disabled={!canGoNext || submitting || loading}
                     aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
                     title={t('geo.play.nextScreenshot', 'Next screenshot')}
@@ -640,7 +690,7 @@ function Dock({
                     <Button
                         type="button"
                         onClick={onNextRound}
-                        className="gradient-gaming hover:opacity-90 min-h-11 min-w-32"
+                        className="gradient-gaming hover:opacity-90 min-h-12 min-w-32"
                     >
                         {t('geo.play.next', 'Next round')}
                         <ArrowRight className="h-4 w-4 ml-2" aria-hidden />
@@ -650,7 +700,7 @@ function Dock({
                         type="button"
                         onClick={onSubmit}
                         disabled={!canSubmit || submitting}
-                        className="gradient-gaming hover:opacity-90 min-h-11 min-w-32"
+                        className="gradient-gaming hover:opacity-90 min-h-12 min-w-32"
                     >
                         {submitting ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden />
@@ -665,10 +715,3 @@ function Dock({
     )
 }
 
-export default function GeoPlayPage() {
-    return (
-        <PremiumGate feature="geo" alpha>
-            <GeoPlayContent />
-        </PremiumGate>
-    )
-}

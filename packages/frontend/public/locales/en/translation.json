@@ -1756,6 +1756,7 @@
   "geo": {
     "daily": {
       "screenshot": "Screenshot",
+      "screenshotOf": "Screenshot from {{game}}",
       "score": "Score",
       "distance": "Distance",
       "pinCount_one": "{{count}} pin on this capture",
@@ -1831,6 +1832,12 @@
       "allDone": {
         "title": "You've completed The Box!",
         "body": "Bravo! You've guessed every screenshot in every game in your catalog. We'll ping you when new ones are added."
+      },
+      "auth": {
+        "title": "Sign in to drop pins",
+        "body": "Help us map the world of video games — drop a pin where each scene takes place.",
+        "login": "Sign in",
+        "register": "Create account"
       }
     },
     "fullscreen": {
@@ -1978,11 +1985,6 @@
       "title": "Premium members only",
       "description": "This feature is part of The Box Premium.",
       "ctaLabel": "See Premium plans"
-    },
-    "geo": {
-      "title": "Geo mode — Premium access",
-      "description": "Geo mode is in alpha and reserved for Premium subscribers during this phase. You can still contribute to grow the dataset for free from your profile.",
-      "ctaLabel": "Unlock Geo with Premium"
     }
   }
 }

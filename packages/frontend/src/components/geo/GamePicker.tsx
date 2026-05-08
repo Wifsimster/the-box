@@ -266,13 +266,13 @@ function GameCard({
                             decoding="async"
                         />
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground" lang="en">
                             {game.name}
                         </div>
                     )}
                 </div>
                 <div className="p-3 space-y-1">
-                    <p className="font-medium text-sm leading-tight line-clamp-2">{game.name}</p>
+                    <p className="font-medium text-sm leading-tight line-clamp-2" lang="en">{game.name}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                             <MapPin className="h-3 w-3" aria-hidden />

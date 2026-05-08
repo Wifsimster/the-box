@@ -1756,6 +1756,7 @@
   "geo": {
     "daily": {
       "screenshot": "Capture d'écran",
+      "screenshotOf": "Capture d'écran de {{game}}",
       "score": "Score",
       "distance": "Distance",
       "pinCount_one": "{{count}} épingle sur cette capture",
@@ -1831,6 +1832,12 @@
       "allDone": {
         "title": "Vous avez terminé The Box !",
         "body": "Bravo ! Vous avez deviné toutes les captures de tous les jeux de votre catalogue. Nous vous préviendrons quand de nouvelles seront ajoutées."
+      },
+      "auth": {
+        "title": "Connecte-toi pour poser des épingles",
+        "body": "Aide-nous à cartographier l'univers du jeu vidéo — épingle où se passe chaque scène.",
+        "login": "Se connecter",
+        "register": "Créer un compte"
       }
     },
     "fullscreen": {
@@ -1978,11 +1985,6 @@
       "title": "Réservé aux membres Premium",
       "description": "Cette fonctionnalité est incluse dans l'abonnement Premium.",
       "ctaLabel": "Voir les offres Premium"
-    },
-    "geo": {
-      "title": "Mode Geo — accès Premium",
-      "description": "Le mode Geo est en alpha et réservé aux abonnés Premium pendant cette phase. Tu peux toujours contribuer à enrichir le dataset gratuitement depuis ton profil.",
-      "ctaLabel": "Débloquer Geo avec Premium"
     }
   }
 }

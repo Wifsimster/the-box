@@ -18,7 +18,6 @@ import {
   authMiddleware,
   optionalAuthMiddleware,
 } from '../middleware/auth.middleware.js'
-import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
@@ -302,14 +301,14 @@ router.get(
   },
 )
 
-// Free-play (the guessing surface) is premium-gated while the mode is
-// in alpha. authMiddleware before requirePremium so anonymous callers
-// get 401 (login flow) and authenticated free users get 402 (upsell
-// flow), matching the UX everywhere else premium gates exist.
+// Free-play is open to every authenticated user — the immediate goal
+// is dataset growth (screenshot ↔ map-coordinate pairs). The future
+// "guess the location" gameplay layered on top of this dataset will be
+// premium, but the contribution surface stays free. Anonymous callers
+// still get 401 so the UI can prompt for sign-in.
 router.post(
   '/free-play/random',
   authMiddleware,
-  requirePremium,
   freePlayPickLimiter,
   validateBody(freePlayPickBodySchema),
   async (req, res, next) => {
@@ -369,7 +368,6 @@ router.post(
 router.post(
   '/free-play/guess',
   authMiddleware,
-  requirePremium,
   freePlayGuessLimiter,
   validateBody(freePlayGuessBodySchema),
   async (req, res, next) => {

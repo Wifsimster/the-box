@@ -42,7 +42,7 @@ export function ImmersiveLayout({
                 'relative flex flex-col bg-black text-foreground',
                 isImmersive
                     ? 'fixed inset-0 z-50 h-[100dvh]'
-                    : 'h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-4rem)]',
+                    : 'min-h-[100svh] h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-4rem)]',
             )}
             data-immersive={isImmersive ? 'true' : 'false'}
         >
@@ -50,16 +50,21 @@ export function ImmersiveLayout({
             {topRight && (
                 <div
                     className="absolute right-3 top-3 z-30 flex items-center gap-2"
-                    style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+                    style={{
+                        paddingTop: 'env(safe-area-inset-top, 0px)',
+                        paddingRight: 'env(safe-area-inset-right, 0px)',
+                    }}
                 >
                     {topRight}
                 </div>
             )}
 
-            {/* Deck — both panels are always visible. Stacked rows on mobile,
-                two columns on desktop. */}
+            {/* Deck — both panels are always visible. On mobile the map gets
+                visual priority (the user's active surface) with the photo
+                kept reference-sized above; on tablet/desktop they go
+                side-by-side at equal width. */}
             <div className="flex-1 relative overflow-hidden">
-                <div className="absolute inset-0 grid grid-rows-2 md:grid-rows-1 md:grid-cols-2">
+                <div className="absolute inset-0 grid grid-rows-[minmax(38%,1fr)_minmax(45%,1.2fr)] md:grid-rows-1 md:grid-cols-2">
                     <Panel
                         id="geo-panel-photo"
                         tag={
