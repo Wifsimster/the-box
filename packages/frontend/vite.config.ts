@@ -67,6 +67,7 @@ export default defineConfig({
         ],
       },
       manifest: {
+        id: '/',
         name: 'The Box — Daily Video Game Guessing Challenge',
         short_name: 'The Box',
         description:
@@ -78,6 +79,8 @@ export default defineConfig({
         background_color: '#0a0a0f',
         theme_color: '#0a0a0f',
         lang: 'fr',
+        dir: 'ltr',
+        prefer_related_applications: false,
         categories: ['games', 'entertainment'],
         launch_handler: {
           client_mode: 'navigate-existing',
