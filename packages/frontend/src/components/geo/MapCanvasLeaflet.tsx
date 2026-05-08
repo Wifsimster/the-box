@@ -185,6 +185,14 @@ function TilePyramidLayer({
     heightPx: number
 }) {
     const map = useMap()
+    // Depend on the *shallow scalar* tile config so a parent re-rendering
+    // with a fresh `tiles` object literal (same values, new identity)
+    // doesn't tear down and rebuild the entire layer — that triggers a
+    // full tile re-fetch on every parent state change. The `getTileUrl`
+    // closure still reads from the captured `tiles`, which is fine
+    // because the values it reads (scheme, urlTemplate, min/maxZoom)
+    // are exactly the deps we list.
+    const { scheme, urlTemplate, tileSize, minZoom, maxZoom } = tiles
     useEffect(() => {
         const TemplatedTileLayer = L.TileLayer.extend({
             getTileUrl(coords: { x: number; y: number; z: number }) {
@@ -194,10 +202,10 @@ function TilePyramidLayer({
         const layer = new (TemplatedTileLayer as unknown as new (
             urlTemplate: string,
             opts: L.TileLayerOptions,
-        ) => L.TileLayer)(tiles.urlTemplate, {
-            tileSize: tiles.tileSize,
-            minZoom: tiles.minZoom,
-            maxZoom: tiles.maxZoom,
+        ) => L.TileLayer)(urlTemplate, {
+            tileSize,
+            minZoom,
+            maxZoom,
             // Clamp tile requests to the world rectangle so OOB tiles (e.g.
             // the asymmetric 85x69 grid in WoW) don't 404-spam.
             bounds: [
@@ -221,7 +229,8 @@ function TilePyramidLayer({
         return () => {
             layer.remove()
         }
-    }, [map, tiles, widthPx, heightPx])
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `tiles` is read via the captured closure but is identity-equivalent to the listed scalar fields; using the object directly would tear down the layer on every parent re-render.
+    }, [map, scheme, urlTemplate, tileSize, minZoom, maxZoom, widthPx, heightPx])
     return null
 }
 

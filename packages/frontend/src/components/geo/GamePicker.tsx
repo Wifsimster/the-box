@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoPlayableGame } from '@the-box/types'
 import {
@@ -64,13 +64,18 @@ export function GamePicker({
         [ignoredGameIds],
     )
 
-    // Reset the search field every time the sheet re-opens — keeping a
-    // stale query across opens reads as a bug ("why am I still seeing my
-    // last search?") more often than as a convenience.
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state to the parent-controlled `open` transition; no external system to subscribe to.
-        if (open) setQuery('')
-    }, [open])
+    // Clear the search field on close — keeping a stale query across opens
+    // reads as a bug ("why am I still seeing my last search?") more often
+    // than as a convenience. Doing it on close (rather than on open in an
+    // effect) avoids the open→stale-query→cleared-query paint flash and
+    // means the input is already empty by the time the sheet animates in.
+    const handleOpenChange = useCallback(
+        (next: boolean) => {
+            if (!next) setQuery('')
+            onOpenChange(next)
+        },
+        [onOpenChange],
+    )
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
@@ -79,7 +84,7 @@ export function GamePicker({
     }, [games, query])
 
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
+        <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetContent
                 side={isMobile ? 'bottom' : 'right'}
                 className={cn(
