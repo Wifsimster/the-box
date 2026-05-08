@@ -1812,6 +1812,8 @@
           "two": "Tap the map where you think the screenshot was taken.",
           "three": "Confirm — your pin joins the dataset."
         },
+        "pinsToday_one": "{{formatted}} pin dropped today by the community",
+        "pinsToday_other": "{{formatted}} pins dropped today by the community",
         "cta": "Pick a game"
       },
       "map": {

@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useFullscreen } from '@/hooks/useFullscreen'
+import { geoApi } from '@/lib/api/geo'
 import { GamePicker } from '@/components/geo/GamePicker'
 import { MapPicker } from '@/components/geo/MapPicker'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
@@ -92,6 +93,10 @@ export default function GeoPlayPage() {
 
     const [gamePickerOpen, setGamePickerOpen] = useState(false)
     const [mapPickerOpen, setMapPickerOpen] = useState(false)
+    // Cold-start social proof: count of pins submitted today (UTC).
+    // One-shot fetch on mount; null until it lands so the empty state
+    // doesn't flash a misleading "0 pins today" placeholder.
+    const [pinsToday, setPinsToday] = useState<number | null>(null)
 
     // Fullscreen target: the entire immersive deck. Putting the wrapper
     // ref on the outer container means the screenshot, map, dock and
@@ -104,6 +109,23 @@ export default function GeoPlayPage() {
     useEffect(() => {
         loadGames()
     }, [loadGames])
+
+    // Boot: pull the dataset social-proof counter. Failure is silent —
+    // the empty state degrades gracefully when this number is null.
+    useEffect(() => {
+        let cancelled = false
+        geoApi
+            .getTodayStats()
+            .then((stats) => {
+                if (!cancelled) setPinsToday(stats.totalPinsToday)
+            })
+            .catch(() => {
+                /* ignore — counter is decorative, not blocking */
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [])
 
     useEffect(() => {
         if (currentGameId != null && !view && phase === 'idle') {
@@ -201,6 +223,8 @@ export default function GeoPlayPage() {
                         authRequired={phase === 'authRequired'}
                         loginHref={localizedPath('/login')}
                         registerHref={localizedPath('/register')}
+                        pinsToday={pinsToday}
+                        language={i18n.language}
                         canIgnoreCurrent={
                             phase === 'exhausted' &&
                             currentGameId != null &&
@@ -322,6 +346,8 @@ function ScreenshotPanel({
     authRequired,
     loginHref,
     registerHref,
+    pinsToday,
+    language,
     canIgnoreCurrent,
     errorMessage,
     onPickGame,
@@ -337,6 +363,8 @@ function ScreenshotPanel({
     authRequired: boolean
     loginHref: string
     registerHref: string
+    pinsToday: number | null
+    language: string
     canIgnoreCurrent: boolean
     errorMessage: string | null
     onPickGame: () => void
@@ -485,6 +513,23 @@ function ScreenshotPanel({
                         )}
                     </p>
                 </div>
+                {/* Cold-start social proof: only render once we have a
+                    real number from the server, and only when there's
+                    actually been activity today (>0). A "0 pins today"
+                    chip would do the opposite of social proof. */}
+                {pinsToday != null && pinsToday > 0 && (
+                    <p
+                        className="inline-flex items-center gap-1.5 rounded-full bg-neon-pink/10 px-3 py-1 text-xs text-white/90"
+                        aria-live="polite"
+                    >
+                        <Sparkles className="h-3 w-3 text-neon-pink" aria-hidden />
+                        {t('geo.play.empty.pinsToday', {
+                            defaultValue: '{{count}} pins dropped today by the community',
+                            count: pinsToday,
+                            formatted: pinsToday.toLocaleString(language),
+                        })}
+                    </p>
+                )}
                 <ol className="text-left text-xs text-muted-foreground/90 space-y-1.5 max-w-xs">
                     <li className="flex gap-2">
                         <span className="font-semibold text-neon-pink">1.</span>
