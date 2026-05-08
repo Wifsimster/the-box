@@ -1575,6 +1575,16 @@
     "optedOut": "Vous ne recevrez plus d'e-mails marketing.",
     "updateError": "Échec de la mise à jour. Veuillez réessayer."
   },
+  "pushNotifications": {
+    "title": "Notifications push",
+    "description": "Recevez le défi du jour et les rappels de série directement dans votre navigateur, même quand l'onglet est fermé.",
+    "label": "Activer les notifications push sur cet appareil.",
+    "optedIn": "Notifications activées sur cet appareil.",
+    "optedOut": "Notifications désactivées sur cet appareil.",
+    "permissionDenied": "Vous avez refusé les notifications dans votre navigateur.",
+    "permissionDeniedHint": "Les notifications sont bloquées au niveau du navigateur. Autorisez-les dans les paramètres du site, puis revenez ici.",
+    "updateError": "Impossible de modifier les notifications. Réessayez plus tard."
+  },
   "personalBests": {
     "title": "Meilleurs Scores",
     "highestScore": "Meilleur Score",

@@ -17,6 +17,7 @@ import {
   AvatarUpload,
   ReferralCard,
   EmailConsentCard,
+  PushNotificationCard,
   AdvancedStatsPanel,
   PremiumBadge,
   ThemeSwitcher,
@@ -347,6 +348,16 @@ export default function ProfilePage() {
                                 initialConsent={userProfile.emailMarketingConsent}
                                 updatedAt={userProfile.emailConsentUpdatedAt}
                             />
+                        </motion.div>
+                    )}
+
+                    {userProfile && !userProfile.isGuest && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 }}
+                        >
+                            <PushNotificationCard />
                         </motion.div>
                     )}
 
