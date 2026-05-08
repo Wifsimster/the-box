@@ -20,6 +20,51 @@ type Phase =
     | 'authRequired'
     | 'exhausted'
 
+// Cold-start threshold: while a player has placed fewer than this many
+// pins across the whole catalog, the cross-games shuffle is biased
+// toward real-world-grounded titles. After it, the bias drops out so
+// experienced players don't get stuck in GTA reruns.
+const REAL_WORLD_BIAS_PIN_THRESHOLD = 5
+// Multiplier applied to a real-world game's selection weight while the
+// player is still under the cold-start threshold. 4× means a real-world
+// game is picked 4× more often than a fictional one of equal pool size.
+const REAL_WORLD_BIAS_WEIGHT = 4
+
+// Bias-aware random pick. When the player is "new" (total played pins
+// across all games < threshold), real-world-setting games get an
+// outsized weight so the cold-start mental model is "you're guessing
+// real geography" instead of "what is this fictional continent". After
+// the threshold the bias collapses to uniform random — every game has
+// weight 1, regardless of setting.
+function weightedPick(
+    pool: GeoPlayableGame[],
+    playedByGame: Record<number, number[]>,
+): GeoPlayableGame | undefined {
+    if (pool.length === 0) return undefined
+    const totalPlayed = Object.values(playedByGame).reduce(
+        (sum, ids) => sum + ids.length,
+        0,
+    )
+    const biasActive = totalPlayed < REAL_WORLD_BIAS_PIN_THRESHOLD
+    // Short-circuit: if no game in the pool is real-world OR the bias
+    // window is over, fall back to uniform random — saves the prefix-
+    // sum walk on the common case.
+    if (!biasActive || !pool.some((g) => g.realWorldSetting)) {
+        return pool[Math.floor(Math.random() * pool.length)]
+    }
+    let total = 0
+    const cumulative: number[] = []
+    for (const g of pool) {
+        total += g.realWorldSetting ? REAL_WORLD_BIAS_WEIGHT : 1
+        cumulative.push(total)
+    }
+    const target = Math.random() * total
+    for (let i = 0; i < pool.length; i++) {
+        if (target < cumulative[i]!) return pool[i]
+    }
+    return pool[pool.length - 1]
+}
+
 // Returns true when the API rejected us because we're not signed in. We
 // look at both the HTTP status and the error code so the UI can show the
 // same login prompt regardless of which auth path the backend hit.
@@ -270,7 +315,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     candidates.length > 1 && currentGameId != null
                         ? candidates.filter((g) => g.id !== currentGameId)
                         : candidates
-                const pick = pool[Math.floor(Math.random() * pool.length)]
+                const pick = weightedPick(pool, playedByGame)
                 if (!pick) return
                 await get().selectGame(pick.id)
             },

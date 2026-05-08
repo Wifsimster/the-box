@@ -264,13 +264,14 @@ export const geoScreenshotRepository = {
       coverImageUrl: string | null
       mapCount: number
       screenshotCount: number
+      realWorldSetting: boolean
     }>
   > {
     const rows = await db('games as g')
       .join('geo_screenshot_candidate as gsc', 'gsc.game_id', 'g.id')
       .join('geo_screenshot_meta as gsm', 'gsm.geo_screenshot_candidate_id', 'gsc.id')
       .where('gsc.is_active', true)
-      .groupBy('g.id', 'g.name', 'g.cover_image_url')
+      .groupBy('g.id', 'g.name', 'g.cover_image_url', 'g.real_world_setting')
       .orderByRaw('COUNT(DISTINCT gsm.id) DESC')
       .orderBy('g.name', 'asc')
       .select<
@@ -278,6 +279,7 @@ export const geoScreenshotRepository = {
           id: number
           name: string
           cover_image_url: string | null
+          real_world_setting: boolean
           screenshot_count: string
           map_count: string
         }>
@@ -285,6 +287,7 @@ export const geoScreenshotRepository = {
         'g.id',
         'g.name',
         'g.cover_image_url',
+        'g.real_world_setting',
         db.raw('COUNT(DISTINCT gsm.id) as screenshot_count'),
         db.raw('COUNT(DISTINCT gsm.geo_map_id) as map_count'),
       )
@@ -294,6 +297,7 @@ export const geoScreenshotRepository = {
       coverImageUrl: r.cover_image_url,
       mapCount: Number(r.map_count ?? 0),
       screenshotCount: Number(r.screenshot_count ?? 0),
+      realWorldSetting: !!r.real_world_setting,
     }))
   },
 
