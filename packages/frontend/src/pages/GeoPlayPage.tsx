@@ -260,13 +260,17 @@ export default function GeoPlayPage() {
                         />
                     ) : null
                 }
-                bottomDock={
-                    <Dock
+                topBar={
+                    <ContextHeader
                         gameLabel={currentGame?.name ?? null}
                         mapLabel={selectedMap?.region ?? null}
                         showMapButton={isMultiMap || currentGameId == null}
                         onChangeGame={() => setGamePickerOpen(true)}
                         onChangeMap={() => setMapPickerOpen(true)}
+                    />
+                }
+                bottomDock={
+                    <Dock
                         onShuffleAllGames={() => void pickRandomAcrossGames()}
                         onPrevious={goPrevious}
                         onNext={() => void goNext()}
@@ -606,12 +610,49 @@ function ResultOverlay({
     )
 }
 
-function Dock({
+function ContextHeader({
     gameLabel,
     mapLabel,
     showMapButton,
     onChangeGame,
     onChangeMap,
+}: {
+    gameLabel: string | null
+    mapLabel: string | null
+    showMapButton: boolean
+    onChangeGame: () => void
+    onChangeMap: () => void
+}) {
+    const { t } = useTranslation()
+    return (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
+            <button
+                type="button"
+                onClick={onChangeGame}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+            >
+                <Gamepad2 className="h-3.5 w-3.5" aria-hidden />
+                <span className="max-w-[14rem] truncate" lang={gameLabel ? 'en' : undefined}>
+                    {gameLabel ?? t('geo.play.changeGame', 'Choose game')}
+                </span>
+            </button>
+            {showMapButton && (
+                <button
+                    type="button"
+                    onClick={onChangeMap}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                >
+                    <MapIcon className="h-3.5 w-3.5" aria-hidden />
+                    <span className="max-w-[14rem] truncate" lang={mapLabel ? 'en' : undefined}>
+                        {mapLabel ?? t('geo.play.changeMap', 'Choose map')}
+                    </span>
+                </button>
+            )}
+        </div>
+    )
+}
+
+function Dock({
     onShuffleAllGames,
     onPrevious,
     onNext,
@@ -622,11 +663,6 @@ function Dock({
     canSubmit,
     phase,
 }: {
-    gameLabel: string | null
-    mapLabel: string | null
-    showMapButton: boolean
-    onChangeGame: () => void
-    onChangeMap: () => void
     onShuffleAllGames: () => void
     onPrevious: () => void
     onNext: () => void
@@ -643,35 +679,9 @@ function Dock({
     const loading = phase === 'loading'
     return (
         <div className="flex flex-col gap-2">
-            {/* Context row — game / map labels with quick-change links.
-                Tappable, so the player never has to leave the immersive
-                view to switch context. */}
-            <div className="flex items-center gap-2 text-xs text-white/80 min-h-[1.5rem]">
-                <button
-                    type="button"
-                    onClick={onChangeGame}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
-                >
-                    <Gamepad2 className="h-3 w-3" aria-hidden />
-                    <span className="max-w-[12rem] truncate" lang={gameLabel ? 'en' : undefined}>
-                        {gameLabel ?? t('geo.play.changeGame', 'Choose game')}
-                    </span>
-                </button>
-                {showMapButton && (
-                    <button
-                        type="button"
-                        onClick={onChangeMap}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
-                    >
-                        <MapIcon className="h-3 w-3" aria-hidden />
-                        <span className="max-w-[12rem] truncate" lang={mapLabel ? 'en' : undefined}>
-                            {mapLabel ?? t('geo.play.changeMap', 'Choose map')}
-                        </span>
-                    </button>
-                )}
-            </div>
-
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Secondary row — navigation through history + shuffle. Compact
+                so the primary CTA below it gets full visual weight. */}
+            <div className="flex items-center justify-center gap-1.5">
                 <Button
                     type="button"
                     variant="ghost"
@@ -710,39 +720,40 @@ function Dock({
                 >
                     <ChevronRight className="h-5 w-5" aria-hidden />
                 </Button>
-
-                <div className="flex-1" />
-
-                {revealed ? (
-                    <Button
-                        type="button"
-                        onClick={onNextRound}
-                        className="gradient-gaming hover:opacity-90 min-h-12 min-w-32"
-                    >
-                        {t('geo.play.next', 'Next round')}
-                        <ArrowRight className="h-4 w-4 ml-2" aria-hidden />
-                    </Button>
-                ) : (
-                    <Button
-                        type="button"
-                        onClick={onSubmit}
-                        disabled={!canSubmit || submitting}
-                        className="gradient-gaming hover:opacity-90 min-h-12 min-w-32"
-                        aria-live="polite"
-                    >
-                        {submitting ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden />
-                        ) : canSubmit ? (
-                            <Check className="h-4 w-4 mr-2" aria-hidden />
-                        ) : (
-                            <MapPin className="h-4 w-4 mr-2" aria-hidden />
-                        )}
-                        {canSubmit
-                            ? t('geo.play.confirm', 'Confirm pin')
-                            : t('geo.play.submit', 'Drop pin')}
-                    </Button>
-                )}
             </div>
+
+            {/* Primary row — single full-width CTA. Fills the thumb-zone on
+                mobile and matches Fitts: bigger target, no neighbours
+                competing for taps. */}
+            {revealed ? (
+                <Button
+                    type="button"
+                    onClick={onNextRound}
+                    className="gradient-gaming hover:opacity-90 min-h-12 w-full"
+                >
+                    {t('geo.play.next', 'Next round')}
+                    <ArrowRight className="h-4 w-4 ml-2" aria-hidden />
+                </Button>
+            ) : (
+                <Button
+                    type="button"
+                    onClick={onSubmit}
+                    disabled={!canSubmit || submitting}
+                    className="gradient-gaming hover:opacity-90 min-h-12 w-full"
+                    aria-live="polite"
+                >
+                    {submitting ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden />
+                    ) : canSubmit ? (
+                        <Check className="h-4 w-4 mr-2" aria-hidden />
+                    ) : (
+                        <MapPin className="h-4 w-4 mr-2" aria-hidden />
+                    )}
+                    {canSubmit
+                        ? t('geo.play.confirm', 'Confirm pin')
+                        : t('geo.play.submit', 'Drop pin')}
+                </Button>
+            )}
         </div>
     )
 }
