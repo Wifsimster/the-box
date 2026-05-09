@@ -134,10 +134,24 @@ self.addEventListener('push', (event: PushEvent) => {
   event.waitUntil(self.registration.showNotification(payload.title, options))
 })
 
+// Restrict click navigation to same-origin URLs: the payload arrives over
+// the network and a compromised or spoofed sender could otherwise deliver
+// an off-origin URL that lands the user on a phishing page styled as The
+// Box. Anything off-origin (or unparseable) falls back to the app root.
+function resolveSameOriginTarget(raw: string): string {
+  try {
+    const resolved = new URL(raw, self.location.origin)
+    if (resolved.origin !== self.location.origin) return '/'
+    return resolved.pathname + resolved.search + resolved.hash
+  } catch {
+    return '/'
+  }
+}
+
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
   const data = (event.notification.data ?? {}) as { url?: string }
-  const target = data.url ?? '/'
+  const target = resolveSameOriginTarget(data.url ?? '/')
   event.waitUntil(
     (async () => {
       const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })

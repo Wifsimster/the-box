@@ -53,11 +53,12 @@ export const pushService = {
           payload,
         )
         if (result.success) {
-          await pushSubscriptionRepository.markSuccess(sub.endpoint)
+          await pushSubscriptionRepository.markSuccess(sub.endpoint, sub.user_id)
           succeeded += 1
         } else {
           await pushSubscriptionRepository.markFailure(
             sub.endpoint,
+            sub.user_id,
             result.statusCode ?? 0,
             result.gone,
           )

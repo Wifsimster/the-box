@@ -64,22 +64,29 @@ export const pushSubscriptionRepository = {
   // Endpoint is globally unique, so this either deletes one row or zero. We
   // hard-delete on explicit unsubscribe (vs. is_active=false) because the
   // user has signaled intent to revoke; keeping the row would just clutter.
-  async deleteByEndpoint(endpoint: string): Promise<boolean> {
-    const deleted = await db('push_subscriptions').where({ endpoint }).del()
+  // Scoped by user_id to prevent any authenticated caller from unsubscribing
+  // someone else's device by guessing or learning their endpoint URL.
+  async deleteByEndpoint(endpoint: string, userId: string): Promise<boolean> {
+    const deleted = await db('push_subscriptions').where({ endpoint, user_id: userId }).del()
     return deleted > 0
   },
 
-  async markSuccess(endpoint: string): Promise<void> {
+  async markSuccess(endpoint: string, userId: string): Promise<void> {
     await db('push_subscriptions')
-      .where({ endpoint })
+      .where({ endpoint, user_id: userId })
       .update({ last_success_at: db.fn.now(), last_failure_at: null, last_failure_status: null })
   },
 
   // 4xx/5xx response. Service decides whether to flip is_active based on
   // status (410/404 → terminally gone → flip).
-  async markFailure(endpoint: string, status: number, deactivate: boolean): Promise<void> {
+  async markFailure(
+    endpoint: string,
+    userId: string,
+    status: number,
+    deactivate: boolean,
+  ): Promise<void> {
     await db('push_subscriptions')
-      .where({ endpoint })
+      .where({ endpoint, user_id: userId })
       .update({
         last_failure_at: db.fn.now(),
         last_failure_status: status,
