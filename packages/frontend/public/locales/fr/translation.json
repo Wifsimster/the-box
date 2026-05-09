@@ -2041,6 +2041,13 @@
       "then": "puis",
       "addToHome": "Ajouter à l'écran d'accueil",
       "dismiss": "Fermer"
+    },
+    "installBanner": {
+      "title": "Installez The Box",
+      "description": "Ajoutez l'app à votre écran d'accueil pour un accès plus rapide et une expérience plein écran.",
+      "install": "Installer",
+      "later": "Plus tard",
+      "dismiss": "Fermer"
     }
   }
 }
