@@ -31,6 +31,8 @@ import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue, geoQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
 import './infrastructure/queue/workers/geo.worker.js'
+import './infrastructure/queue/workers/push.worker.js'
+import { pushService } from './domain/services/push.service.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
 // Validate environment
@@ -175,9 +177,36 @@ if (!fs.existsSync(avatarsPath)) {
   fs.mkdirSync(avatarsPath, { recursive: true })
 }
 
-// Health check
+// Lightweight liveness check. Always 200 so an orchestrator knows the
+// process is up; downstream dependency status lives on /healthz.
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
+// Readiness check. Probes the dependencies the app actually needs to serve
+// requests (Postgres, Redis) and reports the optional capability flags
+// (web push, email) so dashboards can alert on a misconfigured environment
+// instead of waiting for the first user to hit a 503.
+app.get('/healthz', async (_req, res) => {
+  const [dbOk, redisOk] = await Promise.all([
+    testConnection().catch(() => false),
+    testRedisConnection().catch(() => false),
+  ])
+  const checks = {
+    db: dbOk,
+    redis: redisOk,
+    push: pushService.isConfigured(),
+    email: !!env.RESEND_API_KEY,
+  }
+  // db + redis are required; push and email are optional capabilities. If
+  // either required check is failing we report 503 so a load balancer or
+  // k8s readiness probe can route traffic away.
+  const ready = checks.db && checks.redis
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ok' : 'degraded',
+    checks,
+    timestamp: new Date().toISOString(),
+  })
 })
 
 // API Routes
@@ -319,6 +348,7 @@ async function start(): Promise<void> {
       'reactivation-scan',
       'milestone-account-age',
       'leaderboard-payout-monthly',
+      'prune-push-subscriptions',
     ]
     try {
       const repeatableJobs = await importQueue.getRepeatableJobs()
@@ -516,6 +546,24 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring milestone-account-age job (daily at 04:00 UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring milestone-account-age job')
+    }
+
+    // Daily prune of stale push subscriptions — 02:00 UTC. Hard-deletes
+    // rows the fan-out worker has already deactivated (410/404 from the
+    // push provider) once they've been silent for >30 days. Without this
+    // the table grows monotonically with churned browsers / reinstalls.
+    try {
+      await importQueue.add(
+        'prune-push-subscriptions',
+        {},
+        {
+          repeat: { pattern: '0 2 * * *', tz: 'UTC' },
+          jobId: 'prune-push-subscriptions-recurring',
+        },
+      )
+      logger.info('scheduled recurring prune-push-subscriptions job (daily at 02:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring prune-push-subscriptions job')
     }
 
     // Monthly leaderboard payout — 1st of each month at 00:30 UTC. Awards

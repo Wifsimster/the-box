@@ -116,3 +116,33 @@ export const geoQueue = new Queue<GeoJobData>('geo-jobs', {
 export const geoQueueEvents = new QueueEvents('geo-jobs', {
   connection: redisConnectionOptions,
 })
+
+// Push fan-out queue. One job per (userId, payload) — the worker handles the
+// per-device fan-out internally with `Promise.allSettled` so a slow provider
+// can't stall delivery to a user's other devices. Kept as its own queue so
+// concurrency can be tuned independently of the heavier import jobs.
+export type PushJobData = {
+  kind: 'send-to-user'
+  userId: string
+  payload: {
+    type: string
+    title: string
+    body: string
+    url?: string
+    data?: Record<string, unknown>
+  }
+}
+
+export const pushQueue = new Queue<PushJobData>('push-jobs', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: {
+    attempts: 4,
+    backoff: { type: 'exponential', delay: 5_000 },
+    removeOnComplete: { count: 200 },
+    removeOnFail: { count: 100 },
+  },
+})
+
+export const pushQueueEvents = new QueueEvents('push-jobs', {
+  connection: redisConnectionOptions,
+})

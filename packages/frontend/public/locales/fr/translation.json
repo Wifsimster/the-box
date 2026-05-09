@@ -1583,7 +1583,13 @@
     "optedOut": "Notifications désactivées sur cet appareil.",
     "permissionDenied": "Vous avez refusé les notifications dans votre navigateur.",
     "permissionDeniedHint": "Les notifications sont bloquées au niveau du navigateur. Autorisez-les dans les paramètres du site, puis revenez ici.",
-    "updateError": "Impossible de modifier les notifications. Réessayez plus tard."
+    "updateError": "Impossible de modifier les notifications. Réessayez plus tard.",
+    "serverUnavailable": "Les notifications sont temporairement indisponibles. Réessayez plus tard.",
+    "networkError": "Impossible de joindre nos serveurs. Vérifiez votre connexion.",
+    "deviceLimitReached": "Vous avez atteint le nombre maximum d'appareils pour les notifications.",
+    "iosInstallHint": "Ajoutez The Box à votre écran d'accueil pour activer les notifications push sur iOS.",
+    "updating": "Mise à jour…",
+    "fallbackBody": "Vous avez une nouvelle notification."
   },
   "personalBests": {
     "title": "Meilleurs Scores",
