@@ -1583,7 +1583,13 @@
     "optedOut": "Notifications disabled on this device.",
     "permissionDenied": "You blocked notifications in your browser.",
     "permissionDeniedHint": "Notifications are blocked at the browser level. Allow them in your site settings, then come back here.",
-    "updateError": "Couldn't update notifications. Try again later."
+    "updateError": "Couldn't update notifications. Try again later.",
+    "serverUnavailable": "Notifications are temporarily unavailable. Try again later.",
+    "networkError": "Couldn't reach our servers. Check your connection.",
+    "deviceLimitReached": "You've reached the maximum number of devices for notifications.",
+    "iosInstallHint": "Add The Box to your home screen to enable push notifications on iOS.",
+    "updating": "Updating…",
+    "fallbackBody": "You have a new notification."
   },
   "personalBests": {
     "title": "Personal Bests",

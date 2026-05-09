@@ -87,10 +87,53 @@ interface PushPayload {
   data?: Record<string, unknown>
 }
 
+// Locale-aware fallback strings. The page persists the active i18n language
+// via `SET_LOCALE` postMessage; when the SW is woken cold by a push event
+// the module-level cache is gone so we fall back to the Cache API entry.
+// French is the project default and the last-resort fallback.
+const FALLBACK_BODY: Record<string, string> = {
+  fr: 'Vous avez une nouvelle notification.',
+  en: 'You have a new notification.',
+}
+const LOCALE_CACHE = 'app-state'
+const LOCALE_KEY = '/__locale'
+let cachedLocale: string | null = null
+
+async function readPersistedLocale(): Promise<string> {
+  if (cachedLocale) return cachedLocale
+  try {
+    const cache = await caches.open(LOCALE_CACHE)
+    const res = await cache.match(LOCALE_KEY)
+    if (res) {
+      const text = (await res.text()).trim().slice(0, 8)
+      if (text) {
+        cachedLocale = text
+        return text
+      }
+    }
+  } catch {
+    // ignore — Cache API can fail in private mode, fall through to default
+  }
+  return 'fr'
+}
+
+async function writePersistedLocale(locale: string): Promise<void> {
+  cachedLocale = locale
+  try {
+    const cache = await caches.open(LOCALE_CACHE)
+    await cache.put(
+      LOCALE_KEY,
+      new Response(locale, { headers: { 'Content-Type': 'text/plain' } }),
+    )
+  } catch {
+    // best-effort
+  }
+}
+
 // Best-effort payload parse: even if the server sends a malformed payload (or
 // none at all, which Apple does for VoIP-style "wake up" pushes), we still
 // surface a generic notification so the user knows something happened.
-function parsePushPayload(event: PushEvent): PushPayload {
+async function parsePushPayload(event: PushEvent): Promise<PushPayload> {
   if (!event.data) return fallbackPayload()
   try {
     const parsed = event.data.json() as Partial<PushPayload>
@@ -109,29 +152,124 @@ function parsePushPayload(event: PushEvent): PushPayload {
   return fallbackPayload()
 }
 
-function fallbackPayload(): PushPayload {
+async function fallbackPayload(): Promise<PushPayload> {
+  const locale = await readPersistedLocale()
   return {
     type: 'generic',
     title: 'The Box',
-    body: 'Vous avez une notification.',
+    body: FALLBACK_BODY[locale] ?? FALLBACK_BODY.fr ?? 'You have a new notification.',
   }
 }
 
+// Pick a notification tag that coalesces correctly. Distinct events must NOT
+// share a tag (the second one would silently replace the first); per-type
+// coalescing is right when the server intends it (e.g. multiple
+// 'streak_at_risk' nudges for the same day). When the payload carries a
+// stable id in `data.id` we honor it; otherwise we fall back to the type.
+function tagFor(payload: PushPayload): string {
+  const id = (payload.data?.id ?? payload.data?.notificationId) as unknown
+  if (typeof id === 'string' && id.length > 0) return `${payload.type}:${id}`
+  if (typeof id === 'number') return `${payload.type}:${id}`
+  return payload.type
+}
+
 self.addEventListener('push', (event: PushEvent) => {
-  const payload = parsePushPayload(event)
-  // Coalesce: a second push with the same `tag` replaces the first instead
-  // of stacking, which avoids a notification queue if the user hasn't opened
-  // the app in a few days. `renotify` is widely supported in browsers but
-  // missing from the lib.dom.d.ts NotificationOptions type, hence the cast.
-  const options = {
-    body: payload.body,
-    icon: '/pwa-192x192.png',
-    badge: '/pwa-64x64.png',
-    tag: payload.type,
-    renotify: true,
-    data: { url: payload.url ?? '/', ...(payload.data ?? {}) },
-  } as NotificationOptions
-  event.waitUntil(self.registration.showNotification(payload.title, options))
+  event.waitUntil(
+    (async () => {
+      const payload = await parsePushPayload(event)
+      // Coalesce: a second push with the same `tag` replaces the first instead
+      // of stacking. `renotify` re-alerts the user even when an existing
+      // notification with the same tag is being replaced — supported by
+      // Chrome/Edge/Firefox but missing from the lib.dom.d.ts type, hence
+      // the cast.
+      const options = {
+        body: payload.body,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-64x64.png',
+        tag: tagFor(payload),
+        renotify: true,
+        data: { url: payload.url ?? '/', ...(payload.data ?? {}) },
+      } as NotificationOptions
+      await self.registration.showNotification(payload.title, options)
+    })(),
+  )
+})
+
+// Browsers re-issue endpoints on their own schedule (Chrome rotates FCM
+// tokens, Firefox refreshes after long offline periods). When that happens
+// the SW gets a `pushsubscriptionchange` event — we re-subscribe with the
+// stored VAPID key and tell the server about the new endpoint so the user
+// keeps receiving pushes without having to toggle the card off and on.
+interface PushSubscriptionChangeEvent extends ExtendableEvent {
+  readonly newSubscription: PushSubscription | null
+  readonly oldSubscription: PushSubscription | null
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  const out = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i)
+  return out
+}
+
+async function reSubscribe(): Promise<PushSubscription | null> {
+  try {
+    const res = await fetch('/api/push/vapid-public-key', { credentials: 'include' })
+    if (!res.ok) return null
+    const json = (await res.json()) as { data?: { publicKey?: string } }
+    const key = json.data?.publicKey
+    if (!key) return null
+    return await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key) as unknown as ArrayBuffer,
+    })
+  } catch {
+    return null
+  }
+}
+
+self.addEventListener('pushsubscriptionchange', (rawEvent) => {
+  const event = rawEvent as PushSubscriptionChangeEvent
+  event.waitUntil(
+    (async () => {
+      const newSub = event.newSubscription ?? (await reSubscribe())
+      const oldSub = event.oldSubscription
+      if (newSub) {
+        const json = newSub.toJSON()
+        const p256dh = json.keys?.p256dh
+        const auth = json.keys?.auth
+        if (p256dh && auth) {
+          try {
+            await fetch('/api/push/subscribe', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                endpoint: newSub.endpoint,
+                keys: { p256dh, auth },
+              }),
+            })
+          } catch {
+            // best-effort — the next page mount will reconcile via the hook
+          }
+        }
+      }
+      if (oldSub && (!newSub || oldSub.endpoint !== newSub.endpoint)) {
+        try {
+          await fetch('/api/push/subscribe', {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: oldSub.endpoint }),
+          })
+        } catch {
+          // best-effort
+        }
+      }
+    })(),
+  )
 })
 
 // Restrict click navigation to same-origin URLs: the payload arrives over
@@ -178,8 +316,16 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
 
 // Allow the page to trigger an immediate activation when the user clicks the
 // PWAUpdatePrompt "refresh" toast — registerType: 'prompt' relies on this.
+// Also accept SET_LOCALE from the page so push fallback notifications match
+// the user's i18n setting; see PWAUpdatePrompt.tsx for the sender side.
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  const data = event.data as { type?: string; locale?: string } | null
+  if (!data) return
+  if (data.type === 'SKIP_WAITING') {
     void self.skipWaiting()
+    return
+  }
+  if (data.type === 'SET_LOCALE' && typeof data.locale === 'string' && data.locale) {
+    void writePersistedLocale(data.locale)
   }
 })
