@@ -1369,3 +1369,51 @@ export interface AdvancedStats {
     longest: number
   }
 }
+
+// ============================================
+// Web Push Notifications
+// ============================================
+
+// Wire payload the backend ships to the service worker via web-push. The SW
+// renders a notification using `title`/`body` and stores `url` + `data` for
+// the click handler. `type` is a free-form discriminator the SW also uses to
+// pick a notification tag (so e.g. successive 'streak_at_risk' nudges
+// coalesce instead of stacking).
+export interface PushPayload {
+  type: string
+  title: string
+  body: string
+  url?: string
+  data?: Record<string, unknown>
+}
+
+// POST /api/push/subscribe body. The browser hands us all four fields; the
+// backend rejects `endpoint` if its host is not on the push-provider
+// allowlist (FCM, Mozilla autopush, Apple, Windows).
+export interface PushSubscribeRequest {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+  userAgent?: string
+}
+
+// DELETE /api/push/subscribe body.
+export interface PushUnsubscribeRequest {
+  endpoint: string
+}
+
+// GET /api/push/subscribe / POST /api/push/subscribe success body.
+export interface PushSubscribeResponse {
+  id: number
+  isActive: boolean
+}
+
+// Per-device summary returned by the (planned) GET /api/push/subscriptions
+// endpoint. Intentionally omits the endpoint URL itself — the client doesn't
+// need the per-device token, only enough to identify the row in a list.
+export interface PushSubscriptionSummary {
+  id: number
+  userAgent: string | null
+  createdAt: string
+  lastSuccessAt: string | null
+  isActive: boolean
+}
