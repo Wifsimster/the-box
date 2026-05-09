@@ -1396,6 +1396,262 @@ router.get('/growth-stats', async (_req, res, next) => {
   }
 })
 
+// === User Analytics ===
+// Cross-cutting view of user engagement: how many people come back, how
+// often they play, who's most active. All counts exclude guest accounts
+// (anonymous Better Auth sessions whose emails end in @guest.thebox.local)
+// so they reflect the real, identified user base. The endpoint runs the
+// queries in parallel and returns a flat shape the dashboard renders in
+// one round-trip.
+const GUEST_EMAIL_LIKE = '%@guest.thebox.local'
+router.get('/user-analytics', async (_req, res, next) => {
+  try {
+    const [
+      totalsRow,
+      activeUsersRow,
+      newUsersRow,
+      sessionsRow,
+      sessionsAggRow,
+      activityBucketsRow,
+      streakRow,
+      dailyActivityRows,
+      topPlayersBySessionsRows,
+      topPlayersByScoreRows,
+      recentlyActiveRows,
+    ] = await Promise.all([
+      // Total non-guest users + how many have ever played
+      db('user')
+        .select<{ total: string; verified: string; ever_played: string; banned: string }>(
+          db.raw('COUNT(*) AS total'),
+          db.raw('COUNT(*) FILTER (WHERE "emailVerified" = true) AS verified'),
+          db.raw('COUNT(*) FILTER (WHERE last_played_at IS NOT NULL) AS ever_played'),
+          db.raw('COUNT(*) FILTER (WHERE banned = true) AS banned'),
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .first(),
+      // Active users by login window
+      db('user')
+        .select<{ d1: string; d7: string; d30: string }>(
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" > NOW() - INTERVAL '24 hours') AS d1`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" > NOW() - INTERVAL '7 days')  AS d7`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" > NOW() - INTERVAL '30 days') AS d30`),
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .first(),
+      // New signups (createdAt window)
+      db('user')
+        .select<{ d1: string; d7: string; d30: string }>(
+          db.raw(`COUNT(*) FILTER (WHERE "createdAt" > NOW() - INTERVAL '24 hours') AS d1`),
+          db.raw(`COUNT(*) FILTER (WHERE "createdAt" > NOW() - INTERVAL '7 days')  AS d7`),
+          db.raw(`COUNT(*) FILTER (WHERE "createdAt" > NOW() - INTERVAL '30 days') AS d30`),
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .first(),
+      // Game session totals scoped to non-guest users
+      db.raw<{ rows: Array<{ total: string; completed: string; catch_up: string }> }>(
+        `SELECT
+           COUNT(*)::text AS total,
+           COUNT(*) FILTER (WHERE gs.is_completed = true)::text AS completed,
+           COALESCE(SUM(CASE WHEN gs.is_catch_up = true THEN 1 ELSE 0 END), 0)::text AS catch_up
+         FROM game_sessions gs
+         JOIN "user" u ON u.id = gs.user_id
+         WHERE u.email NOT LIKE ?`,
+        [GUEST_EMAIL_LIKE],
+      ),
+      // Average sessions / completed sessions per user who has played at
+      // least once. Bypasses zero-division by guarding against an empty
+      // denominator on the application side.
+      db.raw<{ rows: Array<{ avg_sessions: string | null; avg_completed: string | null; players: string }> }>(
+        `SELECT
+           AVG(per_user.session_count)::text AS avg_sessions,
+           AVG(per_user.completed_count)::text AS avg_completed,
+           COUNT(*)::text AS players
+         FROM (
+           SELECT gs.user_id,
+                  COUNT(*) AS session_count,
+                  COUNT(*) FILTER (WHERE gs.is_completed = true) AS completed_count
+           FROM game_sessions gs
+           JOIN "user" u ON u.id = gs.user_id
+           WHERE u.email NOT LIKE ?
+           GROUP BY gs.user_id
+         ) per_user`,
+        [GUEST_EMAIL_LIKE],
+      ),
+      // Engagement buckets: split players by lifetime session count so we
+      // can spot the long tail (1 session = curious, 20+ = power users).
+      db.raw<{ rows: Array<{ b1: string; b2_5: string; b6_20: string; b21_plus: string; never: string }> }>(
+        `WITH per_user AS (
+           SELECT u.id,
+                  COUNT(gs.id) AS session_count
+           FROM "user" u
+           LEFT JOIN game_sessions gs ON gs.user_id = u.id
+           WHERE u.email NOT LIKE ?
+           GROUP BY u.id
+         )
+         SELECT
+           COUNT(*) FILTER (WHERE session_count = 0)::text                          AS never,
+           COUNT(*) FILTER (WHERE session_count = 1)::text                          AS b1,
+           COUNT(*) FILTER (WHERE session_count BETWEEN 2 AND 5)::text              AS b2_5,
+           COUNT(*) FILTER (WHERE session_count BETWEEN 6 AND 20)::text             AS b6_20,
+           COUNT(*) FILTER (WHERE session_count > 20)::text                         AS b21_plus
+         FROM per_user`,
+        [GUEST_EMAIL_LIKE],
+      ),
+      // Login-streak distribution. Pulled from user_login_streaks (NOT
+      // game streaks) — the daily-login feature is the closest proxy for
+      // "did this person come back today?".
+      db('user_login_streaks as s')
+        .innerJoin('user as u', 'u.id', 's.user_id')
+        .whereNot('u.email', 'like', GUEST_EMAIL_LIKE)
+        .select<{ avg_current: string | null; max_streak: string | null; with_streak: string }>(
+          db.raw('AVG(s.current_login_streak)::text AS avg_current'),
+          db.raw('MAX(s.longest_login_streak)::text AS max_streak'),
+          db.raw('COUNT(*) FILTER (WHERE s.current_login_streak > 0)::text AS with_streak'),
+        )
+        .first(),
+      // Daily Active Users — count distinct logins per day for 14 days.
+      // generate_series fills the gaps so the UI doesn't have to.
+      db.raw<{ rows: Array<{ day: string; active: string; new_signups: string }> }>(
+        `WITH days AS (
+           SELECT generate_series(
+             (CURRENT_DATE - INTERVAL '13 days')::date,
+             CURRENT_DATE::date,
+             INTERVAL '1 day'
+           )::date AS day
+         )
+         SELECT
+           to_char(d.day, 'YYYY-MM-DD') AS day,
+           COALESCE(COUNT(DISTINCT u.id) FILTER (WHERE date_trunc('day', u."lastLoginAt") = d.day), 0)::text AS active,
+           COALESCE(COUNT(DISTINCT n.id) FILTER (WHERE date_trunc('day', n."createdAt")    = d.day), 0)::text AS new_signups
+         FROM days d
+         LEFT JOIN "user" u ON date_trunc('day', u."lastLoginAt") = d.day AND u.email NOT LIKE ?
+         LEFT JOIN "user" n ON date_trunc('day', n."createdAt")    = d.day AND n.email NOT LIKE ?
+         GROUP BY d.day
+         ORDER BY d.day ASC`,
+        [GUEST_EMAIL_LIKE, GUEST_EMAIL_LIKE],
+      ),
+      // Top 10 players by lifetime sessions
+      db.raw<{ rows: Array<{ user_id: string; username: string | null; name: string; sessions: string; completed: string; total_score: string; last_played_at: Date | null }> }>(
+        `SELECT u.id AS user_id, u.username, u.name, u.total_score::text AS total_score,
+                u.last_played_at,
+                COUNT(gs.id)::text AS sessions,
+                COUNT(*) FILTER (WHERE gs.is_completed = true)::text AS completed
+         FROM "user" u
+         JOIN game_sessions gs ON gs.user_id = u.id
+         WHERE u.email NOT LIKE ?
+         GROUP BY u.id
+         ORDER BY COUNT(gs.id) DESC
+         LIMIT 10`,
+        [GUEST_EMAIL_LIKE],
+      ),
+      // Top 10 by all-time score
+      db('user')
+        .select<Array<{ id: string; username: string | null; name: string; total_score: number; current_streak: number; last_played_at: Date | null }>>(
+          'id', 'username', 'name', 'total_score', 'current_streak', 'last_played_at',
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .where('total_score', '>', 0)
+        .orderBy('total_score', 'desc')
+        .limit(10),
+      // Most recently active 15 users — handy for the admin to spot bot
+      // signups and see who's around right now.
+      db('user')
+        .select<Array<{ id: string; username: string | null; name: string; email: string; createdAt: Date; lastLoginAt: Date | null; last_played_at: Date | null; total_score: number; current_streak: number; banned: boolean }>>(
+          'id', 'username', 'name', 'email', 'createdAt', 'lastLoginAt', 'last_played_at', 'total_score', 'current_streak', 'banned',
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .whereNotNull('lastLoginAt')
+        .orderBy('lastLoginAt', 'desc')
+        .limit(15),
+    ])
+
+    const totalUsers = Number(totalsRow?.total ?? 0)
+    const everPlayed = Number(totalsRow?.ever_played ?? 0)
+    const activeD30 = Number(activeUsersRow?.d30 ?? 0)
+    const sessAgg = sessionsAggRow.rows[0]
+    const buckets = activityBucketsRow.rows[0]
+    const sessionsTotals = sessionsRow.rows[0]
+
+    res.json({
+      success: true,
+      data: {
+        users: {
+          total: totalUsers,
+          verified: Number(totalsRow?.verified ?? 0),
+          banned: Number(totalsRow?.banned ?? 0),
+          everPlayed,
+          neverPlayed: Math.max(0, totalUsers - everPlayed),
+          retentionRate30dPercent: totalUsers === 0
+            ? 0
+            : Math.round((activeD30 / totalUsers) * 1000) / 10,
+        },
+        active: {
+          last24h: Number(activeUsersRow?.d1 ?? 0),
+          last7d: Number(activeUsersRow?.d7 ?? 0),
+          last30d: activeD30,
+        },
+        signups: {
+          last24h: Number(newUsersRow?.d1 ?? 0),
+          last7d: Number(newUsersRow?.d7 ?? 0),
+          last30d: Number(newUsersRow?.d30 ?? 0),
+        },
+        sessions: {
+          total: Number(sessionsTotals?.total ?? 0),
+          completed: Number(sessionsTotals?.completed ?? 0),
+          catchUp: Number(sessionsTotals?.catch_up ?? 0),
+          avgPerPlayer: Math.round(Number(sessAgg?.avg_sessions ?? 0) * 100) / 100,
+          avgCompletedPerPlayer: Math.round(Number(sessAgg?.avg_completed ?? 0) * 100) / 100,
+        },
+        engagement: {
+          neverPlayed: Number(buckets?.never ?? 0),
+          onceOnly: Number(buckets?.b1 ?? 0),
+          lightPlayers: Number(buckets?.b2_5 ?? 0),
+          regularPlayers: Number(buckets?.b6_20 ?? 0),
+          powerPlayers: Number(buckets?.b21_plus ?? 0),
+        },
+        loginStreak: {
+          averageCurrent: Math.round(Number(streakRow?.avg_current ?? 0) * 100) / 100,
+          longestEver: Number(streakRow?.max_streak ?? 0),
+          usersWithActiveStreak: Number(streakRow?.with_streak ?? 0),
+        },
+        timeline: dailyActivityRows.rows.map((row) => ({
+          day: row.day,
+          activeUsers: Number(row.active ?? 0),
+          newSignups: Number(row.new_signups ?? 0),
+        })),
+        topBySessions: topPlayersBySessionsRows.rows.map((row) => ({
+          userId: row.user_id,
+          displayName: row.username ?? row.name,
+          sessions: Number(row.sessions ?? 0),
+          completed: Number(row.completed ?? 0),
+          totalScore: Number(row.total_score ?? 0),
+          lastPlayedAt: row.last_played_at?.toISOString() ?? null,
+        })),
+        topByScore: topPlayersByScoreRows.map((row) => ({
+          userId: row.id,
+          displayName: row.username ?? row.name,
+          totalScore: Number(row.total_score ?? 0),
+          currentStreak: Number(row.current_streak ?? 0),
+          lastPlayedAt: row.last_played_at?.toISOString() ?? null,
+        })),
+        recentlyActive: recentlyActiveRows.map((row) => ({
+          userId: row.id,
+          displayName: row.username ?? row.name,
+          email: row.email,
+          createdAt: row.createdAt?.toISOString() ?? null,
+          lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
+          lastPlayedAt: row.last_played_at?.toISOString() ?? null,
+          totalScore: Number(row.total_score ?? 0),
+          currentStreak: Number(row.current_streak ?? 0),
+          banned: Boolean(row.banned),
+        })),
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // === Geolocation mode (admin review) ===
 
 // Per-game moderation summary. Replaces the flat "show every capture" list
