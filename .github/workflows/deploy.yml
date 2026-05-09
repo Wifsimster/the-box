@@ -43,6 +43,31 @@ jobs:
       - name: Show status
         run: docker compose ps
 
+      - name: Wait for the-box to become healthy
+        # `up -d` returns as soon as containers start, not when the app is
+        # ready. Without this gate, a container restart-looping on a bad
+        # migration or boot error would still leave the workflow green.
+        # The healthcheck in compose.yml polls /health every 30s with a 30s
+        # start_period; allow ~3 minutes before declaring the deploy failed.
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 36); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' the-box 2>/dev/null || echo "missing")
+            echo "[$i/36] the-box health: $status"
+            case "$status" in
+              healthy)  exit 0 ;;
+              unhealthy)
+                echo "Container reported unhealthy — dumping recent logs:"
+                docker logs --tail=200 the-box || true
+                exit 1
+                ;;
+            esac
+            sleep 5
+          done
+          echo "Timed out waiting for the-box to become healthy"
+          docker logs --tail=200 the-box || true
+          exit 1
+
       - name: Prune dangling images
         if: success()
         working-directory: /
