@@ -61,6 +61,27 @@ export const pushSubscriptionRepository = {
       .select<PushSubscriptionRow[]>('*')
   },
 
+  // Used by the subscribe route to enforce a per-user device cap. Counted at
+  // the repository layer rather than the route so the same SQL/index hits
+  // the partial index on (user_id, is_active).
+  async countActiveForUser(userId: string): Promise<number> {
+    const result = await db('push_subscriptions')
+      .where({ user_id: userId, is_active: true })
+      .count<{ count: string }[]>('* as count')
+    const first = result[0]
+    return first ? Number(first.count) : 0
+  },
+
+  // Used by the subscribe route to decide whether a new endpoint counts
+  // toward the per-user cap. If a row already exists, upsert will replace
+  // it (re-bind to the user) so the cap doesn't apply.
+  async findByEndpoint(endpoint: string): Promise<PushSubscriptionRow | null> {
+    const row = await db('push_subscriptions')
+      .where({ endpoint })
+      .first<PushSubscriptionRow | undefined>('*')
+    return row ?? null
+  },
+
   // Endpoint is globally unique, so this either deletes one row or zero. We
   // hard-delete on explicit unsubscribe (vs. is_active=false) because the
   // user has signaled intent to revoke; keeping the row would just clutter.
@@ -92,6 +113,19 @@ export const pushSubscriptionRepository = {
         last_failure_status: status,
         ...(deactivate ? { is_active: false } : {}),
       })
+  },
+
+  // Hard-delete deactivated rows that haven't seen a successful send in a
+  // long time. Run from the daily prune cron so the table doesn't grow
+  // monotonically with churned browsers / reinstalls.
+  async pruneStale(deactivatedBeforeMs: number): Promise<number> {
+    const cutoff = new Date(Date.now() - deactivatedBeforeMs)
+    return db('push_subscriptions')
+      .where('is_active', false)
+      .andWhere((qb) =>
+        qb.where('last_failure_at', '<', cutoff).orWhereNull('last_failure_at'),
+      )
+      .del()
   },
 }
 

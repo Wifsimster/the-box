@@ -1,5 +1,5 @@
-import { pushSubscriptionRepository } from '../../infrastructure/repositories/push-subscription.repository.js'
-import { isPushConfigured, sendPush } from '../../infrastructure/push/push-sender.js'
+import { isPushConfigured } from '../../infrastructure/push/push-sender.js'
+import { pushQueue } from '../../infrastructure/queue/queues.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
 
 const log = serviceLogger.child({ service: 'push' })
@@ -20,57 +20,28 @@ export interface PushPayload {
 }
 
 export interface SendToUserResult {
-  attempted: number
-  succeeded: number
-  pruned: number
+  enqueued: boolean
+  jobId?: string
 }
 
 export const pushService = {
   isConfigured: isPushConfigured,
 
-  // Fan out to every active subscription for `userId`. We never throw on
-  // per-device failures: a user with three devices, one of which the push
-  // provider has declared 410 Gone, should still get the notification on the
-  // other two. The 410'd row is deactivated in-place by markFailure so the
-  // next send skips it.
+  // Enqueue a push fan-out job. The actual per-device fan-out (with timeout,
+  // allSettled, retry, and 410-deactivation) runs inside push.worker.ts so
+  // the request thread isn't sitting on N round-trips to FCM. Callers get a
+  // synchronous "accepted" response — delivery is best-effort and observable
+  // via the BullMQ dashboards.
   async sendToUser(userId: string, payload: PushPayload): Promise<SendToUserResult> {
     if (!isPushConfigured()) {
-      log.warn({ userId, type: payload.type }, 'push not configured; skipping send')
-      return { attempted: 0, succeeded: 0, pruned: 0 }
+      log.warn({ userId, type: payload.type }, 'push not configured; skipping enqueue')
+      return { enqueued: false }
     }
-
-    const subs = await pushSubscriptionRepository.listActiveForUser(userId)
-    if (subs.length === 0) {
-      return { attempted: 0, succeeded: 0, pruned: 0 }
-    }
-
-    let succeeded = 0
-    let pruned = 0
-    await Promise.all(
-      subs.map(async (sub) => {
-        const result = await sendPush(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-        )
-        if (result.success) {
-          await pushSubscriptionRepository.markSuccess(sub.endpoint, sub.user_id)
-          succeeded += 1
-        } else {
-          await pushSubscriptionRepository.markFailure(
-            sub.endpoint,
-            sub.user_id,
-            result.statusCode ?? 0,
-            result.gone,
-          )
-          if (result.gone) pruned += 1
-        }
-      }),
-    )
-
-    log.info(
-      { userId, type: payload.type, attempted: subs.length, succeeded, pruned },
-      'push fan-out complete',
-    )
-    return { attempted: subs.length, succeeded, pruned }
+    const job = await pushQueue.add('send-to-user', {
+      kind: 'send-to-user',
+      userId,
+      payload,
+    })
+    return { enqueued: true, jobId: job.id }
   },
 }

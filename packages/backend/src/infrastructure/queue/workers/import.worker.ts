@@ -17,6 +17,7 @@ import { grantMonthlyStreakFreezes } from './streak-freeze-grant-logic.js'
 import { scanReactivationCandidates } from './reactivation-scan-logic.js'
 import { evaluateAccountAgeMilestones } from './milestone-account-age-logic.js'
 import { grantMonthlyLeaderboardPayout } from './leaderboard-payout-logic.js'
+import { prunePushSubscriptions } from './prune-push-subscriptions-logic.js'
 
 const log = queueLogger
 
@@ -390,6 +391,17 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result }, 'milestone-account-age job completed')
+        return jobResult
+      }
+
+      if (name === 'prune-push-subscriptions') {
+        const result = await prunePushSubscriptions()
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, deleted: result.deleted }, 'prune-push-subscriptions job completed')
         return jobResult
       }
 
