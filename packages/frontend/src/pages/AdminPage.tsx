@@ -13,17 +13,18 @@ import { GrowthStats } from '@/components/admin/GrowthStats'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
+import { UserAnalyticsPanel } from '@/components/admin/UserAnalyticsPanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, Compass } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, Compass, BarChart3 } from 'lucide-react'
 
 // Two old tabs were folded into the unified `geo` hub:
 //   - `reports`  → sub-tab `reports`
 //   - `geoFetch` → sub-tab `acquisition` (the standalone "Cartes" surface
 //                  duplicated triggers exposed under Géo › Catalogue)
 // Bookmarks for either land on the right sub-tab via REDIRECT_TABS.
-const VALID_TABS = ['jobs', 'games', 'users', 'email', 'emailLog', 'growth', 'geo']
+const VALID_TABS = ['jobs', 'games', 'users', 'analytics', 'email', 'emailLog', 'growth', 'geo']
 const REDIRECT_TABS: Record<string, { tab: string; sub?: string }> = {
   reports: { tab: 'geo', sub: 'reports' },
   geoFetch: { tab: 'geo', sub: 'acquisition' },
@@ -51,6 +52,7 @@ export default function AdminPage() {
     { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="h-4 w-4" /> },
     { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="h-4 w-4" /> },
     { id: 'users', label: t('admin.tabs.users'), icon: <Users className="h-4 w-4" /> },
+    { id: 'analytics', label: t('admin.tabs.analytics'), icon: <BarChart3 className="h-4 w-4" /> },
     { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
     { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="h-4 w-4" /> },
     { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
@@ -173,6 +175,7 @@ export default function AdminPage() {
               )}
               {activeTab === 'games' && <GameList />}
               {activeTab === 'users' && <UserList />}
+              {activeTab === 'analytics' && <UserAnalyticsPanel />}
               {activeTab === 'email' && <EmailSettings />}
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}

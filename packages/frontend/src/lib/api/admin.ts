@@ -837,6 +837,13 @@ export const adminApi = {
     return handleResponse<GrowthStats>(response)
   },
 
+  async getUserAnalytics(): Promise<UserAnalytics> {
+    const response = await fetch('/api/admin/user-analytics', {
+      credentials: 'include',
+    })
+    return handleResponse<UserAnalytics>(response)
+  },
+
   async listEmailLog(params?: EmailLogQuery): Promise<EmailLogResponse> {
     const queryParams = new URLSearchParams()
     if (params?.page) queryParams.set('page', String(params.page))
@@ -871,4 +878,75 @@ export interface GrowthStats {
     sentLast7d: number
     lastSentAt: string | null
   }
+}
+
+export interface UserAnalytics {
+  users: {
+    total: number
+    verified: number
+    banned: number
+    everPlayed: number
+    neverPlayed: number
+    retentionRate30dPercent: number
+  }
+  active: {
+    last24h: number
+    last7d: number
+    last30d: number
+  }
+  signups: {
+    last24h: number
+    last7d: number
+    last30d: number
+  }
+  sessions: {
+    total: number
+    completed: number
+    catchUp: number
+    avgPerPlayer: number
+    avgCompletedPerPlayer: number
+  }
+  engagement: {
+    neverPlayed: number
+    onceOnly: number
+    lightPlayers: number
+    regularPlayers: number
+    powerPlayers: number
+  }
+  loginStreak: {
+    averageCurrent: number
+    longestEver: number
+    usersWithActiveStreak: number
+  }
+  timeline: Array<{
+    day: string
+    activeUsers: number
+    newSignups: number
+  }>
+  topBySessions: Array<{
+    userId: string
+    displayName: string
+    sessions: number
+    completed: number
+    totalScore: number
+    lastPlayedAt: string | null
+  }>
+  topByScore: Array<{
+    userId: string
+    displayName: string
+    totalScore: number
+    currentStreak: number
+    lastPlayedAt: string | null
+  }>
+  recentlyActive: Array<{
+    userId: string
+    displayName: string
+    email: string
+    createdAt: string | null
+    lastLoginAt: string | null
+    lastPlayedAt: string | null
+    totalScore: number
+    currentStreak: number
+    banned: boolean
+  }>
 }
