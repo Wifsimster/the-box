@@ -1,4 +1,5 @@
 export { PWAUpdatePrompt } from './PWAUpdatePrompt'
 export { OfflineIndicator } from './OfflineIndicator'
 export { InstallPromptButton } from './InstallPromptButton'
+export { InstallPromptBanner } from './InstallPromptBanner'
 export { IOSInstallHint } from './IOSInstallHint'

@@ -2041,6 +2041,13 @@
       "then": "then",
       "addToHome": "Add to Home Screen",
       "dismiss": "Dismiss"
+    },
+    "installBanner": {
+      "title": "Install The Box",
+      "description": "Add the app to your home screen for faster access and a full-screen experience.",
+      "install": "Install",
+      "later": "Later",
+      "dismiss": "Dismiss"
     }
   }
 }
