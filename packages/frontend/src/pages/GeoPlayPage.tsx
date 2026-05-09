@@ -13,6 +13,7 @@ import {
     ChevronRight,
     EyeOff,
     Gamepad2,
+    Home,
     Loader2,
     Map as MapIcon,
     MapPin,
@@ -246,11 +247,21 @@ export default function GeoPlayPage() {
                 mapInert={gamePickerOpen || mapPickerOpen}
                 roundKey={`${currentGameId ?? 'none'}-${round}`}
                 topRight={
-                    <FullscreenToggle
-                        isImmersive={fullscreen.isImmersive}
-                        onToggle={() => void fullscreen.toggle()}
-                        isNativeSupported={fullscreen.isSupported}
-                    />
+                    <>
+                        <Link
+                            to={localizedPath('/')}
+                            aria-label={t('common.home', 'Home')}
+                            title={t('common.home', 'Home')}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white shadow-lg backdrop-blur hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                            <Home className="h-5 w-5" aria-hidden />
+                        </Link>
+                        <FullscreenToggle
+                            isImmersive={fullscreen.isImmersive}
+                            onToggle={() => void fullscreen.toggle()}
+                            isNativeSupported={fullscreen.isSupported}
+                        />
+                    </>
                 }
                 screenshot={
                     <ScreenshotPanel
