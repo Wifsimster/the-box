@@ -290,6 +290,26 @@ Detailed docs live in `docs/`:
 - `database.md` — Schema
 - `realtime.md` — Socket.io events
 
+## HTML-First Artifacts
+
+Prefer single-file HTML (inline CSS, optional vanilla JS, SVG diagrams) for any artifact a human will read and react to: PRDs in `tasks/`, subagent meeting notes, design proposals, release notes, post-incident reports, PR review packets. Plain Markdown is still correct for code-adjacent reference docs that tooling reads or that benefit from grep: `README.md`, `docs/api.md`, `docs/database.md`, `docs/ui-tokens.md`, ADRs, migration notes.
+
+**Do not create a `/html` slash command or skill** — prompt for HTML output explicitly per task ("write this as a self-contained HTML file under `tasks/`"). This is a prompting practice, not tooling. Rationale: [Thariq's "Unreasonable Effectiveness of HTML"](https://x.com/trq212/status/2052809885763747935).
+
+Conventions for HTML artifacts in this repo:
+
+- **Location**: mirror, don't fork. `docs/<name>.html` sits next to `docs/<name>.md`. No parallel `docs/html/` tree.
+- **PRDs**: markdown by default; HTML when the spec has 2+ of {user flow, screen mock, state diagram, formula/curve}. Migrate existing PRDs only on meaningful edit, not in bulk.
+- **Single file**: inline CSS, inline SVG, optional inline `<script>`. No external assets, no build step. Portability over DRY.
+- **SUMMARY header**: every HTML doc opens with a `<!-- SUMMARY: ... -->` block (≤5 lines, plain text). PR reviewers read that instead of the diff. Structural changes regenerate the file from a prompt rather than hand-edit.
+- **Visual style**: dark gaming theme — `#0a0a0f` background, `#a855f7` neon-purple primary, Inter + JetBrains Mono, content max-width 72ch, one neon glow per page max, no glassmorphism. Match the canonical examples below.
+- **Accessibility floor**: body contrast ≥ 4.5:1, `focus-visible` outline preserved, `@media (prefers-reduced-motion: reduce)` zeroes transitions.
+- **Security policy**: HTML docs are local-open / GitHub-rendered / GitHub-Pages-hosted only. **Never serve `docs/*.html` or `tasks/*.html` from the Express app** — inline scripts on the same origin as Better Auth cookies is an XSS-shaped foot-gun. GitHub Pages serves from `wifsimster.github.io`, a separate origin, which keeps the same-origin-with-auth-cookies risk out.
+- **Audience**: senior developers only. The Pages site has `<meta name="robots" content="noindex">` and the index is badged "internal". Don't draft HTML artifacts for non-engineer or French-speaking stakeholders unless explicitly asked — they get the existing markdown PRDs and the in-app UI.
+- **Publishing**: every push to `main` that touches `docs/*.html` or `tasks/*.html` triggers `.github/workflows/pages.yml`, which copies those files into `_site/`, generates `_site/index.html` from each file's `<!-- SUMMARY -->`, and deploys to GitHub Pages at <https://wifsimster.github.io/the-box/>. One-time repo setup: Settings → Pages → Source = "GitHub Actions". The workflow doesn't add a build step — files are served as-is.
+
+Canonical examples to mirror: [`tasks/html-first-subagents-meeting.html`](../tasks/html-first-subagents-meeting.html), [`docs/architecture.html`](../docs/architecture.html).
+
 ## Testing & Quality Before Committing
 
 1. `npm run build` — ensures all packages typecheck

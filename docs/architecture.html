@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Backend clean-architecture overview for The Box. Three layers
+  (Presentation → Domain → Infrastructure) with strict unidirectional dependency.
+  Companion to docs/architecture.md; this file is the visual / interactive form
+  for reviewers and onboarding. Pilot HTML doc per
+  tasks/html-first-subagents-meeting.html (2026-05-10).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Architecture · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --layer-pres: #38bdf8;
+    --layer-domain: #a855f7;
+    --layer-infra: #94a3b8;
+    --risk: #ef4444;
+    --ok: #10b981;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-purple); outline-offset: 2px; border-radius: 4px; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; overflow-x: auto; font-size: 0.88rem; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem; border-left: 1px solid var(--border); padding-left: 1rem;
+    max-height: calc(100vh - 6rem); overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 1000px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.05rem; margin: 1.25rem 0 0.5rem; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(56,189,248,0.05));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p { margin: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono { font-family: var(--mono); font-size: 0.85rem; color: var(--neon-purple); white-space: nowrap; }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--neon-blue);
+    background: rgba(56,189,248,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.warn { border-left-color: #f59e0b; background: rgba(245,158,11,0.06); }
+
+  /* === Diagram === */
+  .diagram-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin: 1rem 0 0.5rem;
+  }
+  .diagram-wrap svg { width: 100%; height: auto; display: block; }
+  .diagram-controls {
+    display: flex; gap: 0.5rem; align-items: center;
+    margin: 0.75rem 0 0; font-size: 0.85rem; color: var(--muted);
+  }
+  button.play {
+    font-family: var(--mono); font-size: 0.8rem;
+    background: var(--surface-2); color: var(--fg);
+    border: 1px solid var(--border-strong);
+    padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer;
+  }
+  button.play:hover { border-color: var(--neon-purple); color: var(--neon-purple); }
+  .legend { display: inline-flex; gap: 1rem; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--mono); font-size: 0.78rem; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  /* SVG layer styles */
+  .layer-band-pres  { fill: rgba(56,189,248,0.07);  stroke: rgba(56,189,248,0.4);  }
+  .layer-band-dom   { fill: rgba(168,85,247,0.08);  stroke: rgba(168,85,247,0.45); }
+  .layer-band-infra { fill: rgba(148,163,184,0.07); stroke: rgba(148,163,184,0.4); }
+  .layer-label { font: 600 13px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+  .node rect { fill: var(--surface-2); stroke: var(--border-strong); transition: stroke 0.2s, filter 0.2s; }
+  .node text { font: 500 12px var(--sans); fill: var(--fg); pointer-events: none; }
+  .node:hover rect { stroke: var(--neon-purple); filter: drop-shadow(0 0 6px rgba(168,85,247,0.5)); cursor: default; }
+  .trace { fill: none; stroke: var(--neon-purple); stroke-width: 2; stroke-dasharray: 6 6; opacity: 0; }
+  .trace.run { opacity: 1; animation: dash 1.6s linear forwards; }
+  @keyframes dash { from { stroke-dashoffset: 200; } to { stroke-dashoffset: 0; } }
+  .forbidden { fill: none; stroke: var(--risk); stroke-width: 2; stroke-dasharray: 4 4; }
+  .forbidden-x { stroke: var(--risk); stroke-width: 3; }
+  .arrow-head { fill: var(--neon-purple); }
+
+  .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid currentColor; }
+  .badge.ok { color: var(--ok); }
+  .badge.info { color: var(--neon-blue); }
+  .badge.warn { color: #f59e0b; }
+  .badge.risk { color: var(--risk); }
+
+  footer.foot {
+    max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .trace.run { opacity: 1; stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Architecture · The Box</span>
+  <span class="repo">wifsimster/the-box · docs/architecture.html</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>Architecture</h1>
+  <p class="meta"><b>Stack</b> Node 24 · Express 5 · Knex/Kysely · PostgreSQL 16 · Socket.io 4 · BullMQ + Redis · React 19 · Vite 7 · TypeScript</p>
+
+  <div class="hero">
+    <p>
+      The backend is a pragmatic <strong>three-layer clean architecture</strong> with strict unidirectional dependency:
+      <strong style="color:var(--layer-pres)">Presentation</strong> → <strong style="color:var(--layer-domain)">Domain</strong> → <strong style="color:var(--layer-infra)">Infrastructure</strong>.
+      The domain layer never imports from infrastructure — that's the rule the diagram below enforces visually.
+      Companion reference: <a href="./architecture.md"><code>docs/architecture.md</code></a> (français).
+    </p>
+  </div>
+
+  <h2 id="diagram">1. Request lifecycle</h2>
+  <p>
+    Press <em>Play trace</em> to follow a real request — a player submitting a guess on the daily challenge.
+    Hover any node to highlight it. The red strikethrough arrow at the bottom is the <strong>forbidden</strong> reverse import direction.
+  </p>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 1200 620" role="img" aria-label="Three-layer clean architecture with request trace from POST /api/guesses through domain services to PostgreSQL.">
+      <!-- Bands -->
+      <rect class="layer-band-pres"  x="20"  y="40"  width="1160" height="140" rx="8"/>
+      <rect class="layer-band-dom"   x="20"  y="200" width="1160" height="180" rx="8"/>
+      <rect class="layer-band-infra" x="20"  y="400" width="1160" height="180" rx="8"/>
+      <text class="layer-label" x="40"  y="65"  fill="var(--layer-pres)">Presentation</text>
+      <text class="layer-label" x="40"  y="225" fill="var(--layer-domain)">Domain</text>
+      <text class="layer-label" x="40"  y="425" fill="var(--layer-infra)">Infrastructure</text>
+
+      <!-- Arrowhead def -->
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head"/>
+        </marker>
+        <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--risk)"/>
+        </marker>
+      </defs>
+
+      <!-- Presentation nodes -->
+      <g class="node">
+        <rect x="80"  y="95" width="160" height="60" rx="6"/>
+        <text x="160" y="125" text-anchor="middle">POST /api/guesses</text>
+        <text x="160" y="142" text-anchor="middle" font-size="10" fill="var(--muted)">routes/game.routes.ts</text>
+      </g>
+      <g class="node">
+        <rect x="280" y="95" width="140" height="60" rx="6"/>
+        <text x="350" y="125" text-anchor="middle">auth middleware</text>
+        <text x="350" y="142" text-anchor="middle" font-size="10" fill="var(--muted)">middleware/auth.ts</text>
+      </g>
+      <g class="node">
+        <rect x="460" y="95" width="140" height="60" rx="6"/>
+        <text x="530" y="125" text-anchor="middle">Zod validate</text>
+        <text x="530" y="142" text-anchor="middle" font-size="10" fill="var(--muted)">middleware/validation</text>
+      </g>
+      <g class="node">
+        <rect x="640" y="95" width="160" height="60" rx="6"/>
+        <text x="720" y="125" text-anchor="middle">request logger</text>
+        <text x="720" y="142" text-anchor="middle" font-size="10" fill="var(--muted)">Pino</text>
+      </g>
+
+      <!-- Domain nodes -->
+      <g class="node">
+        <rect x="80"  y="265" width="180" height="60" rx="6"/>
+        <text x="170" y="295" text-anchor="middle">game.service</text>
+        <text x="170" y="312" text-anchor="middle" font-size="10" fill="var(--muted)">submitGuess()</text>
+      </g>
+      <g class="node">
+        <rect x="290" y="265" width="180" height="60" rx="6"/>
+        <text x="380" y="295" text-anchor="middle">fuzzy-match.service</text>
+        <text x="380" y="312" text-anchor="middle" font-size="10" fill="var(--muted)">titleSimilarity()</text>
+      </g>
+      <g class="node">
+        <rect x="500" y="265" width="180" height="60" rx="6"/>
+        <text x="590" y="295" text-anchor="middle">leaderboard.service</text>
+        <text x="590" y="312" text-anchor="middle" font-size="10" fill="var(--muted)">recordScore()</text>
+      </g>
+      <g class="node">
+        <rect x="710" y="265" width="180" height="60" rx="6"/>
+        <text x="800" y="295" text-anchor="middle">achievement.service</text>
+        <text x="800" y="312" text-anchor="middle" font-size="10" fill="var(--muted)">evaluate()</text>
+      </g>
+      <g class="node">
+        <rect x="920" y="265" width="180" height="60" rx="6"/>
+        <text x="1010" y="295" text-anchor="middle">+ 8 more services</text>
+        <text x="1010" y="312" text-anchor="middle" font-size="10" fill="var(--muted)">user · auth · daily-login · billing · referral · geo-* · admin · job</text>
+      </g>
+
+      <!-- Infrastructure nodes -->
+      <g class="node">
+        <rect x="80"  y="455" width="170" height="60" rx="6"/>
+        <text x="165" y="485" text-anchor="middle">guessRepository</text>
+        <text x="165" y="502" text-anchor="middle" font-size="10" fill="var(--muted)">Knex + Kysely</text>
+      </g>
+      <g class="node">
+        <rect x="280" y="455" width="170" height="60" rx="6"/>
+        <text x="365" y="485" text-anchor="middle">leaderboardRepo</text>
+        <text x="365" y="502" text-anchor="middle" font-size="10" fill="var(--muted)">incrementScore</text>
+      </g>
+      <g class="node">
+        <rect x="480" y="455" width="170" height="60" rx="6"/>
+        <text x="565" y="485" text-anchor="middle">Socket.io</text>
+        <text x="565" y="502" text-anchor="middle" font-size="10" fill="var(--muted)">leaderboard_update</text>
+      </g>
+      <g class="node">
+        <rect x="680" y="455" width="170" height="60" rx="6"/>
+        <text x="765" y="485" text-anchor="middle">BullMQ queue</text>
+        <text x="765" y="502" text-anchor="middle" font-size="10" fill="var(--muted)">streak-risk-email</text>
+      </g>
+      <g class="node">
+        <rect x="880" y="455" width="100" height="60" rx="6"/>
+        <text x="930" y="485" text-anchor="middle">PostgreSQL</text>
+      </g>
+      <g class="node">
+        <rect x="1000" y="455" width="100" height="60" rx="6"/>
+        <text x="1050" y="485" text-anchor="middle">Redis</text>
+      </g>
+
+      <!-- Trace path: POST → auth → validate → game.service → fuzzy-match → leaderboard → guessRepo → postgres -->
+      <path id="t1" class="trace" d="M 240 125 L 280 125" marker-end="url(#arrow)"/>
+      <path id="t2" class="trace" d="M 420 125 L 460 125" marker-end="url(#arrow)"/>
+      <path id="t3" class="trace" d="M 600 125 L 640 125" marker-end="url(#arrow)"/>
+      <path id="t4" class="trace" d="M 160 155 L 160 265" marker-end="url(#arrow)"/>
+      <path id="t5" class="trace" d="M 260 295 L 290 295" marker-end="url(#arrow)"/>
+      <path id="t6" class="trace" d="M 470 295 L 500 295" marker-end="url(#arrow)"/>
+      <path id="t7" class="trace" d="M 680 295 L 710 295" marker-end="url(#arrow)"/>
+      <path id="t8" class="trace" d="M 590 325 L 590 380 Q 590 420 565 455" marker-end="url(#arrow)"/>
+      <path id="t9" class="trace" d="M 170 325 L 165 455" marker-end="url(#arrow)"/>
+      <path id="t10" class="trace" d="M 250 485 L 880 485" marker-end="url(#arrow)"/>
+
+      <!-- Forbidden reverse arrow (Domain importing from Infrastructure) -->
+      <path class="forbidden" d="M 1010 455 Q 1010 410 1010 325" marker-end="url(#arrow-red)"/>
+      <line class="forbidden-x" x1="995" y1="375" x2="1025" y2="405"/>
+      <line class="forbidden-x" x1="1025" y1="375" x2="995" y2="405"/>
+      <text x="1040" y="395" font-size="11" font-family="var(--mono)" fill="var(--risk)">forbidden import</text>
+    </svg>
+
+    <div class="diagram-controls">
+      <button class="play" id="play">▶ Play trace</button>
+      <span>POST /api/guesses → auth → validate → game.service → fuzzy-match → leaderboard → repo → postgres + socket broadcast</span>
+    </div>
+    <div class="diagram-controls" style="margin-top:0.25rem">
+      <span class="legend">
+        <span><i style="background:var(--layer-pres)"></i>Presentation</span>
+        <span><i style="background:var(--layer-domain)"></i>Domain</span>
+        <span><i style="background:var(--layer-infra)"></i>Infrastructure</span>
+        <span><i style="background:var(--neon-purple)"></i>request flow</span>
+        <span><i style="background:var(--risk)"></i>forbidden direction</span>
+      </span>
+    </div>
+  </div>
+
+  <blockquote class="callout">
+    <strong>The rule.</strong> Domain services may import from <code>@the-box/types</code> only. They never import from
+    <code>infrastructure/</code>. Repositories, Better Auth, Socket.io, BullMQ — all infrastructure. They are wired into
+    services via dependency injection at app boot, not via direct imports inside the service modules.
+  </blockquote>
+
+  <h2 id="monorepo">2. Monorepo</h2>
+  <p>npm workspaces, three packages.</p>
+  <table>
+    <tr><th>Package</th><th>Role</th><th>Notes</th></tr>
+    <tr><td class="mono">@the-box/types</td><td>Shared TypeScript types (single source of truth)</td><td>Run <code>npm run build:types</code> after edits before consumers pick them up.</td></tr>
+    <tr><td class="mono">@the-box/backend</td><td>Express API + Socket.io + BullMQ workers</td><td>Clean architecture; entrypoint <code>src/index.ts</code>.</td></tr>
+    <tr><td class="mono">@the-box/frontend</td><td>React 19 SPA</td><td>Vite, TailwindCSS v4, Zustand, react-router 7.</td></tr>
+  </table>
+
+  <h2 id="presentation">3. Presentation layer</h2>
+  <p><code>packages/backend/src/presentation/</code> — Express controllers and middleware. Controllers are thin: they parse, authenticate, validate, then delegate to a domain service.</p>
+  <ul>
+    <li><b>Routes</b> — <code>routes/{achievement,admin,auth,daily-login,game,leaderboard,user}.routes.ts</code>. All mounted under <code>/api/</code>.</li>
+    <li><b>Middleware</b> — <code>auth.ts</code> (Better Auth session check), <code>validation.ts</code> (Zod), request logging.</li>
+  </ul>
+
+  <h2 id="domain">4. Domain layer</h2>
+  <p><code>packages/backend/src/domain/services/</code> — pure business logic. No DB or HTTP imports.</p>
+  <table>
+    <tr><th>Service</th><th>Responsibility</th></tr>
+    <tr><td class="mono">game.service</td><td>Daily challenges, screenshots, guess submission</td></tr>
+    <tr><td class="mono">user.service</td><td>Profiles and game history</td></tr>
+    <tr><td class="mono">leaderboard.service</td><td>Rankings and percentile calculation</td></tr>
+    <tr><td class="mono">auth.service</td><td>Authentication policy on top of Better Auth</td></tr>
+    <tr><td class="mono">fuzzy-match.service</td><td>Tolerant matching for game titles</td></tr>
+    <tr><td class="mono">achievement.service</td><td>Unlock evaluation</td></tr>
+    <tr><td class="mono">daily-login.service</td><td>Streak/calendar logic</td></tr>
+    <tr><td class="mono">billing.service</td><td>Stripe subscriptions</td></tr>
+    <tr><td class="mono">referral.service</td><td>Referral programme</td></tr>
+    <tr><td class="mono">geo-*.service</td><td>Geo mode (consensus, scoring, metadata, rewards)</td></tr>
+    <tr><td class="mono">admin.service</td><td>Admin operations</td></tr>
+    <tr><td class="mono">job.service</td><td>Background-job orchestration</td></tr>
+  </table>
+
+  <h2 id="infrastructure">5. Infrastructure layer</h2>
+  <p><code>packages/backend/src/infrastructure/</code> — everything with a side effect.</p>
+<pre><code>infrastructure/
+├── auth/            # Better Auth setup
+├── database/        # PostgreSQL connection (Knex + Kysely)
+├── logger/          # Pino structured logger
+├── queue/           # BullMQ + Redis
+│   ├── connection.ts
+│   ├── queues.ts
+│   └── workers/     # import, sync, daily-challenge, geo-*, email reminders
+├── repositories/    # achievement, challenge, daily-login, game, import-state,
+│                    # inventory, leaderboard, screenshot, session, user
+└── socket/          # Socket.io server + event handlers</code></pre>
+
+  <h3 id="queues">Queue topology</h3>
+  <p>BullMQ + Redis power background jobs. Workers are started alongside the HTTP server in <code>src/index.ts</code>.</p>
+  <table>
+    <tr><th>Job type</th><th>Purpose</th><th>Schedule</th></tr>
+    <tr><td class="mono">import-games</td><td>Pull games from RAWG</td><td>On demand (admin)</td></tr>
+    <tr><td class="mono">import-screenshots</td><td>Fetch screenshots per game</td><td>On demand</td></tr>
+    <tr><td class="mono">create-daily-challenge</td><td>Generate the daily challenge</td><td>Daily 00:00 UTC</td></tr>
+    <tr><td class="mono">sync-all-games</td><td>Refresh RAWG metadata</td><td>Weekly (Sun 02:00 UTC)</td></tr>
+    <tr><td class="mono">geo-*-import</td><td>Wikidata / Steam / Fandom geo data</td><td>On demand</td></tr>
+    <tr><td class="mono">streak-risk-email</td><td>Remind players whose streak is at risk</td><td>Scheduled</td></tr>
+    <tr><td class="mono">referral-announcement-email</td><td>Notify referrer of new referee</td><td>Event-triggered</td></tr>
+  </table>
+
+  <h3 id="realtime">Realtime (Socket.io)</h3>
+  <p>Two room types:</p>
+  <ul>
+    <li><code>challenge_&lt;id&gt;</code> — dynamic per-challenge room. Clients join when entering a leaderboard view; server emits <code>leaderboard_update</code> when a guess lands.</li>
+    <li><code>admin</code> — singleton room for admins watching job progress (<code>job_progress</code>, <code>job_complete</code>, <code>job_failed</code>).</li>
+  </ul>
+  <p>Detailed event reference: <a href="./realtime.md"><code>docs/realtime.md</code></a>.</p>
+
+  <h2 id="frontend">6. Frontend organisation</h2>
+  <p>Feature-folder layout under <code>packages/frontend/src/</code>.</p>
+<pre><code>src/
+├── components/
+│   ├── ui/            # shadcn / Radix primitives
+│   ├── game/          # viewer, hints, input, results
+│   ├── achievement/   # cards, grid, notifications
+│   ├── daily-login/   # reward modal, calendar
+│   ├── admin/         # admin panels
+│   └── layout/        # Header, Footer, PageHero
+├── pages/             # 17 routed pages
+├── stores/            # Zustand: auth, game, achievement, dailyLogin, admin
+├── services/          # client-side: scoring, search, submission, leaderboard
+├── hooks/             # useAuth, useGameGuess, useKeyboardHeight, …
+└── lib/               # API client, i18n, utilities</code></pre>
+
+  <h2 id="decisions">7. Structural decisions</h2>
+  <ol>
+    <li><strong>Single shared types package</strong> — one source of truth for cross-package interfaces.</li>
+    <li><strong>Repository pattern</strong> — DB access abstracted behind repos so domain services stay testable.</li>
+    <li><strong>Thin controllers</strong> — routes only handle HTTP concerns.</li>
+    <li><strong>Zustand over Redux</strong> — smaller API, less boilerplate, persist middleware where needed.</li>
+    <li><strong>BullMQ + Redis</strong> — durable retry semantics for imports and emails.</li>
+    <li><strong>Fuzzy matching</strong> — tolerant guess matching is core to UX, lives in a dedicated domain service.</li>
+    <li><strong>Single Docker image in production</strong> — Node serves the built SPA and the API on port 80.</li>
+  </ol>
+
+  <h2 id="extend">8. How to extend safely</h2>
+  <ol>
+    <li>New endpoint? Add a route in <code>presentation/routes/</code>, validate with Zod, call a domain service.</li>
+    <li>New business rule? Put it in a domain service. If it needs data, inject a repository — <strong>do not import infrastructure directly</strong>.</li>
+    <li>New table? Create a migration under <code>packages/backend/migrations/</code> (date-prefixed <code>YYYYMMDD_name.ts</code>). Migrations run automatically via <code>docker-entrypoint.sh</code>.</li>
+    <li>New background job? Define a queue in <code>infrastructure/queue/queues.ts</code> and a worker in <code>infrastructure/queue/workers/</code>. Wire it from <code>src/index.ts</code>.</li>
+    <li>New realtime event? Document it in <code>docs/realtime.md</code> and emit from the appropriate domain hook.</li>
+  </ol>
+
+  <blockquote class="callout warn">
+    <strong>Don't serve this file from Express.</strong> <span class="badge risk">XSS</span>
+    HTML docs in <code>docs/</code> contain inline scripts and live next to authenticated cookies in production —
+    keep them local-open / GitHub-rendered only. If we ever want public URLs, use a separate origin (e.g. GitHub Pages).
+  </blockquote>
+
+</main>
+
+<aside class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#diagram">1. Request lifecycle</a></li>
+    <li><a href="#monorepo">2. Monorepo</a></li>
+    <li><a href="#presentation">3. Presentation</a></li>
+    <li><a href="#domain">4. Domain</a></li>
+    <li><a href="#infrastructure">5. Infrastructure</a></li>
+    <li><a href="#frontend">6. Frontend</a></li>
+    <li><a href="#decisions">7. Decisions</a></li>
+    <li><a href="#extend">8. How to extend</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Pilot HTML doc · companion to <a href="./architecture.md"><code>architecture.md</code></a> ·
+  Adoption rationale: <a href="../tasks/html-first-subagents-meeting.html"><code>tasks/html-first-subagents-meeting.html</code></a>
+</footer>
+
+<script>
+  // Trace animation: fade in trace path segments sequentially when "Play trace" is clicked.
+  (function () {
+    const btn = document.getElementById('play');
+    if (!btn) return;
+    const segs = Array.from(document.querySelectorAll('.trace'));
+    let timers = [];
+    btn.addEventListener('click', () => {
+      timers.forEach(clearTimeout); timers = [];
+      segs.forEach(s => s.classList.remove('run'));
+      void document.body.offsetWidth;
+      segs.forEach((s, i) => timers.push(setTimeout(() => s.classList.add('run'), i * 220)));
+    });
+  })();
+
+  // TOC active highlight on scroll.
+  (function () {
+    const links = Array.from(document.querySelectorAll('aside.toc a'));
+    const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!targets.length) return;
+    const setActive = (id) => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    const obs = new IntersectionObserver(entries => {
+      const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]) setActive(visible[0].target.id);
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    targets.forEach(t => obs.observe(t));
+  })();
+</script>
+
+</body>
+</html>
