@@ -1,11 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { toast } from 'sonner'
+import { RefreshCw, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export function PWAUpdatePrompt() {
   const { t, i18n } = useTranslation()
   const offlineToastShown = useRef(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -41,22 +45,78 @@ export function PWAUpdatePrompt() {
     }
   }, [offlineReady, setOfflineReady, t])
 
-  useEffect(() => {
-    if (!needRefresh) return
-    const id = toast.info(t('pwa.updateAvailable'), {
-      duration: Infinity,
-      action: {
-        label: t('pwa.refresh'),
-        onClick: () => {
-          void updateServiceWorker(true)
-        },
-      },
-      onDismiss: () => setNeedRefresh(false),
-    })
-    return () => {
-      toast.dismiss(id)
+  const handleRefresh = async (): Promise<void> => {
+    setRefreshing(true)
+    try {
+      await updateServiceWorker(true)
+    } catch {
+      setRefreshing(false)
     }
-  }, [needRefresh, setNeedRefresh, updateServiceWorker, t])
+  }
 
-  return null
+  const handleDismiss = (): void => {
+    setNeedRefresh(false)
+  }
+
+  if (!needRefresh) return null
+
+  return (
+    <div
+      role="dialog"
+      aria-labelledby="pwa-update-panel-title"
+      aria-describedby="pwa-update-panel-desc"
+      aria-live="polite"
+      className={cn(
+        'fixed inset-x-3 bottom-3 z-[55] rounded-xl border bg-card/95 shadow-lg backdrop-blur',
+        'border-primary/30 p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
+      )}
+    >
+      <div
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
+        aria-hidden="true"
+      >
+        <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p
+          id="pwa-update-panel-title"
+          className="text-sm font-semibold text-foreground"
+        >
+          {t('pwa.updatePanel.title')}
+        </p>
+        <p
+          id="pwa-update-panel-desc"
+          className="mt-1 text-xs text-muted-foreground"
+        >
+          {t('pwa.updatePanel.description')}
+        </p>
+        <div className="mt-3 flex gap-2">
+          <Button size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw
+              className={cn('h-4 w-4 mr-1.5', refreshing && 'animate-spin')}
+              aria-hidden="true"
+            />
+            {refreshing ? t('pwa.updatePanel.refreshing') : t('pwa.updatePanel.refresh')}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleDismiss}
+            disabled={refreshing}
+          >
+            {t('pwa.updatePanel.later')}
+          </Button>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={handleDismiss}
+        disabled={refreshing}
+        aria-label={t('pwa.updatePanel.dismiss')}
+        className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  )
 }

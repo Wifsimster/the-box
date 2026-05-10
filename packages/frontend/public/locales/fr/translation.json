@@ -2079,6 +2079,14 @@
     "refresh": "Actualiser",
     "offlineReady": "Prêt à fonctionner hors ligne",
     "offlineBanner": "Vous êtes hors ligne — certaines fonctionnalités sont indisponibles",
+    "updatePanel": {
+      "title": "Mise à jour disponible",
+      "description": "Une nouvelle version de The Box est prête. Actualisez pour profiter des dernières améliorations.",
+      "refresh": "Actualiser",
+      "refreshing": "Actualisation…",
+      "later": "Plus tard",
+      "dismiss": "Fermer"
+    },
     "iosInstall": {
       "title": "Installez The Box sur votre écran d'accueil",
       "tap": "Touchez",

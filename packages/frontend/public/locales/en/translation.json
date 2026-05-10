@@ -2079,6 +2079,14 @@
     "refresh": "Refresh",
     "offlineReady": "Ready to work offline",
     "offlineBanner": "You are offline — some features are unavailable",
+    "updatePanel": {
+      "title": "App update available",
+      "description": "A new version of The Box is ready. Refresh to get the latest features and fixes.",
+      "refresh": "Refresh now",
+      "refreshing": "Refreshing…",
+      "later": "Later",
+      "dismiss": "Dismiss"
+    },
     "iosInstall": {
       "title": "Install The Box on your home screen",
       "tap": "Tap",
