@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: HTML-first artifacts adoption — subagents meeting record (2026-05-10).
+  Reviewed Thariq's "Unreasonable Effectiveness of HTML" article and decided how
+  to apply it to The Box. Outcome: prefer HTML for visual/interactive specs,
+  keep Markdown for reference; pilot doc is docs/architecture.html; no /html
+  skill; HTML docs stay local-open / GitHub-rendered, never served by Express.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HTML-First Artifacts — Subagents Meeting · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; color: var(--fg); }
+  .hero p.thesis em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .persona {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .persona summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .persona summary::-webkit-details-marker { display: none; }
+  .persona summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); transition: transform .15s; }
+  .persona[open] summary::after { content: '−'; }
+  .persona summary .role { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; }
+  .persona summary .name { color: var(--muted); font-size: 0.9rem; }
+  .persona .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+  .persona .body h4 { margin: 1rem 0 0.4rem; font-size: 0.95rem; color: var(--neon-purple); }
+  .persona ul { padding-left: 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono { font-family: var(--mono); font-size: 0.85rem; }
+
+  .decisions { display: grid; gap: 0.75rem; margin: 1rem 0; }
+  .decision {
+    display: grid; grid-template-columns: 28px 1fr; gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--neon-purple);
+    border-radius: var(--radius);
+  }
+  .decision .num { font-family: var(--mono); color: var(--neon-purple); font-weight: 600; }
+  .decision strong { color: var(--fg); }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.risk { color: var(--risk); }
+  .badge.info { color: var(--neon-blue); }
+
+  .ships { display: grid; gap: 0.5rem; margin: 1rem 0; }
+  .ship {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 0.75rem; align-items: center;
+    padding: 0.6rem 0.85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+  }
+  .ship code { background: transparent; color: var(--neon-purple); padding: 0; }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">HTML-First Artifacts · Subagents Meeting</span>
+  <span class="repo">wifsimster/the-box · 2026-05-10</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>HTML-First Artifacts</h1>
+  <p class="meta"><b>Date</b> 2026-05-10 · <b>Attendees</b> Tech-Writer · Architect · UX Designer · PM/Workflow · <b>Facilitator</b> Claude</p>
+
+  <div class="hero">
+    <p class="thesis">
+      We reviewed <a href="https://x.com/trq212/status/2052809885763747935">Thariq's "Unreasonable Effectiveness of HTML"</a>
+      and agreed: for visual or interactive artifacts (specs, plans, meeting records, design proposals, post-incident reports)
+      <em>prefer single-file HTML</em> over Markdown. Markdown still wins for reference docs that tooling reads. <em>This file
+      itself is the first applied example.</em>
+    </p>
+  </div>
+
+  <h2 id="why">1. Why this meeting</h2>
+  <p>
+    The Box already has a markdown meeting precedent at <code>tasks/mobile-first-subagents-meeting.md</code>.
+    Thariq's argument is that as Claude's plans get longer, almost no one reads a 100+ line Markdown file end-to-end —
+    but a self-contained HTML doc with SVG, tables, callouts and tabs gets read, gets shared, and lets the reader
+    actually <em>use</em> the artifact (drag-drop ordering, sliders, copy-as-prompt buttons). We want that for our specs.
+  </p>
+  <p>
+    Crucial caveat from the article (and adopted here): <strong>do not turn this into a <code>/html</code> slash command
+    or skill.</strong> It is a prompting practice, not tooling.
+  </p>
+
+  <h2 id="personas">2. The personas</h2>
+  <p>Four agents ran in parallel. Their unedited contributions are below; the synthesis is in section 3.</p>
+
+  <details class="persona" open>
+    <summary><span class="role">Tech-Writer</span> <span class="name">Documentation strategist</span></summary>
+    <div class="body">
+      <h4>Triage</h4>
+      <ul>
+        <li><b>HTML wins for:</b> <code>architecture.md</code> (clean-architecture is a diagram, not prose), <code>game-flow.md</code> (scoring/tier rules beg an interactive calculator), <code>realtime.md</code> (Socket.io is a sequence diagram).</li>
+        <li><b>Stay markdown:</b> <code>api.md</code> (grep-friendly reference), <code>database.md</code> (schema tables), <code>better-auth-setup.md</code> (short setup), <code>ui-tokens.md</code> (token tables — markdown renders fine).</li>
+      </ul>
+      <h4>Pilot</h4>
+      <p><code>docs/game-flow.md</code> has the highest "feel-the-rules" payoff for PMs/QA. Architect later argued for <code>architecture.md</code>; meeting picked architecture (see decisions).</p>
+      <h4>Naming/location</h4>
+      <p>Mirror, don't fork: <code>docs/&lt;name&gt;.html</code> sits next to <code>docs/&lt;name&gt;.md</code>. Avoid a parallel <code>docs/html/</code> tree — it splits discovery and rots.</p>
+      <h4>PRD rule for <code>tasks/</code></h4>
+      <p>Markdown by default; HTML when the PRD has <em>2+ of</em> {user flow, screen mock, state diagram, formula/curve}. The <code>prd-rewards-*</code> series is borderline-HTML; <code>prd-e2e-test-coverage.md</code> is firmly markdown.</p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Architect</span> <span class="name">Repo integration & risk</span></summary>
+    <div class="body">
+      <h4>What HTML unlocks here</h4>
+      <ul>
+        <li><b>Layered boundary visuals</b> — colored bands with the "no inward import" rule physically drawn as a forbidden arrow, not just asserted in prose.</li>
+        <li><b>Interactive request trace</b> — hover <code>POST /api/guesses → game.service.submitGuess → guessRepository → guesses</code> and the path lights up.</li>
+        <li><b>Queue topology with real cardinality</b> — current Mermaid shows 1 generic worker; we have ~10 (import, sync, daily-challenge, geo-*, streak-risk-email, referral-announcement-email).</li>
+        <li><b>Socket.io room model</b> — dynamic <code>challenge_&lt;id&gt;</code> rooms vs the singleton <code>admin</code> room, with event-name labels on the edges.</li>
+      </ul>
+      <h4>Pilot artifact spec</h4>
+      <p>One killer SVG ~1200×600: three horizontal bands (Presentation/Domain/Infrastructure), animated dashed arrow tracing a real request flow, and a red strikethrough arrow for the forbidden inward dependency.</p>
+      <h4>Lifecycle rule</h4>
+      <p>Every HTML doc opens with a <code>&lt;!-- SUMMARY: … --&gt;</code> block (≤5 lines, plain text) — that's what a PR reviewer reads instead of the diff. Structural changes regenerate the file from a prompt rather than hand-edit.</p>
+      <blockquote class="callout risk">
+        <strong>Risk flagged.</strong> Inline <code>&lt;script&gt;</code> in committed docs is an XSS-shaped foot-gun the moment we serve <code>docs/</code> from the Express app — Better Auth cookies are same-origin. Decide <em>now</em> that HTML docs are local-open / GitHub-rendered only, never mounted under our origin.
+      </blockquote>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">UX Designer</span> <span class="name">Visual language for HTML artifacts</span></summary>
+    <div class="body">
+      <h4>Style tokens (pulled from <code>docs/ui-tokens.md</code>)</h4>
+      <table>
+        <tr><th>Token</th><th>Value</th><th>Use</th></tr>
+        <tr><td>Background</td><td class="mono">#0a0a0f</td><td>Doc canvas. Never pure black, never white.</td></tr>
+        <tr><td>Surface</td><td class="mono">#14141c → #1b1b25</td><td>Cards, code blocks. 1px border at 8% white.</td></tr>
+        <tr><td>Foreground</td><td class="mono">#e4e4e7</td><td>Body text. Muted <code>#a1a1aa</code> for secondary copy.</td></tr>
+        <tr><td>Accent (primary)</td><td class="mono">#a855f7</td><td>Links, active TOC, focus rings, decision rules.</td></tr>
+        <tr><td>Accent (hero only)</td><td class="mono">#ec4899</td><td>One gradient on the hero. Never on body text.</td></tr>
+        <tr><td>Font</td><td class="mono">Inter / JetBrains Mono</td><td>Same stack as the app. No serif fallback.</td></tr>
+        <tr><td>Spacing/radius</td><td class="mono">8px scale, 0.625rem</td><td>72ch content max-width, line-height 1.6.</td></tr>
+      </table>
+      <h4>Layout pattern (every doc)</h4>
+      <p>Sticky header (60px) → two columns (content max 72ch + sticky 220px right TOC) → footer with generated-date and repo. Below 900px the TOC collapses into a <code>&lt;details&gt;</code> at the top of content.</p>
+      <h4>Reusable styles</h4>
+      <p><b>Recommend: inline-only.</b> The portability of single-file HTML beats the DRYness of a shared <code>_artifact.css</code>. If consistency drifts, regenerate from this meeting record's stylesheet.</p>
+      <h4>Accessibility floor</h4>
+      <ul>
+        <li>Body text contrast ≥ <b>4.5:1</b>; <code>#ec4899</code> on dark fails for body — use only on ≥24px bold or as a non-text accent.</li>
+        <li><code>focus-visible</code> outline preserved (2px <code>#a855f7</code> ring); <code>@media (prefers-reduced-motion: reduce)</code> zeroes transitions.</li>
+      </ul>
+      <blockquote class="callout">
+        <strong>Anti-pattern banned.</strong> Glassmorphism overload (backdrop-blur on every card, rainbow gradients, <code>rounded-3xl</code>). The Box is restrained dark gaming, not Vercel-marketing-page. One neon glow per page maximum, flat surfaces otherwise. No Bootstrap blue, no Tailwind default purple — use <em>our</em> <code>#a855f7</code>.
+      </blockquote>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">PM/Workflow</span> <span class="name">Adoption rule, migration, success signal</span></summary>
+    <div class="body">
+      <h4>The rule (paste-ready for <code>.claude/CLAUDE.md</code>)</h4>
+      <pre><code>Prefer single-file HTML (inline CSS, optional vanilla JS, SVG) for any artifact a
+human will read and react to: PRDs in `tasks/`, subagent meeting notes, design
+proposals, release notes, post-incident reports. Plain Markdown is still correct
+for code-adjacent docs that tooling reads: `README.md`, `docs/*.md` reference,
+ADRs, migration notes, anything rendered by GitHub by default. Do NOT create a
+`/html` slash command or skill — prompt for HTML output explicitly per task.
+Canonical examples: tasks/html-first-subagents-meeting.html, docs/architecture.html.</code></pre>
+      <h4>PRD migration policy</h4>
+      <p><b>Migrate-on-meaningful-edit.</b> The 9 existing PRDs are mostly historical/shipped — rewriting is busywork; we capture the upside the next time one genuinely changes.</p>
+      <h4>One workflow win: PR review packets</h4>
+      <p>For non-trivial PRs (tournaments, daily-login streaks, scoring tweaks) generate an HTML "review packet" alongside the PR description: state-machine SVG, before/after viewer markup, interactive scoring-tier slider, live-rendered Socket.io sequence. Doubles as the changelog entry.</p>
+      <h4>Success signal (4 weeks)</h4>
+      <p>At least <b>3 of the next 5 PRDs/specs landed in <code>tasks/</code></b> are <code>.html</code> AND each has a non-author commenter who left feedback referencing an interactive element — not just prose. HTML files with no engagement = we're just reformatting Markdown.</p>
+      <h4>Open question</h4>
+      <p>Do HTML artifacts stay in-repo only (raw-file preview / local serve), or do we stand up a lightweight <code>tasks/</code> GitHub Pages publish step so non-engineer / French-speaking stakeholders can open them by URL?</p>
+    </div>
+  </details>
+
+  <h2 id="decisions">3. Decisions</h2>
+  <div class="decisions">
+    <div class="decision"><span class="num">1</span><div><strong>Adopt HTML-first for visual/interactive artifacts.</strong> PRDs with flows/state/economy, meeting records, design proposals, review packets, post-incident reports. Markdown stays for reference docs (<code>api.md</code>, <code>database.md</code>, <code>ui-tokens.md</code>).</div></div>
+    <div class="decision"><span class="num">2</span><div><strong>Pilot doc:</strong> <code>docs/architecture.html</code>. Mirrors <code>docs/architecture.md</code>, ships in the same commit as this meeting record. The killer SVG is the layered request-trace diagram.</div></div>
+    <div class="decision"><span class="num">3</span><div><strong>Location convention:</strong> mirror, don't fork. <code>docs/&lt;name&gt;.html</code> next to <code>docs/&lt;name&gt;.md</code>. No parallel <code>docs/html/</code> tree.</div></div>
+    <div class="decision"><span class="num">4</span><div><strong>No <code>/html</code> skill.</strong> Per the article and unanimous vote — this is a prompting practice. Adding tooling would freeze a style choice that's still settling.</div></div>
+    <div class="decision"><span class="num">5</span><div><strong>Single-file, inline everything.</strong> No external CSS/JS, no asset folder, no build step. Portability over DRYness. The first <code>.html</code> doc <em>is</em> the style guide.</div></div>
+    <div class="decision"><span class="num">6</span><div><strong>Every HTML doc opens with <code>&lt;!-- SUMMARY: ... --&gt;</code></strong> (≤5 lines). PR reviewers read that instead of the diff. Structural changes regenerate; do not hand-edit.</div></div>
+    <div class="decision"><span class="num">7</span><div><strong>HTML docs are local-open / GitHub-rendered only.</strong> <span class="badge risk">XSS</span> Never serve <code>docs/*.html</code> from the Express app (same-origin Better Auth cookies). If we ever need URLs, do it via GitHub Pages with a separate origin.</div></div>
+    <div class="decision"><span class="num">8</span><div><strong>Existing PRDs:</strong> migrate-on-meaningful-edit. Don't bulk-convert.</div></div>
+  </div>
+
+  <h2 id="ships">4. What we're shipping today</h2>
+  <div class="ships">
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>tasks/html-first-subagents-meeting.html</code> — this file</span>
+      <span class="badge info">meeting</span>
+    </div>
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>docs/architecture.html</code> — pilot HTML doc with the layered request-trace SVG</span>
+      <span class="badge info">pilot</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">edit</span>
+      <span><code>.claude/CLAUDE.md</code> — append the HTML-first rule + lifecycle convention + don't-serve-from-Express policy</span>
+      <span class="badge info">policy</span>
+    </div>
+  </div>
+
+  <h2 id="open">5. Open questions for humans</h2>
+  <ol>
+    <li>GitHub Pages publish step for <code>tasks/</code>, or stay in-repo only?</li>
+    <li>Should we revisit migrate-on-meaningful-edit after a quarter, or commit to it indefinitely?</li>
+    <li>Are non-engineer reviewers (French-speaking stakeholders) expected to engage with HTML artifacts now, or is this still engineer-internal?</li>
+  </ol>
+
+  <h2 id="success">6. How we'll know it worked</h2>
+  <p>
+    In <b>4 weeks</b> (week of 2026-06-07): at least <b>3 of the next 5 specs/PRDs</b> in <code>tasks/</code> are <code>.html</code>,
+    AND each has at least one non-author comment referencing an interactive element (chart, slider, toggle, draggable list).
+    If we get HTML files but no engagement, we're just reformatting Markdown — revisit.
+  </p>
+
+</main>
+
+<aside class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#why">1. Why this meeting</a></li>
+    <li><a href="#personas">2. The personas</a></li>
+    <li><a href="#decisions">3. Decisions</a></li>
+    <li><a href="#ships">4. Shipping today</a></li>
+    <li><a href="#open">5. Open questions</a></li>
+    <li><a href="#success">6. Success signal</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Generated 2026-05-10 · <a href="https://x.com/trq212/status/2052809885763747935">Source article</a> ·
+  Sibling pilot: <a href="../docs/architecture.html"><code>docs/architecture.html</code></a> ·
+  Markdown precedent: <a href="./mobile-first-subagents-meeting.md"><code>tasks/mobile-first-subagents-meeting.md</code></a>
+</footer>
+
+<script>
+  // Active TOC highlight on scroll. Inline, vanilla, ~25 lines.
+  (function () {
+    const links = Array.from(document.querySelectorAll('aside.toc a'));
+    const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!targets.length) return;
+    const setActive = (id) => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    const obs = new IntersectionObserver(entries => {
+      const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]) setActive(visible[0].target.id);
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    targets.forEach(t => obs.observe(t));
+  })();
+</script>
+
+</body>
+</html>
