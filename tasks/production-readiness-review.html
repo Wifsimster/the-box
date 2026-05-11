@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Pre-launch review of The Box (2026-05-11). Verdict: NOT ready to ship.
+  11 BLOCKERs across security, game-correctness, queues, and deploy. Top risks:
+  Socket.io namespaces accept any client (IDOR + admin leak), BETTER_AUTH_SECRET
+  has a known dev default, client-supplied timer enables score abuse, game/daily
+  submissions are not transactional, no SIGTERM handling, importQueue grows
+  Redis forever. Fix the 11 BLOCKERs before any production deploy.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Production Readiness Review — The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 240px; gap: 3rem; max-width: 1180px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.85rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc strong { display: block; margin-bottom: 0.5rem; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { border: none; color: var(--muted); }
+  aside.toc a:hover { color: var(--fg); }
+
+  h1 { font-size: 1.875rem; margin: 0 0 0.25rem; letter-spacing: -0.01em;
+       background: linear-gradient(90deg, var(--fg), var(--neon-purple));
+       -webkit-background-clip: text; background-clip: text; color: transparent;
+       text-shadow: 0 0 32px rgba(168,85,247,0.18); }
+  h2 { font-size: 1.25rem; margin: 2.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  p.lead { color: var(--muted); margin-top: 0; }
+
+  .verdict {
+    border: 1px solid var(--risk);
+    background: linear-gradient(180deg, rgba(239,68,68,0.08), transparent);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0 2rem;
+  }
+  .verdict strong { color: var(--risk); }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+  .pill.blocker { color: var(--risk); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+  .pill.high { color: var(--warn); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+  .pill.medium { color: var(--neon-blue); border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.08); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0.75rem 0 1.5rem; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.path { font-family: var(--mono); font-size: 0.8rem; color: var(--neon-blue); white-space: nowrap; }
+  td.sev { white-space: nowrap; }
+
+  .issue {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem;
+    margin: 0.85rem 0;
+  }
+  .issue.blocker { border-left: 3px solid var(--risk); }
+  .issue.high { border-left: 3px solid var(--warn); }
+  .issue.medium { border-left: 3px solid var(--neon-blue); }
+  .issue h3 { margin-top: 0; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .issue .where { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); display: block; margin-top: -0.25rem; margin-bottom: 0.5rem; }
+  .issue .fix-label { color: var(--neon-purple); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.5rem; display: block; }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { padding-left: 1.5rem; position: relative; margin: 0.35rem 0; }
+  ul.checklist li::before {
+    content: "\2610";
+    position: absolute; left: 0; top: 0;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; gap: 1rem; }
+    aside.toc { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="title">Production Readiness Review</span>
+  <span class="repo">wifsimster/the-box @ 2026-05-11</span>
+</header>
+
+<div class="layout">
+<aside class="toc" aria-label="Contents">
+  <strong>Sections</strong>
+  <ol>
+    <li><a href="#verdict">Verdict</a></li>
+    <li><a href="#scope">Scope &amp; method</a></li>
+    <li><a href="#summary">Blocker summary</a></li>
+    <li><a href="#blockers">Blockers (11)</a></li>
+    <li><a href="#high">High severity (8)</a></li>
+    <li><a href="#medium">Medium severity (9)</a></li>
+    <li><a href="#nogo">Pre-ship checklist</a></li>
+    <li><a href="#noissue">Areas verified clean</a></li>
+  </ol>
+</aside>
+
+<main>
+
+<h1>Production Readiness Review</h1>
+<p class="lead">The Box · v2.91.0 · branch <code>claude/review-box-app-blockers-1einj</code></p>
+
+<div id="verdict" class="verdict">
+  <strong>Verdict: do not ship yet.</strong>
+  Eleven release-blocking issues found across four independent audits (security,
+  data integrity, deploy/infra, realtime/observability). The most damaging are
+  reachable without authentication or special tooling: any browser session can
+  join other users' Socket.io rooms and read their reward events, and any client
+  can subtract real seconds from their guess time to inflate scores. None of the
+  fixes are large; most are 1&ndash;20 lines. Estimated 2&ndash;4 engineer-days to
+  clear all blockers, plus one round of E2E regression.
+</div>
+
+<h2 id="scope">Scope &amp; method</h2>
+<p>
+  Four parallel audits, each scoped to a non-overlapping risk surface, reading
+  the repo at HEAD of <code>claude/review-box-app-blockers-1einj</code>. Findings
+  are reproduced verbatim where they cite specific code; severities use the same
+  scale across audits:
+</p>
+<ul>
+  <li><span class="pill blocker">Blocker</span> &mdash; exploitable today, or will break the production deploy.</li>
+  <li><span class="pill high">High</span> &mdash; ship-blocking if you have any SLO or compliance commitment; safe to defer one release at most.</li>
+  <li><span class="pill medium">Medium</span> &mdash; not exploitable in isolation, but degrades operability or invites future regression.</li>
+</ul>
+<p>
+  Hardening recommendations (CSP, helmet tuning, log shipping, APM, etc.) were
+  excluded by design &mdash; this review only lists things that are <em>actually
+  broken or unsafe today</em>.
+</p>
+
+<h2 id="summary">Blocker summary</h2>
+<table>
+  <thead>
+    <tr><th>#</th><th>Area</th><th>What breaks</th><th>File</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>B1</td><td>Realtime</td><td>Any client joins admin room</td><td class="path">socket.ts:28-48</td></tr>
+    <tr><td>B2</td><td>Realtime</td><td>Any client joins arbitrary <code>user:&lt;id&gt;</code> room (IDOR)</td><td class="path">socket.ts:227, 264</td></tr>
+    <tr><td>B3</td><td>Auth</td><td><code>BETTER_AUTH_SECRET</code> defaults to a known dev string</td><td class="path">config/env.ts:13</td></tr>
+    <tr><td>B4</td><td>Game</td><td>Client-supplied timer inflates score multiplier</td><td class="path">game.routes.ts:226 / game.service.ts:450</td></tr>
+    <tr><td>B5</td><td>Game</td><td><code>submitGuess</code> is not transactional (race + double-spend)</td><td class="path">game.service.ts:555-634</td></tr>
+    <tr><td>B6</td><td>Game</td><td>Daily-login claim check-then-act race</td><td class="path">daily-login.service.ts:278-342</td></tr>
+    <tr><td>B7</td><td>Game</td><td>Completed-session replay via <code>startChallenge</code></td><td class="path">game.service.ts:362-365</td></tr>
+    <tr><td>B8</td><td>Deploy</td><td>No SIGTERM / graceful shutdown</td><td class="path">backend/src/index.ts</td></tr>
+    <tr><td>B9</td><td>Queues</td><td><code>importQueue</code> missing <code>removeOnComplete</code> &rarr; Redis bloat</td><td class="path">queue/queues.ts:6-17</td></tr>
+    <tr><td>B10</td><td>Queues</td><td>Daily-challenge cron uses live <code>new Date()</code> at execution time &rarr; restart skip/dup</td><td class="path">workers/daily-challenge-logic.ts</td></tr>
+    <tr><td>B11</td><td>Deploy</td><td>Backend source maps shipped in production image</td><td class="path">backend/tsconfig.json:15 + Dockerfile</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= BLOCKERS ======================= -->
+<h2 id="blockers">Blockers</h2>
+
+<div class="issue blocker">
+  <h3>B1 &mdash; Socket.io <code>/admin</code> namespace accepts any connection <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/infrastructure/socket/socket.ts:28-48</span>
+  <p>
+    The <code>/admin</code> namespace has no <code>io.use()</code> middleware. Any
+    unauthenticated client can <code>io('/admin').emit('join_admin')</code> and
+    will be joined to <code>admin-room</code>, which receives live BullMQ
+    <code>completed</code> / <code>failed</code> payloads &mdash; including job
+    <code>returnvalue</code> and error stacks (see B-H1 below).
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>adminNamespace.use(async (socket, next) =&gt; {
+  const session = await auth.api.getSession({ headers: socket.handshake.headers as any })
+  if (!session?.user || session.user.role !== 'admin') return next(new Error('Unauthorized'))
+  next()
+})</code></pre>
+</div>
+
+<div class="issue blocker">
+  <h3>B2 &mdash; <code>/geo</code> and <code>/notifications</code> let any client join <code>user:&lt;anyId&gt;</code> <span class="pill blocker">Blocker</span></h3>
+  <span class="where">socket.ts:227-231 (geo) and 264-267 (notifications)</span>
+  <p>
+    Both namespaces accept <code>join_user</code> with a client-supplied
+    <code>userId</code> and call <code>socket.join(`user:${userId}`)</code>
+    without checking the session. Server-emitted events
+    (<code>emitRewardGranted</code>, <code>emitUserPremiumGranted</code>,
+    <code>emitGeoTierUp</code>) are then visible to any attacker who guesses or
+    enumerates a target's user id. This is a textbook IDOR with a
+    live websocket channel.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>socket.on('join_user', async (userId: unknown) =&gt; {
+  const session = await auth.api.getSession({ headers: socket.handshake.headers as any })
+  if (!session?.user?.id || session.user.id !== userId) {
+    socket.emit('error', 'unauthorized'); return
+  }
+  socket.join(`user:${userId}`)
+})</code></pre>
+</div>
+
+<div class="issue blocker">
+  <h3>B3 &mdash; <code>BETTER_AUTH_SECRET</code> defaults to a known dev string <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/config/env.ts:13 &mdash; also visible in .env.example:25</span>
+  <p>
+    Today the env loader does
+    <code>BETTER_AUTH_SECRET: process.env['BETTER_AUTH_SECRET'] || 'dev-secret-change-in-production-min-32-chars'</code>.
+    The fallback is exactly 32 chars, so the length check at lines 82-83 passes.
+    A production rollout that forgets the env var boots with a publicly-known
+    secret; an attacker who notices can forge session cookies for any user.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>// env.ts
+BETTER_AUTH_SECRET: process.env['BETTER_AUTH_SECRET'],
+// validateEnv()
+if (!env.BETTER_AUTH_SECRET) throw new Error('BETTER_AUTH_SECRET is required')
+if (env.BETTER_AUTH_SECRET.length &lt; 32) throw new Error('BETTER_AUTH_SECRET must be &ge; 32 chars')
+if (env.BETTER_AUTH_SECRET.startsWith('dev-secret')) throw new Error('Refusing to start with dev secret')</code></pre>
+</div>
+
+<div class="issue blocker">
+  <h3>B4 &mdash; Round timer is client-supplied <span class="pill blocker">Blocker</span></h3>
+  <span class="where">presentation/routes/game.routes.ts:226 &rarr; domain/services/game.service.ts:450</span>
+  <p>
+    <code>roundTimeTakenMs</code> is taken from the request body and fed
+    straight into <code>calculateSpeedMultiplier</code>, which awards
+    0.5&times; to 2.0&times; on score. Any user can send
+    <code>{ "roundTimeTakenMs": 1 }</code> and pin themselves at the top of the
+    leaderboard. This is the easiest exploit in the codebase and would
+    invalidate every leaderboard run on day one.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Stop reading <code>roundTimeTakenMs</code> from the body. Record
+    <code>round_started_at</code> server-side when the round becomes active
+    and compute elapsed at submit. Until that refactor lands, the one-line
+    mitigation is to cap the client value against a server reference:
+    <code>const elapsed = Math.max(serverElapsed, clientElapsed)</code>.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>B5 &mdash; <code>submitGuess</code> mutates four tables without a transaction <span class="pill blocker">Blocker</span></h3>
+  <span class="where">domain/services/game.service.ts:555-634</span>
+  <p>
+    A successful guess inserts a guess row, updates <code>tier_sessions</code>,
+    updates <code>game_sessions</code>, decrements inventory (for hint /
+    second-chance applications), and may insert achievements. None of this is
+    wrapped in <code>db.transaction()</code>. Concurrent guesses (one user, two
+    tabs / one bot) can: double-apply a second-chance floor, decrement the same
+    inventory item twice, or commit a partial guess that leaves the session in
+    an unrecoverable state.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Wrap the route handler body in <code>db.transaction(async (trx) =&gt; { ... })</code>
+    and thread the <code>trx</code> through the repositories that already
+    accept it. Add a unique index on <code>guesses(tier_session_id, position)</code>
+    if you want to make duplicate-correct submissions a hard error rather than
+    just inefficient.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>B6 &mdash; Daily-login claim has a check-then-act race <span class="pill blocker">Blocker</span></h3>
+  <span class="where">domain/services/daily-login.service.ts:278-342</span>
+  <p>
+    The <code>(user_id, claim_date_utc)</code> unique index added in
+    <code>20260503_*</code> protects the claim row, but the surrounding logic
+    &mdash; streak increment, inventory upsert, freeze auto-consume at
+    lines 200-240 &mdash; runs outside a transaction with the insert. Two
+    concurrent <code>POST /daily-login/claim</code> calls can both pass the
+    <code>!status.canClaim</code> guard and double-credit inventory before the
+    second insert fails.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Move the entire claim path (status read, freeze consume, streak update,
+    inventory upsert, claim insert) into a single transaction. Let the unique
+    constraint be the source of truth: catch the duplicate-key error and
+    return the existing claim instead of running side effects again.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>B7 &mdash; Completed session can be re-started <span class="pill blocker">Blocker</span></h3>
+  <span class="where">game.service.ts:362-365</span>
+  <p>
+    <code>startChallenge</code> reads <code>is_completed</code> once and then
+    creates a new <code>tier_sessions</code> row. Two rapid calls race past the
+    check and a player gets a second authoritative run at the same daily,
+    overwriting their original score.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Replace the read-check with an atomic guarded update or a unique constraint
+    on <code>(game_session_id, tier)</code> for tier sessions. Cheapest patch:
+    select-for-update inside the transaction added in B5.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>B8 &mdash; No SIGTERM / graceful shutdown <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/index.ts (around the <code>start()</code> call)</span>
+  <p>
+    Docker sends SIGTERM on rolling deploy and waits ~10s before SIGKILL.
+    The current entrypoint registers no handlers, so in-flight HTTP requests
+    are cut mid-response, Socket.io clients see a hard disconnect, BullMQ jobs
+    are interrupted without state, and the Knex / Redis pools never drain.
+    Every deploy risks a partial guess commit or a partial daily-login claim.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>const shutdown = async (signal: string) =&gt; {
+  logger.info({ signal }, 'shutting down')
+  httpServer.close()
+  io.close()
+  await Promise.allSettled([
+    importQueue.close(), geoQueue.close(), pushQueue.close(),
+    importWorker.close(), geoWorker.close(), pushWorker.close(),
+    db.destroy(),
+  ])
+  process.exit(0)
+}
+process.on('SIGTERM', () =&gt; shutdown('SIGTERM'))
+process.on('SIGINT',  () =&gt; shutdown('SIGINT'))</code></pre>
+</div>
+
+<div class="issue blocker">
+  <h3>B9 &mdash; <code>importQueue</code> never trims completed jobs <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/infrastructure/queue/queues.ts:6-17</span>
+  <p>
+    Both <code>geoQueue</code> and <code>pushQueue</code> set
+    <code>removeOnComplete</code> in <code>defaultJobOptions</code>;
+    <code>importQueue</code> does not. RAWG import jobs accumulate forever in
+    Redis. With the current weekly import cadence this is slow burn, but with
+    the daily-challenge worker living on the same queue (see B10) it bloats
+    much faster.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>// queues.ts
+export const importQueue = new Queue('import', {
+  connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { count: 100, age: 7 * 24 * 3600 },
+    removeOnFail:     { count: 100 },
+  },
+})</code></pre>
+</div>
+
+<div class="issue blocker">
+  <h3>B10 &mdash; Daily-challenge worker derives the date at execution time <span class="pill blocker">Blocker</span></h3>
+  <span class="where">infrastructure/queue/workers/daily-challenge-logic.ts (cron at index.ts:372-384)</span>
+  <p>
+    The job is scheduled <code>0 0 * * *</code> UTC, but the worker calls
+    <code>getTodayDateUTC()</code> at <em>run</em> time. A container that
+    restarts at 23:59:55 UTC re-registers the recurring job after midnight, so
+    the job either fires for tomorrow's date (skipping today) or fires twice
+    around the boundary. Without idempotency on
+    <code>(daily_challenge.date)</code> this can create duplicate challenges
+    or silently skip a day &mdash; both very visible bugs for daily players.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Capture the target date at enqueue time:
+    <code>importQueue.add('create-daily-challenge', { date: todayUtcISO }, { jobId: `daily-${todayUtcISO}` })</code>.
+    The <code>jobId</code> makes the queue de-dupe on its own. Add a unique
+    index on <code>daily_challenge.date</code> if the schema doesn't already
+    have one.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>B11 &mdash; Backend source maps shipped in production image <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/tsconfig.json:15 + Dockerfile (copies <code>dist/</code> wholesale)</span>
+  <p>
+    <code>"sourceMap": true</code> emits <code>*.js.map</code> next to compiled
+    JS, and the production image ships them. Anyone who pulls the public Docker
+    Hub image (or hits a hypothetical <code>/api/index.js.map</code>) gets the
+    original TypeScript with variable names, comments, and SQL strings.
+    Combined with B3 this materially lowers the cost of a targeted attack.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Either flip <code>sourceMap</code> off in the production tsconfig, or add
+    <code>RUN find /app/packages/backend/dist -name "*.map" -delete</code> to
+    the runtime stage of the Dockerfile.
+  </p>
+</div>
+
+<!-- ======================= HIGH ======================= -->
+<h2 id="high">High severity</h2>
+
+<div class="issue high">
+  <h3>H1 &mdash; Admin socket events broadcast raw job payloads <span class="pill high">High</span></h3>
+  <span class="where">socket.ts:63-152</span>
+  <p>
+    BullMQ <code>completed</code> / <code>failed</code> handlers forward the
+    job's <code>returnvalue</code> and <code>failedReason</code> straight to
+    <code>admin-room</code>. If a job ever surfaces a DB error, a stack trace,
+    a RAWG response, or a user record, every connected admin sees it. After
+    B1 is fixed this is reduced to a privilege issue rather than a public leak,
+    but it's still worth scrubbing.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H2 &mdash; Wrong-guess response leaks future hints <span class="pill high">High</span></h3>
+  <span class="where">game.service.ts:720-770</span>
+  <p>
+    The submit response includes <code>availableHints</code> covering the
+    remaining games' release year, publisher, developer, and genre &mdash; even
+    on a <em>wrong</em> guess. A player (or a bot) can throw away one guess to
+    harvest hints for every subsequent screenshot in the run.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Only emit hints for the position that was just resolved correctly, or wait
+    until the tier session is fully completed. Stop returning data about games
+    the user hasn't reached yet.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H3 &mdash; <code>guesses.guessed_text</code> is nullable <span class="pill high">High</span></h3>
+  <span class="where">migrations/20260113_merged_schema.ts:290-303 + game.service.ts:442</span>
+  <p>
+    A guess with an empty <code>guessText</code> short-circuits fuzzy matching
+    and falls back to the client-supplied <code>gameId</code>. Combined with a
+    leaked id (H2 is one source), a client can submit a "blank correct" guess.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Make the column <code>NOT NULL</code> and reject empty strings in the route
+    Zod schema. Server-side, treat <code>gameId</code> as a tie-breaker, never
+    a sole correctness signal.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H4 &mdash; First-user admin bootstrap race <span class="pill high">High</span></h3>
+  <span class="where">infrastructure/auth/auth.ts:240-249</span>
+  <p>
+    <code>SELECT COUNT(*) FROM "user"</code> followed by an insert is not
+    serialisable. Two simultaneous signups on a fresh DB can both become admin.
+    Low blast radius after launch, but it is the kind of thing that surfaces
+    only the one time it really matters.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Wrap the count + insert in a serialisable transaction, <em>or</em> add a
+    partial unique index <code>CREATE UNIQUE INDEX one_admin ON "user"(role) WHERE role = 'admin'</code>
+    and let the DB enforce it.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H5 &mdash; Knex pool: no SSL for remote DBs, no idle timeout <span class="pill high">High</span></h3>
+  <span class="where">packages/backend/knexfile.ts:20-22</span>
+  <p>
+    Production block sets only <code>min</code>/<code>max</code>. RDS, Neon,
+    Supabase &mdash; any managed Postgres &mdash; will reject the connection
+    without <code>ssl</code>. Without <code>idleTimeoutMillis</code> the pool
+    won't free idle clients across deploys.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>production: {
+  client: 'pg',
+  connection: {
+    connectionString: env.DATABASE_URL,
+    ssl: env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+  },
+  pool: { min: 2, max: 10, idleTimeoutMillis: 30_000 },
+}</code></pre>
+</div>
+
+<div class="issue high">
+  <h3>H6 &mdash; No process-level <code>unhandledRejection</code> handler <span class="pill high">High</span></h3>
+  <span class="where">packages/backend/src/index.ts</span>
+  <p>
+    Without a process-level handler, an unhandled rejection in a worker is
+    logged and silently drops the worker. The HTTP server keeps accepting
+    traffic, so the queue stops draining without alarms. Fail fast and let
+    Docker's restart policy bring the container back.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>process.on('unhandledRejection', (err) =&gt; { logger.fatal({ err }, 'unhandledRejection'); process.exit(1) })
+process.on('uncaughtException',  (err) =&gt; { logger.fatal({ err }, 'uncaughtException');  process.exit(1) })</code></pre>
+</div>
+
+<div class="issue high">
+  <h3>H7 &mdash; <code>express.json()</code> with no explicit limit <span class="pill high">High</span></h3>
+  <span class="where">backend/src/index.ts:78</span>
+  <p>
+    Default Express limit is 100kb, which is mostly fine, but the value is
+    implicit and any future <code>app.use(express.json({ limit: ... }))</code>
+    change is a memory-DoS vector if set carelessly. Pin it.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p><code>app.use(express.json({ limit: '256kb' }))</code></p>
+</div>
+
+<div class="issue high">
+  <h3>H8 &mdash; Request logger doesn't strip auth tokens from URLs <span class="pill high">High</span></h3>
+  <span class="where">presentation/middleware/request-logger.middleware.ts:8-14</span>
+  <p>
+    Password-reset and email-verification links include single-use tokens as
+    query parameters. The middleware logs <code>req.url</code> verbatim, which
+    means anyone with log access can read the token within its TTL.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Log <code>req.path</code> instead of <code>req.url</code>, and never
+    serialize <code>req.query</code> or <code>req.body</code> from auth-adjacent
+    routes.
+  </p>
+</div>
+
+<!-- ======================= MEDIUM ======================= -->
+<h2 id="medium">Medium severity</h2>
+
+<div class="issue medium">
+  <h3>M1 &mdash; Backup script exposes DB password via <code>PGPASSWORD</code> <span class="pill medium">Medium</span></h3>
+  <span class="where">compose.yml:116 + scripts/db-backup.sh:12</span>
+  <p>
+    <code>PGPASSWORD</code> is set as a container env var, visible in
+    <code>docker inspect</code> and in any leaked log line that dumps env.
+    Switch to a <code>~/.pgpass</code> file mounted read-only at 0600.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M2 &mdash; Backup script has no fail-fast on <code>pg_dump</code> failure <span class="pill medium">Medium</span></h3>
+  <span class="where">scripts/db-backup.sh:12-15</span>
+  <p>
+    A piped <code>pg_dump | gzip</code> hides the upstream exit code, then
+    <code>find ... -delete</code> deletes old backups regardless of whether the
+    new one is valid. One failed backup can wipe the rotation window.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>set -o pipefail
+pg_dump ... | gzip &gt; "$F.tmp" &amp;&amp; mv "$F.tmp" "$F" || { logger 'backup failed'; exit 1; }
+# only run retention after a successful backup</code></pre>
+</div>
+
+<div class="issue medium">
+  <h3>M3 &mdash; Hardcoded <code>TZ=Europe/Paris</code> in compose.yml vs UTC crons <span class="pill medium">Medium</span></h3>
+  <span class="where">compose.yml:28</span>
+  <p>
+    Pino timestamps and any naive <code>new Date()</code> uses get Paris time,
+    while the BullMQ crons explicitly use UTC. Pick one (UTC everywhere is the
+    convention used by the rest of the codebase) and remove the override.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M4 &mdash; Streak-freeze auto-consume not transactional with the streak update <span class="pill medium">Medium</span></h3>
+  <span class="where">daily-login.service.ts:200-240</span>
+  <p>
+    Two concurrent <code>/status</code> calls on the first day after a missed
+    day can both pass the "would reset, missed exactly one" guard and both try
+    to consume a freeze. Mostly a refund/UX bug, but it shows up the moment a
+    user has two tabs open.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M5 &mdash; Recurring-job dedup race on boot <span class="pill medium">Medium</span></h3>
+  <span class="where">backend/src/index.ts:356-369</span>
+  <p>
+    The boot path does <code>removeRepeatableByKey</code> then
+    <code>add</code> for each cron. Two containers booting in parallel
+    (rolling deploy with overlap) can interleave and end up with either zero or
+    two recurring jobs. Use stable <code>jobId</code>s and idempotent
+    <code>add</code> calls everywhere.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M6 &mdash; No Socket.io Redis adapter <span class="pill medium">Medium</span></h3>
+  <span class="where">socket.ts:19-25</span>
+  <p>
+    Not a problem for the current single-container deploy &mdash; flagging it
+    only because the <code>compose.yml</code> structure suggests horizontal
+    scale is a near-term goal. The day a second replica appears, rooms and
+    emits stop working without an adapter or sticky sessions.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M7 &mdash; Admin access denials logged at <code>warn</code> <span class="pill medium">Medium</span></h3>
+  <span class="where">middleware/auth.middleware.ts:92-94</span>
+  <p>
+    With the typical production <code>LOG_LEVEL=info</code> these are dropped.
+    Promote to <code>error</code> so admin-probing attempts are always visible.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M8 &mdash; Migration <code>20260113_merged_schema.ts</code> not partial-failure safe <span class="pill medium">Medium</span></h3>
+  <span class="where">migrations/20260113_merged_schema.ts:33-60</span>
+  <p>
+    Seventeen <code>createTable</code> calls in a single migration. A failure on
+    table #10 leaves the schema half-built and Knex won't re-run a partially
+    committed migration. Either wrap the whole thing in a transaction (Knex
+    supports this when none of the statements are DDL that breaks transactional
+    DDL semantics on Postgres) or use <code>createTableIfNotExists</code>.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M9 &mdash; i18n fallback is implicit <span class="pill medium">Medium</span></h3>
+  <span class="where">packages/frontend/public/locales/{en,fr}/translation.json</span>
+  <p>
+    Both files have ~1879 keys, but the i18n setup doesn't pin a
+    <code>fallbackLng</code>. The result is that a missing FR key shows the
+    English string mid-page on a primarily French app &mdash; a visible
+    quality regression, not a bug. Pin <code>fallbackLng: 'fr'</code>
+    and audit for missing keys before launch.
+  </p>
+</div>
+
+<!-- ======================= CHECKLIST ======================= -->
+<h2 id="nogo">Pre-ship checklist</h2>
+<p>Minimum bar to unblock launch:</p>
+<ul class="checklist">
+  <li>B1, B2 &mdash; Socket.io <code>/admin</code>, <code>/geo</code>, <code>/notifications</code> all gated by a session-validating <code>io.use()</code> middleware.</li>
+  <li>B3 &mdash; <code>BETTER_AUTH_SECRET</code> default removed; missing-secret throws on boot.</li>
+  <li>B4 &mdash; Server-authoritative round timer (or at minimum a server-side cap that floors abuse).</li>
+  <li>B5 &mdash; <code>submitGuess</code> wrapped in a Knex transaction.</li>
+  <li>B6 &mdash; Daily-login claim path transactional; duplicate-key fallback path proven by a unit test.</li>
+  <li>B7 &mdash; <code>startChallenge</code> uses an atomic guarded update or a unique constraint.</li>
+  <li>B8 &mdash; SIGTERM handler closes HTTP, Socket.io, queues, workers, and DB pool.</li>
+  <li>B9 &mdash; <code>importQueue</code> has <code>removeOnComplete</code> / <code>removeOnFail</code> bounds.</li>
+  <li>B10 &mdash; Daily-challenge job carries its target date in the payload and uses a stable <code>jobId</code>.</li>
+  <li>B11 &mdash; Source maps stripped from the production image (or <code>sourceMap: false</code> in prod tsconfig).</li>
+  <li>H1&ndash;H8 &mdash; addressed or explicitly deferred with a tracking issue.</li>
+  <li>One full <code>npm run build &amp;&amp; npm run lint &amp;&amp; npm test &amp;&amp; npm run test:e2e</code> pass on the fix branch.</li>
+  <li>Manual smoke: register two users, play a daily, claim a daily-login, hit the admin panel, force a worker restart, confirm graceful shutdown logs.</li>
+</ul>
+
+<!-- ======================= CLEAN ======================= -->
+<h2 id="noissue">Areas verified clean</h2>
+<p>
+  Surfaces examined during the audits where no blocking or high-severity
+  issue was found:
+</p>
+<ul>
+  <li><strong>SQL injection</strong> &mdash; no <code>knex.raw</code> / <code>db.raw</code> concatenating user input was discovered.</li>
+  <li><strong>Zod validation</strong> &mdash; the routes audited all use the validation middleware; no route was found reading <code>req.body</code> without a schema.</li>
+  <li><strong>Catch-up leaderboard filter</strong> &mdash; <code>leaderboard.repository.ts</code> consistently filters <code>is_catch_up = false</code> on today, percentile, and monthly queries (lines 29, 61, 98).</li>
+  <li><strong>User cascade</strong> &mdash; <code>game_sessions.user_id</code> has <code>ON DELETE CASCADE</code>; deleting a user does not leave orphan rows in leaderboard sources.</li>
+  <li><strong>Stripe webhook idempotency</strong> &mdash; two-phase claim / processed marking is in place; recommend simplifying to a single unique-constrained row but no exploit found.</li>
+  <li><strong>CSRF</strong> &mdash; Better Auth's session cookie is <code>SameSite=Lax</code> by default and all state-changing routes are JSON-body POSTs, which is the standard mitigation; no cross-site exploitable surface found.</li>
+</ul>
+
+<p class="lead" style="margin-top:2.5rem">
+  Re-run this review after the blocker patches land &mdash; the security and
+  game-correctness audits will need a second pass once the transactional
+  refactor in B5 / B6 / B7 is in place.
+</p>
+
+</main>
+</div>
+</body>
+</html>

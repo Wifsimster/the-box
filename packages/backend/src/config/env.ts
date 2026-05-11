@@ -9,7 +9,10 @@ export const env = {
   DATABASE_URL: process.env['DATABASE_URL'] || 'postgresql://thebox:thebox_secret@localhost:5432/thebox',
   CORS_ORIGIN: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
 
-  // Better Auth
+  // Better Auth. The default below is ONLY used when NODE_ENV === 'development';
+  // validateEnv() rejects this literal in any other environment so a missing
+  // env var fails the boot rather than silently signing sessions with a
+  // publicly-known secret.
   BETTER_AUTH_SECRET: process.env['BETTER_AUTH_SECRET'] || 'dev-secret-change-in-production-min-32-chars',
   API_URL: process.env['API_URL'] || 'http://localhost:3000',
 
@@ -69,16 +72,19 @@ export const env = {
   VAPID_SUBJECT: process.env['VAPID_SUBJECT'] || '',
 }
 
+const DEV_AUTH_SECRET = 'dev-secret-change-in-production-min-32-chars'
+
 export function validateEnv(): void {
-  const required = ['BETTER_AUTH_SECRET']
-
-  if (env.NODE_ENV === 'production') {
-    for (const key of required) {
-      if (!process.env[key]) {
-        throw new Error(`Missing required environment variable: ${key}`)
-      }
+  // Anything that isn't an explicit 'development' environment must supply its
+  // own auth secret. This catches misconfigured staging/test deploys where
+  // NODE_ENV isn't 'production' but the dev default would otherwise pass.
+  if (env.NODE_ENV !== 'development') {
+    if (!process.env['BETTER_AUTH_SECRET']) {
+      throw new Error('Missing required environment variable: BETTER_AUTH_SECRET')
     }
-
+    if (env.BETTER_AUTH_SECRET === DEV_AUTH_SECRET) {
+      throw new Error('Refusing to start with the development BETTER_AUTH_SECRET')
+    }
     if (env.BETTER_AUTH_SECRET.length < 32) {
       throw new Error('BETTER_AUTH_SECRET must be at least 32 characters')
     }

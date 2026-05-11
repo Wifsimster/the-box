@@ -148,6 +148,10 @@ export interface TierSessionRecord {
   is_completed: boolean
   started_at: Date
   completed_at: Date | null
+  // Server-tracked round timer. NULL on tier sessions created before this
+  // column existed; submitGuess falls back to the client value in that case.
+  round_started_at: Date | null
+  round_position: number | null
 }
 
 export interface TierSessionWithContextRecord extends TierSessionRecord {
@@ -206,6 +210,16 @@ export interface SessionRepository {
     isCatchUp?: boolean
   }): Promise<GameSessionRecord>
   createTierSession(data: { gameSessionId: string; tierId: number }): Promise<TierSessionRecord>
+  // Atomic insert that is a no-op if the parent game session has already
+  // been marked completed. Returns null in that race so the caller can
+  // surface a CHALLENGE_ALREADY_COMPLETED error to the client.
+  createTierSessionIfActive(
+    data: { gameSessionId: string; tierId: number }
+  ): Promise<TierSessionRecord | null>
+  // Server-authoritative round timer. getScreenshot calls this whenever it
+  // serves a position so submitGuess can compute elapsed without trusting
+  // the client.
+  markRoundStarted(tierSessionId: string, position: number): Promise<void>
   findTierSessionWithContext(tierSessionId: string): Promise<TierSessionWithContextRecord | null>
   updateTierSession(
     tierSessionId: string,

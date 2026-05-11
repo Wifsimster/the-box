@@ -1,7 +1,9 @@
 import { Server as HTTPServer } from 'http'
+import type { Socket } from 'socket.io'
 import { Server as SocketIOServer } from 'socket.io'
 import { env } from '../../config/env.js'
 import { logger } from '../logger/logger.js'
+import { auth } from '../auth/auth.js'
 import { importQueueEvents } from '../queue/queues.js'
 import type {
     GeoRewardedEvent,
@@ -11,6 +13,28 @@ import type {
 } from '@the-box/types'
 
 let io: SocketIOServer | null = null
+
+// Resolve the Better Auth session from a socket handshake. Returns null on
+// missing / invalid session; the caller decides how to react.
+async function getSocketSession(socket: Socket) {
+    try {
+        return await auth.api.getSession({
+            headers: socket.handshake.headers as Record<string, string>,
+        })
+    } catch (err) {
+        logger.warn({ err: String(err), socketId: socket.id }, 'socket session lookup failed')
+        return null
+    }
+}
+
+// Attach the authenticated user id on the socket so per-namespace `join_user`
+// handlers can authorize without re-reading the session.
+declare module 'socket.io' {
+    interface Socket {
+        userId?: string
+        userRole?: string
+    }
+}
 
 /**
  * Initialize Socket.IO server and set up event listeners
@@ -24,11 +48,26 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
         path: '/socket.io',
     })
 
-    // Admin namespace for job updates
+    // Admin namespace for job updates. Connection is gated by Better Auth:
+    // only admins reach the `connection` handler, so `join_admin` doesn't
+    // need a second role check.
     const adminNamespace = io.of('/admin')
+    adminNamespace.use(async (socket, next) => {
+        const session = await getSocketSession(socket)
+        if (!session?.user) {
+            return next(new Error('unauthorized'))
+        }
+        if (session.user.role !== 'admin') {
+            logger.warn({ socketId: socket.id, userId: session.user.id }, 'admin socket access denied')
+            return next(new Error('forbidden'))
+        }
+        socket.userId = session.user.id
+        socket.userRole = session.user.role
+        next()
+    })
 
     adminNamespace.on('connection', (socket) => {
-        logger.info({ socketId: socket.id }, 'admin client connected')
+        logger.info({ socketId: socket.id, userId: socket.userId }, 'admin client connected')
 
         // Join admin room for job updates
         socket.on('join_admin', () => {
@@ -222,12 +261,28 @@ export function ensureGeoNamespace(): void {
     const ns = geoNamespace()
     if (!ns) return
     if ((ns as unknown as { _the_box_geo_wired?: boolean })._the_box_geo_wired) return
+    // Resolve session once at connection time so `join_user` cannot be used
+    // to subscribe to another user's reward stream (previously an IDOR).
+    ns.use(async (socket, next) => {
+        const session = await getSocketSession(socket)
+        if (!session?.user) {
+            return next(new Error('unauthorized'))
+        }
+        socket.userId = session.user.id
+        next()
+    })
     ns.on('connection', (socket) => {
-        logger.debug({ socketId: socket.id }, 'geo client connected')
+        logger.debug({ socketId: socket.id, userId: socket.userId }, 'geo client connected')
         socket.on('join_user', (userId: unknown) => {
-            if (typeof userId === 'string' && userId.length > 0) {
-                socket.join(`user:${userId}`)
+            if (typeof userId !== 'string' || userId.length === 0) return
+            if (userId !== socket.userId) {
+                logger.warn(
+                    { socketId: socket.id, sessionUser: socket.userId, requestedUser: userId },
+                    'geo join_user mismatch rejected'
+                )
+                return
             }
+            socket.join(`user:${userId}`)
         })
     })
     ;(ns as unknown as { _the_box_geo_wired?: boolean })._the_box_geo_wired = true
@@ -259,12 +314,27 @@ export function ensureUserNotificationsNamespace(): void {
     const ns = userNotificationsNamespace()
     if (!ns) return
     if ((ns as unknown as { _the_box_user_wired?: boolean })._the_box_user_wired) return
+    // Same auth posture as /geo — session-bound, no cross-user join.
+    ns.use(async (socket, next) => {
+        const session = await getSocketSession(socket)
+        if (!session?.user) {
+            return next(new Error('unauthorized'))
+        }
+        socket.userId = session.user.id
+        next()
+    })
     ns.on('connection', (socket) => {
-        logger.debug({ socketId: socket.id }, 'user-notifications client connected')
+        logger.debug({ socketId: socket.id, userId: socket.userId }, 'user-notifications client connected')
         socket.on('join_user', (userId: unknown) => {
-            if (typeof userId === 'string' && userId.length > 0) {
-                socket.join(`user:${userId}`)
+            if (typeof userId !== 'string' || userId.length === 0) return
+            if (userId !== socket.userId) {
+                logger.warn(
+                    { socketId: socket.id, sessionUser: socket.userId, requestedUser: userId },
+                    'notifications join_user mismatch rejected'
+                )
+                return
             }
+            socket.join(`user:${userId}`)
         })
     })
     ;(ns as unknown as { _the_box_user_wired?: boolean })._the_box_user_wired = true
