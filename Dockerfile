@@ -37,6 +37,11 @@ RUN npm run build:backend
 ARG VERSION
 ENV VITE_APP_VERSION=${VERSION}
 ENV VITE_API_URL=""
+# Koe support widget — VITE_* must be present at build time (baked into bundle)
+ARG VITE_KOE_PROJECT_KEY=the-box
+ARG VITE_KOE_API_URL=https://koe.battistella.ovh
+ENV VITE_KOE_PROJECT_KEY=${VITE_KOE_PROJECT_KEY}
+ENV VITE_KOE_API_URL=${VITE_KOE_API_URL}
 RUN npm run build:frontend
 
 # Stage 3: Production runtime
