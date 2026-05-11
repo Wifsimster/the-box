@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles, Play } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles, Play, LifeBuoy } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
@@ -91,6 +91,20 @@ function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick, sh
       )}
     </>
   )
+}
+
+// Koe widget owns its own launcher and panel state internally — there is no
+// imperative open API. Clicking the floating launcher button toggles the
+// panel, so we reuse that same DOM seam to open it from the user menu.
+const isKoeConfigured = Boolean(
+  import.meta.env.VITE_KOE_PROJECT_KEY && import.meta.env.VITE_KOE_API_URL,
+)
+
+function openKoeSupport() {
+  const launcher = document.querySelector<HTMLButtonElement>(
+    '.koe-root button[aria-expanded="false"]',
+  )
+  launcher?.click()
 }
 
 /**
@@ -225,6 +239,20 @@ export function Header() {
                             {billingEntitlement?.isPremium ? t('common.manageSubscription') : t('common.subscribeToPremium')}
                           </Link>
                         </Button>
+                        {isKoeConfigured && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setMobileMenuOpen(false)
+                              openKoeSupport()
+                            }}
+                            className="w-full justify-start"
+                          >
+                            <LifeBuoy className="w-4 h-4 mr-2" />
+                            {t('common.support')}
+                          </Button>
+                        )}
                         {session?.user?.role === 'admin' && (
                           <Button variant="ghost" size="sm" asChild className="w-full justify-start">
                             <Link to={localizedPath('/admin')} onClick={() => setMobileMenuOpen(false)}>
@@ -334,6 +362,15 @@ export function Header() {
                     {billingEntitlement?.isPremium ? t('common.manageSubscription') : t('common.subscribeToPremium')}
                   </Link>
                 </DropdownMenuItem>
+                {isKoeConfigured && (
+                  <DropdownMenuItem
+                    onClick={openKoeSupport}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <LifeBuoy className="w-4 h-4" />
+                    {t('common.support')}
+                  </DropdownMenuItem>
+                )}
                 {session?.user?.role === 'admin' && (
                   <DropdownMenuItem asChild>
                     <Link to={localizedPath('/admin')} className="flex items-center gap-2 cursor-pointer">
