@@ -106,7 +106,7 @@ export default function GamePage() {
       await Promise.allSettled(
         batch.map(async (position) => {
           try {
-            const data = await gameApi.getScreenshot(sid, position)
+            const data = await gameApi.getScreenshot(sid, position, { prefetch: true })
             // Preload the image in browser cache
             const img = new Image()
             img.src = data.imageUrl
@@ -282,7 +282,7 @@ export default function GamePage() {
     // Pre-fetch next screenshot
     if (nextPos) {
       try {
-        const nextData = await gameApi.getScreenshot(sid, nextPos)
+        const nextData = await gameApi.getScreenshot(sid, nextPos, { prefetch: true })
         // Preload the image in browser cache
         const img = new Image()
         img.src = nextData.imageUrl
@@ -294,7 +294,7 @@ export default function GamePage() {
     // Pre-fetch previous screenshot
     if (prevPos) {
       try {
-        const prevData = await gameApi.getScreenshot(sid, prevPos)
+        const prevData = await gameApi.getScreenshot(sid, prevPos, { prefetch: true })
         // Preload the image in browser cache
         const img = new Image()
         img.src = prevData.imageUrl

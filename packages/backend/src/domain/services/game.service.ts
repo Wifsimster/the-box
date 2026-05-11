@@ -113,7 +113,12 @@ export interface GameServiceDeps {
 export interface GameService {
   getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse>
   startChallenge(challengeId: number, userId: string, isPremium?: boolean): Promise<StartChallengeResponse>
-  getScreenshot(sessionId: string, position: number, userId: string): Promise<ScreenshotResponse>
+  getScreenshot(
+    sessionId: string,
+    position: number,
+    userId: string,
+    prefetch?: boolean
+  ): Promise<ScreenshotResponse>
   submitGuess(data: {
     tierSessionId: string
     screenshotId: number
@@ -404,7 +409,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
   async getScreenshot(
     sessionId: string,
     position: number,
-    userId: string
+    userId: string,
+    prefetch: boolean = false
   ): Promise<ScreenshotResponse> {
     const session = await sessionRepository.findGameSessionById(sessionId, userId)
     if (!session) {
@@ -429,6 +435,14 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // path swallowed the error and let submitGuess fall back to the
     // client-supplied timer, which re-enabled the original
     // `{ roundTimeTakenMs: 1 }` cheat any time the DB blipped.
+    //
+    // Prefetch calls (carousel prev/next warming, full-batch warming on
+    // session resume) skip the stamp: stamping here would clobber
+    // `round_position` to the prefetched slot and the user's next
+    // submitGuess on the *current* position would 409 with
+    // ROUND_NOT_STARTED. The client cannot weaponise prefetch=1 — the
+    // stamp is the only way to enable scoring, so a malicious caller
+    // that always passes prefetch=1 simply locks itself out.
     const latestTier = await sessionRepository.findLatestTierSession(session.id)
     if (!latestTier) {
       throw new GameError(
@@ -437,7 +451,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
         409
       )
     }
-    await sessionRepository.markRoundStarted(latestTier.id, position)
+    if (!prefetch) {
+      await sessionRepository.markRoundStarted(latestTier.id, position)
+    }
 
     // Use proxy URL to hide the actual file path (which contains game slug)
     const proxyImageUrl = `/api/game/image/${tierScreenshot.screenshot_id}`

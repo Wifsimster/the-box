@@ -81,7 +81,7 @@ export function ScreenshotViewer({
     // Load adjacent screenshots
     if (sessionId && gamePhase === 'playing') {
       if (findPreviousPosition) {
-        gameApi.getScreenshot(sessionId, findPreviousPosition)
+        gameApi.getScreenshot(sessionId, findPreviousPosition, { prefetch: true })
           .then((data) => {
             setImages((prev) => {
               const updated = [...prev]
@@ -100,7 +100,7 @@ export function ScreenshotViewer({
       }
 
       if (findNextPosition) {
-        gameApi.getScreenshot(sessionId, findNextPosition)
+        gameApi.getScreenshot(sessionId, findNextPosition, { prefetch: true })
           .then((data) => {
             setImages((prev) => {
               const updated = [...prev]
