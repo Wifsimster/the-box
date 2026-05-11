@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { Trophy, Award, TrendingUp, Flame, Calendar, Snowflake } from 'lucide-react'
+import { Trophy, Award, TrendingUp, Flame, Calendar, Snowflake, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { clearTourCompleted, markTourPending } from '@/components/onboarding/tour-storage'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAchievementStore } from '@/stores/achievementStore'
@@ -398,6 +400,42 @@ export default function ProfilePage() {
                                 isPremium={isPremium}
                                 onChange={setSelectedTheme}
                             />
+                        </motion.div>
+                    )}
+
+                    {/* Replay tour — clears the completion flag, primes the
+                        pending flag, and sends the user back to home where
+                        the TourGuide picks it up. */}
+                    {userProfile && !userProfile.isGuest && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.49 }}
+                        >
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Sparkles className="h-5 w-5 text-neon-purple" />
+                                        {t('tour.replayTitle')}
+                                    </CardTitle>
+                                    <CardDescription>
+                                        {t('tour.replayDescription')}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            clearTourCompleted()
+                                            markTourPending()
+                                            navigate(localizedPath('/'))
+                                        }}
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                        {t('tour.replayCta')}
+                                    </Button>
+                                </CardContent>
+                            </Card>
                         </motion.div>
                     )}
 

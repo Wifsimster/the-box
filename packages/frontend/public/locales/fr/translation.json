@@ -1787,6 +1787,39 @@
     "next": "Suivant",
     "start": "C'est parti !"
   },
+  "tour": {
+    "ariaLabel": "Visite guidée du produit",
+    "next": "Suivant",
+    "prev": "Retour",
+    "finish": "Compris",
+    "close": "Fermer la visite",
+    "progress": "Étape {{current}} sur {{total}}",
+    "replayTitle": "Rejouer la visite",
+    "replayDescription": "Revois en un coup d'œil le défi du jour, le mode geo, le classement et les récompenses.",
+    "replayCta": "Rejouer la visite",
+    "steps": {
+      "play": {
+        "title": "Défi du jour",
+        "body": "Tout commence ici. Dix captures, un jeu par capture, plus tu réponds vite plus le score grimpe."
+      },
+      "geo": {
+        "title": "Mode geo (alpha)",
+        "body": "Place une capture sur la carte du monde à partir d'indices visuels. Mode bonus — n'affecte pas ton score quotidien."
+      },
+      "leaderboard": {
+        "title": "Classement",
+        "body": "Vois ta place du jour et du mois. Mis à jour en direct quand les autres joueurs terminent leur défi."
+      },
+      "dailyReward": {
+        "title": "Récompense quotidienne",
+        "body": "Connecte-toi chaque jour pour garder ta série et débloquer indices, power-ups et cosmétiques."
+      },
+      "profile": {
+        "title": "Profil & historique",
+        "body": "Statistiques, succès et historique des défis sont accessibles depuis ton menu profil."
+      }
+    }
+  },
   "guestGate": {
     "title": "Prêt à jouer ?",
     "subtitle": "Crée un compte en 10 secondes pour garder tes progrès.",

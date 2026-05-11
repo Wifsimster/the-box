@@ -1787,6 +1787,39 @@
     "next": "Next",
     "start": "Let's go!"
   },
+  "tour": {
+    "ariaLabel": "Guided product tour",
+    "next": "Next",
+    "prev": "Back",
+    "finish": "Got it",
+    "close": "Close tour",
+    "progress": "Step {{current}} of {{total}}",
+    "replayTitle": "Replay the tour",
+    "replayDescription": "Refresh your memory of the daily challenge, geo mode, leaderboard and rewards.",
+    "replayCta": "Replay tour",
+    "steps": {
+      "play": {
+        "title": "Today's challenge",
+        "body": "Start here every day. Ten screenshots, one game per screenshot, the faster you guess the higher the score."
+      },
+      "geo": {
+        "title": "Geo mode (alpha)",
+        "body": "Pin a location on the world map from in-game screenshots. Casual side mode — does not affect your daily score."
+      },
+      "leaderboard": {
+        "title": "Leaderboard",
+        "body": "See where you rank today and this month. Updates live as other players finish their challenge."
+      },
+      "dailyReward": {
+        "title": "Daily login reward",
+        "body": "Show up every day to keep your streak alive and claim hints, power-ups and cosmetics."
+      },
+      "profile": {
+        "title": "Profile & history",
+        "body": "Track stats, achievements and replay past challenges from your profile menu."
+      }
+    }
+  },
   "guestGate": {
     "title": "Ready to play?",
     "subtitle": "Create an account in 10 seconds to keep your progress.",
