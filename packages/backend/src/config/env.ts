@@ -47,6 +47,12 @@ export const env = {
   STRIPE_CHECKOUT_SUCCESS_URL: process.env['STRIPE_CHECKOUT_SUCCESS_URL'] || 'http://localhost:5173/fr/premium?checkout=success',
   STRIPE_CHECKOUT_CANCEL_URL: process.env['STRIPE_CHECKOUT_CANCEL_URL'] || 'http://localhost:5173/fr/premium?checkout=cancel',
   STRIPE_PORTAL_RETURN_URL: process.env['STRIPE_PORTAL_RETURN_URL'] || 'http://localhost:5173/fr/profile',
+  // Stripe Billing Portal configuration ID (bpc_…). When set, portal
+  // sessions are created with this configuration so the customer can
+  // only switch between The Box Premium prices, not toward products of
+  // other apps sharing the same Stripe account. Empty falls back to
+  // the account's default configuration.
+  STRIPE_PORTAL_CONFIG_ID: process.env['STRIPE_PORTAL_CONFIG_ID'] || '',
 
   // Koe support widget — identity verification secret shared with the
   // self-hosted Koe service. When set, /api/koe/identity returns an
