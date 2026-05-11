@@ -57,10 +57,16 @@ export function ImmersiveLayout({
             )}
             data-immersive={isImmersive ? 'true' : 'false'}
         >
-            {/* Top-right overlay (fullscreen toggle, etc.) */}
+            {/* Top-right overlay (fullscreen toggle, etc.). Needs to sit above
+                the `topBar` strip — both used to share `z-30`, but the topBar's
+                `backdrop-filter` makes z-index apply to it as a non-positioned
+                element, so equal z-index would let the later sibling (topBar)
+                intercept clicks over this overlay. Bumped to z-40 so the Home
+                and fullscreen buttons stay clickable across the topBar's
+                right padding. */}
             {topRight && (
                 <div
-                    className="absolute right-3 top-3 z-30 flex items-center gap-2"
+                    className="absolute right-3 top-3 z-40 flex items-center gap-2"
                     style={{
                         paddingTop: 'env(safe-area-inset-top, 0px)',
                         paddingRight: 'env(safe-area-inset-right, 0px)',
