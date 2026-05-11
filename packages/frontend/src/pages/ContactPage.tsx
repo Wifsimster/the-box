@@ -22,8 +22,8 @@ export default function ContactPage() {
       icon: Bug,
       title: t('legal.contactBugTitle'),
       content: t('legal.contactBug'),
-      link: 'https://github.com/Wifsimster/the-box/issues',
-      linkLabel: 'GitHub Issues',
+      link: 'https://pro.battistella.ovh/',
+      linkLabel: 'pro.battistella.ovh',
     },
   ]
 
