@@ -44,21 +44,29 @@ export function KoeSupportWidget() {
   if (!isAuthenticated || !user?.id) return null
 
   return (
-    <KoeWidget
-      projectKey={KOE_PROJECT_KEY}
-      apiUrl={KOE_API_URL}
-      user={{
-        id: user.id,
-        name: user.name ?? undefined,
-        email: user.email ?? undefined,
-        metadata: {
-          role: user.role ?? 'user',
-          locale: i18n.language,
-        },
-      }}
-      userHash={userHash ?? undefined}
-      position="bottom-right"
-      theme={{ mode: 'dark' }}
-    />
+    <>
+      {/* Hide the floating launcher in its closed state — entry point is the
+          user-menu "Support" item, which calls .click() on the launcher
+          programmatically (display:none doesn't block synthetic clicks).
+          The open-state button (aria-expanded="true", X icon) stays visible
+          so users can still close the panel. */}
+      <style>{`.koe-root button[aria-expanded="false"]{display:none!important;}`}</style>
+      <KoeWidget
+        projectKey={KOE_PROJECT_KEY}
+        apiUrl={KOE_API_URL}
+        user={{
+          id: user.id,
+          name: user.name ?? undefined,
+          email: user.email ?? undefined,
+          metadata: {
+            role: user.role ?? 'user',
+            locale: i18n.language,
+          },
+        }}
+        userHash={userHash ?? undefined}
+        position="bottom-right"
+        theme={{ mode: 'dark' }}
+      />
+    </>
   )
 }
