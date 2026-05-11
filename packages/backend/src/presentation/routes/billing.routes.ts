@@ -150,6 +150,12 @@ router.post('/portal', authMiddleware, async (req, res, next) => {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: env.STRIPE_PORTAL_RETURN_URL,
+      // Restricts the portal to The Box Premium products. The four apps
+      // share one Stripe account, so without a config a customer would
+      // see WAWPTN / Tokō / CoproPilot prices in the "switch plan" picker.
+      ...(env.STRIPE_PORTAL_CONFIG_ID
+        ? { configuration: env.STRIPE_PORTAL_CONFIG_ID }
+        : {}),
     })
 
     res.json({ success: true, data: { url: session.url } })
