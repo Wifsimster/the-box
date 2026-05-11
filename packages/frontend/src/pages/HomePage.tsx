@@ -13,7 +13,7 @@ import { gameApi } from '@/lib/api/game'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 import { TourGuide } from '@/components/onboarding/TourGuide'
-import { consumeTourPending, hasCompletedTour } from '@/components/onboarding/tour-storage'
+import { consumeTourPending, hasCompletedTour, TOUR_REPLAY_EVENT } from '@/components/onboarding/tour-storage'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { useBillingStore } from '@/stores/billingStore'
@@ -83,6 +83,14 @@ export default function HomePage() {
       }
     }, 600)
     return () => window.clearTimeout(id)
+  }, [])
+
+  // Replay from the user menu while already on this page — the mount-time
+  // effect above won't re-run, so listen for the explicit replay event.
+  useEffect(() => {
+    const handler = () => setTourOpen(true)
+    window.addEventListener(TOUR_REPLAY_EVENT, handler)
+    return () => window.removeEventListener(TOUR_REPLAY_EVENT, handler)
   }, [])
 
   // Helper: drop `initial`/`animate`/`transition` when reduced motion is
