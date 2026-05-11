@@ -220,6 +220,11 @@ export interface SessionRepository {
   // serves a position so submitGuess can compute elapsed without trusting
   // the client.
   markRoundStarted(tierSessionId: string, position: number): Promise<void>
+  // Serialises concurrent submissions for the same tier session via a
+  // Postgres advisory transaction lock. submitGuess wraps its entire
+  // body so two concurrent POSTs can't interleave reads/writes on the
+  // tier_session row (the deferred B5 race from the post-merge review).
+  withTierSessionLock<T>(tierSessionId: string, fn: () => Promise<T>): Promise<T>
   findTierSessionWithContext(tierSessionId: string): Promise<TierSessionWithContextRecord | null>
   updateTierSession(
     tierSessionId: string,
@@ -433,6 +438,25 @@ export interface DailyLoginRepository {
       currentDayInCycle: number
     }
   ): Promise<void>
+  /**
+   * Atomic streak-freeze consume + streak update. The decrement uses a
+   * `quantity >= 1` guard so two concurrent calls cannot both win the
+   * freeze; the streak update lives in the same transaction so we never
+   * end up with the inventory decremented but the streak still reset.
+   */
+  consumeFreezeAndUpdateStreak(
+    userId: string,
+    opts: {
+      itemType: string
+      itemKey: string
+      streak: {
+        currentLoginStreak: number
+        longestLoginStreak: number
+        lastLoginDate: string
+        currentDayInCycle: number
+      }
+    }
+  ): Promise<{ ok: true; freezesRemaining: number } | { ok: false }>
   /**
    * Atomically claim today's reward (insert claim row, bump streak's
    * last_claimed_date, upsert inventory items, increment total score).

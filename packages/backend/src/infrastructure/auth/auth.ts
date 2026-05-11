@@ -236,23 +236,39 @@ function createAuth() {
       user: {
         create: {
           before: async (user) => {
+            // Closes the first-user-admin race. Two parallel sign-ups
+            // on a fresh DB used to both read count=0 and both insert
+            // with role=admin. Migration 20260521 adds a partial unique
+            // index that makes two admin rows impossible at the DB
+            // level; here we additionally serialise concurrent hook
+            // calls with an advisory transaction lock so the racing
+            // user gets a clean role=user fallback instead of a
+            // unique-violation 5xx.
+            //
+            // The key is a fixed hash so every node holding this lock
+            // serialises on the same Postgres row regardless of how
+            // many app replicas are running.
+            const client = await pool.connect();
             try {
-              // First user to register becomes admin
-              const result = await pool.query('SELECT COUNT(*) as count FROM "user"');
-              const userCount = parseInt(result.rows[0].count, 10);
-
-              if (userCount === 0) {
+              await client.query('BEGIN');
+              await client.query("SELECT pg_advisory_xact_lock(hashtext('the-box:first-admin'))");
+              const result = await client.query('SELECT 1 FROM "user" WHERE role = \'admin\' LIMIT 1');
+              const adminExists = result.rowCount && result.rowCount > 0;
+              await client.query('COMMIT');
+              if (!adminExists) {
                 authLogger.info("first user registration - assigning admin role");
-                return {
-                  data: { ...user, role: "admin" },
-                };
+                return { data: { ...user, role: "admin" } };
               }
               return { data: user };
             } catch (error) {
-              // Log the error but don't fail the registration
-              // Better-auth will handle the user creation, we just won't assign admin role
+              try { await client.query('ROLLBACK'); } catch { /* ignore */ }
+              // Log and fall through with default role; the partial
+              // unique index still prevents two admins even if this
+              // path is reached due to a DB blip.
               authLogger.error({ err: error }, "error in user creation hook");
               return { data: user };
+            } finally {
+              client.release();
             }
           },
           after: async (user) => {

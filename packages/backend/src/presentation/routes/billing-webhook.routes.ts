@@ -82,7 +82,9 @@ export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
 
   router.post(
     '/',
-    express.raw({ type: 'application/json' }),
+    // 1 MB is well above Stripe's typical event payloads (~50 KB) but caps
+    // the buffer Node allocates before signature verification runs.
+    express.raw({ type: 'application/json', limit: '1mb' }),
     async (req, res) => {
       const signature = req.headers['stripe-signature']
       if (!signature || typeof signature !== 'string') {

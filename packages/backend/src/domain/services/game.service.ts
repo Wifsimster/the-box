@@ -47,6 +47,23 @@ const CATCH_UP_DAYS = 0
 // produces one row per day, so the upper bound on cardinality is small.
 export const PREMIUM_CATCH_UP_DAYS = 365
 
+// Hint payload shape mirrors the inline objects that previously appeared
+// at the two submitGuess return sites; helper keeps both call sites in
+// sync as we tighten the gating.
+function buildAvailableHints(
+  releaseYear: number | null | undefined,
+  fullGameData: { publisher?: string | null; developer?: string | null; genres?: string[] | null } | null
+): { year: string | null; publisher: string | null; developer: string | null; genre: string | null } {
+  return {
+    year: releaseYear != null ? releaseYear.toString() : null,
+    publisher: fullGameData?.publisher ?? null,
+    developer: fullGameData?.developer ?? null,
+    // Primary genre only — the full tag list often tips the answer
+    // (e.g. "Action / Stealth / WW2" ≈ Wolfenstein).
+    genre: fullGameData?.genres?.[0] ?? null,
+  }
+}
+
 /**
  * Calculate speed multiplier based on time taken to find the screenshot
  * @param timeTakenMs Time in milliseconds from screenshot shown to correct guess
@@ -408,20 +425,19 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     // Server-authoritative round timer. Stamp the moment we hand this
     // position to the client so submitGuess can compute elapsed without
-    // trusting the client. We only stamp the latest tier session for this
-    // game session — refreshes on the same position simply restart the
-    // timer, which is the lenient behaviour we want.
-    try {
-      const latestTier = await sessionRepository.findLatestTierSession(session.id)
-      if (latestTier) {
-        await sessionRepository.markRoundStarted(latestTier.id, position)
-      }
-    } catch (err) {
-      // Round-start tracking is defense-in-depth; failure here must not
-      // block the player from seeing the screenshot. submitGuess will fall
-      // back to the client-supplied timer if `round_started_at` is null.
-      log.warn?.({ err: String(err), sessionId: session.id, position }, 'markRoundStarted failed')
+    // trusting the client. Failure here is fail-closed: previously this
+    // path swallowed the error and let submitGuess fall back to the
+    // client-supplied timer, which re-enabled the original
+    // `{ roundTimeTakenMs: 1 }` cheat any time the DB blipped.
+    const latestTier = await sessionRepository.findLatestTierSession(session.id)
+    if (!latestTier) {
+      throw new GameError(
+        'SESSION_NOT_FOUND',
+        'No active round for this session; restart the challenge.',
+        409
+      )
     }
+    await sessionRepository.markRoundStarted(latestTier.id, position)
 
     // Use proxy URL to hide the actual file path (which contains game slug)
     const proxyImageUrl = `/api/game/image/${tierScreenshot.screenshot_id}`
@@ -445,6 +461,14 @@ export function createGameService(deps: GameServiceDeps): GameService {
     powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
     isPremium?: boolean
   }): Promise<GuessResponse> {
+    // Serialise the whole submission against other concurrent calls for
+    // the same tier_session. Without this, two rapid POSTs (two tabs, a
+    // double-click bot, a retry-on-timeout) could interleave reads of
+    // the tier_session row, double-apply the second-chance floor in
+    // memory, or leave wrong_guesses out of sync with the guesses
+    // table. The Postgres advisory transaction lock releases
+    // automatically on commit / rollback so we don't need a finally.
+    return sessionRepository.withTierSessionLock(data.tierSessionId, async (): Promise<GuessResponse> => {
     log.debug({ tierSessionId: data.tierSessionId, position: data.position, userId: data.userId }, 'submitGuess')
 
     const tierSession = await sessionRepository.findTierSessionWithContext(data.tierSessionId)
@@ -460,9 +484,19 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     const { screenshot, gameName, coverImageUrl, aliases, releaseYear, metacritic } = screenshotData
 
-    // Check if guess is correct using fuzzy matching on text
-    const isCorrect = data.gameId === screenshot.gameId ||
-      (data.guessText.trim() !== '' && fuzzyMatchService.isMatch(data.guessText, gameName, aliases))
+    // Correctness requires non-empty text. The gameId path used to win on
+    // its own; combined with the image-proxy enumeration that lets any
+    // logged-in user discover screenshot→gameId, an empty-text submit
+    // with a known gameId was a one-shot answer leak. Force at least a
+    // text attempt; fuzzy-match wins on its own, gameId is now only a
+    // tiebreaker for ambiguous text (e.g. autocomplete picks).
+    const trimmedGuess = data.guessText.trim()
+    const isCorrect =
+      trimmedGuess !== '' &&
+      (
+        fuzzyMatchService.isMatch(data.guessText, gameName, aliases) ||
+        data.gameId === screenshot.gameId
+      )
 
     // Server-authoritative round timer. The client submits its own
     // `roundTimeTakenMs`; we treat it as a hint and use Math.max(server,
@@ -470,21 +504,25 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // speed multiplier, so favouring the larger value blocks the trivial
     // `{ roundTimeTakenMs: 1 }` cheat without penalising legitimate users
     // whose clock differs slightly from ours.
-    const roundStartedAt = tierSession.round_started_at
-      ? new Date(tierSession.round_started_at).getTime()
-      : null
-    const serverElapsedMs =
-      roundStartedAt !== null && tierSession.round_position === data.position
-        ? Math.max(0, Date.now() - roundStartedAt)
-        : null
-    const effectiveTimeTakenMs =
-      serverElapsedMs !== null
-        ? Math.max(serverElapsedMs, data.roundTimeTakenMs)
-        : data.roundTimeTakenMs
+    //
+    // We require valid round metadata before scoring. The previous
+    // fallback ("if NULL, trust the client") opened a window any time
+    // the DB blipped during getScreenshot or the user POSTed
+    // out-of-order; refuse the submit instead.
     if (
-      serverElapsedMs !== null &&
-      Math.abs(serverElapsedMs - data.roundTimeTakenMs) > 2000
+      tierSession.round_started_at == null ||
+      tierSession.round_position !== data.position
     ) {
+      throw new GameError(
+        'ROUND_NOT_STARTED',
+        'No active round timer for this position. Reload the screenshot and retry.',
+        409
+      )
+    }
+    const roundStartedAt = new Date(tierSession.round_started_at).getTime()
+    const serverElapsedMs = Math.max(0, Date.now() - roundStartedAt)
+    const effectiveTimeTakenMs = Math.max(serverElapsedMs, data.roundTimeTakenMs)
+    if (Math.abs(serverElapsedMs - data.roundTimeTakenMs) > 2000) {
       log.warn?.(
         {
           userId: data.userId,
@@ -777,15 +815,11 @@ export function createGameService(deps: GameServiceDeps): GameService {
         hintFromInventory: hintFromInventory || undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
-        availableHints: {
-          year: releaseYear?.toString() ?? null,
-          publisher: fullGameData?.publisher ?? null,
-          developer: fullGameData?.developer ?? null,
-          // Primary genre only — exposing the full tag list would tip the
-          // game (e.g. "Action / Stealth / WW2" ≈ Wolfenstein). Picks the
-          // first tag, which RAWG returns ordered by relevance.
-          genre: fullGameData?.genres?.[0] ?? null,
-        },
+        // Hints reveal the year/publisher/developer/genre of the answer.
+        // On a wrong guess we'd otherwise hand a free harvest path to any
+        // player willing to spend one bad guess. On the completion path
+        // we deliberately reveal them — the round is over either way.
+        availableHints: isCorrect || isCompleted ? buildAvailableHints(releaseYear, fullGameData) : undefined,
         newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
     }
@@ -822,13 +856,11 @@ export function createGameService(deps: GameServiceDeps): GameService {
       hintFromInventory: hintFromInventory || undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       secondChanceFloorBoost,
-      availableHints: {
-        year: releaseYear?.toString() ?? null,
-        publisher: fullGameData?.publisher ?? null,
-        developer: fullGameData?.developer ?? null,
-        genre: fullGameData?.genres?.[0] ?? null,
-      },
+      // Same gating as the completion path above — wrong guesses don't
+      // leak the answer's metadata back to the client.
+      availableHints: isCorrect ? buildAvailableHints(releaseYear, fullGameData) : undefined,
     }
+    }) // end withTierSessionLock
   },
 
   async activateSecondChance(input: {

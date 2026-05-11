@@ -22,26 +22,38 @@ interface MonthlyLeaderboardRow {
 
 export const leaderboardRepository = {
   async findByChallenge(challengeId: number, limit = 100): Promise<LeaderboardEntry[]> {
+    // Deterministic tiebreakers: faster finish wins over slower for the
+    // same score, then user id breaks any remaining tie so the rendered
+    // order is stable across refreshes.
     const sessions = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from leaderboard
       .whereRaw('"user"."isAnonymous" = ?', [false])
-      .orderBy('game_sessions.total_score', 'desc')
+      .orderBy([
+        { column: 'game_sessions.total_score', order: 'desc' },
+        { column: 'game_sessions.completed_at', order: 'asc' },
+        { column: 'game_sessions.user_id', order: 'asc' },
+      ])
       .limit(limit)
-      .select<LeaderboardRow[]>(
+      .select<(LeaderboardRow & { dense_rank: string })[]>(
         'game_sessions.id as session_id',
         'game_sessions.user_id',
         'game_sessions.total_score',
         'game_sessions.completed_at',
         'user.username',
         'user.display_name',
-        'user.avatar_url'
+        'user.avatar_url',
+        // DENSE_RANK so tied scores share the same rank instead of
+        // pushing the rest of the board down a slot.
+        db.raw(
+          'DENSE_RANK() OVER (ORDER BY game_sessions.total_score DESC) as dense_rank'
+        )
       )
 
-    return sessions.map((session, index) => ({
-      rank: index + 1,
+    return sessions.map((session) => ({
+      rank: Number(session.dense_rank),
       userId: session.user_id,
       sessionId: session.session_id,
       username: session.username ?? 'Anonymous',
@@ -100,7 +112,9 @@ export const leaderboardRepository = {
       .whereRaw('EXTRACT(YEAR FROM daily_challenges.challenge_date) = ?', [year])
       .whereRaw('EXTRACT(MONTH FROM daily_challenges.challenge_date) = ?', [month])
       .groupBy('game_sessions.user_id', 'user.username', 'user.display_name', 'user.avatar_url')
-      .orderByRaw('SUM(game_sessions.total_score) DESC')
+      // Stable monthly ordering — tie on summed score breaks on user id so
+      // refreshes don't shuffle rows.
+      .orderByRaw('SUM(game_sessions.total_score) DESC, game_sessions.user_id ASC')
       .limit(limit)
       .select<MonthlyLeaderboardRow[]>(
         'game_sessions.user_id',

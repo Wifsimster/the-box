@@ -56,3 +56,8 @@ ralph/
 
 # Database backups
 backups/
+
+# Docker secrets — populated locally before `docker compose up`
+secrets/*
+!secrets/.gitkeep
+!secrets/README.md

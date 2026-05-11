@@ -144,6 +144,62 @@ export const dailyLoginRepository = {
             })
     },
 
+    // Atomic streak-freeze consumption + streak update. Closes the race
+    // where two concurrent /status calls on the first day after a missed
+    // day could both observe a freeze in inventory and both decrement it.
+    // The inventory UPDATE has the same `quantity >= 1` predicate as
+    // `useItems`, so only one transaction can win the decrement — the
+    // other one returns ok=false and the service falls back to "streak
+    // resets normally". Bundling the streak update in the same
+    // transaction means we never end up with "freeze consumed but
+    // streak not updated" or vice versa.
+    async consumeFreezeAndUpdateStreak(
+        userId: string,
+        opts: {
+            itemType: string
+            itemKey: string
+            streak: {
+                currentLoginStreak: number
+                longestLoginStreak: number
+                lastLoginDate: string
+                currentDayInCycle: number
+            }
+        }
+    ): Promise<{ ok: true; freezesRemaining: number } | { ok: false }> {
+        return db.transaction(async (trx) => {
+            const decrement = await trx('user_inventory')
+                .where({
+                    user_id: userId,
+                    item_type: opts.itemType,
+                    item_key: opts.itemKey,
+                })
+                .where('quantity', '>=', 1)
+                .decrement('quantity', 1)
+            const affected = decrement as unknown as number
+            if (!affected) {
+                return { ok: false as const }
+            }
+            await trx('user_login_streaks')
+                .where('user_id', userId)
+                .whereRaw('last_login_date IS DISTINCT FROM ?', [opts.streak.lastLoginDate])
+                .update({
+                    current_login_streak: opts.streak.currentLoginStreak,
+                    longest_login_streak: opts.streak.longestLoginStreak,
+                    last_login_date: opts.streak.lastLoginDate,
+                    current_day_in_cycle: opts.streak.currentDayInCycle,
+                    updated_at: new Date(),
+                })
+            const remaining = await trx('user_inventory')
+                .where({
+                    user_id: userId,
+                    item_type: opts.itemType,
+                    item_key: opts.itemKey,
+                })
+                .first<{ quantity: number }>('quantity')
+            return { ok: true as const, freezesRemaining: remaining?.quantity ?? 0 }
+        })
+    },
+
     /**
      * Atomically claim today's reward: insert claim row, bump
      * `last_claimed_date`, upsert powerups, increment user score — all in
