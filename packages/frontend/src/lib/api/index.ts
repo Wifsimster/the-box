@@ -4,6 +4,7 @@ export { dailyLoginApi, DailyLoginApiError } from './daily-login'
 export { geoApi, GeoApiError } from './geo'
 export type { GeoContributorMe, GeoContributorUnlock } from './geo'
 export { geoFetchApi } from './geo-fetch'
+export { koeApi } from './koe'
 export type {
   GeoFetchStage,
   GeoFetchStatus,
