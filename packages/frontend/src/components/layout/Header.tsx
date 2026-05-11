@@ -215,6 +215,12 @@ export function Header() {
                             {t('common.history')}
                           </Link>
                         </Button>
+                        <Button variant="ghost" size="sm" asChild className="w-full justify-start">
+                          <Link to={localizedPath('/premium')} onClick={() => setMobileMenuOpen(false)}>
+                            <Sparkles className="w-4 h-4 mr-2 text-neon-pink" />
+                            {billingEntitlement?.isPremium ? t('common.manageSubscription') : t('common.subscribeToPremium')}
+                          </Link>
+                        </Button>
                         {session?.user?.role === 'admin' && (
                           <Button variant="ghost" size="sm" asChild className="w-full justify-start">
                             <Link to={localizedPath('/admin')} onClick={() => setMobileMenuOpen(false)}>
@@ -302,7 +308,7 @@ export function Header() {
                   <ChevronDown className="w-4 h-4 text-white" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem asChild>
                   <Link to={localizedPath('/profile')} className="flex items-center gap-2 cursor-pointer">
                     <User className="w-4 h-4" />
@@ -313,6 +319,12 @@ export function Header() {
                   <Link to={localizedPath('/history')} className="flex items-center gap-2 cursor-pointer">
                     <History className="w-4 h-4" />
                     {t('common.history')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={localizedPath('/premium')} className="flex items-center gap-2 cursor-pointer">
+                    <Sparkles className="w-4 h-4 text-neon-pink" />
+                    {billingEntitlement?.isPremium ? t('common.manageSubscription') : t('common.subscribeToPremium')}
                   </Link>
                 </DropdownMenuItem>
                 {session?.user?.role === 'admin' && (
