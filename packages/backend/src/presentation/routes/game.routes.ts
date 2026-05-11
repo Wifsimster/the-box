@@ -232,7 +232,7 @@ router.post('/start/:challengeId', authMiddleware, async (req, res, next) => {
 // Get current screenshot
 router.get('/screenshot', authMiddleware, async (req, res, next) => {
   try {
-    const { sessionId, position } = req.query
+    const { sessionId, position, prefetch } = req.query
 
     if (!sessionId || !position) {
       res.status(400).json({
@@ -242,10 +242,15 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
       return
     }
 
+    // Carousel/background warming uses prefetch=1 so the round-timer
+    // stamp stays on the position the user is actually playing.
+    const isPrefetch = prefetch === '1' || prefetch === 'true'
+
     const data = await gameService.getScreenshot(
       sessionId as string,
       parseInt(position as string, 10),
-      req.userId!
+      req.userId!,
+      isPrefetch
     )
 
     res.json({

@@ -67,13 +67,25 @@ export const gameApi = {
   },
 
   /**
-   * Get screenshot for current position
+   * Get screenshot for a position.
+   *
+   * Pass `prefetch: true` for carousel warming / background preloading.
+   * The server otherwise stamps the round timer onto this position, and
+   * a subsequent submitGuess on a different position will 409 with
+   * `ROUND_NOT_STARTED`.
    */
-  async getScreenshot(sessionId: string, position: number): Promise<ScreenshotResponse> {
+  async getScreenshot(
+    sessionId: string,
+    position: number,
+    options: { prefetch?: boolean } = {}
+  ): Promise<ScreenshotResponse> {
     const params = new URLSearchParams({
       sessionId,
       position: position.toString(),
     })
+    if (options.prefetch) {
+      params.set('prefetch', '1')
+    }
     const response = await fetch(`/api/game/screenshot?${params}`, {
       credentials: 'include',
     })
