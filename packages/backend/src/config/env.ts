@@ -7,6 +7,11 @@ export const env = {
   PORT: parseInt(process.env['PORT'] || '3000', 10),
   LOG_LEVEL: process.env['LOG_LEVEL'] || 'info',
   DATABASE_URL: process.env['DATABASE_URL'] || 'postgresql://thebox:thebox_secret@localhost:5432/thebox',
+  // Opt-in TLS for Postgres. Set to 'true' for managed providers (RDS,
+  // Supabase, Neon) that require TLS. Leave unset/false for self-hosted
+  // Postgres on a private network — forcing SSL on a server without it
+  // fails the boot with "server does not support SSL connections".
+  DATABASE_SSL: process.env['DATABASE_SSL'] || 'false',
   CORS_ORIGIN: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
 
   // Better Auth. The default below is ONLY used when NODE_ENV === 'development';

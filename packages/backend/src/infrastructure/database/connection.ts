@@ -6,12 +6,11 @@ import { dbLogger } from '../logger/logger.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Mirror knexfile.ts: in any non-development environment, require TLS to
-// the database unless the URL is explicitly local. Managed Postgres
-// providers (RDS, Supabase, Neon) refuse plain TCP, and we don't want
-// production credentials going over the network unencrypted.
-const isLocalDatabase = env.DATABASE_URL.includes('localhost') || env.DATABASE_URL.includes('127.0.0.1')
-const useSsl = env.NODE_ENV !== 'development' && !isLocalDatabase
+// Mirror knexfile.ts: TLS is opt-in via DATABASE_SSL=true. Managed
+// Postgres providers (RDS, Supabase, Neon) require it; self-hosted
+// Postgres on a private Docker network does not, and forcing SSL there
+// fails the boot with "server does not support SSL connections".
+const useSsl = env.DATABASE_SSL === 'true'
 
 export const db: Knex = knex({
   client: 'pg',
