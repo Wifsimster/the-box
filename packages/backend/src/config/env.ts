@@ -48,6 +48,13 @@ export const env = {
   STRIPE_CHECKOUT_CANCEL_URL: process.env['STRIPE_CHECKOUT_CANCEL_URL'] || 'http://localhost:5173/fr/premium?checkout=cancel',
   STRIPE_PORTAL_RETURN_URL: process.env['STRIPE_PORTAL_RETURN_URL'] || 'http://localhost:5173/fr/profile',
 
+  // Koe support widget — identity verification secret shared with the
+  // self-hosted Koe service. When set, /api/koe/identity returns an
+  // HMAC-SHA256(userId) hex digest so the widget can prove the signed-in
+  // user is who they claim to be. Leave empty to disable verified mode
+  // (the widget still works, but submissions are treated as unverified).
+  KOE_IDENTITY_SECRET: process.env['KOE_IDENTITY_SECRET'] || '',
+
   // Web Push (VAPID). Required to send notifications. Generate a keypair
   // with `npm run vapid:generate -w @the-box/backend`. Without all three
   // values present, the push.service refuses to send and routes return 503.

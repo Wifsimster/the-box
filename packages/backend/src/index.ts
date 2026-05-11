@@ -27,6 +27,7 @@ import screenshotReportRoutes from './presentation/routes/screenshot-report.rout
 import pushRoutes from './presentation/routes/push.routes.js'
 import billingRoutes from './presentation/routes/billing.routes.js'
 import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.js'
+import koeRoutes from './presentation/routes/koe.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import { importQueue, geoQueue } from './infrastructure/queue/queues.js'
 import './infrastructure/queue/workers/import.worker.js'
@@ -226,6 +227,7 @@ app.use('/api/geo', geoRoutes)
 app.use('/api/screenshot-reports', screenshotReportRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/billing', billingRoutes)
+app.use('/api/koe', koeRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
