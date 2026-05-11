@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles, Play, LifeBuoy } from 'lucide-react'
+import { Trophy, Home, LogOut, Settings, History, Menu, User, ChevronDown, MapPin, Sparkles, Play, LifeBuoy, Compass } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { DailyRewardBadge } from '@/components/daily-login'
@@ -27,6 +27,7 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useBillingStore } from '@/stores/billingStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
 import { InstallPromptButton } from '@/components/pwa'
+import { requestTourReplay } from '@/components/onboarding/tour-storage'
 import { cn } from '@/lib/utils'
 
 interface NavigationLinksProps {
@@ -118,9 +119,15 @@ function openKoeSupport() {
 export function Header() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
+  const navigate = useNavigate()
   const { session, isPending, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+
+  const handleReplayTour = () => {
+    requestTourReplay()
+    navigate(localizedPath('/'))
+  }
   const isRewardModalOpen = useDailyLoginStore((state) => state.isModalOpen)
   const closeRewardModal = useDailyLoginStore((state) => state.closeModal)
   const billingEntitlement = useBillingStore((state) => state.entitlement)
@@ -261,6 +268,18 @@ export function Header() {
                             </Link>
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setMobileMenuOpen(false)
+                            handleReplayTour()
+                          }}
+                          className="w-full justify-start"
+                        >
+                          <Compass className="w-4 h-4 mr-2" />
+                          {t('tour.replayCta')}
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => {
                           signOut()
                           setMobileMenuOpen(false)
@@ -380,6 +399,10 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleReplayTour} className="flex items-center gap-2 cursor-pointer">
+                  <Compass className="w-4 h-4" />
+                  {t('tour.replayCta')}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut} className="cursor-pointer">
                   <LogOut className="w-4 h-4" />
                   {t('common.logout')}

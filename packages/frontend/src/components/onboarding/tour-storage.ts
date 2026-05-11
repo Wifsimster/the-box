@@ -1,6 +1,8 @@
 const TOUR_DONE_FLAG = 'theBox.homeTourCompleted'
 const TOUR_PENDING_FLAG = 'theBox.homeTourPending'
 
+export const TOUR_REPLAY_EVENT = 'theBox:tourReplay'
+
 export function hasCompletedTour(): boolean {
   try {
     return localStorage.getItem(TOUR_DONE_FLAG) === '1'
@@ -41,5 +43,15 @@ export function consumeTourPending(): boolean {
     return pending
   } catch {
     return false
+  }
+}
+
+// Trigger a replay from anywhere in the app. The pending flag covers the
+// case where HomePage is about to mount (navigated in from another route);
+// the event covers the case where HomePage is already mounted.
+export function requestTourReplay(): void {
+  markTourPending()
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(TOUR_REPLAY_EVENT))
   }
 }
