@@ -17,6 +17,8 @@
     "geo": "Geo",
     "alpha": "Alpha",
     "premium": "Premium",
+    "subscribeToPremium": "Subscribe to Premium",
+    "manageSubscription": "Manage subscription",
     "settings": "Settings",
     "login": "Login",
     "register": "Register",
