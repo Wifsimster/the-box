@@ -365,10 +365,16 @@ export function createGameService(deps: GameServiceDeps): GameService {
       log.debug({ sessionId: gameSession.id, challengeId, userId }, 'resuming existing session')
     }
 
-    const tierSession = await sessionRepository.createTierSession({
+    // Use the atomic guarded insert so a concurrent submitGuess that flips
+    // is_completed=true between the read above and this write cannot grant
+    // the user a second tier-session run.
+    const tierSession = await sessionRepository.createTierSessionIfActive({
       gameSessionId: gameSession.id,
       tierId: tier.id,
     })
+    if (!tierSession) {
+      throw new GameError('CHALLENGE_ALREADY_COMPLETED', 'You have already completed this challenge', 400)
+    }
 
     return {
       sessionId: gameSession.id,
@@ -398,6 +404,23 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const tierScreenshot = await challengeRepository.findScreenshotAtPosition(tier.id, position)
     if (!tierScreenshot) {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
+    }
+
+    // Server-authoritative round timer. Stamp the moment we hand this
+    // position to the client so submitGuess can compute elapsed without
+    // trusting the client. We only stamp the latest tier session for this
+    // game session — refreshes on the same position simply restart the
+    // timer, which is the lenient behaviour we want.
+    try {
+      const latestTier = await sessionRepository.findLatestTierSession(session.id)
+      if (latestTier) {
+        await sessionRepository.markRoundStarted(latestTier.id, position)
+      }
+    } catch (err) {
+      // Round-start tracking is defense-in-depth; failure here must not
+      // block the player from seeing the screenshot. submitGuess will fall
+      // back to the client-supplied timer if `round_started_at` is null.
+      log.warn?.({ err: String(err), sessionId: session.id, position }, 'markRoundStarted failed')
     }
 
     // Use proxy URL to hide the actual file path (which contains game slug)
@@ -441,13 +464,46 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const isCorrect = data.gameId === screenshot.gameId ||
       (data.guessText.trim() !== '' && fuzzyMatchService.isMatch(data.guessText, gameName, aliases))
 
+    // Server-authoritative round timer. The client submits its own
+    // `roundTimeTakenMs`; we treat it as a hint and use Math.max(server,
+    // client) so the slower of the two wins. Lower elapsed time = higher
+    // speed multiplier, so favouring the larger value blocks the trivial
+    // `{ roundTimeTakenMs: 1 }` cheat without penalising legitimate users
+    // whose clock differs slightly from ours.
+    const roundStartedAt = tierSession.round_started_at
+      ? new Date(tierSession.round_started_at).getTime()
+      : null
+    const serverElapsedMs =
+      roundStartedAt !== null && tierSession.round_position === data.position
+        ? Math.max(0, Date.now() - roundStartedAt)
+        : null
+    const effectiveTimeTakenMs =
+      serverElapsedMs !== null
+        ? Math.max(serverElapsedMs, data.roundTimeTakenMs)
+        : data.roundTimeTakenMs
+    if (
+      serverElapsedMs !== null &&
+      Math.abs(serverElapsedMs - data.roundTimeTakenMs) > 2000
+    ) {
+      log.warn?.(
+        {
+          userId: data.userId,
+          tierSessionId: data.tierSessionId,
+          position: data.position,
+          serverElapsedMs,
+          clientElapsedMs: data.roundTimeTakenMs,
+        },
+        'round timer divergence (>2s)'
+      )
+    }
+
     // Calculate score based on speed multiplier (only for correct guesses)
     // Base score is 100 points, multiplied by speed factor
     let scoreEarned = 0
     let hintPenalty = 0
     let hintFromInventory = false
     if (isCorrect) {
-      const speedMultiplier = calculateSpeedMultiplier(data.roundTimeTakenMs)
+      const speedMultiplier = calculateSpeedMultiplier(effectiveTimeTakenMs)
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
       // Cap max score per screenshot at 200 points
       scoreEarned = Math.min(scoreEarned, 200)
@@ -544,8 +600,10 @@ export function createGameService(deps: GameServiceDeps): GameService {
         position: data.position,
         isCorrect,
         scoreEarned,
-        roundTimeTakenMs: data.roundTimeTakenMs,
-        speedMultiplier: isCorrect ? calculateSpeedMultiplier(data.roundTimeTakenMs) : null,
+        clientRoundTimeTakenMs: data.roundTimeTakenMs,
+        effectiveTimeTakenMs,
+        serverElapsedMs,
+        speedMultiplier: isCorrect ? calculateSpeedMultiplier(effectiveTimeTakenMs) : null,
         guessedGame: data.guessText,
         correctGame: gameName,
       },
@@ -559,7 +617,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       guessedGameId: data.gameId,
       guessedText: data.guessText,
       isCorrect,
-      sessionElapsedMs: data.roundTimeTakenMs, // Store round time as sessionElapsedMs for backward compatibility
+      // Persist the server-derived elapsed so historical rows reflect what
+      // actually drove the score, not the client's self-report.
+      sessionElapsedMs: effectiveTimeTakenMs,
       scoreEarned,
     })
 
@@ -593,7 +653,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       payload: {
         position: data.position,
         isCorrect,
-        roundTimeTakenMs: data.roundTimeTakenMs,
+        roundTimeTakenMs: effectiveTimeTakenMs,
         powerUpUsed: data.powerUpUsed ?? null,
       },
     })

@@ -127,10 +127,16 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'create-daily-challenge') {
-        const result = await createDailyChallenge((current, total) => {
-          const progress = Math.round((current / total) * 100)
-          job.updateProgress(progress)
-        })
+        // Use the job's scheduled timestamp (cron fire time) so a restart-
+        // induced re-registration moments before midnight UTC can't cause the
+        // worker to compute "tomorrow" from Date.now().
+        const result = await createDailyChallenge(
+          (current, total) => {
+            const progress = Math.round((current / total) * 100)
+            job.updateProgress(progress)
+          },
+          { referenceMs: job.timestamp }
+        )
 
         const jobResult: JobResult = {
           message: result.message,

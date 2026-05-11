@@ -18,6 +18,10 @@ export function getAdminSocket(): Socket {
         socket = io(socketPath, {
             autoConnect: false,
             path: '/socket.io',
+            // Required for the backend to receive the Better Auth session
+            // cookie during the namespace handshake — without it the new
+            // io.use() middleware rejects every connection.
+            withCredentials: true,
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,

@@ -12,6 +12,9 @@ function createSocket(): Socket {
     return io(path, {
         autoConnect: false,
         path: '/socket.io',
+        // Carries the Better Auth session cookie through the WebSocket
+        // handshake so the server's namespace middleware can authorize.
+        withCredentials: true,
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,

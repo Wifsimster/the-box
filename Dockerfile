@@ -87,6 +87,10 @@ RUN npm ci --omit=dev --ignore-scripts && \
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 
+# Strip source maps from the production image so original TS source and
+# variable names aren't shipped to anyone who pulls the public image.
+RUN find ./packages/backend/dist ./packages/types/dist -name '*.js.map' -delete
+
 # Copy migrations, seeds, and knexfile
 COPY packages/backend/migrations ./packages/backend/migrations
 COPY packages/backend/seeds ./packages/backend/seeds

@@ -29,10 +29,18 @@ import billingRoutes from './presentation/routes/billing.routes.js'
 import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.js'
 import koeRoutes from './presentation/routes/koe.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
-import { importQueue, geoQueue } from './infrastructure/queue/queues.js'
-import './infrastructure/queue/workers/import.worker.js'
-import './infrastructure/queue/workers/geo.worker.js'
-import './infrastructure/queue/workers/push.worker.js'
+import {
+  importQueue,
+  geoQueue,
+  pushQueue,
+  importQueueEvents,
+  geoQueueEvents,
+  pushQueueEvents,
+} from './infrastructure/queue/queues.js'
+import { importWorker } from './infrastructure/queue/workers/import.worker.js'
+import { geoWorker } from './infrastructure/queue/workers/geo.worker.js'
+import { pushWorker } from './infrastructure/queue/workers/push.worker.js'
+import { db } from './infrastructure/database/connection.js'
 import { pushService } from './domain/services/push.service.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
@@ -669,7 +677,7 @@ async function start(): Promise<void> {
 
   // Create HTTP server and initialize Socket.IO
   const httpServer = createServer(app)
-  initializeSocketIO(httpServer)
+  const io = initializeSocketIO(httpServer)
 
   httpServer.listen(env.PORT, () => {
     logger.info(
@@ -681,6 +689,63 @@ async function start(): Promise<void> {
       },
       'server started with Socket.IO'
     )
+  })
+
+  // Graceful shutdown. Docker sends SIGTERM on rolling deploy and waits ~10s
+  // before SIGKILL — close in dependency order so in-flight requests and
+  // queued jobs aren't cut mid-write.
+  let shuttingDown = false
+  const shutdown = async (signal: NodeJS.Signals) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    logger.info({ signal }, 'received shutdown signal, draining connections')
+
+    const closeWithTimeout = <T,>(label: string, op: () => Promise<T>, ms = 8000) =>
+      Promise.race([
+        op().catch((err) => logger.warn({ err: String(err), label }, 'shutdown step failed')),
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            logger.warn({ label, ms }, 'shutdown step timed out')
+            resolve()
+          }, ms)
+        ),
+      ])
+
+    httpServer.close()
+    if (io) {
+      await closeWithTimeout('socket.io', () => new Promise<void>((resolve) => io.close(() => resolve())))
+    }
+
+    await Promise.all([
+      closeWithTimeout('importWorker', () => importWorker.close()),
+      closeWithTimeout('geoWorker', () => geoWorker.close()),
+      closeWithTimeout('pushWorker', () => pushWorker.close()),
+    ])
+    await Promise.all([
+      closeWithTimeout('importQueue', () => importQueue.close()),
+      closeWithTimeout('geoQueue', () => geoQueue.close()),
+      closeWithTimeout('pushQueue', () => pushQueue.close()),
+      closeWithTimeout('importQueueEvents', () => importQueueEvents.close()),
+      closeWithTimeout('geoQueueEvents', () => geoQueueEvents.close()),
+      closeWithTimeout('pushQueueEvents', () => pushQueueEvents.close()),
+    ])
+    await closeWithTimeout('db', () => db.destroy())
+
+    logger.info('shutdown complete')
+    process.exit(0)
+  }
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'))
+  process.on('SIGINT', () => void shutdown('SIGINT'))
+
+  // Fail fast on unhandled errors so the orchestrator can restart us.
+  process.on('unhandledRejection', (reason) => {
+    logger.fatal({ reason: String(reason) }, 'unhandled promise rejection')
+    void shutdown('SIGTERM')
+  })
+  process.on('uncaughtException', (err) => {
+    logger.fatal({ err: String(err) }, 'uncaught exception')
+    void shutdown('SIGTERM')
   })
 }
 

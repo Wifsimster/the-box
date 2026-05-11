@@ -29,11 +29,15 @@ export interface DailyChallengeResult {
 }
 
 /**
- * Get today's date in YYYY-MM-DD format (UTC)
+ * Get today's date in YYYY-MM-DD format (UTC).
+ * Accepts an optional reference timestamp so the cron worker can use the
+ * job's scheduled-fire time instead of `Date.now()` — otherwise a container
+ * restart that re-registers the recurring job seconds before midnight UTC
+ * would compute "tomorrow" and silently skip a day.
  */
-function getTodayDateUTC(): string {
-  const now = new Date()
-  return now.toISOString().split('T')[0]!
+function getTodayDateUTC(referenceMs?: number): string {
+  const ref = typeof referenceMs === 'number' ? new Date(referenceMs) : new Date()
+  return ref.toISOString().split('T')[0]!
 }
 
 interface ScreenshotPick {
@@ -187,9 +191,12 @@ async function endAllInProgressGames(): Promise<{ ended: number; failed: number 
  * This function is idempotent - it will skip if a challenge already exists.
  */
 export async function createDailyChallenge(
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  options?: { referenceMs?: number; targetDate?: string }
 ): Promise<DailyChallengeResult> {
-  const challengeDate = getTodayDateUTC()
+  // Prefer an explicit target date when supplied, then fall back to a
+  // timestamp-derived date (cron worker passes job.timestamp), then to "now".
+  const challengeDate = options?.targetDate ?? getTodayDateUTC(options?.referenceMs)
 
   log.info({ challengeDate }, 'Starting daily challenge creation')
   onProgress?.(0, 5, `Checking for existing challenge on ${challengeDate}...`)

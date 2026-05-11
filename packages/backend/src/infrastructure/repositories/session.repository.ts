@@ -36,6 +36,8 @@ export interface TierSessionRow {
   is_completed: boolean
   started_at: Date
   completed_at: Date | null
+  round_started_at: Date | null
+  round_position: number | null
 }
 
 export interface TierSessionWithContext extends TierSessionRow {
@@ -121,6 +123,43 @@ export const sessionRepository = {
       .returning<TierSessionRow[]>('*')
     log.debug({ tierSessionId: row!.id }, 'tier session created')
     return row!
+  },
+
+  // Mark the moment the server served position N for the given tier session.
+  // submitGuess later derives elapsed = NOW() - round_started_at so the
+  // speed multiplier no longer trusts the client-supplied timer.
+  async markRoundStarted(tierSessionId: string, position: number): Promise<void> {
+    log.debug({ tierSessionId, position }, 'markRoundStarted')
+    await db('tier_sessions')
+      .where('id', tierSessionId)
+      .update({
+        round_started_at: db.fn.now(),
+        round_position: position,
+      })
+  },
+
+  // Atomic variant used by startChallenge: only inserts when the parent game
+  // session is still in-progress. Returns null if a concurrent guess submit
+  // flipped `is_completed=true` between the service-layer check and this
+  // insert (the original replay race documented in the production review).
+  async createTierSessionIfActive(data: {
+    gameSessionId: string
+    tierId: number
+  }): Promise<TierSessionRow | null> {
+    log.debug({ gameSessionId: data.gameSessionId, tierId: data.tierId }, 'createTierSessionIfActive')
+    const rows = await db.raw<{ rows: TierSessionRow[] }>(
+      `INSERT INTO tier_sessions (game_session_id, tier_id)
+       SELECT ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM game_sessions
+         WHERE id = ? AND is_completed = false
+       )
+       RETURNING *`,
+      [data.gameSessionId, data.tierId, data.gameSessionId]
+    )
+    const row = rows.rows[0] ?? null
+    log.debug({ tierSessionId: row?.id, inserted: !!row }, 'createTierSessionIfActive result')
+    return row
   },
 
   async findTierSessionWithContext(tierSessionId: string): Promise<TierSessionWithContext | null> {
