@@ -19,6 +19,17 @@ const getAppVersion = () => {
 const appVersion = getAppVersion()
 const buildTime = new Date().toISOString()
 
+// Defence-in-depth: a production build with VITE_USE_MOCK_API=true would
+// ship mock services to users. The runtime guard already short-circuits
+// when the flag is anything other than 'true', but failing the build is
+// loud enough that the mistake can't slip into a release tag.
+if (process.env.NODE_ENV === 'production' && process.env.VITE_USE_MOCK_API === 'true') {
+  throw new Error(
+    'Refusing to build a production bundle with VITE_USE_MOCK_API=true. ' +
+    'Unset the env var or build with NODE_ENV=development.'
+  )
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [

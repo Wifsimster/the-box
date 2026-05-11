@@ -37,6 +37,22 @@ export const screenshotRepository = {
     return row ? mapRowToScreenshot(row) : null
   },
 
+  // Authorisation gate for the image-proxy route. Returns true iff `userId`
+  // has (or had) a game_session for a daily_challenge whose tier includes
+  // `screenshotId`. Without this gate any authenticated user could iterate
+  // screenshot ids and harvest unreleased challenge answers (a key blocker
+  // from the post-merge review).
+  async userCanAccessScreenshot(userId: string, screenshotId: number): Promise<boolean> {
+    const row = await db('tier_screenshots')
+      .join('tiers', 'tiers.id', 'tier_screenshots.tier_id')
+      .join('game_sessions', 'game_sessions.daily_challenge_id', 'tiers.daily_challenge_id')
+      .where('tier_screenshots.screenshot_id', screenshotId)
+      .andWhere('game_sessions.user_id', userId)
+      .select(db.raw('1'))
+      .first()
+    return !!row
+  },
+
   async findByGameId(gameId: number): Promise<Screenshot[]> {
     const rows = await db('screenshots')
       .where('game_id', gameId)

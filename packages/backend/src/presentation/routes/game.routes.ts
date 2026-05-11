@@ -101,7 +101,25 @@ router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
   }
 })
 
-// Serve screenshot image by ID (proxy to hide actual file path)
+// Allowed extensions for the image proxy. The Content-Type header is set
+// from the extension (verified, not sniffed) and any other extension is
+// rejected outright — closes the SVG-XSS path where a malicious upload
+// could execute JavaScript on the same origin as the auth cookie.
+const IMAGE_EXTENSION_CONTENT_TYPE: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+}
+
+// Serve screenshot image by ID. Two safety nets beyond the auth middleware:
+//   1. The user must have (or have had) a game session for a challenge
+//      that includes this screenshot — without it, any logged-in user
+//      could enumerate every screenshot in the catalogue, including
+//      future challenges (see New-1 in the readiness review).
+//   2. The Content-Type is derived from a known-good extension and we
+//      add `X-Content-Type-Options: nosniff` so browsers don't second-
+//      guess us if a stray SVG ever lands in the screenshots tree.
 router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
   try {
     const screenshotId = parseInt(req.params['screenshotId'] as string, 10)
@@ -123,15 +141,41 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
       return
     }
 
+    const userId = req.userId
+    if (!userId) {
+      // authMiddleware should have rejected, but be explicit so the
+      // ownership check below never reads `undefined`.
+      res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED' } })
+      return
+    }
+    const canAccess = await screenshotRepository.userCanAccessScreenshot(userId, screenshotId)
+    if (!canAccess) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
+      })
+      return
+    }
+
+    const ext = path.extname(screenshot.imageUrl).toLowerCase()
+    const contentType = IMAGE_EXTENSION_CONTENT_TYPE[ext]
+    if (!contentType) {
+      res.status(415).json({
+        success: false,
+        error: { code: 'UNSUPPORTED_MEDIA_TYPE', message: 'Unsupported screenshot format' },
+      })
+      return
+    }
+
     // Convert /uploads/screenshots/... to absolute file path
     const relativePath = screenshot.imageUrl.replace('/uploads/', '')
     const filePath = path.join(uploadsPath, relativePath)
 
-    // Send the file with appropriate cache headers
     res.sendFile(filePath, {
-      maxAge: '1d', // Cache for 1 day
+      maxAge: '1d',
       headers: {
-        'Content-Type': 'image/jpeg',
+        'Content-Type': contentType,
+        'X-Content-Type-Options': 'nosniff',
       },
     }, (err) => {
       if (err) {

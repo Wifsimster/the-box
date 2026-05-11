@@ -121,9 +121,12 @@ COPY scripts/db-backup.sh /scripts/db-backup.sh
 COPY scripts/db-backup-cron /etc/crontabs/root
 RUN chmod +x /scripts/db-backup.sh
 
-# Health check
+# Health check. Probes /healthz (DB + Redis liveness) rather than /health
+# (which only reports the process is up). A backend stuck behind a dead
+# Postgres still returns 200 on /health, which would keep Traefik routing
+# traffic to it.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:80/healthz || exit 1
 
 # Start services
 CMD ["/docker-entrypoint.sh"]

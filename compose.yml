@@ -107,13 +107,19 @@ services:
       timeout: 5s
       retries: 5
 
-  # Database backup service (runs daily at 2am)
+  # Database backup service (runs daily at 2am).
+  # Credentials live in a ~/.pgpass file at 0600 rather than the PGPASSWORD
+  # env var. PGPASSWORD shows up in `docker inspect` output and in any
+  # process listing the cron daemon spawns; .pgpass is only readable by
+  # the postgres user inside the container. Compose's `secrets:` block
+  # writes /run/secrets/db_password from the project root file, which the
+  # entry script copies into ~/.pgpass with the correct permissions.
   db-backup:
     image: postgres:16-alpine
     container_name: the-box-db-backup
     restart: unless-stopped
-    environment:
-      - PGPASSWORD=${DB_PASSWORD:-thebox}
+    secrets:
+      - db_password
     volumes:
       - ./backups:/backups
       - ./scripts/db-backup.sh:/scripts/db-backup.sh:ro
@@ -121,7 +127,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["crond", "-f", "-l", "2"]
+    # Build the .pgpass file from the mounted secret on each container
+    # start; the backup script reads it instead of trusting an env var.
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        umask 077
+        DB_PW="$$(cat /run/secrets/db_password)"
+        printf 'postgres:5432:thebox:thebox:%s\n' "$$DB_PW" > /root/.pgpass
+        chmod 600 /root/.pgpass
+        exec crond -f -l 2
     networks:
       lan:
 
@@ -129,6 +146,14 @@ volumes:
   uploads:
   redis-data:
   postgres-data:
+
+# Compose-managed secrets. Drop a single-line `secrets/db_password.txt`
+# (gitignored) next to compose.yml with the Postgres user's password
+# before bringing the stack up. Docker mounts it read-only at
+# /run/secrets/db_password inside the backup container.
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
 
 networks:
   lan:

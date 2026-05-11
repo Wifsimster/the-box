@@ -193,56 +193,59 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
       // inventory, consume the freeze and behave as if they had logged in
       // yesterday. Multi-day gaps are NOT covered (one freeze = one day,
       // per the streak-freeze PRD). Invariant: freezes are never
-      // purchasable; this is the SOLE consumption path. Race window note:
-      // two near-simultaneous /status calls on a new day could both reach
-      // this branch and decrement twice — acceptable for v1; mitigation is
-      // moving the consume into the same transaction as updateUserStreak.
+      // purchasable; this is the SOLE consumption path. The atomic
+      // consumeFreezeAndUpdateStreak path below closes the race that
+      // used to exist here (two concurrent /status calls could both
+      // decrement the same freeze).
       const previousStreak = streakRecord.current_login_streak
       const wouldReset =
         isNewLogin && newStreak === 1 && previousStreak > 0
       const missedExactlyOneDay = daysBetween(lastLoginDate, today) === 2
       let streakFreezeConsumed: DailyLoginStatus['streakFreezeConsumed'] = null
+      let streakAlreadyPersisted = false
 
       if (wouldReset && missedExactlyOneDay) {
-        const consumed = await inventoryRepository.useItems(
-          userId,
-          STREAK_FREEZE_ITEM_TYPE,
-          STREAK_FREEZE_ITEM_KEY,
-          1
+        // Recompute the "continued" streak values that we'd save IF the
+        // freeze is available, then hand both to the repo so the
+        // decrement + streak update commit together.
+        const continued = calculateStreak(
+          getYesterday(),
+          previousStreak,
+          streakRecord.longest_login_streak,
+          streakRecord.current_day_in_cycle
         )
-        if (consumed) {
-          // Re-run streak math as if last login was yesterday (case 2):
-          // continue, advance day-in-cycle, bump longest if needed.
-          const continued = calculateStreak(
-            getYesterday(),
-            previousStreak,
-            streakRecord.longest_login_streak,
-            streakRecord.current_day_in_cycle
-          )
+        const result = await dailyLoginRepository.consumeFreezeAndUpdateStreak(userId, {
+          itemType: STREAK_FREEZE_ITEM_TYPE,
+          itemKey: STREAK_FREEZE_ITEM_KEY,
+          streak: {
+            currentLoginStreak: continued.newStreak,
+            longestLoginStreak: continued.newLongestStreak,
+            lastLoginDate: today,
+            currentDayInCycle: continued.newDayInCycle,
+          },
+        })
+        if (result.ok) {
           newStreak = continued.newStreak
           newLongestStreak = continued.newLongestStreak
           newDayInCycle = continued.newDayInCycle
-          const freezesRemaining = await inventoryRepository.getItemQuantity(
-            userId,
-            STREAK_FREEZE_ITEM_TYPE,
-            STREAK_FREEZE_ITEM_KEY
-          )
           streakFreezeConsumed = {
             previousStreak,
             newStreak,
-            freezesRemaining,
+            freezesRemaining: result.freezesRemaining,
           }
+          streakAlreadyPersisted = true
           log.info(
-            { userId, previousStreak, newStreak, freezesRemaining },
+            { userId, previousStreak, newStreak, freezesRemaining: result.freezesRemaining },
             'streak-freeze auto-consumed — streak preserved'
           )
         }
       }
 
-      // Update streak if this is a new login day. updateUserStreak guards
-      // on `last_login_date IS DISTINCT FROM today`, so concurrent
-      // /status calls collapse to a single write.
-      if (isNewLogin) {
+      // Update streak if this is a new login day AND the freeze path
+      // above didn't already persist a transactional update.
+      // updateUserStreak guards on `last_login_date IS DISTINCT FROM
+      // today`, so concurrent /status calls collapse to a single write.
+      if (isNewLogin && !streakAlreadyPersisted) {
         await dailyLoginRepository.updateUserStreak(userId, {
           currentLoginStreak: newStreak,
           longestLoginStreak: newLongestStreak,

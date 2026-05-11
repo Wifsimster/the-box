@@ -46,3 +46,31 @@ export async function testRedisConnection(): Promise<boolean> {
     return false
   }
 }
+
+// Boot-time elect-a-leader lock used to serialise the recurring-job
+// re-registration block in index.ts. Without this, two containers
+// performing a rolling-deploy "remove then re-add" interleave can leave
+// the queue with either zero or two of a recurring job; with this, only
+// the first booting container holds the lock for the TTL window and
+// re-registers, the rest skip and pick up the already-scheduled cron.
+//
+// Returns true if the caller acquired the lock; false otherwise. The
+// caller does not need to release — the TTL is short and matches a
+// rolling-deploy overlap.
+export async function tryAcquireBootLock(key: string, ttlSeconds = 60): Promise<boolean> {
+  // ioredis ships its CJS default as the named `Redis` export under
+  // NodeNext module resolution. Importing the namespace and reading
+  // `.default` gives us a constructable value.
+  const ioredisModule = await import('ioredis')
+  const Redis = (ioredisModule as unknown as { default: typeof import('ioredis').Redis }).default
+  const client = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: false })
+  try {
+    const result = await client.set(`bootlock:${key}`, String(Date.now()), 'EX', ttlSeconds, 'NX')
+    return result === 'OK'
+  } catch (err) {
+    log.warn({ err: String(err), key }, 'boot lock acquire failed; proceeding without lock')
+    return true // fail-open: better to risk a redundant re-register than to skip entirely
+  } finally {
+    await client.quit().catch(() => { /* ignore */ })
+  }
+}

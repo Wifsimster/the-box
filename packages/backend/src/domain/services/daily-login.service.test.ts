@@ -73,7 +73,15 @@ interface FakeDailyLoginState {
     claimedToday: boolean
 }
 
-function makeFakeDailyLogin(overrides: Partial<UserLoginStreakRecord>): {
+function makeFakeDailyLogin(
+    overrides: Partial<UserLoginStreakRecord>,
+    // Optional inventory hook so the test stub can simulate the new
+    // transactional consumeFreezeAndUpdateStreak path, which atomically
+    // decrements a freeze and updates the streak. Existing tests pass
+    // the same inventory repo they hand to the service so a single
+    // useItemsCalls log captures both code paths.
+    inventoryHook?: InventoryRepository
+): {
     repo: DailyLoginRepository
     state: FakeDailyLoginState
 } {
@@ -123,6 +131,24 @@ function makeFakeDailyLogin(overrides: Partial<UserLoginStreakRecord>): {
             state.streak.last_login_date = data.lastLoginDate
             state.streak.current_day_in_cycle = data.currentDayInCycle
         },
+        async consumeFreezeAndUpdateStreak(userId, opts) {
+            // Mirror production semantics: try to decrement an inventory
+            // item, and only update the streak if the decrement
+            // succeeded. We piggyback on the inventoryHook so the
+            // useItemsCalls log captures both the legacy and new paths.
+            if (!inventoryHook) {
+                return { ok: false }
+            }
+            const consumed = await inventoryHook.useItems(userId, opts.itemType, opts.itemKey, 1)
+            if (!consumed) return { ok: false }
+            state.updates.push(opts.streak)
+            state.streak.current_login_streak = opts.streak.currentLoginStreak
+            state.streak.longest_login_streak = opts.streak.longestLoginStreak
+            state.streak.last_login_date = opts.streak.lastLoginDate
+            state.streak.current_day_in_cycle = opts.streak.currentDayInCycle
+            const remaining = await inventoryHook.getItemQuantity(userId, opts.itemType, opts.itemKey)
+            return { ok: true, freezesRemaining: remaining }
+        },
         async claimDailyReward() {
             return { ok: true }
         },
@@ -141,13 +167,13 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
         // last login 2 days ago (yesterday was missed). Streak was 5 → would
         // reset to 1 without a freeze. With 1 freeze available, streak
         // continues at 6, freeze drops to 0.
+        const { repo: invRepo, state: invState } = makeFakeInventory(1)
         const { repo: dailyRepo, state: dailyState } = makeFakeDailyLogin({
             current_login_streak: 5,
             longest_login_streak: 5,
             last_login_date: dateOffset(2),
             current_day_in_cycle: 5,
-        })
-        const { repo: invRepo, state: invState } = makeFakeInventory(1)
+        }, invRepo)
 
         const service = createDailyLoginService({
             logger: silentLogger,
@@ -171,13 +197,13 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
     })
 
     it('does not consume when more than one day was missed (freeze covers 1 day only)', async () => {
+        const { repo: invRepo, state: invState } = makeFakeInventory(2)
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 5,
             longest_login_streak: 5,
             last_login_date: dateOffset(3), // 2 missed days
             current_day_in_cycle: 5,
-        })
-        const { repo: invRepo, state: invState } = makeFakeInventory(2)
+        }, invRepo)
 
         const service = createDailyLoginService({
             logger: silentLogger,
@@ -193,13 +219,13 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
     })
 
     it('resets normally when one day was missed but no freeze is available', async () => {
+        const { repo: invRepo, state: invState } = makeFakeInventory(0)
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 5,
             longest_login_streak: 5,
             last_login_date: dateOffset(2),
             current_day_in_cycle: 5,
-        })
-        const { repo: invRepo, state: invState } = makeFakeInventory(0)
+        }, invRepo)
 
         const service = createDailyLoginService({
             logger: silentLogger,
@@ -218,13 +244,13 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
     })
 
     it('does not consume on a continuing streak (logged in yesterday)', async () => {
+        const { repo: invRepo, state: invState } = makeFakeInventory(2)
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 3,
             longest_login_streak: 3,
             last_login_date: dateOffset(1),
             current_day_in_cycle: 3,
-        })
-        const { repo: invRepo, state: invState } = makeFakeInventory(2)
+        }, invRepo)
 
         const service = createDailyLoginService({
             logger: silentLogger,
@@ -240,13 +266,13 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
     })
 
     it('does not consume on same-day re-call (no new login)', async () => {
+        const { repo: invRepo, state: invState } = makeFakeInventory(2)
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 3,
             longest_login_streak: 3,
             last_login_date: todayUTC(),
             current_day_in_cycle: 3,
-        })
-        const { repo: invRepo, state: invState } = makeFakeInventory(2)
+        }, invRepo)
 
         const service = createDailyLoginService({
             logger: silentLogger,
@@ -265,13 +291,13 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
         // First-time user: no last_login_date, current_login_streak === 0.
         // Even with freezes pre-stocked (edge case), we should NOT consume
         // because there is no streak to protect.
+        const { repo: invRepo, state: invState } = makeFakeInventory(2)
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 0,
             longest_login_streak: 0,
             last_login_date: null,
             current_day_in_cycle: 0,
-        })
-        const { repo: invRepo, state: invState } = makeFakeInventory(2)
+        }, invRepo)
 
         const service = createDailyLoginService({
             logger: silentLogger,

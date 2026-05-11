@@ -28,7 +28,7 @@ import pushRoutes from './presentation/routes/push.routes.js'
 import billingRoutes from './presentation/routes/billing.routes.js'
 import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.js'
 import koeRoutes from './presentation/routes/koe.routes.js'
-import { testRedisConnection } from './infrastructure/queue/connection.js'
+import { testRedisConnection, tryAcquireBootLock } from './infrastructure/queue/connection.js'
 import {
   importQueue,
   geoQueue,
@@ -82,9 +82,12 @@ app.use(cors({
 // its own express.raw() so only this path skips JSON parsing.
 app.use('/api/billing/webhook', billingWebhookRoutes)
 
-// JSON parsing middleware
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// JSON parsing middleware. Explicit 256kb limit pins the default rather
+// than relying on Express's implicit 100kb — leaves headroom for the
+// largest realistic request (admin game import payloads) without
+// exposing a memory-exhaustion vector.
+app.use(express.json({ limit: '256kb' }))
+app.use(express.urlencoded({ extended: true, limit: '256kb' }))
 
 // Database pool for user deletion
 const dbPool = new Pool({
@@ -360,21 +363,39 @@ async function start(): Promise<void> {
       'leaderboard-payout-monthly',
       'prune-push-subscriptions',
     ]
-    try {
-      const repeatableJobs = await importQueue.getRepeatableJobs()
-      for (const job of repeatableJobs) {
-        if (deprecatedJobs.includes(job.name)) {
-          await importQueue.removeRepeatableByKey(job.key)
-          logger.info({ jobName: job.name }, 'removed deprecated recurring job')
-        } else if (activeRecurringJobs.includes(job.name)) {
-          // Remove active jobs so they can be re-added with updated config (e.g., timezone)
-          await importQueue.removeRepeatableByKey(job.key)
-          logger.debug({ jobName: job.name }, 'removed recurring job for re-registration')
-        }
-      }
-    } catch (error) {
-      logger.warn({ error: String(error) }, 'failed to clean up recurring jobs')
+    // Recurring-job re-registration runs at most once per rolling
+    // deploy. Without this lock, two containers can interleave their
+    // remove/add and leave the queue with either zero or two of a
+    // recurring job. 60s is comfortably longer than the slowest
+    // re-registration loop in this section. Containers that don't
+    // hold the lock skip the entire schedule block below; the cron
+    // that the registrar wrote will fire for everyone via Redis.
+    const hasRecurringRegistrar = await tryAcquireBootLock('recurring-jobs', 60)
+    if (!hasRecurringRegistrar) {
+      logger.info('another container holds the recurring-job lock; skipping re-registration')
     }
+    if (hasRecurringRegistrar) {
+      try {
+        const repeatableJobs = await importQueue.getRepeatableJobs()
+        for (const job of repeatableJobs) {
+          if (deprecatedJobs.includes(job.name)) {
+            await importQueue.removeRepeatableByKey(job.key)
+            logger.info({ jobName: job.name }, 'removed deprecated recurring job')
+          } else if (activeRecurringJobs.includes(job.name)) {
+            // Remove active jobs so they can be re-added with updated config (e.g., timezone)
+            await importQueue.removeRepeatableByKey(job.key)
+            logger.debug({ jobName: job.name }, 'removed recurring job for re-registration')
+          }
+        }
+      } catch (error) {
+        logger.warn({ error: String(error) }, 'failed to clean up recurring jobs')
+      }
+    }
+    // Re-add block below is also gated on the lock. We use an early
+    // skip-style label rather than wrapping every `importQueue.add`
+    // because the existing code is one long sequence of independent
+    // try/catch blocks.
+    if (hasRecurringRegistrar) {
 
     // Schedule recurring daily challenge creation (midnight UTC)
     try {
@@ -657,6 +678,7 @@ async function start(): Promise<void> {
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to register recurring geo jobs')
     }
+    } // end if (hasRecurringRegistrar) — registration block
 
     // Log final repeatable jobs configuration with next run times
     try {
@@ -716,10 +738,24 @@ async function start(): Promise<void> {
       await closeWithTimeout('socket.io', () => new Promise<void>((resolve) => io.close(() => resolve())))
     }
 
+    // Stop workers from picking up new jobs BEFORE closing the queue
+    // connections — without this, the worker poll-loop could grab a job,
+    // start a transaction, and then have its Redis connection ripped
+    // out from under it mid-write.
     await Promise.all([
-      closeWithTimeout('importWorker', () => importWorker.close()),
-      closeWithTimeout('geoWorker', () => geoWorker.close()),
-      closeWithTimeout('pushWorker', () => pushWorker.close()),
+      closeWithTimeout('importWorker.pause', () => importWorker.pause()),
+      closeWithTimeout('geoWorker.pause', () => geoWorker.pause()),
+      closeWithTimeout('pushWorker.pause', () => pushWorker.pause()),
+    ])
+
+    // Now drain — worker.close() waits for active jobs to finish (up to
+    // the closeWithTimeout window). Give workers a longer fuse than the
+    // socket/HTTP teardown because in-flight jobs may need to finish a
+    // DB write before they can return cleanly.
+    await Promise.all([
+      closeWithTimeout('importWorker', () => importWorker.close(), 15_000),
+      closeWithTimeout('geoWorker', () => geoWorker.close(), 15_000),
+      closeWithTimeout('pushWorker', () => pushWorker.close(), 15_000),
     ])
     await Promise.all([
       closeWithTimeout('importQueue', () => importQueue.close()),

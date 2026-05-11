@@ -125,6 +125,24 @@ export const sessionRepository = {
     return row!
   },
 
+  // Serialise everything inside `fn` against other holders of the same
+  // tier-session lock. submitGuess wraps its entire body in this so two
+  // concurrent POSTs from the same user can't interleave reads of the
+  // tier_session row, double-apply the second-chance floor, or leave
+  // wrong_guesses out of sync with the guesses table.
+  //
+  // The lock is a Postgres advisory transaction lock — automatically
+  // released when the transaction commits or rolls back, so we never
+  // need to track release in code. The callback should NOT use `trx`
+  // for its writes (the lock works regardless of which connection the
+  // writes go through); it exists purely for serialisation.
+  async withTierSessionLock<T>(tierSessionId: string, fn: () => Promise<T>): Promise<T> {
+    return db.transaction(async (trx) => {
+      await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`tier_session:${tierSessionId}`])
+      return fn()
+    })
+  },
+
   // Mark the moment the server served position N for the given tier session.
   // submitGuess later derives elapsed = NOW() - round_started_at so the
   // speed multiplier no longer trusts the client-supplied timer.
