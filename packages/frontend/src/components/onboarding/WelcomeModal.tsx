@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Sparkles, Camera, Gift, Trophy, ArrowRight } from 'lucide-react'
 import { consumeWelcomeFlag } from './welcome-storage'
+import { markTourPending } from './tour-storage'
 
 export function WelcomeModal() {
   const { t } = useTranslation()
@@ -19,6 +20,9 @@ export function WelcomeModal() {
 
   const handleClose = () => {
     setIsOpen(false)
+    // Hand off to the interactive home tour so the user immediately sees
+    // where the daily challenge, leaderboard and rewards live.
+    markTourPending()
   }
 
   const handleNext = () => {

@@ -59,7 +59,11 @@ function NavigationLinks({ isMobile = false, t, localizedPath, onMobileClick, sh
       </Button>
 
       <Button variant="ghost" size="sm" asChild className={mobileClasses}>
-        <Link to={localizedPath('/leaderboard')} onClick={handleClick}>
+        <Link
+          to={localizedPath('/leaderboard')}
+          onClick={handleClick}
+          data-tour="leaderboard-link"
+        >
           <Trophy className={`w-4 h-4 ${iconClass}`} />
           {t('common.leaderboard')}
         </Link>
@@ -287,12 +291,15 @@ export function Header() {
               {/* Async Rewards Inbox */}
               <RewardsInboxBell />
               {/* Daily Login Reward Badge */}
-              <DailyRewardBadge />
+              <span data-tour="daily-reward-badge" className="inline-flex">
+                <DailyRewardBadge />
+              </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
+                  data-tour="profile-menu"
                   className="flex items-center gap-2 hover:bg-primary/10 transition-all border-0"
                 >
                   <User className="w-4 h-4 text-white" />

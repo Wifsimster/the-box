@@ -12,6 +12,8 @@ import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
+import { TourGuide } from '@/components/onboarding/TourGuide'
+import { consumeTourPending, hasCompletedTour } from '@/components/onboarding/tour-storage'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { useBillingStore } from '@/stores/billingStore'
@@ -68,6 +70,20 @@ export default function HomePage() {
   }, [billingPrices, i18n.language])
 
   const reducedMotion = useReducedMotionSafe()
+
+  // Home tour: opens once the page has settled. WelcomeModal flips the
+  // "pending" flag on close; otherwise we open it for any visitor who
+  // hasn't completed (or dismissed) it yet. Skipping or finishing marks
+  // it complete via the TourGuide itself.
+  const [tourOpen, setTourOpen] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if (consumeTourPending() || !hasCompletedTour()) {
+        setTourOpen(true)
+      }
+    }, 600)
+    return () => window.clearTimeout(id)
+  }, [])
 
   // Helper: drop `initial`/`animate`/`transition` when reduced motion is
   // preferred so motion components render statically without changing layout.
@@ -147,6 +163,7 @@ export default function HomePage() {
         </Suspense>
       )}
       <WelcomeModal />
+      <TourGuide open={tourOpen} onClose={() => setTourOpen(false)} />
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
         <StreakRiskBanner />
         {/* Hero Section */}
@@ -252,6 +269,7 @@ export default function HomePage() {
                     size="xl"
                     disabled={!isOnline}
                     onClick={() => navigate(localizedPath('/play'))}
+                    data-tour="play-cta"
                     className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
                   >
                     <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
@@ -262,6 +280,7 @@ export default function HomePage() {
                   variant="outline"
                   size="xl"
                   onClick={() => navigate(localizedPath('/geo'))}
+                  data-tour="geo-cta"
                   className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto border-neon-pink/40 text-neon-pink hover:border-neon-pink hover:text-neon-pink"
                 >
                   <MapPin className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
