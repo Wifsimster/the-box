@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Follow-up review after PR #206 merged (2026-05-11). 8 of 11
+  prior blockers verified clean. NEW launch-blocker set: B5 still open
+  (concurrent submitGuess), image proxy enumeration (H12), first-call
+  NULL fallback in the B4 server timer, Knex SSL missing for remote DBs,
+  and first-user admin race. Mostly small fixes — estimate 1-2 eng-days
+  to clear and re-test.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Post-Merge Readiness Review — The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 240px; gap: 3rem; max-width: 1180px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.85rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc strong { display: block; margin-bottom: 0.5rem; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { border: none; color: var(--muted); }
+  aside.toc a:hover { color: var(--fg); }
+
+  h1 { font-size: 1.875rem; margin: 0 0 0.25rem; letter-spacing: -0.01em;
+       background: linear-gradient(90deg, var(--fg), var(--neon-purple));
+       -webkit-background-clip: text; background-clip: text; color: transparent;
+       text-shadow: 0 0 32px rgba(168,85,247,0.18); }
+  h2 { font-size: 1.25rem; margin: 2.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  p.lead { color: var(--muted); margin-top: 0; }
+
+  .verdict {
+    border: 1px solid var(--warn);
+    background: linear-gradient(180deg, rgba(245,158,11,0.08), transparent);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0 2rem;
+  }
+  .verdict strong { color: var(--warn); }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+  .pill.pass { color: var(--ok); border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); }
+  .pill.partial { color: var(--neon-blue); border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.08); }
+  .pill.fail { color: var(--risk); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+  .pill.blocker { color: var(--risk); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+  .pill.high { color: var(--warn); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+  .pill.medium { color: var(--neon-blue); border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.08); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0.75rem 0 1.5rem; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.path { font-family: var(--mono); font-size: 0.78rem; color: var(--neon-blue); white-space: nowrap; }
+  td.sev { white-space: nowrap; }
+  td.status { white-space: nowrap; font-family: var(--mono); font-size: 0.78rem; }
+
+  .issue {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem;
+    margin: 0.85rem 0;
+  }
+  .issue.blocker { border-left: 3px solid var(--risk); }
+  .issue.high { border-left: 3px solid var(--warn); }
+  .issue.medium { border-left: 3px solid var(--neon-blue); }
+  .issue.pass { border-left: 3px solid var(--ok); }
+  .issue h3 { margin-top: 0; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .issue .where { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); display: block; margin-top: -0.25rem; margin-bottom: 0.5rem; }
+  .issue .fix-label { color: var(--neon-purple); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.5rem; display: block; }
+  .issue .note { color: var(--muted); font-size: 0.85rem; font-style: italic; margin-top: 0.5rem; }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { padding-left: 1.5rem; position: relative; margin: 0.35rem 0; }
+  ul.checklist li::before {
+    content: "\2610";
+    position: absolute; left: 0; top: 0;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; gap: 1rem; }
+    aside.toc { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="title">Post-Merge Readiness Review</span>
+  <span class="repo">wifsimster/the-box · PR #206 merged @ 06d683c</span>
+</header>
+
+<div class="layout">
+<aside class="toc" aria-label="Contents">
+  <strong>Sections</strong>
+  <ol>
+    <li><a href="#verdict">Verdict</a></li>
+    <li><a href="#method">Method</a></li>
+    <li><a href="#verify">Prior-blocker verification</a></li>
+    <li><a href="#blockers">Open blockers (5)</a></li>
+    <li><a href="#high">High severity (7)</a></li>
+    <li><a href="#medium">Medium severity (5)</a></li>
+    <li><a href="#fp">False positives from re-audit</a></li>
+    <li><a href="#checklist">Pre-launch checklist</a></li>
+  </ol>
+</aside>
+
+<main>
+
+<h1>Post-Merge Readiness Review</h1>
+<p class="lead">The Box · branch <code>claude/review-box-app-blockers-1einj</code> · 2026-05-11</p>
+
+<div id="verdict" class="verdict">
+  <strong>Verdict: not yet ready, but materially closer.</strong>
+  Eight of the eleven pre-merge blockers verify clean and stay clean.
+  Five blocker-level issues remain or were newly surfaced &mdash; one
+  is the deferred <code>submitGuess</code> transaction (B5), and four
+  are issues the first pass missed or under-prioritised (image-proxy
+  enumeration, first-call timer fallback, Knex SSL, first-user admin
+  race). All five are small fixes. Estimate: 1&ndash;2 engineer-days plus
+  one E2E pass.
+</div>
+
+<h2 id="method">Method</h2>
+<p>
+  Same four parallel audit lanes as the original review &mdash; security,
+  deploy / infra, data integrity, realtime / queues &mdash; rerun against
+  HEAD after the PR #206 squash-merge (commit <code>06d683c</code>). Each
+  lane was asked to <em>verify</em> the prior fixes (PASS / PARTIAL / FAIL)
+  before opening new ground. Where two lanes disagreed about a finding,
+  the conflict was resolved by reading the cited code directly &mdash; one
+  agent's claim that <code>Math.max(server, client)</code> is exploitable
+  for a 200&times; multiplier is wrong (slower time produces a <em>lower</em>
+  multiplier, so the picked direction is correct); the residual risk in
+  B4 is the silent fallback when round-stamping fails, which is a real
+  but separate issue.
+</p>
+
+<h2 id="verify">Prior-blocker verification</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Area</th><th>Status</th><th>Evidence</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>B1</td>
+      <td>Socket /admin auth</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>socket.ts:54-67</code> &mdash; <code>io.use()</code> rejects non-admin and unauthenticated</td>
+    </tr>
+    <tr>
+      <td>B2</td>
+      <td>Socket /geo, /notifications IDOR</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>socket.ts:266-289</code> &mdash; session-bound; <code>join_user</code> rejects cross-user</td>
+    </tr>
+    <tr>
+      <td>B3</td>
+      <td><code>BETTER_AUTH_SECRET</code> dev default</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>env.ts:81-90</code> &mdash; validator throws on dev literal in any non-development env</td>
+    </tr>
+    <tr>
+      <td>B4</td>
+      <td>Server-authoritative round timer</td>
+      <td class="status"><span class="pill partial">Partial</span></td>
+      <td>Math.max defense correct; <strong>silent-fallback on stamping failure remains</strong> (see B-new-2)</td>
+    </tr>
+    <tr>
+      <td>B5</td>
+      <td><code>submitGuess</code> transaction</td>
+      <td class="status"><span class="pill fail">Open</span></td>
+      <td>Deferred at merge time. Race surface narrowed by B7 + atomic <code>useItems</code> but not closed.</td>
+    </tr>
+    <tr>
+      <td>B6</td>
+      <td>Daily-login claim atomicity</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>daily-login.repository.ts:156-210</code> &mdash; Knex transaction + PG unique-violation fallback</td>
+    </tr>
+    <tr>
+      <td>B7</td>
+      <td>Atomic guard on <code>startChallenge</code></td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>session.repository.ts:145-163</code> &mdash; conditional INSERT, null return on completed session</td>
+    </tr>
+    <tr>
+      <td>B8</td>
+      <td>Graceful shutdown</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>index.ts:698-749</code> &mdash; HTTP, Socket.io, workers, queues, queueEvents, DB pool</td>
+    </tr>
+    <tr>
+      <td>B9</td>
+      <td><code>importQueue</code> retention</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>queues.ts:14-15</code> &mdash; was a false positive at first review; verified bounded</td>
+    </tr>
+    <tr>
+      <td>B10</td>
+      <td>Daily-challenge job date</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>import.worker.ts:133-139</code> &mdash; worker uses <code>job.timestamp</code></td>
+    </tr>
+    <tr>
+      <td>B11</td>
+      <td>Source maps stripped</td>
+      <td class="status"><span class="pill pass">Pass</span></td>
+      <td><code>Dockerfile:92</code> &mdash; <code>find &hellip; -name '*.js.map' -delete</code> on backend + types dist</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ======================= BLOCKERS ======================= -->
+<h2 id="blockers">Open blockers</h2>
+
+<div class="issue blocker">
+  <h3>B5 (open) &mdash; <code>submitGuess</code> is still not transactional <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/domain/services/game.service.ts ~440&ndash;750</span>
+  <p>
+    The earlier deferral note assumed the worst case was &ldquo;score loss,
+    not score gain.&rdquo; That's correct for the tier-session score itself
+    (the final UPDATE is overwrite-style, so a concurrent winner wipes the
+    loser), but two adjacent bugs slip through anyway:
+  </p>
+  <ul>
+    <li>
+      <strong>Wrong-guess and correct-guess counters can diverge from
+      <code>guesses</code>.</strong> The service reads
+      <code>getCorrectAnswersCount</code> and then writes
+      <code>correct_answers + (isCorrect ? 1 : 0)</code> on top of a stale
+      value, so two concurrent correct guesses can end with a counter that
+      doesn't match the actual row count in <code>guesses</code>.
+    </li>
+    <li>
+      <strong>Second-chance floor can be applied to <em>two</em>
+      <code>guesses</code> rows.</strong> The activation row is correctly
+      marked once (the <code>whereNull('applied_to_guess_id')</code>
+      guard holds), but both threads independently raised their in-memory
+      <code>scoreEarned</code> to the floor before saving their guess row.
+      Anything that later reads <code>guesses.score_earned</code> directly
+      (achievements, audit reports, future score replays) sees the boost
+      twice.
+    </li>
+  </ul>
+  <span class="fix-label">Fix</span>
+  <p>
+    Wrap the route handler body in <code>db.transaction(async (trx) =&gt; ...)</code>,
+    thread <code>trx</code> through <code>saveGuess</code>,
+    <code>updateTierSession</code>, <code>updateGameSession</code>,
+    <code>useItems</code>, and <code>markApplied</code>. Add a unique
+    index on <code>guesses(tier_session_id, position) WHERE is_correct = true</code>
+    if you want duplicate-correct submits to be a hard error rather than
+    just wasted work.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>New-1 &mdash; Image proxy lets any logged-in user enumerate every screenshot <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/presentation/routes/game.routes.ts:105&ndash;143</span>
+  <p>
+    <code>GET /api/game/image/:screenshotId</code> is gated by
+    <code>authMiddleware</code> but does <strong>not</strong> check that
+    the requested screenshot belongs to a challenge the user is currently
+    playing or has already completed. A logged-in user (free or anonymous
+    session) can iterate IDs from 1 upward and pull every screenshot
+    ever uploaded, including ones scheduled for future daily challenges.
+    Combined with H3 below, the answer leak is essentially &ldquo;authenticate
+    once, harvest forever.&rdquo;
+  </p>
+  <p>
+    Additionally, the response hard-codes
+    <code>Content-Type: image/jpeg</code> with no
+    <code>X-Content-Type-Options: nosniff</code> header and no extension
+    check on the stored path. If an admin import ever lands an SVG, the
+    browser will render it with embedded JavaScript on the same origin
+    as the Better Auth session cookie.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Resolve the screenshot to its <code>(tier, daily_challenge)</code> and
+    verify the user has a <code>game_session</code> for that challenge
+    (completed or in-progress). Add <code>X-Content-Type-Options: nosniff</code>
+    to the response and reject non-JPEG/PNG extensions before
+    <code>res.sendFile</code>.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>New-2 &mdash; B4 round-stamping fails silently and falls back to the client value <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/domain/services/game.service.ts:402&ndash;418 (getScreenshot)</span>
+  <p>
+    The merged fix wraps <code>markRoundStarted</code> in a
+    <code>try/catch</code> that logs a warning and continues, with the
+    rationale that &ldquo;submitGuess will fall back to the
+    client-supplied timer.&rdquo; That fallback is the exact behaviour B4
+    was trying to remove. A flaky DB write, a stalled connection in the
+    pool, or even a deliberately-triggered error (e.g., interleaving a
+    rejected request that holds a row lock) leaves
+    <code>round_started_at = NULL</code> and re-enables the original
+    <code>{ roundTimeTakenMs: 1 }</code> cheat for that round.
+  </p>
+  <p class="note">
+    Note: the &ldquo;clock-skew exploit&rdquo; one of the re-audit agents
+    raised against this fix is incorrect &mdash; <code>Math.max(server,
+    client)</code> picks the slower time, which produces the
+    <em>lower</em> multiplier, not the higher one. The real residual is
+    the fallback path, not the comparison direction.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Treat round-stamp failure as a 500 (or retry once and then 500).
+    Better still: persist <code>round_started_at</code> at session start
+    with a default of <code>started_at</code>, so the column is never
+    null on a live row, then reject any submitGuess whose tier session
+    has a null/stale <code>round_position</code>.
+  </p>
+</div>
+
+<div class="issue blocker">
+  <h3>New-3 &mdash; Knex production pool has no SSL for remote Postgres <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/knexfile.ts</span>
+  <p>
+    Was H5 in the original review and not in scope of PR #206. Worth
+    re-flagging as a launch blocker because every managed Postgres
+    provider (RDS, Supabase, Neon, DigitalOcean) requires TLS on
+    connection. Today the production block sets only
+    <code>min/max</code>; <code>ssl</code> is undefined, so the
+    <code>pg</code> driver opens an unencrypted socket and the DB rejects
+    it. Locally the bug is invisible because the dev DB doesn't enforce
+    TLS.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>production: {
+  client: 'pg',
+  connection: {
+    connectionString: env.DATABASE_URL,
+    ssl: env.DATABASE_URL.includes('localhost')
+      ? false
+      : { rejectUnauthorized: false },
+  },
+  pool: { min: 2, max: 10, idleTimeoutMillis: 30_000 },
+}</code></pre>
+</div>
+
+<div class="issue blocker">
+  <h3>New-4 &mdash; First-user admin bootstrap race (re-flagged) <span class="pill blocker">Blocker</span></h3>
+  <span class="where">packages/backend/src/infrastructure/auth/auth.ts:237&ndash;249</span>
+  <p>
+    Was H4 in the original review and not in scope of PR #206. The
+    <code>before</code> Better Auth hook reads
+    <code>SELECT COUNT(*) FROM "user"</code> and then returns the
+    inserted user with <code>role: 'admin'</code> if zero. Two parallel
+    sign-ups on a fresh DB both read zero and both become admin. Low
+    probability on a quiet launch night, high blast radius on launch
+    day if the link is shared widely.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Either enforce a partial unique index
+    (<code>CREATE UNIQUE INDEX one_admin ON "user"(role) WHERE role = 'admin'</code>)
+    and let the second writer collide, or move the check + insert into
+    a serialisable transaction.
+  </p>
+</div>
+
+<!-- ======================= HIGH ======================= -->
+<h2 id="high">High severity</h2>
+
+<div class="issue high">
+  <h3>H-1 &mdash; Wrong-guess response still includes future hints <span class="pill high">High</span></h3>
+  <span class="where">game.service.ts:825&ndash;830 (and the completion path at 780&ndash;789)</span>
+  <p>
+    H2 from the prior review. Still present: an incorrect guess returns
+    <code>availableHints</code> with the correct game's year, publisher,
+    developer, and genre. A player can spend one bad guess to harvest
+    everything they need for the next attempt.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H-2 &mdash; Correct <code>gameId</code> with empty text still wins <span class="pill high">High</span></h3>
+  <span class="where">game.service.ts:464&ndash;465</span>
+  <p>
+    The shortcut <code>data.gameId === screenshot.gameId</code> bypasses
+    the fuzzy matcher entirely, so a client only needs to know the
+    numeric game id of the answer &mdash; not the name. Combined with the
+    image-proxy enumeration in New-1, an attacker who has scraped the
+    id&rarr;file mapping wins every screenshot with <code>{ gameId: N,
+    guessText: '' }</code>.
+  </p>
+  <span class="fix-label">Fix</span>
+  <p>
+    Require either a non-empty <code>guessText</code> that fuzzy-matches,
+    or move correctness scoring entirely to the text path and treat
+    <code>gameId</code> as a UX hint for the autocomplete only.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H-3 &mdash; Docker healthcheck probes liveness, not readiness <span class="pill high">High</span></h3>
+  <span class="where">Dockerfile:125&ndash;126 vs <code>/healthz</code> in <code>index.ts:199</code></span>
+  <p>
+    The container probe hits <code>/health</code>, which is a
+    static-200 liveness route. The DB- and Redis-touching route is
+    <code>/healthz</code>. A backend stuck behind a dead Postgres still
+    reports healthy, so Traefik will keep routing traffic to it. Switch
+    the HEALTHCHECK to <code>/healthz</code>.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H-4 &mdash; Request logger leaks tokens in URLs <span class="pill high">High</span></h3>
+  <span class="where">packages/backend/src/presentation/middleware/request-logger.middleware.ts:11</span>
+  <p>
+    Was H8 in the prior review. Every request logs <code>req.url</code>
+    verbatim, so password-reset and email-verification tokens (the
+    short-lived ones that <em>are</em> the credential) end up in log
+    aggregators. Switch to <code>req.path</code> and never serialise
+    query strings or bodies from <code>/api/auth/*</code>.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H-5 &mdash; <code>express.json()</code> and Stripe raw parser have no explicit limit <span class="pill high">High</span></h3>
+  <span class="where">backend/src/index.ts:86-87 and billing-webhook.routes.ts:85</span>
+  <p>
+    Default <code>express.json()</code> caps at 100&nbsp;kb, which is
+    fine, but pinning it makes future refactors safe. More importantly,
+    the Stripe webhook uses <code>express.raw({ type: 'application/json' })</code>
+    with no limit, and any caller who reaches that route (it's
+    signature-checked, but the buffer is allocated before verification)
+    can balloon memory before the signature fails.
+  </p>
+  <span class="fix-label">Fix</span>
+<pre><code>app.use(express.json({ limit: '256kb' }))
+app.use('/api/billing/webhook', express.raw({ type: 'application/json', limit: '1mb' }), ...)</code></pre>
+</div>
+
+<div class="issue high">
+  <h3>H-6 &mdash; Leaderboard ordering has no deterministic tie-breaker <span class="pill high">High</span></h3>
+  <span class="where">leaderboard.repository.ts:24&ndash;52</span>
+  <p>
+    Same-score players swap ranks on every refresh because the only
+    <code>ORDER BY</code> clause is <code>total_score DESC</code>. Add
+    <code>ORDER BY total_score DESC, completed_at ASC, user_id ASC</code>
+    and switch the displayed rank to a window function
+    (<code>DENSE_RANK() OVER (ORDER BY total_score DESC)</code>) so ties
+    don't push everyone else down a slot.
+  </p>
+</div>
+
+<div class="issue high">
+  <h3>H-7 &mdash; Backup credentials passed via <code>PGPASSWORD</code> env <span class="pill high">High</span></h3>
+  <span class="where">compose.yml:115-116 + scripts/db-backup.sh</span>
+  <p>
+    Was M1 in the prior review; the infra re-audit re-elevated it.
+    Whether to call this a blocker or a high depends on the team's
+    threat model for a self-hosted Docker host. Either way it should
+    move to Docker secrets or a 0600
+    <code>/run/secrets/db_password</code> file before launch.
+  </p>
+</div>
+
+<!-- ======================= MEDIUM ======================= -->
+<h2 id="medium">Medium severity</h2>
+
+<div class="issue medium">
+  <h3>M-1 &mdash; Catch-up sessions can be replayed if abandoned mid-game <span class="pill medium">Medium</span></h3>
+  <span class="where">game.service.ts:345&ndash;366</span>
+  <p>
+    <code>startChallenge</code> blocks a re-run only when
+    <code>is_completed = true</code>. An abandoned catch-up session can
+    be resumed indefinitely, and the leaderboard filter assumes
+    catch-up plays are filtered everywhere. Tighten the guard to
+    <code>(is_catch_up = false) OR (is_completed = false)</code> so a
+    completed catch-up can't be re-entered even if some other code path
+    flips <code>is_completed = false</code>.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M-2 &mdash; Streak-freeze auto-consume race (known) <span class="pill medium">Medium</span></h3>
+  <span class="where">daily-login.service.ts:200&ndash;240</span>
+  <p>
+    Still present, still in-code commented as &ldquo;acceptable for v1.&rdquo;
+    Worth moving into the same transaction as the streak update before
+    public launch &mdash; a single double-decrement on a high-traffic day
+    is enough to generate a support ticket.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M-3 &mdash; Recurring-job re-registration race on parallel boot <span class="pill medium">Medium</span></h3>
+  <span class="where">index.ts:364&ndash;387</span>
+  <p>
+    Still present. BullMQ's <code>jobId</code> dedup keeps it from
+    producing duplicates, but a rolling deploy with overlap can leave a
+    short window where the queue has zero pending instances of a
+    recurring job. For a daily-challenge job that fires once at 00:00
+    UTC the window matters; for the rest it's noise.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M-4 &mdash; Shutdown does not stop active workers before closing the queue <span class="pill medium">Medium</span></h3>
+  <span class="where">index.ts:703&ndash;744</span>
+  <p>
+    The graceful-shutdown chain calls <code>worker.close()</code> but
+    not <code>worker.getWorker().stop()</code> first, so a job that's
+    in flight at SIGTERM can keep running for up to the 8&nbsp;s timeout
+    window before its connection is yanked. Mid-write rows in
+    <code>tier_sessions</code> or <code>guesses</code> are the obvious
+    casualty.
+  </p>
+</div>
+
+<div class="issue medium">
+  <h3>M-5 &mdash; <code>VITE_USE_MOCK_API</code> has no build-time assertion <span class="pill medium">Medium</span></h3>
+  <span class="where">packages/frontend/vite.config.ts + services/*</span>
+  <p>
+    The runtime guard is correct (<code>=== 'true'</code> string
+    comparison, defaults to undefined). It just doesn't fail loud if a
+    production build is accidentally produced with the flag set. A
+    one-line check in <code>vite.config.ts</code> that throws when
+    <code>mode === 'production' &amp;&amp; process.env.VITE_USE_MOCK_API === 'true'</code>
+    closes the foot-gun.
+  </p>
+</div>
+
+<!-- ======================= FALSE POSITIVES ======================= -->
+<h2 id="fp">False positives surfaced by the re-audit</h2>
+<p>
+  Flagged by one of the re-audit lanes, dismissed on second read:
+</p>
+<ul>
+  <li>
+    <strong>&ldquo;<code>Math.max(server, client)</code> lets an attacker score
+    200&nbsp;pts via a 10&nbsp;s timer.&rdquo;</strong> No &mdash;
+    <code>calculateSpeedMultiplier</code> at <code>game.service.ts:55-68</code>
+    gives 2.0&times; only for <code>&lt;3&nbsp;s</code>; 10&nbsp;s yields
+    1.0&times; = 100&nbsp;pts. <code>Math.max</code> is the correct direction.
+    The B4 residual is the silent NULL fallback (New-2), not the
+    comparison.
+  </li>
+  <li>
+    <strong>&ldquo;Second-chance floor doubles the user's score by
+    70+70.&rdquo;</strong> The tier-session score update is overwrite,
+    not increment &mdash; the second write wipes the first. The
+    <em>real</em> bug is that two <code>guesses</code> rows record the
+    floored value, which is the case New-1 / B5 cite.
+  </li>
+  <li>
+    <strong>&ldquo;CSRF protection is missing.&rdquo;</strong> Better Auth
+    sets cookies with <code>SameSite=Lax</code> by default, which blocks
+    cross-site form POSTs to the API. Combined with the same-origin
+    CORS configuration, there's no realistic CSRF surface today. Could
+    be tightened to <code>Strict</code>, but it's not a launch blocker.
+  </li>
+  <li>
+    <strong>&ldquo;Avatar deletion is path-traversal vulnerable.&rdquo;</strong>
+    Only via a second, separately-required bug that gives the attacker
+    write access to <code>user.avatarUrl</code>. Defense-in-depth is
+    welcome, but it's not exploitable today.
+  </li>
+</ul>
+
+<!-- ======================= CHECKLIST ======================= -->
+<h2 id="checklist">Pre-launch checklist (delta on top of PR #206)</h2>
+<ul class="checklist">
+  <li>B5 &mdash; <code>submitGuess</code> wrapped in a Knex transaction; unique partial index added on <code>guesses(tier_session_id, position) WHERE is_correct</code>.</li>
+  <li>New-1 &mdash; image proxy enforces session ownership; <code>X-Content-Type-Options: nosniff</code> set; extension allowlist enforced.</li>
+  <li>New-2 &mdash; B4 round-stamp failure is fail-closed; column gets a non-null default on session start.</li>
+  <li>New-3 &mdash; Knex <code>ssl</code> set for any non-localhost DATABASE_URL.</li>
+  <li>New-4 &mdash; first-user admin race closed by partial unique index or serialisable transaction.</li>
+  <li>H-1, H-2 &mdash; hints suppressed on wrong guess; correctness requires non-empty text.</li>
+  <li>H-3 &mdash; Dockerfile HEALTHCHECK switched to <code>/healthz</code>.</li>
+  <li>H-4 &mdash; request logger uses <code>req.path</code>; auth routes opt out of body/query serialisation.</li>
+  <li>H-5 &mdash; explicit <code>limit</code> on <code>express.json()</code> and on the Stripe <code>express.raw()</code>.</li>
+  <li>H-6 &mdash; leaderboard ORDER BY has stable tiebreakers; ranks via window function.</li>
+  <li>H-7 &mdash; DB-backup credentials moved off <code>PGPASSWORD</code>.</li>
+  <li>One full <code>npm run build &amp;&amp; npm run lint &amp;&amp; npm test &amp;&amp; npm run test:e2e</code> pass on the fix branch.</li>
+  <li>Manual smoke: two-tab guess race, ten back-to-back catch-up resumes, one rolling deploy under load to validate SIGTERM behaviour.</li>
+</ul>
+
+<p class="lead" style="margin-top:2.5rem">
+  Re-run this review after the New-1&hellip;New-4 patches land. B5 will
+  need its own focused PR; once it's done the rest of the surface is
+  small enough that a 30-minute pass should suffice for the third look.
+</p>
+
+</main>
+</div>
+</body>
+</html>
