@@ -47,6 +47,11 @@ RUN npm run build:frontend
 # Stage 3: Production runtime
 FROM node:24-alpine AS runner
 
+# Fonts for server-side OG image rasterization (resvg-js renders the daily
+# challenge SVG to PNG for Twitter/WhatsApp/LinkedIn previews — Alpine has
+# no fonts by default, so glyphs would otherwise render as tofu).
+RUN apk add --no-cache font-dejavu
+
 # Build arguments for labels
 ARG VERSION
 ARG BUILD_DATE
