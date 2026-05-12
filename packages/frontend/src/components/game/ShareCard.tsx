@@ -47,8 +47,25 @@ export function ShareCard({
         return `${row1}\n${row2}`
     }
 
+    type ShareChannel = 'twitter' | 'whatsapp' | 'sms' | 'discord' | 'native' | 'clipboard'
+
+    // Per-channel UTM source so analytics can distinguish a WhatsApp paste
+    // from a Twitter intent from a raw clipboard copy. Medium + campaign
+    // stay constant so all share-card traffic rolls up under one filter.
+    const buildShareUrl = (channel: ShareChannel, date: string): string => {
+        const params = new URLSearchParams({
+            date,
+            lang: i18n.language,
+            utm_source: channel,
+            utm_medium: 'share_card',
+            utm_campaign: 'daily_challenge',
+        })
+        if (referralCode) params.set('ref', referralCode)
+        return `https://the-box.battistella.ovh/share/daily?${params.toString()}`
+    }
+
     // Generate share text
-    const generateShareText = (): string => {
+    const generateShareText = (channel: ShareChannel): string => {
         const date = challengeDate || new Date().toISOString().split('T')[0]
         const emojiGrid = generateEmojiGrid()
 
@@ -67,16 +84,14 @@ export function ShareCard({
         // Point the share URL at /share/daily — the backend serves that
         // route with per-day OG meta + dynamic image so Twitter/Discord/etc.
         // render a unique preview for each shared challenge.
-        const params = new URLSearchParams({ date, lang: i18n.language })
-        if (referralCode) params.set('ref', referralCode)
-        text += `\n🔗 https://the-box.battistella.ovh/share/daily?${params.toString()}`
+        text += `\n🔗 ${buildShareUrl(channel, date)}`
 
         return text
     }
 
     // Copy to clipboard
     const handleCopyToClipboard = async () => {
-        const text = generateShareText()
+        const text = generateShareText('clipboard')
         try {
             await navigator.clipboard.writeText(text)
             setCopied(true)
@@ -90,14 +105,14 @@ export function ShareCard({
 
     // Share to Twitter
     const handleShareTwitter = () => {
-        const text = generateShareText()
+        const text = generateShareText('twitter')
         const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
         window.open(url, '_blank', 'noopener,noreferrer,width=550,height=420')
     }
 
     // Share to Discord
     const handleShareDiscord = () => {
-        const text = generateShareText()
+        const text = generateShareText('discord')
         // Discord doesn't have a direct web intent, so we copy and suggest pasting
         navigator.clipboard.writeText(text).then(() => {
             toast.success(t('share.discordCopied'))
@@ -113,7 +128,7 @@ export function ShareCard({
         typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
     const handleNativeShare = async () => {
-        const text = generateShareText()
+        const text = generateShareText('native')
         try {
             await navigator.share({ title: 'The Box', text })
         } catch (err) {
@@ -125,13 +140,13 @@ export function ShareCard({
     }
 
     const handleShareWhatsApp = () => {
-        const text = generateShareText()
+        const text = generateShareText('whatsapp')
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`
         window.open(url, '_blank', 'noopener,noreferrer')
     }
 
     const handleShareSms = () => {
-        const text = generateShareText()
+        const text = generateShareText('sms')
         // `sms:` has patchy body-parameter support across platforms; `?&body=`
         // is the iOS form, `?body=` works on Android. Use `?&body=` which
         // works on both modern iOS and Android.
