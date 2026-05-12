@@ -262,7 +262,7 @@ function buildShareMeta(req: express.Request): { title: string; description: str
     ? 'Can you beat my score on today\u2019s screenshot challenge?'
     : 'Arriveras-tu \u00e0 battre mon score sur le d\u00e9fi du jour ?'
   const base = env.API_URL.replace(/\/$/, '')
-  const imageUrl = `${base}/api/og/daily.svg?date=${encodeURIComponent(date)}&lang=${lang}`
+  const imageUrl = `${base}/api/og/daily.png?date=${encodeURIComponent(date)}&lang=${lang}`
   const pageUrl = `${base}/share/daily?date=${encodeURIComponent(date)}&lang=${lang}`
   return { title, description, imageUrl, pageUrl }
 }

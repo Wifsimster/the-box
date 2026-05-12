@@ -16,6 +16,7 @@ import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
+import { useGoatCounterPageviews } from '@/lib/analytics'
 import { useApplyUserTheme } from '@/hooks/useApplyUserTheme'
 import {
   connectNotificationsSocket,
@@ -142,6 +143,7 @@ function LanguageLayout() {
 
 function App() {
   useReferralCapture()
+  useGoatCounterPageviews()
 
   return (
     <ErrorBoundary>
