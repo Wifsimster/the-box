@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Social media launch comms plan for The Box (2026-05-12, prod-live).
+  Channel ranking (Reddit, TikTok, X, Discord, FR-specific) by fit, not vibes.
+  Five content pillars, week-1 day-by-day playbook, post-week-1 weekly rhythm.
+  KPIs require UTM params on /share/daily links — open instrumentation gap.
+  Engineering deps in good shape after the OG PNG fix (eb2af92). Author: solo.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Social Media Launch Plan · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; color: var(--fg); }
+  .hero p.thesis em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono { font-family: var(--mono); font-size: 0.85rem; }
+  td.right { text-align: right; }
+  td.center { text-align: center; }
+
+  .channel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .channel summary {
+    padding: 0.85rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .channel summary::-webkit-details-marker { display: none; }
+  .channel summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); transition: transform .15s; }
+  .channel[open] summary::after { content: '−'; }
+  .channel summary .rank { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; min-width: 1.5rem; }
+  .channel summary .fit { color: var(--muted); font-size: 0.85rem; margin-left: auto; margin-right: 0.5rem; font-family: var(--mono); }
+  .channel summary::after { margin-left: 0; }
+  .channel .body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); }
+  .channel .body h4 { margin: 1rem 0 0.4rem; font-size: 0.9rem; color: var(--neon-purple); text-transform: uppercase; letter-spacing: 0.04em; }
+  .channel ul { padding-left: 1.25rem; margin: 0.5rem 0; }
+  .channel li { margin: 0.25rem 0; }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.risk { color: var(--risk); }
+  .badge.info { color: var(--neon-blue); }
+
+  .pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+  .pillar {
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--neon-purple);
+    border-radius: var(--radius);
+  }
+  .pillar h4 { margin: 0 0 0.35rem; font-size: 0.95rem; color: var(--fg); }
+  .pillar p { margin: 0; font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+  .pillar .freq { display: inline-block; margin-top: 0.5rem; font-family: var(--mono); font-size: 0.72rem; color: var(--neon-pink); }
+
+  .week {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 0;
+    margin: 1rem 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .week .day {
+    padding: 0.75rem 0.85rem;
+    background: var(--surface-2);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--neon-purple);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .week .what {
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.92rem;
+  }
+  .week .day:last-of-type, .week .what:last-of-type { border-bottom: 0; }
+  .week .what code { color: var(--neon-purple); background: transparent; padding: 0; }
+  .week .what .effort { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 0.25rem; font-family: var(--mono); }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+  blockquote.callout p:first-child { margin-top: 0; }
+  blockquote.callout p:last-child { margin-bottom: 0; }
+
+  .kpi { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin: 1rem 0; }
+  .kpi-row {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center;
+    padding: 0.6rem 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+  }
+  .kpi-row .target { color: var(--neon-pink); font-family: var(--mono); font-size: 0.82rem; }
+  .kpi-row .source { color: var(--muted); font-family: var(--mono); font-size: 0.78rem; }
+
+  .dont { list-style: none; padding: 0; }
+  .dont li {
+    padding: 0.5rem 0.75rem;
+    margin: 0.4rem 0;
+    background: rgba(239,68,68,0.04);
+    border-left: 2px solid var(--risk);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.92rem;
+  }
+  .dont li::before { content: '✗  '; color: var(--risk); font-family: var(--mono); }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Social Media Launch Plan · The Box</span>
+  <span class="repo">wifsimster/the-box · 2026-05-12</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>Social Media Launch Plan</h1>
+  <p class="meta"><b>Status</b> prod-live · <b>Author</b> solo dev · <b>Horizon</b> 30 days · <b>Languages</b> FR primary · EN secondary</p>
+
+  <div class="hero">
+    <p class="thesis">
+      The product is in better marketing shape than most launches: <em>shareable result cards exist</em>, daily challenges
+      generate <em>per-day OG previews</em> that now render on Twitter and WhatsApp (commit <code>eb2af92</code>), and the
+      <em>daily-challenge format is natively viral</em>. The bottleneck is no longer infra — it's a repeatable
+      content rhythm a single dev can sustain without burning out.
+    </p>
+  </div>
+
+  <h2 id="thesis">1. Strategic thesis</h2>
+  <p>
+    A daily screenshot-guessing game is a <strong>habit product</strong>. Habit products grow through
+    <strong>1) score-share virality</strong> (Wordle, NYT Connections) and <strong>2) discovery on community channels
+    where the audience already discusses games</strong>. They do <em>not</em> grow through paid acquisition or
+    LinkedIn-style posting.
+  </p>
+  <p>
+    Therefore the plan optimises for two compounding loops:
+  </p>
+  <ul>
+    <li><b>Loop A — shared results.</b> Make every completed challenge end with a copyable score that lands somewhere with a good preview. Already shipped end-to-end (<code>ShareCard.tsx</code> + <code>/share/daily</code> + OG PNG).</li>
+    <li><b>Loop B — community presence.</b> Show up in the rooms where people already say "what game is this from?" — Reddit, Discord, gaming Twitter/Bluesky, FR gaming forums. Earn attention by being useful, then leak the link.</li>
+  </ul>
+  <p>
+    Everything below is in service of one of those two loops. Anything that doesn't compound into them (LinkedIn,
+    Facebook, paid ads, mass DMs) is explicitly out of scope.
+  </p>
+
+  <h2 id="channels">2. Channels, ranked by fit</h2>
+  <p>Click each row for the full strategy. Rank is "expected ROI per hour of effort", not raw reach.</p>
+
+  <details class="channel" open>
+    <summary><span class="rank">#1</span> Reddit <span class="fit">fit: 9/10 · effort: medium</span></summary>
+    <div class="body">
+      <p>Reddit has the best audience-fit because <code>r/tipofmyjoystick</code> is literally a community of people
+      asking "what game is this screenshot from?". They already enjoy the puzzle. The catch: Reddit hates self-promo,
+      and the gaming subs enforce it strictly.</p>
+
+      <h4>Where to actually post</h4>
+      <ul>
+        <li><b>r/SideProject</b> — self-promo allowed. Post once on launch with a real "I built this, here's why" narrative. <span class="badge ok">post-friendly</span></li>
+        <li><b>r/IndieDev / r/gamedev</b> — same as above, frame as devlog. <span class="badge ok">post-friendly</span></li>
+        <li><b>r/InternetIsBeautiful</b> — high reach but ruthlessly downvotes anything thin. Save for when you've polished the landing page. <span class="badge warn">one-shot</span></li>
+        <li><b>r/tipofmyjoystick</b> — <strong>do not post a link.</strong> Comment helpfully on 20+ threads first, mention The Box in your user flair only. <span class="badge risk">comment, never link</span></li>
+        <li><b>r/patientgamers / r/truegaming</b> — engage in threads. Never lead with the link. <span class="badge risk">comment, never link</span></li>
+        <li><b>r/france_gaming / r/jeuxvideo</b> — FR audience, smaller but warmer. Same rules. <span class="badge warn">comment first</span></li>
+      </ul>
+
+      <h4>What to post on the friendly subs</h4>
+      <ol>
+        <li>Title format: <code>"I built a daily screenshot-guessing game for video games — here's how the scoring works"</code>. Lead with the <em>mechanic</em>, not the brand.</li>
+        <li>Body: 150 words on the design problem (panoramic crop, fuzzy match, tier curve) + 1 GIF of a round. Link goes at the bottom.</li>
+        <li>Reply to every comment in the first 2 hours. This is the single biggest determinant of upvote velocity.</li>
+      </ol>
+
+      <blockquote class="callout">
+        <p>Reddit posts that read like marketing get nuked. Reddit posts that read like dev journals get gold. Write like
+        you're explaining to another dev who'd find the scoring curve interesting — because they will.</p>
+      </blockquote>
+    </div>
+  </details>
+
+  <details class="channel" open>
+    <summary><span class="rank">#2</span> TikTok / Reels / YouTube Shorts <span class="fit">fit: 9/10 · effort: high</span></summary>
+    <div class="body">
+      <p>Vertical short-form video is the ideal format because the game's <em>own loop is a reveal</em>: blurred or
+      cropped screenshot → user guesses → reveal. That is the exact shape of a satisfying 15-second clip. No "lifestyle"
+      content required.</p>
+
+      <h4>The one repeatable format</h4>
+      <ol>
+        <li><b>0–3s:</b> obscured screenshot, on-screen text "Can you name this game?" (FR: "Tu reconnais ce jeu ?").</li>
+        <li><b>3–10s:</b> slow camera pan across the screenshot, optional partial reveal at 6s.</li>
+        <li><b>10–13s:</b> full reveal + game title appears.</li>
+        <li><b>13–15s:</b> end card with site URL, "new challenge every day" / "nouveau défi chaque jour".</li>
+      </ol>
+      <p>Use the existing daily screenshots as raw material — no extra art needed. Record screen capture of the game itself
+      at high quality, edit in CapCut. Production time per clip after the template is dialled in: ~5 minutes.</p>
+
+      <h4>Channel-specific tweaks</h4>
+      <ul>
+        <li><b>TikTok:</b> hashtags <code>#tipofmyjoystick #gaming #devinette #jeuxvideo</code>. Native captions, not burned in.</li>
+        <li><b>YouTube Shorts:</b> same edit, but lean on the search-discoverability — title with the actual game name once revealed ("Can you name this Bloodborne screenshot in 10 seconds?").</li>
+        <li><b>Instagram Reels:</b> cross-post but don't optimise. It's leftover reach, not a primary channel.</li>
+      </ul>
+
+      <blockquote class="callout info">
+        <p>Batch production matters more than posting frequency. Cut <strong>10 clips in one Sunday afternoon</strong>,
+        schedule them over 2 weeks, then forget about it. Trying to make one a day will burn you out by day 4.</p>
+      </blockquote>
+    </div>
+  </details>
+
+  <details class="channel">
+    <summary><span class="rank">#3</span> X / Twitter + Bluesky <span class="fit">fit: 7/10 · effort: low</span></summary>
+    <div class="body">
+      <p>X has the best <em>infrastructure fit</em>: the OG PNG renders cleanly, the FR gamedev community is active,
+      hashtags still work for niche games. Bluesky is small but has a high-quality, less-hostile gaming/dev community
+      worth seeding now while it's cheap.</p>
+
+      <h4>Two automated posts</h4>
+      <ol>
+        <li><b>Daily challenge post (00:01 UTC).</b> Auto-tweet: <em>"Défi du jour est en ligne 🎮"</em> + <code>https://the-box.battistella.ovh/share/daily</code>. The OG PNG carries the rest. Mirror to Bluesky.</li>
+        <li><b>Weekly leaderboard recap (Sunday 18:00).</b> Top 3 of the week + their score. Tag them if their handle is in their profile.</li>
+      </ol>
+
+      <h4>Two manual posts per week</h4>
+      <ul>
+        <li><b>Dev-process post.</b> Something specific: "Spent 4 hours tuning the fuzzy-match threshold for Japanese game titles. Here's the diff." Devs reshare these.</li>
+        <li><b>Meta-moment post.</b> Whatever weirdest thing happened that week — perfect score with 1s left, someone guessing Dark Souls when it was Bloodborne, etc.</li>
+      </ul>
+
+      <p>The auto-posts are the floor. The manual posts are the upside. Skip the manual posts when you don't have a good one — never post just to post.</p>
+    </div>
+  </details>
+
+  <details class="channel">
+    <summary><span class="rank">#4</span> Discord <span class="fit">fit: 8/10 retention · 4/10 acquisition</span></summary>
+    <div class="body">
+      <p>Discord is a <strong>retention</strong> channel, not acquisition. Don't try to grow on Discord — try to <em>keep</em>
+      the people who already found you. Two moves:</p>
+      <ol>
+        <li><b>Run your own server.</b> Daily-challenge channel where the bot drops the share URL at midnight UTC.
+          Leaderboard channel, off-topic channel, suggestions channel. Keep it tiny and active rather than big and dead.</li>
+        <li><b>Embed in 3–5 niche Discords.</b> Find FR gaming Discords (e.g. JV.com community servers, indie dev servers).
+          DM the owner, offer free premium codes for their members, ask if the bot can post the daily link in their
+          "off-topic" channel. <em>Always ask permission first.</em></li>
+      </ol>
+      <p>Discord renders both SVG and PNG OG previews well, so links look great there regardless.</p>
+    </div>
+  </details>
+
+  <details class="channel">
+    <summary><span class="rank">#5</span> FR-specific channels <span class="fit">fit: 8/10 · effort: high · one-shots</span></summary>
+    <div class="body">
+      <p>The audience is FR-first. Two FR-specific moves that don't have EN equivalents:</p>
+      <ul>
+        <li><b>JeuxVideo.com forums.</b> Huge, old-school, suspicious of marketing. Post in <em>"Jeux indé"</em> sub-forum
+          once with a long-form devlog. Engage with replies for a week. Don't post again for a month.</li>
+        <li><b>French YouTube creators (10k–50k subs).</b> Bigger creators ignore DMs; small-to-mid creators read them.
+          Pick 5 who do "guess the game" or retro-gaming content. DM with a free lifetime premium code and a one-paragraph
+          pitch. <em>Do not ask for coverage</em> — let them decide. One out of five will play it on stream and that's enough.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="channel">
+    <summary><span class="rank">#6</span> Hacker News (single shot) <span class="fit">fit: 5/10 · effort: trivial</span></summary>
+    <div class="body">
+      <p>One Show HN post in week 2 once analytics are working and the landing page is tight. Title: <em>"Show HN: The Box —
+      daily video game screenshot guessing game"</em>. Post at 7am ET Tuesday-Thursday. Either it sticks or it doesn't —
+      don't try twice.</p>
+      <p>Why week 2 and not day 1: HN traffic is sharp and unforgiving. If the site is slow or the onboarding is rough,
+      you've burned your one shot. Better to fix friction first.</p>
+    </div>
+  </details>
+
+  <h2 id="dont">3. Where <em>not</em> to spend time</h2>
+  <ul class="dont">
+    <li><strong>LinkedIn.</strong> Wrong audience by an order of magnitude. Gamers don't browse LinkedIn for fun.</li>
+    <li><strong>Facebook page.</strong> Organic reach on a new Facebook page is &lt;1%. The demographic that still uses Facebook is also not the demographic playing daily screenshot games.</li>
+    <li><strong>Paid ads (Meta, Google) on day 1.</strong> You don't yet know which audience converts. Paying to learn that on cold traffic is the most expensive way. Wait until the share loops have given you 2k+ users so you have lookalike data.</li>
+    <li><strong>Mastodon.</strong> Fragmented, small, and the gaming-instance audience is overlapping Bluesky's anyway. Pick one.</li>
+    <li><strong>Mass-DMing influencers.</strong> Whatever conversion rate you imagine is 10× too high. The targeted 5 in §2.5 will outperform 500 DMs.</li>
+    <li><strong>Posting just to post.</strong> A bad TikTok hurts the algorithm score of the account. One good post per week &gt; five mediocre ones.</li>
+  </ul>
+
+  <h2 id="pillars">4. Content pillars</h2>
+  <p>Five pillars. Every post should fit one. If it doesn't, don't post it.</p>
+
+  <div class="pillars">
+    <div class="pillar">
+      <h4>Daily challenge</h4>
+      <p>The OG-preview-carrying link to today's challenge. Automated, brainless, the floor.</p>
+      <span class="freq">daily · automated</span>
+    </div>
+    <div class="pillar">
+      <h4>Reveal short</h4>
+      <p>Blurred screenshot → 10s reveal. The TikTok/Shorts format. Native to the product.</p>
+      <span class="freq">3×/week · batched</span>
+    </div>
+    <div class="pillar">
+      <h4>Wall of fame</h4>
+      <p>Top 3 of the week with their actual scores. Tag if handles are public. Social proof.</p>
+      <span class="freq">weekly · sunday</span>
+    </div>
+    <div class="pillar">
+      <h4>Dev journal</h4>
+      <p>Something specific you fixed or tuned this week. Diff, screenshot, before/after.</p>
+      <span class="freq">weekly · ad-hoc</span>
+    </div>
+    <div class="pillar">
+      <h4>Meta moment</h4>
+      <p>The weirdest play of the week — a perfect score with 1s left, a creative wrong answer, an emergent strategy.</p>
+      <span class="freq">when it happens</span>
+    </div>
+  </div>
+
+  <h2 id="week1">5. Week-1 launch playbook</h2>
+
+  <div class="week">
+    <div class="day">Day 0</div>
+    <div class="what">
+      Set up accounts: X, Bluesky, TikTok, YouTube (for Shorts). Skip Instagram for now.
+      Set up <code>plausible.io</code> or Umami goals on <code>/share/daily</code> hits, signup conversions,
+      challenge completions. Add UTM params to the share URL — see §7 for spec.
+      <span class="effort">~4h · do not skip the UTM step</span>
+    </div>
+    <div class="day">Day 1</div>
+    <div class="what">
+      Post on r/SideProject and r/IndieDev with the devlog narrative. Soft-launch tweet from personal
+      account. Pin daily-challenge tweet. Do not post anywhere else today — keep capacity for replies.
+      <span class="effort">~2h posting + reply capacity all day</span>
+    </div>
+    <div class="day">Day 2</div>
+    <div class="what">
+      Batch-record 8 reveal shorts in one sitting. Use existing daily challenges as source material.
+      Don't post any yet — let them sit for editing tomorrow.
+      <span class="effort">~3h, single session</span>
+    </div>
+    <div class="day">Day 3</div>
+    <div class="what">
+      Edit the 8 shorts. Schedule one per day for the next 8 days across TikTok + YouTube Shorts.
+      Cross-post to Bluesky if vertical format is supported.
+      <span class="effort">~2h</span>
+    </div>
+    <div class="day">Day 4</div>
+    <div class="what">
+      Identify 5 FR gaming creators in the 10k–50k subs range. DM each with a free lifetime premium code
+      and a 4-sentence pitch. <em>Don't ask for coverage.</em>
+      <span class="effort">~1h research + ~30min sending</span>
+    </div>
+    <div class="day">Day 5</div>
+    <div class="what">
+      Create the project Discord. 3 channels: <code>#defi-du-jour</code>, <code>#leaderboard</code>,
+      <code>#suggestions</code>. Invite the first 10 users who replied to anything this week.
+      <span class="effort">~1h</span>
+    </div>
+    <div class="day">Day 6</div>
+    <div class="what">
+      Identify and DM 3 niche FR gaming Discord owners. Offer free premium codes for members in exchange
+      for permission to drop the daily link in <code>#off-topic</code>.
+      <span class="effort">~1h</span>
+    </div>
+    <div class="day">Day 7</div>
+    <div class="what">
+      Recap thread on X: "1 week of The Box. <code>$DAU</code> daily users. <code>$X</code>% completion rate.
+      Here's what surprised me." Devs and gamers both reshare these. Honest numbers &gt; aspirational ones.
+      <span class="effort">~1h writing</span>
+    </div>
+  </div>
+
+  <h2 id="rhythm">6. Post-week-1 weekly rhythm</h2>
+  <p>Goal: predictable, sustainable, under 4h/week. Anything more is unsustainable solo.</p>
+
+  <table>
+    <thead><tr><th>Day</th><th>Action</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Mon</td><td>Manual X "meta moment" post (best play of last week)</td><td class="mono">15min</td></tr>
+      <tr><td class="mono">Tue</td><td>Post pre-scheduled TikTok/Short (auto)</td><td class="mono">0min</td></tr>
+      <tr><td class="mono">Wed</td><td>Reply to comments on last week's posts; engage 30min on Reddit (comments, not links)</td><td class="mono">30min</td></tr>
+      <tr><td class="mono">Thu</td><td>Post pre-scheduled TikTok/Short (auto)</td><td class="mono">0min</td></tr>
+      <tr><td class="mono">Fri</td><td>Dev-journal X post — something specific you shipped</td><td class="mono">20min</td></tr>
+      <tr><td class="mono">Sat</td><td>Batch-record next week's shorts (every 2 weeks)</td><td class="mono">~2h biweekly</td></tr>
+      <tr><td class="mono">Sun</td><td>"Wall of fame" leaderboard post on X + Bluesky + Discord</td><td class="mono">15min</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="kpis">7. KPIs and instrumentation gap</h2>
+  <p>What to actually measure. Anything not on this list is vanity.</p>
+
+  <div class="kpi">
+    <div class="kpi-row">
+      <span><b>Daily Active Users (DAU)</b> — anyone who plays a challenge that day, logged-in or guest</span>
+      <span class="target">target: 100 by D14</span>
+      <span class="source">source: backend logs</span>
+    </div>
+    <div class="kpi-row">
+      <span><b>Share rate</b> — share-card opens ÷ challenge completions</span>
+      <span class="target">target: ≥ 10%</span>
+      <span class="source">source: <code>ShareCard.tsx</code> needs an event</span>
+    </div>
+    <div class="kpi-row">
+      <span><b>Share-link CTR</b> — clicks on a posted <code>/share/daily</code> URL ÷ impressions</span>
+      <span class="target">target: ≥ 3% on X</span>
+      <span class="source">source: native platform analytics</span>
+    </div>
+    <div class="kpi-row">
+      <span><b>Acquisition by source</b> — first-touch UTM breakdown</span>
+      <span class="target">target: top 3 channels identified by D14</span>
+      <span class="source">source: <strong>UTM params on share links (gap)</strong></span>
+    </div>
+    <div class="kpi-row">
+      <span><b>D1 / D7 retention</b> — % of new users who play again the next day / next week</span>
+      <span class="target">target: D1 ≥ 35% / D7 ≥ 15%</span>
+      <span class="source">source: backend (login + guest cookie)</span>
+    </div>
+    <div class="kpi-row">
+      <span><b>Guest → signup conversion</b> — guests who register after at least one challenge</span>
+      <span class="target">target: ≥ 8%</span>
+      <span class="source">source: backend</span>
+    </div>
+  </div>
+
+  <blockquote class="callout risk">
+    <p><strong>Instrumentation gap.</strong> <code>ShareCard.tsx</code> currently builds a share URL without UTM
+    parameters. That means we cannot attribute traffic from shared cards to "shared cards" vs. "X auto-post" vs.
+    "TikTok bio link" vs. anything else.</p>
+    <p>Fix before any marketing spend: append <code>?utm_source=share_card&amp;utm_medium=social&amp;utm_campaign=daily</code>
+    to the share URL, and use distinct <code>utm_source</code> values per channel for each manually-posted link. ~30 minutes
+    of work.</p>
+  </blockquote>
+
+  <h2 id="risks">8. Things that could go wrong</h2>
+  <ul>
+    <li><b>Burnout by week 3.</b> The biggest risk solo. Mitigation: the rhythm in §6 is &lt;4h/week. Stick to it.</li>
+    <li><b>One TikTok blows up, server can't handle it.</b> Validate load behaviour at 100 concurrent before posting widely. Production-readiness review (<code>tasks/production-readiness-review.html</code>) covered some of this; re-skim before week 2.</li>
+    <li><b>Reddit ban for self-promo.</b> Mitigation: comment-first, link-last on every gaming sub. r/SideProject is the only one where leading with the link is OK.</li>
+    <li><b>RAWG API rate-limit visible to players.</b> If a TikTok drives a spike of new screenshots into admin import, RAWG quota dies. Cap admin imports to N/hour.</li>
+    <li><b>Trademark complaint on a screenshot.</b> Low risk for game screenshots used in a guessing context (transformative use), but if a publisher complains, take the offending screenshot down within 24h. Document the takedown path in the admin panel.</li>
+  </ul>
+
+  <h2 id="next">9. Open questions / decisions needed</h2>
+  <ol>
+    <li><b>FR-first vs. EN-first content.</b> Recommendation: FR for week 1 (user base is FR-primary), mirror to EN starting week 2. Confirm.</li>
+    <li><b>Premium tier in marketing copy.</b> Recommendation: do not mention premium for the first 30 days. Earn trust on the free product first. Confirm.</li>
+    <li><b>Public profile URLs as marketing surface.</b> If the plan resonates, the next eng task (per-page OG for <code>/profile/:username</code> and <code>/leaderboard</code>) becomes higher-priority since it directly supports the "wall of fame" and "look at my rank" loops. Decide after week 2 based on which loop is actually generating shares.</li>
+    <li><b>Show HN timing.</b> Week 2 if landing page + analytics are clean by then. Otherwise week 3.</li>
+  </ol>
+
+  <h2 id="next-eng">10. Engineering follow-ups this plan implies</h2>
+  <ul>
+    <li><strong>UTM params on <code>/share/daily</code> URLs.</strong> 30 min. Blocking for §7.</li>
+    <li><strong>Per-page OG for <code>/leaderboard</code> and <code>/profile/:username</code>.</strong> ~half day. Supports "wall of fame" and "rivalry-share" content pillars. Deferred until week 2.</li>
+    <li><strong>Automated daily X / Bluesky post.</strong> Cron + simple HTTP POST. ~2h. Removes the "daily challenge" pillar from the manual list entirely.</li>
+    <li><strong>Discord webhook for daily challenge.</strong> Trivial. ~1h.</li>
+    <li><strong>Admin-side "Featured screenshot of the week" picker.</strong> So the Sunday wall-of-fame post is one click, not an SQL query.</li>
+  </ul>
+
+</main>
+
+<aside class="toc" aria-label="Table of contents">
+  <h2>Sections</h2>
+  <ol>
+    <li><a href="#thesis">1 · Thesis</a></li>
+    <li><a href="#channels">2 · Channels ranked</a></li>
+    <li><a href="#dont">3 · Where not to spend</a></li>
+    <li><a href="#pillars">4 · Content pillars</a></li>
+    <li><a href="#week1">5 · Week-1 playbook</a></li>
+    <li><a href="#rhythm">6 · Weekly rhythm</a></li>
+    <li><a href="#kpis">7 · KPIs + gap</a></li>
+    <li><a href="#risks">8 · Risks</a></li>
+    <li><a href="#next">9 · Open questions</a></li>
+    <li><a href="#next-eng">10 · Eng follow-ups</a></li>
+  </ol>
+</aside>
+</div>
+
+<footer class="foot">
+  <p>The Box · social-media-launch-plan · 2026-05-12 · <a href="../CLAUDE.md">CLAUDE.md</a></p>
+</footer>
+
+</body>
+</html>
