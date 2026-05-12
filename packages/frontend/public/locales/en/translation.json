@@ -2137,5 +2137,83 @@
       "later": "Later",
       "dismiss": "Dismiss"
     }
+  },
+  "seo": {
+    "home": {
+      "title": "The Box — Daily Video Game Guessing Challenge",
+      "description": "Identify games from panoramic screenshots. New daily challenge, live leaderboards, achievements. Play instantly as a guest — no account needed."
+    },
+    "play": {
+      "title": "Daily Challenge — The Box",
+      "description": "Spot today's mystery game from 10 screenshots. Faster guesses score more. Compete on the daily leaderboard."
+    },
+    "leaderboard": {
+      "title": "Leaderboard — The Box",
+      "description": "Daily and monthly rankings of the top video game guessers. Live updates as players finish today's challenge."
+    },
+    "history": {
+      "title": "Game History — The Box",
+      "description": "Replay past challenges, resume what's in progress, and review every guess from your last sessions."
+    },
+    "profile": {
+      "title": "Your Profile — The Box",
+      "description": "Your stats, achievements, daily streak and game history on The Box."
+    },
+    "publicProfile": {
+      "title": "{{username}} on The Box",
+      "description": "{{username}}'s stats, achievements and best scores on The Box daily video game challenge."
+    },
+    "premium": {
+      "title": "Premium — The Box",
+      "description": "Unlock the full challenge archive, unlimited catch-up hints and Premium badges. Support the game."
+    },
+    "faq": {
+      "title": "FAQ — The Box",
+      "description": "Answers about scoring, hints, leaderboards, daily streaks and Premium on The Box."
+    },
+    "contact": {
+      "title": "Contact — The Box",
+      "description": "Get in touch with The Box team."
+    },
+    "terms": {
+      "title": "Terms of Service — The Box",
+      "description": "The terms that govern your use of The Box."
+    },
+    "privacy": {
+      "title": "Privacy Policy — The Box",
+      "description": "How The Box handles your data."
+    },
+    "cookies": {
+      "title": "Cookie Policy — The Box",
+      "description": "How The Box uses cookies and similar storage."
+    },
+    "login": {
+      "title": "Sign In — The Box",
+      "description": "Sign in to save your scores, streaks and achievements on The Box."
+    },
+    "register": {
+      "title": "Create an Account — The Box",
+      "description": "Create a free account to track your scores, achievements and daily streak on The Box."
+    },
+    "forgotPassword": {
+      "title": "Reset Password — The Box",
+      "description": "Receive a password reset link by email."
+    },
+    "resetPassword": {
+      "title": "Choose a New Password — The Box",
+      "description": "Set a new password for your The Box account."
+    },
+    "results": {
+      "title": "Results — The Box",
+      "description": "How you did on the latest challenge."
+    },
+    "geo": {
+      "title": "Geo Mode — The Box",
+      "description": "Identify games from in-game locations on a map. New challenges every day."
+    },
+    "geoContribute": {
+      "title": "Contribute to Geo Mode — The Box",
+      "description": "Help curate and verify Geo Mode challenges."
+    }
   }
 }

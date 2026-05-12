@@ -2137,5 +2137,83 @@
       "later": "Plus tard",
       "dismiss": "Fermer"
     }
+  },
+  "seo": {
+    "home": {
+      "title": "The Box — Le défi quotidien de jeux vidéo",
+      "description": "Reconnaissez des jeux vidéo à partir de leurs screenshots. Défi quotidien, classements en direct, succès à débloquer. Jouez instantanément en invité — aucun compte requis."
+    },
+    "play": {
+      "title": "Défi du jour — The Box",
+      "description": "Devinez le jeu mystère du jour à partir de 10 screenshots. Plus vous répondez vite, plus vous marquez. Affrontez le classement quotidien."
+    },
+    "leaderboard": {
+      "title": "Classement — The Box",
+      "description": "Classements quotidiens et mensuels des meilleurs joueurs. Mises à jour en direct dès qu'un défi est terminé."
+    },
+    "history": {
+      "title": "Historique — The Box",
+      "description": "Rejouez les défis passés, reprenez ceux en cours et passez en revue chaque réponse de vos dernières parties."
+    },
+    "profile": {
+      "title": "Votre profil — The Box",
+      "description": "Vos stats, succès, série quotidienne et historique de parties sur The Box."
+    },
+    "publicProfile": {
+      "title": "{{username}} sur The Box",
+      "description": "Stats, succès et meilleurs scores de {{username}} sur The Box, le défi quotidien de jeux vidéo."
+    },
+    "premium": {
+      "title": "Premium — The Box",
+      "description": "Débloquez l'archive complète des défis, des indices illimités en rattrapage et un badge Premium. Soutenez le jeu."
+    },
+    "faq": {
+      "title": "FAQ — The Box",
+      "description": "Réponses sur le score, les indices, les classements, les séries quotidiennes et Premium sur The Box."
+    },
+    "contact": {
+      "title": "Contact — The Box",
+      "description": "Contactez l'équipe de The Box."
+    },
+    "terms": {
+      "title": "Conditions d'utilisation — The Box",
+      "description": "Les conditions qui régissent votre utilisation de The Box."
+    },
+    "privacy": {
+      "title": "Politique de confidentialité — The Box",
+      "description": "Comment The Box gère vos données."
+    },
+    "cookies": {
+      "title": "Politique de cookies — The Box",
+      "description": "Comment The Box utilise les cookies et stockages similaires."
+    },
+    "login": {
+      "title": "Connexion — The Box",
+      "description": "Connectez-vous pour sauvegarder vos scores, séries et succès sur The Box."
+    },
+    "register": {
+      "title": "Créer un compte — The Box",
+      "description": "Créez un compte gratuit pour suivre vos scores, succès et série quotidienne sur The Box."
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser le mot de passe — The Box",
+      "description": "Recevez un lien de réinitialisation par e-mail."
+    },
+    "resetPassword": {
+      "title": "Choisir un nouveau mot de passe — The Box",
+      "description": "Définissez un nouveau mot de passe pour votre compte The Box."
+    },
+    "results": {
+      "title": "Résultats — The Box",
+      "description": "Votre performance sur le dernier défi."
+    },
+    "geo": {
+      "title": "Mode Geo — The Box",
+      "description": "Reconnaissez des jeux à partir de leurs lieux sur une carte. Nouveaux défis chaque jour."
+    },
+    "geoContribute": {
+      "title": "Contribuer au mode Geo — The Box",
+      "description": "Aidez à curer et vérifier les défis du mode Geo."
+    }
   }
 }

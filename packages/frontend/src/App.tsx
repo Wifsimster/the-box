@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { RouteSeo } from '@/components/RouteSeo'
 import {
   PWAUpdatePrompt,
   OfflineIndicator,
@@ -122,6 +123,7 @@ function LanguageLayout() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <RouteSeo />
       {!isFullscreen && <Header />}
       <main className="flex-1">
         <LazyComponentErrorBoundary>
