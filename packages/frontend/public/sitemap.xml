@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://the-box.battistella.ovh/fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr"/>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr"/>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/play</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/play"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/play"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/play"/>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/play</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/play"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/play"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/play"/>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/leaderboard</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/leaderboard"/>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/leaderboard</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/leaderboard"/>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/premium</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/premium"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/premium"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/premium"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/premium</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/premium"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/premium"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/premium"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/faq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/faq"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/faq"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/faq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/faq"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/faq"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/contact"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/contact"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/contact"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/terms"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/terms"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/privacy"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/privacy"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/fr/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/cookies"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/cookies"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

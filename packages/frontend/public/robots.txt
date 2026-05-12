@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /*/admin
+Disallow: /*/profile
+Disallow: /*/history
+Disallow: /*/results
+Disallow: /*/reset-password
+Disallow: /*/forgot-password
+
+Sitemap: https://the-box.battistella.ovh/sitemap.xml
