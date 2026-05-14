@@ -151,6 +151,37 @@ export default function HistoryPage() {
     return true
   })
 
+  // Unified chronological timeline — interleaves played sessions with missed
+  // challenges so today's game appears at the top alongside older dates,
+  // instead of being buried under a long "Défis Manqués" section.
+  type TimelineItem =
+    | { kind: 'played'; date: string; entry: GameHistoryEntry }
+    | { kind: 'missed'; date: string; challenge: MissedChallenge }
+
+  const timeline: TimelineItem[] = useMemo(() => {
+    const items: TimelineItem[] = filteredHistory.map(entry => ({
+      kind: 'played' as const,
+      date: entry.challengeDate,
+      entry,
+    }))
+
+    // Missed challenges only show under the "Tous" filter — they aren't
+    // completed and aren't in-progress sessions.
+    if (statusFilter === 'all') {
+      for (const challenge of missedChallenges) {
+        if (searchQuery && !formatDate(challenge.date).toLowerCase().includes(searchQuery.toLowerCase())) {
+          continue
+        }
+        items.push({ kind: 'missed', date: challenge.date, challenge })
+      }
+    }
+
+    items.sort((a, b) => b.date.localeCompare(a.date))
+    return items
+    // formatDate depends on i18n.language; including it would re-run on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredHistory, missedChallenges, statusFilter, searchQuery, i18n.language])
+
   return (
     <PageHero icon={History} iconStyle="simple" title={t('history.title')} subtitle={t('history.subtitle')}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -306,82 +337,66 @@ export default function HistoryPage() {
               </CardContent>
             </Card>
 
-            {/* Missed Challenges Section */}
-            {missedChallenges.length > 0 && (
-              <Card variant="warning" className="bg-card/50" aria-labelledby="missed-challenges-heading">
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle id="missed-challenges-heading" className="text-base sm:text-lg font-bold flex items-center gap-2 text-warning">
-                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
-                    <span>
-                      {t('history.missedChallenges')} ({missedChallenges.length})
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0">
-                  <ul className="space-y-2 sm:space-y-3 list-none">
-                    {missedChallenges.map((challenge, index) => (
-                      <motion.li
-                        key={challenge.challengeId}
-                        initial={reducedMotion ? false : { opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
-                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-warning/10 border border-warning/20"
-                      >
-                        {/* Left Section: Icon and Date */}
-                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low" aria-hidden="true">
-                            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm sm:text-base font-semibold wrap-break-word">
-                              {formatDate(challenge.date)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Right Section: Badge and Play Button */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                          <Badge variant="outline" className="text-xs border-warning/50 bg-warning/10 text-warning">
-                            {t('history.catchUpBadge')}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
-                            aria-label={t('history.resumeGame', { date: formatDate(challenge.date) })}
-                            className="bg-linear-to-r from-warning to-score-low hover:from-warning hover:to-score-low text-white"
-                          >
-                            <Play className="w-4 h-4 mr-1" aria-hidden="true" />
-                            {t('history.playCatchUp')}
-                          </Button>
-                        </div>
-                      </motion.li>
-                    ))}
-                  </ul>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-3 text-center">
-                    {t('history.catchUpHint')}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Games List */}
+            {/* Unified Timeline — played sessions and missed challenges
+                interleaved by date, so today's game appears at the top. */}
             <Card className="bg-card/50 border-border">
               <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="text-base sm:text-lg font-bold text-foreground">
                   {t('history.yourGames')}
                 </CardTitle>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  {filteredHistory.length} {filteredHistory.length === 1 ? t('history.game') : t('history.games')}
+                  {timeline.length} {timeline.length === 1 ? t('history.game') : t('history.games')}
                 </p>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
-                {filteredHistory.length === 0 ? (
+                {timeline.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
                     {t('history.noMatchingResults')}
                   </div>
                 ) : (
                   <ul className="space-y-2 sm:space-y-3 list-none">
-                    {filteredHistory.map((entry, index) => {
+                    {timeline.map((item, index) => {
+                      if (item.kind === 'missed') {
+                        const { challenge } = item
+                        const dateLabel = formatDate(challenge.date)
+                        return (
+                          <motion.li
+                            key={`missed-${challenge.challengeId}`}
+                            initial={reducedMotion ? false : { opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
+                            className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-warning/10 border border-warning/20"
+                          >
+                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low" aria-hidden="true">
+                                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm sm:text-base font-semibold wrap-break-word">
+                                  {dateLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+                              <Badge variant="outline" className="text-xs border-warning/50 bg-warning/10 text-warning">
+                                {t('history.catchUpBadge')}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
+                                aria-label={t('history.resumeGame', { date: dateLabel })}
+                                className="bg-linear-to-r from-warning to-score-low hover:from-warning hover:to-score-low text-white"
+                              >
+                                <Play className="w-4 h-4 mr-1" aria-hidden="true" />
+                                {t('history.playCatchUp')}
+                              </Button>
+                            </div>
+                          </motion.li>
+                        )
+                      }
+
+                      const { entry } = item
                       const tier = getScoreTier(entry.totalScore)
                       const tierLabel = t(`game.scoreQuality.${tier}`)
                       const dateLabel = formatDate(entry.challengeDate)
