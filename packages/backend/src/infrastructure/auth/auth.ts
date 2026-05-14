@@ -238,16 +238,25 @@ function createAuth() {
           before: async (user) => {
             // Closes the first-user-admin race. Two parallel sign-ups
             // on a fresh DB used to both read count=0 and both insert
-            // with role=admin. Migration 20260521 adds a partial unique
-            // index that makes two admin rows impossible at the DB
-            // level; here we additionally serialise concurrent hook
-            // calls with an advisory transaction lock so the racing
-            // user gets a clean role=user fallback instead of a
-            // unique-violation 5xx.
+            // with role=admin.
             //
-            // The key is a fixed hash so every node holding this lock
-            // serialises on the same Postgres row regardless of how
-            // many app replicas are running.
+            // The actual defense is migration 20260521's partial unique
+            // index `one_admin_role_idx`, which makes two admin rows
+            // impossible at the database level — the second writer in
+            // the race trips a unique-violation and its sign-up fails.
+            //
+            // The advisory transaction lock here narrows but does NOT
+            // close the SELECT→INSERT window: pg_advisory_xact_lock is
+            // released at COMMIT, before Better Auth performs its
+            // INSERT in a separate session, so a tight race can still
+            // surface as a 5xx for the loser. It serialises the role
+            // check across hook invocations so most racing signups see
+            // the committed admin row and degrade to role=user
+            // cleanly — a one-shot cold-start UX wart, not a security
+            // gap (the unique index has that covered).
+            //
+            // The fixed hash key serialises every replica on the same
+            // Postgres row regardless of how many app instances exist.
             const client = await pool.connect();
             try {
               await client.query('BEGIN');
