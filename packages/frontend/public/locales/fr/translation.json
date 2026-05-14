@@ -80,7 +80,177 @@
       "progress": "Progression"
     },
     "unlocked": "Succès Débloqué !",
-    "unlockedWithName": "Succès Débloqué : {{name}}"
+    "unlockedWithName": "Succès Débloqué : {{name}}",
+    "items": {
+      "speed_demon": {
+        "name": "Démon de la Vitesse",
+        "description": "Obtenez 3 réponses parfaites de suite (moins de 3 secondes chacune)"
+      },
+      "lightning_reflexes": {
+        "name": "Réflexes Éclair",
+        "description": "Répondez à 10 captures en moins de 3 secondes"
+      },
+      "quick_draw": {
+        "name": "Dégaineur",
+        "description": "Répondez à une capture en moins de 2 secondes"
+      },
+      "no_hints_needed": {
+        "name": "Sans Indices",
+        "description": "Complétez un défi quotidien sans utiliser d'indices"
+      },
+      "hint_free_master": {
+        "name": "Maître Sans Indices",
+        "description": "Complétez 10 défis quotidiens sans utiliser d'indices"
+      },
+      "sharp_eye": {
+        "name": "Regard Perçant",
+        "description": "Obtenez 10 bonnes réponses de suite sans erreur"
+      },
+      "perfect_run": {
+        "name": "Partie Parfaite",
+        "description": "Obtenez exactement 2000 points dans un seul défi"
+      },
+      "high_roller": {
+        "name": "Gros Joueur",
+        "description": "Obtenez plus de 1800 points dans un seul défi"
+      },
+      "dedicated_player": {
+        "name": "Joueur Dévoué",
+        "description": "Maintenez une série de 3 jours"
+      },
+      "weekly_warrior": {
+        "name": "Guerrier Hebdomadaire",
+        "description": "Maintenez une série de 7 jours"
+      },
+      "month_master": {
+        "name": "Maître du Mois",
+        "description": "Maintenez une série de 30 jours"
+      },
+      "rpg_expert": {
+        "name": "Expert RPG",
+        "description": "Identifiez correctement 10 jeux RPG"
+      },
+      "action_hero": {
+        "name": "Héros d'Action",
+        "description": "Identifiez correctement 10 jeux d'Action"
+      },
+      "strategy_savant": {
+        "name": "Stratège Érudit",
+        "description": "Identifiez correctement 10 jeux de Stratégie"
+      },
+      "first_win": {
+        "name": "Première Victoire",
+        "description": "Complétez votre premier défi quotidien"
+      },
+      "century_club": {
+        "name": "Club des Cent",
+        "description": "Complétez 100 défis quotidiens"
+      },
+      "top_ten": {
+        "name": "Top 10",
+        "description": "Classez-vous dans le top 10 d'un défi quotidien"
+      },
+      "podium_finish": {
+        "name": "Sur le Podium",
+        "description": "Classez-vous dans le top 3 d'un défi quotidien"
+      },
+      "champion": {
+        "name": "Champion",
+        "description": "Obtenez la 1ère place d'un défi quotidien"
+      },
+      "welcome_player": {
+        "name": "Bienvenue !",
+        "description": "Lancez votre premier défi quotidien"
+      },
+      "first_guess": {
+        "name": "Premier Essai",
+        "description": "Faites votre première proposition"
+      },
+      "first_correct": {
+        "name": "Œil de Lynx",
+        "description": "Trouvez votre première bonne réponse"
+      },
+      "getting_warmed_up": {
+        "name": "Échauffement",
+        "description": "Trouvez 3 captures dans un seul défi"
+      },
+      "halfway_there": {
+        "name": "À Mi-Chemin",
+        "description": "Trouvez 5 captures dans un seul défi"
+      },
+      "almost_perfect": {
+        "name": "Presque Parfait",
+        "description": "Trouvez 8 captures dans un seul défi"
+      },
+      "score_500": {
+        "name": "Étoile Montante",
+        "description": "Obtenez 500+ points dans un seul défi"
+      },
+      "score_1000": {
+        "name": "En Pleine Forme",
+        "description": "Obtenez 1000+ points dans un seul défi"
+      },
+      "score_1500": {
+        "name": "Joueur Pro",
+        "description": "Obtenez 1500+ points dans un seul défi"
+      },
+      "regular_player": {
+        "name": "Joueur Régulier",
+        "description": "Complétez 5 défis quotidiens"
+      },
+      "committed_gamer": {
+        "name": "Gamer Assidu",
+        "description": "Complétez 10 défis quotidiens"
+      },
+      "veteran_player": {
+        "name": "Joueur Vétéran",
+        "description": "Complétez 25 défis quotidiens"
+      },
+      "dedicated_fan": {
+        "name": "Fan Dévoué",
+        "description": "Complétez 50 défis quotidiens"
+      },
+      "game_collector_10": {
+        "name": "Collectionneur",
+        "description": "Identifiez correctement 10 jeux différents"
+      },
+      "game_collector_50": {
+        "name": "Expert en Jeux",
+        "description": "Identifiez correctement 50 jeux différents"
+      },
+      "game_collector_100": {
+        "name": "Encyclopédie Vivante",
+        "description": "Identifiez correctement 100 jeux différents"
+      },
+      "comeback_kid": {
+        "name": "De Retour",
+        "description": "Jouez 2 jours de suite"
+      },
+      "five_day_streak": {
+        "name": "Sur une Lancée",
+        "description": "Jouez 5 jours de suite"
+      },
+      "two_week_warrior": {
+        "name": "Guerrier des Deux Semaines",
+        "description": "Jouez 14 jours de suite"
+      },
+      "fast_fingers": {
+        "name": "Doigts Rapides",
+        "description": "Répondez en moins de 5 secondes"
+      },
+      "speed_collector": {
+        "name": "Collectionneur de Vitesse",
+        "description": "Obtenez 5 réponses rapides (moins de 5 secondes)"
+      },
+      "persistent_guesser": {
+        "name": "Persévérant",
+        "description": "Faites 100 propositions au total"
+      },
+      "guessing_machine": {
+        "name": "Machine à Deviner",
+        "description": "Faites 500 propositions au total"
+      }
+    }
   },
   "game": {
     "progressDots": {
@@ -1837,7 +2007,37 @@
     "hintGenre": "Indice Genre",
     "streakFreeze": "Protection de série",
     "secondChance": "Seconde chance",
-    "points": "points"
+    "points": "points",
+    "rewards": {
+      "day1": {
+        "name": "Indice Année",
+        "description": "Obtenez un indice sur l'année de sortie du jeu"
+      },
+      "day2": {
+        "name": "Indice Éditeur",
+        "description": "Obtenez un indice sur l'éditeur du jeu"
+      },
+      "day3": {
+        "name": "100 Points",
+        "description": "Bonus de 100 points ajoutés à votre score"
+      },
+      "day4": {
+        "name": "2x Indice Année",
+        "description": "Obtenez deux indices sur l'année de sortie"
+      },
+      "day5": {
+        "name": "2x Indice Éditeur",
+        "description": "Obtenez deux indices sur l'éditeur"
+      },
+      "day6": {
+        "name": "250 Points",
+        "description": "Gros bonus de 250 points"
+      },
+      "day7": {
+        "name": "Coffre Légendaire",
+        "description": "Le coffre ultime : 2x chaque indice + 500 points !"
+      }
+    }
   },
   "onboarding": {
     "welcomeTitle": "Bienvenue dans The Box !",

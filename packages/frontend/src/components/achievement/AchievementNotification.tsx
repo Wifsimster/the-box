@@ -1,6 +1,7 @@
 import type { NewlyEarnedAchievement } from '@the-box/types'
 import { motion } from 'framer-motion'
 import { toast as sonner } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,7 +24,17 @@ const tierColors = {
  * reuse inside `sonner.toast.custom(...)` — see `showAchievementToast`.
  */
 export function AchievementToastBody({ achievement, toastId }: AchievementToastBodyProps) {
+    const { t } = useTranslation()
     const tierGradient = tierColors[achievement.tier as keyof typeof tierColors] || tierColors[1]
+    const localizedName = t(`achievements.items.${achievement.key}.name`, {
+        defaultValue: achievement.name,
+    })
+    const localizedDescription = t(`achievements.items.${achievement.key}.description`, {
+        defaultValue: achievement.description,
+    })
+    const localizedCategory = t(`achievements.categories.${achievement.category}`, {
+        defaultValue: achievement.category,
+    })
 
     return (
         <Card className={`relative overflow-hidden border-2 bg-linear-to-br ${tierGradient} shadow-2xl w-full max-w-md`}>
@@ -51,7 +62,7 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
                     </motion.div>
                     <span className="text-sm font-semibold text-warning flex items-center gap-1">
                         <Sparkles className="h-4 w-4" />
-                        Achievement Unlocked!
+                        {t('achievements.unlocked')}
                     </span>
                 </div>
 
@@ -67,9 +78,9 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
                         {achievement.iconUrl || '🏆'}
                     </motion.div>
                     <div className="flex-1">
-                        <CardTitle className="text-xl">{achievement.name}</CardTitle>
+                        <CardTitle className="text-xl">{localizedName}</CardTitle>
                         <CardDescription className="mt-1 text-muted-foreground">
-                            {achievement.description}
+                            {localizedDescription}
                         </CardDescription>
                     </div>
                 </div>
@@ -78,10 +89,10 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
             <CardContent className="pt-0 relative">
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs">
-                        +{achievement.points} points
+                        +{achievement.points} {t('dailyLogin.points')}
                     </Badge>
                     <Badge variant="outline" className="text-xs capitalize">
-                        {achievement.category}
+                        {localizedCategory}
                     </Badge>
                 </div>
             </CardContent>
