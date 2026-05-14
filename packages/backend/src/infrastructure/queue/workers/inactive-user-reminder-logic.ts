@@ -93,7 +93,7 @@ function buildHtml(displayName: string, days: number, playUrl: string, unsubscri
     heading: `Ça fait ${days} jours, ${displayName}…`,
     paragraphs: [
       `Ton dernier passage dans la Box remonte à <strong style="color:#f0abfc;">${days} jours</strong>. Les défis du jour continuent de tomber sans toi — et on aimerait bien te revoir.`,
-      `Un nouveau panorama t'attend dès maintenant. Quelques secondes suffisent pour retrouver la main.`,
+      `Un nouveau défi t'attend dès maintenant. Quelques secondes suffisent pour retrouver la main.`,
     ],
     cta: { label: 'Relancer une partie', url: playUrl },
     tip: "Astuce : ton inventaire d'indices est toujours là, intact, prêt à servir sur le prochain défi.",

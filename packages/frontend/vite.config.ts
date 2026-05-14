@@ -50,7 +50,7 @@ export default defineConfig({
         name: 'The Box — Daily Video Game Guessing Challenge',
         short_name: 'The Box',
         description:
-          'Identify video games from 360° panoramic screenshots. New daily challenge, live leaderboards, achievements.',
+          'Identify video games from screenshots. New daily challenge, live leaderboards, achievements.',
         start_url: '/',
         scope: '/',
         display: 'standalone',
