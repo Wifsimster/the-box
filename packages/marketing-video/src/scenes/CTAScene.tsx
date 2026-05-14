@@ -65,7 +65,7 @@ export const CTAScene: React.FC = () => {
               maxWidth: 900,
             }}
           >
-            New screenshot every day. Free to play. No install required.
+            Ten new screenshots every day. Free to play. No install required.
           </div>
         </Reveal>
 
@@ -100,7 +100,7 @@ export const CTAScene: React.FC = () => {
               marginTop: 16,
             }}
           >
-            thebox.game
+            the-box.battistella.ovh
           </div>
         </Reveal>
       </AbsoluteFill>

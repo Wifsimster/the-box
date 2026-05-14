@@ -120,7 +120,7 @@ export const HookScene: React.FC = () => {
               transform: `scale(${headlineScale})`,
             }}
           >
-            One screenshot.
+            Ten screenshots.
             <br />
             <span
               style={{

@@ -58,7 +58,7 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
         <TransitionSeries.Sequence durationInFrames={150}>
           <FeatureScene
             eyebrow="Daily Drop"
-            headline="A fresh screenshot, every day."
+            headline="Ten fresh screenshots, every day."
             features={[
               {
                 icon: "📅",
@@ -108,7 +108,7 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
                 icon: "🏆",
                 title: "Achievements",
                 description:
-                  "From first-blood to streak-of-30 — earn, display, brag.",
+                  "From First Win to Weekly Warrior — earn, display, brag.",
               },
             ]}
           />
