@@ -245,6 +245,12 @@ export type GamePhase =
   | 'bonus_round'
   | 'challenge_complete'
 
+export interface GuessAttempt {
+  /** Free-text the user entered (game name) for this attempt. */
+  guess: string
+  isCorrect: boolean
+}
+
 export interface GuessResult {
   position: number
   isCorrect: boolean
@@ -255,6 +261,8 @@ export interface GuessResult {
   hintPenalty?: number
   wrongGuessPenalty?: number
   screenshot?: Screenshot
+  /** All guesses the user made for this position, in chronological order. */
+  attempts?: GuessAttempt[]
 }
 
 // Position tracking for navigation
@@ -502,6 +510,7 @@ export interface GameSessionDetailsResponse {
     wrongGuessPenalty?: number
     tryNumber: number
     screenshot: Screenshot
+    attempts: GuessAttempt[]
   }>
   unfoundGames: Array<{
     position: number

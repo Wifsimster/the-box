@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, devtools } from 'zustand/middleware'
 import type {
   GamePhase,
+  GuessAttempt,
   GuessResult,
   TierScreenshot,
   ScreenshotResponse,
@@ -52,6 +53,9 @@ interface GameState {
   totalScore: number
   correctAnswers: number
   guessResults: GuessResult[]
+  // All attempts the user made for each position, in chronological order.
+  // Includes wrong guesses (which never reach `guessResults`).
+  positionAttempts: Record<number, GuessAttempt[]>
 
   // Personal bests tracking
   personalBests: {
@@ -84,6 +88,7 @@ interface GameState {
   setShowCompletionChoice: (value: boolean) => void
 
   addGuessResult: (result: GuessResult) => void
+  recordAttempt: (position: number, attempt: GuessAttempt) => void
   updateScore: (totalScore: number) => void
   incrementCorrectAnswers: () => void
 
@@ -158,6 +163,7 @@ const initialState = {
   totalScore: 0,
   correctAnswers: 0,
   guessResults: [],
+  positionAttempts: {} as Record<number, GuessAttempt[]>,
   // Personal bests
   personalBests: {
     highestScore: 0,
@@ -211,6 +217,13 @@ export const useGameStore = create<GameState>()(
         addGuessResult: (result) => set((state) => ({
           guessResults: [...state.guessResults, result],
           lastResult: result,
+        })),
+
+        recordAttempt: (position, attempt) => set((state) => ({
+          positionAttempts: {
+            ...state.positionAttempts,
+            [position]: [...(state.positionAttempts[position] ?? []), attempt],
+          },
         })),
 
         updateScore: (totalScore) => set({ totalScore }),
@@ -606,7 +619,7 @@ export const useGameStore = create<GameState>()(
         },
 
         endGameAction: async () => {
-          const { sessionId, updateScore, setScreenshotsFound, setGamePhase, setIsSessionCompleted, guessResults } = get()
+          const { sessionId, updateScore, setScreenshotsFound, setGamePhase, setIsSessionCompleted, guessResults, positionAttempts } = get()
           if (!sessionId) {
             const error = new Error('No active game session')
             console.error('Failed to end game:', error)
@@ -622,15 +635,20 @@ export const useGameStore = create<GameState>()(
             // Add unfound games to guessResults as unguessed entries
             if (result.unfoundGames && result.unfoundGames.length > 0) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Backend response shape varies
-              const unfoundResults: GuessResult[] = result.unfoundGames.map((unfound: any) => ({
-                position: unfound.position,
-                isCorrect: false,
-                correctGame: unfound.game,
-                userGuess: null,
-                timeTakenMs: 0,
-                scoreEarned: -50, // Show -50 penalty
-                screenshot: unfound.screenshot,
-              }))
+              const unfoundResults: GuessResult[] = result.unfoundGames.map((unfound: any) => {
+                const attempts = positionAttempts[unfound.position] ?? []
+                const lastWrong = attempts.length > 0 ? attempts[attempts.length - 1].guess : null
+                return {
+                  position: unfound.position,
+                  isCorrect: false,
+                  correctGame: unfound.game,
+                  userGuess: lastWrong,
+                  timeTakenMs: 0,
+                  scoreEarned: -50, // Show -50 penalty
+                  screenshot: unfound.screenshot,
+                  attempts,
+                }
+              })
 
               // Merge with existing results and sort by position
               const allResults = [...guessResults, ...unfoundResults].sort((a, b) => a.position - b.position)
@@ -658,6 +676,9 @@ export const useGameStore = create<GameState>()(
           screenshotsFound: state.screenshotsFound,
           // Persist guess results for results page display
           guessResults: state.guessResults,
+          // Persist per-position attempts so refresh on the results page
+          // still has the full list of tries.
+          positionAttempts: state.positionAttempts,
           // Persist personal bests
           personalBests: state.personalBests,
         }),

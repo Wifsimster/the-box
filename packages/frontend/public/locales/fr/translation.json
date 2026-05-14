@@ -256,6 +256,12 @@
       "activationFailed": "Impossible d'activer la seconde chance pour l'instant."
     },
     "notFound": "Jeu Introuvable",
+    "attempts": {
+      "label": "Tentatives",
+      "count_one": "{{count}} tentative",
+      "count_other": "{{count}} tentatives",
+      "noneRecorded": "Aucune tentative"
+    },
     "completionChoice": {
       "title": "Bien joué !",
       "description": "Vous avez visité toutes les positions et trouvé un jeu. Voulez-vous continuer ou voir vos résultats ?",

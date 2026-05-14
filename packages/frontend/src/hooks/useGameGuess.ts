@@ -91,6 +91,13 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           dailyLoginStore.fetchInventory().catch(console.error)
         }
 
+        // Always record the attempt (wrong or correct) so the results
+        // page can display the full list of guesses per position.
+        store.recordAttempt(store.currentPosition, {
+          guess: game?.name || userInput,
+          isCorrect: result.isCorrect,
+        })
+
         // Update screenshots found
         store.setScreenshotsFound(result.screenshotsFound)
 
@@ -133,6 +140,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Record result only when advancing (to show in result screen)
         if (shouldAdvance) {
+          const attempts = store.positionAttempts[store.currentPosition] ?? []
           store.addGuessResult({
             position: store.currentPosition,
             isCorrect: result.isCorrect,
@@ -142,6 +150,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             scoreEarned: result.scoreEarned,
             hintPenalty: result.hintPenalty,
             wrongGuessPenalty: result.wrongGuessPenalty,
+            attempts,
           })
         }
 

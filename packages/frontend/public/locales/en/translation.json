@@ -256,6 +256,12 @@
       "activationFailed": "Could not activate the second chance right now."
     },
     "notFound": "Not Found",
+    "attempts": {
+      "label": "Attempts",
+      "count_one": "{{count}} attempt",
+      "count_other": "{{count}} attempts",
+      "noneRecorded": "No attempts"
+    },
     "completionChoice": {
       "title": "Nice Work!",
       "description": "You've visited all positions and found a game. Would you like to continue or see your results?",

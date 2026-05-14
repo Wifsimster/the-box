@@ -14,6 +14,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
+import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import { calculateSpeedMultiplier } from '@/lib/utils'
 import { useEffect, useRef } from 'react'
 import { playAchievementSound } from '@/lib/audio'
@@ -229,15 +230,18 @@ export default function ResultsPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
-                            {result.userGuess && !result.isCorrect && (
-                              <span className="text-xs sm:text-sm text-muted-foreground block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
-                                (guessed: {result.userGuess})
-                              </span>
-                            )}
-                            {isUnguessed && (
+                            {isUnguessed && (!result.attempts || result.attempts.length === 0) && (
                               <span className="text-xs sm:text-sm text-destructive block mt-0.5">
                                 {t('game.notFound') || 'Not Found'}
                               </span>
+                            )}
+                            {result.attempts && result.attempts.length > 0 && (
+                              <>
+                                <span className="text-xs text-muted-foreground block mt-0.5">
+                                  {t('game.attempts.count', { count: result.attempts.length })}
+                                </span>
+                                <GuessAttemptsList attempts={result.attempts} compact />
+                              </>
                             )}
                           </div>
                         </div>
@@ -316,15 +320,18 @@ export default function ResultsPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <span className="font-medium text-base block truncate">{result.correctGame.name}</span>
-                        {result.userGuess && !result.isCorrect && (
-                          <span className="text-sm text-muted-foreground inline ml-2">
-                            (guessed: {result.userGuess})
-                          </span>
-                        )}
-                        {isUnguessed && (
+                        {isUnguessed && (!result.attempts || result.attempts.length === 0) && (
                           <span className="text-sm text-destructive block mt-0.5">
                             {t('game.notFound') || 'Not Found'}
                           </span>
+                        )}
+                        {result.attempts && result.attempts.length > 0 && (
+                          <>
+                            <span className="text-xs text-muted-foreground block mt-0.5">
+                              {t('game.attempts.count', { count: result.attempts.length })}
+                            </span>
+                            <GuessAttemptsList attempts={result.attempts} />
+                          </>
                         )}
                       </div>
                     </div>

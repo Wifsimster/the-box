@@ -2,6 +2,7 @@ import type {
   GameHistoryResponse,
   GameSessionDetailsResponse,
   Game,
+  GuessAttempt,
   Screenshot,
   MissedChallenge,
 } from '@the-box/types'
@@ -83,6 +84,12 @@ export function createUserService(deps: UserServiceDeps): UserService {
         // Get the first guess (for userGuess display)
         const firstGuess = positionGuesses[0]!
 
+        // All attempts the user made for this position, in order.
+        const attempts: GuessAttempt[] = positionGuesses.map(g => ({
+          guess: g.guessedText ?? '',
+          isCorrect: g.isCorrect,
+        }))
+
         if (correctGuess) {
           // Calculate hint penalty (20% of score if hint was used)
           let hintPenalty: number | undefined
@@ -118,6 +125,7 @@ export function createUserService(deps: UserServiceDeps): UserService {
             hintPenalty,
             tryNumber: correctGuess.tryNumber,
             screenshot: screenshotMap.get(position)!,
+            attempts,
           }
         } else {
           // No correct guess - use the last guess for display
@@ -147,6 +155,7 @@ export function createUserService(deps: UserServiceDeps): UserService {
             wrongGuessPenalty: WRONG_GUESS_PENALTY,
             tryNumber: lastGuess.tryNumber,
             screenshot: screenshotMap.get(position)!,
+            attempts,
           }
         }
       })
