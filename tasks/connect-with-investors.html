@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Drafts for the three "Connect with Investors" free-text fields
+  on the ProductHunt launch form for The Box. Solo founder, English copy,
+  each answer well under the 5000-char form limit. Tone: specific and
+  honest, no hype words ("revolutionize", "AI-powered"), no bullet-spam.
+  Cleared for paste-in on launch day (2026-05-14).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Connect with Investors · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.65;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  main { max-width: 72ch; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.25rem; margin: 2.25rem 0 0.5rem; letter-spacing: -0.005em; }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+    margin-bottom: 2rem;
+  }
+  .hero p { margin: 0.4rem 0 0; color: var(--muted); }
+
+  .qcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0 0;
+  }
+  .qcard .label {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--neon-purple);
+    margin: 0 0 0.4rem;
+  }
+  .qcard .q { margin: 0 0 0.75rem; font-weight: 600; color: var(--fg); font-size: 1.05rem; }
+  .qcard .count {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
+    margin: 0.75rem 0 0; text-align: right;
+  }
+  .qcard textarea, .qcard pre.answer {
+    width: 100%;
+    background: var(--surface-2);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+    margin: 0;
+  }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.55rem; border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    color: var(--muted);
+  }
+  .pill.ok { color: var(--ok); border-color: rgba(16,185,129,.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(245,158,11,.4); }
+
+  ul.notes { margin: 0.75rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.9rem; }
+  ul.notes li { margin: 0.2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Connect with Investors · The Box</span>
+  <span class="repo">tasks/connect-with-investors.html</span>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Connect with Investors</h1>
+    <p>Form copy for the ProductHunt "Connect with Investors" panel. <b>Internal only — never shared publicly.</b></p>
+    <p class="meta">Launch day: <b>2026-05-14</b> · Maker: <b>solo</b> · Limit: <b>5000 chars / field</b></p>
+  </div>
+
+  <p class="meta">
+    <span class="pill ok">Ready to paste</span>
+    <span class="pill">Plain text — no markdown</span>
+    <span class="pill warn">Don't add hype words on paste</span>
+  </p>
+
+  <!-- Q1 -->
+  <section class="qcard">
+    <p class="label">Field 01</p>
+    <p class="q">Why are you the right founder/team to work on this?</p>
+    <pre class="answer" id="a1">I'm a solo founder and I've shipped The Box end-to-end myself: React 19 + Vite frontend, Node 24 + Express 5 + PostgreSQL backend, Better Auth for sessions, Socket.io for the live leaderboard, BullMQ workers for the scheduled daily challenges. It's not a prototype — it's running in production today on a single Docker image, migrations apply on boot, daily backups go to a separate volume, the Playwright E2E suite covers every critical flow (auth, daily-game, leaderboard, achievements, daily-login, history, profile, admin), and the codebase is structured in clean three-layer architecture so I can keep moving fast without paying compounding interest on hacks.
+
+Three things that make me the right person for this specific product:
+
+1. I'm the user. The product started from me losing the "wait, what game is that from?" argument with friends one too many times. Every design decision — the fuzzy matcher that lets "skyrim" beat "The Elder Scrolls V: Skyrim" without punishing the player, the tiered difficulty inside a single day, the catch-up mode for the last 7 days, the power-up economy — was made because I felt the friction first. I'm not guessing what daily-puzzle players want; I am one.
+
+2. I ship the whole stack alone, which keeps cycle time short. Idea → live in production usually clears in under a week, including migrations, tests, and deployment. That matters for a daily-ritual product where the difference between retention and churn is whether the loop feels right, and the only way to find that out is to iterate on the live game with real players.
+
+3. I treat operations seriously for a solo project. Conventional Commits + commitlint, ESLint, typecheck, unit + E2E in CI, multi-arch Docker builds via GitHub Actions, structured Pino logging, Zod validation on both sides of the wire. None of this is impressive on its own — it's the bar — but it means I won't drown in incident response when the daily challenge cron starts mattering to thousands of people instead of dozens.
+
+I'm not the right founder for a hardware play or for selling enterprise contracts. I am the right founder for a small consumer game where the moat is loop-feel + cadence + a slightly weird willingness to keep polishing a fuzzy-string matcher because it's the actual product.</pre>
+    <p class="count">~2,290 / 5000</p>
+  </section>
+
+  <!-- Q2 -->
+  <section class="qcard">
+    <p class="label">Field 02</p>
+    <p class="q">Why did you pick this idea to work on?</p>
+    <pre class="answer" id="a2">Three reasons, in honest order: personal itch, structural fit, and timing.
+
+Personal itch. I'm a lifelong gamer with a deep mental catalog of screenshots, and I kept noticing that "guess the game from a screenshot" is something my friends and I do for free, constantly, in group chats. The behavior was already there. Nobody had wrapped it in a daily ritual that respected players' time — most attempts I found were either one-shot novelties without progression, or community-driven trivia sites that punished you for spelling. The gap was specific and I could feel it every week.
+
+Structural fit. The product shape matches what a solo founder can actually ship and operate. It's read-heavy, the data model is small (games, screenshots, challenges, guesses, leaderboards, achievements), the daily content cadence is one screenshot batch a day so I can curate quality without burning out, and there's no realtime multiplayer to debug at 3am. The hardest engineering problem — fuzzy game-name matching across thousands of titles with localization and series suffixes — is one I find genuinely fun. That alignment between "hard part of the product" and "what I want to spend a Saturday on" is the difference between shipping for years and burning out in six months.
+
+Timing. Wordle proved that a daily ritual with a shareable score grid retains adults the way mobile F2P games retain kids — but cleaner, cheaper, and without dark patterns. Five years later the format is validated and the daily-puzzle category is wide: words (Wordle), movies (Framed), music (Heardle), geography (Worldle), math (Nerdle), trivia (Connections). Games — the largest entertainment medium in the world by revenue — has no widely-loved daily ritual yet. Guess The Game and Gamedle exist and are real, but the category is nowhere near saturated and nobody's combined the daily-puzzle loop with proper progression (streaks, monthly leaderboards, achievements, power-up economy, catch-up mode). That's the seam I'm cutting along.
+
+I also picked this idea because the downside is bounded and the upside has clear shape. Worst case it's a hobby that pays for its own hosting and I learn a lot. Best case it becomes the default daily ritual for the gaming audience the way Wordle became the default for the NYT-puzzle audience. Both outcomes are fine, and most ideas don't have that property.</pre>
+    <p class="count">~2,440 / 5000</p>
+  </section>
+
+  <!-- Q3 -->
+  <section class="qcard">
+    <p class="label">Field 03</p>
+    <p class="q">Who are your competitors, and what do you understand about this idea that they don't?</p>
+    <pre class="answer" id="a3">Direct competitors in "guess the video game" space:
+
+- Guess The Game (guessthe.game) — single daily round, six screenshots revealed one-by-one. Clean, well-loved, no account system, no progression, no monthly leaderboard, no localization. The bar to beat.
+- Gamedle (gamedle.wtf) — Wordle-style "guess by attributes" plus a screenshot mode. Strong brand in the Wordle-clone niche. Account-light, no streak economy, no power-ups, English/Spanish only.
+- Framed (framed.wtf) is the canonical comparison even though it's for movies — they nailed the daily ritual but never built progression on top of it.
+- Whittakers, GamerGuessr, various Reddit-driven weekly threads — community-curated, no product layer.
+
+Adjacent / category competitors I watch: Wordle (the format), Connections (the daily-discussion driver), Heardle, Worldle, Nerdle. They define what a "good" daily ritual feels like across every other vertical.
+
+What I understand that most of them don't:
+
+1. The puzzle is not the product. The product is the daily 60-second ritual. That means the fuzzy matcher is more important than the screenshot catalog. If "skyrim" doesn't beat "The Elder Scrolls V: Skyrim" — or worse, if "shrek 2" doesn't beat "Shrek 2: The Video Game" — the player blames themselves once, blames the product twice, and never comes back. Every direct competitor I've tested fails this on day one. We don't.
+
+2. Progression is the retention layer. Daily puzzles without streaks, monthly leaderboards, achievements, and a catch-up window have a Tuesday problem: a user breaks their streak on Tuesday and never opens the app again. The Box ships catch-up mode (replay the last 7 days, doesn't pollute the leaderboard), achievement tiers from beginner up, daily-login rewards with streak freezes coming, and a tournament layer. Competitors leave that surface area empty in the name of "purity." We think purity is a luxury you can afford once you have habit.
+
+3. Solo content cadence beats community cadence at this scale. Crowd-sourced trivia sites can ship 100 puzzles a day but the median quality is low and the difficulty curve is random. One person curating one batch a day, with a tiered Easy→Hard reveal inside that batch, beats both extremes — slower than community, deeper than a one-shot puzzle.
+
+4. i18n from day one is free addressable-market growth. French is the default UI, English is supported, the gameplay is image-first so the localization burden is mostly UI strings. Most competitors are English-only and treat localization as a Phase 2 — we treat it as a Phase 0 architectural choice. The cost is one extra translation file per feature; the reward is a player base that compounds in two languages instead of one.
+
+5. Power-ups are the right monetization for this loop. Not subscriptions, not ads, not lootboxes — a small inventory of optional power-ups (reveal year, reveal developer, reveal publisher, extend timer) that you can buy in packs and that never gate the daily challenge itself. Players who never pay still get the full daily ritual; players who care about the leaderboard have a clean way to support the project. Most competitors either run ads (kills the feel) or charge a sub (kills the funnel). The third option is the one that respects the daily-ritual contract.
+
+The short version: competitors built the puzzle. We're building the habit.</pre>
+    <p class="count">~3,420 / 5000</p>
+  </section>
+
+  <h2>Paste-time notes</h2>
+  <ul class="notes">
+    <li>Paste plain text — strip the leading bullets if the form's preview renders them as raw <code>-</code> chars.</li>
+    <li>Char counts are approximate; ProductHunt counts characters not codepoints, but every answer is well under the limit either way.</li>
+    <li>Don't add hype words on paste ("revolutionize", "disrupt", "AI-native"). The honest tone is doing the work.</li>
+    <li>If the form requires a tighter answer (under 1500 chars), keep the first paragraph of each and drop the numbered list.</li>
+  </ul>
+
+</main>
+
+</body>
+</html>
