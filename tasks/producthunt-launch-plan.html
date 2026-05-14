@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: ProductHunt same-day launch playbook for The Box (2026-05-14, Thursday).
+  English-only listing, solo maker, self-hunted. Covers pre-flight asset checklist,
+  copy drafts (tagline/description/maker comment/gallery), hour-by-hour day-of
+  engagement loop, distribution channels (Reddit + Discord + X + HN), KPIs and
+  the PH rules that get launches buried (no upvote begging, no vote rings).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ProductHunt Launch Plan · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; overflow-x: auto; font-size: 0.875rem; }
+  pre code { background: transparent; padding: 0; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+  aside.toc li { margin: 0.35rem 0; counter-increment: toc; }
+  aside.toc li::before { content: counter(toc, decimal-leading-zero) " "; color: var(--muted); font-family: var(--mono); font-size: 0.75rem; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p { margin: 0; font-size: 1.05rem; }
+  .hero p em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-family: var(--mono); letter-spacing: 0.04em; border: 1px solid var(--border-strong); margin-right: 0.25rem; }
+  .pill.ok { color: var(--ok); border-color: rgba(16,185,129,0.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(245,158,11,0.4); }
+  .pill.risk { color: var(--risk); border-color: rgba(239,68,68,0.4); }
+  .pill.info { color: var(--neon-blue); border-color: rgba(56,189,248,0.4); }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+  }
+  .card h3 { margin-top: 0; }
+  .card .src { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; }
+  th, td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.t { font-family: var(--mono); font-size: 0.85rem; color: var(--neon-purple); white-space: nowrap; }
+  td.who { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+
+  ul.check { list-style: none; padding: 0; }
+  ul.check li { padding: 0.4rem 0 0.4rem 1.75rem; position: relative; border-bottom: 1px dashed var(--border); }
+  ul.check li:last-child { border-bottom: 0; }
+  ul.check li::before {
+    content: ""; position: absolute; left: 0; top: 0.65rem;
+    width: 1.1rem; height: 1.1rem; border: 1px solid var(--border-strong); border-radius: 4px;
+    background: var(--surface-2);
+  }
+  ul.check li.done::before { background: var(--neon-purple); border-color: var(--neon-purple); }
+  ul.check li.done::after {
+    content: "✓"; position: absolute; left: 0.25rem; top: 0.45rem; color: var(--bg); font-weight: 700; font-size: 0.8rem;
+  }
+
+  blockquote.copy {
+    border-left: 3px solid var(--neon-purple);
+    background: var(--surface-2);
+    margin: 0.75rem 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+  blockquote.copy .charcount { display: block; margin-top: 0.5rem; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+  blockquote.copy.alt { border-left-color: var(--neon-blue); }
+
+  details.section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0.75rem 0;
+    background: var(--surface);
+  }
+  details.section > summary {
+    cursor: pointer; padding: 0.75rem 1rem; font-weight: 500;
+    list-style: none; display: flex; align-items: center; justify-content: space-between;
+  }
+  details.section > summary::after { content: "+"; color: var(--muted); font-family: var(--mono); }
+  details.section[open] > summary::after { content: "−"; }
+  details.section > div.body { padding: 0 1rem 1rem; border-top: 1px solid var(--border); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">ProductHunt Launch Plan</span>
+  <span class="repo">the-box · tasks/producthunt-launch-plan.html</span>
+</header>
+
+<div class="layout">
+
+<aside class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#thesis">Thesis &amp; constraints</a></li>
+    <li><a href="#timing">Timing &amp; launch slot</a></li>
+    <li><a href="#preflight">Pre-flight checklist</a></li>
+    <li><a href="#assets">Asset spec</a></li>
+    <li><a href="#copy">Copy drafts</a></li>
+    <li><a href="#hunter">Hunter strategy</a></li>
+    <li><a href="#dayof">Day-of playbook</a></li>
+    <li><a href="#distribution">Cross-channel push</a></li>
+    <li><a href="#kpis">KPIs</a></li>
+    <li><a href="#rules">PH rules (don't)</a></li>
+    <li><a href="#risks">Risks</a></li>
+    <li><a href="#followup">Follow-up</a></li>
+  </ol>
+</aside>
+
+<main>
+
+<h1>ProductHunt launch plan — The Box</h1>
+<p class="meta"><b>Date:</b> 2026-05-14 (Thursday) · <b>Listing language:</b> English only · <b>Maker:</b> solo · <b>Hunt:</b> self-hunted · <b>Status:</b> prod live since 2026-05-12</p>
+
+<div class="hero">
+  <p>Same-day PH launch. Thursday is the <em>second-strongest weekday</em> on ProductHunt (Tue &gt; Thu &gt; Wed). The goal is <em>top 10 of the day</em>, not #1 — that gets the badge, the email blast, and 3–6 weeks of compounding backlinks for SEO. Vote count matters less than comment depth and follower-friend engagement velocity in the first 4 hours.</p>
+</div>
+
+<h2 id="thesis">1 · Thesis &amp; constraints</h2>
+<p>The Box is a daily screenshot-guessing game for gamers. PH's audience skews startup/SaaS, but daily-habit consumer apps consistently chart (Wordle, NYT Connections clones, Marble It Up, Geoguessr-style products). The pitch must front-load <b>"daily ritual + leaderboard"</b>, not "AI" or "social network".</p>
+
+<ul>
+  <li><b>What we have:</b> live prod, paid plan via Stripe, daily challenges, leaderboards, achievements, FR/EN i18n, social media plan from <code>tasks/social-media-launch-plan.html</code>.</li>
+  <li><b>What we don't have time for today:</b> a hunter relationship, an email list, a pre-launch teaser week.</li>
+  <li><b>Therefore:</b> self-hunt, lean on Reddit + X + Discord on launch day, treat PH as a one-shot SEO + credibility move rather than a customer-acquisition silver bullet.</li>
+</ul>
+
+<h2 id="timing">2 · Timing &amp; launch slot</h2>
+<p>PH days run <b>00:01 → 23:59 Pacific Time</b>. In May (Paris is CEST, UTC+2), 00:01 PT = <b>09:01 CEST</b>. The first 4 hours of the PH day are the most weighted by the ranking algorithm.</p>
+
+<div class="card">
+  <h3>Three timing options for today</h3>
+  <table>
+    <tr><th>Option</th><th>What it means</th><th>Recommend</th></tr>
+    <tr>
+      <td><b>A · Launch now</b></td>
+      <td>If it's still before ~14:00 CEST you've got &gt;10 hours of PH day left. Lose the first-4-hours boost but stay on Thursday.</td>
+      <td><span class="pill ok">If &lt;14:00 CEST</span></td>
+    </tr>
+    <tr>
+      <td><b>B · Schedule 00:01 PT tomorrow</b></td>
+      <td>Friday. PH ranks Friday worse than Thu/Tue/Wed — algo weighting + smaller weekday traffic.</td>
+      <td><span class="pill warn">Avoid</span></td>
+    </tr>
+    <tr>
+      <td><b>C · Schedule Tue 2026-05-19 00:01 PT</b></td>
+      <td>Best statistical slot. Buys 5 days for assets, hunter outreach, email list, and pre-launch teasers — i.e. converts "same-day" into a real launch.</td>
+      <td><span class="pill info">Best PH outcome</span></td>
+    </tr>
+  </table>
+  <p class="meta">Recommendation: <b>Option A</b> if you're committed to today (you asked for it, and Thursday isn't bad). If anything in §3 below is missing, fall back to <b>Option C</b> — a sloppy launch you can't redo is worse than a deliberate one 5 days later.</p>
+</div>
+
+<h2 id="preflight">3 · Pre-flight checklist (do before clicking Submit)</h2>
+<p>If any of these are red, stop and either fix them now or move to Tuesday. The launch page is permanent — a broken hero image or 500-ing signup at hour 1 is the worst possible outcome.</p>
+
+<h3>Product readiness</h3>
+<ul class="check">
+  <li>Prod URL loads in &lt;2s from a cold cache, mobile + desktop</li>
+  <li>Today's daily challenge is solvable and the round-end screen looks correct</li>
+  <li>Signup flow works end-to-end on a brand-new email (Better Auth flow)</li>
+  <li>Stripe paywall does <b>not</b> block the free daily — first-impression must be playable in &lt;10 seconds, zero friction</li>
+  <li>Free-tier copy is unambiguous everywhere (don't bait-and-switch)</li>
+  <li>Error tracking (Pino / log drain) is being watched</li>
+  <li>DB capacity sanity check — expect 500–5000 sessions across the day, mostly skewed to first 8 hours</li>
+</ul>
+
+<h3>Listing readiness</h3>
+<ul class="check">
+  <li>PH account exists, has a profile photo + 1-line bio + Twitter/X linked (otherwise comments look like a bot)</li>
+  <li>Logo: 240×240 PNG, transparent or solid bg, recognizable at favicon size</li>
+  <li>Gallery slot 1 (thumbnail): high-contrast, readable text on mobile</li>
+  <li>Demo media: at least one animated asset (GIF or MP4 under 3 MB)</li>
+  <li>OG image on prod URL renders correctly (Twitter card validator + PH preview)</li>
+  <li>Topics picked (max 4): see §5</li>
+</ul>
+
+<h3>You-the-maker readiness</h3>
+<ul class="check">
+  <li>Maker comment draft ready to paste at minute 0 (see §5)</li>
+  <li>Calendar blocked: <b>4 hours hard-focus</b> at launch, then comment-checking every 30 min for 24h</li>
+  <li>Phone notifications on for PH + email + X DMs</li>
+  <li>2–3 personal friends/family briefed: "click the link, leave a real comment with a question, don't write 'congrats'" — generic comments get downranked</li>
+</ul>
+
+<h2 id="assets">4 · Asset spec</h2>
+<table>
+  <tr><th>Asset</th><th>Spec</th><th>Note</th></tr>
+  <tr><td>Logo</td><td>240×240 PNG/JPG</td><td>Reuse favicon source, export at 2x. Avoid hairlines.</td></tr>
+  <tr><td>Tagline</td><td>60 chars max</td><td>Shown next to logo in feed. <b>This is the only text most voters read.</b></td></tr>
+  <tr><td>Description</td><td>260 chars max</td><td>Below the fold on the listing page. Sets up the maker comment.</td></tr>
+  <tr><td>Gallery image 1 (thumbnail)</td><td>1270×760 PNG/JPG</td><td>Best slot. Use a screenshot of an actual round with one strong call-out ("Guess the game in 3 screenshots").</td></tr>
+  <tr><td>Gallery images 2–8</td><td>1270×760 each</td><td>Recommended: leaderboard, achievements grid, profile/streak, daily-login calendar, hint reveal. 4–6 total is plenty.</td></tr>
+  <tr><td>Demo GIF or MP4</td><td>≤3 MB, ≤30s</td><td>Show a full round in &lt;15s. Caption-overlay because PH autoplays muted.</td></tr>
+  <tr><td>Topics</td><td>4 max</td><td>Suggested: <code>Games</code>, <code>Gaming</code>, <code>Productivity</code> (daily-habit framing), <code>Browser games</code>. <b>Do not</b> add "AI" — wrong audience, lower conversion.</td></tr>
+  <tr><td>Pricing tag</td><td>Free / Freemium / Paid</td><td><b>Freemium</b> — accurate and signals there's something to pay for without scaring off triers.</td></tr>
+</table>
+
+<h2 id="copy">5 · Copy drafts</h2>
+
+<h3>Tagline (pick one, 60 char max)</h3>
+<blockquote class="copy">
+  Guess the game from the screenshot. New round every day.
+  <span class="charcount">52 chars · <span class="pill ok">Recommended</span> — declarative, no jargon, "every day" is the hook</span>
+</blockquote>
+<blockquote class="copy alt">
+  Wordle for gamers — one screenshot, three guesses, daily.
+  <span class="charcount">56 chars · "X for Y" framing, faster comprehension, mild risk of feeling derivative</span>
+</blockquote>
+<blockquote class="copy alt">
+  A daily screenshot puzzle for people who've played too many games.
+  <span class="charcount">64 chars — <span class="pill risk">over limit, trim</span></span>
+</blockquote>
+
+<h3>Description (260 char max)</h3>
+<blockquote class="copy">
+  The Box is a daily guessing game: we show you screenshots, you name the game. Use power-ups for hints (year, dev, publisher), keep your streak alive, climb the daily and monthly leaderboards. New challenge every 24h. Free to play, plays in your browser.
+  <span class="charcount">253 chars · <span class="pill ok">Recommended</span></span>
+</blockquote>
+
+<h3>Topics (pick 4)</h3>
+<p><span class="pill info">Games</span> <span class="pill info">Gaming</span> <span class="pill info">Browser games</span> <span class="pill info">Productivity</span> — last one is non-obvious but reaches the daily-habit audience (NYT Games crowd).</p>
+
+<h3>Maker's first comment (paste at minute 0)</h3>
+<details class="section" open>
+  <summary>Long-form maker comment — sets the tone for the whole thread</summary>
+  <div class="body">
+<pre><code>Hey Product Hunt 👋
+
+I built The Box because I kept losing the "wait, what game is that
+from?" argument with friends. So I made a daily puzzle out of it.
+
+How it works:
+- One screenshot a day (sometimes three, increasing difficulty)
+- You have three guesses, with a fuzzy-matcher so "skyrim" beats
+  "The Elder Scrolls V: Skyrim" doesn't punish you
+- Power-ups reveal the release year, developer, or publisher if
+  you're stuck
+- Daily + monthly leaderboards, streaks, achievements
+
+It's free to play. There's a paid tier for power-up packs and
+catch-up mode (play the last 7 days you missed), but the daily
+ritual is and will stay free.
+
+Tech: React 19 + Vite + Tailwind on the front, Node 24 + Express
++ Postgres + Socket.io on the back, Better Auth for sessions,
+BullMQ for the scheduled challenges. Built solo. Happy to nerd
+out about any of it.
+
+What I'd love feedback on:
+1. Is the difficulty curve right? (Easy → Hard within a day)
+2. Should hints cost more or less?
+3. What features would make this a daily habit for you vs.
+   a one-off curiosity?
+
+Try today's: [PROD_URL]
+</code></pre>
+    <p class="meta">Replace <code>[PROD_URL]</code> with the live URL. Keep this under 1500 chars — PH truncates. The three numbered questions matter: they prompt real comments instead of "looks great congrats". Reply to every single comment within 30 minutes for the first 8 hours.</p>
+  </div>
+</details>
+
+<h3>Gallery captions</h3>
+<ol>
+  <li><b>Thumbnail:</b> "Guess the game in 3 screenshots."</li>
+  <li><b>Leaderboard:</b> "Live daily &amp; monthly rankings."</li>
+  <li><b>Hints / power-ups:</b> "Stuck? Reveal year, dev, or publisher."</li>
+  <li><b>Streaks &amp; daily login:</b> "Show up every day, build the streak."</li>
+  <li><b>Achievements:</b> "Beat the daily under 30s. Solve without hints. Etc."</li>
+  <li><b>Profile / history:</b> "Every game you've ever guessed."</li>
+</ol>
+
+<h2 id="hunter">6 · Hunter strategy</h2>
+<p>Today = <b>self-hunt</b>. In 2024 PH removed most of the hunter-clout advantage; submitting under your own account is fine and avoids the "this hunter didn't actually use the product" smell.</p>
+<p>Optional 30-minute play before launch: cold-DM 2–3 hunters whose previous hunts are games or daily-habit products. Pitch is <b>not</b> "please hunt me", it's "would you want a heads up when I launch in ~1 hour, and a free month of the paid tier?". Hunters who care will reply fast. Hunters who don't won't, and you've lost 30 min.</p>
+
+<h2 id="dayof">7 · Day-of playbook</h2>
+<p>All times PT (subtract 9 hours from CEST). Day starts at 00:01 PT, ends 23:59 PT. If launching at 09:00 CEST, that's the very start of the PH day — best case. If launching at 14:00 CEST you've already lost ~5 PH hours; compress accordingly.</p>
+
+<table>
+  <tr><th>Time (PT)</th><th>Action</th><th>Who</th></tr>
+  <tr><td class="t">T-60 min</td><td>Submit listing to PH as draft. Triple-check tagline, gallery order, topic tags. Run the prod URL through Twitter card validator one last time.</td><td class="who">solo</td></tr>
+  <tr><td class="t">T-30 min</td><td>Brief 3–5 friends/family in DM: "I launch in 30 min, here's the link, please leave a real comment with a question — not just congrats. PH downranks generic comments."</td><td class="who">solo</td></tr>
+  <tr><td class="t">T-15 min</td><td>Pre-draft tweets, Reddit posts, Discord messages. Don't post yet — links to a not-yet-live listing 404.</td><td class="who">solo</td></tr>
+  <tr><td class="t">00:01 PT</td><td>Publish. Paste maker comment within 60 seconds.</td><td class="who">solo</td></tr>
+  <tr><td class="t">00:05</td><td>Post on X with the listing link + a 15-second demo video. Don't say "upvote" — say "today I'm launching X on ProductHunt".</td><td class="who">solo</td></tr>
+  <tr><td class="t">00:10</td><td>Post in r/SideProject (always allows PH launches), with a real write-up — not just a link.</td><td class="who">solo</td></tr>
+  <tr><td class="t">00:30</td><td>Reply to every PH comment so far. Each reply should ask a follow-up question — keeps the thread alive in PH's ranker.</td><td class="who">solo</td></tr>
+  <tr><td class="t">01:00</td><td>Post in r/tipofmyjoystick as <b>a free tool the sub will actually use</b>, not a launch post. Mention PH in passing. Mods are strict here — read sub rules first.</td><td class="who">solo</td></tr>
+  <tr><td class="t">01:30</td><td>DM 5–10 friends-of-friends in gaming / indie-dev Discords. Personalized only.</td><td class="who">solo</td></tr>
+  <tr><td class="t">02:00</td><td>Show HN post: "Show HN: The Box — a daily screenshot guessing game". HN is its own beast; PH-coincident Show HN is allowed and free upside if it lands.</td><td class="who">solo</td></tr>
+  <tr><td class="t">02:00–06:00</td><td>Comment hygiene. Every 20–30 min: refresh, reply to anything new, thank-and-ask-followup. <b>Do not</b> like-spam every comment with a heart — looks bot-y.</td><td class="who">solo</td></tr>
+  <tr><td class="t">06:00–18:00</td><td>Cross-post into 2–3 more subreddits (r/gaming weekly threads, r/IndieGaming, r/incremental_games), Discord servers you're already a member of. Do not mass-spam — 1 post per community max.</td><td class="who">solo</td></tr>
+  <tr><td class="t">12:00 PT</td><td>Status check on PH leaderboard. If top 10, post a follow-up tweet: "still in the top 10 on PH, thank you everyone". If outside top 10, don't post the ranking — post a milestone instead ("100 plays today!").</td><td class="who">solo</td></tr>
+  <tr><td class="t">23:00 PT</td><td>Last comment sweep. Post a wrap-up reply in the maker thread thanking specific users by name (PH culture rewards this).</td><td class="who">solo</td></tr>
+  <tr><td class="t">23:59 PT</td><td>Day closes. Note final rank, vote count, sign-ups, paid conversions. Sleep.</td><td class="who">solo</td></tr>
+</table>
+
+<h2 id="distribution">8 · Cross-channel push (during PH day)</h2>
+<p>Order of priority for a daily-habit gaming product. <b>r/tipofmyjoystick is the single highest-leverage channel because the sub is literally your use case</b> — but read their rules; promotional posts get nuked. Frame it as "I built a tool to settle this kind of question, free, today's challenge here".</p>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Reddit</h3>
+    <ul>
+      <li>r/SideProject — launch-friendly</li>
+      <li>r/tipofmyjoystick — perfect fit, mods strict</li>
+      <li>r/IndieGaming — show-and-tell weekly thread</li>
+      <li>r/gaming — only weekly self-promo thread, lurker-heavy</li>
+      <li>r/incremental_games — daily-habit overlap</li>
+      <li>r/webgames — small but engaged</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>X / Twitter</h3>
+    <ul>
+      <li>One main launch tweet w/ video (no link in tweet body — link in first reply gets better algo treatment)</li>
+      <li>Tag <code>@ProductHunt</code> only if you're top-10 by hour 4 (they sometimes RT)</li>
+      <li>Reply to indie-dev / gaming accounts that engaged with the OG post — don't mass-DM</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Discord</h3>
+    <ul>
+      <li>Indie-dev / Indie-hackers / r/SideProject companion servers (you must already be a member)</li>
+      <li>Any gaming community you've contributed to non-promotionally before</li>
+      <li><b>Do not</b> join a server just to drop the link — instant ban risk and bad faith</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Hacker News</h3>
+    <ul>
+      <li>"Show HN: The Box — daily screenshot guessing game"</li>
+      <li>First comment under your own post: short technical note (Better Auth + Postgres + Socket.io)</li>
+      <li>Don't crosspost PH link in the HN body — HN downvotes overt promo</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="kpis">9 · KPIs &amp; what counts as a win</h2>
+<table>
+  <tr><th>Metric</th><th>Floor (don't bother)</th><th>Target</th><th>Stretch</th></tr>
+  <tr><td>PH final rank (day)</td><td>top 30</td><td><b>top 10</b></td><td>top 5 + badge</td></tr>
+  <tr><td>Comments on PH listing</td><td>10</td><td>30+</td><td>50+ with real discussion threads</td></tr>
+  <tr><td>Sign-ups in 24h</td><td>50</td><td>200–500</td><td>1000+</td></tr>
+  <tr><td>Day-2 retention (came back next day)</td><td>15%</td><td>25%+</td><td>35%+</td></tr>
+  <tr><td>Stripe trials/subs in 7 days</td><td>3</td><td>15–30</td><td>50+</td></tr>
+  <tr><td>Inbound backlinks (PH + reposts)</td><td>5</td><td>20+</td><td>50+ (this is the SEO compounding payoff)</td></tr>
+</table>
+<p class="meta">Honest framing: the <b>backlinks + the badge</b> are the durable wins. Sign-ups and rank are the day-1 wins. Don't conflate them.</p>
+
+<h2 id="rules">10 · PH rules — what gets a launch buried</h2>
+<ul>
+  <li><span class="pill risk">Hard rule</span> No asking for upvotes — anywhere. Not on X, not in DMs, not on the PH page. "Support me by upvoting" = shadow-rank penalty.</li>
+  <li><span class="pill risk">Hard rule</span> No vote rings (groups of accounts brigading). PH detects this and zero-rates votes.</li>
+  <li><span class="pill risk">Hard rule</span> No paid promotion of the PH link before launch. Organic only.</li>
+  <li><span class="pill warn">Soft</span> Don't post low-effort thank-you replies ("thanks!"). Each reply should add information.</li>
+  <li><span class="pill warn">Soft</span> Don't edit the gallery / tagline after launch unless something's broken — re-indexing penalty.</li>
+  <li><span class="pill warn">Soft</span> Don't engage with negative comments defensively. Acknowledge → fix → reply with what changed.</li>
+</ul>
+
+<h2 id="risks">11 · Risks</h2>
+<table>
+  <tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr>
+  <tr><td>Prod URL goes down at hour 2 from traffic spike</td><td>Medium</td><td>Pre-warm the DB. Watch Pino logs. Have a status page or pinned X tweet ready.</td></tr>
+  <tr><td>Daily challenge bug — the one shown on PH day is unsolvable</td><td>Low/medium</td><td>Solve today's challenge yourself <b>now</b> on a logged-out browser. Reseed if needed via <code>npm run e2e:seed</code> patterns.</td></tr>
+  <tr><td>Comments stall after hour 4 → rank drops</td><td>High</td><td>Pre-line-up 3–5 thoughtful follow-up posts you'll add yourself (feature ideas, tech notes) to keep the thread warm.</td></tr>
+  <tr><td>r/tipofmyjoystick mods remove the post</td><td>Medium</td><td>Don't lead with the launch — lead with the tool's utility. Have a backup sub if removed.</td></tr>
+  <tr><td>Negative review of the paywall ("bait and switch")</td><td>Medium</td><td>Make the free tier obvious in copy + UI. Reply to any such comment with a specific fix or framing — don't argue.</td></tr>
+  <tr><td>Stripe webhook fails under load</td><td>Low</td><td>Stripe retries automatically; check the dashboard hour 4 and hour 12.</td></tr>
+</table>
+
+<h2 id="followup">12 · Post-launch follow-up</h2>
+
+<h3>T + 24h</h3>
+<ul>
+  <li>Screenshot final PH rank + vote count, save for the badge embed.</li>
+  <li>Add the PH "featured on" badge to the prod landing page footer.</li>
+  <li>Write a short retrospective tweet thread: numbers, what worked, what didn't.</li>
+</ul>
+
+<h3>T + 1 week</h3>
+<ul>
+  <li>Email everyone who signed up day 1 with a "thanks + what's new". Resend handles transactional only today — needs a real broadcast for this; consider Loops or a one-off MJML send.</li>
+  <li>Write up the launch on personal blog / dev.to / indie hackers — this is where the PH SEO compounds.</li>
+  <li>Reach out to any journalist/blogger who upvoted (PH shows upvoters publicly).</li>
+</ul>
+
+<h3>T + 4 weeks</h3>
+<ul>
+  <li>If retention is &gt; 25% day-2, do a second launch on AlternativeTo, BetaList, and Indie Hackers' "Show IH" — these don't compete with PH and stack the SEO.</li>
+</ul>
+
+<hr>
+<p class="meta">Author: solo · Date: 2026-05-14 · Related: <code>tasks/social-media-launch-plan.html</code> for ongoing channel work post-PH-day.</p>
+
+</main>
+</div>
+
+</body>
+</html>
