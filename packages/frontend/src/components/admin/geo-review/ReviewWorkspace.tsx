@@ -92,7 +92,7 @@ export function ReviewWorkspace({
                                 variant="ghost"
                                 className="h-8 w-8 shrink-0 lg:hidden"
                                 onClick={onCloseDetail}
-                                aria-label={t('admin.geo.nav.backToList')}
+                                aria-label={t('admin.geo.nav.backToList', 'Retour à la liste')}
                             >
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
@@ -440,6 +440,10 @@ interface ReviewShortcutsArgs {
 // All handlers reference the latest props via a ref so we don't tear down
 // the listener on every render.
 function useReviewShortcuts(args: ReviewShortcutsArgs) {
+    // Latest-props ref pattern via useLayoutEffect (the project's
+    // `react-hooks/refs` rule forbids writing to ref.current during render).
+    // Runs synchronously before paint, so the keydown handler always reads
+    // fresh args without tearing down the listener.
     const ref = useRef(args)
     useLayoutEffect(() => {
         ref.current = args
@@ -448,7 +452,19 @@ function useReviewShortcuts(args: ReviewShortcutsArgs) {
     useEffect(() => {
         if (!args.enabled) return
         const handler = (event: KeyboardEvent) => {
-            if (event.metaKey || event.ctrlKey || event.altKey) return
+            // Cooperate with Radix DismissableLayer (Reject / Demote dialogs):
+            // its Escape listener runs on document before this window listener
+            // and sets defaultPrevented. Without this guard, pressing Escape
+            // inside a dialog would close both the dialog and the workspace.
+            if (event.defaultPrevented) return
+            if (
+                event.metaKey ||
+                event.ctrlKey ||
+                event.altKey ||
+                event.shiftKey
+            ) {
+                return
+            }
             const target = event.target as HTMLElement | null
             if (target) {
                 const tag = target.tagName

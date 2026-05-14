@@ -1,0 +1,254 @@
+<!doctype html>
+<!-- SUMMARY:
+PR #161 personas meeting (backend, frontend/a11y, QA). Backend persona cleared the
+double-advance race (runSourceFetch rethrows without advancing); only doc fix is
+needed. Frontend persona found two real bugs: Escape collides with Radix Dialog
+(closes both), and Shift+A triggers Promote (modifier guard misses shiftKey). QA
+pinned the test surface: extract predicate, unit-test via node --test.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PR #161 — Personas Meeting</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-elev: #14141c;
+    --fg: #e8e8f0;
+    --muted: #9a9ab0;
+    --border: #2a2a38;
+    --primary: #a855f7;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --ok: #34d399;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: var(--sans);
+    line-height: 1.55;
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+    font-size: 15px;
+  }
+  main { max-width: 72ch; margin: 0 auto; }
+  h1, h2, h3 { font-weight: 600; line-height: 1.2; }
+  h1 { font-size: 1.75rem; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 {
+    font-size: 1.15rem; margin: 2.25rem 0 0.75rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 0.95rem; margin: 1.25rem 0 0.4rem; color: var(--fg); }
+  p, ul, ol { margin: 0.55rem 0; }
+  ul, ol { padding-left: 1.3rem; }
+  li { margin: 0.2rem 0; }
+  code, kbd {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0.05em 0.35em;
+  }
+  pre {
+    font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.85rem 1rem; overflow-x: auto;
+    margin: 0.6rem 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  a { color: var(--primary); }
+  a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .meta {
+    color: var(--muted); font-size: 0.85rem;
+    margin: 0 0 1.5rem; font-family: var(--mono);
+  }
+  .glow {
+    color: var(--primary);
+    text-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+  }
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem;
+    border-radius: 999px; font-size: 0.7rem; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 0.04em; vertical-align: middle;
+    margin-left: 0.4rem;
+  }
+  .badge.internal { background: rgba(168, 85, 247, 0.15); color: var(--primary); border: 1px solid rgba(168, 85, 247, 0.35); }
+  .badge.ok       { background: rgba(52, 211, 153, 0.12);  color: var(--ok);      border: 1px solid rgba(52, 211, 153, 0.35); }
+  .badge.warn     { background: rgba(251, 191, 36, 0.12);  color: var(--warn);    border: 1px solid rgba(251, 191, 36, 0.35); }
+  .badge.danger   { background: rgba(248, 113, 113, 0.12); color: var(--danger);  border: 1px solid rgba(248, 113, 113, 0.35); }
+
+  .persona {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 1rem 1.1rem; margin: 0.75rem 0; background: var(--bg-elev);
+  }
+  .persona header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; margin-bottom: 0.35rem;
+  }
+  .persona h3 { margin: 0; }
+  .persona .role { color: var(--muted); font-size: 0.78rem; font-family: var(--mono); }
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.88rem;
+    margin: 0.6rem 0;
+  }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td code { word-break: break-word; }
+
+  .decision { border-left: 3px solid var(--primary); padding: 0.4rem 0.9rem; margin: 0.4rem 0; background: rgba(168, 85, 247, 0.06); border-radius: 0 6px 6px 0; }
+  .decision strong { color: var(--primary); }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>PR #161 — Personas Meeting <span class="badge internal">Internal</span></h1>
+<p class="meta">
+  branch: <code>claude/review-pr-161-TGFKA</code> ·
+  base: <code>9eec664</code> (feat/fm-geo-review-compare-layout) ·
+  audience: engineering
+</p>
+
+<p>
+  Three personas were spawned in parallel against the PR to pin the disagreement
+  raised in the initial review: is the worker fix safe, and what else hides in the
+  frontend? Each persona had a narrow brief and reported back with file:line
+  evidence. This note captures the synthesis and the implementation plan.
+</p>
+
+<h2>Verdict</h2>
+<div class="decision">
+  <strong>Ship after fixes.</strong> The backend hitchhiker is safe; the frontend
+  has two real bugs that warrant fixing before merge. Total change footprint is
+  small (~30 lines of code + one unit test + one doc fix).
+</div>
+
+<h2>Personas &amp; Findings</h2>
+
+<div class="persona">
+  <header>
+    <h3>Backend / Queue Orchestration <span class="badge ok">SAFE</span></h3>
+    <span class="role">BullMQ · maps pipeline</span>
+  </header>
+  <p>
+    Traced every <code>maps-fetch-*.ts</code> worker. Conclusion: the comment in
+    <code>maps-pipeline-logic.ts:80</code> claiming &ldquo;the child re-enqueues
+    the orchestrator on completion (success or failure)&rdquo; is <strong>stale</strong>.
+    In reality, <code>runSourceFetch</code> in <code>maps-fetch-runtime.ts:126-135</code>
+    calls <code>recordAttempt(...)</code> and <code>throw err</code> on the rethrow
+    branch &mdash; the post-success <code>advancePipeline()</code> at line 140 is
+    unreachable on throw. The PR&rsquo;s new <code>failed</code> handler is therefore
+    the <em>only</em> advance path on terminal failure.
+  </p>
+  <p>
+    BullMQ behavior also checks out: <code>attempts: 5</code> is configured in
+    <code>queues.ts:109</code>, and BullMQ fires <code>failed</code> with
+    <code>attemptsMade === opts.attempts</code> on terminal failure, so the
+    <code>attemptsMade &lt; maxAttempts</code> guard is off-by-one-free.
+  </p>
+  <p>Actions:</p>
+  <ul>
+    <li>Fix the stale comment in <code>maps-pipeline-logic.ts</code> so the next reader doesn&rsquo;t chase the same ghost.</li>
+    <li>Extract <code>shouldAdvanceAfterFailure(job)</code> as a pure predicate, so QA can unit-test the off-by-one.</li>
+    <li><em>Skipped</em>: tightening the dedupe <code>jobId</code> to be <code>job.id</code>-based. Marginal value once the race is disproven.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>Frontend / UX / A11y <span class="badge danger">2 BUGS</span></h3>
+    <span class="role">ReviewWorkspace · keyboard shortcuts</span>
+  </header>
+  <p><strong>Bug A &mdash; Escape collides with Radix Dialog</strong> (<code>ReviewWorkspace.tsx:498</code>).
+    Radix <code>DismissableLayer</code> attaches its Escape listener on <code>ownerDocument</code> and
+    calls <code>preventDefault()</code> when handling Escape. Document bubble-phase
+    listeners fire before window listeners, so Radix closes the Reject/Demote dialog
+    &mdash; then our window listener still fires and calls <code>onCloseDetail</code>,
+    closing the workspace underneath the user.
+  </p>
+  <p><strong>Bug B &mdash; <kbd>Shift</kbd>+<kbd>A</kbd> triggers Promote</strong>
+    (<code>ReviewWorkspace.tsx:451</code>). The modifier guard rejects Cmd/Ctrl/Alt
+    but not Shift, and the switch matches both <code>'a'</code> and <code>'A'</code>.
+    <code>KeyHints</code> displays <code>&lt;kbd&gt;A&lt;/kbd&gt;</code>, which
+    conventionally implies unshifted.
+  </p>
+  <p><strong>Minor</strong>:</p>
+  <ul>
+    <li>Switch <code>useLayoutEffect</code> ref-sync to write-during-render (idiomatic since React 18 concurrent renderer).</li>
+    <li>Restore the <code>'Retour &agrave; la liste'</code> default-value second arg on <code>t('admin.geo.nav.backToList')</code> to match prior code and ops-string convention.</li>
+    <li>Sticky <code>ActionBar</code> resolves against the document scroll (no ancestor has <code>overflow</code> or <code>max-h</code>). That&rsquo;s the intended behavior &mdash; <strong>no action</strong>.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>QA / Test Strategy <span class="badge warn">2 tests</span></h3>
+    <span class="role">node:test · Playwright</span>
+  </header>
+  <p>
+    Backend uses <code>node --test</code> via tsx (8 existing <code>*.test.ts</code>).
+    Frontend has zero unit-test infra &mdash; only Playwright + axe. RTL is not installed
+    and isn&rsquo;t worth adding for one hook.
+  </p>
+  <ul>
+    <li><strong>Backend</strong>: unit-test the extracted <code>shouldAdvanceAfterFailure</code>
+      predicate. Three cases &mdash; mid-retry returns false, terminal returns true, wrong
+      <code>kind</code> returns false. Lives at <code>packages/backend/src/infrastructure/queue/workers/geo.worker.test.ts</code>.
+    </li>
+    <li><strong>Frontend</strong>: skip for this round. Adding a Playwright case for the
+      Escape collision and Shift+A semantics is doable but needs <code>data-testid</code>
+      hooks that the workspace doesn&rsquo;t expose yet &mdash; out of scope for a bug-fix
+      pass. Track in a follow-up.
+    </li>
+    <li><strong>Skip</strong>: BullMQ integration test (would need Redis fixtures); visual snapshot of the sticky bar.</li>
+  </ul>
+</div>
+
+<h2>Implementation plan</h2>
+
+<table>
+  <thead><tr><th>File</th><th>Change</th><th>Source</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>geo.worker.ts</code></td>
+      <td>Extract <code>shouldAdvanceAfterFailure</code> (exported pure fn); use it in the <code>failed</code> handler.</td>
+      <td>Backend, QA</td>
+    </tr>
+    <tr>
+      <td><code>geo.worker.test.ts</code> <em>(new)</em></td>
+      <td>3-case node:test on the predicate.</td>
+      <td>QA</td>
+    </tr>
+    <tr>
+      <td><code>maps-pipeline-logic.ts</code></td>
+      <td>Replace the stale &ldquo;child re-enqueues&rdquo; comment with one that matches reality.</td>
+      <td>Backend</td>
+    </tr>
+    <tr>
+      <td><code>ReviewWorkspace.tsx</code></td>
+      <td>(1) early-return on <code>defaultPrevented</code>; (2) add <code>shiftKey</code> to the modifier guard; (3) write-during-render ref; (4) restore i18n fallback.</td>
+      <td>Frontend</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Out of scope (follow-ups)</h2>
+<ul>
+  <li>Playwright e2e for keyboard shortcut behavior (needs <code>data-testid</code> on the workspace).</li>
+  <li>Tighten <code>advancePipeline</code> dedupe to <code>job.id</code>-based key.</li>
+  <li>RTL adoption decision for frontend unit tests &mdash; revisit when a second hook needs coverage.</li>
+</ul>
+
+</main>
+</body>
+</html>
