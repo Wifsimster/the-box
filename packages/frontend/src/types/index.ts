@@ -17,6 +17,7 @@ export type {
 
   // Game State
   GamePhase,
+  GuessAttempt,
   GuessResult,
   PositionStatus,
   PositionState,

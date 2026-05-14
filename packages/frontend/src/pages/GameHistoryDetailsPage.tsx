@@ -10,8 +10,9 @@ import { Trophy, Target, ArrowLeft, CheckCircle, XCircle, Clock, Loader2 } from 
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
 import { getApiErrorMessage } from '@/lib/api-errors'
-import type { GameSessionDetailsResponse } from '@/types'
+import type { GameSessionDetailsResponse, GuessAttempt } from '@/types'
 import { calculateSpeedMultiplier } from '@/lib/utils'
+import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
 export default function GameHistoryDetailsPage() {
@@ -82,7 +83,11 @@ export default function GameHistoryDetailsPage() {
     wrongGuessPenalty?: number
     tryNumber: number
     screenshot?: { thumbnailUrl?: string; imageUrl: string }
-  }> = [...sessionData.guesses]
+    attempts: GuessAttempt[]
+  }> = sessionData.guesses.map(g => ({
+    ...g,
+    attempts: g.attempts ?? [],
+  }))
 
   // Add unfound games as unguessed entries
   if (sessionData.unfoundGames && sessionData.unfoundGames.length > 0) {
@@ -96,6 +101,7 @@ export default function GameHistoryDetailsPage() {
       scoreEarned: -50,
       tryNumber: 0,
       screenshot: unfound.screenshot,
+      attempts: [] as GuessAttempt[],
     }))
     allResults.push(...unfoundResults)
   }
@@ -257,15 +263,18 @@ export default function GameHistoryDetailsPage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
-                      {result.userGuess && !result.isCorrect && (
-                        <span className="text-xs sm:text-sm text-muted-foreground block sm:inline sm:ml-2 mt-0.5 sm:mt-0">
-                          {t('game.userGuessed', { guess: result.userGuess })}
-                        </span>
-                      )}
-                      {isUnguessed && (
+                      {isUnguessed && result.attempts.length === 0 && (
                         <span className="text-xs sm:text-sm text-destructive block mt-0.5">
                           {t('game.notFound')}
                         </span>
+                      )}
+                      {result.attempts.length > 0 && (
+                        <>
+                          <span className="text-xs text-muted-foreground block mt-0.5">
+                            {t('game.attempts.count', { count: result.attempts.length })}
+                          </span>
+                          <GuessAttemptsList attempts={result.attempts} />
+                        </>
                       )}
                     </div>
                   </div>
