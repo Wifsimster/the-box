@@ -560,18 +560,20 @@ export default function LeaderboardPage() {
 
         {/* Player Answers Dialog */}
         <Dialog open={!!selectedPlayer} onOpenChange={(open) => !open && handleCloseDialog()}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[80vh]">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
+              <DialogTitle className="flex items-center gap-3 min-w-0 pr-8">
                 {selectedPlayer && (
                   <>
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="w-8 h-8 shrink-0">
                       <AvatarImage src={selectedPlayer.avatarUrl} alt={selectedPlayer.displayName} />
                       <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-sm font-bold">
                         {selectedPlayer.displayName[0]}
                       </AvatarFallback>
                     </Avatar>
-                    {t('leaderboard.playerAnswers', { name: selectedPlayer.displayName })}
+                    <span className="truncate">
+                      {t('leaderboard.playerAnswers', { name: selectedPlayer.displayName })}
+                    </span>
                   </>
                 )}
               </DialogTitle>
