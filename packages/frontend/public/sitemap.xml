@@ -82,6 +82,22 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://the-box.battistella.ovh/fr/rules</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/rules"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/rules"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/rules"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://the-box.battistella.ovh/en/rules</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/rules"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/rules"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://the-box.battistella.ovh/fr/rules"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://the-box.battistella.ovh/fr/contact</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://the-box.battistella.ovh/fr/contact"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://the-box.battistella.ovh/en/contact"/>

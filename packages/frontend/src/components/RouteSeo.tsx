@@ -91,6 +91,7 @@ const ROUTES: RouteDef[] = [
   { match: exact('/privacy'), key: 'privacy' },
   { match: exact('/cookies'), key: 'cookies' },
   { match: exact('/faq'), key: 'faq' },
+  { match: exact('/rules'), key: 'rules' },
   { match: exact('/contact'), key: 'contact' },
   { match: exact('/premium'), key: 'premium' },
   { match: exact('/abonnement'), key: 'premium' },

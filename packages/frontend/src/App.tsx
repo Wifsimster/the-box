@@ -41,6 +41,7 @@ const TermsPage = lazy(() => import('@/pages/TermsPage'))
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'))
 const CookiesPage = lazy(() => import('@/pages/CookiesPage'))
 const FaqPage = lazy(() => import('@/pages/FaqPage'))
+const RulesPage = lazy(() => import('@/pages/RulesPage'))
 const ContactPage = lazy(() => import('@/pages/ContactPage'))
 const AdminPage = lazy(() => import('@/pages/AdminPage'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
@@ -165,6 +166,7 @@ function App() {
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="cookies" element={<CookiesPage />} />
           <Route path="faq" element={<FaqPage />} />
+          <Route path="rules" element={<RulesPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="history/:sessionId" element={<GameHistoryDetailsPage />} />
