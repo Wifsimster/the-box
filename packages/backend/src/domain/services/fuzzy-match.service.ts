@@ -5,6 +5,18 @@ const SERIES_NAME_THRESHOLD = 0.85
 const SUBTITLE_THRESHOLD = 0.85
 const ALIAS_THRESHOLD = 0.90
 const FULL_MATCH_THRESHOLD = 0.88
+// Token-sort: input and target are accepted as a reorder of each other
+// only when the sorted-token join is near-identical. The threshold has to
+// stay tight enough that "witcher 3" ("3 witcher" sorted) does NOT match
+// "the witcher 3 wild hunt" ("3 hunt the wild witcher" sorted) via this
+// path — that case is still owned by the series-with-subtitle logic.
+const TOKEN_SORT_THRESHOLD = 0.95
+// Safety floor: when the full-string JW is this low AND the input shares no
+// meaningful token (≥3 chars) with the target, refuse to match no matter
+// what later heuristics decide. Catches obvious mis-types like
+// "garage band" → "Xenoblade Chronicles 3D".
+const HARD_FLOOR_SIMILARITY = 0.55
+const MEANINGFUL_TOKEN_MIN_LENGTH = 3
 
 // Roman numeral mapping
 const ROMAN_TO_ARABIC: Record<string, number> = {
@@ -270,6 +282,55 @@ function isSubtitleOnly(parsed: ParsedGameTitle): boolean {
   return parsed.seriesName === null && parsed.seriesNumber === null && parsed.subtitle !== null
 }
 
+/**
+ * Split a normalized string into tokens, dropping empties.
+ */
+function tokenize(text: string): string[] {
+  return text.split(/\s+/).filter(Boolean)
+}
+
+/**
+ * Jaro-Winkler over both strings after their tokens have been sorted
+ * alphabetically. This makes the comparison invariant to word order, so
+ * "total war rome" and "rome total war" score 1.0.
+ */
+function tokenSortSimilarity(a: string, b: string): number {
+  const ta = tokenize(a).sort().join(' ')
+  const tb = tokenize(b).sort().join(' ')
+  return jaroWinkler(ta, tb)
+}
+
+/**
+ * Returns true when at least one input token of meaningful length
+ * appears (as a substring match or near-equal token) anywhere in the
+ * target or its aliases. Used as a safety floor: an input that shares no
+ * substantial word with anything in the candidate set should never be a
+ * "yes". Stop words like "the", "of", "and" are excluded so they can't
+ * single-handedly carry an unrelated guess across the floor.
+ */
+const STOP_TOKENS = new Set(['the', 'of', 'and', 'a', 'an', 'in', 'on', 'to', 'for', 'vs', 'de', 'la', 'le', 'les', 'du'])
+
+function hasMeaningfulTokenOverlap(input: string, candidates: string[]): boolean {
+  const inputTokens = tokenize(input).filter(
+    t => t.length >= MEANINGFUL_TOKEN_MIN_LENGTH && !STOP_TOKENS.has(t)
+  )
+  if (inputTokens.length === 0) {
+    // No meaningful tokens to compare; defer to other heuristics
+    return true
+  }
+  const candidateTokens = candidates.flatMap(c => tokenize(c))
+  for (const it of inputTokens) {
+    for (const ct of candidateTokens) {
+      if (ct.length < MEANINGFUL_TOKEN_MIN_LENGTH) continue
+      // Substring containment in either direction catches typos like
+      // "conquers" vs "conquer" and prefixes like "starcr" vs "starcraft".
+      if (ct.includes(it) || it.includes(ct)) return true
+      if (jaroWinkler(it, ct) >= 0.9) return true
+    }
+  }
+  return false
+}
+
 // DLC indicator keywords in subtitles (case-insensitive)
 const DLC_KEYWORDS = [
   'dlc',
@@ -406,6 +467,25 @@ function isMatchEnhanced(
     }
   }
 
+  // 2.5. Hard rejection floor. When the overall similarity is very low and
+  // the input shares no meaningful token with the target or any alias,
+  // refuse to match before structural heuristics have a chance to over-
+  // generalise. This blocks pathological cases like
+  //   "garage band" → "Xenoblade Chronicles 3D"
+  // without disturbing legitimate fuzzy matches (which all sit far above
+  // the floor or have a real token in common).
+  const baselineSimilarity = jaroWinkler(normalizedInput, normalizedTarget)
+  if (baselineSimilarity < HARD_FLOOR_SIMILARITY) {
+    const candidates = [normalizedTarget, ...aliases.map(normalizeForFuzzy)]
+    if (!hasMeaningfulTokenOverlap(normalizedInput, candidates)) {
+      log.debug(
+        { input, gameName, similarity: baselineSimilarity },
+        'rejected - hard floor (no meaningful token overlap)'
+      )
+      return false
+    }
+  }
+
   // 3. Structural matching
   const inputParsed = parseGameTitle(input)
   const targetParsed = parseGameTitle(gameName)
@@ -430,34 +510,16 @@ function isMatchEnhanced(
   // Allow "Teenage Mutant Ninja Turtles" to match "Teenage Mutant Ninja Turtles: Shredder's Revenge"
   // Allow "Half-Life 2" to match "Half-Life 2: Episode Two"
   // Reject "Half-Life" (missing number) for "Half-Life 2: Episode Two"
+  //   — caught by isIncompleteBaseName below, since "halflife" is a prefix of "halflife 2"
   // Allow "Planetscape" (typo) to match "Planescape: Torment"
   // Reject "A Space for the Unb" (incomplete) for "A Space for the Unbound"
   // Only check this if it's NOT a DLC (checked above)
   if (targetParsed.baseName && targetParsed.subtitle) {
-    const inputParsed = parseGameTitle(input)
     const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
     const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.baseName))
-    
-    // IMPORTANT: If target has a series number, input MUST also have the same number
-    // This prevents "Half-Life" from matching "Half-Life 2: Episode Two"
-    if (targetParsed.seriesNumber !== null) {
-      if (inputParsed.seriesNumber === null) {
-        log.debug(
-          { input, gameName, targetNumber: targetParsed.seriesNumber },
-          'rejected - target has series number but input does not'
-        )
-        return false
-      }
-      if (inputParsed.seriesNumber !== targetParsed.seriesNumber) {
-        log.debug(
-          { input, gameName, inputNumber: inputParsed.seriesNumber, targetNumber: targetParsed.seriesNumber },
-          'rejected - series numbers do not match'
-        )
-        return false
-      }
-    }
-    
-    // Reject incomplete/truncated inputs (e.g., "A Space for the Unb" for "A Space for the Unbound")
+
+    // Reject incomplete/truncated inputs first so a subtitle path can't
+    // rescue them (e.g., "A Space for the Unb" for "A Space for the Unbound").
     if (isIncompleteBaseName(input, targetParsed.baseName)) {
       log.debug(
         { input, gameName, baseName: targetParsed.baseName },
@@ -465,27 +527,43 @@ function isMatchEnhanced(
       )
       return false
     }
-    
-    // Quick check: if input exactly matches base name (after normalization), accept immediately
-    if (normalizedInput === normalizedBaseName) {
-      log.debug(
-        { input, gameName, baseName: targetParsed.baseName },
-        'exact base name match (series with subtitle)'
-      )
-      return true
-    }
-    
-    const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
-    
-    // If input matches the base name very well, allow it
-    // Lower threshold (0.90) to allow for common typos (e.g., "Planetscape" -> "Planescape")
-    // DLC detection (checked above) prevents false positives for DLC titles
+
+    // Only enforce the series-number guard when the input actually looks
+    // like a base-name match. Otherwise we'd reject perfectly valid
+    // subtitle-only guesses such as "Skyrim" → "The Elder Scrolls V: Skyrim",
+    // where the input has no number simply because it isn't trying to
+    // restate the base name.
+    const baseNameSimilarity =
+      normalizedInput === normalizedBaseName
+        ? 1
+        : jaroWinkler(normalizedInput, normalizedBaseName)
     const requiredSimilarity = 0.90
-    
+
     if (baseNameSimilarity >= requiredSimilarity) {
-      const baseNameWords = targetParsed.baseName.trim().split(/\s+/).length
+      if (
+        targetParsed.seriesNumber !== null &&
+        inputParsed.seriesNumber === null
+      ) {
+        log.debug(
+          { input, gameName, targetNumber: targetParsed.seriesNumber },
+          'rejected - base-name match but missing required series number'
+        )
+        return false
+      }
+      if (hasWrongSeriesNumber(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
+        log.debug(
+          {
+            input,
+            gameName,
+            inputNumber: inputParsed.seriesNumber,
+            targetNumber: targetParsed.seriesNumber,
+          },
+          'rejected - base-name match but wrong series number'
+        )
+        return false
+      }
       log.debug(
-        { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity, words: baseNameWords },
+        { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity },
         'base name match (series with subtitle)'
       )
       return true
@@ -549,6 +627,40 @@ function isMatchEnhanced(
         }
       }
     }
+  }
+
+  // 3c. Token-sort match. When the input contains the same words as the
+  // target (or alias) in a different order, accept it. Players naturally
+  // reorder ("total war rome" ↔ "ROME: Total War"), and JW alone is too
+  // sensitive to position to catch this.
+  //
+  // The same number-mismatch guards as the full-fuzzy fallback apply, so
+  // "witcher 2 wild hunt" can't sneak into "The Witcher 3: Wild Hunt".
+  const tokenSortCandidates = [normalizedTarget, ...aliases.map(normalizeForFuzzy)]
+  for (const candidate of tokenSortCandidates) {
+    const tokenSortScore = tokenSortSimilarity(normalizedInput, candidate)
+    if (tokenSortScore < TOKEN_SORT_THRESHOLD) continue
+
+    if (hasWrongSeriesNumber(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
+      log.debug(
+        { input, gameName, score: tokenSortScore },
+        'token-sort match rejected - wrong series number'
+      )
+      return false
+    }
+    if (
+      inputParsed.seriesNumber === null &&
+      targetParsed.seriesNumber !== null &&
+      !targetParsed.subtitle
+    ) {
+      log.debug(
+        { input, gameName, score: tokenSortScore },
+        'token-sort match rejected - target has number, input does not'
+      )
+      return false
+    }
+    log.debug({ input, gameName, candidate, score: tokenSortScore }, 'token-sort match')
+    return true
   }
 
   // 4. Fallback: Full fuzzy with higher threshold
