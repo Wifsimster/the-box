@@ -127,15 +127,20 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'create-daily-challenge') {
-        // Use the job's scheduled timestamp (cron fire time) so a restart-
-        // induced re-registration moments before midnight UTC can't cause the
-        // worker to compute "tomorrow" from Date.now().
+        // For repeatable BullMQ jobs the scheduled fire time is encoded in the
+        // job id as `repeat:<key>:<ms>`. `job.timestamp` is the queue-add time
+        // of the previous iteration, so using it would compute yesterday.
+        let referenceMs = Date.now()
+        if (typeof id === 'string' && id.startsWith('repeat:')) {
+          const parsed = Number(id.split(':').pop())
+          if (Number.isFinite(parsed)) referenceMs = parsed
+        }
         const result = await createDailyChallenge(
           (current, total) => {
             const progress = Math.round((current / total) * 100)
             job.updateProgress(progress)
           },
-          { referenceMs: job.timestamp }
+          { referenceMs }
         )
 
         const jobResult: JobResult = {
