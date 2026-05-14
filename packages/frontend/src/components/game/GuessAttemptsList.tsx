@@ -30,7 +30,7 @@ export function GuessAttemptsList({ attempts, compact = false }: GuessAttemptsLi
         return (
           <span
             key={`${index}-${display}`}
-            className={`inline-flex items-center gap-1 rounded-full border ${padding} ${textSize} font-medium ${
+            className={`inline-flex max-w-full items-center gap-1 rounded-full border ${padding} ${textSize} font-medium ${
               isCorrect
                 ? 'border-success/40 bg-success/10 text-success'
                 : 'border-destructive/40 bg-destructive/10 text-destructive line-through decoration-destructive/50'
@@ -41,7 +41,7 @@ export function GuessAttemptsList({ attempts, compact = false }: GuessAttemptsLi
             ) : (
               <XCircle className={`${iconSize} shrink-0`} aria-hidden="true" />
             )}
-            <span className="max-w-[14ch] truncate">{display}</span>
+            <span className="min-w-0 break-words">{display}</span>
           </span>
         )
       })}
