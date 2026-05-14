@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { toast } from '@/lib/toast'
 import { streamerKeysApi, type StreamerSettingsResponse } from '@/lib/api/streamer-keys'
 import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
@@ -34,6 +35,11 @@ export function StreamerKitCard() {
   const [creating, setCreating] = useState(false)
   const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Revoke-confirmation state. `revokeTargetId` doubles as the open flag
+  // and as the id to revoke when the user confirms — null means closed.
+  const [revokeTargetId, setRevokeTargetId] = useState<number | null>(null)
+  const [revoking, setRevoking] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -100,6 +106,13 @@ export function StreamerKitCard() {
     void persistSettings({ slug: slug || null })
   }
 
+  const slugDirty = (settings?.publicSlug ?? '') !== slug
+
+  async function onSlugSaveClick() {
+    if (!slugDirty) return
+    await persistSettings({ slug: slug || null })
+  }
+
   async function onCreate() {
     const trimmed = createLabel.trim()
     if (!trimmed) return
@@ -124,8 +137,14 @@ export function StreamerKitCard() {
     }
   }
 
-  async function onRevoke(id: number) {
-    if (!window.confirm(t('streamerKit.revokeConfirm'))) return
+  function onRequestRevoke(id: number) {
+    setRevokeTargetId(id)
+  }
+
+  async function onConfirmRevoke() {
+    if (revokeTargetId === null) return
+    const id = revokeTargetId
+    setRevoking(true)
     try {
       await streamerKeysApi.revokeKey(id)
       setSettings((s) =>
@@ -136,8 +155,11 @@ export function StreamerKitCard() {
             }
           : s
       )
+      setRevokeTargetId(null)
     } catch {
       toast.error(t('streamerKit.revokeError'))
+    } finally {
+      setRevoking(false)
     }
   }
 
@@ -206,7 +228,11 @@ export function StreamerKitCard() {
                   <label htmlFor="streamer-slug" className="block text-sm font-medium">
                     {t('streamerKit.slugLabel')}
                   </label>
-                  <div className="flex items-center gap-2">
+                  {/* Mobile users routinely tap "Create key" before blur fires
+                      on the slug input, so an explicit Save button is the
+                      reliable affordance. onBlur is still wired as a
+                      desktop-convenience fallback. */}
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground font-mono">/streamers/</span>
                     <Input
                       id="streamer-slug"
@@ -219,6 +245,16 @@ export function StreamerKitCard() {
                       disabled={savingSettings}
                       className="max-w-xs"
                     />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onSlugSaveClick}
+                      disabled={!slugDirty || savingSettings}
+                      data-testid="streamer-kit-slug-save"
+                    >
+                      {savingSettings && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                      {t('streamerKit.slugSave')}
+                    </Button>
                   </div>
                   {slugError && (
                     <p className="text-xs text-destructive flex items-center gap-1">
@@ -260,7 +296,7 @@ export function StreamerKitCard() {
                     <KeyRow
                       key={k.id}
                       apiKey={k}
-                      onRevoke={onRevoke}
+                      onRevoke={onRequestRevoke}
                       formatDate={formatDate}
                     />
                   ))}
@@ -270,6 +306,23 @@ export function StreamerKitCard() {
           </>
         )}
       </CardContent>
+
+      {/* Revoke confirmation — destructive variant; replaces the previous
+          window.confirm() so the UX matches the rest of the settings page. */}
+      <ConfirmDialog
+        open={revokeTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeTargetId(null)
+        }}
+        title={t('streamerKit.revokeTitle')}
+        description={t('streamerKit.revokeConfirm')}
+        confirmLabel={t('streamerKit.revokeConfirmButton')}
+        cancelLabel={t('streamerKit.cancel')}
+        destructive
+        busy={revoking}
+        onConfirm={onConfirmRevoke}
+        testId="streamer-kit-revoke-dialog"
+      />
 
       {/* Create key dialog */}
       <Dialog

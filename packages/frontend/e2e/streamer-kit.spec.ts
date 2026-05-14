@@ -51,8 +51,9 @@ test.describe('Streamer Kit — public API M1', () => {
 
     const slugInput = page.getByTestId('streamer-kit-slug')
     await slugInput.fill(slug)
-    // Trigger blur to fire the PUT.
-    await slugInput.blur()
+    // Use the explicit Save button — the on-blur fallback exists for
+    // desktop convenience but isn't the canonical affordance.
+    await page.getByTestId('streamer-kit-slug-save').click()
 
     // Public endpoint should now return 200 for the freshly-claimed slug.
     // Tabs out of the SPA and hits the backend directly to verify the
@@ -73,12 +74,25 @@ test.describe('Streamer Kit — public API M1', () => {
     expect(body.data.slug).toBe(slug)
   })
 
+  test('disables the Save button until the slug input is dirty', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.getByTestId('streamer-kit-toggle').check()
+
+    // Fresh field with no existing value → no diff → Save disabled.
+    const save = page.getByTestId('streamer-kit-slug-save')
+    await expect(save).toBeDisabled()
+
+    await page.getByTestId('streamer-kit-slug').fill('not-yet-saved')
+    await expect(save).toBeEnabled()
+  })
+
   test('rejects malformed slugs without saving them', async ({ authenticatedPage: page }) => {
     await page.getByTestId('streamer-kit-toggle').check()
 
     const slugInput = page.getByTestId('streamer-kit-slug')
     await slugInput.fill('INVALID SLUG!')
-    await slugInput.blur()
+    await page.getByTestId('streamer-kit-slug-save').click()
 
     // Inline error should appear and slug should NOT be queryable.
     await expect(page.getByText(/3[–-]32 chars/i)).toBeVisible({ timeout: 5_000 })
@@ -131,13 +145,17 @@ test.describe('Streamer Kit — public API M1', () => {
     expect(keyedReq.headers()['ratelimit-limit']).toBe('600')
 
     // ─────────────────────────────────────────────────────────────
-    // Revoke and re-check.
+    // Revoke flow now uses the ConfirmDialog primitive — no more
+    // window.confirm. Open the dialog, click Confirm, list updates.
     // ─────────────────────────────────────────────────────────────
-    // Skip the window.confirm prompt by accepting it.
-    page.once('dialog', (dialog) => dialog.accept())
     const revokeButtons = page.locator('[data-testid^="streamer-kit-revoke-"]')
     await revokeButtons.first().click()
-    await expect(list).toContainText(/revoked/i, { timeout: 5_000 })
+
+    const dialog = page.getByTestId('streamer-kit-revoke-dialog')
+    await expect(dialog).toBeVisible()
+    await page.getByTestId('streamer-kit-revoke-dialog-confirm').click()
+    await expect(dialog).toBeHidden({ timeout: 5_000 })
+    await expect(list).toContainText(/revoked/i)
 
     // Revoked key must no longer authenticate.
     const afterRevoke = await page.request.get(`${API_BASE}/public/v1/challenge/today`, {
@@ -146,6 +164,34 @@ test.describe('Streamer Kit — public API M1', () => {
     // Anon callers still pass (60/min bucket); the only signal that the key
     // is dead is the rate-limit ceiling dropping back to 60.
     expect(afterRevoke.headers()['ratelimit-limit']).toBe('60')
+  })
+
+  test('cancelling the revoke dialog leaves the key active', async ({
+    authenticatedPage: page,
+  }) => {
+    // Set up state: enable + slug + a single active key so we have something
+    // to attempt revoke against.
+    const toggle = page.getByTestId('streamer-kit-toggle')
+    if (!(await toggle.isChecked())) {
+      await toggle.check()
+      await page.waitForTimeout(300)
+    }
+
+    // Skip if no keys exist yet — this test is only meaningful when there's
+    // a revoke target visible.
+    const revokeButtons = page.locator('[data-testid^="streamer-kit-revoke-"]')
+    const count = await revokeButtons.count()
+    test.skip(count === 0, 'No active keys to attempt revoke on')
+
+    await revokeButtons.first().click()
+    const dialog = page.getByTestId('streamer-kit-revoke-dialog')
+    await expect(dialog).toBeVisible()
+    await page.getByTestId('streamer-kit-revoke-dialog-cancel').click()
+    await expect(dialog).toBeHidden({ timeout: 5_000 })
+
+    // The key list still shows the active key — same count of revoke
+    // buttons as before.
+    await expect(page.locator('[data-testid^="streamer-kit-revoke-"]')).toHaveCount(count)
   })
 
   test('hides the streamer in the public profile when the toggle is off', async ({
