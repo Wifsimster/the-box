@@ -17,6 +17,8 @@ export default function ContactPage() {
       icon: MessageSquare,
       title: t('legal.contactSocialTitle'),
       content: t('legal.contactSocial'),
+      link: 'https://discord.gg/5pRQGWvcj',
+      linkLabel: t('legal.contactSocialDiscord'),
     },
     {
       icon: Bug,
