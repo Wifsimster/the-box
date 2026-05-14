@@ -51,3 +51,8 @@ export {
   type PushSubscriptionRow,
   type UpsertSubscriptionInput as UpsertPushSubscriptionInput,
 } from './push-subscription.repository.js'
+export {
+  apiKeyRepository,
+  hashApiKey,
+  type ApiKeyRow,
+} from './api-key.repository.js'

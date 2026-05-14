@@ -28,6 +28,8 @@ import pushRoutes from './presentation/routes/push.routes.js'
 import billingRoutes from './presentation/routes/billing.routes.js'
 import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.js'
 import koeRoutes from './presentation/routes/koe.routes.js'
+import publicV1Routes from './presentation/routes/public.routes.js'
+import streamerKeysRoutes from './presentation/routes/streamer-keys.routes.js'
 import { testRedisConnection, tryAcquireBootLock } from './infrastructure/queue/connection.js'
 import {
   importQueue,
@@ -239,6 +241,15 @@ app.use('/api/screenshot-reports', screenshotReportRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/billing', billingRoutes)
 app.use('/api/koe', koeRoutes)
+// Public, opt-in, key-authenticated read API for streamer integrations.
+// Mounted with its own CORS + rate-limit stack inside the router — see
+// public.routes.ts. Lives at /api/public/v1 so future versions can land
+// alongside without breaking pinned clients.
+app.use('/api/public/v1', publicV1Routes)
+// Session-authenticated key-management surface for the Streamer Kit
+// settings page. Owners flip the public-profile toggle, claim a slug,
+// and manage their keys here.
+app.use('/api/streamer-keys', streamerKeysRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')

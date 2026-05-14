@@ -1426,3 +1426,92 @@ export interface PushSubscriptionSummary {
   lastSuccessAt: string | null
   isActive: boolean
 }
+
+// ============================================
+// Public API / Streamer Kit (M1)
+// ============================================
+
+// One of four scopes a key can carry. M1 only branches on read:public vs the
+// owner-only scopes; the latter three are stored against the key for forward
+// compatibility with M2 (SSE + webhooks) so we don't need a second migration.
+export type ApiKeyScope = 'read:public' | 'read:self' | 'stream:self' | 'webhooks:self'
+
+export type ApiKeyMode = 'live' | 'test'
+
+// Returned by /api/streamer-keys.list — never includes the plaintext.
+export interface ApiKeySummary {
+  id: number
+  label: string
+  keyPrefix: string
+  mode: ApiKeyMode
+  scopes: ApiKeyScope[]
+  isActive: boolean
+  createdAt: string
+  lastUsedAt: string | null
+  lastUsedIp: string | null
+}
+
+// One-shot response from /api/streamer-keys.create. Plaintext is only ever
+// returned here and never persisted; if the user loses it they rotate.
+export interface ApiKeyCreated extends ApiKeySummary {
+  plaintext: string
+}
+
+// /api/public/v1/challenge/today — no spoilers, just shape.
+export interface PublicChallengeToday {
+  date: string
+  totalScreenshots: number
+  scoringConfig: {
+    initialScore: number
+    decayRate: number
+  }
+}
+
+// /api/public/v1/streamers/:slug — public profile by slug.
+export interface PublicStreamerProfile {
+  slug: string
+  displayName: string
+  avatarUrl: string | null
+  currentStreak: number
+  longestStreak: number
+  totalScore: number
+  gamesPlayed: number
+  // Today's snapshot, denormalized for chat one-liners. Null when the
+  // streamer hasn't started today's challenge.
+  today: {
+    score: number
+    rank: number | null
+    completed: boolean
+  } | null
+}
+
+// Today's session state, no spoilers. Sufficient to drive an overlay's
+// "screenshots N/M, score X" readout without revealing the answer.
+export interface PublicStreamerToday {
+  slug: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  // Present when status !== 'not_started'.
+  session: {
+    score: number
+    screenshotsDone: number
+    totalScreenshots: number
+    tier: number | null
+    startedAt: string
+    completedAt: string | null
+    rank: number | null
+    countsForLeaderboard: boolean
+  } | null
+}
+
+// /api/public/v1/leaderboard/daily and /monthly.
+export interface PublicLeaderboardEntry {
+  rank: number
+  slug: string | null
+  displayName: string
+  avatarUrl: string | null
+  totalScore: number
+  // Only set on the daily endpoint.
+  completedAt?: string
+  // Only set on the monthly endpoint.
+  gamesPlayed?: number
+}
