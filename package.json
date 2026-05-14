@@ -10,6 +10,8 @@
     "dev": "npm run dev --workspaces --if-present",
     "dev:backend": "npm run dev -w @the-box/backend",
     "dev:frontend": "npm run dev -w @the-box/frontend",
+    "dev:video": "npm run dev -w @the-box/marketing-video",
+    "render:video": "npm run render -w @the-box/marketing-video",
     "build": "npm run build:types && npm run build:backend && npm run build:frontend",
     "build:types": "npm run build -w @the-box/types",
     "build:backend": "npm run build -w @the-box/backend",

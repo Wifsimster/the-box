@@ -1,0 +1,27 @@
+{
+  "name": "@the-box/marketing-video",
+  "version": "2.100.1",
+  "private": true,
+  "description": "Remotion compositions for The Box marketing videos",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "studio": "remotion studio src/index.ts",
+    "build": "tsc --noEmit && remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
+    "render": "remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
+    "render:short": "remotion render src/index.ts the-box-short out/the-box-short.mp4",
+    "typecheck": "tsc --noEmit",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}
