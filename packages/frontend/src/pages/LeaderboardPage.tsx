@@ -278,7 +278,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!loading && leaderboard.length >= 3 && (
-              <div className="flex justify-center gap-4 mb-8">
+              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
                 {[leaderboard[1], leaderboard[0], leaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -323,26 +323,26 @@ export default function LeaderboardPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className={`flex items-center gap-4 p-3 rounded-lg bg-secondary/50 transition-colors ${
+                        className={`flex items-center gap-3 sm:gap-4 p-3 rounded-lg bg-secondary/50 transition-colors ${
                           entry.sessionId ? 'hover:bg-secondary cursor-pointer' : 'hover:bg-secondary/70'
                         }`}
                         onClick={() => entry.sessionId && handlePlayerClick(entry)}
                         title={entry.sessionId ? t('leaderboard.clickToView') : undefined}
                       >
-                        <div className="w-8 flex justify-center">
+                        <div className="w-8 shrink-0 flex justify-center">
                           {getRankIcon(entry.rank)}
                         </div>
-                        <Avatar className="w-10 h-10">
+                        <Avatar className="w-10 h-10 shrink-0">
                           <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
                           <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
                             {entry.displayName[0]}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <span className="font-semibold">{entry.displayName}</span>
-                          <span className="text-xs text-muted-foreground ml-2">@{entry.username}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{entry.displayName}</div>
+                          <div className="text-xs text-muted-foreground truncate">@{entry.username}</div>
                         </div>
-                        <div className="text-right flex items-center gap-2">
+                        <div className="text-right flex items-center gap-2 shrink-0">
                           <div className="font-bold text-primary">{entry.totalScore}</div>
                           {entry.sessionId && (
                             <Eye className="w-4 h-4 text-muted-foreground" />
@@ -384,7 +384,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!monthlyLoading && monthlyLeaderboard.length >= 3 && (
-              <div className="flex justify-center gap-4 mb-8">
+              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
                 {[monthlyLeaderboard[1], monthlyLeaderboard[0], monthlyLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -432,27 +432,30 @@ export default function LeaderboardPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                        className="flex items-center gap-3 sm:gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                       >
-                        <div className="w-8 flex justify-center">
+                        <div className="w-8 shrink-0 flex justify-center">
                           {getRankIcon(entry.rank)}
                         </div>
-                        <Avatar className="w-10 h-10">
+                        <Avatar className="w-10 h-10 shrink-0">
                           <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
                           <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
                             {entry.displayName[0]}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{entry.displayName}</span>
-                            <Badge variant="outline" className="text-xs">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-semibold truncate">{entry.displayName}</span>
+                            <Badge variant="outline" className="text-xs shrink-0 hidden sm:inline-flex">
                               {entry.gamesPlayed} {t('leaderboard.gamesPlayed')}
                             </Badge>
                           </div>
-                          <span className="text-xs text-muted-foreground">@{entry.username}</span>
+                          <div className="text-xs text-muted-foreground truncate">
+                            <span>@{entry.username}</span>
+                            <span className="sm:hidden"> · {entry.gamesPlayed} {t('leaderboard.gamesPlayed')}</span>
+                          </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <div className="font-bold text-primary">{entry.totalScore}</div>
                         </div>
                       </motion.div>
@@ -481,7 +484,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!achievementLoading && achievementLeaderboard.length >= 3 && (
-              <div className="flex justify-center gap-4 mb-8">
+              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
                 {[achievementLeaderboard[1], achievementLeaderboard[0], achievementLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -532,28 +535,28 @@ export default function LeaderboardPage() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                          className="flex items-center gap-3 sm:gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                         >
-                          <div className="w-8 flex justify-center">
+                          <div className="w-8 shrink-0 flex justify-center">
                             {getRankIcon(rank)}
                           </div>
-                          <Avatar className="w-10 h-10">
+                          <Avatar className="w-10 h-10 shrink-0">
                             <AvatarImage src={entry.avatarUrl ?? undefined} alt={entry.displayName} />
                             <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
                               {entry.displayName[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{entry.displayName}</span>
-                              <Badge variant="outline" className="text-xs">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-semibold truncate">{entry.displayName}</span>
+                              <Badge variant="outline" className="text-xs shrink-0">
                                 <Trophy className="w-3 h-3 mr-1" />
                                 {entry.achievementCount}
                               </Badge>
                             </div>
-                            <span className="text-xs text-muted-foreground">@{entry.username}</span>
+                            <div className="text-xs text-muted-foreground truncate">@{entry.username}</div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                             <div className="font-bold text-primary">{entry.totalPoints}</div>
                             <div className="text-xs text-muted-foreground">{t('leaderboard.points')}</div>
                           </div>
@@ -601,11 +604,11 @@ export default function LeaderboardPage() {
             )}
 
             {playerSession && !sessionLoading && (
-              <div className="space-y-4">
+              <div className="space-y-4 min-w-0">
                 {/* Summary */}
-                <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
-                  <span className="text-muted-foreground">{t('game.totalScore')}</span>
-                  <span className="font-bold text-primary text-xl">{playerSession.totalScore}</span>
+                <div className="flex justify-between items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                  <span className="text-muted-foreground truncate">{t('game.totalScore')}</span>
+                  <span className="font-bold text-primary text-xl shrink-0">{playerSession.totalScore}</span>
                 </div>
 
                 {/* Guesses List — merged and sorted by position ascending */}
@@ -623,7 +626,7 @@ export default function LeaderboardPage() {
                             item.guess.isCorrect ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'
                           }`}
                         >
-                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                          <div className="w-8 h-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
                             {item.position}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -634,7 +637,7 @@ export default function LeaderboardPage() {
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             {item.guess.isCorrect ? (
                               <>
                                 <span className="text-success font-bold">+{item.guess.scoreEarned}</span>
@@ -650,14 +653,14 @@ export default function LeaderboardPage() {
                           key={`unfound-${item.position}`}
                           className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
                         >
-                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                          <div className="w-8 h-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
                             {item.position}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate text-muted-foreground">{item.unfound.game.name}</div>
                             <div className="text-sm text-muted-foreground">{t('leaderboard.skipped')}</div>
                           </div>
-                          <Minus className="w-5 h-5 text-muted-foreground" />
+                          <Minus className="w-5 h-5 shrink-0 text-muted-foreground" />
                         </div>
                       )
                     )}
