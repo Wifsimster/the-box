@@ -44,8 +44,8 @@ function buildDailySvg(date: string, lang: 'fr' | 'en'): string {
   const readable = escapeXml(formatDate(date, locale))
   const tagline = escapeXml(
     lang === 'fr'
-      ? "Devinez le jeu à partir d'une capture panoramique."
-      : 'Guess the game from a panoramic screenshot.'
+      ? "Devinez le jeu à partir d'une capture d'écran."
+      : 'Guess the game from a screenshot.'
   )
   const brand = escapeXml('THE BOX')
   const cta = escapeXml(

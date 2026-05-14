@@ -48,7 +48,7 @@ export function GuessInput() {
   } = useGameStore()
 
   // Focus input when playing.
-  // `preventScroll: true` stops Android Chrome from scrolling the panorama out
+  // `preventScroll: true` stops Android Chrome from scrolling the screenshot out
   // of view when the input becomes active.
   useEffect(() => {
     if (gamePhase === 'playing' && inputRef.current) {
