@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Camera, Gift, Trophy, ArrowRight } from 'lucide-react'
 import { consumeWelcomeFlag } from './welcome-storage'
@@ -30,19 +30,19 @@ export function WelcomeModal() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+    <ResponsiveDialog open={isOpen} onOpenChange={handleClose}>
+      <ResponsiveDialogContent className="sm:max-w-lg">
         {step === 0 ? (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="w-5 h-5 text-neon-purple" />
                 {t('onboarding.welcomeTitle')}
-              </DialogTitle>
-              <DialogDescription>
+              </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 {t('onboarding.welcomeSubtitle')}
-              </DialogDescription>
-            </DialogHeader>
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
 
             <div className="grid gap-3 my-4">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-card/40 border border-white/5">
@@ -71,15 +71,15 @@ export function WelcomeModal() {
           </>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
                 <Camera className="w-5 h-5 text-neon-cyan" />
                 {t('onboarding.howTitle')}
-              </DialogTitle>
-              <DialogDescription>
+              </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 {t('onboarding.howSubtitle')}
-              </DialogDescription>
-            </DialogHeader>
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
 
             <ol className="space-y-3 my-4 text-sm text-foreground/90">
               <li className="flex gap-3">
@@ -103,7 +103,7 @@ export function WelcomeModal() {
             </div>
           </>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

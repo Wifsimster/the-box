@@ -6,14 +6,14 @@ import { reportsApi, ReportApiError, type SubmitReportInput } from '@/lib/api/re
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog'
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogDescription,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+    ResponsiveDialogTrigger,
+} from '@/components/ui/responsive-dialog'
 import { Label } from '@/components/ui/label'
 import {
     Select,
@@ -110,8 +110,8 @@ export function ReportCaptureDialog({
     }
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
+        <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
+            <ResponsiveDialogTrigger asChild>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -126,14 +126,14 @@ export function ReportCaptureDialog({
                     <Flag className={iconOnly ? 'h-4 w-4' : 'h-3.5 w-3.5 mr-1.5'} />
                     {!iconOnly && t('report.trigger')}
                 </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>{t('report.title')}</DialogTitle>
-                    <DialogDescription>
+            </ResponsiveDialogTrigger>
+            <ResponsiveDialogContent className="sm:max-w-md">
+                <ResponsiveDialogHeader>
+                    <ResponsiveDialogTitle>{t('report.title')}</ResponsiveDialogTitle>
+                    <ResponsiveDialogDescription>
                         {t('report.description')}
-                    </DialogDescription>
-                </DialogHeader>
+                    </ResponsiveDialogDescription>
+                </ResponsiveDialogHeader>
                 <div className="space-y-4 py-2">
                     <div className="space-y-2">
                         <Label htmlFor="report-reason">
@@ -172,7 +172,7 @@ export function ReportCaptureDialog({
                         />
                     </div>
                 </div>
-                <DialogFooter>
+                <ResponsiveDialogFooter>
                     <Button
                         type="button"
                         variant="ghost"
@@ -192,8 +192,8 @@ export function ReportCaptureDialog({
                         )}
                         {submitting ? t('report.submitting') : t('report.submit')}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </ResponsiveDialogFooter>
+            </ResponsiveDialogContent>
+        </ResponsiveDialog>
     )
 }

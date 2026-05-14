@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { Trophy, Play } from 'lucide-react'
@@ -42,21 +42,21 @@ export function CompletionChoiceModal() {
   }
 
   return (
-    <Dialog open={showCompletionChoice}>
-      <DialogContent
+    <ResponsiveDialog open={showCompletionChoice}>
+      <ResponsiveDialogContent
         className="sm:max-w-md"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
             <Trophy className="w-5 h-5 text-primary" />
             {t('game.completionChoice.title')}
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             {t('game.completionChoice.description', { count: remainingGames })}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         {/* Remaining games info */}
         <div className="flex flex-col items-center py-4">
@@ -87,7 +87,7 @@ export function CompletionChoiceModal() {
             {t('game.completionChoice.seeResults')}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

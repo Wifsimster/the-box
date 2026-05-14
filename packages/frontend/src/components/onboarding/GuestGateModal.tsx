@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Trophy, Flame, Gift } from 'lucide-react'
 
@@ -19,15 +19,15 @@ export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: Gue
   const { t } = useTranslation()
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onContinueAsGuest() }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
+    <ResponsiveDialog open={open} onOpenChange={(next) => { if (!next) onContinueAsGuest() }}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
             <Trophy className="w-5 h-5 text-neon-pink" />
             {t('guestGate.title')}
-          </DialogTitle>
-          <DialogDescription>{t('guestGate.subtitle')}</DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>{t('guestGate.subtitle')}</ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         <ul className="grid gap-2 my-4 text-sm">
           <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
@@ -44,7 +44,7 @@ export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: Gue
           </li>
         </ul>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onContinueAsGuest}>
             {t('guestGate.continueGuest')}
           </Button>
@@ -52,7 +52,7 @@ export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: Gue
             {t('guestGate.createAccount')}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

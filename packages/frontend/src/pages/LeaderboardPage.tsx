@@ -12,7 +12,12 @@ import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import type { GameSessionDetailsResponse } from '@the-box/types'
 
@@ -572,10 +577,10 @@ export default function LeaderboardPage() {
         </Tabs>
 
         {/* Player Answers Dialog */}
-        <Dialog open={!!selectedPlayer} onOpenChange={(open) => !open && handleCloseDialog()}>
-          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-3 min-w-0 pr-8">
+        <ResponsiveDialog open={!!selectedPlayer} onOpenChange={(open) => !open && handleCloseDialog()}>
+          <ResponsiveDialogContent className="sm:max-w-2xl">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle className="flex items-center gap-3 min-w-0 pr-8">
                 {selectedPlayer && (
                   <>
                     <Avatar className="w-8 h-8 shrink-0">
@@ -589,8 +594,8 @@ export default function LeaderboardPage() {
                     </span>
                   </>
                 )}
-              </DialogTitle>
-            </DialogHeader>
+              </ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
 
             {sessionLoading && (
               <div className="flex justify-center py-8">
@@ -675,8 +680,8 @@ export default function LeaderboardPage() {
                 </div>
               </div>
             )}
-          </DialogContent>
-        </Dialog>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
       </div>
     </PageHero>
   )

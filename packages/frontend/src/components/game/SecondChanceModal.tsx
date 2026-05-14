@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Heart } from 'lucide-react'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogDescription,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
@@ -60,18 +60,18 @@ export function SecondChanceModal() {
     }
 
     return (
-        <Dialog open={open} onOpenChange={(o) => { if (!o) handleDismiss() }}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+        <ResponsiveDialog open={open} onOpenChange={(o) => { if (!o) handleDismiss() }}>
+            <ResponsiveDialogContent className="sm:max-w-md">
+                <ResponsiveDialogHeader>
+                    <ResponsiveDialogTitle className="flex items-center gap-2">
                         <Heart className="h-5 w-5 text-neon-pink" />
                         {t('game.secondChance.title')}
-                    </DialogTitle>
-                    <DialogDescription>
+                    </ResponsiveDialogTitle>
+                    <ResponsiveDialogDescription>
                         {t('game.secondChance.description')}
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="gap-2 sm:gap-2">
+                    </ResponsiveDialogDescription>
+                </ResponsiveDialogHeader>
+                <ResponsiveDialogFooter>
                     <Button
                         variant="outline"
                         onClick={handleDismiss}
@@ -88,8 +88,8 @@ export function SecondChanceModal() {
                             ? t('game.secondChance.activating')
                             : t('game.secondChance.accept')}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </ResponsiveDialogFooter>
+            </ResponsiveDialogContent>
+        </ResponsiveDialog>
     )
 }
