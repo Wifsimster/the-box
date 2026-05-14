@@ -121,9 +121,15 @@ export function DailyRewardModal() {
                         )}
 
                         <span className="text-4xl mb-2">{reward.iconUrl}</span>
-                        <h3 className="font-bold text-lg text-center">{reward.displayName}</h3>
+                        <h3 className="font-bold text-lg text-center">
+                            {t(`dailyLogin.rewards.day${reward.dayNumber}.name`, {
+                                defaultValue: reward.displayName,
+                            })}
+                        </h3>
                         <p className="text-sm text-muted-foreground text-center mt-1">
-                            {reward.description}
+                            {t(`dailyLogin.rewards.day${reward.dayNumber}.description`, {
+                                defaultValue: reward.description ?? '',
+                            })}
                         </p>
 
                         {/* Reward details */}

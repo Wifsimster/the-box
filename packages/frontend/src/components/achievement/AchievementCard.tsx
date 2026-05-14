@@ -46,6 +46,12 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
 
     const lockedLabel = t('achievements.status.locked')
     const earnedLabel = t('achievements.status.earned')
+    const localizedName = t(`achievements.items.${achievement.key}.name`, {
+        defaultValue: achievement.name,
+    })
+    const localizedDescription = t(`achievements.items.${achievement.key}.description`, {
+        defaultValue: achievement.description,
+    })
     // A non-color status hint that screen readers can use ("locked" /
     // "earned"). We render the same cue visually as a Lock icon so users
     // who can't perceive the purple-vs-grey delta still get the signal.
@@ -66,10 +72,10 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                 <div className="text-3xl">{isLocked ? <Lock className="w-8 h-8" aria-hidden="true" /> : achievement.iconUrl}</div>
                 <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm truncate">
-                        {isLocked ? '???' : achievement.name}
+                        {isLocked ? '???' : localizedName}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                        {isLocked ? t('achievements.status.hidden') : achievement.description}
+                        {isLocked ? t('achievements.status.hidden') : localizedDescription}
                     </div>
                     {hasProgress && !isComplete && (
                         <Progress value={(achievement.progress / achievement.progressMax!) * 100} className="mt-1 h-1" />
@@ -131,10 +137,10 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                     </div>
                     <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg">
-                            {isLocked ? '???' : achievement.name}
+                            {isLocked ? '???' : localizedName}
                         </CardTitle>
                         <CardDescription className="mt-1">
-                            {isLocked ? t('achievements.status.hiddenDescription') : achievement.description}
+                            {isLocked ? t('achievements.status.hiddenDescription') : localizedDescription}
                         </CardDescription>
                     </div>
                 </div>

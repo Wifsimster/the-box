@@ -46,10 +46,17 @@ interface TeaserCardProps {
 }
 
 function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
+  const { t } = useTranslation()
+  const localizedName = t(`achievements.items.${achievement.key}.name`, {
+    defaultValue: achievement.name,
+  })
+  const localizedDescription = t(`achievements.items.${achievement.key}.description`, {
+    defaultValue: achievement.description,
+  })
   return (
     <div
       className="group relative h-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm transition-colors hover:border-neon-pink/60"
-      aria-label={`${achievement.name} — ${lockedLabel}`}
+      aria-label={`${localizedName} — ${lockedLabel}`}
     >
       <div
         aria-hidden="true"
@@ -74,10 +81,10 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
           </span>
         </div>
         <h3 className="text-sm sm:text-base font-semibold leading-tight text-foreground">
-          {achievement.name}
+          {localizedName}
         </h3>
         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3">
-          {achievement.description}
+          {localizedDescription}
         </p>
         <Badge
           variant="outline"

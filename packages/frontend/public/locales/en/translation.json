@@ -80,7 +80,177 @@
       "progress": "Progress"
     },
     "unlocked": "Achievement Unlocked!",
-    "unlockedWithName": "Achievement Unlocked: {{name}}"
+    "unlockedWithName": "Achievement Unlocked: {{name}}",
+    "items": {
+      "speed_demon": {
+        "name": "Speed Demon",
+        "description": "Get 3 perfect speed guesses in a row (under 3 seconds each)"
+      },
+      "lightning_reflexes": {
+        "name": "Lightning Reflexes",
+        "description": "Answer 10 screenshots in under 3 seconds"
+      },
+      "quick_draw": {
+        "name": "Quick Draw",
+        "description": "Answer any screenshot in under 2 seconds"
+      },
+      "no_hints_needed": {
+        "name": "No Hints Needed",
+        "description": "Complete a daily challenge without using any hints"
+      },
+      "hint_free_master": {
+        "name": "Hint-Free Master",
+        "description": "Complete 10 daily challenges without using hints"
+      },
+      "sharp_eye": {
+        "name": "Sharp Eye",
+        "description": "Get 10 correct guesses in a row with no wrong answers"
+      },
+      "perfect_run": {
+        "name": "Perfect Run",
+        "description": "Score exactly 2000 points in a single challenge"
+      },
+      "high_roller": {
+        "name": "High Roller",
+        "description": "Score over 1800 points in a single challenge"
+      },
+      "dedicated_player": {
+        "name": "Dedicated Player",
+        "description": "Maintain a 3-day play streak"
+      },
+      "weekly_warrior": {
+        "name": "Weekly Warrior",
+        "description": "Maintain a 7-day play streak"
+      },
+      "month_master": {
+        "name": "Month Master",
+        "description": "Maintain a 30-day play streak"
+      },
+      "rpg_expert": {
+        "name": "RPG Expert",
+        "description": "Correctly identify 10 RPG games"
+      },
+      "action_hero": {
+        "name": "Action Hero",
+        "description": "Correctly identify 10 Action games"
+      },
+      "strategy_savant": {
+        "name": "Strategy Savant",
+        "description": "Correctly identify 10 Strategy games"
+      },
+      "first_win": {
+        "name": "First Win",
+        "description": "Complete your first daily challenge"
+      },
+      "century_club": {
+        "name": "Century Club",
+        "description": "Complete 100 daily challenges"
+      },
+      "top_ten": {
+        "name": "Top 10",
+        "description": "Rank in the top 10 on any daily challenge"
+      },
+      "podium_finish": {
+        "name": "Podium Finish",
+        "description": "Rank in the top 3 on any daily challenge"
+      },
+      "champion": {
+        "name": "Champion",
+        "description": "Achieve 1st place on any daily challenge"
+      },
+      "welcome_player": {
+        "name": "Welcome!",
+        "description": "Start your first daily challenge"
+      },
+      "first_guess": {
+        "name": "First Try",
+        "description": "Make your first guess"
+      },
+      "first_correct": {
+        "name": "Eagle Eye",
+        "description": "Find your first correct answer"
+      },
+      "getting_warmed_up": {
+        "name": "Warming Up",
+        "description": "Find 3 screenshots in a single challenge"
+      },
+      "halfway_there": {
+        "name": "Halfway There",
+        "description": "Find 5 screenshots in a single challenge"
+      },
+      "almost_perfect": {
+        "name": "Almost Perfect",
+        "description": "Find 8 screenshots in a single challenge"
+      },
+      "score_500": {
+        "name": "Rising Star",
+        "description": "Score 500+ points in a single challenge"
+      },
+      "score_1000": {
+        "name": "In Top Form",
+        "description": "Score 1000+ points in a single challenge"
+      },
+      "score_1500": {
+        "name": "Pro Player",
+        "description": "Score 1500+ points in a single challenge"
+      },
+      "regular_player": {
+        "name": "Regular Player",
+        "description": "Complete 5 daily challenges"
+      },
+      "committed_gamer": {
+        "name": "Committed Gamer",
+        "description": "Complete 10 daily challenges"
+      },
+      "veteran_player": {
+        "name": "Veteran Player",
+        "description": "Complete 25 daily challenges"
+      },
+      "dedicated_fan": {
+        "name": "Dedicated Fan",
+        "description": "Complete 50 daily challenges"
+      },
+      "game_collector_10": {
+        "name": "Collector",
+        "description": "Correctly identify 10 different games"
+      },
+      "game_collector_50": {
+        "name": "Game Expert",
+        "description": "Correctly identify 50 different games"
+      },
+      "game_collector_100": {
+        "name": "Walking Encyclopedia",
+        "description": "Correctly identify 100 different games"
+      },
+      "comeback_kid": {
+        "name": "Back Again",
+        "description": "Play 2 days in a row"
+      },
+      "five_day_streak": {
+        "name": "On a Roll",
+        "description": "Play 5 days in a row"
+      },
+      "two_week_warrior": {
+        "name": "Two-Week Warrior",
+        "description": "Play 14 days in a row"
+      },
+      "fast_fingers": {
+        "name": "Fast Fingers",
+        "description": "Answer in under 5 seconds"
+      },
+      "speed_collector": {
+        "name": "Speed Collector",
+        "description": "Get 5 quick answers (under 5 seconds)"
+      },
+      "persistent_guesser": {
+        "name": "Persistent",
+        "description": "Make 100 guesses in total"
+      },
+      "guessing_machine": {
+        "name": "Guessing Machine",
+        "description": "Make 500 guesses in total"
+      }
+    }
   },
   "game": {
     "progressDots": {
@@ -1837,7 +2007,37 @@
     "hintGenre": "Genre Hint",
     "streakFreeze": "Streak freeze",
     "secondChance": "Second chance",
-    "points": "points"
+    "points": "points",
+    "rewards": {
+      "day1": {
+        "name": "Year Hint",
+        "description": "Get a hint about the game's release year"
+      },
+      "day2": {
+        "name": "Publisher Hint",
+        "description": "Get a hint about the game's publisher"
+      },
+      "day3": {
+        "name": "100 Points",
+        "description": "100 bonus points added to your score"
+      },
+      "day4": {
+        "name": "2x Year Hint",
+        "description": "Get two hints about the release year"
+      },
+      "day5": {
+        "name": "2x Publisher Hint",
+        "description": "Get two hints about the publisher"
+      },
+      "day6": {
+        "name": "250 Points",
+        "description": "Big 250-point bonus"
+      },
+      "day7": {
+        "name": "Legendary Chest",
+        "description": "The ultimate chest: 2x each hint + 500 points!"
+      }
+    }
   },
   "onboarding": {
     "welcomeTitle": "Welcome to The Box!",
