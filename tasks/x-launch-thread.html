@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: X / Twitter launch copy for The Box — PH launch 2026-05-15 09:01 CEST
+  (00:01 PDT). Drafts every tweet: T-12h teaser, T-1h countdown, the launch
+  thread (8 posts), pinned reply with direct-play link, milestone reactions,
+  reply playbook, and a Bluesky/Mastodon mirror plan. Strategy lives in
+  tasks/social-media-launch-plan.html and tasks/producthunt-launch-plan.html;
+  this file is just the words.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>X Launch Thread · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+  aside.toc li { margin: 0.35rem 0; counter-increment: toc; }
+  aside.toc li::before { content: counter(toc, decimal-leading-zero) " "; color: var(--muted); font-family: var(--mono); font-size: 0.75rem; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; }
+  h4 { font-size: 0.95rem; margin: 1rem 0 0.4rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p { margin: 0; font-size: 1.05rem; }
+  .hero p em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-family: var(--mono); letter-spacing: 0.04em; border: 1px solid var(--border-strong); margin-right: 0.25rem; }
+  .pill.ok { color: var(--ok); border-color: rgba(16,185,129,0.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(245,158,11,0.4); }
+  .pill.risk { color: var(--risk); border-color: rgba(239,68,68,0.4); }
+  .pill.info { color: var(--neon-blue); border-color: rgba(56,189,248,0.4); }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+  }
+  .card h3 { margin-top: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; }
+  th, td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.t { font-family: var(--mono); font-size: 0.85rem; color: var(--neon-purple); white-space: nowrap; }
+
+  .tweet {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 1rem 1.1rem;
+    margin: 0.9rem 0;
+    position: relative;
+  }
+  .tweet .head {
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.04em;
+  }
+  .tweet .head .num { color: var(--neon-purple); font-weight: 600; }
+  .tweet .head .when { color: var(--neon-blue); }
+  .tweet .body { white-space: pre-wrap; font-size: 0.98rem; line-height: 1.55; }
+  .tweet .body .ph { color: var(--neon-pink); }
+  .tweet .body .url { color: var(--neon-blue); font-family: var(--mono); font-size: 0.92em; }
+  .tweet .body .mention { color: var(--neon-blue); }
+  .tweet .body .tag { color: var(--neon-purple); }
+  .tweet .foot {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 0.7rem; padding-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+  }
+  .tweet .foot .ok { color: var(--ok); }
+  .tweet .foot .warn { color: var(--warn); }
+  .tweet .media {
+    margin-top: 0.6rem; padding: 0.5rem 0.75rem;
+    background: var(--surface-2); border: 1px dashed var(--border);
+    border-radius: 6px; font-size: 0.82rem; color: var(--muted);
+  }
+  .tweet .media b { color: var(--fg); font-weight: 500; }
+
+  details.section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0.75rem 0;
+    background: var(--surface);
+  }
+  details.section > summary {
+    cursor: pointer; padding: 0.75rem 1rem; font-weight: 500;
+    list-style: none; display: flex; align-items: center; justify-content: space-between;
+  }
+  details.section > summary::after { content: "+"; color: var(--muted); font-family: var(--mono); }
+  details.section[open] > summary::after { content: "−"; }
+  details.section > div.body { padding: 0 1rem 1rem; border-top: 1px solid var(--border); }
+
+  ul.dont { list-style: none; padding: 0; }
+  ul.dont li { padding: 0.4rem 0 0.4rem 1.5rem; position: relative; border-bottom: 1px dashed var(--border); }
+  ul.dont li:last-child { border-bottom: 0; }
+  ul.dont li::before {
+    content: "✕"; position: absolute; left: 0; top: 0.4rem; color: var(--risk); font-weight: 700;
+  }
+
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">X Launch Thread</span>
+  <span class="repo">the-box · tasks/x-launch-thread.html</span>
+</header>
+
+<div class="layout">
+
+<aside class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#thesis">Thesis</a></li>
+    <li><a href="#timeline">Timeline</a></li>
+    <li><a href="#prelaunch">Pre-launch (T-12h, T-1h)</a></li>
+    <li><a href="#launch">Launch thread (T-0)</a></li>
+    <li><a href="#pinned">Pinned reply</a></li>
+    <li><a href="#milestones">Milestone reactions</a></li>
+    <li><a href="#replies">Reply playbook</a></li>
+    <li><a href="#tags">Hashtags &amp; handles</a></li>
+    <li><a href="#mirrors">Bluesky / Mastodon</a></li>
+    <li><a href="#dayafter">Day-after recap</a></li>
+    <li><a href="#dont">What not to tweet</a></li>
+  </ol>
+</aside>
+
+<main>
+
+<h1>X launch thread — The Box</h1>
+<p class="meta"><b>PH go-live:</b> 2026-05-15 09:01 CEST (00:01 PDT) · <b>Locale:</b> English · <b>Maker:</b> solo · <b>Status:</b> drafts ready to paste</p>
+
+<div class="hero">
+  <p>Strategy is already settled in <a href="./producthunt-launch-plan.html">producthunt-launch-plan.html</a> and <a href="./social-media-launch-plan.html">social-media-launch-plan.html</a>. This file is the words — every tweet you'll post in the next ~30 hours, with character counts and posting windows. Three rules: <em>no upvote-begging</em> (PH bans for it), the launch tweet must be <em>self-explanatory without the PH link</em> (most quote-tweeters won't click), and the first pinned reply is the <em>direct-play link</em>, not the PH link.</p>
+</div>
+
+<h2 id="thesis">1 · Thesis in one paragraph</h2>
+<p>The PH listing pulls a startup/SaaS crowd. Your X followers are gamers and indie devs. Don't talk to them as if they're VCs scouting deal flow — talk to them like the play test cohort they actually are. The tweet that converts on X is "<em>here's a 5-second toy, click it</em>", not "<em>I shipped a product</em>". The PH link goes in the thread, not the lead tweet — the lead is the play link. PH is the side quest. The main quest is daily-active users.</p>
+<p>One concession to the launch: the lead tweet <strong>does</strong> say "live on Product Hunt" because that's the news today and it's where your followers can amplify with one click. Both objectives sit in tweet 1, but the verb is "live", not "vote".</p>
+
+<h2 id="timeline">2 · Posting timeline (your local CEST)</h2>
+<table>
+  <tr><th>Slot</th><th>What posts</th><th>Why</th></tr>
+  <tr><td class="t">May 14 · 21:00</td><td>T-12h teaser (§3)</td><td>Pre-bed audience in EU. No link — pure curiosity.</td></tr>
+  <tr><td class="t">May 15 · 08:30</td><td>T-30m last call (§3)</td><td>Catches EU morning scroll right before go-live.</td></tr>
+  <tr><td class="t">May 15 · 09:01</td><td>Launch thread (§4) + pinned reply (§5)</td><td>00:01 PDT — PH ranking window opens.</td></tr>
+  <tr><td class="t">May 15 · 13:00</td><td>Milestone tweet if charted (§6)</td><td>US morning wakes up. Quote-tweet the ranking screenshot.</td></tr>
+  <tr><td class="t">May 15 · 18:00</td><td>Mid-day stat tweet (§6)</td><td>US lunch / EU evening. Concrete numbers convert.</td></tr>
+  <tr><td class="t">May 15 · 23:30</td><td>Thank-you reply on launch thread</td><td>Wraps the day before PH closes at 08:59 CEST May 16.</td></tr>
+  <tr><td class="t">May 16 · 11:00</td><td>Day-after recap (§10)</td><td>Numbers + what's next. Closes the narrative.</td></tr>
+</table>
+<p class="meta">PH days run 00:01 → 23:59 PT. In CEST that's 09:01 May 15 → 08:59 May 16. The first 4 hours (09:01–13:00 CEST) are weighted heaviest by the ranking algorithm.</p>
+
+<h2 id="prelaunch">3 · Pre-launch teasers</h2>
+<p>Two tweets, both standalone (not threaded). Goal: prime the follower base. <strong>No</strong> PH link yet — preserve the launch-tweet moment.</p>
+
+<h3>3.1 — T-12h teaser (May 14 · 21:00 CEST)</h3>
+<div class="tweet">
+  <div class="head"><span class="num">A1</span> · <span class="when">2026-05-14 21:00 CEST</span> · standalone post</div>
+  <div class="body">Six months ago I started building a daily game I wanted to exist.
+
+Tomorrow 09:01 Paris time, it goes live for everyone.
+
+One screenshot a day. Guess the game. Don't be wrong twice.
+
+🎮</div>
+  <div class="foot"><span>characters: 198 / 280</span><span class="ok">no link · curiosity bait</span></div>
+</div>
+
+<h3>3.2 — T-30m last call (May 15 · 08:30 CEST)</h3>
+<div class="tweet">
+  <div class="head"><span class="num">A2</span> · <span class="when">2026-05-15 08:30 CEST</span> · standalone post</div>
+  <div class="body">30 minutes.
+
+If you've ever yelled "wait I KNOW that one" at someone else's screen, this is going to be a problem for you.</div>
+  <div class="foot"><span>characters: 132 / 280</span><span class="ok">no link · countdown</span></div>
+</div>
+
+<h2 id="launch">4 · Launch thread (T-0, 09:01 CEST)</h2>
+<p>Eight posts. Post tweet 1, then reply-chain the rest in immediate succession (don't space them out — the algorithm reads the whole thread as one unit and rewards depth). All times in this section are <code>09:01 CEST</code>.</p>
+
+<h3>Tweet 1 — the lead</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T1</span> · the only tweet most people will see · <strong>this is the one</strong></div>
+  <div class="body">The Box is live.
+
+One screenshot a day. Guess the game.
+Climb a live leaderboard. Play in 5 seconds, no signup.
+
+Today's challenge 👇
+<span class="url">https://the-box.battistella.ovh</span>
+
+(Also on <span class="ph">@ProductHunt</span> today if that's your thing 🧡)</div>
+  <div class="media"><b>Media:</b> 16:9 GIF / MP4 — 4-second loop: blurred screenshot → typing a guess → "correct" + score popping → leaderboard rank flying up. Same asset as the PH gallery cover.</div>
+  <div class="foot"><span>characters: 246 / 280</span><span class="ok">play link first, PH second</span></div>
+</div>
+
+<h3>Tweet 2 — the why</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T2</span> · reply to T1 · the story</div>
+  <div class="body">I built this because Wordle is great and there's no version for the thing I actually love, which is games.
+
+So I made one. Every day, 09:01 Paris time, a new screenshot drops and the global leaderboard resets.
+
+You play once. You don't play again until tomorrow.</div>
+  <div class="foot"><span>characters: 277 / 280</span><span class="ok">positioning lock-in</span></div>
+</div>
+
+<h3>Tweet 3 — the demo</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T3</span> · reply to T2 · show it</div>
+  <div class="body">How a round looks:
+
+→ Blurred screenshot, 60-second timer
+→ Type your guess (fuzzy match handles typos &amp; FR/EN/JP titles)
+→ Hints cost time; getting it first try scores higher
+→ Result + share card pops</div>
+  <div class="media"><b>Media:</b> two stitched screenshots side by side — left: mid-round with timer + input, right: result screen with score + share button. Phone aspect ratio (9:16) so it's readable in-feed.</div>
+  <div class="foot"><span>characters: 246 / 280</span><span class="ok">mechanics in 4 lines</span></div>
+</div>
+
+<h3>Tweet 4 — the free/paid line</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T4</span> · reply to T3 · address the obvious question</div>
+  <div class="body">Free: today's daily, the global leaderboard, achievements, your stats.
+
+Paid (€2.99/mo or €19/yr): catch-up on the last 7 days you missed, extra hints, no ads.
+
+I'd rather lose ad revenue than ruin the 5-second first impression. So the front door is free.</div>
+  <div class="foot"><span>characters: 277 / 280</span><span class="warn">verify pricing before posting</span></div>
+</div>
+
+<h3>Tweet 5 — proof of life (stack flex)</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T5</span> · reply to T4 · for the devs in the audience</div>
+  <div class="body">Stack, for the people who'll ask:
+
+→ React 19 + Vite + Tailwind v4
+→ Node 24 + Express 5, clean architecture
+→ Postgres + Better Auth + BullMQ
+→ Socket.io for the live board
+→ Built solo, 6 months, French + English
+
+The OG previews even render on Discord 🎉</div>
+  <div class="foot"><span>characters: 273 / 280</span><span class="ok">indie-dev engagement bait</span></div>
+</div>
+
+<h3>Tweet 6 — credit / honesty</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T6</span> · reply to T5 · earn trust</div>
+  <div class="body">Game metadata + screenshots: <span class="mention">@RAWGTHEBEST</span> (their API is genuinely one of the good ones).
+
+Audio cues + UI motion: a lot of late-night iteration.
+
+Bugs: definitely still some. DM me when you find one and I'll ship the fix the same day.</div>
+  <div class="foot"><span>characters: 248 / 280</span><span class="warn">confirm @RAWGTHEBEST is the live handle for RAWG</span></div>
+</div>
+
+<h3>Tweet 7 — what's next</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T7</span> · reply to T6 · roadmap hint</div>
+  <div class="body">On the runway:
+
+→ Tournaments (weekly bracket vs. friends)
+→ Themed seasons (JRPGs week, indie week, Y2K week)
+→ "Guess from the soundtrack" mode
+→ Public API so streamers can wire it into chat
+
+Order depends on what people actually play. Tell me what's missing.</div>
+  <div class="foot"><span>characters: 263 / 280</span><span class="ok">future-state + open question</span></div>
+</div>
+
+<h3>Tweet 8 — the soft ask</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T8</span> · reply to T7 · close the thread</div>
+  <div class="body">If you play it and it's your kind of thing:
+
+→ tell someone who'd like it (the share card does the talking)
+→ leave a comment on the PH page — what worked, what didn't
+→ that's it
+
+Play: <span class="url">https://the-box.battistella.ovh</span>
+PH: <span class="url">https://producthunt.com/products/the-box</span>
+
+Thanks for reading 🧡</div>
+  <div class="foot"><span>characters: 278 / 280</span><span class="ok">no "please upvote" — PH-rule-safe</span></div>
+</div>
+
+<h2 id="pinned">5 · Pinned reply (post immediately after T8)</h2>
+<p>Pin <strong>this reply</strong>, not the launch tweet itself. People landing on your profile from RT-chains will see the play link before they see your selling — that's the path of least resistance to a session, which is what the algorithm rewards anyway.</p>
+
+<div class="tweet">
+  <div class="head"><span class="num">PIN</span> · reply to T1 · pinned to profile</div>
+  <div class="body">📌 No Product Hunt account needed to play.
+
+Today's challenge is one tap away:
+<span class="url">https://the-box.battistella.ovh</span>
+
+Score posts to the global board if you finish — anonymous or signed-in, your call.</div>
+  <div class="foot"><span>characters: 219 / 280</span><span class="ok">removes the PH friction</span></div>
+</div>
+
+<h2 id="milestones">6 · Milestone reactions (post if they happen)</h2>
+<p>Quote-tweet your own launch thread (T1) with a screenshot of the milestone. Quote-tweets renew the algorithmic life of the original — better than a fresh standalone post.</p>
+
+<h3>6.1 — Charted top 10 on PH</h3>
+<div class="tweet">
+  <div class="head"><span class="num">M1</span> · quote-tweet of T1 · only if true</div>
+  <div class="body">Top 10 on <span class="ph">@ProductHunt</span> right now 🤯
+
+Honestly didn't expect this. Thank you to everyone who's playing — the server hasn't even melted yet.</div>
+  <div class="media"><b>Media:</b> screenshot of the PH ranking page with your slot visible. Crop the URL out — looks cleaner.</div>
+  <div class="foot"><span>characters: 156 / 280</span><span class="warn">only post if you actually chart</span></div>
+</div>
+
+<h3>6.2 — Charted top 5 on PH</h3>
+<div class="tweet">
+  <div class="head"><span class="num">M2</span> · quote-tweet of T1 · top-5 only</div>
+  <div class="body">Top 5. I'm just a guy with a daily screenshot game.
+
+This is unreal. Thank you 🧡</div>
+  <div class="foot"><span>characters: 96 / 280</span><span class="ok">short = more amplifiable</span></div>
+</div>
+
+<h3>6.3 — Mid-day stat (post around 18:00 CEST)</h3>
+<div class="tweet">
+  <div class="head"><span class="num">M3</span> · quote-tweet of T1 · numbers</div>
+  <div class="body">9 hours in:
+
+→ N plays today
+→ N% solve rate on round 1
+→ The hardest screenshot so far: [game name] — only N% got it
+
+(Yes I'm watching the dashboard like it's match-day. Couldn't help it.)</div>
+  <div class="foot"><span>characters: ~220 / 280 once filled</span><span class="warn">fill N values from analytics before posting</span></div>
+</div>
+
+<h3>6.4 — End-of-day thank you</h3>
+<div class="tweet">
+  <div class="head"><span class="num">M4</span> · reply to T8 · 23:30 CEST</div>
+  <div class="body">Closing the launch-day thread.
+
+N plays. N signups. N comments on Product Hunt.
+One bug, fixed at hour 4. Zero downtime.
+
+Tomorrow there's a new screenshot, same time. Same place.
+
+Thank you for showing up 🧡</div>
+  <div class="foot"><span>characters: ~225 / 280 once filled</span><span class="ok">closes the narrative</span></div>
+</div>
+
+<h2 id="replies">7 · Reply playbook</h2>
+<p>Reply to <em>every</em> top-level comment for the first 6 hours, however small. After hour 6, only reply to comments with substance or with public accounts (algorithm reads private-to-private as a closed loop and weights it lower).</p>
+
+<table>
+  <tr><th>Incoming</th><th>Your reply</th></tr>
+  <tr>
+    <td>"Cool, gonna try"</td>
+    <td>"Let me know if today's gives you trouble — there's a stinker in the rotation 👀"</td>
+  </tr>
+  <tr>
+    <td>"How's this different from Guess the Game?"</td>
+    <td>"Daily ritual + live global board + the catch-up mode for missed days. Plus FR-first. Same family of games, different shape."</td>
+  </tr>
+  <tr>
+    <td>"Stack?"</td>
+    <td>Link to T5. Don't retype the stack — keeps the thread cohesive.</td>
+  </tr>
+  <tr>
+    <td>"You should add [feature]"</td>
+    <td>"Logged. If you have 30 seconds — would you pay €2.99/mo for it or is it a free-tier thing in your head?"</td>
+  </tr>
+  <tr>
+    <td>"Found a bug: [X]"</td>
+    <td>"On it. DM me a screenshot and I'll ship in the next hour." Then actually do it. Reply to the same thread when fixed — that's the highest-trust signal on launch day.</td>
+  </tr>
+  <tr>
+    <td>Negative quote-tweet</td>
+    <td>Don't engage unless it's a bug report in disguise. Mute the quoter from the thread, don't block. Block screenshots travel.</td>
+  </tr>
+  <tr>
+    <td>"Where do I sign up?"</td>
+    <td>"You don't have to — daily challenge plays as a guest. Account only if you want history + achievements. Link: https://the-box.battistella.ovh"</td>
+  </tr>
+</table>
+
+<h2 id="tags">8 · Hashtags &amp; handles</h2>
+<h3>Hashtags (use sparingly — 2 max, in T1)</h3>
+<p>X has down-weighted hashtag-heavy posts since 2024. Use <strong>at most 2</strong> and only if they're genuine traffic sources, not decoration.</p>
+<ul>
+  <li><code>#indiedev</code> — discoverable by indie devs scrolling the tag. Worth one slot.</li>
+  <li><code>#dailygame</code> — small but very on-target tag. Better than <code>#gaming</code>.</li>
+  <li><strong>Skip:</strong> <code>#gaming</code> (too broad), <code>#startup</code> (wrong audience), <code>#buildinpublic</code> (saturated, low CTR in 2026).</li>
+</ul>
+<h3>Handles worth tagging in T1 or T6</h3>
+<table>
+  <tr><th>Handle</th><th>Why</th><th>Where</th></tr>
+  <tr><td><code>@ProductHunt</code></td><td>They reshare ~20% of launches that tag them, especially with media.</td><td>T1 (already in)</td></tr>
+  <tr><td>RAWG's official handle</td><td>Polite credit; they sometimes reshare projects using their API.</td><td>T6 — <strong>verify the live handle before posting</strong></td></tr>
+  <tr><td>French indie dev collectives (e.g. <code>@JV_Indie</code>, if active)</td><td>FR audience overlap; one tag, not a chain.</td><td>Optional reply, not T1</td></tr>
+</table>
+<p class="meta">Do not tag streamers / big creators in the launch thread. Cold-tagging reads as begging and most algorithms now penalise tag-chains. The social-media-launch-plan §2.5 covers the DM approach instead.</p>
+
+<h2 id="mirrors">9 · Bluesky &amp; Mastodon mirror</h2>
+<p>Post the same thread on Bluesky (same handle as X). Skip Mastodon for launch day — see <a href="./social-media-launch-plan.html#dont">social-media-launch-plan §3</a>.</p>
+<h4>Bluesky differences</h4>
+<ul>
+  <li>Bluesky char limit is 300, not 280 — most tweets work as-is.</li>
+  <li>Remove <code>@ProductHunt</code> mention from T1 — they don't have a BSky presence and the broken tag looks sloppy. Replace with "(also on Product Hunt today)".</li>
+  <li>Bluesky has no quote-tweets-with-comment; milestone posts in §6 become standalone posts with the image attached.</li>
+  <li>Pin the same reply (§5) on the Bluesky profile.</li>
+</ul>
+
+<h2 id="dayafter">10 · Day-after recap (May 16 · 11:00 CEST)</h2>
+<p>Standalone post, not a thread. The launch thread is done. This is the receipts post — it converts the people who saw the launch yesterday and bookmarked it.</p>
+
+<div class="tweet">
+  <div class="head"><span class="num">DA1</span> · 2026-05-16 11:00 CEST · standalone</div>
+  <div class="body">24 hours of The Box being public:
+
+→ N plays
+→ N signups
+→ N comments on Product Hunt
+→ Final rank: #N of the day
+→ N bugs found, N fixed
+
+Today's screenshot is already up. Yesterday's solution thread coming this evening.
+
+<span class="url">https://the-box.battistella.ovh</span></div>
+  <div class="foot"><span>characters: ~265 / 280 once filled</span><span class="ok">retention play, not acquisition</span></div>
+</div>
+
+<h2 id="dont">11 · What not to tweet</h2>
+<ul class="dont">
+  <li><strong>"Please upvote on Product Hunt."</strong> PH actively buries launches that solicit votes. Use "live on PH" or "if it's your thing" — never "upvote", "support us", "vote".</li>
+  <li><strong>DM blasts asking for upvotes.</strong> Same rule. PH staff search for "vote ring" patterns.</li>
+  <li><strong>Comparison tweets vs. Guess the Game / similar products.</strong> You're the new entrant; punching down looks bad and punching up gives them free promotion. Frame as "same family, different shape" (T-table §7) and move on.</li>
+  <li><strong>Tagging celebrities or big streamers cold</strong> hoping for amplification. Read as spam, lowers your reach for everyone in the thread.</li>
+  <li><strong>Bragging numbers before they're real.</strong> If you're at 12 plays don't tweet "huge response". The next bad-data tweet you post will be discounted.</li>
+  <li><strong>Apologising for downtime in a quote-tweet.</strong> If something breaks, reply quietly in the launch thread with "fixed in N min" once it's actually fixed. Don't pin a disaster.</li>
+  <li><strong>Posting more than 3 standalone tweets in launch day.</strong> Pre-launch (§3) + launch thread (§4) + 1–2 milestones (§6) + 1 EOD wrap. That's it. Stop. The thread does the work.</li>
+  <li><strong>Auto-deleting tweets that "didn't perform".</strong> Don't. The thread is the artifact. The launch is a moment that's allowed to be imperfect.</li>
+</ul>
+
+<hr>
+
+<h2 id="checklist">12 · Final paste-checklist (do tonight)</h2>
+<ul>
+  <li>Open X, paste T-12h teaser §3.1 into the composer. <strong>Don't post yet</strong> — save as draft. Confirm the time slot.</li>
+  <li>Save T-30m teaser §3.2 as a draft.</li>
+  <li>Build the launch GIF/MP4 for T1 if it doesn't already exist (same asset as PH gallery cover).</li>
+  <li>Verify <code>https://the-box.battistella.ovh</code> renders an OG preview when pasted into a fresh X composer (use the staging account or quote your own old post).</li>
+  <li>Verify the PH listing URL is the final one (vanity slug locked, not a draft URL).</li>
+  <li>Verify the RAWG official X handle before T6 — <strong>do not post a broken @mention</strong>.</li>
+  <li>Confirm Bluesky handle and that it can post 300-char threads in the right order.</li>
+  <li>Set a phone alarm for 09:00 CEST tomorrow. Pin both the launch tweet draft and the §5 pinned reply draft so they're one tap away when the alarm goes off.</li>
+  <li>Sleep. The first 4 hours are what matters, and they start the moment you wake up.</li>
+</ul>
+
+</main>
+
+</div>
+
+</body>
+</html>
