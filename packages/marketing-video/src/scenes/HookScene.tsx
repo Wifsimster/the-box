@@ -130,7 +130,7 @@ export const HookScene: React.FC = () => {
                 color: "transparent",
               }}
             >
-              Three guesses.
+              Speed wins.
             </span>
           </div>
         </Reveal>

@@ -64,19 +64,19 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
                 icon: "📅",
                 title: "Tiered difficulty",
                 description:
-                  "Easy → Medium → Hard. Score multiplies with each tier you survive.",
+                  "Three tiers stack up. Survive Easy → Medium → Hard in one run.",
+              },
+              {
+                icon: "⚡",
+                title: "Speed pays",
+                description:
+                  "Answer under 3s for 2× points. The multiplier fades to 1× past 20s.",
               },
               {
                 icon: "⏪",
                 title: "Catch-up mode",
                 description:
                   "Missed a day? Replay any of the last 7 challenges.",
-              },
-              {
-                icon: "🎯",
-                title: "Three guesses",
-                description:
-                  "Smart fuzzy matching forgives typos but not the wrong franchise.",
               },
             ]}
           />
@@ -96,13 +96,13 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
                 icon: "💡",
                 title: "Reveal a clue",
                 description:
-                  "Release year, developer, or publisher — one tap, one cost.",
+                  "Year, publisher, developer, or genre — burn an inventory hint or pay 20%.",
               },
               {
                 icon: "⏱️",
-                title: "Stretch the clock",
+                title: "x2 Timer",
                 description:
-                  "Add seconds when the timer bites. Saved runs still score.",
+                  "Earn one every 6 correct guesses. Doubles the seconds left when the clock bites.",
               },
               {
                 icon: "🏆",
