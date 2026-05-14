@@ -17,9 +17,10 @@ import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
 import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 import { Button } from '@/components/ui/button'
-import { Globe, Home, Loader2, Trophy, RotateCcw, History } from 'lucide-react'
+import { Clock, Globe, Home, Loader2, Trophy, RotateCcw, History, CheckCircle2 } from 'lucide-react'
 import { adminApi } from '@/lib/api/admin'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { useWorldScore } from '@/hooks/useWorldScore'
 import { createLeaderboardService } from '@/services'
 import { gameApi } from '@/lib/api'
@@ -44,6 +45,7 @@ export default function GamePage() {
   // `interactive-widget=resizes-content` on the viewport meta, which already
   // shrinks the layout viewport — the hook reports ~0 there, so this is a no-op.
   const { isKeyboardOpen, keyboardHeight } = useKeyboardHeight()
+  const timeRemaining = useNextDailyCountdown()
 
   // Get date from query params if provided
   const challengeDateParam = searchParams.get('date')
@@ -477,32 +479,89 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center w-full h-full gap-4"
+            className="flex flex-col items-center justify-center w-full h-full px-4 sm:px-6"
           >
-            <p className="text-destructive">{error}</p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button variant="gaming" asChild>
-                <Link to={localizedPath('/')}>
-                  <Home className="w-4 h-4 mr-2" />
-                  {t('common.home')}
-                </Link>
-              </Button>
-              {/* Show History button if challenge is already completed and user is authenticated */}
-              {error.includes(t('game.alreadyCompleted')) && session && session.user && session.user.id && (
-                <Button variant="outline" asChild>
-                  <Link to={localizedPath('/history')}>
-                    <History className="w-4 h-4 mr-2" />
-                    {t('common.history')}
-                  </Link>
-                </Button>
-              )}
-              {/* Only show retry button if it's not the "already completed" error */}
-              {!error.includes(t('game.alreadyCompleted')) && (
-                <Button variant="outline" onClick={() => window.location.reload()}>
-                  {t('common.retry')}
-                </Button>
-              )}
-            </div>
+            {error.includes(t('game.alreadyCompleted')) ? (
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="relative w-full max-w-md mx-auto"
+              >
+                {/* Ambient neon glow */}
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-px rounded-2xl bg-linear-to-br from-neon-purple/20 via-transparent to-neon-pink/20 blur-2xl"
+                />
+                <div className="relative bg-card/80 backdrop-blur-xl border border-neon-purple/30 rounded-2xl p-6 sm:p-8 shadow-2xl">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="relative mb-4">
+                      <div className="absolute inset-0 rounded-full bg-neon-purple/30 blur-xl" aria-hidden="true" />
+                      <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-linear-to-br from-neon-purple to-neon-pink">
+                        <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                      </div>
+                    </div>
+
+                    <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                      {t('home.todayCompleted')}
+                    </h2>
+                    <p className="text-sm sm:text-base text-muted-foreground mb-5 max-w-sm">
+                      {t('home.comeBackTomorrow')}
+                    </p>
+
+                    <div
+                      role="timer"
+                      aria-live="polite"
+                      aria-atomic="true"
+                      aria-label={`${t('home.nextDailyIn')} ${String(timeRemaining.hours).padStart(2, '0')}:${String(timeRemaining.minutes).padStart(2, '0')}:${String(timeRemaining.seconds).padStart(2, '0')}`}
+                      className="w-full flex items-center justify-center gap-2 sm:gap-3 px-4 py-3 rounded-xl bg-background/60 border border-neon-purple/20 mb-6"
+                    >
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-neon-pink" aria-hidden="true" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">
+                        {t('home.nextDailyIn')}
+                      </span>
+                      <span className="font-mono font-semibold text-foreground text-sm sm:text-base tabular-nums">
+                        {String(timeRemaining.hours).padStart(2, '0')}:
+                        {String(timeRemaining.minutes).padStart(2, '0')}:
+                        {String(timeRemaining.seconds).padStart(2, '0')}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
+                      <Button variant="gaming" asChild className="flex-1">
+                        <Link to={localizedPath('/')}>
+                          <Home className="w-4 h-4 mr-2" />
+                          {t('common.home')}
+                        </Link>
+                      </Button>
+                      {session && session.user && session.user.id && (
+                        <Button variant="outline" asChild className="flex-1">
+                          <Link to={localizedPath('/history')}>
+                            <History className="w-4 h-4 mr-2" />
+                            {t('common.history')}
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="flex flex-col items-center gap-4 max-w-md text-center">
+                <p className="text-destructive">{error}</p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button variant="gaming" asChild>
+                    <Link to={localizedPath('/')}>
+                      <Home className="w-4 h-4 mr-2" />
+                      {t('common.home')}
+                    </Link>
+                  </Button>
+                  <Button variant="outline" onClick={() => window.location.reload()}>
+                    {t('common.retry')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
