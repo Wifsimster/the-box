@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/components/ui/dialog'
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+    ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
@@ -73,21 +73,21 @@ export function DailyRewardModal() {
     }
 
     return (
-        <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-xl">
+        <ResponsiveDialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
+            <ResponsiveDialogContent className="sm:max-w-md">
+                <ResponsiveDialogHeader>
+                    <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
                         <Gift className="w-5 h-5 text-primary" />
                         {showClaimSuccess
                             ? t('dailyLogin.rewardClaimed')
                             : t('dailyLogin.dailyReward')}
-                    </DialogTitle>
-                    <DialogDescription>
+                    </ResponsiveDialogTitle>
+                    <ResponsiveDialogDescription>
                         {showClaimSuccess
                             ? t('dailyLogin.claimSuccessDescription')
                             : t('dailyLogin.claimDescription')}
-                    </DialogDescription>
-                </DialogHeader>
+                    </ResponsiveDialogDescription>
+                </ResponsiveDialogHeader>
 
                 {/* Streak Display */}
                 <div className="flex items-center justify-center gap-2 py-2">
@@ -177,7 +177,7 @@ export function DailyRewardModal() {
                         </Button>
                     )}
                 </div>
-            </DialogContent>
-        </Dialog>
+            </ResponsiveDialogContent>
+        </ResponsiveDialog>
     )
 }

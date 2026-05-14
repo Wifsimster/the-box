@@ -100,6 +100,35 @@ Chez nous :
 
 Deux solutions également valables au même problème valent moins qu'une seule solution légèrement imparfaite mais partagée. Avant d'ajouter un composant, vérifiez qu'une primitive Radix/shadcn dans `src/components/ui/` ne couvre pas déjà le cas. Avant d'ajouter une variante, vérifiez que les variantes existantes de `Card`, `Alert`, `Button` n'expriment pas déjà l'intention.
 
+### 2.7 Mobile-first — Dialog ou bottom sheet
+
+The Box est jouée majoritairement au téléphone. Une modale centrée sur un écran < 768 px est un anti-pattern : elle se découpe avec le clavier virtuel, ignore les safe-area iOS, et oblige la cible tactile « fermer » à voyager loin du pouce. Règle :
+
+> **Toute modale présentée à un joueur utilise `ResponsiveDialog` (`src/components/ui/responsive-dialog.tsx`), pas `Dialog` directement.** Sur mobile (`< 768px`), `ResponsiveDialog` rend une bottom sheet plein-écran-bas ; sur desktop, une modale centrée. L'API est identique à `Dialog` — `ResponsiveDialogContent / Header / Footer / Title / Description`.
+
+Spécifications de la bottom sheet :
+
+- **Hauteur** : `max-h-[85dvh]` (jamais 100 — laissez voir l'origine de la sheet derrière l'overlay).
+- **Coins** : `rounded-t-2xl` en haut uniquement.
+- **Drag handle** : barrette `h-1.5 w-12 bg-border/60` centrée en haut, affordance visuelle uniquement (pas de gesture handler — Radix gère la fermeture via overlay-tap et Escape).
+- **Safe-area** : `pb-[max(env(safe-area-inset-bottom),1rem)]` pour ne pas écraser les actions sous la home-indicator iOS.
+- **Animations** : `slide-in-from-bottom` / `slide-out-to-bottom`, soumises à `motion-safe:` pour respecter `prefers-reduced-motion`.
+- **Footer** : `flex-col-reverse` sur mobile (action primaire au-dessus = à portée du pouce), `sm:flex-row sm:justify-end` sur desktop. Le composant `ResponsiveDialogFooter` applique déjà ce comportement.
+- **Cible tactile « fermer »** : 44×44 minimum, déjà fourni par `ResponsiveDialogContent`.
+
+Exceptions documentées :
+
+- **Confirmations destructives ultra-courtes** (`DeleteConfirmDialog` admin) : restent en `Dialog` centré, car la modale doit interrompre — un slide-up depuis le bas est trop discret pour une action destructrice.
+- **Sheets latérales (drawers)** : `Sheet side="right"` reste légitime quand le contenu est une *navigation* ou un *panel persistant* (header menu mobile, `GameMapsDrawer` admin), pas une décision ponctuelle. La règle « bottom sheet pour les décisions » distingue **modale de décision** vs **panneau de navigation**.
+- **Admin** : non couvert par la règle (faible trafic mobile). Les dialogues admin peuvent rester en `Dialog`.
+
+Arbre de décision rapide :
+
+- Décision/action à valider, joueur, sur n'importe quel device → **`ResponsiveDialog`**
+- Navigation ou panneau latéral persistant → **`Sheet side="right"` (ou `left`)**
+- Confirmation destructive courte → **`Dialog` centré** (exception §2.5)
+- Choix dans une liste avec recherche → **`ResponsiveDialog`** (sheet plein-écran mobile, dialogue desktop)
+
 ---
 
 ## 3. Principes → fichiers
@@ -110,6 +139,7 @@ Deux solutions également valables au même problème valent moins qu'une seule 
 | Hiérarchie d'actions | `packages/frontend/src/components/ui/button.tsx` (`buttonVariants`) |
 | Hiérarchie de cartes | `packages/frontend/src/components/ui/card.tsx` (variantes CVA) |
 | Hiérarchie d'alertes | `packages/frontend/src/components/ui/alert.tsx` |
+| Modales mobile-first | `packages/frontend/src/components/ui/responsive-dialog.tsx` |
 | Toasts | `packages/frontend/src/components/ui/sonner.tsx`, `packages/frontend/src/lib/toast.ts` |
 | Reduced motion | `packages/frontend/src/index.css` (`@media (prefers-reduced-motion: reduce)`) |
 | Anneaux de focus | token `--ring`, utilitaire `focus-visible:ring-ring` |
@@ -149,3 +179,10 @@ Deux solutions également valables au même problème valent moins qu'une seule 
 - [ ] Les sélecteurs de formulaire suivent l'arbre de décision §2.4
 - [ ] Pas de nouveau composant custom si une primitive `ui/*` suffit
 - [ ] Pas de nouvelle variante si une variante CVA existante exprime déjà l'intention
+
+**Mobile-first**
+
+- [ ] Toute modale joueur utilise `ResponsiveDialog`, pas `Dialog` (cf. §2.7)
+- [ ] Les bottom sheets respectent `max-h-[85dvh]`, drag handle, safe-area, footer `flex-col-reverse`
+- [ ] Les cibles tactiles font ≥ 44×44 px (fermeture, CTA, items de liste)
+- [ ] Le contenu reste accessible avec le clavier virtuel ouvert (test : focus sur un input dans la sheet)

@@ -2,14 +2,14 @@ import { useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Camera, Upload, Trash2, Loader2 } from 'lucide-react'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { userApi } from '@/lib/api/user'
@@ -124,8 +124,8 @@ export function AvatarUpload({
   const displayAvatar = preview || currentAvatarUrl
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
+      <ResponsiveDialogTrigger asChild>
         <button
           type="button"
           className="relative group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
@@ -144,15 +144,15 @@ export function AvatarUpload({
             <Camera className="h-8 w-8 text-white" />
           </div>
         </button>
-      </DialogTrigger>
+      </ResponsiveDialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t('profile.avatar.title')}</DialogTitle>
-          <DialogDescription>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>{t('profile.avatar.title')}</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             {t('profile.avatar.description')}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         <div className="flex flex-col items-center gap-6 py-4">
           {/* Preview Avatar */}
@@ -199,7 +199,7 @@ export function AvatarUpload({
           </p>
         </div>
 
-        <DialogFooter className={cn('gap-2', selectedFile ? 'sm:justify-between' : '')}>
+        <ResponsiveDialogFooter className={cn(selectedFile ? 'sm:justify-between' : '')}>
           {currentAvatarUrl && !selectedFile && (
             <Button
               type="button"
@@ -243,8 +243,8 @@ export function AvatarUpload({
               </Button>
             </>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

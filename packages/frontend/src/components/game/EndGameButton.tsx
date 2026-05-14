@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { useGameStore } from '@/stores/gameStore'
 import { Loader2, Trophy, CheckCircle2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
@@ -80,14 +80,14 @@ export function EndGameButton() {
         )}
       </AnimatePresence>
 
-      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="text-center sm:text-center">
+      <ResponsiveDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <ResponsiveDialogContent className="sm:max-w-md">
+          <ResponsiveDialogHeader className="text-center sm:text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
               <Trophy className="h-8 w-8 text-primary" />
             </div>
-            <DialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</DialogTitle>
-          </DialogHeader>
+            <ResponsiveDialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
 
           <div className="py-4 text-center">
             <p className="text-muted-foreground text-base italic">
@@ -95,7 +95,7 @@ export function EndGameButton() {
             </p>
           </div>
 
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
+          <ResponsiveDialogFooter className="flex-col gap-2 sm:flex-col">
             <Button
               variant="gaming"
               onClick={handleEndGame}
@@ -117,9 +117,9 @@ export function EndGameButton() {
             >
               {t('common.cancel')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }
