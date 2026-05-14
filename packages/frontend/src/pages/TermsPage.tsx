@@ -12,6 +12,9 @@ export default function TermsPage() {
     { title: t('legal.termsAccountTitle'), content: t('legal.termsAccount') },
     { title: t('legal.termsContentTitle'), content: t('legal.termsContent') },
     { title: t('legal.termsConductTitle'), content: t('legal.termsConduct') },
+    { title: t('legal.termsSubscriptionTitle'), content: t('legal.termsSubscription') },
+    { title: t('legal.termsWithdrawalTitle'), content: t('legal.termsWithdrawal') },
+    { title: t('legal.termsCancellationTitle'), content: t('legal.termsCancellation') },
     { title: t('legal.termsModificationTitle'), content: t('legal.termsModification') },
   ]
 

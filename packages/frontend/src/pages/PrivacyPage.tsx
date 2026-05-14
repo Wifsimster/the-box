@@ -11,6 +11,7 @@ export default function PrivacyPage() {
     { title: t('legal.privacyUsageTitle'), content: t('legal.privacyUsage') },
     { title: t('legal.privacyCookiesTitle'), content: t('legal.privacyCookies') },
     { title: t('legal.privacySecurityTitle'), content: t('legal.privacySecurity') },
+    { title: t('legal.privacyPaymentsTitle'), content: t('legal.privacyPayments') },
     { title: t('legal.privacyRightsTitle'), content: t('legal.privacyRights') },
     { title: t('legal.privacyContactTitle'), content: t('legal.privacyContact') },
   ]
