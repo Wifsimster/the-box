@@ -13,6 +13,7 @@ import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import type { GameSessionDetailsResponse } from '@the-box/types'
 
 interface LeaderboardEntry {
@@ -631,11 +632,18 @@ export default function LeaderboardPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{item.guess.correctGame.name}</div>
-                            {item.guess.userGuess && (
+                            {item.guess.attempts && item.guess.attempts.length > 0 ? (
+                              <>
+                                <span className="text-xs text-muted-foreground block mt-0.5">
+                                  {t('game.attempts.count', { count: item.guess.attempts.length })}
+                                </span>
+                                <GuessAttemptsList attempts={item.guess.attempts} compact />
+                              </>
+                            ) : item.guess.userGuess ? (
                               <div className="text-sm text-muted-foreground truncate">
                                 {t('game.yourGuess')}: {item.guess.userGuess}
                               </div>
-                            )}
+                            ) : null}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {item.guess.isCorrect ? (
