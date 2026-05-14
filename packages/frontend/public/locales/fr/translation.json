@@ -1077,6 +1077,18 @@
           "confirmLabel": "Tapez {{word}} pour confirmer",
           "confirm": "Réinitialiser tout"
         }
+      },
+      "workspace": {
+        "capture": "Capture du joueur",
+        "map": "Carte du jeu",
+        "captureAlt": "Capture proposée #{{id}}"
+      },
+      "keyboard": {
+        "next": "suivante",
+        "previous": "précédente",
+        "approve": "valider",
+        "reject": "refuser",
+        "close": "fermer"
       }
     },
     "growth": {

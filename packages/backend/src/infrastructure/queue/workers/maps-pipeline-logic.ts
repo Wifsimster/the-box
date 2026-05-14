@@ -76,8 +76,10 @@ export async function runMapsPipeline(input: {
     return await advanceWhenExhausted(gameId, hasMap)
   }
 
-  // Update state to "fetching_*" and enqueue the source-specific child. The
-  // child re-enqueues this orchestrator on completion (success or failure).
+  // Update state to "fetching_*" and enqueue the source-specific child.
+  // `runSourceFetch` advances the pipeline after a recorded outcome on the
+  // success path; on terminal retry exhaustion the geo-worker 'failed'
+  // listener calls `advancePipeline` instead (see geo.worker.ts).
   const stage: MapPipelineStage = targetKind === 'map' ? 'fetching_map' : 'fetching_candidates'
   await geoPipelineStateRepository.upsert({
     gameId,

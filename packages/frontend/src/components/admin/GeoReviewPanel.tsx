@@ -14,24 +14,20 @@ import {
 } from '@/components/ui/dialog'
 import {
     Loader2,
-    Trash2,
     HelpCircle,
     MapPin,
     ListChecks,
     Library,
     Flag,
     X,
-    ChevronLeft,
-    ChevronRight,
-    ArrowLeft,
     Workflow,
     Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { GeoMapsTab } from './GeoMapsTab'
 import { ModerationStatusRail } from './ModerationStatusRail'
 import { ReportsModerationPanel } from './ReportsModerationPanel'
+import { ReviewWorkspace } from './geo-review/ReviewWorkspace'
 import GeoFetchPanel from './geo-fetch/GeoFetchPanel'
 import { geoFetchApi } from '@/lib/api/geo-fetch'
 import { useGeoRunPolling } from '@/hooks/useGeoRunPolling'
@@ -682,7 +678,7 @@ export function GeoReviewPanel() {
                         side-by-side as before. */}
                     <Card
                         className={cn(
-                            'lg:col-span-1',
+                            'lg:col-span-1 lg:sticky lg:top-4 lg:self-start',
                             detail && 'hidden lg:block',
                         )}
                     >
@@ -707,7 +703,7 @@ export function GeoReviewPanel() {
                                 </Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-3 lg:max-h-[520px] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
+                        <CardContent className="space-y-3 lg:max-h-[calc(100vh-14rem)] overflow-auto p-4 sm:p-6 pt-0 sm:pt-0">
                             {gameFilter ? (
                                 <>
                                     {candidates.map((c) => (
@@ -862,74 +858,35 @@ export function GeoReviewPanel() {
                         </CardContent>
                     </Card>
 
-                    {/* Detail card — on mobile, only renders when a
-                        candidate is selected (replacing the list). On lg+,
-                        always visible alongside the list. The Header stays
-                        sticky throughout because nothing is rendered as a
-                        modal/portal anymore. */}
-                    <Card
+                    {/* Review workspace — side-by-side capture + map with
+                        sticky action bar and keyboard shortcuts. On mobile
+                        the workspace replaces the list (back-button restores
+                        it); on lg+ both surfaces sit side-by-side. */}
+                    <div
                         className={cn(
                             'lg:col-span-2',
                             !detail && 'hidden lg:block',
                         )}
                     >
-                        <CardHeader className="pb-2 p-4 sm:p-6">
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    {/* Mobile back button — pops the detail
-                                        view so the user is returned to the
-                                        list. Hidden on lg+ where both cards
-                                        are visible side-by-side. */}
-                                    {detail && (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 shrink-0 lg:hidden"
-                                            onClick={() => {
-                                                setDetail(null)
-                                                setPin(null)
-                                            }}
-                                            aria-label={t(
-                                                'admin.geo.nav.backToList',
-                                                'Retour à la liste',
-                                            )}
-                                        >
-                                            <ArrowLeft className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                    <CardTitle className="text-sm truncate">
-                                        {detail
-                                            ? `#${detail.candidate.id} · ${t('admin.geo.submissionRow.pinCount', { count: detail.pins.length })}`
-                                            : t('admin.geo.pickSubmission')}
-                                    </CardTitle>
-                                </div>
-                                {detail && (
-                                    <CandidateNavControls
-                                        prev={prevCandidate}
-                                        next={nextCandidate}
-                                        currentIndex={currentIndex}
-                                        total={flatCandidates.length}
-                                        disabled={saving}
-                                        onNavigate={openDetail}
-                                        t={t}
-                                    />
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3 p-4 sm:p-6 pt-0 sm:pt-0">
-                            <CandidateDetailBody
-                                detail={detail}
-                                pin={pin}
-                                setPin={setPin}
-                                saving={saving}
-                                onPromote={applyOverride}
-                                onReject={() => setRejectOpen(true)}
-                                onDemote={() => setDemoteOpen(true)}
-                                t={t}
-                            />
-                        </CardContent>
-                    </Card>
+                        <ReviewWorkspace
+                            detail={detail}
+                            pin={pin}
+                            onPinChange={setPin}
+                            saving={saving}
+                            onPromote={applyOverride}
+                            onReject={() => setRejectOpen(true)}
+                            onDemote={() => setDemoteOpen(true)}
+                            onCloseDetail={() => {
+                                setDetail(null)
+                                setPin(null)
+                            }}
+                            prevCandidate={prevCandidate}
+                            nextCandidate={nextCandidate}
+                            currentIndex={currentIndex}
+                            total={flatCandidates.length}
+                            onNavigate={openDetail}
+                        />
+                    </div>
                 </div>
             )}
 
@@ -1019,178 +976,3 @@ export function GeoReviewPanel() {
     )
 }
 
-interface CandidateNavControlsProps {
-    prev: GeoScreenshotCandidate | null
-    next: GeoScreenshotCandidate | null
-    currentIndex: number
-    total: number
-    disabled: boolean
-    onNavigate: (id: number) => void | Promise<void>
-    t: ReturnType<typeof useTranslation>['t']
-}
-
-function CandidateNavControls({
-    prev,
-    next,
-    currentIndex,
-    total,
-    disabled,
-    onNavigate,
-    t,
-}: CandidateNavControlsProps) {
-    return (
-        <div className="flex items-center gap-1 shrink-0">
-            <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                disabled={!prev || disabled}
-                onClick={() => prev && void onNavigate(prev.id)}
-                aria-label={t('admin.geo.nav.previous')}
-                title={t('admin.geo.nav.previous')}
-            >
-                <ChevronLeft className="h-4 w-4" aria-hidden />
-            </Button>
-            {currentIndex >= 0 && total > 0 && (
-                <span
-                    className="text-[10px] tabular-nums text-muted-foreground min-w-[2.5rem] text-center"
-                    aria-live="polite"
-                >
-                    {t('admin.geo.nav.position', {
-                        current: currentIndex + 1,
-                        total,
-                    })}
-                </span>
-            )}
-            <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                disabled={!next || disabled}
-                onClick={() => next && void onNavigate(next.id)}
-                aria-label={t('admin.geo.nav.next')}
-                title={t('admin.geo.nav.next')}
-            >
-                <ChevronRight className="h-4 w-4" aria-hidden />
-            </Button>
-        </div>
-    )
-}
-
-interface CandidateDetailBodyProps {
-    detail: CandidateDetail | null
-    pin: GeoPoint | null
-    setPin: (p: GeoPoint | null) => void
-    saving: boolean
-    onPromote: () => void | Promise<void>
-    onReject: () => void
-    onDemote: () => void
-    t: ReturnType<typeof useTranslation>['t']
-}
-
-// Shared body for the candidate detail view — rendered inside the desktop
-// side-card and the mobile bottom sheet. Keeps the pin canvas, image,
-// status text and action buttons in one place so the two surfaces never
-// drift.
-function CandidateDetailBody({
-    detail,
-    pin,
-    setPin,
-    saving,
-    onPromote,
-    onReject,
-    onDemote,
-    t,
-}: CandidateDetailBodyProps) {
-    if (!detail || !detail.map) {
-        return (
-            <p className="text-xs text-muted-foreground">
-                {t('admin.geo.detailHintOfficial')}
-            </p>
-        )
-    }
-    return (
-        <>
-            <img
-                src={detail.candidate.imageUrl}
-                alt={`Candidate ${detail.candidate.id}`}
-                className="w-full rounded border max-h-48 object-contain bg-black/20"
-            />
-            <GeoMapCanvas
-                imageUrl={detail.map.imageUrl}
-                widthPx={detail.map.widthPx}
-                heightPx={detail.map.heightPx}
-                tiles={detail.map.tiles}
-                pin={pin}
-                canonical={
-                    detail.meta
-                        ? {
-                              x: detail.meta.canonical.x,
-                              y: detail.meta.canonical.y,
-                          }
-                        : null
-                }
-                onPin={setPin}
-                disabled={!!detail.meta}
-            />
-            {detail.meta ? (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                    <p className="text-xs text-warning">
-                        {t('admin.geo.alreadyOfficial')}
-                    </p>
-                    <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={onDemote}
-                        disabled={saving}
-                        className="w-full sm:w-auto"
-                    >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        {t('admin.geo.actions.removeOfficial')}
-                    </Button>
-                </div>
-            ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">
-                        {pin
-                            ? `(${pin.x.toFixed(3)}, ${pin.y.toFixed(3)})`
-                            : t(
-                                  detail.pins.length === 0
-                                      ? 'admin.geo.pickPointRequired'
-                                      : 'admin.geo.pickPointForOfficial',
-                              )}
-                    </span>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={onReject}
-                            disabled={saving}
-                            className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
-                        >
-                            <Trash2 className="h-3.5 w-3.5 mr-2" />
-                            {t('admin.geo.actions.decline')}
-                        </Button>
-                        <Button
-                            size="sm"
-                            onClick={() => void onPromote()}
-                            disabled={saving || (!pin && detail.pins.length === 0)}
-                            className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
-                        >
-                            {saving && (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                            )}
-                            {t(
-                                pin
-                                    ? 'admin.geo.actions.makeOfficial'
-                                    : 'admin.geo.actions.makeOfficialNoPin',
-                            )}
-                        </Button>
-                    </div>
-                </div>
-            )}
-        </>
-    )
-}

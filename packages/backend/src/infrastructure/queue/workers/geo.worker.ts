@@ -14,6 +14,10 @@ import { importRawgScreenshots } from './geo-rawg-import-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
 import { advancePipeline, runMapsPipeline } from './maps-pipeline-logic.js'
+import {
+  shouldAdvanceAfterFailure,
+  type MapsFetchChildJob,
+} from './geo-worker-predicates.js'
 import { runMapsFetchSteam } from './maps-fetch-steam.js'
 import { runMapsFetchRawg } from './maps-fetch-rawg.js'
 import { runMapsFetchFandom } from './maps-fetch-fandom.js'
@@ -187,12 +191,6 @@ geoWorker.on('error', (err) => {
   log.error({ err: String(err) }, 'geo worker error')
 })
 
-type MapsFetchChildJob = Extract<GeoJobData, { kind: `maps:fetch-from-${string}` }>
-
-function isMapsFetchChildJob(data: GeoJobData | undefined): data is MapsFetchChildJob {
-  return !!data && typeof data.kind === 'string' && data.kind.startsWith('maps:fetch-from-')
-}
-
 geoWorker.on('failed', (job, err) => {
   const data = job?.data as GeoJobData | undefined
   log.error(
@@ -200,25 +198,19 @@ geoWorker.on('failed', (job, err) => {
     'geo job failed',
   )
 
-  if (!job || !isMapsFetchChildJob(data)) return
+  if (!job || !shouldAdvanceAfterFailure(job)) return
 
-  // BullMQ fires 'failed' for every failed attempt. Only act on the terminal
-  // failure — otherwise we'd advance mid-retry and the next attempt would
-  // race the orchestrator picking another source.
-  const maxAttempts = job.opts.attempts ?? 1
-  if (job.attemptsMade < maxAttempts) return
-
-  // Without this, runSourceFetch's catch-and-rethrow path leaves pipeline
-  // state stuck at fetching_* with active_source pinned to the dead source:
-  // recordAttempt runs, but advancePipeline doesn't, and BullMQ has no more
-  // retries to run. Re-enqueue the orchestrator so it picks the next source
-  // (or transitions to awaiting_curation / blocked).
+  // `runSourceFetch` in maps-fetch-runtime.ts records the attempt and rethrows
+  // on transient errors, so its post-recordAttempt `advancePipeline` call is
+  // unreachable on the throw path. Without re-enqueueing here the pipeline
+  // state would stay pinned at `fetching_*` with `active_source` on the dead
+  // source and BullMQ has no more retries to run.
   void advancePipeline({
-    gameId: data.gameId,
-    correlationId: data.correlationId,
+    gameId: (data as MapsFetchChildJob).gameId,
+    correlationId: (data as MapsFetchChildJob).correlationId,
   }).catch((advanceErr) => {
     log.error(
-      { jobId: job.id, gameId: data.gameId, err: String(advanceErr) },
+      { jobId: job.id, gameId: (data as MapsFetchChildJob).gameId, err: String(advanceErr) },
       'failed to advance pipeline after maps:fetch-from-* exhaustion',
     )
   })
