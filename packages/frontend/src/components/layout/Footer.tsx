@@ -45,6 +45,12 @@ export function Footer() {
           {t('footer.faq')}
         </Link>
         <Link
+          to={localizedPath('/rules')}
+          className="text-muted-foreground hover:text-neon-purple transition-colors"
+        >
+          {t('footer.rules')}
+        </Link>
+        <Link
           to={localizedPath('/contact')}
           className="text-muted-foreground hover:text-neon-purple transition-colors"
         >
