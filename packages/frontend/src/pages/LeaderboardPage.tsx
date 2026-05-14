@@ -222,18 +222,27 @@ export default function LeaderboardPage() {
     <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="daily">
-              <Calendar className="w-4 h-4 mr-2" />
-              {t('leaderboard.dailyScores')}
+          <TabsList className="grid w-full grid-cols-3 mb-6 h-auto sm:h-10 p-1 gap-1">
+            <TabsTrigger
+              value="daily"
+              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
+            >
+              <Calendar className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="truncate max-w-full">{t('leaderboard.dailyScores')}</span>
             </TabsTrigger>
-            <TabsTrigger value="monthly">
-              <CalendarDays className="w-4 h-4 mr-2" />
-              {t('leaderboard.monthlyScores')}
+            <TabsTrigger
+              value="monthly"
+              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
+            >
+              <CalendarDays className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="truncate max-w-full">{t('leaderboard.monthlyScores')}</span>
             </TabsTrigger>
-            <TabsTrigger value="achievements">
-              <Crown className="w-4 h-4 mr-2" />
-              {t('leaderboard.achievementPoints')}
+            <TabsTrigger
+              value="achievements"
+              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
+            >
+              <Crown className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="truncate max-w-full">{t('leaderboard.achievementPoints')}</span>
             </TabsTrigger>
           </TabsList>
 
