@@ -1515,3 +1515,76 @@ export interface PublicLeaderboardEntry {
   // Only set on the monthly endpoint.
   gamesPlayed?: number
 }
+
+// ============================================
+// Public API M2 — Webhooks + SSE events
+// ============================================
+
+// Top-level event taxonomy. Lives here so backend dispatch and frontend
+// (test harness, settings UI) share one source of truth. Adding a new
+// event = add it here, plus the handler in the dispatch site, plus an
+// optional default subscription row.
+export type PublicEventType =
+  | 'session.started'
+  | 'session.completed'
+  | 'screenshot.scored'
+  | 'rank.changed'
+
+// Webhook registration row as returned to the owner. Plaintext secret is
+// only present in the `WebhookCreated` shape below.
+export interface WebhookSummary {
+  id: number
+  url: string
+  label: string
+  secretPrefix: string
+  // Empty array means "all events". Otherwise a strict subset of PublicEventType.
+  events: PublicEventType[]
+  isActive: boolean
+  createdAt: string
+  lastDeliveredAt: string | null
+}
+
+export interface WebhookCreated extends WebhookSummary {
+  // The signing secret. Shown exactly once at registration. If lost, the
+  // owner must revoke and re-register.
+  secret: string
+}
+
+// Envelope every webhook POST body uses. Keeps the verifier snippets in
+// docs short — peel off `data` and switch on `event`.
+export interface WebhookPayload<T = unknown> {
+  // Stable id of the originating event. Idempotency key for receivers:
+  // de-dup on this before acting.
+  eventId: string
+  event: PublicEventType
+  // ISO timestamp the event was minted at (DB commit time, not delivery).
+  occurredAt: string
+  // Public slug of the streamer the event is about. Always set for streamer
+  // events; future system-wide events may use a sentinel.
+  slug: string
+  data: T
+}
+
+// session.completed payload — used both by the webhook envelope and by
+// the SSE channel. Score + rank are post-completion finalized values.
+export interface SessionCompletedEvent {
+  score: number
+  screenshotsFound: number
+  totalScreenshots: number
+  rank: number | null
+  challengeDate: string
+  countsForLeaderboard: boolean
+}
+
+// session.started payload — fired when a streamer begins their daily.
+// Useful for chat-bots that switch scenes or post "now playing" lines.
+export interface SessionStartedEvent {
+  sessionId: string
+  challengeDate: string
+  countsForLeaderboard: boolean
+}
+
+// SSE live-channel event names. The same envelope discipline as webhooks,
+// but `id:` / `event:` / `data:` are emitted directly (not wrapped) so
+// `EventSource.addEventListener('session.completed', …)` works out of the box.
+export type SseEventName = PublicEventType | 'heartbeat' | 'connected'

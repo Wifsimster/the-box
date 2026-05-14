@@ -192,6 +192,68 @@ async function onAfterGuessSubmitted(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Public-API webhook fan-out on session completion. Resolves the user's
+ * public slug, computes the rank for ranked sessions, and dispatches to
+ * `session.completed` subscribers. Catch-up sessions still trigger the
+ * webhook (people DO ask their chat "I finally beat yesterday's") but
+ * `countsForLeaderboard: false` flags them so receivers can ignore.
+ */
+async function onAfterSessionCompleted(params: {
+  userId: string
+  sessionId: string
+  challengeId: number
+  finalScore: number
+  screenshotsFound: number
+  reason: 'all_found' | 'forfeit'
+  isCatchUp: boolean
+}): Promise<void> {
+  // Resolve slug + public flag in one cheap query. If the user hasn't
+  // opted in, there's nothing to dispatch — bail before fetching subs.
+  const { db } = await import('../../infrastructure/database/connection.js')
+  const userRow = await db('user')
+    .where('id', params.userId)
+    .select<{ public_slug: string | null; public_profile_enabled: boolean }>(
+      'public_slug',
+      'public_profile_enabled'
+    )
+    .first()
+  if (!userRow?.public_profile_enabled || !userRow.public_slug) return
+
+  const challenge = await challengeRepository.findById(params.challengeId)
+  if (!challenge) return
+
+  // Final rank — same pure-DB query the public profile endpoint uses.
+  // Catch-up sessions are explicitly excluded from the leaderboard so
+  // `rank` is null in that path.
+  let rank: number | null = null
+  if (!params.isCatchUp) {
+    const higher = await db('game_sessions')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .where('daily_challenge_id', params.challengeId)
+      .andWhere('is_completed', true)
+      .andWhere('is_catch_up', false)
+      .whereRaw('"user"."isAnonymous" = ?', [false])
+      .andWhere('total_score', '>', params.finalScore)
+      .count<{ count: string }[]>('game_sessions.id as count')
+      .first()
+    rank = Number(higher?.count ?? 0) + 1
+  }
+
+  const { webhookDispatch } = await import('./webhook-dispatch.service.js')
+  await webhookDispatch.sessionCompleted({
+    userId: params.userId,
+    slug: userRow.public_slug,
+    sessionId: params.sessionId,
+    challengeDate: challenge.challenge_date,
+    score: params.finalScore,
+    screenshotsFound: params.screenshotsFound,
+    totalScreenshots: 10,
+    rank,
+    countsForLeaderboard: !params.isCatchUp,
+  })
+}
+
 export const gameService = createGameService({
   logger: serviceLogger,
   fuzzyMatchService,
@@ -205,6 +267,7 @@ export const gameService = createGameService({
   funnelEventRepository,
   positionSecondChanceRepository,
   onAfterGuessSubmitted,
+  onAfterSessionCompleted,
 })
 
 export const geoScoringService = createGeoScoringService({ logger: serviceLogger })

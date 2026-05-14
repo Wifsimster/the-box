@@ -56,3 +56,10 @@ export {
   hashApiKey,
   type ApiKeyRow,
 } from './api-key.repository.js'
+export {
+  webhookRepository,
+  webhookDeliveryRepository,
+  hashWebhookSecret,
+  type WebhookRow,
+  type WebhookDeliveryRow,
+} from './webhook.repository.js'

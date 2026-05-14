@@ -35,13 +35,16 @@ import {
   importQueue,
   geoQueue,
   pushQueue,
+  webhookQueue,
   importQueueEvents,
   geoQueueEvents,
   pushQueueEvents,
+  webhookQueueEvents,
 } from './infrastructure/queue/queues.js'
 import { importWorker } from './infrastructure/queue/workers/import.worker.js'
 import { geoWorker } from './infrastructure/queue/workers/geo.worker.js'
 import { pushWorker } from './infrastructure/queue/workers/push.worker.js'
+import { webhookWorker } from './infrastructure/queue/workers/webhook-delivery.worker.js'
 import { db } from './infrastructure/database/connection.js'
 import { pushService } from './domain/services/push.service.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
@@ -757,6 +760,7 @@ async function start(): Promise<void> {
       closeWithTimeout('importWorker.pause', () => importWorker.pause()),
       closeWithTimeout('geoWorker.pause', () => geoWorker.pause()),
       closeWithTimeout('pushWorker.pause', () => pushWorker.pause()),
+      closeWithTimeout('webhookWorker.pause', () => webhookWorker.pause()),
     ])
 
     // Now drain — worker.close() waits for active jobs to finish (up to
@@ -767,14 +771,17 @@ async function start(): Promise<void> {
       closeWithTimeout('importWorker', () => importWorker.close(), 15_000),
       closeWithTimeout('geoWorker', () => geoWorker.close(), 15_000),
       closeWithTimeout('pushWorker', () => pushWorker.close(), 15_000),
+      closeWithTimeout('webhookWorker', () => webhookWorker.close(), 15_000),
     ])
     await Promise.all([
       closeWithTimeout('importQueue', () => importQueue.close()),
       closeWithTimeout('geoQueue', () => geoQueue.close()),
       closeWithTimeout('pushQueue', () => pushQueue.close()),
+      closeWithTimeout('webhookQueue', () => webhookQueue.close()),
       closeWithTimeout('importQueueEvents', () => importQueueEvents.close()),
       closeWithTimeout('geoQueueEvents', () => geoQueueEvents.close()),
       closeWithTimeout('pushQueueEvents', () => pushQueueEvents.close()),
+      closeWithTimeout('webhookQueueEvents', () => webhookQueueEvents.close()),
     ])
     await closeWithTimeout('db', () => db.destroy())
 

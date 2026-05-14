@@ -3,20 +3,32 @@ import { z } from 'zod'
 import { db } from '../../infrastructure/database/connection.js'
 import { challengeRepository } from '../../infrastructure/repositories/challenge.repository.js'
 import { leaderboardRepository } from '../../infrastructure/repositories/leaderboard.repository.js'
+import {
+  webhookRepository,
+} from '../../infrastructure/repositories/webhook.repository.js'
+import { webhookSecretCache } from '../../infrastructure/queue/webhook-secret-cache.js'
+import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
+import { env } from '../../config/env.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import {
   publicApiCors,
   publicApiRateLimit,
   optionalApiKey,
+  requireApiKey,
 } from '../middleware/public-api.middleware.js'
-import { validateQuery } from '../middleware/validation.middleware.js'
+import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
+import { setupSseChannel } from './public-sse.js'
 import type {
+  ApiKeyScope,
   LeaderboardEntry,
   MonthlyLeaderboardEntry,
   PublicChallengeToday,
+  PublicEventType,
   PublicLeaderboardEntry,
   PublicStreamerProfile,
   PublicStreamerToday,
+  WebhookCreated,
+  WebhookSummary,
 } from '@the-box/types'
 
 // Public, opt-in, key-authenticated read API for streamer integrations.
@@ -410,6 +422,174 @@ router.get('/leaderboard/monthly', validateQuery(monthlyQuerySchema), async (req
   }
 })
 
-void log // M2 (SSE, webhooks) will use this; keep the child logger ready.
+// ─────────────────────────────────────────────────────────────────────
+// M2 — SSE live channel
+// ─────────────────────────────────────────────────────────────────────
+//
+// GET /api/public/v1/streamers/:slug/live?key=tb_pk_…
+//
+// SSE is one-way push from server → browser, ideal for OBS browser
+// sources. `EventSource` can't set headers, so the key arrives as a
+// query param — the request-logging middleware redacts it.
+//
+// The actual stream loop, polling cadence, heartbeat, and connection
+// budget all live in public-sse.ts so this file stays readable. We
+// require an API key on this path so the per-key concurrent-connection
+// cap (3) has something to attach to.
+router.get(
+  '/streamers/:slug/live',
+  requireApiKey({ allowQueryParam: true }),
+  async (req, res) => {
+    const rawSlug = req.params['slug']
+    const slug = (typeof rawSlug === 'string' ? rawSlug : '').toLowerCase()
+    if (!SLUG_RE.test(slug)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_SLUG' } })
+      return
+    }
+    await setupSseChannel(req, res, { slug, log })
+  },
+)
+
+// ─────────────────────────────────────────────────────────────────────
+// M2 — Webhooks
+//
+// Three endpoints, all key-authed against the OWNER's data:
+//   POST   /webhooks         register
+//   GET    /webhooks         list own webhooks
+//   DELETE /webhooks/:id     revoke
+//
+// Cross-account access is explicitly impossible — `req.userId` (set by
+// the key) is the only id we ever look up by. Holding a key for user A
+// never grants visibility into user B's webhooks.
+// ─────────────────────────────────────────────────────────────────────
+
+function hasScope(scopes: ApiKeyScope[] | undefined, want: ApiKeyScope): boolean {
+  return Array.isArray(scopes) && scopes.includes(want)
+}
+
+const ALLOWED_EVENTS: PublicEventType[] = [
+  'session.started',
+  'session.completed',
+  'screenshot.scored',
+  'rank.changed',
+]
+
+const createWebhookSchema = z.object({
+  url: z.string().url().max(2048),
+  label: z.string().trim().min(1).max(64),
+  events: z
+    .array(z.enum(ALLOWED_EVENTS as [PublicEventType, ...PublicEventType[]]))
+    .max(16)
+    // Empty array means "all events" — semantically distinct from "no events"
+    // (which would be a useless registration).
+    .default([]),
+})
+
+router.post(
+  '/webhooks',
+  requireApiKey(),
+  validateBody(createWebhookSchema),
+  async (req, res, next) => {
+    try {
+      if (!hasScope(req.apiKey?.scopes, 'webhooks:self')) {
+        res.status(403).json({ success: false, error: { code: 'INSUFFICIENT_SCOPE' } })
+        return
+      }
+      const userId = req.userId!
+      const body = req.body as z.infer<typeof createWebhookSchema>
+
+      // SSRF guard at register time. The delivery worker re-checks DNS
+      // on every send so DNS rebinding can't sneak past this.
+      const validation = validateWebhookUrl(body.url, env.API_URL)
+      if (!validation.ok) {
+        res.status(400).json({
+          success: false,
+          error: { code: validation.code ?? 'INVALID_URL', message: 'URL rejected by SSRF guard' },
+        })
+        return
+      }
+
+      // Cap concurrent active webhooks per user. 10 is generous (multi-bot
+      // setups stay well under) and stops a compromised session from
+      // creating an unbounded fleet.
+      const existing = await webhookRepository.findByUser(userId)
+      if (existing.filter((w) => w.is_active).length >= 10) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'TOO_MANY_WEBHOOKS', message: 'Revoke an existing webhook first' },
+        })
+        return
+      }
+
+      const { row, secret } = await webhookRepository.create({
+        userId,
+        url: body.url,
+        label: body.label,
+        events: body.events,
+      })
+
+      // Stash the plaintext signing secret in memory so the delivery worker
+      // can sign outgoing payloads. See webhook-secret-cache.ts for the
+      // restart-window caveat.
+      webhookSecretCache.set(row.id, secret)
+
+      const payload: WebhookCreated = {
+        ...webhookRepository.mapWebhook(row),
+        secret,
+      }
+      res.status(201).json({ success: true, data: payload })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+router.get('/webhooks', requireApiKey(), async (req, res, next) => {
+  try {
+    if (!hasScope(req.apiKey?.scopes, 'webhooks:self')) {
+      res.status(403).json({ success: false, error: { code: 'INSUFFICIENT_SCOPE' } })
+      return
+    }
+    const rows = await webhookRepository.findByUser(req.userId!)
+    const data: WebhookSummary[] = rows.map(webhookRepository.mapWebhook)
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const webhookIdParams = z.object({ id: z.coerce.number().int().positive() })
+
+router.delete(
+  '/webhooks/:id',
+  requireApiKey(),
+  validateParams(webhookIdParams),
+  async (req, res, next) => {
+    try {
+      if (!hasScope(req.apiKey?.scopes, 'webhooks:self')) {
+        res.status(403).json({ success: false, error: { code: 'INSUFFICIENT_SCOPE' } })
+        return
+      }
+      const userId = req.userId!
+      const { id } = req.params as unknown as z.infer<typeof webhookIdParams>
+      const owned = await webhookRepository.findOwnedById(userId, id)
+      if (!owned) {
+        res.status(404).json({ success: false, error: { code: 'WEBHOOK_NOT_FOUND' } })
+        return
+      }
+      const ok = await webhookRepository.revoke(id, userId)
+      if (!ok) {
+        res.status(409).json({ success: false, error: { code: 'ALREADY_REVOKED' } })
+        return
+      }
+      // Drop the cached secret immediately — a revoked endpoint that
+      // somehow gets re-targeted shouldn't continue to receive signed payloads.
+      webhookSecretCache.delete(id)
+      res.json({ success: true, data: { ok: true } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 export default router
