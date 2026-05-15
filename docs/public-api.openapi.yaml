@@ -1,0 +1,474 @@
+# Public API — Streamer Kit. Machine-readable contract for /api/public/v1.
+# Hand-maintained alongside docs/public-api.md and the route handlers in
+# packages/backend/src/presentation/routes/public.routes.ts. Keep all three
+# in sync on every change to the surface.
+openapi: 3.1.0
+info:
+  title: The Box — Public API (Streamer Kit)
+  version: "1.0.0"
+  description: >
+    Read-only, opt-in, key-authenticated API for streamer chat-bot and
+    OBS-overlay integrations. See docs/public-api.md for the prose reference.
+servers:
+  - url: https://the-box.battistella.ovh/api/public/v1
+    description: Production
+  - url: http://localhost:3000/api/public/v1
+    description: Local development
+
+security:
+  - {}                       # most reads allow anonymous access
+  - apiKey: []
+
+tags:
+  - name: challenge
+  - name: streamers
+  - name: leaderboard
+  - name: webhooks
+
+paths:
+  /challenge/today:
+    get:
+      tags: [challenge]
+      summary: Today's challenge metadata
+      operationId: getChallengeToday
+      responses:
+        "200":
+          description: Challenge metadata
+          headers:
+            RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeTodayEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /streamers/{slug}:
+    get:
+      tags: [streamers]
+      summary: Public streamer profile
+      operationId: getStreamerProfile
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+        - name: format
+          in: query
+          schema: { type: string, enum: [json, chat] }
+          description: "`chat` returns a single-line text/plain body."
+        - name: emoji
+          in: query
+          schema: { type: string, enum: ["0", "1"] }
+          description: With `format=chat`, `0` drops the leading emoji.
+      responses:
+        "200":
+          description: Profile (JSON) or one-line chat string (text/plain)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamerProfileEnvelope"
+            text/plain:
+              schema: { type: string }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /streamers/{slug}/today:
+    get:
+      tags: [streamers]
+      summary: Today's session state (no spoilers)
+      operationId: getStreamerToday
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamerTodayEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /streamers/{slug}/live:
+    get:
+      tags: [streamers]
+      summary: Server-Sent Events live channel for overlays
+      operationId: getStreamerLive
+      security:
+        - apiKey: []
+        - apiKeyQuery: []
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+        - name: key
+          in: query
+          schema: { type: string }
+          description: >
+            API key. SSE-only fallback because EventSource cannot set
+            headers. Redacted from request logs.
+      responses:
+        "200":
+          description: text/event-stream of connected / screenshot.scored / session.completed / heartbeat events
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /leaderboard/daily:
+    get:
+      tags: [leaderboard]
+      summary: Daily leaderboard
+      operationId: getLeaderboardDaily
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Ranked entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardEnvelope"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /leaderboard/monthly:
+    get:
+      tags: [leaderboard]
+      summary: Monthly leaderboard
+      operationId: getLeaderboardMonthly
+      parameters:
+        - name: month
+          in: query
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Ranked entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardEnvelope"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /webhooks:
+    get:
+      tags: [webhooks]
+      summary: List your webhooks
+      operationId: listWebhooks
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: Webhook list (no secrets)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/WebhookSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [webhooks]
+      summary: Register a webhook
+      operationId: createWebhook
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, label]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  description: HTTPS only; rejected by the SSRF guard otherwise.
+                label:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                events:
+                  type: array
+                  default: []
+                  maxItems: 16
+                  items: { $ref: "#/components/schemas/EventType" }
+                  description: Empty = subscribe to all events.
+      responses:
+        "201":
+          description: Created — `secret` returned exactly once
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: "#/components/schemas/WebhookCreated" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /webhooks/{id}:
+    delete:
+      tags: [webhooks]
+      summary: Revoke a webhook
+      operationId: deleteWebhook
+      security:
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkEnvelope" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Already revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      description: "API key, e.g. `tb_pk_live_…`. Header form."
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: key
+      description: SSE-only key fallback (EventSource cannot set headers).
+
+  parameters:
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9_-]{3,32}$' }
+
+  headers:
+    RateLimitLimit:
+      schema: { type: integer }
+      description: Requests allowed per minute (60 anon, 600 keyed).
+
+  responses:
+    BadRequest:
+      description: Validation / bad input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Forbidden:
+      description: Key lacks the required scope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    RateLimited:
+      description: Per-minute rate limit exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Seconds until the window resets.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+  schemas:
+    EventType:
+      type: string
+      enum: [session.started, session.completed, screenshot.scored, rank.changed]
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+    OkEnvelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            ok: { type: boolean }
+
+    ChallengeTodayEnvelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            date: { type: string, format: date }
+            totalScreenshots: { type: integer }
+            scoringConfig:
+              type: object
+              properties:
+                initialScore: { type: integer }
+                decayRate: { type: integer }
+
+    StreamerProfileEnvelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            slug: { type: string }
+            displayName: { type: string }
+            avatarUrl: { type: [string, "null"] }
+            currentStreak: { type: integer }
+            longestStreak: { type: integer }
+            totalScore: { type: integer }
+            gamesPlayed: { type: integer }
+            today:
+              type: [object, "null"]
+              properties:
+                score: { type: integer }
+                rank: { type: [integer, "null"] }
+                completed: { type: boolean }
+
+    StreamerTodayEnvelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: object
+          properties:
+            slug: { type: string }
+            status:
+              type: string
+              enum: [not_started, in_progress, completed]
+            session:
+              type: [object, "null"]
+              properties:
+                score: { type: integer }
+                screenshotsDone: { type: integer }
+                totalScreenshots: { type: integer }
+                tier: { type: [integer, "null"] }
+                startedAt: { type: string, format: date-time }
+                completedAt: { type: [string, "null"], format: date-time }
+                rank: { type: [integer, "null"] }
+                countsForLeaderboard: { type: boolean }
+
+    LeaderboardEnvelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              rank: { type: integer }
+              slug: { type: [string, "null"] }
+              displayName: { type: string }
+              avatarUrl: { type: [string, "null"] }
+              totalScore: { type: integer }
+              completedAt:
+                type: string
+                format: date-time
+                description: Daily endpoint only.
+              gamesPlayed:
+                type: integer
+                description: Monthly endpoint only.
+
+    WebhookSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        url: { type: string, format: uri }
+        label: { type: string }
+        secretPrefix: { type: string }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/EventType" }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        lastDeliveredAt: { type: [string, "null"], format: date-time }
+
+    WebhookCreated:
+      allOf:
+        - $ref: "#/components/schemas/WebhookSummary"
+        - type: object
+          properties:
+            secret:
+              type: string
+              description: Signing secret. Returned exactly once.
+
+    WebhookPayload:
+      description: POST body delivered to a registered webhook URL.
+      type: object
+      properties:
+        eventId:
+          type: string
+          description: Idempotency key — de-duplicate on this.
+        event: { $ref: "#/components/schemas/EventType" }
+        occurredAt: { type: string, format: date-time }
+        slug: { type: string }
+        data:
+          type: object
+          description: Event-specific. session.completed shape shown below.
+          properties:
+            score: { type: integer }
+            screenshotsFound: { type: integer }
+            totalScreenshots: { type: integer }
+            rank: { type: [integer, "null"] }
+            challengeDate: { type: string, format: date }
+            countsForLeaderboard: { type: boolean }

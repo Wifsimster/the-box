@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Streamer Kit — visual landing for the public API (2026-05-14).
+  Walks a streamer through the 3-step opt-in, then gives copy-paste recipes
+  for the three integration paths: Nightbot chat command, OBS browser-source
+  overlay (SSE), and webhook → chat. Grep-friendly reference lives in
+  docs/public-api.md; machine contract in docs/public-api.openapi.yaml.
+  Local-open / GitHub-rendered only — never served by Express.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Streamer Kit — The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    position: relative;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; }
+  .hero p.thesis em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .steps { display: grid; gap: 0.75rem; margin: 1rem 0; counter-reset: step; }
+  .step {
+    display: grid; grid-template-columns: 32px 1fr; gap: 0.85rem; align-items: start;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    font-family: var(--mono); font-weight: 600;
+    color: var(--neon-purple);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step strong { color: var(--fg); }
+  .step .note { color: var(--muted); font-size: 0.88rem; }
+
+  .recipe {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .recipe summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer; list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .recipe summary::-webkit-details-marker { display: none; }
+  .recipe summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); }
+  .recipe[open] summary::after { content: '−'; }
+  .recipe summary .tool { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; }
+  .recipe .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono { font-family: var(--mono); font-size: 0.85rem; }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.info { color: var(--neon-blue); }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+
+  .copy-btn {
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    font-family: var(--mono); font-size: 0.7rem;
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 0.2rem 0.5rem; cursor: pointer;
+  }
+  .copy-btn:hover { color: var(--neon-purple); border-color: var(--neon-purple); }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Streamer Kit · The Box</span>
+  <span class="repo">wifsimster/the-box · public API v1</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>Streamer Kit</h1>
+  <p class="meta">Wire The Box into your stream — chat commands, live overlays, and webhook-driven shoutouts.</p>
+
+  <div class="hero">
+    <p class="thesis">
+      The Streamer Kit is a <em>read-only, opt-in</em> public API. Your viewers can see
+      your score, streak and rank; <em>nobody can play for you</em>. Three integration
+      paths — a <em>chat command</em>, an <em>OBS overlay</em>, and <em>webhooks</em> — all
+      from one API key.
+    </p>
+  </div>
+
+  <h2 id="start">1. Get set up (3 steps)</h2>
+  <div class="steps">
+    <div class="step">
+      <div>
+        <strong>Turn on your public profile.</strong>
+        <div class="note">Profile → Streamer Kit → enable <em>Public Streamer Profile</em>. Off by default — nothing about you is queryable until you flip this.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <strong>Claim a slug.</strong>
+        <div class="note">3–32 characters, lowercase letters / digits / dash / underscore. This is your public handle — e.g. <code>wifsim</code> → <code>/streamers/wifsim</code>.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <strong>Generate an API key.</strong>
+        <div class="note">Shown once. Copy it into your bot or overlay. Lost it? Revoke and make a new one.</div>
+      </div>
+    </div>
+  </div>
+
+  <blockquote class="callout info">
+    Base URL: <code>https://the-box.battistella.ovh/api/public/v1</code>. Every example
+    below uses the placeholder <code>YOUR_SLUG</code> and <code>YOUR_KEY</code> — swap in
+    your real values.
+  </blockquote>
+
+  <h2 id="chat">2. Chat command</h2>
+  <p>
+    The fastest win. A viewer types <code>!box</code> and the bot replies with your
+    score line. The profile endpoint has a <code>?format=chat</code> mode that returns a
+    ready-made single line — no JSON parsing required.
+  </p>
+
+  <pre><code>GET /api/public/v1/streamers/YOUR_SLUG?format=chat
+
+🎮 @Wifsim · Today: 7,820 pts (#42) · Streak: 11d</code></pre>
+
+  <details class="recipe" open>
+    <summary><span class="tool">Nightbot</span> <span class="meta">— add a custom command</span></summary>
+    <div class="body">
+      <p>In the Nightbot dashboard → Commands → Custom → Add Command:</p>
+      <pre><code>!commands add !box $(urlfetch https://the-box.battistella.ovh/api/public/v1/streamers/YOUR_SLUG?format=chat)</code></pre>
+      <p class="meta">
+        Use <code>urlfetch</code> (not <code>urlfetch json</code>) — the <code>chat</code> format
+        already returns plain text. Append <code>&amp;emoji=0</code> if your chat strips emoji.
+      </p>
+    </div>
+  </details>
+
+  <details class="recipe">
+    <summary><span class="tool">Streamer.bot</span> <span class="meta">— Fetch URL sub-action</span></summary>
+    <div class="body">
+      <p>Add a command, then a <strong>Fetch URL</strong> sub-action:</p>
+      <pre><code>URL:    https://the-box.battistella.ovh/api/public/v1/streamers/YOUR_SLUG?format=chat
+Method: GET
+Output: %theBoxLine%</code></pre>
+      <p>Then a <strong>Twitch → Send Message</strong> sub-action with body <code>%theBoxLine%</code>.</p>
+    </div>
+  </details>
+
+  <h2 id="overlay">3. Live overlay (OBS)</h2>
+  <p>
+    A browser-source overlay that ticks up with your score, screenshot-by-screenshot.
+    The live endpoint is a <strong>Server-Sent Events</strong> stream — works with the
+    browser's built-in <code>EventSource</code>, no library needed. Because
+    <code>EventSource</code> can't send headers, the key goes in the query string here
+    (this is the only endpoint where that's allowed).
+  </p>
+
+  <pre><code>&lt;!-- overlay.html — drop into an OBS Browser Source --&gt;
+&lt;div id="score"&gt;—&lt;/div&gt;
+&lt;script&gt;
+  const KEY  = 'YOUR_KEY'
+  const SLUG = 'YOUR_SLUG'
+  const es = new EventSource(
+    `https://the-box.battistella.ovh/api/public/v1/streamers/${SLUG}/live?key=${KEY}`
+  )
+  es.addEventListener('screenshot.scored', (e) =&gt; {
+    const s = JSON.parse(e.data)
+    document.getElementById('score').textContent =
+      `${s.score} pts · ${s.screenshotsDone}/10`
+  })
+  es.addEventListener('session.completed', (e) =&gt; {
+    const s = JSON.parse(e.data)
+    document.getElementById('score').textContent =
+      `Final: ${s.score} pts (#${s.rank})`
+  })
+&lt;/script&gt;</code></pre>
+
+  <p class="meta">
+    The stream emits <code>connected</code> on open, <code>screenshot.scored</code> on every
+    progress change, <code>session.completed</code> when you finish, and a
+    <code>heartbeat</code> every 15s. It auto-closes 30s after completion.
+  </p>
+
+  <h2 id="webhooks">4. Webhooks</h2>
+  <p>
+    For "post my result in chat the moment I finish" — register a webhook URL and
+    The Box <code>POST</code>s a signed JSON payload to it. Register either from
+    Profile → Streamer Kit, or with your key:
+  </p>
+
+  <pre><code>curl -X POST https://the-box.battistella.ovh/api/public/v1/webhooks \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://hooks.example.com/the-box","label":"Discord bot","events":["session.completed"]}'</code></pre>
+
+  <p>
+    The response includes a <code>secret</code> (shown once). Every delivery is signed —
+    verify it before trusting the payload:
+  </p>
+
+  <pre><code>import crypto from 'node:crypto'
+
+function verify(rawBody, header, secret) {
+  const p = Object.fromEntries(header.split(',').map(x =&gt; x.split('=')))
+  const expected = crypto.createHmac('sha256', secret)
+    .update(`${p.t}.${rawBody}`).digest('hex')
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(p.v1))
+}
+// header = request.headers['x-thebox-signature']</code></pre>
+
+  <blockquote class="callout">
+    <strong>Heads up.</strong> URLs must be HTTPS and publicly reachable — the SSRF guard
+    rejects private / loopback / cloud-metadata addresses. De-duplicate deliveries on
+    <code>eventId</code>; a retried delivery sends the identical body.
+  </blockquote>
+
+  <h2 id="limits">5. Limits &amp; rules</h2>
+  <table>
+    <tr><th>Thing</th><th>Limit</th></tr>
+    <tr><td>Anonymous requests</td><td class="mono">60 / min per IP</td></tr>
+    <tr><td>Keyed requests</td><td class="mono">600 / min per key</td></tr>
+    <tr><td>Concurrent SSE streams</td><td class="mono">3 per key</td></tr>
+    <tr><td>Active webhooks</td><td class="mono">10 per account</td></tr>
+    <tr><td>Webhook retries</td><td class="mono">3 (15s / 60s / 240s)</td></tr>
+  </table>
+  <p>
+    Every response carries <code>RateLimit-Limit</code> / <code>RateLimit-Remaining</code> /
+    <code>RateLimit-Reset</code> so your bot can self-throttle. A <code>429</code> means
+    back off for <code>Retry-After</code> seconds.
+  </p>
+
+  <h2 id="next">6. Full reference</h2>
+  <p>
+    This page covers the common paths. For the complete endpoint list, error codes,
+    and payload schemas:
+  </p>
+  <ul>
+    <li><a href="./public-api.md"><code>docs/public-api.md</code></a> — prose reference.</li>
+    <li><a href="./public-api.openapi.yaml"><code>docs/public-api.openapi.yaml</code></a> — OpenAPI 3.1 contract (import into Postman / generate a client).</li>
+  </ul>
+
+</main>
+
+<aside class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#start">1. Get set up</a></li>
+    <li><a href="#chat">2. Chat command</a></li>
+    <li><a href="#overlay">3. Live overlay</a></li>
+    <li><a href="#webhooks">4. Webhooks</a></li>
+    <li><a href="#limits">5. Limits &amp; rules</a></li>
+    <li><a href="#next">6. Full reference</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Generated 2026-05-14 · Public API v1 ·
+  Reference: <a href="./public-api.md"><code>docs/public-api.md</code></a> ·
+  Contract: <a href="./public-api.openapi.yaml"><code>docs/public-api.openapi.yaml</code></a> ·
+  Design record: <a href="../tasks/public-api-streamers-meeting.html"><code>tasks/public-api-streamers-meeting.html</code></a>
+</footer>
+
+<script>
+  // Active TOC highlight on scroll.
+  (function () {
+    const links = Array.from(document.querySelectorAll('aside.toc a'));
+    const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (targets.length) {
+      const setActive = (id) => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+      const obs = new IntersectionObserver(entries => {
+        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id);
+      }, { rootMargin: '-20% 0px -70% 0px' });
+      targets.forEach(t => obs.observe(t));
+    }
+    // Copy buttons on every code block.
+    document.querySelectorAll('pre').forEach(pre => {
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.textContent = 'copy';
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(pre.querySelector('code').textContent);
+          btn.textContent = 'copied';
+          setTimeout(() => { btn.textContent = 'copy'; }, 1500);
+        } catch { btn.textContent = 'failed'; }
+      });
+      pre.appendChild(btn);
+    });
+  })();
+</script>
+
+</body>
+</html>
