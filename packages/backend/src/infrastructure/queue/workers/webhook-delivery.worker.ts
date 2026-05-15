@@ -11,7 +11,6 @@ import {
   resolveWebhookUrlSafely,
   signWebhookBody,
 } from '../../../domain/services/webhook-signer.service.js'
-import { webhookSecretCache } from '../webhook-secret-cache.js'
 
 const log = queueLogger.child({ worker: 'webhook-delivery' })
 
@@ -51,10 +50,10 @@ async function deliverOne(deliveryId: number): Promise<void> {
     return
   }
   // Direct lookup — ownership was enforced at registration / list / delete
-  // endpoints, the worker just needs URL + active flag.
+  // endpoints, the worker just needs URL + active flag + the encrypted secret.
   const target = await db('webhooks')
     .where('id', delivery.webhook_id)
-    .first<{ id: number; url: string; is_active: boolean }>()
+    .first<{ id: number; url: string; is_active: boolean; secret_enc: string | null }>()
 
   if (!target || !target.is_active) {
     // Webhook revoked between enqueue and delivery — mark dead, don't retry.
@@ -81,12 +80,12 @@ async function deliverOne(deliveryId: number): Promise<void> {
     return
   }
 
-  // The signing secret isn't recoverable from the DB (we only stored its
-  // hash). We pull it from the in-process cache populated at registration
-  // time. If the cache misses (process restart between register and first
-  // delivery), the receiver will reject the signature — that's a known
-  // limitation we mitigate in M3 by storing an encrypted-at-rest secret.
-  const secret = webhookSecretCache.get(target.id)
+  // Decrypt the signing secret (AES-256-GCM, see secret-box.ts). Persisted
+  // encrypted-at-rest, so unlike the old in-memory cache this survives a
+  // process restart. `null` only happens for a pre-20260524 row or after a
+  // BETTER_AUTH_SECRET rotation — both rare and operator-driven; the
+  // delivery still goes out, unsigned, and the receiver can reject it.
+  const secret = webhookRepository.decryptSecret(target)
   const body = JSON.stringify(delivery.payload)
   const sig = secret
     ? signWebhookBody(secret, body)

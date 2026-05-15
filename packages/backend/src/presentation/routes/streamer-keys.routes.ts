@@ -4,7 +4,6 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { apiKeyRepository } from '../../infrastructure/repositories/api-key.repository.js'
 import { webhookRepository } from '../../infrastructure/repositories/webhook.repository.js'
-import { webhookSecretCache } from '../../infrastructure/queue/webhook-secret-cache.js'
 import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
 import { isReservedSlug } from '../../domain/services/sandbox.service.js'
 import { env } from '../../config/env.js'
@@ -257,7 +256,6 @@ router.post('/webhooks', validateBody(createWebhookSchema), async (req, res, nex
       label: body.label,
       events: body.events,
     })
-    webhookSecretCache.set(row.id, secret)
     log.info({ userId, webhookId: row.id }, 'webhook registered')
 
     const payload: WebhookCreated = { ...webhookRepository.mapWebhook(row), secret }
@@ -281,7 +279,6 @@ router.delete('/webhooks/:id', validateParams(idParamsSchema), async (req, res, 
       res.status(409).json({ success: false, error: { code: 'ALREADY_REVOKED' } })
       return
     }
-    webhookSecretCache.delete(id)
     log.info({ userId, webhookId: id }, 'webhook revoked')
     res.json({ success: true, data: { ok: true } })
   } catch (err) {

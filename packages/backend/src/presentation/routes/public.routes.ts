@@ -6,7 +6,6 @@ import { leaderboardRepository } from '../../infrastructure/repositories/leaderb
 import {
   webhookRepository,
 } from '../../infrastructure/repositories/webhook.repository.js'
-import { webhookSecretCache } from '../../infrastructure/queue/webhook-secret-cache.js'
 import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
 import {
   isSandboxSlug,
@@ -548,11 +547,9 @@ router.post(
         events: body.events,
       })
 
-      // Stash the plaintext signing secret in memory so the delivery worker
-      // can sign outgoing payloads. See webhook-secret-cache.ts for the
-      // restart-window caveat.
-      webhookSecretCache.set(row.id, secret)
-
+      // The signing secret is encrypted at rest by webhookRepository.create
+      // (AES-256-GCM) — the delivery worker decrypts it per send. Returned
+      // here once, in plaintext, and never again.
       const payload: WebhookCreated = {
         ...webhookRepository.mapWebhook(row),
         secret,
@@ -602,9 +599,6 @@ router.delete(
         res.status(409).json({ success: false, error: { code: 'ALREADY_REVOKED' } })
         return
       }
-      // Drop the cached secret immediately — a revoked endpoint that
-      // somehow gets re-targeted shouldn't continue to receive signed payloads.
-      webhookSecretCache.delete(id)
       res.json({ success: true, data: { ok: true } })
     } catch (err) {
       next(err)

@@ -387,10 +387,10 @@ def verify(raw_body: bytes, header: str, secret: str) -> bool:
     return hmac.compare_digest(expected, parts["v1"])
 ```
 
-> **Known limitation (M2).** Signing secrets are held in process memory, not
-> persisted. After a backend restart, deliveries for previously-registered
-> webhooks go out with `X-TheBox-Signature: unsigned` until the owner
-> re-registers the webhook. M3 closes this with encrypted-at-rest secrets.
+Signing secrets are encrypted at rest (AES-256-GCM) and decrypted per
+delivery, so signatures survive a backend restart. The plaintext secret is
+returned only once — at registration — and is otherwise unrecoverable; lose
+it and you must revoke and re-register.
 
 ## Event types
 

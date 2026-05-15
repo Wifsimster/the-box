@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { db } from '../database/connection.js'
+import { encryptSecret, decryptSecret } from '../crypto/secret-box.js'
 import type { PublicEventType, WebhookSummary } from '@the-box/types'
 
 // Secrets are `whsec_` + 32 base64url bytes ⇒ 43 chars body, 49 total.
@@ -13,6 +14,9 @@ export interface WebhookRow {
   url: string
   secret_hash: string
   secret_prefix: string
+  // AES-256-GCM ciphertext of the signing secret (see secret-box.ts).
+  // Nullable for rows created before migration 20260524.
+  secret_enc: string | null
   label: string
   events: PublicEventType[]
   is_active: boolean
@@ -76,11 +80,24 @@ export const webhookRepository = {
         url: params.url,
         secret_hash: secretHash,
         secret_prefix: secretPrefix,
+        // Encrypted at rest — the worker decrypts this to sign deliveries.
+        // The plaintext is returned to the caller once and never persisted.
+        secret_enc: encryptSecret(secret),
         label: params.label,
         events: params.events,
       })
       .returning<WebhookRow[]>('*')
     return { row: row!, secret }
+  },
+
+  /**
+   * Decrypts a webhook's signing secret for the delivery worker. Returns
+   * null if the row predates migration 20260524 (no ciphertext) or if
+   * decryption fails (e.g. BETTER_AUTH_SECRET was rotated) — the worker
+   * treats null as "send unsigned".
+   */
+  decryptSecret(row: Pick<WebhookRow, 'secret_enc'>): string | null {
+    return row.secret_enc ? decryptSecret(row.secret_enc) : null
   },
 
   async findActiveByUserAndEvent(userId: string, event: PublicEventType): Promise<WebhookRow[]> {
