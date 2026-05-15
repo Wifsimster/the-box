@@ -108,6 +108,36 @@ export interface GameServiceDeps {
    * submission must not fail because a side-effect failed.
    */
   onAfterGuessSubmitted?: (userId: string) => Promise<void>
+  /**
+   * Optional fire-and-forget hook called after a game session reaches
+   * a terminal `is_completed = true` state (both natural completion and
+   * forfeit). Wired by the composition root to fan out public-API
+   * webhooks (M2). Same error-handling contract as
+   * `onAfterGuessSubmitted` — the player's response must not fail
+   * because a webhook subscriber went down.
+   */
+  onAfterSessionCompleted?: (params: {
+    userId: string
+    sessionId: string
+    challengeId: number
+    finalScore: number
+    screenshotsFound: number
+    reason: 'all_found' | 'forfeit'
+    isCatchUp: boolean
+  }) => Promise<void>
+  /**
+   * Optional fire-and-forget hook called once when a NEW game session is
+   * created (not on resume). Wired by the composition root to fan out the
+   * `session.started` public-API webhook. Same swallow-errors contract as
+   * the hooks above.
+   */
+  onAfterSessionStarted?: (params: {
+    userId: string
+    sessionId: string
+    challengeId: number
+    challengeDate: string
+    isCatchUp: boolean
+  }) => Promise<void>
 }
 
 export interface GameService {
@@ -379,6 +409,26 @@ export function createGameService(deps: GameServiceDeps): GameService {
         sessionId: gameSession.id,
         payload: { challengeId, isCatchUp },
       })
+
+      // Public-API webhook fan-out (M2). Fires once per new session, never
+      // on resume. Fire-and-forget — a webhook subscriber must not be able
+      // to fail the start request.
+      if (deps.onAfterSessionStarted) {
+        void deps.onAfterSessionStarted({
+          userId,
+          sessionId: gameSession.id,
+          challengeId,
+          // `.slice(0, 10)` always yields a YYYY-MM-DD string — avoids the
+          // `string | undefined` that index-access on split() would give.
+          challengeDate: challengeDateStr ?? challengeDate.toISOString().slice(0, 10),
+          isCatchUp,
+        }).catch((error) => {
+          log.warn(
+            { userId, error: String(error) },
+            'onAfterSessionStarted hook failed (non-fatal)',
+          )
+        })
+      }
     } else {
       // Check if session is already completed
       if (gameSession.is_completed) {
@@ -770,6 +820,25 @@ export function createGameService(deps: GameServiceDeps): GameService {
         },
       })
 
+      // Public-API webhook fan-out (M2). Fire-and-forget; webhook delivery
+      // errors must not fail the guess submission.
+      if (deps.onAfterSessionCompleted) {
+        void deps.onAfterSessionCompleted({
+          userId: data.userId,
+          sessionId: tierSession.game_session_id,
+          challengeId: tierSession.daily_challenge_id,
+          finalScore: newTotalScore,
+          screenshotsFound: totalScreenshotsFound,
+          reason: 'all_found',
+          isCatchUp: tierSession.is_catch_up,
+        }).catch((error) => {
+          log.warn(
+            { userId: data.userId, error: String(error) },
+            'onAfterSessionCompleted hook failed (non-fatal)',
+          )
+        })
+      }
+
       // Check achievements after game completion
       let newlyEarnedAchievements: any[] = []
       try {
@@ -999,6 +1068,26 @@ export function createGameService(deps: GameServiceDeps): GameService {
       sessionId,
       payload: { finalScore, screenshotsFound, unfoundCount },
     })
+
+    // Public-API webhook fan-out (M2). Forfeit is still a terminal
+    // completion — receivers get the same shape as `all_found`, with
+    // `reason: 'forfeit'` differentiating the path.
+    if (deps.onAfterSessionCompleted) {
+      void deps.onAfterSessionCompleted({
+        userId,
+        sessionId,
+        challengeId: session.daily_challenge_id,
+        finalScore,
+        screenshotsFound,
+        reason: 'forfeit',
+        isCatchUp: session.is_catch_up,
+      }).catch((error) => {
+        log.warn(
+          { userId, error: String(error) },
+          'onAfterSessionCompleted hook failed (non-fatal)',
+        )
+      })
+    }
 
     return {
       totalScore: finalScore,

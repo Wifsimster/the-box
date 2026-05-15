@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Public API for streamers — subagents meeting record (2026-05-14).
+  Scope: a read-only, key-authenticated /api/public/v1 surface plus webhooks
+  and an SSE event stream, designed for Twitch/YouTube chat bots and OBS
+  overlays. Decisions: opt-in only, slug-based identity, no guess submission,
+  Bearer tb_pk_ keys separate from Better Auth, HMAC-signed webhooks, SSE for
+  overlays. Ships in three milestones (M1 read endpoints + keys, M2 SSE +
+  webhooks, M3 OpenAPI + sample Streamer.bot recipe).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Public API for Streamers — Subagents Meeting · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; color: var(--fg); }
+  .hero p.thesis em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .persona {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .persona summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .persona summary::-webkit-details-marker { display: none; }
+  .persona summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); transition: transform .15s; }
+  .persona[open] summary::after { content: '−'; }
+  .persona summary .role { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; }
+  .persona summary .name { color: var(--muted); font-size: 0.9rem; }
+  .persona .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+  .persona .body h4 { margin: 1rem 0 0.4rem; font-size: 0.95rem; color: var(--neon-purple); }
+  .persona ul { padding-left: 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono { font-family: var(--mono); font-size: 0.85rem; }
+  td.method { font-family: var(--mono); font-size: 0.78rem; color: var(--neon-blue); white-space: nowrap; }
+  td.method.post { color: var(--ok); }
+  td.method.sse { color: var(--neon-pink); }
+
+  .decisions { display: grid; gap: 0.75rem; margin: 1rem 0; }
+  .decision {
+    display: grid; grid-template-columns: 28px 1fr; gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--neon-purple);
+    border-radius: var(--radius);
+  }
+  .decision .num { font-family: var(--mono); color: var(--neon-purple); font-weight: 600; }
+  .decision strong { color: var(--fg); }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.risk { color: var(--risk); }
+  .badge.info { color: var(--neon-blue); }
+
+  .ships { display: grid; gap: 0.5rem; margin: 1rem 0; }
+  .ship {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 0.75rem; align-items: center;
+    padding: 0.6rem 0.85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+  }
+  .ship code { background: transparent; color: var(--neon-purple); padding: 0; }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+
+  .milestones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1rem 0; }
+  @media (max-width: 760px) { .milestones { grid-template-columns: 1fr; } }
+  .milestone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+  .milestone h4 { margin: 0 0 0.4rem; color: var(--neon-purple); font-size: 0.95rem; font-family: var(--mono); }
+  .milestone .target { color: var(--muted); font-size: 0.8rem; margin: 0 0 0.5rem; }
+  .milestone ul { margin: 0; padding-left: 1.1rem; font-size: 0.88rem; }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Public API for Streamers · Subagents Meeting</span>
+  <span class="repo">wifsimster/the-box · 2026-05-14</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>Public API for Streamers</h1>
+  <p class="meta"><b>Date</b> 2026-05-14 · <b>Attendees</b> PM/Workflow · Architect · Backend &amp; Security · Streamer Advocate · DevEx · <b>Facilitator</b> Claude</p>
+
+  <div class="hero">
+    <p class="thesis">
+      Streamers want to wire The Box into their <em>chat</em>: <code>!box</code> commands, on-screen overlays
+      that move with their score, and webhook-driven "score posted in chat" moments. We agreed on a
+      <em>read-only, opt-in, key-authenticated</em> public surface at <code>/api/public/v1</code>, an SSE
+      event stream for overlays, and HMAC-signed webhooks for chat-bot triggers. <em>No guess submission</em>
+      over the API — the door to remote-control cheating stays shut.
+    </p>
+  </div>
+
+  <h2 id="why">1. Why this meeting</h2>
+  <p>
+    Twitch/YouTube streamers have started asking for two things in DMs and the Discord:
+    "how do I show my Box score in chat?" and "is there a way for chat to play along?". The Box already
+    has a private REST surface under <code>/api/</code> guarded by Better Auth session cookies — that's the
+    wrong shape for a streamer to paste into <a href="https://streamer.bot/">Streamer.bot</a>,
+    <a href="https://nightbot.tv/">Nightbot</a>, or an OBS browser source. We need a separate, narrower,
+    key-authenticated surface designed for headless consumption by third-party tooling.
+  </p>
+  <p>
+    Equally important: the existing private API uses <em>cookie auth on the same origin</em> as the SPA
+    (see <a href="../docs/authentication.md"><code>docs/authentication.md</code></a>). We are not opening
+    that up. The public API ships as a parallel router with bearer tokens, separate rate limits, and a
+    documented scope contract.
+  </p>
+
+  <h2 id="personas">2. The personas</h2>
+  <p>Five agents ran in parallel. Their unedited contributions are below; the synthesis is in section 3.</p>
+
+  <details class="persona" open>
+    <summary><span class="role">PM/Workflow</span> <span class="name">Use cases &amp; scope</span></summary>
+    <div class="body">
+      <h4>The four jobs streamers are actually hiring this for</h4>
+      <ol>
+        <li><b>Chat command</b> — viewer types <code>!box</code>, bot replies <em>"Wifsim is ranked #42 today with 7,820 pts (streak: 11 days). Play: thebox.app/d/abc"</em>.</li>
+        <li><b>Live overlay</b> — OBS browser source shows score ticking up screenshot-by-screenshot, current tier (Easy/Hard), and a <em>time remaining</em> ring. Pure cosmetic — no spoilers.</li>
+        <li><b>Webhook → chat</b> — when the streamer finishes a daily, the bot auto-posts the final score, rank delta, and a shoutout to anyone who guessed correctly first.</li>
+        <li><b>Leaderboard shoutouts</b> — at stream start, bot fetches yesterday's top 5 and welcomes any of them present in chat.</li>
+      </ol>
+      <h4>Out of scope (explicitly)</h4>
+      <ul>
+        <li><b>Guess submission over API.</b> Anti-cheat surface area; would also let any bot farm scores. <span class="badge risk">no</span></li>
+        <li><b>Screenshot byte download for non-streamers.</b> Hot-linking <code>/uploads/screenshots/*</code> is fine, but a "give me today's first screenshot URL" endpoint feeds cheating tooling and we get nothing back. <span class="badge risk">no</span></li>
+        <li><b>"Play-in-chat" Twitch extension.</b> Nice eventually, but it's a real Twitch ext review process — <em>after</em> the API exists, not now.</li>
+      </ul>
+      <h4>Audience</h4>
+      <p>We're sized for the <b>top ~50 streamers</b> who'd care, not "every Twitch user". Pricing: free for now, gate behind streamer-opt-in toggle. Revisit if a single account starts pulling &gt;10k req/day.</p>
+      <h4>Naming</h4>
+      <p>Public-facing label: <em>"The Box Streamer Kit"</em>. Internally: just "public API". The kit-vs-API split lets marketing talk about overlays/bots without dragging viewers into REST jargon.</p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Architect</span> <span class="name">Surface, versioning, transport choices</span></summary>
+    <div class="body">
+      <h4>URL namespace</h4>
+      <p>
+        Everything sits under <code>/api/public/v1/</code> — mounted by a new
+        <code>packages/backend/src/presentation/routes/public.routes.ts</code> module that
+        <em>does not</em> share middleware with the private routers. No Better Auth session middleware on this
+        tree; a thin <code>publicApiKey()</code> middleware replaces it.
+      </p>
+      <h4>Endpoint surface (M1 + M2)</h4>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Purpose</th><th>Auth</th></tr>
+        <tr><td class="method">GET</td><td class="mono">/api/public/v1/challenge/today</td><td>Date, total screenshots, scoring config — no spoilers</td><td>none / key optional</td></tr>
+        <tr><td class="method">GET</td><td class="mono">/api/public/v1/streamers/:slug</td><td>Profile: rank, streak, totals, achievements count</td><td>key required</td></tr>
+        <tr><td class="method">GET</td><td class="mono">/api/public/v1/streamers/:slug/today</td><td>Today's session status: <em>not_started</em> / <em>in_progress(tier, screenshotsDone, score)</em> / <em>completed(score, rank)</em></td><td>key required</td></tr>
+        <tr><td class="method">GET</td><td class="mono">/api/public/v1/leaderboard/daily?date=YYYY-MM-DD&amp;limit=10</td><td>Top N for today / arbitrary day</td><td>none / key optional</td></tr>
+        <tr><td class="method">GET</td><td class="mono">/api/public/v1/leaderboard/monthly?month=YYYY-MM</td><td>Monthly top N</td><td>none / key optional</td></tr>
+        <tr><td class="method sse">SSE</td><td class="mono">/api/public/v1/streamers/:slug/live</td><td>Server-sent events for overlay: <code>session.started</code>, <code>screenshot.scored</code>, <code>tier.advanced</code>, <code>session.completed</code></td><td>key required (query param)</td></tr>
+        <tr><td class="method post">POST</td><td class="mono">/api/public/v1/webhooks</td><td>Register URL + secret; receives <code>session.completed</code>, <code>rank.changed</code></td><td>key required (owner scope)</td></tr>
+        <tr><td class="method">GET</td><td class="mono">/api/public/v1/webhooks</td><td>List own webhooks</td><td>key required (owner scope)</td></tr>
+        <tr><td class="method">DELETE</td><td class="mono">/api/public/v1/webhooks/:id</td><td>Revoke webhook</td><td>key required (owner scope)</td></tr>
+      </table>
+      <h4>SSE, not Socket.io, for overlays</h4>
+      <p>
+        Our internal real-time lives on Socket.io (<a href="../docs/realtime.md"><code>docs/realtime.md</code></a>),
+        but for OBS browser sources <em>SSE wins</em>: one-way, no sticky session, no socket-id juggling,
+        works with stock <code>EventSource</code>, survives Cloudflare buffering with a 15s heartbeat. The
+        backend emits the same domain events into a small fan-out adapter that both the Socket.io leaderboard
+        room and the per-streamer SSE channel subscribe to.
+      </p>
+      <h4>Versioning</h4>
+      <p><code>v1</code> in the path, additive-only changes within v1, breaking changes require <code>v2</code> alongside. Streamer integrations have a long tail; pinning is non-negotiable.</p>
+      <h4>Response shape</h4>
+      <p>
+        Keep the existing private-API envelope: <code>{ success, data, error }</code>. Inconsistency between
+        public and private would force two clients in any future internal tooling that talks to both. ETag on
+        all <code>GET</code>s; <code>304</code> support so Streamer.bot polling stays cheap.
+      </p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Backend &amp; Security</span> <span class="name">Keys, scopes, rate limits, abuse</span></summary>
+    <div class="body">
+      <h4>API key format</h4>
+      <pre><code>tb_pk_live_&lt;28-byte url-safe random&gt;     # production
+tb_pk_test_&lt;28-byte url-safe random&gt;     # test mode (no live webhooks)</code></pre>
+      <p>
+        Prefix is searchable; <code>tb_pk_</code> is the secret-detection regex partners can grep their
+        repos with. We store <em>only</em> SHA-256 of the key — the user sees the plaintext once at creation
+        and then never again. Last-used timestamp + last-used-IP are stored unhashed.
+      </p>
+      <h4>Header</h4>
+      <pre><code>Authorization: Bearer tb_pk_live_…
+# OR for SSE (EventSource can't set headers):
+GET /api/public/v1/streamers/wifsim/live?key=tb_pk_live_…</code></pre>
+      <p>
+        Query-param keys for SSE are an exception. Mitigate the resulting URL-logging risk by: (a) accepting
+        keys only on the SSE endpoint as a query param, (b) logging requests to that path with the key
+        redacted via <a href="../packages/backend/src/presentation/middleware/">request-logging middleware</a>,
+        (c) marking keys "rotate after exposure" in the dashboard with a one-click regenerate.
+      </p>
+      <h4>Scopes</h4>
+      <table>
+        <tr><th>Scope</th><th>Grants</th></tr>
+        <tr><td class="mono">read:public</td><td>Anonymous-equivalent reads: challenge, leaderboard, public profile.</td></tr>
+        <tr><td class="mono">read:self</td><td>Own session state (<code>/streamers/me</code>, <code>/streamers/me/today</code>).</td></tr>
+        <tr><td class="mono">stream:self</td><td>Subscribe to own SSE channel.</td></tr>
+        <tr><td class="mono">webhooks:self</td><td>Manage own webhooks.</td></tr>
+      </table>
+      <p>
+        Default new key gets all four for the owner's own slug. Cross-account access is impossible — a key
+        owned by user <code>A</code> calling <code>/streamers/B</code> hits the same anonymous read path
+        as keyless callers (no extra data leak). This keeps the key story simple: keys identify <em>you</em>
+        for your own data, not a permission to read other people's.
+      </p>
+      <h4>Rate limits</h4>
+      <table>
+        <tr><th>Tier</th><th>Per-minute</th><th>Per-day</th><th>SSE concurrent</th></tr>
+        <tr><td>Anonymous (by IP)</td><td>60</td><td>5,000</td><td>0</td></tr>
+        <tr><td>Keyed (by key)</td><td>600</td><td>50,000</td><td>3</td></tr>
+        <tr><td>Webhook delivery (per endpoint)</td><td>—</td><td>—</td><td>3 retries w/ exponential backoff, 24h dead-letter</td></tr>
+      </table>
+      <p>Implementation: <code>express-rate-limit</code> backed by Redis (already in the stack for BullMQ). Headers per the IETF draft: <code>RateLimit-Limit</code>, <code>RateLimit-Remaining</code>, <code>RateLimit-Reset</code>.</p>
+      <h4>Webhook signing</h4>
+      <pre><code>X-TheBox-Signature: t=1715712000,v1=&lt;hmac_sha256(secret, "{t}.{body}")&gt;
+X-TheBox-Event: session.completed
+X-TheBox-Delivery: 01HX...</code></pre>
+      <p>Stripe-style. We ship a <code>verifyWebhook()</code> snippet in the docs for Node, Python, and PHP — those three cover ~95% of the chat-bot ecosystem.</p>
+      <blockquote class="callout risk">
+        <strong>SSRF risk.</strong> Webhook URLs are user-supplied. Block on register: any private/loopback IP (<code>10.</code>, <code>172.16-31.</code>, <code>192.168.</code>, <code>127.</code>, <code>::1</code>, link-local, AWS metadata <code>169.254.169.254</code>), DNS-rebinding-resistant — re-resolve at delivery, not at register. Reject non-HTTPS. Reject our own host. Cap response read at 4KB and 10s.
+      </blockquote>
+      <h4>CORS</h4>
+      <p>
+        <code>Access-Control-Allow-Origin: *</code> for all <code>GET</code> on <code>/api/public/v1</code>
+        with <code>Vary: Origin</code>; no credentials, no cookies. The private API stays origin-locked to
+        <code>CORS_ORIGIN</code>.
+      </p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Streamer Advocate</span> <span class="name">What chat-bot wiring actually looks like</span></summary>
+    <div class="body">
+      <h4>Ground truth: how streamers will use this</h4>
+      <p>
+        Most won't write code. They'll paste a URL into one of three tools. The shape of our API has to
+        survive those tools' UIs.
+      </p>
+      <table>
+        <tr><th>Tool</th><th>How it consumes us</th><th>Our concession</th></tr>
+        <tr><td><b>Nightbot</b></td><td><code>$(urlfetch json https://…)</code> returns ~400 char chat lines.</td><td>Provide a <code>?format=chat</code> query that returns a single-line, pre-formatted string under 400 chars. Don't make Nightbot users write JSONPath.</td></tr>
+        <tr><td><b>Streamer.bot</b></td><td>Full HTTP + JSON support, custom triggers on webhook events, sub-actions for OBS scene switches.</td><td>Ship a downloadable <code>.sb</code> recipe in the docs that wires <code>session.completed</code> → "post in chat + show overlay scene for 8s".</td></tr>
+        <tr><td><b>OBS browser source</b></td><td>HTML page, vanilla JS, <code>EventSource</code>.</td><td>SSE endpoint (above) + a hosted reference overlay at <code>https://thebox.app/overlay/:slug?key=…</code> they can drop in as a browser source URL. Don't make them host their own.</td></tr>
+      </table>
+      <h4>The killer "post in chat" payload</h4>
+      <pre><code>// GET /api/public/v1/streamers/wifsim?format=chat
+"🎮 @wifsim · Today: 7,820 pts (#42) · Streak: 11d · Play: https://thebox.app/d/abc"</code></pre>
+      <p>One line, emoji opt-in via <code>?emoji=0</code>, short URL via <code>?short=1</code>. This is the endpoint 80% of streamers will ever hit.</p>
+      <h4>Discoverability</h4>
+      <p>
+        New page <code>/streamers</code> in the SPA (English + French): big "Generate API key" button (gated
+        to opted-in users), copy-paste snippets for each of the three tools, and a live tester that hits
+        the user's own profile and shows the response. Keys ship with a <em>test</em> variant that has the
+        webhook system <em>disabled</em> so a brand-new user can't blast their friends' Discord while clicking
+        around.
+      </p>
+      <h4>Opt-in is mandatory</h4>
+      <p>
+        Profile visibility on the public API is OFF by default. Settings → "Public Streamer Profile" toggle,
+        with a clear privacy paragraph: <em>"Enabling makes your slug, today's score, and your rank queryable
+        by anyone holding any API key."</em> No key, no toggle, no data. Privacy isn't an afterthought —
+        most users of The Box aren't streamers and shouldn't be discoverable.
+      </p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">DevEx</span> <span class="name">Docs, OpenAPI, sample integrations</span></summary>
+    <div class="body">
+      <h4>Docs layout</h4>
+      <ul>
+        <li><code>docs/public-api.md</code> — reference, grep-friendly, mirrors <code>docs/api.md</code>'s tone. Markdown, not HTML — it's a tooling-read reference.</li>
+        <li><code>docs/streamer-kit.html</code> — visual landing for streamers, embedded snippets + the Streamer.bot recipe download. Lives next to <code>docs/architecture.html</code> as another HTML-first artifact.</li>
+        <li><code>docs/public-api.openapi.yaml</code> — single source of truth for the surface. CI step asserts the routes match the spec.</li>
+      </ul>
+      <h4>SDK question</h4>
+      <p>
+        <b>No SDK at launch.</b> Two reasons: (a) the surface is small enough that <code>fetch</code> + four
+        endpoints isn't a barrier, (b) writing one official SDK obligates us to keep three (Node, Python, PHP)
+        in sync forever. Ship the OpenAPI spec; let early adopters generate their own. Revisit if we see
+        signal.
+      </p>
+      <h4>Quickstart that goes in the docs (Node, &lt;20 lines)</h4>
+      <pre><code>import { EventSource } from 'eventsource'
+
+const KEY = process.env.THEBOX_API_KEY
+const SLUG = 'wifsim'
+
+// One-shot chat command
+const profile = await fetch(
+  `https://thebox.app/api/public/v1/streamers/${SLUG}?format=chat`,
+  { headers: { Authorization: `Bearer ${KEY}` } }
+).then(r => r.json())
+console.log(profile.data) // "🎮 @wifsim · Today: 7820 pts (#42) …"
+
+// Live overlay
+const es = new EventSource(
+  `https://thebox.app/api/public/v1/streamers/${SLUG}/live?key=${KEY}`
+)
+es.addEventListener('screenshot.scored', (e) =&gt; {
+  const { position, score, total } = JSON.parse(e.data)
+  console.log(`${position}/${total} → ${score}`)
+})</code></pre>
+      <h4>Sandbox</h4>
+      <p>
+        <code>tb_pk_test_*</code> keys talk to a permanent demo streamer slug <code>boxbot</code> whose
+        session is replayed on a 10-minute loop. Lets integrators build and demo without waiting for the
+        next real session to start.
+      </p>
+      <h4>Changelog</h4>
+      <p>
+        Public-API changes go to a dedicated <code>docs/public-api-changelog.md</code> with dated entries
+        and any deprecation timers (min 6 months for breaking changes within v1, though we shouldn't have
+        any).
+      </p>
+    </div>
+  </details>
+
+  <h2 id="decisions">3. Decisions</h2>
+  <div class="decisions">
+    <div class="decision"><span class="num">1</span><div><strong>Read-only at launch.</strong> No guess submission, no screenshot bytes, no session start. The API observes, it doesn't drive. Revisit only with an anti-cheat plan.</div></div>
+    <div class="decision"><span class="num">2</span><div><strong>Namespace:</strong> <code>/api/public/v1/</code>, own router (<code>public.routes.ts</code>), zero shared middleware with the private surface, additive-only within v1.</div></div>
+    <div class="decision"><span class="num">3</span><div><strong>Bearer API keys</strong> in the <code>Authorization</code> header (<code>tb_pk_live_…</code> / <code>tb_pk_test_…</code>); stored as SHA-256; SSE accepts <code>?key=</code> query param with redacted logging.</div></div>
+    <div class="decision"><span class="num">4</span><div><strong>Opt-in profile visibility.</strong> "Public Streamer Profile" toggle in settings, off by default. No data is queryable until the user flips it.</div></div>
+    <div class="decision"><span class="num">5</span><div><strong>SSE for overlays</strong> (not a second Socket.io namespace). Internal events fan out through a small adapter so the same source feeds Socket.io leaderboards and per-streamer SSE.</div></div>
+    <div class="decision"><span class="num">6</span><div><strong>HMAC-signed webhooks</strong> (Stripe-style <code>X-TheBox-Signature</code>), HTTPS-only URLs, SSRF guard re-resolving DNS at delivery, 3-retry exponential backoff, 24h dead-letter queue.</div></div>
+    <div class="decision"><span class="num">7</span><div><strong>Rate limits</strong> backed by Redis: 60/min anon, 600/min keyed; 3 concurrent SSE streams per key. IETF <code>RateLimit-*</code> headers on every response.</div></div>
+    <div class="decision"><span class="num">8</span><div><strong>Cross-account reads stay anonymous-equivalent.</strong> A key never elevates access to someone else's data — only to your own. Simplifies the scope story to "keys identify <em>you</em>".</div></div>
+    <div class="decision"><span class="num">9</span><div><strong>OpenAPI is the spec of record</strong> at <code>docs/public-api.openapi.yaml</code>. CI asserts routes match. <strong>No official SDK at launch</strong> — ship a 20-line quickstart instead.</div></div>
+    <div class="decision"><span class="num">10</span><div><strong>Test sandbox:</strong> <code>tb_pk_test_*</code> keys talk to a demo slug <code>boxbot</code> on a 10-minute replay loop. Webhooks disabled in test mode so beginners can't blast real chatrooms.</div></div>
+  </div>
+
+  <h2 id="surface">4. The surface (M1 + M2)</h2>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Returns</th><th>Milestone</th></tr>
+    <tr><td class="method">GET</td><td class="mono">/api/public/v1/challenge/today</td><td>Date, screenshot count, scoring config</td><td><span class="badge ok">M1</span></td></tr>
+    <tr><td class="method">GET</td><td class="mono">/api/public/v1/streamers/:slug</td><td>Public profile + <code>?format=chat</code></td><td><span class="badge ok">M1</span></td></tr>
+    <tr><td class="method">GET</td><td class="mono">/api/public/v1/streamers/:slug/today</td><td>Today's session state (no spoilers)</td><td><span class="badge ok">M1</span></td></tr>
+    <tr><td class="method">GET</td><td class="mono">/api/public/v1/leaderboard/daily</td><td>Daily top N</td><td><span class="badge ok">M1</span></td></tr>
+    <tr><td class="method">GET</td><td class="mono">/api/public/v1/leaderboard/monthly</td><td>Monthly top N</td><td><span class="badge ok">M1</span></td></tr>
+    <tr><td class="method sse">SSE</td><td class="mono">/api/public/v1/streamers/:slug/live</td><td>Live session events</td><td><span class="badge info">M2</span></td></tr>
+    <tr><td class="method post">POST</td><td class="mono">/api/public/v1/webhooks</td><td>Register webhook</td><td><span class="badge info">M2</span></td></tr>
+    <tr><td class="method">GET</td><td class="mono">/api/public/v1/webhooks</td><td>List own webhooks</td><td><span class="badge info">M2</span></td></tr>
+    <tr><td class="method post">DELETE</td><td class="mono">/api/public/v1/webhooks/:id</td><td>Revoke webhook</td><td><span class="badge info">M2</span></td></tr>
+  </table>
+
+  <h2 id="milestones">5. Milestones</h2>
+  <div class="milestones">
+    <div class="milestone">
+      <h4>M1 · Read endpoints</h4>
+      <p class="target">Target: 2026-06-04</p>
+      <ul>
+        <li>Migration: <code>api_keys</code> table (hashed key, scopes, last-used)</li>
+        <li>Migration: <code>users.public_profile_enabled</code>, <code>users.public_slug</code></li>
+        <li><code>public.routes.ts</code> router (5 GET endpoints)</li>
+        <li><code>publicApiKey()</code> + Redis rate-limit middleware</li>
+        <li>Settings page: toggle + key generation modal</li>
+        <li>Playwright spec: <code>e2e/public-api.spec.ts</code></li>
+      </ul>
+    </div>
+    <div class="milestone">
+      <h4>M2 · SSE + webhooks</h4>
+      <p class="target">Target: 2026-06-18</p>
+      <ul>
+        <li>Event-bus adapter (fan out to Socket.io + SSE)</li>
+        <li>SSE endpoint w/ 15s heartbeat + key-via-query handling</li>
+        <li><code>webhooks</code> table + SSRF-resistant registration</li>
+        <li>BullMQ <code>webhook-delivery</code> worker (3 retries + DLQ)</li>
+        <li>HMAC signing + <code>X-TheBox-Signature</code> verify snippets</li>
+        <li>Hosted reference overlay at <code>/overlay/:slug</code></li>
+      </ul>
+    </div>
+    <div class="milestone">
+      <h4>M3 · DevEx polish</h4>
+      <p class="target">Target: 2026-07-02</p>
+      <ul>
+        <li><code>docs/public-api.md</code> (reference, FR/EN)</li>
+        <li><code>docs/streamer-kit.html</code> (visual landing)</li>
+        <li><code>docs/public-api.openapi.yaml</code> + CI route-vs-spec check</li>
+        <li>Streamer.bot <code>.sb</code> recipe + Nightbot snippet</li>
+        <li>Sandbox slug <code>boxbot</code> + replay worker</li>
+        <li>Public announcement + Discord rollout</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 id="ships">6. What we're shipping today</h2>
+  <div class="ships">
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>tasks/public-api-streamers-meeting.html</code> — this file</span>
+      <span class="badge info">meeting</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">todo</span>
+      <span><code>tasks/prd-public-api-streamers.html</code> — full PRD, generated from this meeting</span>
+      <span class="badge info">spec</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">todo</span>
+      <span><code>docs/public-api.md</code> + <code>docs/public-api.openapi.yaml</code> — reference + spec</span>
+      <span class="badge info">docs</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">todo</span>
+      <span><code>docs/streamer-kit.html</code> — visual landing, embedded snippets, Streamer.bot recipe</span>
+      <span class="badge info">docs</span>
+    </div>
+  </div>
+
+  <h2 id="risks">7. Risks &amp; mitigations</h2>
+  <table>
+    <tr><th>Risk</th><th>Mitigation</th></tr>
+    <tr><td>Cheat tooling reading screenshot URLs / live position.</td><td>No screenshot endpoint; <code>/today</code> returns <em>screenshotsDone</em> count, not <em>current screenshot id</em>; SSE events redact target game name until session completion.</td></tr>
+    <tr><td>Webhook SSRF (user-supplied URLs hitting internal services).</td><td>Block private CIDRs, AWS metadata IP, link-local; resolve DNS at delivery time; reject non-HTTPS and our own host; cap response read.</td></tr>
+    <tr><td>API-key leakage via SSE query param in logs / browser history.</td><td>Redact in request-logging middleware; one-click rotate in dashboard; document the risk on the key creation page.</td></tr>
+    <tr><td>Cookie auth spillover (Better Auth cookies hitting the public router).</td><td>Public router intentionally has no Better Auth middleware; integration test asserts <code>/api/public/v1/*</code> ignores session cookies entirely.</td></tr>
+    <tr><td>A single streamer's overlay hammering us at 10Hz.</td><td>SSE push model (no polling required); per-key concurrent-connection cap of 3; 600/min ceiling.</td></tr>
+    <tr><td>Privacy: non-streamer users discoverable via the API.</td><td>Opt-in default-off; profile toggle gates <em>all</em> public-API visibility for that user; slug is user-chosen, never an internal id.</td></tr>
+  </table>
+
+  <h2 id="open">8. Open questions</h2>
+  <ol>
+    <li><strong>French docs for the streamer kit?</strong> Most target streamers are English-speaking, but a few key FR streamers exist. Lean: ship EN-only at M3, translate at M3.5 if Discord asks.</li>
+    <li><strong>Twitch OAuth as a path to API keys?</strong> Tempting (auto-link Twitch handle → slug), but adds an OAuth provider to maintain. Defer to post-M3.</li>
+    <li><strong>Catch-up sessions in <code>/today</code>?</strong> They don't count for the leaderboard. Lean: include with a <code>"countsForLeaderboard": false</code> flag, let bot authors decide whether to surface.</li>
+  </ol>
+
+  <h2 id="success">9. How we'll know it worked</h2>
+  <p>
+    <b>8 weeks after M3</b> (~2026-08-27): at least <b>5 streamers</b> with active keys, at least <b>2</b> visible
+    overlay or chat-command implementations (Twitch clip or VOD timestamp counts), and <b>zero</b> abuse incidents
+    or privacy reports. If we get keys generated but no integrations live, the docs/recipes are the gap — not the
+    API. If we get abuse, the rate-limit + opt-in story needs revisiting.
+  </p>
+
+</main>
+
+<aside class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#why">1. Why this meeting</a></li>
+    <li><a href="#personas">2. The personas</a></li>
+    <li><a href="#decisions">3. Decisions</a></li>
+    <li><a href="#surface">4. The surface</a></li>
+    <li><a href="#milestones">5. Milestones</a></li>
+    <li><a href="#ships">6. Shipping today</a></li>
+    <li><a href="#risks">7. Risks</a></li>
+    <li><a href="#open">8. Open questions</a></li>
+    <li><a href="#success">9. Success signal</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Generated 2026-05-14 ·
+  Sibling meeting: <a href="./html-first-subagents-meeting.html"><code>tasks/html-first-subagents-meeting.html</code></a> ·
+  Existing reference: <a href="../docs/api.md"><code>docs/api.md</code></a> ·
+  Real-time precedent: <a href="../docs/realtime.md"><code>docs/realtime.md</code></a>
+</footer>
+
+<script>
+  (function () {
+    const links = Array.from(document.querySelectorAll('aside.toc a'));
+    const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!targets.length) return;
+    const setActive = (id) => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    const obs = new IntersectionObserver(entries => {
+      const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]) setActive(visible[0].target.id);
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    targets.forEach(t => obs.observe(t));
+  })();
+</script>
+
+</body>
+</html>

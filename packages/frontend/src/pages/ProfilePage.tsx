@@ -23,6 +23,7 @@ import {
   AdvancedStatsPanel,
   PremiumBadge,
   ThemeSwitcher,
+  StreamerKitCard,
 } from '@/components/profile'
 import { GeoContributorCard } from '@/components/profile/GeoContributorCard'
 import { useBillingStore } from '@/stores/billingStore'
@@ -360,6 +361,19 @@ export default function ProfilePage() {
                             transition={{ delay: 0.45 }}
                         >
                             <PushNotificationCard />
+                        </motion.div>
+                    )}
+
+                    {/* Streamer Kit — opt-in public API for chat-bot / overlay
+                        integrations. Hidden from guests since the underlying
+                        slug/keys are tied to a real account. */}
+                    {userProfile && !userProfile.isGuest && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.46 }}
+                        >
+                            <StreamerKitCard />
                         </motion.div>
                     )}
 

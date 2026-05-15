@@ -1426,3 +1426,165 @@ export interface PushSubscriptionSummary {
   lastSuccessAt: string | null
   isActive: boolean
 }
+
+// ============================================
+// Public API / Streamer Kit (M1)
+// ============================================
+
+// One of four scopes a key can carry. M1 only branches on read:public vs the
+// owner-only scopes; the latter three are stored against the key for forward
+// compatibility with M2 (SSE + webhooks) so we don't need a second migration.
+export type ApiKeyScope = 'read:public' | 'read:self' | 'stream:self' | 'webhooks:self'
+
+export type ApiKeyMode = 'live' | 'test'
+
+// Returned by /api/streamer-keys.list — never includes the plaintext.
+export interface ApiKeySummary {
+  id: number
+  label: string
+  keyPrefix: string
+  mode: ApiKeyMode
+  scopes: ApiKeyScope[]
+  isActive: boolean
+  createdAt: string
+  lastUsedAt: string | null
+  lastUsedIp: string | null
+}
+
+// One-shot response from /api/streamer-keys.create. Plaintext is only ever
+// returned here and never persisted; if the user loses it they rotate.
+export interface ApiKeyCreated extends ApiKeySummary {
+  plaintext: string
+}
+
+// /api/public/v1/challenge/today — no spoilers, just shape.
+export interface PublicChallengeToday {
+  date: string
+  totalScreenshots: number
+  scoringConfig: {
+    initialScore: number
+    decayRate: number
+  }
+}
+
+// /api/public/v1/streamers/:slug — public profile by slug.
+export interface PublicStreamerProfile {
+  slug: string
+  displayName: string
+  avatarUrl: string | null
+  currentStreak: number
+  longestStreak: number
+  totalScore: number
+  gamesPlayed: number
+  // Today's snapshot, denormalized for chat one-liners. Null when the
+  // streamer hasn't started today's challenge.
+  today: {
+    score: number
+    rank: number | null
+    completed: boolean
+  } | null
+}
+
+// Today's session state, no spoilers. Sufficient to drive an overlay's
+// "screenshots N/M, score X" readout without revealing the answer.
+export interface PublicStreamerToday {
+  slug: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  // Present when status !== 'not_started'.
+  session: {
+    score: number
+    screenshotsDone: number
+    totalScreenshots: number
+    tier: number | null
+    startedAt: string
+    completedAt: string | null
+    rank: number | null
+    countsForLeaderboard: boolean
+  } | null
+}
+
+// /api/public/v1/leaderboard/daily and /monthly.
+export interface PublicLeaderboardEntry {
+  rank: number
+  slug: string | null
+  displayName: string
+  avatarUrl: string | null
+  totalScore: number
+  // Only set on the daily endpoint.
+  completedAt?: string
+  // Only set on the monthly endpoint.
+  gamesPlayed?: number
+}
+
+// ============================================
+// Public API M2 — Webhooks + SSE events
+// ============================================
+
+// Top-level event taxonomy. Lives here so backend dispatch and frontend
+// (test harness, settings UI) share one source of truth. Adding a new
+// event = add it here, plus the handler in the dispatch site, plus an
+// optional default subscription row.
+export type PublicEventType =
+  | 'session.started'
+  | 'session.completed'
+  | 'screenshot.scored'
+  | 'rank.changed'
+
+// Webhook registration row as returned to the owner. Plaintext secret is
+// only present in the `WebhookCreated` shape below.
+export interface WebhookSummary {
+  id: number
+  url: string
+  label: string
+  secretPrefix: string
+  // Empty array means "all events". Otherwise a strict subset of PublicEventType.
+  events: PublicEventType[]
+  isActive: boolean
+  createdAt: string
+  lastDeliveredAt: string | null
+}
+
+export interface WebhookCreated extends WebhookSummary {
+  // The signing secret. Shown exactly once at registration. If lost, the
+  // owner must revoke and re-register.
+  secret: string
+}
+
+// Envelope every webhook POST body uses. Keeps the verifier snippets in
+// docs short — peel off `data` and switch on `event`.
+export interface WebhookPayload<T = unknown> {
+  // Stable id of the originating event. Idempotency key for receivers:
+  // de-dup on this before acting.
+  eventId: string
+  event: PublicEventType
+  // ISO timestamp the event was minted at (DB commit time, not delivery).
+  occurredAt: string
+  // Public slug of the streamer the event is about. Always set for streamer
+  // events; future system-wide events may use a sentinel.
+  slug: string
+  data: T
+}
+
+// session.completed payload — used both by the webhook envelope and by
+// the SSE channel. Score + rank are post-completion finalized values.
+export interface SessionCompletedEvent {
+  score: number
+  screenshotsFound: number
+  totalScreenshots: number
+  rank: number | null
+  challengeDate: string
+  countsForLeaderboard: boolean
+}
+
+// session.started payload — fired when a streamer begins their daily.
+// Useful for chat-bots that switch scenes or post "now playing" lines.
+export interface SessionStartedEvent {
+  sessionId: string
+  challengeDate: string
+  countsForLeaderboard: boolean
+}
+
+// SSE live-channel event names. The same envelope discipline as webhooks,
+// but `id:` / `event:` / `data:` are emitted directly (not wrapped) so
+// `EventSource.addEventListener('session.completed', …)` works out of the box.
+export type SseEventName = PublicEventType | 'heartbeat' | 'connected'

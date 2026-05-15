@@ -51,3 +51,15 @@ export {
   type PushSubscriptionRow,
   type UpsertSubscriptionInput as UpsertPushSubscriptionInput,
 } from './push-subscription.repository.js'
+export {
+  apiKeyRepository,
+  hashApiKey,
+  type ApiKeyRow,
+} from './api-key.repository.js'
+export {
+  webhookRepository,
+  webhookDeliveryRepository,
+  hashWebhookSecret,
+  type WebhookRow,
+  type WebhookDeliveryRow,
+} from './webhook.repository.js'

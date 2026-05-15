@@ -146,3 +146,27 @@ export const pushQueue = new Queue<PushJobData>('push-jobs', {
 export const pushQueueEvents = new QueueEvents('push-jobs', {
   connection: redisConnectionOptions,
 })
+
+// Webhook-delivery jobs for the public API M2. Each job processes ONE
+// (webhook_id, event_id) row in webhook_deliveries — failures inside the
+// worker update the DB row's state machine; the BullMQ retry policy is
+// the second line of defence (process crashes, Redis hiccups). 3 attempts
+// at the BullMQ level mirrors the 3 retries we promised in the meeting.
+export type WebhookDeliveryJobData = {
+  kind: 'deliver'
+  deliveryId: number
+}
+
+export const webhookQueue = new Queue<WebhookDeliveryJobData>('webhook-delivery', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 15_000 },
+    removeOnComplete: { count: 200 },
+    removeOnFail: { count: 200 },
+  },
+})
+
+export const webhookQueueEvents = new QueueEvents('webhook-delivery', {
+  connection: redisConnectionOptions,
+})
