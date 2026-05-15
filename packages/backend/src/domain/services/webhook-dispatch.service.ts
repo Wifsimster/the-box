@@ -3,6 +3,7 @@ import { webhookRepository, webhookDeliveryRepository } from '../../infrastructu
 import { logger } from '../../infrastructure/logger/logger.js'
 import type {
   PublicEventType,
+  RankChangedEvent,
   SessionCompletedEvent,
   SessionStartedEvent,
   WebhookPayload,
@@ -86,6 +87,26 @@ export const webhookDispatch = {
       countsForLeaderboard: params.countsForLeaderboard,
     }
     await fanOut(params.userId, params.slug, 'session.completed', params.sessionId, data)
+  },
+
+  /**
+   * Fires for the player who just finished a ranked session — a rank-only
+   * companion to session.completed. The event id reuses the session id so a
+   * re-run can't double-deliver. Callers must only invoke this for
+   * non-catch-up sessions with a resolved rank.
+   */
+  async rankChanged(params: {
+    userId: string
+    slug: string
+    sessionId: string
+    challengeDate: string
+    rank: number
+  }): Promise<void> {
+    const data: RankChangedEvent = {
+      rank: params.rank,
+      challengeDate: params.challengeDate,
+    }
+    await fanOut(params.userId, params.slug, 'rank.changed', params.sessionId, data)
   },
 }
 
