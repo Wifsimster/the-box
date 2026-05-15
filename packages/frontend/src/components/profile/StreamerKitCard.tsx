@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { StreamerWebhooksSection } from './StreamerWebhooksSection'
 import { toast } from '@/lib/toast'
 import { streamerKeysApi, type StreamerSettingsResponse } from '@/lib/api/streamer-keys'
 import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
@@ -303,6 +304,10 @@ export function StreamerKitCard() {
                 </ul>
               )}
             </div>
+
+            {/* Webhooks — only meaningful once the profile is public.
+                Self-contained section: fetches + manages its own data. */}
+            {enabled && <StreamerWebhooksSection enabled={enabled} />}
           </>
         )}
       </CardContent>

@@ -1,4 +1,10 @@
-import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
+import type {
+  ApiKeyCreated,
+  ApiKeySummary,
+  PublicEventType,
+  WebhookCreated,
+  WebhookSummary,
+} from '@the-box/types'
 
 interface ApiResponse<T> {
   success: boolean
@@ -63,6 +69,33 @@ export const streamerKeysApi = {
 
   async revokeKey(id: number): Promise<{ ok: true }> {
     const res = await fetch(`/api/streamer-keys/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    return handleResponse(res)
+  },
+
+  async listWebhooks(): Promise<WebhookSummary[]> {
+    const res = await fetch('/api/streamer-keys/webhooks', { credentials: 'include' })
+    return handleResponse<WebhookSummary[]>(res)
+  },
+
+  async createWebhook(input: {
+    url: string
+    label: string
+    events: PublicEventType[]
+  }): Promise<WebhookCreated> {
+    const res = await fetch('/api/streamer-keys/webhooks', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return handleResponse<WebhookCreated>(res)
+  },
+
+  async revokeWebhook(id: number): Promise<{ ok: true }> {
+    const res = await fetch(`/api/streamer-keys/webhooks/${id}`, {
       method: 'DELETE',
       credentials: 'include',
     })

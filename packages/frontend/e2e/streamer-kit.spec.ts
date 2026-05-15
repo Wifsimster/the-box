@@ -220,3 +220,72 @@ test.describe('Public API rate-limit headers', () => {
     expect(res.headers()['ratelimit-limit']).toBe('60')
   })
 })
+
+test.describe('Streamer Kit — webhooks (M3)', () => {
+  // Webhooks need an opted-in public profile, so each test enables it first.
+  test.beforeEach(async ({ authenticatedPage: page }) => {
+    await page.goto('/en/profile')
+    await page.waitForSelector('[data-testid="streamer-kit-settings"]', { timeout: 15_000 })
+    const toggle = page.getByTestId('streamer-kit-toggle')
+    if (!(await toggle.isChecked())) {
+      await toggle.check()
+      await page.waitForTimeout(300)
+    }
+  })
+
+  test('renders the webhook section once the profile is enabled', async ({
+    authenticatedPage: page,
+  }) => {
+    await expect(page.getByTestId('streamer-kit-webhooks')).toBeVisible()
+    await expect(page.getByTestId('streamer-kit-add-webhook')).toBeEnabled()
+  })
+
+  test('rejects a non-HTTPS URL with an inline error', async ({ authenticatedPage: page }) => {
+    await page.getByTestId('streamer-kit-add-webhook').click()
+    await expect(page.getByTestId('streamer-kit-webhook-dialog')).toBeVisible()
+
+    await page.getByTestId('streamer-kit-webhook-url').fill('http://example.com/hook')
+    await page.getByTestId('streamer-kit-webhook-label').fill('insecure')
+    await page.getByTestId('streamer-kit-confirm-webhook').click()
+
+    // SSRF guard returns NOT_HTTPS → mapped to the HTTPS inline error.
+    await expect(page.getByText(/must use HTTPS/i)).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('registers a webhook, reveals the secret once, lists it, and revokes it', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.getByTestId('streamer-kit-add-webhook').click()
+    await expect(page.getByTestId('streamer-kit-webhook-dialog')).toBeVisible()
+
+    const label = `Discord bot ${Date.now()}`
+    // example.com passes the syntactic SSRF guard (public host, HTTPS).
+    // DNS re-resolution only happens at delivery time, not registration.
+    await page.getByTestId('streamer-kit-webhook-url').fill('https://example.com/the-box-hook')
+    await page.getByTestId('streamer-kit-webhook-label').fill(label)
+    await page.getByTestId('streamer-kit-confirm-webhook').click()
+
+    // Secret revealed exactly once, in the same dialog.
+    const secret = page.getByTestId('streamer-kit-webhook-secret')
+    await expect(secret).toBeVisible({ timeout: 5_000 })
+    const secretText = (await secret.textContent())?.trim() ?? ''
+    expect(secretText).toMatch(/^whsec_[A-Za-z0-9_-]+$/)
+
+    await page.getByRole('button', { name: /done/i }).click()
+    await expect(page.getByTestId('streamer-kit-webhook-dialog')).toBeHidden()
+
+    // Listed, without the full secret.
+    const list = page.getByTestId('streamer-kit-webhooks-list')
+    await expect(list).toContainText(label)
+    await expect(list).not.toContainText(secretText)
+
+    // Revoke via the ConfirmDialog.
+    const revokeButtons = page.locator('[data-testid^="streamer-kit-revoke-webhook-"]')
+    await revokeButtons.first().click()
+    const dialog = page.getByTestId('streamer-kit-webhook-revoke-dialog')
+    await expect(dialog).toBeVisible()
+    await page.getByTestId('streamer-kit-webhook-revoke-dialog-confirm').click()
+    await expect(dialog).toBeHidden({ timeout: 5_000 })
+    await expect(list).toContainText(/revoked/i)
+  })
+})

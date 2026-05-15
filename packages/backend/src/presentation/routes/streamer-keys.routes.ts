@@ -3,18 +3,30 @@ import { z } from 'zod'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { apiKeyRepository } from '../../infrastructure/repositories/api-key.repository.js'
+import { webhookRepository } from '../../infrastructure/repositories/webhook.repository.js'
+import { webhookSecretCache } from '../../infrastructure/queue/webhook-secret-cache.js'
+import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
+import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { logger } from '../../infrastructure/logger/logger.js'
-import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
+import type {
+  ApiKeyCreated,
+  ApiKeySummary,
+  PublicEventType,
+  WebhookCreated,
+  WebhookSummary,
+} from '@the-box/types'
 
 // Private-session routes for the Streamer Kit settings page. Owners:
 //   - flip their public_profile_enabled toggle
 //   - claim a public_slug
 //   - mint / list / revoke their own API keys
+//   - register / list / revoke webhooks
 //
 // Lives under /api/streamer-keys/* — NOT under /api/public/v1, because these
 // are session-authenticated, not key-authenticated. Behind the same Better
-// Auth wall as the rest of the private surface.
+// Auth wall as the rest of the private surface. The webhook endpoints here
+// and the key-authed ones under /api/public/v1/webhooks share one repository.
 
 const router = Router()
 
@@ -164,6 +176,100 @@ router.delete('/:id', validateParams(idParamsSchema), async (req, res, next) => 
       return
     }
     log.info({ userId, keyId: id }, 'api key revoked')
+    res.json({ success: true, data: { ok: true } })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────
+// Webhooks — session-authed CRUD for the settings page. Same repository
+// and SSRF guard as the key-authed /api/public/v1/webhooks endpoints;
+// the only difference is the auth method (session cookie here, bearer
+// key there).
+// ─────────────────────────────────────────────────────────────────────
+
+const WEBHOOK_EVENTS: PublicEventType[] = [
+  'session.started',
+  'session.completed',
+  'screenshot.scored',
+  'rank.changed',
+]
+
+router.get('/webhooks', async (req, res, next) => {
+  try {
+    const rows = await webhookRepository.findByUser(req.userId!)
+    const data: WebhookSummary[] = rows.map(webhookRepository.mapWebhook)
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+})
+
+const createWebhookSchema = z.object({
+  url: z.string().url().max(2048),
+  label: z.string().trim().min(1).max(64),
+  events: z
+    .array(z.enum(WEBHOOK_EVENTS as [PublicEventType, ...PublicEventType[]]))
+    .max(16)
+    .default([]),
+})
+
+router.post('/webhooks', validateBody(createWebhookSchema), async (req, res, next) => {
+  try {
+    const userId = req.userId!
+    const body = req.body as z.infer<typeof createWebhookSchema>
+
+    const validation = validateWebhookUrl(body.url, env.API_URL)
+    if (!validation.ok) {
+      res.status(400).json({
+        success: false,
+        error: { code: validation.code ?? 'INVALID_URL', message: 'URL rejected by SSRF guard' },
+      })
+      return
+    }
+
+    const existing = await webhookRepository.findByUser(userId)
+    if (existing.filter((w) => w.is_active).length >= 10) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'TOO_MANY_WEBHOOKS', message: 'Revoke an existing webhook first' },
+      })
+      return
+    }
+
+    const { row, secret } = await webhookRepository.create({
+      userId,
+      url: body.url,
+      label: body.label,
+      events: body.events,
+    })
+    webhookSecretCache.set(row.id, secret)
+    log.info({ userId, webhookId: row.id }, 'webhook registered')
+
+    const payload: WebhookCreated = { ...webhookRepository.mapWebhook(row), secret }
+    res.status(201).json({ success: true, data: payload })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/webhooks/:id', validateParams(idParamsSchema), async (req, res, next) => {
+  try {
+    const userId = req.userId!
+    const { id } = req.params as unknown as z.infer<typeof idParamsSchema>
+    const owned = await webhookRepository.findOwnedById(userId, id)
+    if (!owned) {
+      res.status(404).json({ success: false, error: { code: 'WEBHOOK_NOT_FOUND' } })
+      return
+    }
+    const ok = await webhookRepository.revoke(id, userId)
+    if (!ok) {
+      res.status(409).json({ success: false, error: { code: 'ALREADY_REVOKED' } })
+      return
+    }
+    webhookSecretCache.delete(id)
+    log.info({ userId, webhookId: id }, 'webhook revoked')
     res.json({ success: true, data: { ok: true } })
   } catch (err) {
     next(err)
