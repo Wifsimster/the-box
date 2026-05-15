@@ -3,6 +3,7 @@ import type { Logger } from 'pino'
 import { db } from '../../infrastructure/database/connection.js'
 import { challengeRepository } from '../../infrastructure/repositories/challenge.repository.js'
 import { hashPayload } from '../../domain/services/webhook-dispatch.service.js'
+import { isSandboxSlug, sandboxState } from '../../domain/services/sandbox.service.js'
 import type { SseEventName } from '@the-box/types'
 
 // Live-channel implementation for /api/public/v1/streamers/:slug/live.
@@ -120,10 +121,31 @@ export async function setupSseChannel(
   res: Response,
   ctx: SseContext,
 ): Promise<void> {
-  const target = await findUserBySlug(ctx.slug)
-  if (!target) {
-    res.status(404).json({ success: false, error: { code: 'STREAMER_NOT_FOUND' } })
-    return
+  // Sandbox streamer — clock-driven simulation, no DB user. The snapshot
+  // provider is swapped for the pure `sandboxState` function; everything
+  // downstream (diffing, heartbeat, caps) is identical.
+  const isSandbox = isSandboxSlug(ctx.slug)
+
+  let getSnapshot: () => Promise<PollSnapshot | null>
+  if (isSandbox) {
+    getSnapshot = async () => {
+      const s = sandboxState()
+      return {
+        status: s.status,
+        score: s.score,
+        screenshotsDone: s.screenshotsDone,
+        rank: s.rank,
+        startedAt: s.startedAt,
+        completedAt: s.completedAt,
+      }
+    }
+  } else {
+    const target = await findUserBySlug(ctx.slug)
+    if (!target) {
+      res.status(404).json({ success: false, error: { code: 'STREAMER_NOT_FOUND' } })
+      return
+    }
+    getSnapshot = () => pollSnapshot(target.id)
   }
 
   // SSE headers. Disabling proxy buffering with X-Accel-Buffering matters for
@@ -160,7 +182,7 @@ export async function setupSseChannel(
     if (closed) return
     void (async () => {
       try {
-        const snap = await pollSnapshot(target.id)
+        const snap = await getSnapshot()
         if (!snap) return
         const hash = hashPayload(snap)
         if (hash === lastHash) return
@@ -177,10 +199,10 @@ export async function setupSseChannel(
               : 'heartbeat'
         writeFrame(res, eventName as SseEventName, snap)
 
-        // Stream closes 30s after completion so the consumer can see the
-        // final frame, then we tear down. Keeping it open past that just
-        // burns sockets.
-        if (snap.status === 'completed') {
+        // For a real streamer the stream closes 30s after completion — the
+        // session is over, holding the socket open just burns it. The
+        // sandbox loops forever, so it stays open across cycles instead.
+        if (snap.status === 'completed' && !isSandbox) {
           setTimeout(() => close('completed'), 30_000)
         }
       } catch (err) {

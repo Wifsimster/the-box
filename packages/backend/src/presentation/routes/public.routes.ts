@@ -8,6 +8,11 @@ import {
 } from '../../infrastructure/repositories/webhook.repository.js'
 import { webhookSecretCache } from '../../infrastructure/queue/webhook-secret-cache.js'
 import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
+import {
+  isSandboxSlug,
+  sandboxProfile,
+  sandboxToday,
+} from '../../domain/services/sandbox.service.js'
 import { env } from '../../config/env.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import {
@@ -213,17 +218,25 @@ router.get(
         })
         return
       }
-      const row = await findPublicStreamer(slug)
-      if (!row) {
+      const query = req.query as z.infer<typeof profileQuerySchema>
+
+      // Sandbox streamer — clock-driven simulation, never a DB lookup.
+      // Lets integrators build against a live target without waiting for
+      // a real player. See sandbox.service.ts.
+      const profile = isSandboxSlug(slug)
+        ? sandboxProfile()
+        : await (async () => {
+            const row = await findPublicStreamer(slug)
+            return row ? buildStreamerProfile(row) : null
+          })()
+
+      if (!profile) {
         res.status(404).json({
           success: false,
           error: { code: 'STREAMER_NOT_FOUND' },
         })
         return
       }
-      const profile = await buildStreamerProfile(row)
-
-      const query = req.query as z.infer<typeof profileQuerySchema>
       if (query.format === 'chat') {
         // Plain text body — Nightbot-friendly. We don't wrap in the envelope
         // because $(urlfetch json …) expects raw text here, and a JSON
@@ -258,6 +271,13 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
       })
       return
     }
+
+    // Sandbox streamer — clock-driven simulation (see sandbox.service.ts).
+    if (isSandboxSlug(slug)) {
+      res.json({ success: true, data: sandboxToday() })
+      return
+    }
+
     const row = await findPublicStreamer(slug)
     if (!row) {
       res.status(404).json({ success: false, error: { code: 'STREAMER_NOT_FOUND' } })

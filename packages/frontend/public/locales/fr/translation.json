@@ -1883,6 +1883,7 @@
     "slugHint": "3 à 32 caractères : lettres minuscules, chiffres, tirets, soulignés. C'est ce que verra votre chat.",
     "slugInvalid": "3 à 32 caractères : a–z, 0–9, tiret, souligné.",
     "slugTaken": "Ce slug est déjà pris — essayez-en un autre.",
+    "slugReserved": "Ce slug est réservé — choisissez-en un autre.",
     "slugSave": "Enregistrer",
     "keysTitle": "Clés API",
     "createKey": "Créer une clé",

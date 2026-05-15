@@ -87,6 +87,8 @@ export function StreamerKitCard() {
       const code = (err as { code?: string }).code
       if (code === 'SLUG_TAKEN') {
         setSlugError(t('streamerKit.slugTaken'))
+      } else if (code === 'SLUG_RESERVED') {
+        setSlugError(t('streamerKit.slugReserved'))
       } else {
         toast.error(t('streamerKit.updateError'))
       }

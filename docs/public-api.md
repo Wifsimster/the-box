@@ -34,7 +34,7 @@ Bearer API keys. Two modes:
 | Prefix | Mode | Notes |
 |--------|------|-------|
 | `tb_pk_live_…` | live | Production key. |
-| `tb_pk_test_…` | test | Test key. Reserved for the sandbox (see M3 roadmap); behaves like a live key against read endpoints today. |
+| `tb_pk_test_…` | test | Test key. Behaves identically to a live key against read endpoints — use it while building against the [`boxbot` sandbox](#sandbox). |
 
 ```http
 Authorization: Bearer tb_pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -79,6 +79,28 @@ On exhaustion: `429` with `Retry-After` (seconds) and
 `{ "error": { "code": "RATE_LIMITED" } }`.
 
 SSE connections are capped at 3 concurrent per key.
+
+## Sandbox
+
+Building an overlay or chat command means staring at a streamer who is
+mid-game — inconvenient if nobody is playing right now. The slug **`boxbot`**
+is a permanent sandbox streamer you can hit any time:
+
+```http
+GET /api/public/v1/streamers/boxbot
+GET /api/public/v1/streamers/boxbot/today
+GET /api/public/v1/streamers/boxbot/live?key=tb_pk_test_…
+```
+
+`boxbot` runs a **10-minute loop**: ~7 minutes `in_progress` with a climbing
+score, then ~3 minutes `completed`, then it repeats. It is a pure simulation —
+not a real account — so it never appears on any leaderboard and its sessions
+always carry `countsForLeaderboard: false`. The slug is reserved; no real user
+can claim it.
+
+Use it to develop and demo without waiting for a live session. All three
+streamer endpoints work against it; webhooks do not fire for `boxbot` (no real
+session completes), so test webhook *delivery* against your own account.
 
 ## Endpoints
 

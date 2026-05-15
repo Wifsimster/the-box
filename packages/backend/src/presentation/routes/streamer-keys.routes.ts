@@ -6,6 +6,7 @@ import { apiKeyRepository } from '../../infrastructure/repositories/api-key.repo
 import { webhookRepository } from '../../infrastructure/repositories/webhook.repository.js'
 import { webhookSecretCache } from '../../infrastructure/queue/webhook-secret-cache.js'
 import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
+import { isReservedSlug } from '../../domain/services/sandbox.service.js'
 import { env } from '../../config/env.js'
 import { db } from '../../infrastructure/database/connection.js'
 import { logger } from '../../infrastructure/logger/logger.js'
@@ -81,6 +82,18 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
     const userId = req.userId!
     const body = req.body as z.infer<typeof settingsSchema>
 
+    // Reserved slugs (`boxbot` and friends) can't be claimed — the public
+    // routes short-circuit `boxbot` to the sandbox simulation, so a real
+    // user owning it would be permanently shadowed.
+    const requestedSlug = body.publicSlug?.toLowerCase() ?? null
+    if (requestedSlug && isReservedSlug(requestedSlug)) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'SLUG_RESERVED', message: 'That slug is reserved' },
+      })
+      return
+    }
+
     // Empty slug while opting in is allowed: the user can flip the toggle on,
     // pick a slug later. But opting in WITHOUT a slug means nobody can find
     // them via the public API — that's fine, it's an opt-in to the model,
@@ -89,7 +102,7 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
       public_profile_enabled: body.publicProfileEnabled,
     }
     if (body.publicSlug !== undefined) {
-      update['public_slug'] = body.publicSlug?.toLowerCase() ?? null
+      update['public_slug'] = requestedSlug
     }
 
     try {

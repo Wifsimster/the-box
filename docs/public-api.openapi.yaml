@@ -287,6 +287,10 @@ components:
       in: path
       required: true
       schema: { type: string, pattern: '^[a-z0-9_-]{3,32}$' }
+      description: >
+        Public streamer slug. The reserved value `boxbot` is a simulated
+        sandbox streamer on a 10-minute loop — use it to develop without a
+        live session. See docs/public-api.md#sandbox.
 
   headers:
     RateLimitLimit:

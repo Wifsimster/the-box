@@ -221,6 +221,59 @@ test.describe('Public API rate-limit headers', () => {
   })
 })
 
+test.describe('Public API sandbox — boxbot', () => {
+  // boxbot is a clock-driven simulation — always queryable, no DB user,
+  // no opt-in required. These tests need neither auth nor a seeded streamer.
+  test('profile is always available', async ({ page }) => {
+    const res = await page.request.get(`${API_BASE}/public/v1/streamers/boxbot`)
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+    expect(body.data.slug).toBe('boxbot')
+    expect(body.data.displayName).toBe('BoxBot')
+    expect(body.data.today).not.toBeNull()
+  })
+
+  test('today endpoint reports a live session that never counts for the leaderboard', async ({
+    page,
+  }) => {
+    const res = await page.request.get(`${API_BASE}/public/v1/streamers/boxbot/today`)
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(['in_progress', 'completed']).toContain(body.data.status)
+    expect(body.data.session.countsForLeaderboard).toBe(false)
+  })
+
+  test('chat format returns a one-line string', async ({ page }) => {
+    const res = await page.request.get(
+      `${API_BASE}/public/v1/streamers/boxbot?format=chat`
+    )
+    expect(res.status()).toBe(200)
+    const text = await res.text()
+    expect(text).toContain('BoxBot')
+    expect(text.split('\n')).toHaveLength(1)
+  })
+})
+
+test.describe('Streamer Kit — reserved slugs', () => {
+  test('cannot claim the boxbot slug', async ({ authenticatedPage: page }) => {
+    await page.goto('/en/profile')
+    await page.waitForSelector('[data-testid="streamer-kit-settings"]', { timeout: 15_000 })
+
+    const toggle = page.getByTestId('streamer-kit-toggle')
+    if (!(await toggle.isChecked())) {
+      await toggle.check()
+      await page.waitForTimeout(300)
+    }
+    await page.getByTestId('streamer-kit-slug').fill('boxbot')
+    await page.getByTestId('streamer-kit-slug-save').click()
+
+    // Server rejects the reserved slug — the SLUG_TAKEN / SLUG_RESERVED
+    // path surfaces the inline error.
+    await expect(page.getByText(/reserved|already taken/i)).toBeVisible({ timeout: 5_000 })
+  })
+})
+
 test.describe('Streamer Kit — webhooks (M3)', () => {
   // Webhooks need an opted-in public profile, so each test enables it first.
   test.beforeEach(async ({ authenticatedPage: page }) => {
