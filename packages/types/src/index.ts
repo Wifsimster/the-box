@@ -1584,6 +1584,15 @@ export interface SessionStartedEvent {
   countsForLeaderboard: boolean
 }
 
+// rank.changed payload — fired alongside session.completed for the player
+// who just finished a ranked (non-catch-up) session. A rank-only signal for
+// bots that don't need the full session result. Not dispatched for catch-up
+// sessions (those carry no leaderboard rank).
+export interface RankChangedEvent {
+  rank: number
+  challengeDate: string
+}
+
 // SSE live-channel event names. The same envelope discipline as webhooks,
 // but `id:` / `event:` / `data:` are emitted directly (not wrapped) so
 // `EventSource.addEventListener('session.completed', …)` works out of the box.

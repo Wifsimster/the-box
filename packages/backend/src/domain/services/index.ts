@@ -252,6 +252,18 @@ async function onAfterSessionCompleted(params: {
     rank,
     countsForLeaderboard: !params.isCatchUp,
   })
+
+  // rank.changed — rank-only companion event, completing-streamer-only.
+  // Skipped for catch-up sessions (no leaderboard rank to report).
+  if (!params.isCatchUp && rank !== null) {
+    await webhookDispatch.rankChanged({
+      userId: params.userId,
+      slug: userRow.public_slug,
+      sessionId: params.sessionId,
+      challengeDate: challenge.challenge_date,
+      rank,
+    })
+  }
 }
 
 /**

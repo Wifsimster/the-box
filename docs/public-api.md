@@ -398,15 +398,16 @@ it and you must revoke and re-register.
 |-------|---------|-----|--------|
 | `session.started` | ✅ | — | Live |
 | `session.completed` | ✅ | ✅ | Live |
+| `rank.changed` | ✅ | — | Live |
 | `screenshot.scored` | — | ✅ | Live (SSE only) |
-| `rank.changed` | — | — | Reserved |
 
 `session.started` fires once when a streamer begins their daily (not on
 resume); its `data` is `{ sessionId, challengeDate, countsForLeaderboard }`.
 
-The reserved event (`rank.changed`) is present in the type system and accepted
-in webhook `events` arrays, but not yet dispatched. Subscribing to it now is
-safe and forward-compatible.
+`rank.changed` fires alongside `session.completed` for the player who just
+finished a ranked session — a rank-only signal for bots that don't need the
+full result. Its `data` is `{ rank, challengeDate }`. It is not dispatched for
+catch-up sessions (those carry no leaderboard rank).
 
 ## Error codes
 
