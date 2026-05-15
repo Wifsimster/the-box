@@ -125,6 +125,19 @@ export interface GameServiceDeps {
     reason: 'all_found' | 'forfeit'
     isCatchUp: boolean
   }) => Promise<void>
+  /**
+   * Optional fire-and-forget hook called once when a NEW game session is
+   * created (not on resume). Wired by the composition root to fan out the
+   * `session.started` public-API webhook. Same swallow-errors contract as
+   * the hooks above.
+   */
+  onAfterSessionStarted?: (params: {
+    userId: string
+    sessionId: string
+    challengeId: number
+    challengeDate: string
+    isCatchUp: boolean
+  }) => Promise<void>
 }
 
 export interface GameService {
@@ -396,6 +409,26 @@ export function createGameService(deps: GameServiceDeps): GameService {
         sessionId: gameSession.id,
         payload: { challengeId, isCatchUp },
       })
+
+      // Public-API webhook fan-out (M2). Fires once per new session, never
+      // on resume. Fire-and-forget — a webhook subscriber must not be able
+      // to fail the start request.
+      if (deps.onAfterSessionStarted) {
+        void deps.onAfterSessionStarted({
+          userId,
+          sessionId: gameSession.id,
+          challengeId,
+          // `.slice(0, 10)` always yields a YYYY-MM-DD string — avoids the
+          // `string | undefined` that index-access on split() would give.
+          challengeDate: challengeDateStr ?? challengeDate.toISOString().slice(0, 10),
+          isCatchUp,
+        }).catch((error) => {
+          log.warn(
+            { userId, error: String(error) },
+            'onAfterSessionStarted hook failed (non-fatal)',
+          )
+        })
+      }
     } else {
       // Check if session is already completed
       if (gameSession.is_completed) {

@@ -254,6 +254,38 @@ async function onAfterSessionCompleted(params: {
   })
 }
 
+/**
+ * Public-API webhook fan-out when a streamer starts their daily. Resolves
+ * the slug + opt-in flag, then dispatches `session.started`. Only opted-in
+ * streamers with a slug trigger anything.
+ */
+async function onAfterSessionStarted(params: {
+  userId: string
+  sessionId: string
+  challengeId: number
+  challengeDate: string
+  isCatchUp: boolean
+}): Promise<void> {
+  const { db } = await import('../../infrastructure/database/connection.js')
+  const userRow = await db('user')
+    .where('id', params.userId)
+    .select<{ public_slug: string | null; public_profile_enabled: boolean }>(
+      'public_slug',
+      'public_profile_enabled'
+    )
+    .first()
+  if (!userRow?.public_profile_enabled || !userRow.public_slug) return
+
+  const { webhookDispatch } = await import('./webhook-dispatch.service.js')
+  await webhookDispatch.sessionStarted({
+    userId: params.userId,
+    slug: userRow.public_slug,
+    sessionId: params.sessionId,
+    challengeDate: params.challengeDate,
+    countsForLeaderboard: !params.isCatchUp,
+  })
+}
+
 export const gameService = createGameService({
   logger: serviceLogger,
   fuzzyMatchService,
@@ -268,6 +300,7 @@ export const gameService = createGameService({
   positionSecondChanceRepository,
   onAfterGuessSubmitted,
   onAfterSessionCompleted,
+  onAfterSessionStarted,
 })
 
 export const geoScoringService = createGeoScoringService({ logger: serviceLogger })

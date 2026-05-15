@@ -21,12 +21,13 @@ import type { PublicEventType, WebhookCreated, WebhookSummary } from '@the-box/t
 // Self-contained: fetches its own data, owns its own dialogs. Rendered by
 // StreamerKitCard only when the public profile is enabled.
 
-// Only session.completed is dispatched today (M2). The others are typed and
-// accepted by the backend so subscribing now is forward-compatible — we tag
-// them "soon" in the UI rather than hiding them.
+// session.started + session.completed are dispatched as webhooks today.
+// screenshot.scored is SSE-only (not delivered as a webhook); rank.changed
+// is typed + accepted but not yet dispatched. Non-live entries get a "soon"
+// badge rather than being hidden, so subscriptions stay forward-compatible.
 const EVENT_OPTIONS: { value: PublicEventType; live: boolean }[] = [
+  { value: 'session.started', live: true },
   { value: 'session.completed', live: true },
-  { value: 'session.started', live: false },
   { value: 'screenshot.scored', live: false },
   { value: 'rank.changed', live: false },
 ]

@@ -396,14 +396,17 @@ it and you must revoke and re-register.
 
 | Event | Webhook | SSE | Status |
 |-------|---------|-----|--------|
+| `session.started` | ✅ | — | Live |
 | `session.completed` | ✅ | ✅ | Live |
 | `screenshot.scored` | — | ✅ | Live (SSE only) |
-| `session.started` | — | — | Reserved |
 | `rank.changed` | — | — | Reserved |
 
-Reserved events are present in the type system and accepted in webhook
-`events` arrays, but not yet dispatched. Subscribing to them now is safe and
-forward-compatible.
+`session.started` fires once when a streamer begins their daily (not on
+resume); its `data` is `{ sessionId, challengeDate, countsForLeaderboard }`.
+
+The reserved event (`rank.changed`) is present in the type system and accepted
+in webhook `events` arrays, but not yet dispatched. Subscribing to it now is
+safe and forward-compatible.
 
 ## Error codes
 
