@@ -1,14 +1,15 @@
 import { Router } from 'express'
 import { leaderboardService, userService } from '../../domain/services/index.js'
+import { optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
 // Get public session details (for viewing other players' answers)
-router.get('/session/:sessionId', async (req, res, next) => {
+router.get('/session/:sessionId', optionalAuthMiddleware, async (req, res, next) => {
   try {
     const { sessionId } = req.params
 
-    if (!sessionId) {
+    if (!sessionId || typeof sessionId !== 'string') {
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_SESSION_ID', message: 'Session ID is required' },
@@ -16,13 +17,23 @@ router.get('/session/:sessionId', async (req, res, next) => {
       return
     }
 
-    const data = await userService.getPublicGameSessionDetails(sessionId)
+    const data = await userService.getPublicGameSessionDetails(sessionId, req.userId)
 
     res.json({
       success: true,
       data,
     })
   } catch (error) {
+    if (error instanceof Error && error.message === 'TODAY_CHALLENGE_NOT_COMPLETED') {
+      res.status(403).json({
+        success: false,
+        error: {
+          code: 'TODAY_CHALLENGE_NOT_COMPLETED',
+          message: "Complete today's challenge to view other players' answers",
+        },
+      })
+      return
+    }
     if (error instanceof Error && error.message.includes('not found')) {
       res.status(404).json({
         success: false,

@@ -184,6 +184,8 @@ export default function LeaderboardPage() {
       const data = await res.json()
       if (data.success && data.data) {
         setPlayerSession(data.data)
+      } else if (data.error?.code === 'TODAY_CHALLENGE_NOT_COMPLETED') {
+        setSessionError(t('leaderboard.todayLocked'))
       } else {
         setSessionError(t('leaderboard.errorLoading'))
       }

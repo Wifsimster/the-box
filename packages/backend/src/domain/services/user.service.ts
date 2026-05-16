@@ -24,7 +24,10 @@ const PREMIUM_CATCH_UP_DAYS = 365
 
 export interface UserService {
   getGameHistory(userId: string, isPremium?: boolean): Promise<GameHistoryResponse>
-  getPublicGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse>
+  getPublicGameSessionDetails(
+    sessionId: string,
+    requesterId?: string
+  ): Promise<GameSessionDetailsResponse>
   getGameSessionDetails(
     sessionId: string,
     userId: string
@@ -240,12 +243,29 @@ export function createUserService(deps: UserServiceDeps): UserService {
     },
 
     async getPublicGameSessionDetails(
-      sessionId: string
+      sessionId: string,
+      requesterId?: string
     ): Promise<GameSessionDetailsResponse> {
       const gameSession = await sessionRepository.findCompletedGameSessionById(sessionId)
       if (!gameSession) {
         throw new Error('Session not found or not completed')
       }
+
+      // Anti-cheat: viewing another player's answers reveals the correct
+      // games. For the current daily challenge, only allow it once the
+      // requester has completed that same challenge themselves. Past
+      // challenges stay open (catch-up scores don't count on the leaderboard).
+      const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
+      const today = new Date().toISOString().split('T')[0]
+      if (challenge && challenge.challenge_date === today) {
+        const requesterSession = requesterId
+          ? await sessionRepository.findGameSession(requesterId, gameSession.daily_challenge_id)
+          : null
+        if (!requesterSession?.is_completed) {
+          throw new Error('TODAY_CHALLENGE_NOT_COMPLETED')
+        }
+      }
+
       return buildSessionDetailsResponse(gameSession)
     },
 
