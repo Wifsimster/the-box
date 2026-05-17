@@ -549,7 +549,8 @@
     "correct": "Correct",
     "skipped": "Passé",
     "errorLoading": "Impossible de charger les réponses",
-    "clickToView": "Cliquez pour voir les réponses de ce joueur"
+    "clickToView": "Cliquez pour voir les réponses de ce joueur",
+    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs."
   },
   "history": {
     "title": "Historique des Parties",
