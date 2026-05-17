@@ -5,6 +5,12 @@
 :root {
   color-scheme: dark;
   --radius: 0.625rem;
+  /* Mobile BottomNav sizing. `--bottom-nav-h` is the bar itself; the layout
+     content padding and the PWA banners reserve `--bottom-nav-space` (bar +
+     iOS home-indicator inset) so nothing renders under the fixed bar. Kept as
+     a single source of truth so the bar and the reserved space can't drift. */
+  --bottom-nav-h: 4rem;
+  --bottom-nav-space: calc(4rem + env(safe-area-inset-bottom));
   /* Dark violet theme (default since dark-only) */
   --background: oklch(0.129 0.042 283.713);
   --foreground: oklch(0.984 0.003 247.858);
@@ -149,7 +155,17 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
-  min-height: 100vh;
+  /* dvh tracks the *current* viewport, so the shell doesn't overflow by the
+     mobile browser toolbar height the way 100vh does. */
+  min-height: 100dvh;
+}
+
+/* Keep focused / anchored elements clear of the sticky header (top) and the
+   mobile BottomNav (bottom) when the browser scrolls them into view —
+   WCAG 2.2 SC 2.4.11 Focus Not Obscured. */
+html {
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: calc(var(--bottom-nav-h) + 1rem);
 }
 
 /* Default keyboard focus ring. Components that need a custom ring can
