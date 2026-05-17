@@ -19,7 +19,10 @@ export function Footer() {
 
   return (
     <footer className="py-4 text-center relative z-10">
-      <nav className="flex items-center justify-center gap-6 text-sm flex-wrap">
+      <nav
+        aria-label={t('nav.footer')}
+        className="flex items-center justify-center gap-6 text-sm flex-wrap"
+      >
         <Link
           to={localizedPath('/terms')}
           className="text-muted-foreground hover:text-neon-purple transition-colors"

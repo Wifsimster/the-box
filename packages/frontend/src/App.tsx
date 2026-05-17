@@ -3,7 +3,9 @@ import { Suspense, lazy, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { BottomNav } from '@/components/layout/BottomNav'
 import { Toaster } from '@/components/ui/sonner'
+import { cn } from '@/lib/utils'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { RouteSeo } from '@/components/RouteSeo'
 import {
@@ -67,7 +69,7 @@ function LanguageRedirect() {
 
 function LanguageLayout() {
   const { lang } = useParams<{ lang: string }>()
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const location = useLocation()
   const { data: session } = useSession()
   const { fetchStatus, reset } = useDailyLoginStore()
@@ -118,16 +120,34 @@ function LanguageLayout() {
   }
 
   // Geo play takes the full viewport (no header, no footer). The daily-game
-  // page keeps the global Header so the hamburger / sidebar stays reachable,
-  // but hides the footer to preserve an immersive in-game feel.
+  // page keeps the global Header so the hamburger stays reachable, but hides
+  // the footer to preserve an immersive in-game feel.
   const isFullscreen = /\/geo\/?$/.test(location.pathname)
-  const hideFooter = isFullscreen || location.pathname.endsWith('/play')
+  const isInGame = location.pathname.endsWith('/play')
+  const hideFooter = isFullscreen || isInGame
+  // The BottomNav is mobile chrome — drop it on the fullscreen Geo route and
+  // the in-game /play route, where it would collide with the keyboard-aware
+  // guess input.
+  const hideBottomNav = isFullscreen || isInGame
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div
+      className={cn(
+        'flex min-h-dvh flex-col bg-background',
+        // Reserve space so page content and the footer clear the fixed
+        // BottomNav. border-box keeps this padding inside min-h-dvh.
+        !hideBottomNav && 'pb-[var(--bottom-nav-space)] md:pb-0',
+      )}
+    >
       <RouteSeo />
+      <a
+        href="#main-content"
+        className="sr-only rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg focus:not-sr-only focus:fixed focus:left-4 focus:top-[calc(1rem_+_env(safe-area-inset-top))] focus:z-[100]"
+      >
+        {t('nav.skipToContent')}
+      </a>
       {!isFullscreen && <Header />}
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
         <LazyComponentErrorBoundary>
           <Suspense fallback={<LoadingSpinner />}>
             <Outlet />
@@ -135,6 +155,7 @@ function LanguageLayout() {
         </LazyComponentErrorBoundary>
       </main>
       {!hideFooter && <Footer />}
+      {!hideBottomNav && <BottomNav />}
 
       {/* Daily Login Reward Modal */}
       <DailyRewardModal />

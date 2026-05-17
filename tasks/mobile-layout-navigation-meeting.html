@@ -1,0 +1,367 @@
+<!doctype html>
+<!-- SUMMARY:
+Personas meeting on app layout + navigation, mobile-first. Four personas (UX,
+mobile QA, frontend eng, a11y) converged: the hamburger-only mobile nav is wrong
+for a daily-engagement game. Decision — add a persistent 4-tab bottom navigation
+bar (Home/Play/Leaderboard/Profile), refactor the 419-line Header onto a shared
+typed nav config, and fix the P0/P1 accessibility + safe-area gaps. Shipped on
+branch claude/mobile-layout-improvements-2XZOp.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Mobile Layout &amp; Navigation — Personas Meeting</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-elev: #14141c;
+    --fg: #e8e8f0;
+    --muted: #9a9ab0;
+    --border: #2a2a38;
+    --primary: #a855f7;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --ok: #34d399;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: var(--sans);
+    line-height: 1.55;
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+    font-size: 15px;
+  }
+  main { max-width: 72ch; margin: 0 auto; }
+  h1, h2, h3 { font-weight: 600; line-height: 1.2; }
+  h1 { font-size: 1.75rem; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 {
+    font-size: 1.15rem; margin: 2.25rem 0 0.75rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 0.95rem; margin: 1.25rem 0 0.4rem; color: var(--fg); }
+  p, ul, ol { margin: 0.55rem 0; }
+  ul, ol { padding-left: 1.3rem; }
+  li { margin: 0.2rem 0; }
+  code, kbd {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0.05em 0.35em;
+  }
+  pre {
+    font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.85rem 1rem; overflow-x: auto;
+    margin: 0.6rem 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  a { color: var(--primary); }
+  a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .meta {
+    color: var(--muted); font-size: 0.85rem;
+    margin: 0 0 1.5rem; font-family: var(--mono);
+  }
+  .glow { color: var(--primary); text-shadow: 0 0 12px rgba(168, 85, 247, 0.45); }
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem;
+    border-radius: 999px; font-size: 0.7rem; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 0.04em; vertical-align: middle;
+    margin-left: 0.4rem;
+  }
+  .badge.internal { background: rgba(168, 85, 247, 0.15); color: var(--primary); border: 1px solid rgba(168, 85, 247, 0.35); }
+  .badge.ok       { background: rgba(52, 211, 153, 0.12);  color: var(--ok);     border: 1px solid rgba(52, 211, 153, 0.35); }
+  .badge.warn     { background: rgba(251, 191, 36, 0.12);  color: var(--warn);   border: 1px solid rgba(251, 191, 36, 0.35); }
+  .badge.danger   { background: rgba(248, 113, 113, 0.12); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.35); }
+
+  .persona {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 1rem 1.1rem; margin: 0.75rem 0; background: var(--bg-elev);
+  }
+  .persona header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; margin-bottom: 0.35rem;
+  }
+  .persona h3 { margin: 0; }
+  .persona .role { color: var(--muted); font-size: 0.78rem; font-family: var(--mono); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.6rem 0; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td code { word-break: break-word; }
+
+  .decision { border-left: 3px solid var(--primary); padding: 0.4rem 0.9rem; margin: 0.4rem 0; background: rgba(168, 85, 247, 0.06); border-radius: 0 6px 6px 0; }
+  .decision strong { color: var(--primary); }
+
+  .pri { font-family: var(--mono); font-size: 0.7rem; font-weight: 600; padding: 0.02em 0.3em; border-radius: 3px; }
+  .pri.p0 { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+  .pri.p1 { background: rgba(251, 191, 36, 0.15);  color: var(--warn); }
+  .pri.p2 { background: rgba(154, 154, 176, 0.15); color: var(--muted); }
+
+  figure { margin: 1rem 0; }
+  figure svg { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elev); }
+  figcaption { color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem; text-align: center; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Mobile Layout &amp; Navigation — Personas Meeting <span class="badge internal">Internal</span></h1>
+<p class="meta">
+  branch: <code>claude/mobile-layout-improvements-2XZOp</code> ·
+  date: 2026-05-17 ·
+  audience: engineering
+</p>
+
+<p>
+  Four personas were spawned in parallel to review &ldquo;The Box&rdquo;&rsquo;s
+  application layout and navigation, with a brief to improve the mobile-first
+  experience. Each had a narrow lens — UX/product, real-device QA, frontend
+  implementation, and WCAG 2.2 accessibility — and reported back with
+  prioritised, file-level findings. This note captures the synthesis, the
+  agreed decisions, and what shipped.
+</p>
+
+<h2>Verdict</h2>
+<div class="decision">
+  <strong>Adopt a persistent mobile bottom navigation bar.</strong> All four
+  personas converged independently: a hamburger drawer is the wrong
+  <em>primary</em> navigation for a daily-engagement game. It buries every
+  destination behind a three-tap interaction in the hardest-to-reach corner of
+  the screen, exposes no information architecture, and offers no
+  &ldquo;you are here&rdquo; signal. The drawer is kept as a complete
+  overflow/account menu; the bottom bar becomes the one-tap primary nav.
+</div>
+
+<h2>Starting point</h2>
+<p>
+  No sidebar exists. Mobile navigation is a single left-edge hamburger
+  <code>Sheet</code> drawer; desktop is a top horizontal nav plus a user
+  dropdown. The <code>Header.tsx</code> file is 419 lines and duplicates the
+  navigation and account sections between the two layouts. Nav items render as
+  <code>Button size="sm"</code> (32&nbsp;px tall). There is no active-route
+  indication, no skip link, and no <code>env(safe-area-inset-*)</code> handling
+  on the header or the drawer.
+</p>
+
+<figure>
+  <svg viewBox="0 0 720 300" role="img"
+       aria-label="Before and after: a phone with hamburger-only navigation versus a phone with a hamburger plus a four-tab bottom navigation bar.">
+    <!-- BEFORE -->
+    <text x="150" y="28" fill="#9a9ab0" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle">BEFORE</text>
+    <rect x="60" y="40" width="180" height="240" rx="18" fill="#14141c" stroke="#2a2a38"/>
+    <!-- header -->
+    <rect x="60" y="40" width="180" height="34" rx="18" fill="#0a0a0f"/>
+    <rect x="60" y="56" width="180" height="18" fill="#0a0a0f"/>
+    <line x1="60" y1="74" x2="240" y2="74" stroke="#2a2a38"/>
+    <rect x="74" y="51" width="16" height="12" rx="2" fill="#9a9ab0"/>
+    <!-- content -->
+    <rect x="84" y="100" width="132" height="14" rx="4" fill="#2a2a38"/>
+    <rect x="84" y="124" width="132" height="42" rx="8" fill="#3a2a4a"/>
+    <rect x="84" y="178" width="132" height="10" rx="3" fill="#1f1f2b"/>
+    <rect x="84" y="194" width="100" height="10" rx="3" fill="#1f1f2b"/>
+    <text x="150" y="262" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="9" text-anchor="middle">nav = 3 taps, top-left only</text>
+
+    <!-- AFTER -->
+    <text x="570" y="28" fill="#a855f7" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" style="text-shadow:0 0 12px rgba(168,85,247,.45)">AFTER</text>
+    <rect x="480" y="40" width="180" height="240" rx="18" fill="#14141c" stroke="#2a2a38"/>
+    <!-- header -->
+    <rect x="480" y="40" width="180" height="34" rx="18" fill="#0a0a0f"/>
+    <rect x="480" y="56" width="180" height="18" fill="#0a0a0f"/>
+    <line x1="480" y1="74" x2="660" y2="74" stroke="#2a2a38"/>
+    <rect x="494" y="51" width="16" height="12" rx="2" fill="#9a9ab0"/>
+    <circle cx="624" cy="57" r="6" fill="#3a2a4a"/>
+    <circle cx="642" cy="57" r="6" fill="#3a2a4a"/>
+    <!-- content -->
+    <rect x="504" y="100" width="132" height="14" rx="4" fill="#2a2a38"/>
+    <rect x="504" y="124" width="132" height="42" rx="8" fill="#3a2a4a"/>
+    <rect x="504" y="178" width="132" height="10" rx="3" fill="#1f1f2b"/>
+    <rect x="504" y="194" width="100" height="10" rx="3" fill="#1f1f2b"/>
+    <!-- bottom nav -->
+    <line x1="480" y1="238" x2="660" y2="238" stroke="#2a2a38"/>
+    <rect x="498" y="238" width="36" height="3" rx="1.5" fill="#a855f7"/>
+    <g fill="#a855f7"><rect x="510" y="248" width="12" height="12" rx="2"/></g>
+    <g fill="#9a9ab0">
+      <rect x="554" y="248" width="12" height="12" rx="2"/>
+      <rect x="598" y="248" width="12" height="12" rx="2"/>
+      <rect x="642" y="248" width="12" height="12" rx="2"/>
+    </g>
+    <g fill="#9a9ab0" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">
+      <text x="516" y="272" fill="#a855f7">Home</text>
+      <text x="560" y="272">Play</text>
+      <text x="604" y="272">Rank</text>
+      <text x="648" y="272">Prof</text>
+    </g>
+  </svg>
+  <figcaption>Mobile navigation model — before (hamburger only) vs. after (hamburger overflow + persistent bottom bar with active-state indicator).</figcaption>
+</figure>
+
+<h2>Personas &amp; Findings</h2>
+
+<div class="persona">
+  <header>
+    <h3>UX / Product Designer <span class="badge danger">Re-architect</span></h3>
+    <span class="role">mobile-first · daily-habit loop</span>
+  </header>
+  <p>
+    A hamburger fits content-heavy sites with deep, infrequent navigation —
+    &ldquo;The Box&rdquo; is the opposite: a small destination set, visited
+    daily, on phones. The drawer adds friction exactly where an engagement app
+    must remove it, and opens from the top-left, the worst one-handed reach.
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> Persistent bottom bar — <strong>Home · Play · Leaderboard · Profile</strong> — with a visible active indicator and ≥48&nbsp;px targets; hidden on <code>/play</code> and <code>/geo</code>.</li>
+    <li><span class="pri p1">P1</span> Surface the daily-reward badge in the header — it was buried inside the drawer, invisible on first paint, undermining the streak loop.</li>
+    <li><span class="pri p2">P2</span> Decide Geo&rsquo;s status; bump remaining 32&nbsp;px controls to 44&nbsp;px.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>Mobile QA / Real-Device <span class="badge warn">Safe-area risks</span></h3>
+    <span class="role">notch · keyboard · dvh · PWA standalone</span>
+  </header>
+  <p>
+    A fixed bottom bar collides with the iOS home indicator and Android gesture
+    bar unless it reserves <code>env(safe-area-inset-bottom)</code>. The sticky
+    header has no <code>safe-area-inset-top</code>, so in installed-PWA mode
+    (<code>black-translucent</code> status bar) it renders behind the notch.
+    The left <code>Sheet</code> ignores safe areas entirely.
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> Header <code>padding-top</code> = inset-top; bottom bar = inset-bottom; <code>Sheet</code> left/right insets; bottom bar must hide while the virtual keyboard is open on form pages.</li>
+    <li><span class="pri p1">P1</span> Shell heights <code>100vh</code> → <code>100dvh</code>; reserve content/footer space so nothing scrolls under the fixed bar.</li>
+    <li><span class="pri p2">P2</span> Enable a Mobile WebKit Playwright project — iOS is where these bugs live.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>Frontend Engineer <span class="badge ok">Build plan</span></h3>
+    <span class="role">React 19 · Tailwind v4 · shadcn/ui</span>
+  </header>
+  <p>
+    Hand-roll a small <code>BottomNav</code> on <code>NavLink</code> — do
+    <em>not</em> abuse Radix <code>Tabs</code> (its panels/roving-tabindex fight
+    react-router) and do <em>not</em> install the shadcn <code>sidebar</code>
+    block (heavy, solves a problem a 5-link top bar doesn&rsquo;t have). The
+    419-line Header duplicates its nav and account lists; extract one typed
+    config consumed by all three surfaces.
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> Shared <code>nav-items.ts</code> config; Header refactor; <code>NavLink</code> for active state (Home needs <code>end</code> against the localized prefix).</li>
+    <li><span class="pri p1">P1</span> <code>BottomNav</code> component mounted in <code>LanguageLayout</code>; z-index re-stack so PWA banners float above the bar.</li>
+    <li><span class="pri p2">P2</span> A <code>--bottom-nav-h</code> token so the bar height and reserved padding can&rsquo;t drift.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>Accessibility (WCAG 2.2 AA) <span class="badge danger">3 AA gaps</span></h3>
+    <span class="role">landmarks · targets · focus</span>
+  </header>
+  <p>
+    Three concrete AA gaps, none needing architectural change: no skip link
+    (<code>SC 2.4.1</code>), 32&nbsp;px nav targets with sub-24&nbsp;px spacing
+    (<code>SC 2.5.8</code>), and no active-route signalling at all — no
+    <code>aria-current</code> (<code>SC 4.1.2 / 2.4.8</code>).
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> Skip link to <code>&lt;main&gt;</code>; ≥44&nbsp;px targets; <code>aria-current="page"</code> + a non-colour active indicator (<code>SC 1.4.1 / 1.4.11</code>).</li>
+    <li><span class="pri p1">P1</span> Distinct <code>aria-label</code> on each <code>&lt;nav&gt;</code> landmark; drawer becomes a real <code>&lt;nav&gt;</code>; <code>scroll-padding</code> for Focus-Not-Obscured (<code>SC 2.4.11</code>).</li>
+    <li><span class="pri p2">P2</span> <code>aria-hidden</code> on decorative icons.</li>
+  </ul>
+</div>
+
+<h2>Decisions</h2>
+<div class="decision">
+  <strong>Scope — full consensus set.</strong> Bottom nav + Header dedup
+  refactor + all P0/P1 accessibility and safe-area fixes. <em>(Confirmed with
+  the requester.)</em>
+</div>
+<div class="decision">
+  <strong>Bottom-bar destinations — Home · Play · Leaderboard · Profile.</strong>
+  Four items for generous thumb spacing. Geo (alpha) stays reachable from the
+  Home page and the drawer rather than taking a top-level tab.
+  <em>(Confirmed with the requester.)</em>
+</div>
+
+<h2>What shipped</h2>
+<table>
+  <thead><tr><th>File</th><th>Change</th><th>Source</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>layout/nav-items.ts</code> <em>(new)</em></td>
+      <td>Typed <code>PRIMARY_NAV</code> + <code>BOTTOM_NAV</code> config — single source of truth for every nav surface.</td>
+      <td>Frontend</td>
+    </tr>
+    <tr>
+      <td><code>layout/BottomNav.tsx</code> <em>(new)</em></td>
+      <td>Mobile bottom bar: 4 <code>NavLink</code> tabs, <code>md:hidden</code>, <code>aria-current</code>, non-colour active indicator, <code>safe-area-inset-bottom</code>, unmounts while the keyboard is open.</td>
+      <td>UX, Frontend, A11y, QA</td>
+    </tr>
+    <tr>
+      <td><code>layout/Header.tsx</code></td>
+      <td>Consumes the shared config; <code>NavLink</code> active states + <code>aria-current</code>; one <code>AccountMenu</code> renderer for drawer &amp; dropdown so the nav and account lists are declared once, not duplicated per layout; <code>safe-area-inset-top</code>; 44&nbsp;px targets; reward widgets surfaced into the header; labelled <code>&lt;nav&gt;</code> landmarks.</td>
+      <td>All four</td>
+    </tr>
+    <tr>
+      <td><code>App.tsx</code></td>
+      <td>Skip link; <code>&lt;main id="main-content"&gt;</code> landmark; mounts <code>BottomNav</code> (gated off <code>/play</code> &amp; <code>/geo</code>); content padding reserves the bar; <code>min-h-dvh</code>.</td>
+      <td>A11y, Frontend, QA</td>
+    </tr>
+    <tr>
+      <td><code>layout/Footer.tsx</code></td>
+      <td><code>aria-label</code> on the footer <code>&lt;nav&gt;</code> landmark.</td>
+      <td>A11y</td>
+    </tr>
+    <tr>
+      <td><code>ui/sheet.tsx</code></td>
+      <td>Left/right drawer variants reserve top &amp; bottom safe-area insets.</td>
+      <td>QA</td>
+    </tr>
+    <tr>
+      <td><code>index.css</code></td>
+      <td><code>--bottom-nav-h</code> / <code>--bottom-nav-space</code> tokens; <code>scroll-padding</code> (SC 2.4.11); <code>100dvh</code> shell.</td>
+      <td>Frontend, A11y, QA</td>
+    </tr>
+    <tr>
+      <td><code>pwa/InstallPromptBanner.tsx</code>, <code>pwa/PWAUpdatePrompt.tsx</code></td>
+      <td>Float above the bottom bar on mobile; corner-anchored at <code>md</code>.</td>
+      <td>Frontend</td>
+    </tr>
+    <tr>
+      <td><code>locales/{en,fr}/translation.json</code></td>
+      <td><code>nav.*</code> keys — landmark labels, skip-link text, bottom-tab labels.</td>
+      <td>A11y</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <code>npm run build</code>, <code>npm run lint</code> (0 errors) and
+  <code>npm test</code> (169 pass) are green. The bottom bar, active states,
+  drawer, and the <code>/play</code> &amp; <code>/geo</code> gating were
+  verified visually in a headless browser at a 390&nbsp;px viewport.
+</p>
+
+<h2>Out of scope — follow-ups</h2>
+<ul>
+  <li><strong>Geo escape affordance.</strong> The fullscreen <code>/geo</code> route has no visible exit control (UX flagged P0). It is a route-specific concern, separate from this layout/nav pass — track separately.</li>
+  <li><strong>Mobile E2E.</strong> Enable a Mobile WebKit Playwright project and add specs for bottom-nav navigation, safe-area insets, and the keyboard-open state.</li>
+  <li><strong>PageHero reduced motion.</strong> Its Framer Motion entrance animations are JS-driven and not covered by the global CSS <code>prefers-reduced-motion</code> rule (a11y P2).</li>
+  <li><strong>Landscape.</strong> Consider auto-hiding the bottom bar in landscape phone orientation, where header + bar eat ~30% of the viewport (QA consideration).</li>
+</ul>
+
+</main>
+</body>
+</html>

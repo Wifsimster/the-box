@@ -67,7 +67,9 @@ export function PWAUpdatePrompt() {
       aria-describedby="pwa-update-panel-desc"
       aria-live="polite"
       className={cn(
-        'fixed inset-x-3 bottom-3 z-[55] rounded-xl border bg-card/95 shadow-lg backdrop-blur',
+        // Sit just above the mobile BottomNav; drop to the corner at md where
+        // the BottomNav is hidden.
+        'fixed inset-x-3 bottom-[var(--bottom-nav-space)] z-[55] rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
         'border-primary/30 p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
       )}
     >

@@ -50,6 +50,18 @@
       "third": "3rd place"
     }
   },
+  "nav": {
+    "primary": "Primary navigation",
+    "footer": "Footer navigation",
+    "mobile": "Main navigation",
+    "skipToContent": "Skip to main content",
+    "tabs": {
+      "home": "Home",
+      "play": "Play",
+      "leaderboard": "Ranking",
+      "profile": "Profile"
+    }
+  },
   "achievements": {
     "filters": {
       "all": "All",
