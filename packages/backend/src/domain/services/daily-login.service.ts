@@ -92,13 +92,25 @@ function calculateStreak(
 }
 
 /**
- * Normalize date from database. PostgreSQL returns Date objects for DATE
- * columns; render them in UTC so they line up with `getToday()` above.
+ * Normalize `last_login_date` from the database to a YYYY-MM-DD string.
+ *
+ * The `pg` driver parses DATE columns into JS `Date` objects built at
+ * LOCAL midnight (`new Date(year, month, day)`) — a calendar date with no
+ * meaningful time-of-day or zone. Rendering such a Date with
+ * `toISOString()` reinterprets that local-midnight instant in UTC, which
+ * rolls the calendar date back a day on any server east of UTC (e.g.
+ * Europe/Paris): yesterday then looks like two days ago and the login
+ * streak resets every single day. Read the date back with the LOCAL
+ * getters, mirroring how `pg` built the object, so the stored calendar
+ * date survives intact regardless of the process timezone.
  */
 function normalizeDate(date: string | Date | null): string | null {
   if (!date) return null
   if (date instanceof Date) {
-    return date.toISOString().slice(0, 10)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
   return date
 }
@@ -161,22 +173,11 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
       // Get or create streak record
       const streakRecord = await dailyLoginRepository.getOrCreateUserStreak(userId)
 
-      // Normalize date from database (PostgreSQL returns Date object)
-      const rawLastLoginDate = streakRecord.last_login_date
-      const lastLoginDate = normalizeDate(rawLastLoginDate as string | Date | null)
-      const today = getToday()
-
-      log.info(
-        {
-          userId,
-          rawLastLoginDate,
-          rawType: typeof rawLastLoginDate,
-          normalizedLastLoginDate: lastLoginDate,
-          today,
-          isEqual: lastLoginDate === today,
-        },
-        'getStatus date comparison debug'
+      // Normalize date from database (PostgreSQL returns a Date object)
+      const lastLoginDate = normalizeDate(
+        streakRecord.last_login_date as string | Date | null
       )
+      const today = getToday()
 
       // Calculate new streak values
       let { newStreak, newLongestStreak, newDayInCycle, isNewLogin } = calculateStreak(
