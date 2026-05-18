@@ -312,3 +312,72 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
         assert.equal(invState.useItemsCalls.length, 0)
     })
 })
+
+describe('dailyLoginService.getStatus — last_login_date as a Date object', () => {
+    // The `pg` driver parses DATE columns into JS Date objects built at
+    // LOCAL midnight. These tests pin the process TZ east of UTC so the
+    // regression (reading the date back in UTC, shifting it a day, and
+    // resetting the streak) is caught regardless of where tests run.
+
+    it('continues the streak when the driver returns yesterday as a local-midnight Date', async () => {
+        const originalTz = process.env.TZ
+        process.env.TZ = 'Asia/Tokyo'
+        try {
+            const [y, m, d] = dateOffset(1).split('-').map(Number)
+            const yesterdayAsLocalDate = new Date(y!, m! - 1, d!)
+
+            const { repo: invRepo } = makeFakeInventory(0)
+            const { repo: dailyRepo, state: dailyState } = makeFakeDailyLogin({
+                current_login_streak: 3,
+                longest_login_streak: 3,
+                last_login_date: yesterdayAsLocalDate as unknown as string,
+                current_day_in_cycle: 3,
+            }, invRepo)
+
+            const service = createDailyLoginService({
+                logger: silentLogger,
+                dailyLoginRepository: dailyRepo,
+                inventoryRepository: invRepo,
+            })
+
+            const status = await service.getStatus('user-1')
+
+            assert.equal(status.currentStreak, 4, 'streak should advance, not reset')
+            assert.equal(status.currentDayInCycle, 4)
+            assert.equal(dailyState.updates.length, 1, 'streak row should be persisted once')
+            assert.equal(dailyState.updates[0]?.lastLoginDate, todayUTC())
+        } finally {
+            process.env.TZ = originalTz
+        }
+    })
+
+    it('treats a same-day re-call as no new login when today is a local-midnight Date', async () => {
+        const originalTz = process.env.TZ
+        process.env.TZ = 'Asia/Tokyo'
+        try {
+            const [y, m, d] = todayUTC().split('-').map(Number)
+            const todayAsLocalDate = new Date(y!, m! - 1, d!)
+
+            const { repo: invRepo } = makeFakeInventory(0)
+            const { repo: dailyRepo, state: dailyState } = makeFakeDailyLogin({
+                current_login_streak: 3,
+                longest_login_streak: 3,
+                last_login_date: todayAsLocalDate as unknown as string,
+                current_day_in_cycle: 3,
+            }, invRepo)
+
+            const service = createDailyLoginService({
+                logger: silentLogger,
+                dailyLoginRepository: dailyRepo,
+                inventoryRepository: invRepo,
+            })
+
+            const status = await service.getStatus('user-1')
+
+            assert.equal(status.currentStreak, 3, 'streak should be unchanged')
+            assert.equal(dailyState.updates.length, 0, 'no streak write on same-day re-call')
+        } finally {
+            process.env.TZ = originalTz
+        }
+    })
+})
