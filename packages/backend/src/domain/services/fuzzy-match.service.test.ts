@@ -161,4 +161,29 @@ describe('fuzzy-match.service', () => {
       expectMatch('go counter strike', 'Counter-Strike: Global Offensive', ['counter strike go'])
     })
   })
+
+  describe('expansion-suffix titles (screenshot regression)', () => {
+    // Screenshot: the challenge "Warhammer 40,000: Dawn of War - Dark Crusade"
+    // rejected both base-game guesses. The expansion suffix and the comma'd
+    // franchise number must both be optional.
+    it('accepts the base game for an expansion-suffixed title', () => {
+      expectMatch('Warhammer dawn of war', 'Warhammer 40,000: Dawn of War - Dark Crusade')
+      expectMatch('Warhammer 40000 dawn of war', 'Warhammer 40,000: Dawn of War - Dark Crusade')
+    })
+
+    it('accepts the full expansion title', () => {
+      expectMatch(
+        'warhammer 40000 dawn of war dark crusade',
+        'Warhammer 40,000: Dawn of War - Dark Crusade'
+      )
+    })
+
+    it('still rejects an unrelated guess for an expansion-suffixed title', () => {
+      expectNoMatch('sim city 3000', "Command & Conquer: Red Alert 2 - Yuri's Revenge")
+    })
+
+    it('reads a comma-grouped franchise number as flavour, not a sequel number', () => {
+      assert.equal(service.parseGameTitle('Warhammer 40,000').seriesNumber, null)
+    })
+  })
 })
