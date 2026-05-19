@@ -96,15 +96,20 @@ function extractSeriesNumber(text: string): { number: number | null; remaining: 
     }
   }
 
-  // Check for Arabic number anywhere with word boundary (e.g., "Witcher 3", "Portal 2", "Fallout 4")
-  const arabicMatch = text.match(/\b(\d+)\b/)
-  if (arabicMatch && arabicMatch[1]) {
-    const num = parseInt(arabicMatch[1], 10)
+  // Check for Arabic number anywhere with word boundary (e.g., "Witcher 3", "Portal 2", "Fallout 4").
+  // Digit groups with thousands separators ("Warhammer 40,000") are read as
+  // one number so they parse identically to the separator-free form — both
+  // land above the sequel-number ceiling and are treated as franchise
+  // flavour, not a series number. Without this, "40,000" yields just "40".
+  const arabicMatch = text.match(/\b\d{1,3}(?:[.,]\d{3})+\b|\b\d+\b/)
+  if (arabicMatch) {
+    const raw = arabicMatch[0]
+    const num = parseInt(raw.replace(/[.,]/g, ''), 10)
     if (num > 0 && num <= 50) {
       // Reasonable game sequel number
       return {
         number: num,
-        remaining: text.replace(arabicMatch[0], ' ').replace(/\s+/g, ' ').trim(),
+        remaining: text.replace(raw, ' ').replace(/\s+/g, ' ').trim(),
       }
     }
   }
@@ -144,6 +149,19 @@ function stripCommonPrefixes(text: string): string {
 }
 
 /**
+ * Drop a trailing expansion / DLC suffix introduced by a spaced dash, e.g.
+ * "Dawn of War - Dark Crusade" -> "Dawn of War" or
+ * "Wild Hunt – Blood and Wine" -> "Wild Hunt". The base game is a fair
+ * guess for an expansion-titled challenge, so the pre-dash core is offered
+ * as an extra match candidate. Hyphens without surrounding spaces
+ * ("Half-Life", "Spider-Man") are part of the name and left untouched.
+ */
+function stripExpansionSuffix(name: string): string {
+  const match = name.match(/^(.+?)\s+[-–—]\s+.+$/)
+  return match?.[1]?.trim() ?? name
+}
+
+/**
  * Parse a game title into structured components
  *
  * Examples:
@@ -165,13 +183,6 @@ function parseGameTitle(title: string): ParsedGameTitle {
   if (colonIndex > 0) {
     seriesPart = strippedEdition.slice(0, colonIndex).trim()
     subtitlePart = strippedEdition.slice(colonIndex + 1).trim()
-
-    // Handle DLC suffix in subtitle (e.g., "Wild Hunt – Blood and Wine")
-    const dlcMatch = subtitlePart.match(/^(.+?)(?:\s*[-–—]\s*.+)$/)
-    if (dlcMatch) {
-      // Keep the full subtitle including DLC for matching
-      // but also store the base subtitle
-    }
   } else {
     seriesPart = strippedEdition
   }
@@ -742,7 +753,18 @@ export function createFuzzyMatchService(deps: FuzzyMatchServiceDeps): FuzzyMatch
     },
 
     isMatch(input: string, gameName: string, aliases: string[] = []): boolean {
-      return isMatchEnhanced(input, gameName, aliases, log)
+      if (isMatchEnhanced(input, gameName, aliases, log)) {
+        return true
+      }
+      // Retry against the base title with any " - Expansion" suffix removed,
+      // so the base game is accepted for an expansion-titled challenge
+      // (e.g. "Warhammer Dawn of War" for
+      // "Warhammer 40,000: Dawn of War - Dark Crusade").
+      const core = stripExpansionSuffix(gameName)
+      if (core !== gameName && isMatchEnhanced(input, core, aliases, log)) {
+        return true
+      }
+      return false
     },
 
     getBestMatchScore(
