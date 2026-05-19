@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: X / Twitter thread copy for The Box — "latest news" follow-up to the
+  PH launch. Headline: the public API + Streamer Kit shipped (the roadmap item
+  teased in tweet 7 of the launch thread). 7-tweet thread, pinned reply, posting
+  notes, and a don't-do list. All API claims verified against docs/public-api.md:
+  opt-in read-only /api/public/v1, ?format=chat one-liner, SSE overlay stream,
+  HMAC-signed webhooks (session.started / session.completed / rank.changed),
+  boxbot 10-min sandbox loop, test keys + OpenAPI spec.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>X Thread · Streamer API · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+  aside.toc li { margin: 0.35rem 0; counter-increment: toc; }
+  aside.toc li::before { content: counter(toc, decimal-leading-zero) " "; color: var(--muted); font-family: var(--mono); font-size: 0.75rem; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; }
+  h4 { font-size: 0.95rem; margin: 1rem 0 0.4rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p { margin: 0; font-size: 1.05rem; }
+  .hero p em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-family: var(--mono); letter-spacing: 0.04em; border: 1px solid var(--border-strong); margin-right: 0.25rem; }
+  .pill.ok { color: var(--ok); border-color: rgba(16,185,129,0.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(245,158,11,0.4); }
+  .pill.info { color: var(--neon-blue); border-color: rgba(56,189,248,0.4); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; }
+  th, td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.t { font-family: var(--mono); font-size: 0.85rem; color: var(--neon-purple); white-space: nowrap; }
+
+  .tweet {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 1rem 1.1rem;
+    margin: 0.9rem 0;
+    position: relative;
+  }
+  .tweet .head {
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.04em;
+  }
+  .tweet .head .num { color: var(--neon-purple); font-weight: 600; }
+  .tweet .body { white-space: pre-wrap; font-size: 0.98rem; line-height: 1.55; }
+  .tweet .body .url { color: var(--neon-blue); font-family: var(--mono); font-size: 0.92em; }
+  .tweet .body .mention { color: var(--neon-blue); }
+  .tweet .foot {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 0.7rem; padding-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+  }
+  .tweet .foot .ok { color: var(--ok); }
+  .tweet .foot .warn { color: var(--warn); }
+  .tweet .media {
+    margin-top: 0.6rem; padding: 0.5rem 0.75rem;
+    background: var(--surface-2); border: 1px dashed var(--border);
+    border-radius: 6px; font-size: 0.82rem; color: var(--muted);
+  }
+  .tweet .media b { color: var(--fg); font-weight: 500; }
+
+  ul.dont { list-style: none; padding: 0; }
+  ul.dont li { padding: 0.4rem 0 0.4rem 1.5rem; position: relative; border-bottom: 1px dashed var(--border); }
+  ul.dont li:last-child { border-bottom: 0; }
+  ul.dont li::before {
+    content: "\2715"; position: absolute; left: 0; top: 0.4rem; color: var(--risk); font-weight: 700;
+  }
+
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">X Thread &mdash; Streamer API</span>
+  <span class="repo">the-box &middot; tasks/x-thread-streamer-api.html</span>
+</header>
+
+<div class="layout">
+
+<aside class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#angle">The angle</a></li>
+    <li><a href="#thread">The thread</a></li>
+    <li><a href="#pinned">Pinned reply</a></li>
+    <li><a href="#posting">Posting notes</a></li>
+    <li><a href="#dont">What not to tweet</a></li>
+  </ol>
+</aside>
+
+<main>
+
+<h1>X thread &mdash; the Streamer API is live</h1>
+<p class="meta"><b>Date:</b> 2026-05-19 &middot; <b>Locale:</b> English &middot; <b>Version:</b> 2.106.2 &middot; <b>Status:</b> drafts ready to paste</p>
+
+<div class="hero">
+  <p>This is the first "what's new" thread after the Product Hunt launch. The headline is the one feature you actually <em>promised</em> in the launch thread &mdash; tweet 7 said "<em>Public API so streamers can wire it into chat</em>". It shipped. Threads that close a public loop ("you said you'd do X &mdash; here's X") outperform generic changelog posts, so lead with that, not with a list. The supporting wins (mobile nav, pinch-zoom, fuzzy match) get exactly one tweet at the end &mdash; they are the proof you keep shipping, not the story.</p>
+</div>
+
+<h2 id="angle">1 &middot; The angle</h2>
+<p>One thread, seven posts. Audience is the same as launch day &mdash; gamers and indie devs &mdash; plus a new segment this thread is built to reach: <strong>streamers</strong>. The promise is concrete and demoable: your daily run of The Box can appear live in your Twitch/YouTube chat and on your OBS overlay. No new product, no pricing ask &mdash; just a capability that didn't exist last week.</p>
+<p>Keep the verified shape of the feature exact (it's a real API and devs will check): it is <strong>opt-in</strong>, <strong>read-only</strong>, and key-authenticated. It cannot submit guesses or touch another account. Three integration paths &mdash; chat command, OBS overlay, webhooks &mdash; one tweet each.</p>
+
+<h2 id="thread">2 &middot; The thread</h2>
+<p>Post T1, then reply-chain T2&ndash;T7 in immediate succession. Don't space them out &mdash; the algorithm reads a tight thread as one unit.</p>
+
+<h3>Tweet 1 &mdash; the lead</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T1</span> &middot; the only tweet most people will see</div>
+  <div class="body">Update: The Box now has a public API. &#x1F6E0;&#xFE0F;
+
+Stream the game? Your daily run can show up live in chat and on your OBS overlay &mdash; score, rank and streak, updating as you play.
+
+Opt-in, read-only, flip one toggle in your profile.
+
+How it works &#x1F447;</div>
+  <div class="media"><b>Media:</b> short MP4 / GIF &mdash; an OBS overlay ticking up as a screenshot is scored, with a Twitch chat reply landing beside it. The whole pitch in 4 seconds.</div>
+  <div class="foot"><span>characters: ~238 / 280</span><span class="ok">closes the launch-thread promise</span></div>
+</div>
+
+<h3>Tweet 2 &mdash; the setup</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T2</span> &middot; reply to T1 &middot; how you turn it on</div>
+  <div class="body">At launch I said "public API so streamers can wire it into chat."
+
+It's live.
+
+Profile &rarr; Streamer Kit &rarr; turn on your public profile, claim a slug, generate a key.
+
+That's the whole setup. Three ways to use it &#x2193;</div>
+  <div class="foot"><span>characters: ~213 / 280</span><span class="ok">opt-in flow per docs/public-api.md</span></div>
+</div>
+
+<h3>Tweet 3 &mdash; path 1: chat command</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T3</span> &middot; reply to T2</div>
+  <div class="body">1 &middot; Chat command &#x1F4AC;
+
+One Nightbot / StreamElements command pointed at your "today" endpoint with ?format=chat.
+
+A viewer types !box, the bot replies:
+
+&#x1F3AE; @Wifsim &middot; Today: 7,820 pts (#42) &middot; Streak: 11d
+
+Plain text &mdash; no JSON to wrangle.</div>
+  <div class="foot"><span>characters: ~233 / 280</span><span class="ok">chat one-liner verified in docs</span></div>
+</div>
+
+<h3>Tweet 4 &mdash; path 2: OBS overlay</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T4</span> &middot; reply to T3</div>
+  <div class="body">2 &middot; OBS overlay &#x1F4FA;
+
+A live event stream you drop into a browser source. The overlay updates the instant you score a screenshot or finish a run.
+
+No polling, no manual refresh &mdash; your viewers watch the number climb in real time.</div>
+  <div class="foot"><span>characters: ~226 / 280</span><span class="ok">SSE live stream, per docs</span></div>
+</div>
+
+<h3>Tweet 5 &mdash; path 3: webhooks</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T5</span> &middot; reply to T4</div>
+  <div class="body">3 &middot; Webhooks &#x1F514;
+
+Register a URL and The Box POSTs to it on session.started, session.completed and rank.changed.
+
+Every payload is HMAC-signed, so your server can verify it's really us. Wire a run straight into a Discord bot.</div>
+  <div class="foot"><span>characters: ~224 / 280</span><span class="ok">3 event types verified in docs</span></div>
+</div>
+
+<h3>Tweet 6 &mdash; the sandbox</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T6</span> &middot; reply to T5 &middot; for the devs</div>
+  <div class="body">Nobody's ever mid-game exactly when you sit down to build an overlay &mdash; so there's a sandbox.
+
+The streamer "boxbot" runs a simulated game on a 10-minute loop, 24/7. Test keys and an OpenAPI spec ship with it. Build against it any time.</div>
+  <div class="foot"><span>characters: ~232 / 280</span><span class="ok">boxbot loop verified in docs</span></div>
+</div>
+
+<h3>Tweet 7 &mdash; also shipped + close</h3>
+<div class="tweet">
+  <div class="head"><span class="num">T7</span> &middot; reply to T6 &middot; the proof you keep shipping</div>
+  <div class="body">Also shipped this week:
+
+&rarr; Mobile bottom navigation
+&rarr; Real pinch-zoom + magnifier on screenshots
+&rarr; Smarter fuzzy matching (more typo- and edition-forgiving)
+
+Today's 10 screenshots are already up. Play free, no signup:
+<span class="url">https://the-box.battistella.ovh</span></div>
+  <div class="foot"><span>characters: ~250 / 280</span><span class="ok">all 3 items verified against git log</span></div>
+</div>
+
+<h2 id="pinned">3 &middot; Pinned reply</h2>
+<p>Post this as a reply to T1 and pin it. People landing from RT-chains get a one-tap path to play and a one-line answer for "how do I get a key" &mdash; without re-reading the thread.</p>
+<div class="tweet">
+  <div class="head"><span class="num">PIN</span> &middot; reply to T1 &middot; pin to profile</div>
+  <div class="body">&#x1F4CC; Streaming today? Open Profile &rarr; Streamer Kit inside The Box to grab your slug and API key &mdash; the chat command, overlay and webhook recipes are all in there.
+
+Play: <span class="url">https://the-box.battistella.ovh</span></div>
+  <div class="foot"><span>characters: ~196 / 280</span><span class="ok">points at the in-app panel, not internal docs</span></div>
+</div>
+
+<h2 id="posting">4 &middot; Posting notes</h2>
+<table>
+  <tr><th>Item</th><th>Note</th></tr>
+  <tr><td><span class="pill info">timing</span></td><td>Post once, as a single thread. Best window is 14:00&ndash;18:00 CEST (US morning + EU evening overlap). This is not time-locked like the launch &mdash; pick a day you can answer replies for ~3 hours.</td></tr>
+  <tr><td><span class="pill info">media</span></td><td>T1 carries the thread. If the overlay clip isn't ready, post without it rather than waiting &mdash; but a 4s clip roughly doubles reach. T3 can carry a still of the chat one-liner.</td></tr>
+  <tr><td><span class="pill info">replies</span></td><td>For "can it submit guesses / read other accounts?" &mdash; answer plainly: no, it's read-only and opt-in, a key only identifies you. That honesty is the trust signal.</td></tr>
+  <tr><td><span class="pill warn">verify</span></td><td>Before posting, open Profile &rarr; Streamer Kit on prod and confirm the toggle, slug claim and key generation all work end-to-end. The thread promises a flow &mdash; it must not 404.</td></tr>
+  <tr><td><span class="pill warn">verify</span></td><td>Confirm <code>https://the-box.battistella.ovh</code> renders an OG preview card in a fresh X composer.</td></tr>
+  <tr><td><span class="pill info">mirror</span></td><td>Same thread works on Bluesky as-is (300-char limit, all tweets fit). Pin the same reply there.</td></tr>
+</table>
+
+<h2 id="dont">5 &middot; What not to tweet</h2>
+<ul class="dont">
+  <li><strong>Don't link the internal docs.</strong> <code>docs/streamer-kit.html</code> and <code>docs/public-api.md</code> are <code>noindex</code>, senior-dev-only artifacts. Point streamers at the in-app <em>Streamer Kit</em> panel &mdash; that's the player-facing surface.</li>
+  <li><strong>Don't call it a "developer platform" or "API product".</strong> It's a read-only convenience for streamers. Overselling invites "where are the write endpoints / SDKs" replies you can't satisfy.</li>
+  <li><strong>Don't claim guess submission or write access.</strong> The API is read-only by design. Saying otherwise is both wrong and a security-flavoured claim you'd have to walk back.</li>
+  <li><strong>Don't bury the API behind the changelog.</strong> The mobile nav / pinch-zoom / fuzzy-match wins are real but they are tweet 7, not the lead. One story per thread.</li>
+  <li><strong>Don't post raw endpoint paths or key prefixes in the thread.</strong> "Your today endpoint with <code>?format=chat</code>" reads fine; a full URL with <code>tb_pk_live_</code> next to it looks like a leaked credential even when it isn't.</li>
+  <li><strong>Don't promise the next roadmap item.</strong> This thread is about something that shipped. Teasing tournaments or soundtrack mode here dilutes the "we deliver what we said" point.</li>
+</ul>
+
+<hr>
+<p class="meta">All API behaviour claims verified against <code>docs/public-api.md</code> (2026-05-19). The "also shipped" items map to merged PRs #243 (mobile bottom nav), #242 (pinch-zoom / magnifier), #245 and #225 (fuzzy matching).</p>
+
+</main>
+
+</div>
+
+</body>
+</html>
