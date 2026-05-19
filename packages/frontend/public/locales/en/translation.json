@@ -261,6 +261,34 @@
       "guessing_machine": {
         "name": "Guessing Machine",
         "description": "Make 500 guesses in total"
+      },
+      "acharne": {
+        "name": "Relentless",
+        "description": "Make more than 10 attempts on a single screenshot"
+      },
+      "tete_de_mule": {
+        "name": "Stubborn",
+        "description": "Make 20 or more attempts on a single screenshot"
+      },
+      "jamais_abandonner": {
+        "name": "Never Give Up",
+        "description": "Identify a screenshot after 8 or more wrong guesses"
+      },
+      "du_premier_coup": {
+        "name": "Bullseye",
+        "description": "Identify a screenshot on your very first guess"
+      },
+      "sans_hesitation": {
+        "name": "No Hesitation",
+        "description": "Finish a challenge without a single wrong guess"
+      },
+      "tatonneur": {
+        "name": "Trial and Error",
+        "description": "Rack up 100 wrong guesses in total"
+      },
+      "increvable": {
+        "name": "Unstoppable",
+        "description": "Rack up 1,000 wrong guesses in total"
       }
     }
   },
