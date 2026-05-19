@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
-import { showAchievementToast } from '@/components/achievement'
+import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
 import { Trophy, Home, CheckCircle, XCircle, Award, Clock } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
@@ -16,8 +16,7 @@ import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import { calculateSpeedMultiplier } from '@/lib/utils'
-import { useEffect, useRef } from 'react'
-import { playAchievementSound } from '@/lib/audio'
+import { useEffect } from 'react'
 
 export default function ResultsPage() {
   const { t } = useTranslation()
@@ -39,28 +38,14 @@ export default function ResultsPage() {
 
   const unseenNotifications = notifications.filter(n => !n.seen)
 
-  // Track if we've already shown toasts for these achievements
-  const shownToastsRef = useRef<Set<string>>(new Set())
-
-  // Show rich achievement toasts and play sound for newly unlocked achievements
+  // Surface achievement toasts. The /notifications socket usually shows
+  // these the instant the unlock lands; notifyAchievementsUnlocked
+  // de-duplicates by key, so this render is a fallback for a missed socket
+  // push rather than a second toast.
   useEffect(() => {
-    const newAchievements = unseenNotifications.filter(
-      n => !shownToastsRef.current.has(n.achievement.key)
-    )
-
-    if (newAchievements.length > 0) {
-      playAchievementSound()
-
-      newAchievements.forEach((notification, index) => {
-        // Stagger the toasts slightly for multiple achievements
-        setTimeout(() => {
-          showAchievementToast(notification.achievement)
-          markNotificationAsSeen(notification.achievement.key)
-        }, index * 300)
-
-        shownToastsRef.current.add(notification.achievement.key)
-      })
-    }
+    if (unseenNotifications.length === 0) return
+    notifyAchievementsUnlocked(unseenNotifications.map(n => n.achievement))
+    unseenNotifications.forEach(n => markNotificationAsSeen(n.achievement.key))
   }, [unseenNotifications, markNotificationAsSeen])
 
   // Calculate correct answers from guess results (more reliable than store)

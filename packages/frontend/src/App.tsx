@@ -16,6 +16,7 @@ import {
 } from '@/components/pwa'
 import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useAchievementStore } from '@/stores/achievementStore'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
 import { useGoatCounterPageviews } from '@/lib/analytics'
@@ -98,7 +99,8 @@ function LanguageLayout() {
   }, [session?.user?.id, session?.user?.role, fetchStatus, reset])
 
   // Subscribe the authenticated user to the `/notifications` socket so account
-  // events (Premium grants, future alerts) reach them on any page.
+  // events (Premium grants, achievement unlocks, future alerts) reach them on
+  // any page.
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) {
@@ -106,6 +108,19 @@ function LanguageLayout() {
       return
     }
     connectNotificationsSocket(userId)
+  }, [session?.user?.id])
+
+  // The /notifications socket toasts achievement unlocks itself; this also
+  // refreshes the cached achievements grid so it reflects a socket-delivered
+  // unlock (e.g. a background account-age milestone) without a reload.
+  useEffect(() => {
+    if (!session?.user?.id) return
+    const onAchievementUnlocked = (): void => {
+      void useAchievementStore.getState().fetchUserAchievements()
+    }
+    window.addEventListener('achievement:unlocked', onAchievementUnlocked)
+    return () =>
+      window.removeEventListener('achievement:unlocked', onAchievementUnlocked)
   }, [session?.user?.id])
 
   // Apply the user's chosen UI theme on every session change. Free users
