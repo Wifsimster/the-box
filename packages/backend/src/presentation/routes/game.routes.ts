@@ -6,6 +6,7 @@ import { billingService } from '../../domain/services/billing.service.js'
 import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
 
 // Public preview is cheap to compute but the image endpoint streams
 // raw files — tighter cap for the image route, more forgiving for the
@@ -291,6 +292,12 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
       isPremium,
     })
 
+    // Push the unlock to the user's /notifications socket so the toast
+    // lands immediately, even before the results page mounts.
+    if (data.newlyEarnedAchievements?.length) {
+      emitAchievementUnlocked(req.userId!, data.newlyEarnedAchievements)
+    }
+
     res.json({
       success: true,
       data,
@@ -373,6 +380,12 @@ router.post('/end', authMiddleware, async (req, res, next) => {
     }
 
     const data = await gameService.endGame(sessionId, req.userId!)
+
+    // Forfeit can still cross achievement thresholds; the EndGame response
+    // body doesn't drive a toast, so the socket push is the only cue here.
+    if (data.newlyEarnedAchievements?.length) {
+      emitAchievementUnlocked(req.userId!, data.newlyEarnedAchievements)
+    }
 
     res.json({
       success: true,

@@ -6,8 +6,10 @@ import { logger } from '../logger/logger.js'
 import { auth } from '../auth/auth.js'
 import { importQueueEvents } from '../queue/queues.js'
 import type {
+    AchievementUnlockedEvent,
     GeoRewardedEvent,
     GeoTierUpEvent,
+    NewlyEarnedAchievement,
     RewardGrantedEvent,
     UserPremiumGrantedEvent,
 } from '@the-box/types'
@@ -358,6 +360,29 @@ export function emitRewardGranted(userId: string, event: RewardGrantedEvent): vo
     const ns = userNotificationsNamespace()
     if (!ns) return
     ns.to(`user:${userId}`).emit('reward:granted', event)
+}
+
+/**
+ * Emit an achievement-unlock to the user-notifications namespace. Called
+ * from every unlock path — game completion + forfeit (`game.routes`) and
+ * the account-age milestone worker — AFTER the `user_achievements` rows are
+ * persisted, so the user sees a celebratory toast on whatever page they are
+ * on. Best-effort: a missed emit (offline client) is reconciled when the
+ * achievements page next loads, so this emit is not authoritative.
+ */
+export function emitAchievementUnlocked(
+    userId: string,
+    achievements: NewlyEarnedAchievement[]
+): void {
+    if (achievements.length === 0) return
+    const ns = userNotificationsNamespace()
+    if (!ns) return
+    const event: AchievementUnlockedEvent = {
+        userId,
+        achievements,
+        unlockedAt: new Date().toISOString(),
+    }
+    ns.to(`user:${userId}`).emit('achievement:unlocked', event)
 }
 
 // ---------- Geo-fetch pipeline (admin-only) ----------

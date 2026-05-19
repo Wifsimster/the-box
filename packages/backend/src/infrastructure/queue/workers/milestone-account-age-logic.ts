@@ -1,6 +1,7 @@
 import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
 import { achievementService } from '../../../domain/services/index.js'
+import { emitAchievementUnlocked } from '../../socket/socket.js'
 
 const log = queueLogger.child({ worker: 'milestone-account-age' })
 
@@ -83,6 +84,9 @@ export async function evaluateAccountAgeMilestones(
             if (earned.length > 0) {
                 usersWithUnlocks++
                 totalUnlocks += earned.length
+                // This sweep is the only unlock path for account-age
+                // milestones — without this push the user is never told.
+                emitAchievementUnlocked(user.id, earned)
             }
         } catch (error) {
             failures++

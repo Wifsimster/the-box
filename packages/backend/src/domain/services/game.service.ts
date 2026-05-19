@@ -5,6 +5,7 @@ import type {
   GuessResponse,
   EndGameResponse,
   Game,
+  NewlyEarnedAchievement,
   Screenshot,
 } from '@the-box/types'
 import type { DomainLogger } from '../ports/logger.js'
@@ -1020,6 +1021,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     })
 
     // Check achievements after game completion (forfeit)
+    let newlyEarnedAchievements: NewlyEarnedAchievement[] = []
     try {
       const user = await userRepository.findById(userId)
 
@@ -1035,7 +1037,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         allGuesses.map(g => g.screenshotId)
       )
 
-      await achievementService.checkAchievementsAfterGame({
+      newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
         userId,
         sessionId: sessionId,
         challengeId: session.daily_challenge_id,
@@ -1097,6 +1099,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
       isCompleted: true,
       completionReason: 'forfeit',
       unfoundGames,
+      newlyEarnedAchievements:
+        newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
     }
   },
   }

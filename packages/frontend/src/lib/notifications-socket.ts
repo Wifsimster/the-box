@@ -1,7 +1,12 @@
 import { io, Socket } from 'socket.io-client'
-import type { RewardGrantedEvent, UserPremiumGrantedEvent } from '@the-box/types'
+import type {
+    AchievementUnlockedEvent,
+    RewardGrantedEvent,
+    UserPremiumGrantedEvent,
+} from '@the-box/types'
 import { toast as sonner } from 'sonner'
 import i18n from '@/lib/i18n'
+import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || undefined
 
@@ -69,6 +74,19 @@ export function connectNotificationsSocket(userId: string | null | undefined): v
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(
                     new CustomEvent('reward:granted', { detail: e })
+                )
+            }
+        })
+        // Achievement unlocks (game completion, forfeit, account-age
+        // milestones) — surface a celebratory toast the moment the unlock
+        // lands, on any page. notifyAchievementsUnlocked de-duplicates so a
+        // game unlock also rendered by the results page only toasts once.
+        // The window event lets the achievement store refresh its grid.
+        s.on('achievement:unlocked', (e: AchievementUnlockedEvent) => {
+            notifyAchievementsUnlocked(e.achievements)
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                    new CustomEvent('achievement:unlocked', { detail: e })
                 )
             }
         })

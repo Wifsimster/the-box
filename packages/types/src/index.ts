@@ -426,6 +426,7 @@ export interface EndGameResponse {
     game: Game
     screenshot: Screenshot
   }>
+  newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
 // Search API
@@ -1270,6 +1271,19 @@ export interface UserPremiumGrantedEvent {
   userId: string
   tier: 'supporter_lifetime'
   grantedAt: string
+}
+
+// Realtime payload for the `/notifications` namespace, fired the moment a
+// user unlocks one or more achievements — game completion, forfeit, or a
+// background account-age milestone sweep. The frontend surfaces each as a
+// celebratory toast so the unlock is seen immediately, on any page. The
+// `user_achievements` rows are already persisted, so a missed emit (offline
+// client) is reconciled when the achievements page next loads — this emit
+// is best-effort, not authoritative.
+export interface AchievementUnlockedEvent {
+  userId: string
+  achievements: NewlyEarnedAchievement[]
+  unlockedAt: string
 }
 
 // Capture eligibility reporting. A user can flag a screenshot they believe
