@@ -1949,7 +1949,17 @@
     "webhookErrBlocked": "That address is blocked — webhooks can't point at private or internal hosts.",
     "webhookErrInvalid": "That doesn't look like a valid URL.",
     "webhookErrTooMany": "Maximum number of webhooks reached. Revoke one first.",
-    "webhookErrGeneric": "Couldn't add the webhook. Try again."
+    "webhookErrGeneric": "Couldn't add the webhook. Try again.",
+    "recipesTitle": "Integration recipes",
+    "recipesHint": "Copy-paste setups for the three ways to put The Box on your stream.",
+    "recipesNeedSlug": "Claim a public slug above and these snippets fill in your slug automatically.",
+    "recipeChatTitle": "Chat command (Nightbot)",
+    "recipeChatDesc": "Add a custom command — viewers type !box and your bot prints your live score.",
+    "recipeOverlayTitle": "Live overlay (OBS)",
+    "recipeOverlayDesc": "A browser-source overlay that ticks up as you score. Replace YOUR_KEY with an API key from above.",
+    "recipeWebhookTitle": "Webhook",
+    "recipeWebhookDesc": "Get a signed POST the moment a session event fires. Replace YOUR_KEY with an API key from above.",
+    "recipeCopyAria": "Copy this recipe"
   },
   "personalBests": {
     "title": "Personal Bests",

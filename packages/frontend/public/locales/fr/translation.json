@@ -1949,7 +1949,17 @@
     "webhookErrBlocked": "Cette adresse est bloquée — les webhooks ne peuvent pas pointer vers des hôtes privés ou internes.",
     "webhookErrInvalid": "Cela ne ressemble pas à une URL valide.",
     "webhookErrTooMany": "Nombre maximum de webhooks atteint. Révoquez-en un d'abord.",
-    "webhookErrGeneric": "Impossible d'ajouter le webhook. Réessayez."
+    "webhookErrGeneric": "Impossible d'ajouter le webhook. Réessayez.",
+    "recipesTitle": "Recettes d'intégration",
+    "recipesHint": "Configurations prêtes à copier-coller pour les trois façons d'afficher The Box sur votre stream.",
+    "recipesNeedSlug": "Choisissez un slug public ci-dessus : ces extraits y inséreront automatiquement votre slug.",
+    "recipeChatTitle": "Commande de chat (Nightbot)",
+    "recipeChatDesc": "Ajoutez une commande personnalisée — les viewers tapent !box et votre bot affiche votre score en direct.",
+    "recipeOverlayTitle": "Overlay en direct (OBS)",
+    "recipeOverlayDesc": "Un overlay navigateur qui grimpe à mesure que vous marquez des points. Remplacez YOUR_KEY par une clé API ci-dessus.",
+    "recipeWebhookTitle": "Webhook",
+    "recipeWebhookDesc": "Recevez une requête POST signée dès qu'un événement de session se produit. Remplacez YOUR_KEY par une clé API ci-dessus.",
+    "recipeCopyAria": "Copier cette recette"
   },
   "personalBests": {
     "title": "Meilleurs Scores",

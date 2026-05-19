@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StreamerWebhooksSection } from './StreamerWebhooksSection'
+import { StreamerRecipesSection } from './StreamerRecipesSection'
 import { toast } from '@/lib/toast'
 import { streamerKeysApi, type StreamerSettingsResponse } from '@/lib/api/streamer-keys'
 import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
@@ -310,6 +311,10 @@ export function StreamerKitCard() {
             {/* Webhooks — only meaningful once the profile is public.
                 Self-contained section: fetches + manages its own data. */}
             {enabled && <StreamerWebhooksSection enabled={enabled} />}
+
+            {/* Copy-paste integration recipes — uses the saved slug, so it
+                reflects what the public API actually returns. */}
+            {enabled && <StreamerRecipesSection slug={settings.publicSlug} />}
           </>
         )}
       </CardContent>
