@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Anti-triche « lire l'historique des autres » — réunion sous-agents (2026-05-20).
+  Verdict: la garde `getPublicGameSessionDetails` (user.service.ts:245-270) est **du code mort**
+  à cause d'un mismatch `Date === string` (DATE pg renvoyé en JS Date, comparé à une string ISO),
+  et même réparée elle serait contournée par un `start` + `end` instantané qui valide
+  `is_completed=true` sans aucun guess. Deux recettes one-shot triviales exposent aujourd'hui
+  les 10 jeux du challenge quotidien à n'importe quel joueur connecté. Branche de revue :
+  `claude/review-game-cheating-prevention-BMjpB` — aucun correctif n'a été poussé.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anti-triche historique — Réunion sous-agents · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  h4 { margin: 1rem 0 0.4rem; font-size: 0.95rem; color: var(--neon-purple); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(239,68,68,0.10), rgba(168,85,247,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(239,68,68,0.45);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; color: var(--fg); }
+  .hero p.thesis em { color: var(--risk); font-style: normal; font-weight: 600; }
+
+  .persona {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .persona summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .persona summary::-webkit-details-marker { display: none; }
+  .persona summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); transition: transform .15s; }
+  .persona[open] summary::after { content: '−'; }
+  .persona summary .role { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; }
+  .persona summary .name { color: var(--muted); font-size: 0.9rem; }
+  .persona .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+  .persona ul { padding-left: 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono { font-family: var(--mono); font-size: 0.85rem; }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.risk { color: var(--risk); }
+  .badge.info { color: var(--neon-blue); }
+
+  .recipe {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--risk);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    margin: 1rem 0;
+  }
+  .recipe h3 { margin-top: 0; }
+  .recipe ol { padding-left: 1.4rem; }
+  .recipe ol li { margin: 0.35rem 0; }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+  blockquote.callout.ok { border-left-color: var(--ok); background: rgba(16,185,129,0.06); }
+
+  .flowdiag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+  }
+  .flowdiag svg { display: block; width: 100%; height: auto; min-width: 560px; }
+  .flowdiag text { font-family: var(--sans); fill: var(--fg); font-size: 12px; }
+  .flowdiag text.actor { fill: var(--neon-purple); font-weight: 600; }
+  .flowdiag text.label { fill: var(--muted); font-size: 11px; }
+  .flowdiag line.lifeline { stroke: var(--border-strong); stroke-dasharray: 3 3; }
+  .flowdiag line.msg { stroke: var(--neon-purple); stroke-width: 1.5; marker-end: url(#arr); }
+  .flowdiag line.msg.risk { stroke: var(--risk); stroke-width: 1.8; marker-end: url(#arr-risk); }
+  .flowdiag rect.actor-box { fill: var(--surface-2); stroke: var(--border-strong); }
+  .flowdiag rect.note { fill: rgba(239,68,68,0.12); stroke: var(--risk); }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Anti-triche historique · Réunion sous-agents</span>
+  <span class="repo">wifsimster/the-box · 2026-05-20</span>
+</header>
+
+<div class="layout">
+<main>
+
+<h1>Peut-on lire l'historique des autres avant d'avoir joué&nbsp;?</h1>
+<p class="meta"><b>Question posée</b> · L'utilisateur a demandé une revue : un joueur peut-il consulter l'historique des autres joueurs avant d'avoir terminé son propre challenge quotidien, et donc tricher en lisant leurs réponses&nbsp;?</p>
+<p class="meta"><b>Branche</b> · <code>claude/review-game-cheating-prevention-BMjpB</code> · <b>Format</b> · réunion sous-agents (3 personas)</p>
+
+<section class="hero">
+  <p class="thesis">Verdict commun&nbsp;: <em>oui, trivialement</em>. La garde anti-triche existe (<code>getPublicGameSessionDetails</code>) mais elle est <em>du code mort</em> à cause d'un <code>Date === string</code>. Et même réparée, un <code>POST /api/game/start</code> + <code>POST /api/game/end</code> immédiat valide la condition <code>is_completed=true</code> sans le moindre guess, débloquant à la fois la lecture des sessions d'autrui <em>et</em> les <code>unfoundGames</code> de sa propre session — qui contiennent les 10 noms de jeux du jour.</p>
+</section>
+
+<h2 id="participants">Participants</h2>
+<ul>
+  <li><b>SECURITY-REVIEWER</b> — analyse les vecteurs d'attaque, le typage côté DB, les side-channels.</li>
+  <li><b>BACKEND-DEV</b> — relit la garde, les repos, et les autres endpoints qui renvoient des sessions.</li>
+  <li><b>PRODUCT-QA</b> — déroule les recettes utilisateur depuis l'UI (Leaderboard, profil public, History).</li>
+</ul>
+
+<h2 id="resume">Résumé exécutif</h2>
+<table>
+  <thead><tr><th>Vecteur</th><th>Statut</th><th>Effort attaquant</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Click sur une ligne du Leaderboard du jour</td>
+      <td><span class="badge risk">Exploitable</span></td>
+      <td>1 clic</td>
+    </tr>
+    <tr>
+      <td><code>start</code> + <code>end</code> immédiat → lecture de sa propre session</td>
+      <td><span class="badge risk">Exploitable</span></td>
+      <td>2 requêtes</td>
+    </tr>
+    <tr>
+      <td>Profil public d'un joueur → <code>sessionId</code> du jour → fetch console</td>
+      <td><span class="badge risk">Exploitable</span></td>
+      <td>1 fetch DevTools (anonyme OK)</td>
+    </tr>
+    <tr>
+      <td>Endpoint de percentile (<code>?score=X</code>)</td>
+      <td><span class="badge ok">Sain</span></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>Socket.io / broadcast leaderboard</td>
+      <td><span class="badge ok">Sain</span></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>Routes admin / forge de <code>userId</code></td>
+      <td><span class="badge ok">Sain</span></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>En-têtes <code>Cache-Control</code> sur les routes session</td>
+      <td><span class="badge warn">À durcir</span></td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="bug-pivot">Le bug pivot — <code>Date === string</code></h2>
+
+<p>La garde dans <code>packages/backend/src/domain/services/user.service.ts:245-270</code> :</p>
+
+<pre><code>const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
+const today = new Date().toISOString().split('T')[0]          // string 'YYYY-MM-DD'
+if (challenge &amp;&amp; challenge.challenge_date === today) {        // Date === string  ⇒  toujours false
+  const requesterSession = requesterId
+    ? await sessionRepository.findGameSession(requesterId, gameSession.daily_challenge_id)
+    : null
+  if (!requesterSession?.is_completed) {
+    throw new Error('TODAY_CHALLENGE_NOT_COMPLETED')
+  }
+}
+</code></pre>
+
+<p>La colonne <code>challenge_date</code> est déclarée <code>table.date(...)</code> dans <code>packages/backend/migrations/20260113_merged_schema.ts:231</code>. <code>challengeRepository.findById</code> (<code>challenge.repository.ts:27-31</code>) <em>ne</em> caste <em>pas</em> la colonne en <code>::text</code>. Aucun <code>pg.types.setTypeParser(1082, ...)</code> n'est enregistré dans le repo. Avec le parseur par défaut de <code>node-postgres</code>, <code>OID 1082 (DATE)</code> est renvoyé en <code>Date</code> JS. La comparaison <code>Date === '2026-05-20'</code> est donc <em>toujours fausse</em>, et la branche anti-triche n'est jamais exécutée.</p>
+
+<blockquote class="callout info">
+Indice que l'équipe est consciente du piège ailleurs&nbsp;: <code>game.service.ts:370-372</code> protège déjà ce même cas avec <code>typeof challenge.challenge_date === 'string' ? … : challengeDate.toISOString().split('T')[0]</code>. Le garde-fou a juste été oublié dans <code>user.service.ts</code>.
+</blockquote>
+
+<h2 id="recettes">Recettes de triche exécutables aujourd'hui</h2>
+
+<div class="recipe">
+  <h3 id="r1">Recette 1 — clic Leaderboard <span class="badge risk">1 clic</span></h3>
+  <ol>
+    <li>Bob (connecté, n'a pas joué aujourd'hui) ouvre <code>/leaderboard</code>. L'onglet « Quotidiens » est par défaut sur aujourd'hui (<code>LeaderboardPage.tsx:73-84</code>).</li>
+    <li>Chaque ligne porte un icône <code>Eye</code> et un tooltip « clickToView » (<code>LeaderboardPage.tsx:337, 356</code>) — l'UI invite explicitement à cliquer.</li>
+    <li>Le clic appelle <code>fetch('/api/leaderboard/session/${entry.sessionId}')</code> (<code>LeaderboardPage.tsx:183</code>).</li>
+    <li>Côté serveur, <code>leaderboard.routes.ts:20</code> appelle <code>getPublicGameSessionDetails</code> → le <code>===</code> casse → la garde tombe → renvoi 200 + <code>GameSessionDetailsResponse</code> complète.</li>
+    <li>Le <code>ResponsiveDialog</code> (<code>LeaderboardPage.tsx:582-686</code>) affiche pour chaque position le <code>correctGame.name</code>, dans l'ordre des screenshots.</li>
+  </ol>
+  <p><b>Résultat&nbsp;:</b> Bob voit les 10 jeux du jour avant d'avoir cliqué sur « Jouer ».</p>
+</div>
+
+<div class="recipe">
+  <h3 id="r2">Recette 2 — <code>start</code> + <code>end</code> instantané <span class="badge risk">2 requêtes</span></h3>
+  <ol>
+    <li><code>POST /api/game/start/:todayChallengeId</code> — crée la session.</li>
+    <li><code>POST /api/game/end {sessionId}</code> — <code>gameService.endGame</code> (<code>game.service.ts:975-1021</code>) flippe <code>is_completed=true</code> <em>sans exiger un seul guess</em>. <code>screenshotsFound</code> peut être 0.</li>
+    <li>Bob appelle <code>GET /api/user/history/:sessionId</code> sur sa propre session. <code>buildSessionDetailsResponse</code> (<code>user.service.ts:166-184, 200</code>) renvoie <code>unfoundGames</code> — un tableau <code>Game</code> complet (nom, slug, cover) pour <em>chaque</em> position non devinée, soit les 10 jeux du jour.</li>
+  </ol>
+  <p><b>Résultat&nbsp;:</b> Bob a les 10 réponses depuis sa propre session, sans même toucher à celle d'un autre joueur. Bonus&nbsp;: la condition <code>is_completed=true</code> est désormais remplie, donc même si la recette 1 était réparée, Bob est maintenant autorisé à lire les sessions d'autrui (et à scorer au leaderboard du jour avec un score forfaitaire de 0 — visible ou pas selon la logique d'inclusion).</p>
+</div>
+
+<div class="recipe">
+  <h3 id="r3">Recette 3 — profil public → fetch console <span class="badge risk">anonyme OK</span></h3>
+  <ol>
+    <li><code>GET /api/user/public/:username</code> (<code>user.routes.ts:18</code>) est <em>sans</em> <code>authMiddleware</code> et renvoie <code>recentSessions: [{ sessionId, challengeDate, totalScore, completedAt }, …]</code> (5 dernières sessions complétées, ligne <code>:36-46, :82-87</code>) — y compris celle du jour.</li>
+    <li>L'UI affiche seulement date+score (<code>PublicProfilePage.tsx:136-156</code>), mais le <code>sessionId</code> est dans la réponse JSON visible dans DevTools → Network.</li>
+    <li>Bob copie le <code>sessionId</code> du jour d'Alice et lance dans la console&nbsp;:
+      <pre><code>fetch('/api/leaderboard/session/&lt;id&gt;').then(r =&gt; r.json()).then(console.log)</code></pre>
+    </li>
+    <li>Même chemin que la recette 1 → réponses complètes.</li>
+  </ol>
+  <p><b>Résultat&nbsp;:</b> fonctionne même sans être connecté, donc impossible d'attribuer la lecture à un utilisateur.</p>
+</div>
+
+<h2 id="diagramme">Diagramme — le bug en une seule séquence</h2>
+
+<div class="flowdiag">
+<svg viewBox="0 0 720 290" role="img" aria-label="Séquence du clic leaderboard, garde anti-triche tombée">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,4 L0,8 z" fill="#a855f7"/>
+    </marker>
+    <marker id="arr-risk" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,4 L0,8 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <rect class="actor-box" x="20"  y="10" width="120" height="28" rx="4"/>
+  <text class="actor"      x="80"  y="29" text-anchor="middle">Bob (browser)</text>
+  <rect class="actor-box" x="170" y="10" width="120" height="28" rx="4"/>
+  <text class="actor"      x="230" y="29" text-anchor="middle">leaderboard.routes</text>
+  <rect class="actor-box" x="320" y="10" width="140" height="28" rx="4"/>
+  <text class="actor"      x="390" y="29" text-anchor="middle">user.service.getPublic…</text>
+  <rect class="actor-box" x="490" y="10" width="120" height="28" rx="4"/>
+  <text class="actor"      x="550" y="29" text-anchor="middle">challengeRepo</text>
+
+  <line class="lifeline" x1="80"  y1="38" x2="80"  y2="280"/>
+  <line class="lifeline" x1="230" y1="38" x2="230" y2="280"/>
+  <line class="lifeline" x1="390" y1="38" x2="390" y2="280"/>
+  <line class="lifeline" x1="550" y1="38" x2="550" y2="280"/>
+
+  <line class="msg" x1="80"  y1="60"  x2="230" y2="60"/>
+  <text class="label" x="155" y="55" text-anchor="middle">GET /api/leaderboard/session/:id</text>
+
+  <line class="msg" x1="230" y1="90"  x2="390" y2="90"/>
+  <text class="label" x="310" y="85" text-anchor="middle">getPublicGameSessionDetails(id, userId)</text>
+
+  <line class="msg" x1="390" y1="120" x2="550" y2="120"/>
+  <text class="label" x="470" y="115" text-anchor="middle">findById(daily_challenge_id)</text>
+
+  <line class="msg ret" x1="550" y1="150" x2="390" y2="150"/>
+  <text class="label" x="470" y="145" text-anchor="middle" fill="#ef4444">renvoie challenge_date : Date</text>
+
+  <rect class="note" x="305" y="170" width="290" height="48" rx="4"/>
+  <text class="label" x="450" y="190" text-anchor="middle" fill="#ef4444">if (challenge.challenge_date === today)</text>
+  <text class="label" x="450" y="206" text-anchor="middle" fill="#ef4444">Date === 'YYYY-MM-DD' ⇒ false ⇒ garde sautée</text>
+
+  <line class="msg ret" x1="390" y1="240" x2="230" y2="240"/>
+  <text class="label" x="310" y="235" text-anchor="middle">buildSessionDetailsResponse (10 noms)</text>
+
+  <line class="msg risk" x1="230" y1="270" x2="80"  y2="270"/>
+  <text class="label" x="155" y="265" text-anchor="middle" fill="#ef4444">200 + correctGame.name × 10</text>
+</svg>
+</div>
+
+<h2 id="personas">Rapports des personas</h2>
+
+<details class="persona" open>
+  <summary><span class="role">SECURITY-REVIEWER</span> <span class="name">— vecteurs &amp; side-channels</span></summary>
+  <div class="body">
+    <h4>1 — Bordure date / typage <span class="badge risk">Exploitable</span></h4>
+    <p>Voir <a href="#bug-pivot">le bug pivot</a>. La garde est silencieusement neutralisée par le mismatch <code>Date === string</code>. <code>game.service.ts:370-372</code> contient déjà la défense correcte, ce qui suggère que l'équipe a rencontré le piège ailleurs et l'a oublié ici.</p>
+
+    <h4>2 — Course / forfait <code>is_completed</code> <span class="badge risk">Exploitable</span></h4>
+    <p><code>POST /api/game/end</code> flippe <code>is_completed=true</code> sans contrôle de progression. <code>game.service.ts:1017-1021</code> et <code>:1099</code>. Le drapeau confond « terminé » et « abandonné ». Encore plus court&nbsp;: la propre session du joueur expose les <code>unfoundGames</code> (objets <code>Game</code> complets) pour chaque position non devinée — c'est-à-dire toutes les positions s'il n'a pas joué.</p>
+
+    <h4>3 — Catch-up <span class="badge ok">Sain by design</span></h4>
+    <p><code>isCatchUp</code> est dérivé côté serveur (<code>game.service.ts:374</code>) à partir de la date du challenge, pas d'un champ envoyé par le client. La garde gate sur <code>challenge_date === today</code>, indépendamment de <code>is_catch_up</code>.</p>
+
+    <h4>4 — Autres endpoints fuyants <span class="badge warn">Mixte</span></h4>
+    <ul>
+      <li><code>GET /api/user/history/:sessionId</code> — propriétaire-only mais renvoie <code>unfoundGames</code> (cf. recette 2).</li>
+      <li><code>GET /api/game/today</code> &amp; <code>/api/public/v1/challenge/today</code> — date + totaux seulement. Sain.</li>
+      <li><code>GET /api/game/image/:screenshotId</code> — gated par <code>userCanAccessScreenshot</code> (<code>screenshot.repository.ts:45</code>) mais débloqué dès qu'il existe une session pour le jour, même vide.</li>
+      <li>Achievements &amp; sockets&nbsp;: aucun nom de jeu dans les payloads vérifiés.</li>
+    </ul>
+
+    <h4>5 — Sidechannel sur le 403 <span class="badge ok">Sain</span></h4>
+    <p><code>leaderboard.routes.ts:27-43</code> renvoie un code d'erreur générique. Pas de fuite de <code>challengeId</code>/<code>gameId</code>, pas de différence de timing exploitable.</p>
+
+    <h4>6 — Percentile <span class="badge ok">Sain</span></h4>
+    <p><code>GET /api/leaderboard/today/percentile?score=X</code> renvoie <code>{percentile, totalPlayers, rank}</code>. Profile la distribution mais ne révèle pas le jeu.</p>
+
+    <h4>7 — Forge de <code>userId</code> <span class="badge ok">Sain</span></h4>
+    <p><code>optionalAuthMiddleware</code> (<code>auth.middleware.ts:50-71</code>) ne lit que la session Better-Auth résolue, pas un header/body. Pas de forge possible.</p>
+  </div>
+</details>
+
+<details class="persona" open>
+  <summary><span class="role">BACKEND-DEV</span> <span class="name">— hygiène d'implémentation</span></summary>
+  <div class="body">
+    <h4>Walkthrough <code>getPublicGameSessionDetails</code></h4>
+    <ul>
+      <li><code>findCompletedGameSessionById</code> (<code>session.repository.ts:75-83</code>) filtre bien sur <code>is_completed = true</code>. Pas de fuite de session en cours.</li>
+      <li><code>challengeRepository.findById</code> (<code>challenge.repository.ts:27-31</code>) renvoie <code>challenge_date</code> comme <code>Date</code> JS (cf. bug pivot). <code>findByDate</code> caste en <code>::text</code> mais pas <code>findById</code>.</li>
+      <li><code>findGameSession(userId, challengeId)</code> (<code>session.repository.ts:55-63</code>) est correctement scopé sur les deux clés. Pas de match cross-utilisateur.</li>
+      <li><code>is_completed</code> est flippé par <code>endGame</code> sur la route <code>/api/game/end</code> sans condition de progression — d'où la recette 2.</li>
+    </ul>
+    <h4>Endpoints alternatifs renvoyant une session</h4>
+    <ul>
+      <li><code>game.routes.ts</code>&nbsp;: aucune route <code>/results</code> publique ne renvoie de <code>game.name</code> d'un autre joueur.</li>
+      <li><code>achievement.routes.ts</code>&nbsp;: pas de leak observé.</li>
+      <li><code>admin.routes.ts</code> protégé par <code>adminMiddleware</code> (<code>auth.middleware.ts:73-104</code>). Hors scope.</li>
+      <li>Sockets&nbsp;: émissions ciblées sur <code>admin-room</code> et <code>user:${userId}</code>. Pas de broadcast public avec nom de jeu.</li>
+    </ul>
+    <h4>Cache / CDN</h4>
+    <p>Aucun <code>Cache-Control: no-store</code> sur <code>/api/leaderboard/session/:sessionId</code> ni sur <code>/api/user/*</code>. Si un proxy intermédiaire ajoute une heuristique, un 200 peut être servi de l'autre côté de minuit UTC. À durcir.</p>
+  </div>
+</details>
+
+<details class="persona" open>
+  <summary><span class="role">PRODUCT-QA</span> <span class="name">— déroulés utilisateur depuis l'UI</span></summary>
+  <div class="body">
+    <h4>Leaderboard page</h4>
+    <p><code>LeaderboardPage.tsx</code>&nbsp;: onglet « Quotidiens » par défaut sur aujourd'hui, lignes cliquables avec icône <code>Eye</code> et tooltip <code>clickToView</code> (<code>:337, :356</code>). Click → <code>fetch('/api/leaderboard/session/${id}')</code> (<code>:183</code>) → modale (<code>:582-686</code>) qui rend <code>correctGame.name</code> par position avec les ✓/✗ et les tentatives erronées via <code>GuessAttemptsList</code>. L'UI <em>guide</em> l'attaquant.</p>
+    <h4>Profil public</h4>
+    <p><code>PublicProfilePage.tsx:20-45, 136-156</code>. Route backend sans authMiddleware. Les <code>sessionId</code> du jour sont dans la réponse JSON même si le DOM n'en montre rien.</p>
+    <h4>History page</h4>
+    <p><code>HistoryPage.tsx:91, 404-406</code> et <code>GameHistoryDetailsPage.tsx:36</code>&nbsp;: propriétaire-only via <code>findGameSessionById(sessionId, userId)</code>. Pas de surface UI pour voir l'historique d'un ami. <span class="badge ok">Sain</span></p>
+    <h4>Attaque en tab parallèle</h4>
+    <p>Aucun verrou empêche d'ouvrir <code>/leaderboard</code> dans un second onglet pendant qu'on joue. Bob peut peeker entre chaque screenshot.</p>
+    <h4>Bordure « hier vs aujourd'hui »</h4>
+    <p>Comme la comparaison <code>===</code> est cassée tous les jours, la bordure de minuit n'est plus le problème pertinent&nbsp;: chaque jour est traité comme « passé ». À traiter en même temps que le bug pivot.</p>
+    <h4>i18n</h4>
+    <p><code>leaderboard.todayLocked</code> existe en <code>fr</code> et <code>en</code> (<code>translation.json:565</code>). Le message s'affichera correctement quand la garde fonctionnera.</p>
+  </div>
+</details>
+
+<h2 id="actions">Actions recommandées</h2>
+
+<blockquote class="callout risk">
+<b>Avant tout commit de correctif&nbsp;:</b> la branche actuelle ne contient <em>aucune</em> modification de code. Cette réunion est purement diagnostique. La décision <em>quoi corriger et dans quel ordre</em> est laissée à l'utilisateur.
+</blockquote>
+
+<ol>
+  <li><b>Réparer la garde (bug pivot).</b> Soit caster <code>challenge_date::text</code> dans <code>challengeRepository.findById</code>, soit normaliser sur place avec le même guard que <code>game.service.ts:370-372</code>. La normalisation au repo est préférable&nbsp;: tous les consommateurs en profitent.</li>
+  <li><b>Verrouiller <code>endGame</code> contre l'abandon-éclair.</b> Refuser le flip <code>is_completed=true</code> tant qu'au moins un tier a été <em>complété</em> (pas seulement démarré), ou tant que <code>screenshotsShown == totalScreenshots</code>. Distinguer <code>completed</code> et <code>forfeited</code> dans le schéma serait plus propre — l'anti-triche utiliserait <code>completed</code>, le leaderboard utiliserait <code>completed AND NOT forfeited</code>.</li>
+  <li><b>Strip <code>unfoundGames</code> tant que la session n'est pas <em>vraiment</em> finie.</b> <code>buildSessionDetailsResponse</code> renvoie les noms des jeux non devinés — c'est pertinent pour un recap post-partie, pas pour un session-detail générique. Mettre la liste derrière un drapeau « tous les rounds joués » ou ne l'inclure que pour le propriétaire.</li>
+  <li><b>Retirer <code>sessionId</code> de <code>/api/user/public/:username</code>,</b> ou faire passer cet endpoint par <code>optionalAuthMiddleware</code> + même garde anti-triche. Le profil public n'a aucun besoin légitime d'exposer les <code>sessionId</code>.</li>
+  <li><b>Ajouter <code>Cache-Control: no-store</code></b> sur <code>/api/leaderboard/session/:sessionId</code>, <code>/api/user/history*</code>, <code>/api/user/public/*</code>. Évite la substitution d'un 200 obsolète par un proxy.</li>
+  <li><b>Test E2E anti-triche.</b> Spec Playwright qui crée 2 users, fait jouer l'un, vérifie que l'autre reçoit <em>403 + <code>TODAY_CHALLENGE_NOT_COMPLETED</code></em> sur tous les chemins listés (leaderboard click, fetch direct, profil public → fetch). Doit échouer aujourd'hui, passer après correction.</li>
+</ol>
+
+<h2 id="references">Références code</h2>
+<table>
+  <thead><tr><th>Fichier</th><th>Lignes</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">packages/backend/src/domain/services/user.service.ts</td><td class="mono">245-270</td><td>Garde anti-triche (cassée)</td></tr>
+    <tr><td class="mono">packages/backend/src/domain/services/user.service.ts</td><td class="mono">166-184, 200</td><td><code>buildSessionDetailsResponse</code> · expose <code>unfoundGames</code></td></tr>
+    <tr><td class="mono">packages/backend/src/domain/services/game.service.ts</td><td class="mono">370-372</td><td>Garde de type <code>Date|string</code> correcte (modèle à recopier)</td></tr>
+    <tr><td class="mono">packages/backend/src/domain/services/game.service.ts</td><td class="mono">975-1021</td><td><code>endGame</code> · flippe <code>is_completed</code> sans condition</td></tr>
+    <tr><td class="mono">packages/backend/src/infrastructure/repositories/challenge.repository.ts</td><td class="mono">27-31</td><td><code>findById</code> sans cast <code>::text</code> → renvoie <code>Date</code></td></tr>
+    <tr><td class="mono">packages/backend/src/infrastructure/repositories/session.repository.ts</td><td class="mono">55-63, 75-83</td><td><code>findGameSession</code>, <code>findCompletedGameSessionById</code> · scopes corrects</td></tr>
+    <tr><td class="mono">packages/backend/migrations/20260113_merged_schema.ts</td><td class="mono">231</td><td><code>challenge_date</code> en <code>DATE</code></td></tr>
+    <tr><td class="mono">packages/backend/src/presentation/routes/leaderboard.routes.ts</td><td class="mono">8-46</td><td><code>GET /session/:sessionId</code> · point d'entrée principal</td></tr>
+    <tr><td class="mono">packages/backend/src/presentation/routes/user.routes.ts</td><td class="mono">18-94</td><td><code>GET /public/:username</code> · expose <code>sessionId</code> sans auth</td></tr>
+    <tr><td class="mono">packages/backend/src/presentation/routes/user.routes.ts</td><td class="mono">118-154</td><td>History · auth + ownership corrects</td></tr>
+    <tr><td class="mono">packages/frontend/src/pages/LeaderboardPage.tsx</td><td class="mono">73-84, 174-197, 337-356, 582-686</td><td>UI de la recette 1</td></tr>
+    <tr><td class="mono">packages/frontend/src/pages/PublicProfilePage.tsx</td><td class="mono">20-45, 136-156</td><td>Profil public · <code>sessionId</code> dans le payload</td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<aside class="toc" aria-label="Sommaire">
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#participants">Participants</a></li>
+    <li><a href="#resume">Résumé exécutif</a></li>
+    <li><a href="#bug-pivot">Bug pivot</a></li>
+    <li><a href="#recettes">Recettes de triche</a>
+      <ol>
+        <li><a href="#r1">Clic Leaderboard</a></li>
+        <li><a href="#r2">start + end</a></li>
+        <li><a href="#r3">Profil public</a></li>
+      </ol>
+    </li>
+    <li><a href="#diagramme">Diagramme</a></li>
+    <li><a href="#personas">Rapports personas</a></li>
+    <li><a href="#actions">Actions recommandées</a></li>
+    <li><a href="#references">Références code</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Document interne · senior devs only · branche <code>claude/review-game-cheating-prevention-BMjpB</code>. Réunion sous-agents&nbsp;: SECURITY-REVIEWER + BACKEND-DEV + PRODUCT-QA, 2026-05-20. Aucun code n'a été modifié — diagnostic seulement.
+</footer>
+
+</body>
+</html>
