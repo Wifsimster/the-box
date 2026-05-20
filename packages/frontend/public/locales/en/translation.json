@@ -2452,7 +2452,9 @@
     "options": {
       "default": "Violet (default)",
       "neonPink": "Neon pink",
-      "cyberBlue": "Cyber blue"
+      "cyberBlue": "Cyber blue",
+      "emeraldMatrix": "Matrix green",
+      "sunsetBlaze": "Sunset blaze"
     }
   },
   "premiumGate": {

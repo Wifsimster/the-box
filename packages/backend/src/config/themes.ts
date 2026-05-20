@@ -10,7 +10,12 @@
 
 export const DEFAULT_THEME_KEY = 'default' as const
 
-export const PREMIUM_THEME_KEYS = ['neon_pink', 'cyber_blue'] as const
+export const PREMIUM_THEME_KEYS = [
+  'neon_pink',
+  'cyber_blue',
+  'emerald_matrix',
+  'sunset_blaze',
+] as const
 
 export type PremiumThemeKey = (typeof PREMIUM_THEME_KEYS)[number]
 

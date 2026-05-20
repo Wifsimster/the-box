@@ -362,6 +362,22 @@ html {
   --border-interactive: oklch(0.74 0.18 230 / 0.55);
 }
 
+[data-theme="emerald_matrix"] {
+  --primary: oklch(0.74 0.18 150);
+  --ring: oklch(0.78 0.2 150);
+  --neon-purple: #34d399;
+  --neon-pink: #10b981;
+  --border-interactive: oklch(0.74 0.18 150 / 0.55);
+}
+
+[data-theme="sunset_blaze"] {
+  --primary: oklch(0.74 0.18 40);
+  --ring: oklch(0.78 0.2 40);
+  --neon-purple: #fb923c;
+  --neon-pink: #ef4444;
+  --border-interactive: oklch(0.74 0.18 40 / 0.55);
+}
+
 /* =====================================================================
    Premium cosmetics (entitlement-derived, not stored in inventory)
    ---------------------------------------------------------------------
