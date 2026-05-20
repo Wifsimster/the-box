@@ -23,10 +23,12 @@ export interface ThemeMeta {
   // backend re-validates on PUT /api/user/theme so a tampered client
   // can't slip a premium theme through.
   premium: boolean
-  // Fixed hex colors for the preview swatch. Must NOT reference CSS
-  // variables / Tailwind semantic tokens — those re-skin with the active
-  // `data-theme`, which would make every card look like the currently
-  // selected theme instead of previewing its own palette.
+  // `var(--*)` references to the swatch tokens declared in
+  // `src/index.css`. Must NOT reference re-skinnable tokens like
+  // `--neon-purple` / `--primary` — `[data-theme]` overrides those, so
+  // every card would render in the active theme's palette instead of
+  // its own. The `--theme-swatch-*` tokens are defined only on `:root`
+  // (no per-theme overrides) precisely so this contract holds.
   swatch: { from: string; to: string }
 }
 
@@ -35,31 +37,46 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
     key: 'default',
     i18nKey: 'default',
     premium: false,
-    swatch: { from: '#a855f7', to: '#f472b6' },
+    swatch: {
+      from: 'var(--theme-swatch-default-from)',
+      to: 'var(--theme-swatch-default-to)',
+    },
   },
   {
     key: 'neon_pink',
     i18nKey: 'neonPink',
     premium: true,
-    swatch: { from: '#f472b6', to: '#ec4899' },
+    swatch: {
+      from: 'var(--theme-swatch-neon-pink-from)',
+      to: 'var(--theme-swatch-neon-pink-to)',
+    },
   },
   {
     key: 'cyber_blue',
     i18nKey: 'cyberBlue',
     premium: true,
-    swatch: { from: '#3b82f6', to: '#06b6d4' },
+    swatch: {
+      from: 'var(--theme-swatch-cyber-blue-from)',
+      to: 'var(--theme-swatch-cyber-blue-to)',
+    },
   },
   {
     key: 'emerald_matrix',
     i18nKey: 'emeraldMatrix',
     premium: true,
-    swatch: { from: '#22c55e', to: '#06b6d4' },
+    swatch: {
+      from: 'var(--theme-swatch-emerald-matrix-from)',
+      to: 'var(--theme-swatch-emerald-matrix-to)',
+    },
   },
   {
     key: 'sunset_blaze',
     i18nKey: 'sunsetBlaze',
     premium: true,
-    swatch: { from: '#eab308', to: '#ef4444' },
+    swatch: {
+      from: 'var(--theme-swatch-sunset-blaze-from)',
+      to: 'var(--theme-swatch-sunset-blaze-to)',
+    },
   },
 ]
 
