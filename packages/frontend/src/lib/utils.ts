@@ -6,6 +6,23 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Format a duration in milliseconds for display next to a guess result.
+ * Returns "1.2s" under a minute, "1m23s" beyond.
+ */
+export function formatDiscoveryTime(timeTakenMs: number): string {
+  if (!Number.isFinite(timeTakenMs) || timeTakenMs <= 0) return "0s"
+  const totalSeconds = timeTakenMs / 1000
+  if (totalSeconds < 60) {
+    return totalSeconds < 10
+      ? `${totalSeconds.toFixed(1)}s`
+      : `${Math.round(totalSeconds)}s`
+  }
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.round(totalSeconds - minutes * 60)
+  return seconds === 0 ? `${minutes}m` : `${minutes}m${seconds}s`
+}
+
+/**
  * Calculate speed multiplier based on time taken to find the screenshot
  * Matches the backend logic in game.service.ts
  * @param timeTakenMs Time in milliseconds from screenshot shown to correct guess

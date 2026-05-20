@@ -15,7 +15,7 @@ import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
-import { calculateSpeedMultiplier } from '@/lib/utils'
+import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
 import { useEffect } from 'react'
 
 export default function ResultsPage() {
@@ -236,19 +236,19 @@ export default function ResultsPage() {
                               <Badge variant="success" className="text-xs sm:text-sm font-bold">
                                 +{result.scoreEarned}
                               </Badge>
-                              {(() => {
+                              {result.timeTakenMs > 0 && (() => {
                                 const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                                if (multiplier > 1.0) {
-                                  return (
-                                    <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
-                                      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                      <span className="whitespace-nowrap">
-                                        100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                      </span>
-                                    </div>
-                                  )
-                                }
-                                return null
+                                return (
+                                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
+                                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    <span className="whitespace-nowrap">
+                                      {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
+                                      {multiplier > 1.0 && (
+                                        <> · {multiplier.toFixed(1)}x</>
+                                      )}
+                                    </span>
+                                  </div>
+                                )
                               })()}
                             </div>
                           ) : isUnguessed ? (
@@ -326,19 +326,19 @@ export default function ResultsPage() {
                           <Badge variant="success" className="text-sm font-bold">
                             +{result.scoreEarned}
                           </Badge>
-                          {(() => {
+                          {result.timeTakenMs > 0 && (() => {
                             const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                            if (multiplier > 1.0) {
-                              return (
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span className="whitespace-nowrap">
-                                    100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                  </span>
-                                </div>
-                              )
-                            }
-                            return null
+                            return (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span className="whitespace-nowrap">
+                                  {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
+                                  {multiplier > 1.0 && (
+                                    <> · {multiplier.toFixed(1)}x</>
+                                  )}
+                                </span>
+                              </div>
+                            )
                           })()}
                         </div>
                       ) : isUnguessed ? (

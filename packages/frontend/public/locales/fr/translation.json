@@ -327,6 +327,8 @@
       "good": "Bien joué !",
       "label": "Vitesse"
     },
+    "discoveryTime": "Trouvé en {{time}}",
+    "discoveryTimeShort": "{{time}}",
     "powerUps": {
       "x2Timer": "Temps Double",
       "hint": "Indice"

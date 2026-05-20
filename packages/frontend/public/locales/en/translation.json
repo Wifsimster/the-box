@@ -327,6 +327,8 @@
       "good": "Nice!",
       "label": "Speed"
     },
+    "discoveryTime": "Found in {{time}}",
+    "discoveryTimeShort": "{{time}}",
     "powerUps": {
       "x2Timer": "Double Time",
       "hint": "Hint"
