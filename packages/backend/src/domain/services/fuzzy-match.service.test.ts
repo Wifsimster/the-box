@@ -162,6 +162,28 @@ describe('fuzzy-match.service', () => {
     })
   })
 
+  describe('parenthesised alternate names (screenshot regression)', () => {
+    // Screenshot: "farenheit" was typed for "Fahrenheit (Indigo Prophecy)"
+    // and rejected because the parenthesised regional name dragged the
+    // full-string JW down from ~0.91 (vs "Fahrenheit") to ~0.77.
+    it('accepts a one-letter typo of the base name', () => {
+      expectMatch('farenheit', 'Fahrenheit (Indigo Prophecy)')
+    })
+
+    it('accepts the exact base name', () => {
+      expectMatch('Fahrenheit', 'Fahrenheit (Indigo Prophecy)')
+    })
+
+    it('accepts the parenthesised alternate name', () => {
+      expectMatch('Indigo Prophecy', 'Fahrenheit (Indigo Prophecy)')
+    })
+
+    it('still rejects unrelated guesses against parenthesised titles', () => {
+      expectNoMatch('max payne', 'Fahrenheit (Indigo Prophecy)')
+      expectNoMatch('max payne 3', 'Fahrenheit (Indigo Prophecy)')
+    })
+  })
+
   describe('expansion-suffix titles (screenshot regression)', () => {
     // Screenshot: the challenge "Warhammer 40,000: Dawn of War - Dark Crusade"
     // rejected both base-game guesses. The expansion suffix and the comma'd
