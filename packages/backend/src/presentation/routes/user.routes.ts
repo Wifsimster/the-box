@@ -16,6 +16,7 @@ const router = Router()
 // data plus recent completed sessions so players can link-share their profile
 // (and their friends can visit it without logging in).
 router.get('/public/:username', async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store')
   try {
     const username = req.params.username
     if (!username || username.length < 3) {
@@ -39,11 +40,10 @@ router.get('/public/:username', async (req, res, next) => {
       .orderBy('completed_at', 'desc')
       .limit(5)
       .select<Array<{
-        id: string
         total_score: number
         completed_at: Date | null
         daily_challenge_id: number
-      }>>('id', 'total_score', 'completed_at', 'daily_challenge_id')
+      }>>('total_score', 'completed_at', 'daily_challenge_id')
 
     const challengeIds = recentRows.map((r) => r.daily_challenge_id)
     const challengeRows = challengeIds.length
@@ -80,7 +80,6 @@ router.get('/public/:username', async (req, res, next) => {
       gamesPlayed,
       badges: badgeRows.map((r) => ({ key: r.item_key, quantity: r.quantity })),
       recentSessions: recentRows.map((r) => ({
-        sessionId: r.id,
         challengeDate: dateById.get(r.daily_challenge_id) ?? '',
         totalScore: r.total_score,
         completedAt: r.completed_at ? r.completed_at.toISOString() : null,
@@ -116,6 +115,7 @@ router.get('/me', authMiddleware, async (req, res, next) => {
 
 // Get user's daily game history
 router.get('/history', authMiddleware, async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store')
   try {
     // Premium users get the extended catch-up window in their missed
     // challenges list, so the UI surfaces playable archive entries
@@ -134,6 +134,7 @@ router.get('/history', authMiddleware, async (req, res, next) => {
 
 // Get detailed game session information
 router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store')
   try {
     const { sessionId } = req.params
     if (!sessionId || Array.isArray(sessionId)) {

@@ -163,13 +163,19 @@ export function createUserService(deps: UserServiceDeps): UserService {
         }
       })
 
-    // Get unfound games (positions with no guesses)
+    // Get unfound games (positions with no guesses).
+    //
+    // Anti-cheat belt-and-braces: if the player made zero guesses on this
+    // session, do not return the names of the unfound games — they'd be
+    // the full answer set. endGame already rejects forfeits without
+    // progress, but legacy sessions written before that gate landed could
+    // still exist with is_completed=true and zero guesses.
     const guessedPositions = Array.from(positionMap.keys())
     const allPositions = Array.from({ length: TOTAL_SCREENSHOTS }, (_, i) => i + 1)
     const unfoundPositions = allPositions.filter(pos => !guessedPositions.includes(pos))
 
     const unfoundGames: Array<{ position: number; game: Game; screenshot: Screenshot }> = []
-    if (unfoundPositions.length > 0 && tier) {
+    if (unfoundPositions.length > 0 && tier && guessedPositions.length > 0) {
       const unfoundTierScreenshots = await challengeRepository.findTierScreenshotsWithGames(
         tier.id,
         unfoundPositions
@@ -253,8 +259,11 @@ export function createUserService(deps: UserServiceDeps): UserService {
 
       // Anti-cheat: viewing another player's answers reveals the correct
       // games. For the current daily challenge, only allow it once the
-      // requester has completed that same challenge themselves. Past
-      // challenges stay open (catch-up scores don't count on the leaderboard).
+      // requester has actually played and completed that same challenge
+      // themselves. Past challenges stay open (catch-up scores don't
+      // count on the leaderboard). The `guessCount > 0` check is the
+      // belt-and-braces guard against a session that ended up marked
+      // completed without any real attempt.
       const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
       const today = new Date().toISOString().split('T')[0]
       if (challenge && challenge.challenge_date === today) {
@@ -262,6 +271,10 @@ export function createUserService(deps: UserServiceDeps): UserService {
           ? await sessionRepository.findGameSession(requesterId, gameSession.daily_challenge_id)
           : null
         if (!requesterSession?.is_completed) {
+          throw new Error('TODAY_CHALLENGE_NOT_COMPLETED')
+        }
+        const guessCount = await sessionRepository.countGuessesBySession(requesterSession.id)
+        if (guessCount === 0) {
           throw new Error('TODAY_CHALLENGE_NOT_COMPLETED')
         }
       }
