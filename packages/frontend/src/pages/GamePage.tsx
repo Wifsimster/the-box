@@ -529,6 +529,12 @@ export default function GamePage() {
 
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
                       <Button variant="gaming" asChild className="flex-1">
+                        <Link to={localizedPath('/results')}>
+                          <Trophy className="w-4 h-4 mr-2" />
+                          {t('game.completionChoice.seeResults')}
+                        </Link>
+                      </Button>
+                      <Button variant="outline" asChild className="flex-1">
                         <Link to={localizedPath('/')}>
                           <Home className="w-4 h-4 mr-2" />
                           {t('common.home')}
