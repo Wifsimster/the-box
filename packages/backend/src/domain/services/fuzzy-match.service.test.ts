@@ -186,4 +186,110 @@ describe('fuzzy-match.service', () => {
       assert.equal(service.parseGameTitle('Warhammer 40,000').seriesNumber, null)
     })
   })
+
+  // Live session against "Grand Theft Auto: Vice City" surfaced two bugs:
+  // (A) "grand thief auto 3" was accepted (+125, wrong — that's GTA III);
+  // (B) "gta vice city" was rejected. Fix A adds a guard in the base-name
+  // path; Fix B adds derived-acronym expansion. These tests pin both.
+  describe('GTA series — acronym + numbered ambiguity', () => {
+    describe('target: "Grand Theft Auto: Vice City"', () => {
+      const target = 'Grand Theft Auto: Vice City'
+
+      it('accepts subtitle-only "vice city"', () => {
+        expectMatch('vice city', target)
+      })
+
+      it('accepts acronym + subtitle "gta vice city" (Fix B)', () => {
+        expectMatch('gta vice city', target)
+      })
+
+      it('accepts full title "grand theft auto vice city"', () => {
+        expectMatch('grand theft auto vice city', target)
+      })
+
+      it('accepts full title with colon', () => {
+        expectMatch('grand theft auto: vice city', target)
+      })
+
+      it('accepts per-game alias "gta vc"', () => {
+        expectMatch('gta vc', target, ['gta vc', 'vc'])
+      })
+
+      it('rejects bare acronym "gta" (ambiguous)', () => {
+        expectNoMatch('gta', target)
+      })
+
+      it('rejects "gta 3" — player means GTA III (Fix A via acronym expansion)', () => {
+        expectNoMatch('gta 3', target)
+      })
+
+      it('rejects "grand thief auto 3" — wrong number + misspelling (Fix A, original bug)', () => {
+        expectNoMatch('grand thief auto 3', target)
+      })
+
+      it('rejects "gta 5" — player means GTA V', () => {
+        expectNoMatch('gta 5', target)
+      })
+
+      it('rejects "san andreas" — different game\'s subtitle', () => {
+        expectNoMatch('san andreas', target)
+      })
+
+      it('rejects "Grand Theft Auto V" (Fix A)', () => {
+        expectNoMatch('Grand Theft Auto V', target)
+      })
+    })
+
+    describe('target: "Grand Theft Auto V"', () => {
+      const target = 'Grand Theft Auto V'
+
+      it('accepts "gta 5" — arabic↔roman via acronym expansion', () => {
+        expectMatch('gta 5', target)
+      })
+
+      it('accepts "gta v" — roman via acronym expansion', () => {
+        expectMatch('gta v', target)
+      })
+
+      it('accepts "grand theft auto 5"', () => {
+        expectMatch('grand theft auto 5', target)
+      })
+
+      it('rejects "gta vice city" — different entry', () => {
+        expectNoMatch('gta vice city', target)
+      })
+
+      it('rejects subtitle-only "vice city"', () => {
+        expectNoMatch('vice city', target)
+      })
+    })
+
+    describe('target: "Grand Theft Auto: San Andreas"', () => {
+      const target = 'Grand Theft Auto: San Andreas'
+
+      it('accepts subtitle-only "san andreas"', () => {
+        expectMatch('san andreas', target)
+      })
+
+      it('accepts "gta san andreas" (Fix B)', () => {
+        expectMatch('gta san andreas', target)
+      })
+
+      it('accepts per-game alias "gta sa"', () => {
+        expectMatch('gta sa', target, ['gta sa', 'sa'])
+      })
+
+      it('accepts one-token typo "grand thieves auto san andreas"', () => {
+        expectMatch('grand thieves auto san andreas', target)
+      })
+
+      it('rejects "gta 3" — wrong entry', () => {
+        expectNoMatch('gta 3', target)
+      })
+
+      it('rejects "vice city" — different subtitle', () => {
+        expectNoMatch('vice city', target)
+      })
+    })
+  })
 })

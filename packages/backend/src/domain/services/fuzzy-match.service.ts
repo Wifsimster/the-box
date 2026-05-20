@@ -301,6 +301,21 @@ function tokenize(text: string): string[] {
 }
 
 /**
+ * Initials of the alphabetic tokens of a multi-word franchise name, so
+ * "Grand Theft Auto" → "gta", "The Last of Us" → "tlou",
+ * "Breath of the Wild" → "botw". Stop tokens stay in (players say "tlou"
+ * and "botw", not "lu" / "bw"). Digit-only tokens are dropped so that
+ * "Resident Evil 4" → "re", not "re4". Returns null for single-word
+ * sources, where an acronym would be a single character and over-fire.
+ */
+function deriveAcronym(name: string): string | null {
+  const toks = tokenize(normalizeForFuzzy(name)).filter(t => /^[a-z]/.test(t))
+  if (toks.length < 2) return null
+  const acronym = toks.map(t => t[0]).join('')
+  return acronym.length >= 2 ? acronym : null
+}
+
+/**
  * Jaro-Winkler over both strings after their tokens have been sorted
  * alphabetically. This makes the comparison invariant to word order, so
  * "total war rome" and "rome total war" score 1.0.
@@ -458,7 +473,8 @@ function isMatchEnhanced(
   input: string,
   gameName: string,
   aliases: string[] = [],
-  log: DomainLogger
+  log: DomainLogger,
+  expandedRetry: boolean = false
 ): boolean {
   const normalizedInput = normalizeForFuzzy(input)
   const normalizedTarget = normalizeForFuzzy(gameName)
@@ -502,6 +518,31 @@ function isMatchEnhanced(
   const targetParsed = parseGameTitle(gameName)
 
   log.debug({ inputParsed, targetParsed }, 'parsed titles')
+
+  // 3.-1. Derived-acronym expansion. If the input begins with an initialism
+  // of the target's franchise name (e.g. "gta" for "Grand Theft Auto",
+  // "tes" for "The Elder Scrolls"), rewrite the input by swapping the
+  // acronym for the full franchise and retry once. Requires at least one
+  // disambiguating token after the acronym so a bare "gta" doesn't
+  // collapse onto any specific entry. Recursion is depth-1 via the
+  // expandedRetry flag.
+  if (!expandedRetry) {
+    const inputTokens = tokenize(normalizedInput)
+    if (inputTokens.length >= 2) {
+      const acronymSource = targetParsed.seriesName ?? targetParsed.baseName ?? gameName
+      const acronym = deriveAcronym(acronymSource)
+      if (acronym && inputTokens[0] === acronym) {
+        const expanded = [
+          normalizeForFuzzy(acronymSource),
+          ...inputTokens.slice(1),
+        ].join(' ')
+        log.debug({ input, expanded, acronym }, 'trying acronym-expanded input')
+        if (isMatchEnhanced(expanded, gameName, aliases, log, true)) {
+          return true
+        }
+      }
+    }
+  }
 
   // 3.0. Early rejection: Base name only match for DLC titles
   // Prevents "Cuphead" from matching "Cuphead: The Delicious Last Course"
@@ -573,6 +614,28 @@ function isMatchEnhanced(
         )
         return false
       }
+      // A numbered input against a subtitled-but-unnumbered target is
+      // naming a different entry in the franchise. "grand thief auto 3"
+      // for "Grand Theft Auto: Vice City" must reject — the input asserts
+      // a 3, Vice City is the named entry with no number. Bypass only
+      // when the input also looks like the subtitle (player wrote both).
+      if (
+        targetParsed.seriesNumber === null &&
+        targetParsed.subtitle !== null &&
+        inputParsed.seriesNumber !== null
+      ) {
+        const subtitleSim = jaroWinkler(
+          normalizedInput,
+          normalizeForFuzzy(targetParsed.subtitle)
+        )
+        if (subtitleSim < SUBTITLE_THRESHOLD) {
+          log.debug(
+            { input, gameName, inputNumber: inputParsed.seriesNumber },
+            'rejected - numbered input on subtitled-unnumbered target'
+          )
+          return false
+        }
+      }
       log.debug(
         { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity },
         'base name match (series with subtitle)'
@@ -631,6 +694,21 @@ function isMatchEnhanced(
             )
             return true
           }
+        } else if (
+          inputParsed.seriesNumber === null &&
+          targetParsed.seriesNumber !== null &&
+          !targetParsed.subtitle
+        ) {
+          // Input lacks a number, target carries one with no subtitle:
+          // "Grand Theft Auto" → "Grand Theft Auto V" or
+          // "grand theft auto vice city" → "Grand Theft Auto V" (acronym-
+          // expansion artifact). Mirror the full-fuzzy guard at line ~689
+          // and skip this branch — let path 4's reject fire instead of
+          // accepting here.
+          log.debug(
+            { input, gameName, seriesMatch },
+            'series match without number — deferring to full-fuzzy guard'
+          )
         } else {
           // No subtitle in input, series + number is enough
           log.debug({ input, gameName, seriesMatch }, 'series + number match')
