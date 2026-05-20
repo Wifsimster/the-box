@@ -7,7 +7,8 @@ import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays, Check, X, Eye, Minus } from 'lucide-react'
+import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays, Check, X, Eye, Minus, Clock } from 'lucide-react'
+import { formatDiscoveryTime } from '@/lib/utils'
 import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
@@ -651,6 +652,12 @@ export default function LeaderboardPage() {
                                 {t('game.yourGuess')}: {item.guess.userGuess}
                               </div>
                             ) : null}
+                            {item.guess.isCorrect && item.guess.timeTakenMs > 0 && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                <span>{t('game.discoveryTime', { time: formatDiscoveryTime(item.guess.timeTakenMs) })}</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {item.guess.isCorrect ? (
