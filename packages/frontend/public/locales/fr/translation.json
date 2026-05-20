@@ -76,7 +76,8 @@
       "completion": "Complétion",
       "genre": "Genre",
       "score": "Score",
-      "streak": "Série"
+      "streak": "Série",
+      "mastery": "Maîtrise"
     },
     "difficulty": {
       "easy": "Facile",
