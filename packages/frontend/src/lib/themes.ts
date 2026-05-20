@@ -23,9 +23,10 @@ export interface ThemeMeta {
   // backend re-validates on PUT /api/user/theme so a tampered client
   // can't slip a premium theme through.
   premium: boolean
-  // Tailwind classes for a pair of swatches the selector renders so the
-  // user can preview the palette without applying it. These reference
-  // semantic tokens so the swatches re-skin alongside the theme itself.
+  // Fixed hex colors for the preview swatch. Must NOT reference CSS
+  // variables / Tailwind semantic tokens — those re-skin with the active
+  // `data-theme`, which would make every card look like the currently
+  // selected theme instead of previewing its own palette.
   swatch: { from: string; to: string }
 }
 
@@ -34,31 +35,31 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
     key: 'default',
     i18nKey: 'default',
     premium: false,
-    swatch: { from: 'from-neon-purple', to: 'to-neon-pink' },
+    swatch: { from: '#a855f7', to: '#f472b6' },
   },
   {
     key: 'neon_pink',
     i18nKey: 'neonPink',
     premium: true,
-    swatch: { from: 'from-neon-pink', to: 'to-primary' },
+    swatch: { from: '#f472b6', to: '#ec4899' },
   },
   {
     key: 'cyber_blue',
     i18nKey: 'cyberBlue',
     premium: true,
-    swatch: { from: 'from-neon-blue', to: 'to-neon-cyan' },
+    swatch: { from: '#3b82f6', to: '#06b6d4' },
   },
   {
     key: 'emerald_matrix',
     i18nKey: 'emeraldMatrix',
     premium: true,
-    swatch: { from: 'from-success', to: 'to-neon-cyan' },
+    swatch: { from: '#22c55e', to: '#06b6d4' },
   },
   {
     key: 'sunset_blaze',
     i18nKey: 'sunsetBlaze',
     premium: true,
-    swatch: { from: 'from-warning', to: 'to-error' },
+    swatch: { from: '#eab308', to: '#ef4444' },
   },
 ]
 
