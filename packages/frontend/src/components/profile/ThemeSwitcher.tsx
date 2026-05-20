@@ -83,11 +83,10 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
                 )}
               >
                 <div
-                  className={cn(
-                    'h-12 rounded-md mb-2 bg-linear-to-r',
-                    theme.swatch.from,
-                    theme.swatch.to,
-                  )}
+                  className="h-12 rounded-md mb-2"
+                  style={{
+                    backgroundImage: `linear-gradient(to right, ${theme.swatch.from}, ${theme.swatch.to})`,
+                  }}
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
