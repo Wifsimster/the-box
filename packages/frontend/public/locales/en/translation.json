@@ -2022,6 +2022,7 @@
   "rewards": {
     "inboxTitle": "Your rewards",
     "inboxAria": "Open my rewards",
+    "inboxDescription": "Recent reward grants from milestones, payouts, and reactivation campaigns.",
     "loading": "Loading…",
     "empty": "Nothing to claim right now.",
     "claim": "Claim",
@@ -2033,7 +2034,8 @@
       "hint_developer": "Developer hint",
       "hint_genre": "Genre hint",
       "second_chance": "Second chance",
-      "streak_freeze": "Streak freeze"
+      "streak_freeze": "Streak freeze",
+      "ambassador": "Ambassador badge"
     },
     "sources": {
       "reactivation": {
