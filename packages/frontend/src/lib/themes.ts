@@ -6,7 +6,12 @@
 //   2. Add a matching `[data-theme="<key>"]` block in `src/index.css`
 //      that overrides the variables you want re-skinned.
 
-export type ThemeKey = 'default' | 'neon_pink' | 'cyber_blue'
+export type ThemeKey =
+  | 'default'
+  | 'neon_pink'
+  | 'cyber_blue'
+  | 'emerald_matrix'
+  | 'sunset_blaze'
 
 export interface ThemeMeta {
   key: ThemeKey
@@ -42,6 +47,18 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
     i18nKey: 'cyberBlue',
     premium: true,
     swatch: { from: 'from-neon-blue', to: 'to-neon-cyan' },
+  },
+  {
+    key: 'emerald_matrix',
+    i18nKey: 'emeraldMatrix',
+    premium: true,
+    swatch: { from: 'from-success', to: 'to-neon-cyan' },
+  },
+  {
+    key: 'sunset_blaze',
+    i18nKey: 'sunsetBlaze',
+    premium: true,
+    swatch: { from: 'from-warning', to: 'to-error' },
   },
 ]
 
