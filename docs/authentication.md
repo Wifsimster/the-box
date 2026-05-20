@@ -63,6 +63,44 @@ export const { signIn, signUp, signOut, useSession } = authClient
 | `RESEND_API_KEY` | Clé Resend pour les e-mails (optionnel en dev) |
 | `EMAIL_FROM` | Adresse d'envoi des e-mails transactionnels |
 
+## Double authentification
+
+Depuis la migration `20260520_twofactor_passkey.ts`, l'app expose deux seconds facteurs branchés via Better Auth :
+
+- **TOTP** (plugin `twoFactor`) — code à 6 chiffres généré par une app type Google Authenticator, 1Password, Authy. 10 codes de secours générés à l'activation, à usage unique.
+- **Passkey / WebAuthn** (plugin `@better-auth/passkey`) — empreinte digitale, Face ID, Windows Hello, clés FIDO2. L'utilisateur peut enregistrer plusieurs passkeys (recommandé : un appareil mobile + un poste de travail).
+
+Les deux facteurs sont **opt-in côté joueurs**, gérés depuis la page `/settings/security`. Le rollout admin-forcé est tracké séparément (voir `tasks/2fa-webauthn-subagents-meeting.html`, décision n°2).
+
+### Endpoints exposés par les plugins
+
+| Méthode | Endpoint | Usage |
+|---------|----------|-------|
+| POST | `/api/auth/two-factor/enable` | Démarre l'enrôlement (renvoie `totpURI` + `backupCodes`) |
+| POST | `/api/auth/two-factor/disable` | Désactive la 2FA |
+| POST | `/api/auth/two-factor/verify-totp` | Vérifie le code TOTP (en login ou à l'activation) |
+| POST | `/api/auth/two-factor/verify-backup-code` | Vérifie un code de secours |
+| POST | `/api/auth/two-factor/generate-backup-codes` | Régénère 10 nouveaux codes |
+| POST | `/api/auth/passkey/register` | Enregistre une nouvelle passkey |
+| POST | `/api/auth/passkey/authenticate` | Connexion via passkey |
+| POST | `/api/auth/passkey/delete-passkey` | Supprime une passkey |
+| POST | `/api/auth/passkey/update-passkey` | Renomme une passkey |
+
+### Configuration `rpID` et `origin`
+
+Le plugin `passkey` lie chaque credential à l'origine **exacte** au moment de l'enregistrement. Changer `API_URL` ou `CORS_ORIGIN` en production **invalide toutes les passkeys existantes**.
+
+| Env | `API_URL` | `rpID` calculé | Origine WebAuthn |
+|-----|-----------|----------------|------------------|
+| dev | `http://localhost:3000` | `localhost` | `http://localhost:5173` |
+| prod | `https://thebox.example.com` | `thebox.example.com` | `https://thebox.example.com` |
+
+`rpID = new URL(env.API_URL).hostname` est résolu une seule fois au boot. Geler ces variables avant le rollout 2FA.
+
+### Comptes anonymes
+
+Les comptes anonymes (`isAnonymous: true`) n'ont pas accès à `/settings/security` côté frontend. Les boutons d'activation 2FA et d'ajout de passkey sont désactivés.
+
 ## Endpoints fournis par Better Auth
 
 > **Détail technique.** Better Auth expose automatiquement ces endpoints sous `/api/auth/*`. Aucune route Express à écrire.

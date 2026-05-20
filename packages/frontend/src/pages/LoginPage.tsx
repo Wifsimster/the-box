@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Password } from '@/components/ui/password'
 import { signIn, authClient } from '@/lib/auth-client'
-import { Lock, User, Loader2 } from 'lucide-react'
+import { Lock, User, Loader2, Fingerprint } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapLoginError } from '@/lib/auth-errors'
@@ -26,6 +26,24 @@ export default function LoginPage() {
   })
 
   const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+  const handlePasskeyLogin = async (): Promise<void> => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const result = await authClient.signIn.passkey()
+      if (result?.error) {
+        setError(t('security.passkeyLogin.error'))
+        setIsLoading(false)
+        return
+      }
+      await new Promise((r) => setTimeout(r, 100))
+      navigate(redirectTo)
+    } catch {
+      setError(t('security.passkeyLogin.error'))
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,6 +118,7 @@ export default function LoginPage() {
                     placeholder={t('auth.emailOrUsernamePlaceholder')}
                     value={formData.identifier}
                     onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                    autoComplete="username webauthn"
                     className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-purple/50 rounded-xl"
                     required
                   />
@@ -152,6 +171,26 @@ export default function LoginPage() {
                 ) : (
                   t('auth.login')
                 )}
+              </Button>
+
+              <div className="flex items-center gap-3 my-2">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {t('auth.or')}
+                </span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handlePasskeyLogin}
+                disabled={isLoading}
+                className="w-full h-12 text-base font-medium rounded-xl border-neon-purple/30 hover:bg-neon-purple/10"
+              >
+                <Fingerprint className="w-5 h-5 mr-2" />
+                {t('security.passkeyLogin.button')}
               </Button>
             </form>
 

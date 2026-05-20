@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, User, ChevronDown, History, LogOut, Settings, Sparkles, LifeBuoy, Compass } from 'lucide-react'
+import { Menu, User, ChevronDown, History, LogOut, Settings, Sparkles, LifeBuoy, Compass, Shield } from 'lucide-react'
 import { PRIMARY_NAV, type NavLinkItem } from '@/components/layout/nav-items'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
@@ -145,6 +145,7 @@ function AccountMenu({
 
   const entries: AccountEntry[] = [
     { type: 'link', key: 'profile', icon: User, label: t('common.profile'), to: localizedPath('/profile') },
+    { type: 'link', key: 'security', icon: Shield, label: t('security.title'), to: localizedPath('/settings/security') },
     { type: 'link', key: 'history', icon: History, label: t('common.history'), to: localizedPath('/history') },
     {
       type: 'link',
