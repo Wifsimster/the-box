@@ -162,6 +162,31 @@ function stripExpansionSuffix(name: string): string {
 }
 
 /**
+ * Pull a parenthesised alternate name out of a title, e.g.
+ * "Fahrenheit (Indigo Prophecy)" -> { base: "Fahrenheit", aliases: ["Indigo Prophecy"] }.
+ * Regional re-releases routinely carry the other-market name in parens, and
+ * both forms are valid answers. Without this, the parenthesised tokens get
+ * folded into the normalised target and crush the JW score for short
+ * guesses against the base ("farenheit" vs "fahrenheit indigo prophecy"
+ * drops from 0.91 to 0.77, falling under the full-match threshold).
+ *
+ * Returns the input untouched when no parenthesised chunk is present, and
+ * skips empty-base or empty-alias results so we never recurse on "".
+ */
+function extractParenthesizedAliases(name: string): { base: string; aliases: string[] } {
+  const aliases: string[] = []
+  const re = /\s*\(([^)]+)\)\s*/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(name)) !== null) {
+    const inner = match[1]?.trim()
+    if (inner) aliases.push(inner)
+  }
+  if (aliases.length === 0) return { base: name, aliases: [] }
+  const base = name.replace(re, ' ').replace(/\s+/g, ' ').trim()
+  return { base: base || name, aliases }
+}
+
+/**
  * Parse a game title into structured components
  *
  * Examples:
@@ -754,6 +779,17 @@ export function createFuzzyMatchService(deps: FuzzyMatchServiceDeps): FuzzyMatch
 
     isMatch(input: string, gameName: string, aliases: string[] = []): boolean {
       if (isMatchEnhanced(input, gameName, aliases, log)) {
+        return true
+      }
+      // Parenthesised alternate name (e.g. "Fahrenheit (Indigo Prophecy)"):
+      // retry against the base name with the parenthesised text promoted to
+      // an alias, so "farenheit" can clear the subtitle threshold against
+      // "Fahrenheit" instead of being judged against the full string.
+      const paren = extractParenthesizedAliases(gameName)
+      if (
+        paren.aliases.length > 0 &&
+        isMatchEnhanced(input, paren.base, [...aliases, ...paren.aliases], log)
+      ) {
         return true
       }
       // Retry against the base title with any " - Expansion" suffix removed,
