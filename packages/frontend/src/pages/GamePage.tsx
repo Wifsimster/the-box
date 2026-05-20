@@ -532,27 +532,29 @@ export default function GamePage() {
                       </span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
-                      <Button variant="gaming" asChild className="flex-1">
+                    <div className="flex flex-col gap-2 sm:gap-3 w-full">
+                      <Button variant="gaming" asChild className="w-full">
                         <Link to={localizedPath('/results')}>
                           <Trophy className="w-4 h-4 mr-2" />
                           {t('game.completionChoice.seeResults')}
                         </Link>
                       </Button>
-                      <Button variant="outline" asChild className="flex-1">
-                        <Link to={localizedPath('/')}>
-                          <Home className="w-4 h-4 mr-2" />
-                          {t('common.home')}
-                        </Link>
-                      </Button>
-                      {session && session.user && session.user.id && (
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
                         <Button variant="outline" asChild className="flex-1">
-                          <Link to={localizedPath('/history')}>
-                            <History className="w-4 h-4 mr-2" />
-                            {t('common.history')}
+                          <Link to={localizedPath('/')}>
+                            <Home className="w-4 h-4 mr-2" />
+                            {t('common.home')}
                           </Link>
                         </Button>
-                      )}
+                        {session && session.user && session.user.id && (
+                          <Button variant="outline" asChild className="flex-1">
+                            <Link to={localizedPath('/history')}>
+                              <History className="w-4 h-4 mr-2" />
+                              {t('common.history')}
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
