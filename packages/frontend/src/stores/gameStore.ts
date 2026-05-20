@@ -187,26 +187,10 @@ export const useGameStore = create<GameState>()(
 
         setSessionId: (id, tierSessionId) => set({ sessionId: id, tierSessionId }),
 
-        // Switching to a different challenge (day rollover, catch-up to
-        // another date) must wipe transient session state. `guessResults`
-        // and `positionAttempts` are persisted to localStorage and are
-        // append-only via addGuessResult/recordAttempt, so without this
-        // reset the Results page would show guesses from previous days.
-        // Personal bests are preserved.
-        setChallengeId: (id, date) => {
-          const { challengeId: currentId, personalBests } = get()
-          if (currentId !== null && currentId !== id) {
-            set({
-              ...initialState,
-              _hasHydrated: true,
-              personalBests,
-              challengeId: id,
-              challengeDate: date,
-            })
-          } else {
-            set({ challengeId: id, challengeDate: date })
-          }
-        },
+        setChallengeId: (id, date) => set({
+          challengeId: id,
+          challengeDate: date
+        }),
 
         setScreenshot: (screenshot, position, total) => set({
           currentScreenshot: screenshot,

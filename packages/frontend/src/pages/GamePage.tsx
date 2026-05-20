@@ -318,11 +318,16 @@ export default function GamePage() {
       setError(null)
 
       // Reset relevant game state to ensure clean slate for new game
-      // This clears any persisted state from previously completed games
+      // This clears any persisted state from previously completed games.
+      // positionAttempts is keyed by position number (1..10) and is the
+      // source of the per-guess `attempts` snapshot in addGuessResult, so
+      // missing it here let yesterday's wrong tries bleed into today's
+      // results page.
       useGameStore.setState({
         totalScore: 0,
         correctAnswers: 0,
         guessResults: [],
+        positionAttempts: {},
         lastResult: null,
         screenshotsFound: 0,
       })
