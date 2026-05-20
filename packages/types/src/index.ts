@@ -36,8 +36,11 @@ export interface PublicProfile {
   longestStreak: number
   gamesPlayed: number
   badges: Array<{ key: string; quantity: number }>
+  // `sessionId` is deliberately omitted: it would let an anonymous
+  // visitor pivot to /api/leaderboard/session/:sessionId to read the
+  // player's answers for today (gated server-side, but the id should
+  // not leak in the first place).
   recentSessions: Array<{
-    sessionId: string
     challengeDate: string
     totalScore: number
     completedAt: string | null

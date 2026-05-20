@@ -25,9 +25,16 @@ export interface TierScreenshotRow {
 
 export const challengeRepository = {
   async findById(id: number): Promise<ChallengeRow | null> {
-    return await db('daily_challenges')
+    // Cast `challenge_date::text` so the column comes back as a 'YYYY-MM-DD'
+    // string instead of the JS Date that node-pg's default DATE parser
+    // produces. Callers compare it with strict equality against ISO date
+    // strings (anti-cheat gate in user.service.ts), and a Date !== string
+    // mismatch silently disables those checks.
+    const row = await db('daily_challenges')
       .where('id', id)
+      .select('id', db.raw('challenge_date::text as challenge_date'), 'created_at')
       .first<ChallengeRow>()
+    return row ?? null
   },
 
   async findByDate(date: string): Promise<ChallengeRow | null> {

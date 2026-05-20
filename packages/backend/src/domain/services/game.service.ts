@@ -985,6 +985,20 @@ export function createGameService(deps: GameServiceDeps): GameService {
       throw new GameError('SESSION_ALREADY_COMPLETED', 'Session already completed', 400)
     }
 
+    // Anti-cheat: a fresh session with no guesses must not be allowed to
+    // flag itself completed. Otherwise a player can `start` + `end`
+    // immediately and read `unfoundGames` (all 10 game names) for free.
+    // The forfeit path is still legitimate once the player has actually
+    // attempted at least one position.
+    const guessCount = await sessionRepository.countGuessesBySession(sessionId)
+    if (guessCount === 0) {
+      throw new GameError(
+        'SESSION_HAS_NO_PROGRESS',
+        'Cannot forfeit a session without attempting any guess',
+        400,
+      )
+    }
+
     // Get correct positions to calculate unfound count
     const correctPositions = await sessionRepository.getCorrectPositions(sessionId)
     const screenshotsFound = correctPositions.length

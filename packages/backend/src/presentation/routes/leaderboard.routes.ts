@@ -6,6 +6,9 @@ const router = Router()
 
 // Get public session details (for viewing other players' answers)
 router.get('/session/:sessionId', optionalAuthMiddleware, async (req, res, next) => {
+  // Prevent any intermediate proxy from caching a 200 across the day
+  // boundary — the anti-cheat gate is time-sensitive.
+  res.setHeader('Cache-Control', 'no-store')
   try {
     const { sessionId } = req.params
 
