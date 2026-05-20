@@ -83,6 +83,7 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
                 )}
               >
                 <div
+                  data-testid={`theme-swatch-${theme.key}`}
                   className="h-12 rounded-md mb-2"
                   style={{
                     backgroundImage: `linear-gradient(to right, ${theme.swatch.from}, ${theme.swatch.to})`,
