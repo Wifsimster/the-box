@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
-import { username, anonymous, admin } from "better-auth/plugins";
+import { username, anonymous, admin, twoFactor } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import { Pool } from "pg";
 import { Resend } from "resend";
 import { env } from "../../config/env.js";
@@ -184,6 +185,24 @@ function createAuth() {
             },
           },
         },
+      }),
+      // TOTP-based second factor + 10 backup codes.
+      // Anonymous accounts are blocked from enrollment at the route level
+      // (see presentation/routes/auth.guard.ts).
+      twoFactor({
+        issuer: "The Box",
+        backupCodeOptions: {
+          amount: 10,
+          length: 10,
+        },
+      }),
+      // WebAuthn (Touch ID / Face ID / Windows Hello / FIDO2 keys).
+      // rpID and origin must match the deployed environment exactly —
+      // changing them invalidates every previously registered credential.
+      passkey({
+        rpID: new URL(env.API_URL).hostname,
+        rpName: "The Box",
+        origin: env.CORS_ORIGIN,
       }),
     ],
     user: {

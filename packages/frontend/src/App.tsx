@@ -54,6 +54,8 @@ const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
 const GeoPlayPage = lazy(() => import('@/pages/GeoPlayPage'))
 const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
 const PricingPage = lazy(() => import('@/pages/PricingPage'))
+const SecuritySettingsPage = lazy(() => import('@/pages/SecuritySettingsPage'))
+const TwoFactorChallengePage = lazy(() => import('@/pages/TwoFactorChallengePage'))
 
 function LoadingSpinner() {
   return (
@@ -208,6 +210,8 @@ function App() {
           <Route path="history/:sessionId" element={<GameHistoryDetailsPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings/security" element={<SecuritySettingsPage />} />
+          <Route path="two-factor" element={<TwoFactorChallengePage />} />
           <Route path="u/:username" element={<PublicProfilePage />} />
 
           <Route path="geo" element={<GeoPlayPage />} />
