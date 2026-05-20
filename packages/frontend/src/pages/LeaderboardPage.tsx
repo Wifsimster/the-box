@@ -287,7 +287,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!loading && leaderboard.length >= 3 && (
-              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+              <div className="flex items-end justify-center gap-2 sm:gap-4 mb-8">
                 {[leaderboard[1], leaderboard[0], leaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -393,7 +393,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!monthlyLoading && monthlyLeaderboard.length >= 3 && (
-              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+              <div className="flex items-end justify-center gap-2 sm:gap-4 mb-8">
                 {[monthlyLeaderboard[1], monthlyLeaderboard[0], monthlyLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -493,7 +493,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!achievementLoading && achievementLeaderboard.length >= 3 && (
-              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+              <div className="flex items-end justify-center gap-2 sm:gap-4 mb-8">
                 {[achievementLeaderboard[1], achievementLeaderboard[0], achievementLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
