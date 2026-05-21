@@ -447,6 +447,158 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
     return false
   }
 
+  async function checkAttemptsInGame(
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ): Promise<boolean> {
+    // Most guesses on any single screenshot this game. A "capture" is keyed
+    // by screenshotId so attempts never bleed across tiers.
+    const attemptsByScreenshot = new Map<number, number>()
+    for (const guess of data.guesses) {
+      attemptsByScreenshot.set(
+        guess.screenshotId,
+        (attemptsByScreenshot.get(guess.screenshotId) ?? 0) + 1
+      )
+    }
+    const maxAttempts = Math.max(0, ...attemptsByScreenshot.values())
+
+    if (maxAttempts >= criteria.count) {
+      await achievementRepository.awardAchievement(
+        data.userId,
+        achievement.key,
+        maxAttempts,
+        criteria.count
+      )
+      return true
+    }
+
+    return false
+  }
+
+  async function checkComebackInGame(
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ): Promise<boolean> {
+    // Largest run of wrong guesses on a screenshot the user *still*
+    // identified. A position closes on the correct answer, so every wrong
+    // guess on a solved screenshot necessarily preceded the win.
+    const wrongByScreenshot = new Map<number, number>()
+    const solvedScreenshots = new Set<number>()
+    for (const guess of data.guesses) {
+      if (guess.isCorrect) {
+        solvedScreenshots.add(guess.screenshotId)
+      } else {
+        wrongByScreenshot.set(
+          guess.screenshotId,
+          (wrongByScreenshot.get(guess.screenshotId) ?? 0) + 1
+        )
+      }
+    }
+
+    let maxComeback = 0
+    for (const screenshotId of solvedScreenshots) {
+      maxComeback = Math.max(maxComeback, wrongByScreenshot.get(screenshotId) ?? 0)
+    }
+
+    if (maxComeback >= criteria.count) {
+      await achievementRepository.awardAchievement(
+        data.userId,
+        achievement.key,
+        maxComeback,
+        criteria.count
+      )
+      return true
+    }
+
+    return false
+  }
+
+  async function checkFirstTryInGame(
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ): Promise<boolean> {
+    // A screenshot is "first try" when it has a correct guess and zero
+    // wrong guesses — i.e. the only guess made on it was the right one.
+    const wrongByScreenshot = new Map<number, number>()
+    const solvedScreenshots = new Set<number>()
+    for (const guess of data.guesses) {
+      if (guess.isCorrect) {
+        solvedScreenshots.add(guess.screenshotId)
+      } else {
+        wrongByScreenshot.set(
+          guess.screenshotId,
+          (wrongByScreenshot.get(guess.screenshotId) ?? 0) + 1
+        )
+      }
+    }
+
+    let firstTryCount = 0
+    for (const screenshotId of solvedScreenshots) {
+      if ((wrongByScreenshot.get(screenshotId) ?? 0) === 0) {
+        firstTryCount++
+      }
+    }
+
+    if (firstTryCount >= criteria.count) {
+      await achievementRepository.awardAchievement(
+        data.userId,
+        achievement.key,
+        firstTryCount,
+        criteria.count
+      )
+      return true
+    }
+
+    return false
+  }
+
+  async function checkFlawlessGame(
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ): Promise<boolean> {
+    // Flawless = enough correct guesses to clear the challenge AND not a
+    // single wrong guess. `criteria.count` is the screenshot count so a
+    // game with timed-out (un-guessed) positions cannot qualify.
+    const correctCount = data.guesses.filter(g => g.isCorrect).length
+    const wrongCount = data.guesses.filter(g => !g.isCorrect).length
+
+    if (wrongCount === 0 && correctCount >= criteria.count) {
+      await achievementRepository.awardAchievement(
+        data.userId,
+        achievement.key,
+        correctCount,
+        criteria.count
+      )
+      return true
+    }
+
+    return false
+  }
+
+  async function checkTotalWrongGuesses(
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ): Promise<boolean> {
+    const totalWrong = await achievementRepository.countWrongGuesses(data.userId)
+
+    if (totalWrong >= criteria.count) {
+      await achievementRepository.awardAchievement(
+        data.userId,
+        achievement.key,
+        totalWrong,
+        criteria.count
+      )
+      return true
+    }
+
+    return false
+  }
+
   /**
    * Account-age check. Not part of the post-game evaluator switch — fired
    * separately from the BullMQ `milestone-account-age` worker.
@@ -513,6 +665,16 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
           return checkCorrectInGame(achievement, data, criteria)
         case 'perfect_score_count':
           return checkPerfectScoreCount(achievement, data, criteria)
+        case 'attempts_in_game':
+          return checkAttemptsInGame(achievement, data, criteria)
+        case 'comeback_in_game':
+          return checkComebackInGame(achievement, data, criteria)
+        case 'first_try_in_game':
+          return checkFirstTryInGame(achievement, data, criteria)
+        case 'flawless_game':
+          return checkFlawlessGame(achievement, data, criteria)
+        case 'total_wrong_guesses':
+          return checkTotalWrongGuesses(achievement, data, criteria)
         default:
           log.warn({ type: criteria.type }, 'Unknown achievement criteria type')
           return false
@@ -544,6 +706,7 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
       challengesStarted,
       totalGuesses,
       totalCorrectGuesses,
+      totalWrongGuesses,
       currentStreak,
       speedGuesses3s,
       speedGuesses5s,
@@ -553,6 +716,7 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
       achievementRepository.countStartedGameSessions(userId),
       achievementRepository.countAllGuesses(userId),
       achievementRepository.countCorrectGuesses(userId),
+      achievementRepository.countWrongGuesses(userId),
       userRepository.getCurrentStreak(userId),
       achievementRepository.countSpeedCorrectGuesses(userId, 3000),
       achievementRepository.countSpeedCorrectGuesses(userId, 5000),
@@ -576,6 +740,9 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
           break
         case 'total_correct_guesses':
           progress[achievement.key] = totalCorrectGuesses
+          break
+        case 'total_wrong_guesses':
+          progress[achievement.key] = totalWrongGuesses
           break
         case 'streak':
           progress[achievement.key] = currentStreak

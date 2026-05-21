@@ -262,6 +262,34 @@
       "guessing_machine": {
         "name": "Machine à Deviner",
         "description": "Faites 500 propositions au total"
+      },
+      "acharne": {
+        "name": "Acharné",
+        "description": "Tente ta chance plus de 10 fois sur une seule capture"
+      },
+      "tete_de_mule": {
+        "name": "Tête de mule",
+        "description": "Tente ta chance 20 fois ou plus sur une seule capture"
+      },
+      "jamais_abandonner": {
+        "name": "Jamais abandonner",
+        "description": "Identifie une capture après 8 mauvaises propositions ou plus"
+      },
+      "du_premier_coup": {
+        "name": "Du premier coup",
+        "description": "Identifie une capture dès la première proposition"
+      },
+      "sans_hesitation": {
+        "name": "Sans hésitation",
+        "description": "Termine un défi sans une seule mauvaise proposition"
+      },
+      "tatonneur": {
+        "name": "Tâtonneur",
+        "description": "Accumule 100 mauvaises propositions au total"
+      },
+      "increvable": {
+        "name": "Increvable",
+        "description": "Accumule 1 000 mauvaises propositions au total"
       }
     }
   },

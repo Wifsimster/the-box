@@ -322,6 +322,17 @@ export class AchievementRepository {
         return Number(row?.count ?? 0)
     }
 
+    async countWrongGuesses(userId: string): Promise<number> {
+        const row = await db('guesses')
+            .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+            .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+            .where('game_sessions.user_id', userId)
+            .where('guesses.is_correct', false)
+            .count<{ count: string }>({ count: '*' })
+            .first()
+        return Number(row?.count ?? 0)
+    }
+
     async countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number> {
         const row = await db('guesses')
             .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
