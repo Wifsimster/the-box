@@ -11,7 +11,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
 import { getApiErrorMessage } from '@/lib/api-errors'
 import type { GameSessionDetailsResponse, GuessAttempt } from '@/types'
-import { calculateSpeedMultiplier } from '@/lib/utils'
+import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
@@ -291,11 +291,14 @@ export default function GameHistoryDetailsPage() {
                         <GuessAttemptsList attempts={result.attempts} />
                       </>
                     )}
-                    {result.isCorrect && result.scoreEarned > 0 && multiplier > 1.0 && (
+                    {result.isCorrect && result.timeTakenMs > 0 && (
                       <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground mt-1">
                         <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
                         <span className="whitespace-nowrap">
-                          100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
+                          {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
+                          {result.scoreEarned > 0 && multiplier > 1.0 && (
+                            <> · 100 × {multiplier.toFixed(1)}x {t('game.speed.label')}</>
+                          )}
                         </span>
                       </div>
                     )}

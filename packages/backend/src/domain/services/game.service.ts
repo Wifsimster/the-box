@@ -5,6 +5,7 @@ import type {
   GuessResponse,
   EndGameResponse,
   Game,
+  NewlyEarnedAchievement,
   Screenshot,
 } from '@the-box/types'
 import type { DomainLogger } from '../ports/logger.js'
@@ -365,7 +366,15 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const challengeDate = new Date(challenge.challenge_date)
     challengeDate.setHours(0, 0, 0, 0)
 
-    const todayStr = today.toISOString().split('T')[0]
+    // Use UTC for the date-string comparison: the daily-challenge worker
+    // dates challenges via `getTodayDateUTC()`, so `todayStr` has to come
+    // from the same UTC clock. The previous code passed `today` (which
+    // had `setHours(0,0,0,0)` applied — local midnight) through
+    // `toISOString()`, which in any TZ ahead of UTC (e.g. Europe/Paris,
+    // the production container TZ) silently rolled the date back a day
+    // and flagged every fresh daily session as `is_catch_up = true`,
+    // hiding it from the daily leaderboard.
+    const todayStr = new Date().toISOString().split('T')[0]
     const challengeDateStr = typeof challenge.challenge_date === 'string'
       ? challenge.challenge_date
       : challengeDate.toISOString().split('T')[0]
@@ -984,6 +993,20 @@ export function createGameService(deps: GameServiceDeps): GameService {
       throw new GameError('SESSION_ALREADY_COMPLETED', 'Session already completed', 400)
     }
 
+    // Anti-cheat: a fresh session with no guesses must not be allowed to
+    // flag itself completed. Otherwise a player can `start` + `end`
+    // immediately and read `unfoundGames` (all 10 game names) for free.
+    // The forfeit path is still legitimate once the player has actually
+    // attempted at least one position.
+    const guessCount = await sessionRepository.countGuessesBySession(sessionId)
+    if (guessCount === 0) {
+      throw new GameError(
+        'SESSION_HAS_NO_PROGRESS',
+        'Cannot forfeit a session without attempting any guess',
+        400,
+      )
+    }
+
     // Get correct positions to calculate unfound count
     const correctPositions = await sessionRepository.getCorrectPositions(sessionId)
     const screenshotsFound = correctPositions.length
@@ -1020,6 +1043,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     })
 
     // Check achievements after game completion (forfeit)
+    let newlyEarnedAchievements: NewlyEarnedAchievement[] = []
     try {
       const user = await userRepository.findById(userId)
 
@@ -1035,7 +1059,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         allGuesses.map(g => g.screenshotId)
       )
 
-      await achievementService.checkAchievementsAfterGame({
+      newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
         userId,
         sessionId: sessionId,
         challengeId: session.daily_challenge_id,
@@ -1097,6 +1121,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
       isCompleted: true,
       completionReason: 'forfeit',
       unfoundGames,
+      newlyEarnedAchievements:
+        newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
     }
   },
   }

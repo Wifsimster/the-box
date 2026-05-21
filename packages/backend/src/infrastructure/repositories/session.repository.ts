@@ -284,6 +284,15 @@ export const sessionRepository = {
     return count
   },
 
+  async countGuessesBySession(gameSessionId: string): Promise<number> {
+    const row = await db('guesses')
+      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
+      .where('tier_sessions.game_session_id', gameSessionId)
+      .count<{ count: string }[]>('guesses.id as count')
+      .first()
+    return Number(row?.count ?? 0)
+  },
+
   async getCorrectPositions(gameSessionId: string): Promise<number[]> {
     log.debug({ gameSessionId }, 'getCorrectPositions')
     // Get all positions with correct guesses across all tier sessions for this game

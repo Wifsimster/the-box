@@ -1,7 +1,7 @@
 {
   "name": "@the-box/frontend",
   "private": true,
-  "version": "2.107.0",
+  "version": "2.113.5",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -19,6 +19,7 @@
     "test:e2e:visual:update": "playwright test visual-regression.spec.ts --update-snapshots"
   },
   "dependencies": {
+    "@better-auth/passkey": "~1.4.10",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-checkbox": "^1.3.3",

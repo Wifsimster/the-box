@@ -1,5 +1,11 @@
 import { createAuthClient } from "better-auth/react";
-import { usernameClient, anonymousClient, adminClient } from "better-auth/client/plugins";
+import {
+  usernameClient,
+  anonymousClient,
+  adminClient,
+  twoFactorClient,
+} from "better-auth/client/plugins";
+import { passkeyClient } from "@better-auth/passkey/client";
 
 // Better Auth requires a full URL (with protocol and host)
 // If VITE_API_URL is set, use it directly and append /auth
@@ -27,6 +33,23 @@ export const authClient = createAuthClient({
     usernameClient(),
     anonymousClient(),
     adminClient(),
+    twoFactorClient({
+      // When the server detects 2FA is enabled, the client redirects here
+      // instead of completing the sign-in. The page reads `?redirect=` and
+      // forwards it after the second factor succeeds.
+      onTwoFactorRedirect: () => {
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get("redirect") ?? "";
+        const url = next
+          ? `/two-factor?redirect=${encodeURIComponent(next)}`
+          : "/two-factor";
+        // Preserve the URL language prefix (e.g. /fr/...) if present.
+        const langMatch = window.location.pathname.match(/^\/([a-z]{2})\//);
+        const lang = langMatch ? `/${langMatch[1]}` : "";
+        window.location.href = `${lang}${url}`;
+      },
+    }),
+    passkeyClient(),
   ],
 });
 

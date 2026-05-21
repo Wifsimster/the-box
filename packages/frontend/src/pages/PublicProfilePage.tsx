@@ -135,7 +135,7 @@ export default function PublicProfilePage() {
                 <ul className="space-y-2">
                   {profile.recentSessions.map((s) => (
                     <li
-                      key={s.sessionId}
+                      key={s.challengeDate}
                       className="flex items-center justify-between p-3 rounded-lg bg-card/40 border border-white/5"
                     >
                       <span className="text-sm text-foreground/90">

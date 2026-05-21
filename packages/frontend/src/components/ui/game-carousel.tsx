@@ -14,7 +14,6 @@ import {
     type CarouselApi,
 } from '@/components/ui/carousel'
 import { Button } from '@/components/ui/button'
-import { useIsMobile } from '@/hooks/useIsMobile'
 
 // Magnification range: 1x = fit-to-frame (default), up to 4x.
 const MIN_SCALE = 1
@@ -48,7 +47,6 @@ interface ZoomView {
  * discrete steps; touch pointers drive drag-to-pan and pinch-to-zoom.
  */
 function useImageZoom(resetKey: unknown) {
-    const isMobile = useIsMobile()
     const [view, setView] = useState<ZoomView>({ scale: 1, x: 0, y: 0 })
     const [isGesturing, setIsGesturing] = useState(false)
 
@@ -72,10 +70,8 @@ function useImageZoom(resetKey: unknown) {
             if (!el || !natW || !natH) return { x, y }
             const bw = el.clientWidth
             const bh = el.clientHeight
-            // Match the rendered object-fit: contain on mobile, cover on desktop.
-            const fit = isMobile
-                ? Math.min(bw / natW, bh / natH)
-                : Math.max(bw / natW, bh / natH)
+            // Match the rendered object-fit: cover on all viewports.
+            const fit = Math.max(bw / natW, bh / natH)
             const contentW = natW * fit * scale
             const contentH = natH * fit * scale
             const maxX = Math.max(0, (contentW - bw) / 2)
@@ -85,7 +81,7 @@ function useImageZoom(resetKey: unknown) {
                 y: clamp(y, -maxY, maxY),
             }
         },
-        [isMobile]
+        []
     )
 
     const setNaturalSize = useCallback((w: number, h: number) => {
@@ -328,7 +324,7 @@ export function GameCarousel({
                                             alt={image.alt || `Screenshot ${index + 1}`}
                                             draggable={false}
                                             className={cn(
-                                                'max-w-full max-h-full object-contain md:w-full md:h-full md:object-cover',
+                                                'w-full h-full object-cover',
                                                 'transition-opacity duration-300',
                                                 loadedImages.has(index) ? 'opacity-100' : 'opacity-0',
                                                 imageClassName

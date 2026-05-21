@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Fuzzy-match service review triggered by a real game session against
+  "Grand Theft Auto: Vice City" (2026-05-20). Two bugs confirmed: (A) "grand
+  thief auto 3" is accepted as a match because the base-name path's series-
+  number guards only fire when the target carries a number, and Vice City does
+  not. (B) "gta vice city" is rejected because no acronym mechanism expands
+  "gta" to "grand theft auto" before the structural branches run. Fix: add one
+  targeted reject in the base-name path AND a generic derived-acronym
+  expansion at the top of step 3. Scope: minimum change, no rewrite.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Fuzzy-Match GTA Review — Subagents Meeting · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; color: var(--fg); }
+  .hero p.thesis em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .receipts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.25rem 0; }
+  .receipt {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+  }
+  .receipt h4 { margin: 0 0 0.4rem; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .receipt .row { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
+  .receipt .row:last-child { border-bottom: 0; }
+  .receipt .guess { font-family: var(--mono); color: var(--fg); }
+  .receipt .verdict.ok { color: var(--ok); font-family: var(--mono); }
+  .receipt .verdict.bad { color: var(--risk); font-family: var(--mono); }
+  .receipt .verdict.wrong-ok { color: var(--warn); font-family: var(--mono); }
+  @media (max-width: 700px) { .receipts { grid-template-columns: 1fr; } }
+
+  .persona {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .persona summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .persona summary::-webkit-details-marker { display: none; }
+  .persona summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); transition: transform .15s; }
+  .persona[open] summary::after { content: '−'; }
+  .persona summary .role { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; }
+  .persona summary .name { color: var(--muted); font-size: 0.9rem; }
+  .persona .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+  .persona .body h4 { margin: 1rem 0 0.4rem; font-size: 0.95rem; color: var(--neon-purple); }
+  .persona ul { padding-left: 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono, th.mono { font-family: var(--mono); font-size: 0.85rem; }
+  td.ok { color: var(--ok); font-family: var(--mono); }
+  td.bad { color: var(--risk); font-family: var(--mono); }
+  td.warn { color: var(--warn); font-family: var(--mono); }
+
+  .decisions { display: grid; gap: 0.75rem; margin: 1rem 0; }
+  .decision {
+    display: grid; grid-template-columns: 28px 1fr; gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--neon-purple);
+    border-radius: var(--radius);
+  }
+  .decision .num { font-family: var(--mono); color: var(--neon-purple); font-weight: 600; }
+  .decision strong { color: var(--fg); }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.risk { color: var(--risk); }
+  .badge.info { color: var(--neon-blue); }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+  blockquote.callout p { margin: 0.3rem 0; }
+
+  .ships { display: grid; gap: 0.5rem; margin: 1rem 0; }
+  .ship {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 0.75rem; align-items: center;
+    padding: 0.6rem 0.85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+  }
+  .ship code { background: transparent; color: var(--neon-purple); padding: 0; }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Fuzzy-Match GTA Review · Subagents Meeting</span>
+  <span class="repo">wifsimster/the-box · 2026-05-20</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>Fuzzy-Match: GTA review</h1>
+  <p class="meta"><b>Date</b> 2026-05-20 · <b>Trigger</b> live game session vs <code>Grand Theft Auto: Vice City</code> · <b>Attendees</b> Fuzzy-Match Specialist · Game-Domain Expert · Architect · QA · <b>Facilitator</b> Claude</p>
+
+  <div class="hero">
+    <p class="thesis">
+      Two bugs surfaced in one game. <em>One false positive</em>
+      (<code>grand thief auto 3</code> awarded +125 for Vice City) and <em>one false negative</em>
+      (<code>gta vice city</code> rejected). Both live in
+      <code>packages/backend/src/domain/services/fuzzy-match.service.ts</code>. The fix is two
+      surgical additions: a new guard in the base-name path, and a generic derived-acronym
+      expansion at the top of step 3. No rewrite, no per-game alias dumping ground.
+    </p>
+  </div>
+
+  <h2 id="receipts">1. The receipts</h2>
+  <p>Two game sessions against the same target.</p>
+
+  <div class="receipts">
+    <div class="receipt">
+      <h4>Session A — accepted ✓ (false positive)</h4>
+      <div class="row"><span class="guess">gta</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">gta 3</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">grand thief auto 3</span><span class="verdict wrong-ok">✓ +125 (bug)</span></div>
+    </div>
+    <div class="receipt">
+      <h4>Session B — rejected ✗ (missing positives)</h4>
+      <div class="row"><span class="guess">gta v</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">gta 3</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">gta 4</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">grand thieves auto 3</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">grand thieves auto sant andreas</span><span class="verdict bad">✗</span></div>
+      <div class="row"><span class="guess">grand thieves auto san andreas</span><span class="verdict bad">✗</span></div>
+    </div>
+  </div>
+
+  <p>
+    Most of the session-B rejections are correct (each guess names a different GTA entry).
+    The user's actual complaint is that <code>gta vice city</code> — which they would naturally
+    type — never makes it onto either screen because it isn't accepted. So the working set
+    is exactly two bugs.
+  </p>
+
+  <h2 id="personas">2. The personas</h2>
+  <p>Four agents ran in parallel. Their unedited findings are below; the synthesis is in section 3.</p>
+
+  <details class="persona" open>
+    <summary><span class="role">Fuzzy-Match Specialist</span> <span class="name">Forensic trace</span></summary>
+    <div class="body">
+      <h4>Bug A — "grand thief auto 3" accepted for Vice City</h4>
+      <p>Parsed titles:</p>
+      <pre><code>input  = { seriesName: "grand thief auto", seriesNumber: 3,    subtitle: null }
+target = { seriesName: "Grand Theft Auto", seriesNumber: null, subtitle: "Vice City",
+           baseName:   "Grand Theft Auto" }</code></pre>
+      <p>
+        Control flow lands in the <strong>base-name path at lines 528–582</strong>.
+        <code>baseNameSimilarity = JW("grand thief auto 3", "grand theft auto")</code> clears
+        the 0.90 bar (long shared prefix, one-letter delta on "thief"/"theft", trailing "3"
+        is small noise). Both existing guards then short-circuit on
+        <code>targetParsed.seriesNumber !== null</code> — which is <em>false</em> here, because
+        Vice City has no number. <code>hasWrongSeriesNumber(3, null)</code> also returns
+        <code>false</code> (one side null). The function returns <code>true</code>.
+      </p>
+      <h4>Bug B — "gta vice city" rejected for Vice City</h4>
+      <p>Parsed titles:</p>
+      <pre><code>input  = { seriesName: "gta vice city", seriesNumber: null, subtitle: null }
+target = { ... subtitle: "Vice City", baseName: "Grand Theft Auto" }</code></pre>
+      <p>
+        Because <code>"gta vice city".split(' ').length > 2</code> is true,
+        <code>hasSeriesIndicators</code> is true and the parser assigns the whole input
+        to <code>seriesName</code> — so <code>isSubtitleOnly()</code> returns
+        <code>false</code> and the subtitle-only branch (3a) is skipped. The base-name path
+        fails because <code>JW("gta vice city", "grand theft auto") ≈ 0.45</code>. Token-sort
+        fails. Full-fuzzy <code>JW("gta vice city", "grand theft auto vice city") ≈ 0.78</code>
+        — below the 0.88 floor. No match.
+      </p>
+      <h4>Coverage state</h4>
+      <p>Zero GTA-related tests in <code>fuzzy-match.service.test.ts</code>. No acronym
+      mechanism exists anywhere in the codebase.</p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Game-Domain Expert</span> <span class="name">What players actually type</span></summary>
+    <div class="body">
+      <table>
+        <thead>
+          <tr><th>Canonical</th><th>Should MATCH</th><th>Should NOT</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Grand Theft Auto III</td>
+            <td class="mono">gta 3 · gta iii · grand theft auto 3 · grand thief auto 3</td>
+            <td class="mono">vice city · san andreas · gta · gta v</td>
+          </tr>
+          <tr>
+            <td>Grand Theft Auto: Vice City</td>
+            <td class="mono">vice city · gta vc · gta vice city · grand theft auto vice city</td>
+            <td class="mono">gta · gta 3 · gta 4 · gta 5 · vice city stories</td>
+          </tr>
+          <tr>
+            <td>Grand Theft Auto: San Andreas</td>
+            <td class="mono">san andreas · gta sa · gta san andreas · grand thieves auto san andreas</td>
+            <td class="mono">gta 5 · vice city · los santos</td>
+          </tr>
+          <tr>
+            <td>Grand Theft Auto IV</td>
+            <td class="mono">gta 4 · gta iv · grand theft auto 4 · liberty city</td>
+            <td class="mono">gta 3 · liberty city stories</td>
+          </tr>
+          <tr>
+            <td>Grand Theft Auto V</td>
+            <td class="mono">gta 5 · gta v · gtav · grand theft auto 5 · los santos</td>
+            <td class="mono">vice city · gta 6 · gta vi</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        <strong>Trickiest case:</strong> Vice City has <em>no number</em>. A player typing
+        a number ("gta 3", "gta 4") is unambiguously naming a different game; an unnumbered
+        guess ("vice city", "gta vice city", "vc") is naming Vice City. Bare <code>gta</code>
+        is ambiguous and should never match any specific entry.
+      </p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Architect</span> <span class="name">Minimum-change fix</span></summary>
+    <div class="body">
+      <h4>Fix A — guard the base-name path</h4>
+      <p>
+        In <code>fuzzy-match.service.ts</code>, inside the
+        <code>if (targetParsed.baseName &amp;&amp; targetParsed.subtitle)</code> block
+        (around lines 553–575), add a <em>third</em> guard after the existing two:
+      </p>
+      <pre><code>// Numbered input vs a subtitled, unnumbered target: the input is naming a
+// different entry in the same franchise. Reject unless the input also looks
+// like the subtitle.
+if (
+  targetParsed.seriesNumber === null &&
+  targetParsed.subtitle !== null &&
+  inputParsed.seriesNumber !== null
+) {
+  const subtitleSim = jaroWinkler(
+    normalizeForFuzzy(input),
+    normalizeForFuzzy(targetParsed.subtitle)
+  )
+  if (subtitleSim < SUBTITLE_THRESHOLD) {
+    log.debug({ input, gameName }, 'rejected - numbered input on subtitled-unnumbered target')
+    return false
+  }
+}</code></pre>
+
+      <h4>Fix B — derived-acronym expansion</h4>
+      <p>
+        Algorithmic, not data. Add a helper near <code>parseGameTitle</code> and call it once at
+        the top of step 3 in <code>isMatchEnhanced</code>:
+      </p>
+      <pre><code>function deriveAcronym(name: string): string | null {
+  const toks = tokenize(normalizeForFuzzy(name))
+                 .filter(t => !STOP_TOKENS.has(t) && t.length >= 1)
+  if (toks.length < 2) return null
+  const acronym = toks.map(t => t[0]).join('')
+  return acronym.length >= 2 ? acronym : null
+}
+
+// At the top of step 3, after parsing both sides, guarded by !expandedRetry:
+const acronym = deriveAcronym(targetParsed.baseName ?? gameName)
+const inputTokens = tokenize(normalizedInput)
+if (acronym && inputTokens[0] === acronym) {
+  const expanded = [
+    normalizeForFuzzy(targetParsed.baseName ?? gameName),
+    ...inputTokens.slice(1),
+  ].join(' ')
+  if (isMatchEnhanced(expanded, gameName, aliases, log, /*expandedRetry=*/true)) return true
+}</code></pre>
+      <p>
+        Stop-token-filtered initials of the target's base name. For
+        <code>"Grand Theft Auto"</code> → <code>"gta"</code>; for <code>"The Legend of Zelda"</code>
+        → <code>"lz"</code> (lowercased — still a clean acronym after stop-word filtering).
+        Single-word names (<code>"Cuphead"</code>, <code>"Skyrim"</code>) skip the path entirely.
+      </p>
+      <p>The <code>expandedRetry</code> flag caps recursion at depth 1. The expanded form
+      must still clear the existing thresholds; we're not opening a new low door — we're
+      letting an unrecognised initialism reach the door it already deserves.</p>
+
+      <blockquote class="callout info">
+        <p><strong>Why not just add <code>"gta"</code> as an alias?</strong> Because we'd then
+        need to do the same for <em>every</em> multi-word franchise (TLOU, BotW, MGS, FF, CoD,
+        SMB, …). The derived-acronym rule handles them in one place. Irregular shortenings
+        like "PUBG" or "CS:GO" still belong in per-game alias arrays.</p>
+      </blockquote>
+
+      <h4>What could break (and why it doesn't)</h4>
+      <ul>
+        <li><code>witcher 3 → The Witcher 3: Wild Hunt</code> — target has
+          <code>seriesNumber=3</code>, Fix A's first condition is false. Unaffected.</li>
+        <li><code>paper mario → Paper Mario: The Thousand-Year Door</code> — input has no
+          number, Fix A skips. Unaffected.</li>
+        <li><code>cuphead → Cuphead: The Delicious Last Course</code> — rejected earlier by
+          <code>isBaseNameOnlyMatch</code>; reaches neither fix. Unaffected.</li>
+        <li>Fix B expansion can only <em>add</em> a passing branch — never bypass an existing
+          reject, because the expanded form still runs the full algorithm.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">QA</span> <span class="name">Regression test plan</span></summary>
+    <div class="body">
+      <p>Style of <code>fuzzy-match.service.test.ts</code>: <code>node:test</code> +
+      <code>node:assert/strict</code>, <code>describe</code>/<code>it</code> nesting,
+      <code>expectMatch</code>/<code>expectNoMatch</code> helpers. New block:
+      <code>describe('GTA series — acronym + numbered ambiguity')</code>.</p>
+
+      <table>
+        <thead>
+          <tr><th>Target</th><th>Input</th><th>Expect</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr><td rowspan="9">GTA: Vice City</td><td class="mono">vice city</td><td class="ok">match</td><td>subtitle-only (existing path)</td></tr>
+          <tr><td class="mono">gta vice city</td><td class="ok">match</td><td>Fix B — acronym expands to "grand theft auto vice city"</td></tr>
+          <tr><td class="mono">gta vc</td><td class="ok">match</td><td>requires per-game alias <code>['gta vc', 'vc']</code></td></tr>
+          <tr><td class="mono">grand theft auto vice city</td><td class="ok">match</td><td>full-fuzzy</td></tr>
+          <tr><td class="mono">grand theft auto: vice city</td><td class="ok">match</td><td>exact (colon stripped)</td></tr>
+          <tr><td class="mono">gta</td><td class="bad">no match</td><td>ambiguous franchise initialism on its own</td></tr>
+          <tr><td class="mono">gta 3</td><td class="bad">no match</td><td>Fix A — numbered input, subtitled-unnumbered target</td></tr>
+          <tr><td class="mono">grand thief auto 3</td><td class="bad">no match</td><td>Fix A (the original bug)</td></tr>
+          <tr><td class="mono">gta 5</td><td class="bad">no match</td><td>Fix A</td></tr>
+          <tr><td rowspan="3">GTA V</td><td class="mono">gta 5</td><td class="ok">match</td><td>Fix B + arabic↔roman</td></tr>
+          <tr><td class="mono">gta v</td><td class="ok">match</td><td>Fix B + roman</td></tr>
+          <tr><td class="mono">vice city</td><td class="bad">no match</td><td>different subtitle</td></tr>
+          <tr><td rowspan="4">GTA: San Andreas</td><td class="mono">san andreas</td><td class="ok">match</td><td>subtitle-only</td></tr>
+          <tr><td class="mono">gta san andreas</td><td class="ok">match</td><td>Fix B</td></tr>
+          <tr><td class="mono">grand thieves auto san andreas</td><td class="ok">match</td><td>full-fuzzy carries one-token typo</td></tr>
+          <tr><td class="mono">grand thieves auto sant andreas</td><td class="warn">no match</td><td>two typos; reject to keep the hard floor honest</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Highest regression risk</h4>
+      <p>
+        Watch <code>witcher 2 wild hunt → Witcher 3</code> (must still reject — series-number
+        guard) and <code>cuphead → Cuphead: The Delicious Last Course</code> (must still
+        reject — DLC base-only). If either flips, Fix B's expansion is over-firing.
+      </p>
+    </div>
+  </details>
+
+  <h2 id="decisions">3. Decisions</h2>
+
+  <div class="decisions">
+    <div class="decision">
+      <span class="num">1</span>
+      <div>
+        <strong>Land both fixes in one PR.</strong> They share a code site and a test block.
+        Splitting doubles the review surface for no benefit.
+      </div>
+    </div>
+    <div class="decision">
+      <span class="num">2</span>
+      <div>
+        <strong>Fix A is the priority.</strong> The accepted-wrong-guess is the worse user
+        experience — players got <em>credit</em> for a wrong answer. Fix B is a quality-of-life
+        improvement but not a correctness bug for the leaderboard.
+      </div>
+    </div>
+    <div class="decision">
+      <span class="num">3</span>
+      <div>
+        <strong>Acronym mechanism stays algorithmic.</strong> No per-game <code>"gta"</code>
+        alias dumping ground. Derived from the target's base name at match time.
+      </div>
+    </div>
+    <div class="decision">
+      <span class="num">4</span>
+      <div>
+        <strong>"gta vc" / "gta sa" stay as per-game aliases.</strong> They are
+        sub-acronyms of the <em>subtitle</em>, not the base name; not worth a second
+        acronym layer.
+      </div>
+    </div>
+    <div class="decision">
+      <span class="num">5</span>
+      <div>
+        <strong>No threshold changes.</strong> The existing JW/token-sort/hard-floor
+        constants are well-tuned. Both fixes work by adding structural rules, not by
+        moving numbers.
+      </div>
+    </div>
+  </div>
+
+  <h2 id="before-after">4. Before / after</h2>
+  <table>
+    <thead>
+      <tr><th>Input</th><th>Target</th><th>Old</th><th>New</th><th>Path</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">grand thief auto 3</td><td>GTA: Vice City</td><td class="bad">match (bug)</td><td class="ok">no match</td><td>Fix A</td></tr>
+      <tr><td class="mono">gta vice city</td><td>GTA: Vice City</td><td class="bad">no match (bug)</td><td class="ok">match</td><td>Fix B → subtitle / full-fuzzy</td></tr>
+      <tr><td class="mono">gta 3</td><td>GTA: Vice City</td><td class="ok">no match</td><td class="ok">no match</td><td>Fix A confirms</td></tr>
+      <tr><td class="mono">vice city</td><td>GTA: Vice City</td><td class="ok">match</td><td class="ok">match</td><td>unchanged (subtitle-only)</td></tr>
+      <tr><td class="mono">Grand Theft Auto V</td><td>GTA: Vice City</td><td class="ok">no match</td><td class="ok">no match</td><td>Fix A confirms</td></tr>
+      <tr><td class="mono">gta 5</td><td>GTA V</td><td class="bad">no match</td><td class="ok">match</td><td>Fix B (acronym + arabic↔roman)</td></tr>
+      <tr><td class="mono">witcher 2 wild hunt</td><td>Witcher 3: Wild Hunt</td><td class="ok">no match</td><td class="ok">no match</td><td>canary (must hold)</td></tr>
+      <tr><td class="mono">cuphead</td><td>Cuphead: TDLC</td><td class="ok">no match</td><td class="ok">no match</td><td>canary (must hold)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="ships">5. What ships</h2>
+  <div class="ships">
+    <div class="ship">
+      <span class="badge ok">code</span>
+      <span>Fix A guard + Fix B acronym helper in <code>packages/backend/src/domain/services/fuzzy-match.service.ts</code></span>
+      <code>~40 lines</code>
+    </div>
+    <div class="ship">
+      <span class="badge ok">tests</span>
+      <span>New <code>describe('GTA series — acronym + numbered ambiguity')</code> block</span>
+      <code>~18 cases</code>
+    </div>
+    <div class="ship">
+      <span class="badge info">data</span>
+      <span>Optional follow-up: per-game <code>aliases: ['gta vc', 'vc']</code> for Vice City and <code>['gta sa', 'sa']</code> for San Andreas</span>
+      <code>2 rows</code>
+    </div>
+    <div class="ship">
+      <span class="badge warn">canary</span>
+      <span>Re-run the existing <code>witcher 2 wild hunt</code> / <code>cuphead</code> / <code>skyrim</code> tests; expand if any flips</span>
+      <code>npm test</code>
+    </div>
+  </div>
+
+  <h2 id="open">6. Open questions</h2>
+  <ul>
+    <li>Should "grand thieves auto sant andreas" (two-typo case) be accepted? QA recommends
+      <em>no</em> to keep the hard floor honest; product call.</li>
+    <li>Bare <code>gta</code> currently rejects on every GTA entry. That's correct
+      (ambiguous), but UI could show "too vague — name the city or the number" instead
+      of plain wrong-guess feedback. Tracked separately.</li>
+  </ul>
+
+</main>
+
+<aside class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#receipts">1. The receipts</a></li>
+    <li><a href="#personas">2. The personas</a></li>
+    <li><a href="#decisions">3. Decisions</a></li>
+    <li><a href="#before-after">4. Before / after</a></li>
+    <li><a href="#ships">5. What ships</a></li>
+    <li><a href="#open">6. Open questions</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Companion artifact to <a href="./html-first-subagents-meeting.html"><code>tasks/html-first-subagents-meeting.html</code></a>.
+  Source: <code>packages/backend/src/domain/services/fuzzy-match.service.ts</code>.
+</footer>
+
+</body>
+</html>

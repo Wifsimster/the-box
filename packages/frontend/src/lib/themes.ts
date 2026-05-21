@@ -6,7 +6,12 @@
 //   2. Add a matching `[data-theme="<key>"]` block in `src/index.css`
 //      that overrides the variables you want re-skinned.
 
-export type ThemeKey = 'default' | 'neon_pink' | 'cyber_blue'
+export type ThemeKey =
+  | 'default'
+  | 'neon_pink'
+  | 'cyber_blue'
+  | 'emerald_matrix'
+  | 'sunset_blaze'
 
 export interface ThemeMeta {
   key: ThemeKey
@@ -18,9 +23,12 @@ export interface ThemeMeta {
   // backend re-validates on PUT /api/user/theme so a tampered client
   // can't slip a premium theme through.
   premium: boolean
-  // Tailwind classes for a pair of swatches the selector renders so the
-  // user can preview the palette without applying it. These reference
-  // semantic tokens so the swatches re-skin alongside the theme itself.
+  // `var(--*)` references to the swatch tokens declared in
+  // `src/index.css`. Must NOT reference re-skinnable tokens like
+  // `--neon-purple` / `--primary` — `[data-theme]` overrides those, so
+  // every card would render in the active theme's palette instead of
+  // its own. The `--theme-swatch-*` tokens are defined only on `:root`
+  // (no per-theme overrides) precisely so this contract holds.
   swatch: { from: string; to: string }
 }
 
@@ -29,19 +37,46 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
     key: 'default',
     i18nKey: 'default',
     premium: false,
-    swatch: { from: 'from-neon-purple', to: 'to-neon-pink' },
+    swatch: {
+      from: 'var(--theme-swatch-default-from)',
+      to: 'var(--theme-swatch-default-to)',
+    },
   },
   {
     key: 'neon_pink',
     i18nKey: 'neonPink',
     premium: true,
-    swatch: { from: 'from-neon-pink', to: 'to-primary' },
+    swatch: {
+      from: 'var(--theme-swatch-neon-pink-from)',
+      to: 'var(--theme-swatch-neon-pink-to)',
+    },
   },
   {
     key: 'cyber_blue',
     i18nKey: 'cyberBlue',
     premium: true,
-    swatch: { from: 'from-neon-blue', to: 'to-neon-cyan' },
+    swatch: {
+      from: 'var(--theme-swatch-cyber-blue-from)',
+      to: 'var(--theme-swatch-cyber-blue-to)',
+    },
+  },
+  {
+    key: 'emerald_matrix',
+    i18nKey: 'emeraldMatrix',
+    premium: true,
+    swatch: {
+      from: 'var(--theme-swatch-emerald-matrix-from)',
+      to: 'var(--theme-swatch-emerald-matrix-to)',
+    },
+  },
+  {
+    key: 'sunset_blaze',
+    i18nKey: 'sunsetBlaze',
+    premium: true,
+    swatch: {
+      from: 'var(--theme-swatch-sunset-blaze-from)',
+      to: 'var(--theme-swatch-sunset-blaze-to)',
+    },
   },
 ]
 

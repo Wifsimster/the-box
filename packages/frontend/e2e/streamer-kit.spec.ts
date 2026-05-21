@@ -26,7 +26,7 @@ function randomSlug(): string {
 
 test.describe('Streamer Kit — public API M1', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    await page.goto('/en/profile')
+    await page.goto('/en/profile?tab=creator')
     // Profile page is heavy; wait for the kit card specifically.
     await page.waitForSelector('[data-testid="streamer-kit-settings"]', { timeout: 15_000 })
   })
@@ -257,7 +257,7 @@ test.describe('Public API sandbox — boxbot', () => {
 
 test.describe('Streamer Kit — reserved slugs', () => {
   test('cannot claim the boxbot slug', async ({ authenticatedPage: page }) => {
-    await page.goto('/en/profile')
+    await page.goto('/en/profile?tab=creator')
     await page.waitForSelector('[data-testid="streamer-kit-settings"]', { timeout: 15_000 })
 
     const toggle = page.getByTestId('streamer-kit-toggle')
@@ -277,7 +277,7 @@ test.describe('Streamer Kit — reserved slugs', () => {
 test.describe('Streamer Kit — webhooks (M3)', () => {
   // Webhooks need an opted-in public profile, so each test enables it first.
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    await page.goto('/en/profile')
+    await page.goto('/en/profile?tab=creator')
     await page.waitForSelector('[data-testid="streamer-kit-settings"]', { timeout: 15_000 })
     const toggle = page.getByTestId('streamer-kit-toggle')
     if (!(await toggle.isChecked())) {

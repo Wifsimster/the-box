@@ -74,6 +74,23 @@
      src/lib/animations.ts. */
   --border-interactive: oklch(0.7 0.25 300 / 0.5);
   --shadow-lift: 0 10px 30px oklch(0 0 0 / 0.3);
+
+  /* Theme-selector preview swatches. Intentionally NOT redefined in any
+     `[data-theme="..."]` block below — the whole point of the picker is
+     that each card previews its own palette regardless of which theme is
+     currently active. If these were aliases of `--neon-purple` /
+     `--primary` they would re-skin with the selection and every card
+     would look identical (the bug fixed in #262). */
+  --theme-swatch-default-from: #a855f7;
+  --theme-swatch-default-to: #f472b6;
+  --theme-swatch-neon-pink-from: #f472b6;
+  --theme-swatch-neon-pink-to: #ec4899;
+  --theme-swatch-cyber-blue-from: #3b82f6;
+  --theme-swatch-cyber-blue-to: #06b6d4;
+  --theme-swatch-emerald-matrix-from: #22c55e;
+  --theme-swatch-emerald-matrix-to: #06b6d4;
+  --theme-swatch-sunset-blaze-from: #eab308;
+  --theme-swatch-sunset-blaze-to: #ef4444;
 }
 
 @theme inline {
@@ -360,6 +377,22 @@ html {
   --neon-purple: #38bdf8;
   --neon-pink: #22d3ee;
   --border-interactive: oklch(0.74 0.18 230 / 0.55);
+}
+
+[data-theme="emerald_matrix"] {
+  --primary: oklch(0.74 0.18 150);
+  --ring: oklch(0.78 0.2 150);
+  --neon-purple: #34d399;
+  --neon-pink: #10b981;
+  --border-interactive: oklch(0.74 0.18 150 / 0.55);
+}
+
+[data-theme="sunset_blaze"] {
+  --primary: oklch(0.74 0.18 40);
+  --ring: oklch(0.78 0.2 40);
+  --neon-purple: #fb923c;
+  --neon-pink: #ef4444;
+  --border-interactive: oklch(0.74 0.18 40 / 0.55);
 }
 
 /* =====================================================================

@@ -76,7 +76,8 @@
       "completion": "Complétion",
       "genre": "Genre",
       "score": "Score",
-      "streak": "Série"
+      "streak": "Série",
+      "mastery": "Maîtrise"
     },
     "difficulty": {
       "easy": "Facile",
@@ -261,6 +262,34 @@
       "guessing_machine": {
         "name": "Machine à Deviner",
         "description": "Faites 500 propositions au total"
+      },
+      "acharne": {
+        "name": "Acharné",
+        "description": "Tente ta chance plus de 10 fois sur une seule capture"
+      },
+      "tete_de_mule": {
+        "name": "Tête de mule",
+        "description": "Tente ta chance 20 fois ou plus sur une seule capture"
+      },
+      "jamais_abandonner": {
+        "name": "Jamais abandonner",
+        "description": "Identifie une capture après 8 mauvaises propositions ou plus"
+      },
+      "du_premier_coup": {
+        "name": "Du premier coup",
+        "description": "Identifie une capture dès la première proposition"
+      },
+      "sans_hesitation": {
+        "name": "Sans hésitation",
+        "description": "Termine un défi sans une seule mauvaise proposition"
+      },
+      "tatonneur": {
+        "name": "Tâtonneur",
+        "description": "Accumule 100 mauvaises propositions au total"
+      },
+      "increvable": {
+        "name": "Increvable",
+        "description": "Accumule 1 000 mauvaises propositions au total"
       }
     }
   },
@@ -327,6 +356,8 @@
       "good": "Bien joué !",
       "label": "Vitesse"
     },
+    "discoveryTime": "Trouvé en {{time}}",
+    "discoveryTimeShort": "{{time}}",
     "powerUps": {
       "x2Timer": "Temps Double",
       "hint": "Indice"
@@ -1862,6 +1893,69 @@
     "claimedNote": "Vous avez été parrainé par un ami — merci !",
     "rewardHint": "Récompense : vous recevez chacun 3 indices Année + 2 indices Éditeur."
   },
+  "security": {
+    "title": "Sécurité",
+    "subtitle": "Protégez votre compte avec un second facteur d'authentification.",
+    "backToProfile": "Retour au profil",
+    "totp": {
+      "title": "Application d'authentification (2FA)",
+      "description": "Ajoute une étape lors de la connexion : un code à 6 chiffres généré par une app comme Google Authenticator, 1Password ou Authy.",
+      "enabled": "Activée",
+      "disabled": "Non configurée",
+      "enable": "Activer",
+      "disable": "Désactiver",
+      "passwordPrompt": "Confirmez votre mot de passe pour continuer.",
+      "passwordLabel": "Mot de passe",
+      "continue": "Continuer",
+      "cancel": "Annuler",
+      "scanQr": "Scannez ce QR code avec votre application d'authentification.",
+      "manualSecret": "Ou saisissez ce secret manuellement :",
+      "codeLabel": "Code à 6 chiffres",
+      "codePlaceholder": "123456",
+      "verify": "Vérifier et activer",
+      "verifySuccess": "Double authentification activée.",
+      "verifyError": "Code incorrect. Vérifiez l'horloge de votre téléphone et réessayez.",
+      "disabledSuccess": "Double authentification désactivée.",
+      "disabledError": "Impossible de désactiver. Mot de passe incorrect ?",
+      "backupCodesTitle": "Codes de secours",
+      "backupCodesDescription": "Gardez ces codes en lieu sûr : chaque code est utilisable une seule fois pour récupérer votre compte si vous perdez votre téléphone.",
+      "backupCodesWarning": "Ces codes ne seront affichés qu'une seule fois. Téléchargez-les ou copiez-les avant de fermer cette fenêtre.",
+      "download": "Télécharger",
+      "copy": "Copier",
+      "copied": "Codes copiés.",
+      "iSavedThem": "J'ai sauvegardé mes codes",
+      "regenerate": "Régénérer",
+      "regenerateConfirm": "Régénérer les codes invalidera les anciens. Continuer ?"
+    },
+    "passkey": {
+      "title": "Clés d'accès (passkeys)",
+      "description": "Connectez-vous d'un tap avec votre empreinte digitale, Face ID, Windows Hello ou une clé de sécurité matérielle. Plus résistant au phishing qu'un mot de passe.",
+      "empty": "Aucune passkey enregistrée.",
+      "addCta": "Ajouter une passkey",
+      "namePrompt": "Nom de l'appareil (ex. « iPhone perso », « MacBook »)",
+      "registerSuccess": "Passkey enregistrée.",
+      "registerError": "Impossible d'enregistrer la passkey. Votre navigateur la prend-il en charge ?",
+      "deleteConfirm": "Supprimer cette passkey ? Vous ne pourrez plus l'utiliser pour vous connecter.",
+      "delete": "Supprimer",
+      "deleteSuccess": "Passkey supprimée.",
+      "deleteError": "Échec de la suppression.",
+      "addedOn": "Ajoutée le {{date}}"
+    },
+    "challenge": {
+      "title": "Vérification en deux étapes",
+      "subtitle": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+      "codeLabel": "Code à 6 chiffres",
+      "verify": "Vérifier",
+      "useBackupCode": "Utiliser un code de secours",
+      "backupCodeLabel": "Code de secours",
+      "backToTotp": "Revenir au code à 6 chiffres",
+      "invalidCode": "Code incorrect. Réessayez."
+    },
+    "passkeyLogin": {
+      "button": "Se connecter avec une passkey",
+      "error": "La connexion par passkey a échoué."
+    }
+  },
   "emailConsent": {
     "title": "Préférences e-mail",
     "description": "Contrôlez l'envoi d'e-mails marketing. Les e-mails transactionnels (compte, réinitialisation de mot de passe) sont toujours envoyés.",
@@ -1997,12 +2091,16 @@
       "totalScoreDescription": "Cumul de tous vos scores de jeu",
       "currentStreakDescription": "Jours consécutifs de jeu",
       "unlockedAchievementsTitle": "Succès débloqués",
-      "earnedOfTotal": "{{earned}}/{{total}} succès obtenus"
+      "earnedOfTotal": "{{earned}}/{{total}} succès obtenus",
+      "achievementPointsDescription": "Points gagnés en débloquant des succès"
     },
     "tabs": {
       "overview": "Aperçu",
       "achievements": "Succès",
-      "stats": "Statistiques"
+      "stats": "Statistiques",
+      "account": "Compte",
+      "creator": "Créateur",
+      "customize": "Personnaliser"
     },
     "avatar": {
       "title": "Changer l'avatar",
@@ -2022,6 +2120,7 @@
   "rewards": {
     "inboxTitle": "Tes récompenses",
     "inboxAria": "Ouvrir mes récompenses",
+    "inboxDescription": "Récompenses récentes liées aux paliers, classements et campagnes de retour.",
     "loading": "Chargement…",
     "empty": "Rien à réclamer pour l'instant.",
     "claim": "Réclamer",
@@ -2033,7 +2132,8 @@
       "hint_developer": "Indice Développeur",
       "hint_genre": "Indice Genre",
       "second_chance": "Seconde chance",
-      "streak_freeze": "Protection de série"
+      "streak_freeze": "Protection de série",
+      "ambassador": "Badge Ambassadeur"
     },
     "sources": {
       "reactivation": {
@@ -2452,7 +2552,9 @@
     "options": {
       "default": "Violet (par défaut)",
       "neonPink": "Rose néon",
-      "cyberBlue": "Bleu cyber"
+      "cyberBlue": "Bleu cyber",
+      "emeraldMatrix": "Vert matrix",
+      "sunsetBlaze": "Coucher embrasé"
     }
   },
   "premiumGate": {

@@ -7,7 +7,8 @@ import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays, Check, X, Eye, Minus } from 'lucide-react'
+import { Trophy, Medal, Award, Loader2, Crown, Calendar, CalendarDays, Check, X, Eye, Minus, Clock } from 'lucide-react'
+import { formatDiscoveryTime } from '@/lib/utils'
 import { PageHero } from '@/components/layout/PageHero'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
@@ -286,7 +287,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!loading && leaderboard.length >= 3 && (
-              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+              <div className="flex items-end justify-center gap-2 sm:gap-4 mb-8">
                 {[leaderboard[1], leaderboard[0], leaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -392,7 +393,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!monthlyLoading && monthlyLeaderboard.length >= 3 && (
-              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+              <div className="flex items-end justify-center gap-2 sm:gap-4 mb-8">
                 {[monthlyLeaderboard[1], monthlyLeaderboard[0], monthlyLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -492,7 +493,7 @@ export default function LeaderboardPage() {
 
             {/* Top 3 Podium */}
             {!achievementLoading && achievementLeaderboard.length >= 3 && (
-              <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+              <div className="flex items-end justify-center gap-2 sm:gap-4 mb-8">
                 {[achievementLeaderboard[1], achievementLeaderboard[0], achievementLeaderboard[2]].map((entry, displayIndex) => {
                   // Reorder: 2nd, 1st, 3rd for visual podium effect
                   const heights = ['h-24', 'h-32', 'h-20']
@@ -651,6 +652,12 @@ export default function LeaderboardPage() {
                                 {t('game.yourGuess')}: {item.guess.userGuess}
                               </div>
                             ) : null}
+                            {item.guess.isCorrect && item.guess.timeTakenMs > 0 && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                <span>{t('game.discoveryTime', { time: formatDiscoveryTime(item.guess.timeTakenMs) })}</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {item.guess.isCorrect ? (

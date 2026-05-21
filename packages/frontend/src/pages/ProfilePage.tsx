@@ -1,499 +1,169 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { Trophy, Award, TrendingUp, Flame, Calendar, Snowflake, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { clearTourCompleted, markTourPending } from '@/components/onboarding/tour-storage'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
-import { AchievementGrid } from '@/components/achievement'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useBillingStore } from '@/stores/billingStore'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import {
-  AvatarUpload,
-  ReferralCard,
-  EmailConsentCard,
-  PushNotificationCard,
-  AdvancedStatsPanel,
-  PremiumBadge,
-  ThemeSwitcher,
-  StreamerKitCard,
+  ProfileHeaderCard,
+  ProfileSection,
+  ProfileSkeleton,
+  ProfileTabs,
 } from '@/components/profile'
-import { GeoContributorCard } from '@/components/profile/GeoContributorCard'
-import { useBillingStore } from '@/stores/billingStore'
 import { isThemeKey, type ThemeKey } from '@/lib/themes'
-import { cn } from '@/lib/utils'
 import type { User as UserType } from '@the-box/types'
 
 /**
- * ProfilePage - User profile with achievements and stats
+ * ProfilePage — user identity + achievements (Overview) with Account / Creator /
+ * Customize tabs for everything else. Heavy panels (StreamerKit, AdvancedStats,
+ * GeoContributor, ThemeSwitcher) are lazy-loaded per tab.
  */
 export default function ProfilePage() {
-    const { t, i18n } = useTranslation()
-    const navigate = useNavigate()
-    const { localizedPath } = useLocalizedPath()
-    const { session, isPending } = useAuth()
-    const [loading, setLoading] = useState(true)
-    const [, setError] = useState<string | null>(null)
-    const [userProfile, setUserProfile] = useState<UserType | null>(null)
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-    const hasFetched = useRef(false)
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const { localizedPath } = useLocalizedPath()
+  const { session, isPending } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [, setError] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<UserType | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const hasFetched = useRef(false)
 
-    const {
-        userAchievements,
-        stats,
-        fetchUserAchievements,
-        isLoadingUserAchievements
-    } = useAchievementStore()
-    const inventory = useDailyLoginStore((s) => s.inventory)
-    const fetchInventory = useDailyLoginStore((s) => s.fetchInventory)
-    const streakFreezeCount = inventory?.powerups['streak_freeze'] ?? 0
+  const {
+    userAchievements,
+    stats,
+    fetchUserAchievements,
+    isLoadingUserAchievements,
+  } = useAchievementStore()
+  const inventory = useDailyLoginStore((s) => s.inventory)
+  const fetchInventory = useDailyLoginStore((s) => s.fetchInventory)
+  const streakFreezeCount = inventory?.powerups['streak_freeze'] ?? 0
 
-    // Premium-derived UI: cosmetic frame, badge chip, advanced stats panel,
-    // and the unlock state of premium themes. Pulled from the same store
-    // the Header reads, so cancellations / grants reach this page without
-    // a manual refetch as long as the store has been hydrated by the layout.
-    const billingEntitlement = useBillingStore((state) => state.entitlement)
-    const fetchBillingEntitlement = useBillingStore((state) => state.fetchEntitlement)
-    const isPremium = !!billingEntitlement?.isPremium
-    const [selectedTheme, setSelectedTheme] = useState<ThemeKey>('default')
+  const billingEntitlement = useBillingStore((state) => state.entitlement)
+  const fetchBillingEntitlement = useBillingStore((state) => state.fetchEntitlement)
+  const isPremium = !!billingEntitlement?.isPremium
+  const [selectedTheme, setSelectedTheme] = useState<ThemeKey>('default')
 
-    useEffect(() => {
-        void fetchBillingEntitlement()
-    }, [fetchBillingEntitlement, session?.user?.id])
+  useEffect(() => {
+    void fetchBillingEntitlement()
+  }, [fetchBillingEntitlement, session?.user?.id])
 
-    /* eslint-disable react-hooks/set-state-in-effect -- Sync server-fetched theme into local state for optimistic switching */
-    useEffect(() => {
-        const fetched = userProfile?.selectedTheme
-        if (fetched && isThemeKey(fetched)) setSelectedTheme(fetched)
-    }, [userProfile?.selectedTheme])
-    /* eslint-enable react-hooks/set-state-in-effect */
+  /* eslint-disable react-hooks/set-state-in-effect -- Sync server-fetched theme into local state for optimistic switching */
+  useEffect(() => {
+    const fetched = userProfile?.selectedTheme
+    if (fetched && isThemeKey(fetched)) setSelectedTheme(fetched)
+  }, [userProfile?.selectedTheme])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-    useEffect(() => {
-        if (session?.user?.id) {
-            void fetchInventory()
-        }
-    }, [session?.user?.id, fetchInventory])
-
-    const handleAvatarChange = useCallback((newAvatarUrl: string | null) => {
-        setAvatarUrl(newAvatarUrl)
-    }, [])
-
-    // Redirect to login if not authenticated
-    useEffect(() => {
-        if (!isPending && !session) {
-            navigate(localizedPath('/login'))
-        }
-    }, [isPending, session, navigate, localizedPath])
-
-    // Fetch achievements and user profile when session is available
-    /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
-    useEffect(() => {
-        if (session && !hasFetched.current) {
-            hasFetched.current = true
-            setError(null)
-
-            Promise.all([
-                fetchUserAchievements(),
-                fetch('/api/user/me', { credentials: 'include' })
-                    .then(res => res.json())
-                    .then(json => {
-                        if (json.success && json.data) {
-                            setUserProfile(json.data)
-                            setAvatarUrl(json.data.avatarUrl ?? session.user.image ?? null)
-                        }
-                    })
-            ])
-                .then(() => setError(null))
-                .catch((err) => setError(err?.message || 'Failed to load profile data'))
-                .finally(() => setLoading(false))
-        }
-    }, [session, fetchUserAchievements])
-    /* eslint-enable react-hooks/set-state-in-effect */
-
-    if (isPending || loading) {
-        return (
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-                <div className="space-y-4">
-                    <Skeleton className="h-32 w-full" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Skeleton className="h-32" />
-                        <Skeleton className="h-32" />
-                        <Skeleton className="h-32" />
-                        <Skeleton className="h-32" />
-                    </div>
-                    <Skeleton className="h-96 w-full" />
-                </div>
-            </div>
-        )
+  useEffect(() => {
+    if (session?.user?.id) {
+      void fetchInventory()
     }
+  }, [session?.user?.id, fetchInventory])
 
-    if (!session) {
-        return null
+  const handleAvatarChange = useCallback((newAvatarUrl: string | null) => {
+    setAvatarUrl(newAvatarUrl)
+  }, [])
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      navigate(localizedPath('/login'))
     }
+  }, [isPending, session, navigate, localizedPath])
 
-    // Count achievements as earned if marked as earned OR if progress >= progressMax
-    const earnedCount = userAchievements.filter(a =>
-        a.earned || (a.progressMax != null && a.progress >= a.progressMax)
-    ).length
-    const totalCount = userAchievements.length
-    const completionPercentage = totalCount > 0 ? Math.round((earnedCount / totalCount) * 100) : 0
+  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
+  useEffect(() => {
+    if (session && !hasFetched.current) {
+      hasFetched.current = true
+      setError(null)
 
-    const userInitials = (session.user.name || session.user.username || 'U')
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+      Promise.all([
+        fetchUserAchievements(),
+        fetch('/api/user/me', { credentials: 'include' })
+          .then((res) => res.json())
+          .then((json) => {
+            if (json.success && json.data) {
+              setUserProfile(json.data)
+              setAvatarUrl(json.data.avatarUrl ?? session.user.image ?? null)
+            }
+          }),
+      ])
+        .then(() => setError(null))
+        .catch((err) => setError(err?.message || 'Failed to load profile data'))
+        .finally(() => setLoading(false))
+    }
+  }, [session, fetchUserAchievements])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-    const joinDate = session.user.createdAt
-        ? new Date(session.user.createdAt).toLocaleDateString(i18n.language, {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        })
-        : t('common.unknown')
+  if (isPending || loading) {
+    return <ProfileSkeleton />
+  }
 
-    return (
-        <>
-            <CubeBackground />
-            <div className="min-h-screen relative z-10">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  if (!session) {
+    return null
+  }
 
-                    {/* Unified User Profile & Stats Card */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.05 }}
-                    >
-                        <Card className="border-2 border-primary/20">
-                            <CardContent className="pt-6 pb-5">
-                                {/* Compact User Info & Stats Layout */}
-                                <div className="flex flex-col lg:flex-row gap-6">
-                                    {/* Left: Avatar & User Info */}
-                                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 lg:min-w-[280px]">
-                                        <motion.div
-                                            initial={{ scale: 0.8, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                                            className={cn(isPremium && 'premium-frame')}
-                                        >
-                                            <AvatarUpload
-                                                currentAvatarUrl={avatarUrl}
-                                                userName={session.user.name || session.user.username}
-                                                userInitials={userInitials}
-                                                onAvatarChange={handleAvatarChange}
-                                            />
-                                        </motion.div>
-                                        <div className="flex-1 space-y-2 text-center sm:text-left">
-                                            <h2 className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
-                                                <span>{session.user.name || session.user.username}</span>
-                                                {isPremium && <PremiumBadge compact />}
-                                            </h2>
-                                            <div className="space-y-1 text-xs text-muted-foreground">
-                                                {session.user.email && <div>{session.user.email}</div>}
-                                                <div className="flex items-center justify-center sm:justify-start gap-1.5">
-                                                    <Calendar className="h-3 w-3" />
-                                                    <span>{joinDate}</span>
-                                                    {!session.user.emailVerified && (
-                                                        <Badge variant="outline" className="text-xs ml-2">
-                                                            {t('common.guestBadge')}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+  const earnedCount = userAchievements.filter(
+    (a) => a.earned || (a.progressMax != null && a.progress >= a.progressMax),
+  ).length
+  const totalCount = userAchievements.length
+  const completionPercentage = totalCount > 0 ? Math.round((earnedCount / totalCount) * 100) : 0
 
-                                    {/* Right: Compact Stats Grid */}
-                                    <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-3">
-                                        {/* Total Score */}
-                                        <TooltipProvider delayDuration={200}>
-                                            <TooltipRoot>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-warning/10">
-                                                            <Trophy className="h-5 w-5 text-warning" />
-                                                        </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-warning to-warning/70 bg-clip-text text-transparent">
-                                                            {userProfile?.totalScore?.toLocaleString() || 0}
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                                                            {t('profile.total')}
-                                                        </div>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <div className="text-center">
-                                                        <p className="font-semibold">{t('profile.totalScore')}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.totalScoreDescription')}</p>
-                                                    </div>
-                                                </TooltipContent>
-                                            </TooltipRoot>
-                                        </TooltipProvider>
+  const userInitials = (session.user.name || session.user.username || 'U')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
-                                        {/* Current Streak */}
-                                        <TooltipProvider delayDuration={200}>
-                                            <TooltipRoot>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-score-low/10">
-                                                            <Flame className="h-5 w-5 text-score-low" />
-                                                        </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-score-low to-score-low/70 bg-clip-text text-transparent">
-                                                            {userProfile?.currentStreak || 0}
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                                                            {t('profile.days')}
-                                                        </div>
-                                                        {streakFreezeCount > 0 && (
-                                                            <div className="flex items-center gap-1 text-[10px] text-neon-blue">
-                                                                <Snowflake className="h-3 w-3" />
-                                                                <span>× {streakFreezeCount}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <div className="text-center">
-                                                        <p className="font-semibold">{t('profile.currentStreak')}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.currentStreakDescription')}</p>
-                                                        {streakFreezeCount > 0 && (
-                                                            <p className="text-xs text-muted-foreground mt-1">
-                                                                {t('profile.streakFreezeTooltip', { count: streakFreezeCount })}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </TooltipContent>
-                                            </TooltipRoot>
-                                        </TooltipProvider>
+  const joinDate = session.user.createdAt
+    ? new Date(session.user.createdAt).toLocaleDateString(i18n.language, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+    : t('common.unknown')
 
-                                        {/* Unlocked Achievements */}
-                                        <TooltipProvider delayDuration={200}>
-                                            <TooltipRoot>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                                                            <Award className="h-5 w-5 text-primary" />
-                                                        </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                                                            {earnedCount}
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                                                            {completionPercentage}%
-                                                        </div>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <div className="text-center">
-                                                        <p className="font-semibold">{t('profile.tooltips.unlockedAchievementsTitle')}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">{t('profile.tooltips.earnedOfTotal', { earned: earnedCount, total: totalCount })}</p>
-                                                    </div>
-                                                </TooltipContent>
-                                            </TooltipRoot>
-                                        </TooltipProvider>
+  return (
+    <>
+      <CubeBackground />
+      <div className="min-h-screen relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[calc(2rem+var(--bottom-nav-h,0px))] space-y-6">
+          <ProfileSection delay={0.05}>
+            <ProfileHeaderCard
+              avatarUrl={avatarUrl}
+              userName={session.user.name || session.user.username}
+              userInitials={userInitials}
+              email={session.user.email}
+              emailVerified={session.user.emailVerified}
+              joinDate={joinDate}
+              isPremium={isPremium}
+              totalScore={userProfile?.totalScore ?? 0}
+              currentStreak={userProfile?.currentStreak ?? 0}
+              streakFreezeCount={streakFreezeCount}
+              earnedCount={earnedCount}
+              totalCount={totalCount}
+              completionPercentage={completionPercentage}
+              totalPoints={stats?.totalPoints ?? 0}
+              onAvatarChange={handleAvatarChange}
+            />
+          </ProfileSection>
 
-                                        {/* Achievement Points */}
-                                        <TooltipProvider delayDuration={200}>
-                                            <TooltipRoot>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
-                                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-success/10">
-                                                            <TrendingUp className="h-5 w-5 text-success" />
-                                                        </div>
-                                                        <div className="text-2xl font-bold bg-linear-to-r from-success to-success/70 bg-clip-text text-transparent">
-                                                            {stats?.totalPoints || 0}
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                                                            {t('profile.points')}
-                                                        </div>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <div className="text-center">
-                                                        <p className="font-semibold">{t('profile.achievementPoints')}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">Points gagnés en débloquant des succès</p>
-                                                    </div>
-                                                </TooltipContent>
-                                            </TooltipRoot>
-                                        </TooltipProvider>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Referral Card — hidden for guest accounts since they cannot claim or share */}
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <ReferralCard userId={userProfile.id} language={i18n.language} />
-                        </motion.div>
-                    )}
-
-                    {/* Email consent toggle — CNIL requires withdrawal to be as easy as opt-in */}
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                        >
-                            <EmailConsentCard
-                                initialConsent={userProfile.emailMarketingConsent}
-                                updatedAt={userProfile.emailConsentUpdatedAt}
-                            />
-                        </motion.div>
-                    )}
-
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.45 }}
-                        >
-                            <PushNotificationCard />
-                        </motion.div>
-                    )}
-
-                    {/* Streamer Kit — opt-in public API for chat-bot / overlay
-                        integrations. Hidden from guests since the underlying
-                        slug/keys are tied to a real account. */}
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.46 }}
-                        >
-                            <StreamerKitCard />
-                        </motion.div>
-                    )}
-
-                    {/* Geo Crowdsourcer */}
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.45 }}
-                        >
-                            <GeoContributorCard />
-                        </motion.div>
-                    )}
-
-                    {/* Advanced stats — premium-only. Free users see nothing here
-                        (the upsell lives on /pricing) so the section disappears
-                        cleanly on cancellation. */}
-                    {isPremium && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.47 }}
-                        >
-                            <AdvancedStatsPanel />
-                        </motion.div>
-                    )}
-
-                    {/* Theme switcher — always visible so free users can preview
-                        the catalog (locked themes route to /pricing). */}
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.48 }}
-                        >
-                            <ThemeSwitcher
-                                selected={selectedTheme}
-                                isPremium={isPremium}
-                                onChange={setSelectedTheme}
-                            />
-                        </motion.div>
-                    )}
-
-                    {/* Replay tour — clears the completion flag, primes the
-                        pending flag, and sends the user back to home where
-                        the TourGuide picks it up. */}
-                    {userProfile && !userProfile.isGuest && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.49 }}
-                        >
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Sparkles className="h-5 w-5 text-neon-purple" />
-                                        {t('tour.replayTitle')}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {t('tour.replayDescription')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            clearTourCompleted()
-                                            markTourPending()
-                                            navigate(localizedPath('/'))
-                                        }}
-                                    >
-                                        <Sparkles className="h-4 w-4" />
-                                        {t('tour.replayCta')}
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
-
-                    {/* Achievements Section */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Trophy className="h-5 w-5" />
-                                    {t('profile.title')} ({totalCount})
-                                </CardTitle>
-                                <CardDescription>
-                                    {t('profile.description')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {isLoadingUserAchievements ? (
-                                    <div className="space-y-4">
-                                        <div className="flex gap-2">
-                                            <Skeleton className="h-10 w-24" />
-                                            <Skeleton className="h-10 w-24" />
-                                            <Skeleton className="h-10 w-24" />
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            <Skeleton className="h-48" />
-                                            <Skeleton className="h-48" />
-                                            <Skeleton className="h-48" />
-                                            <Skeleton className="h-48" />
-                                            <Skeleton className="h-48" />
-                                            <Skeleton className="h-48" />
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <AchievementGrid achievements={userAchievements} />
-                                )}
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                </div>
-            </div>
-        </>
-    )
+          <ProfileTabs
+            userProfile={userProfile}
+            userAchievements={userAchievements}
+            isLoadingUserAchievements={isLoadingUserAchievements}
+            totalCount={totalCount}
+            isPremium={isPremium}
+            selectedTheme={selectedTheme}
+            onThemeChange={setSelectedTheme}
+            language={i18n.language}
+          />
+        </div>
+      </div>
+    </>
+  )
 }

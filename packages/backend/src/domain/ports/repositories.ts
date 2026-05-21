@@ -245,6 +245,7 @@ export interface SessionRepository {
     scoreEarned: number
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
+  countGuessesBySession(gameSessionId: string): Promise<number>
   getCorrectPositions(gameSessionId: string): Promise<number[]>
   deleteGameSession(userId: string, challengeId: number): Promise<boolean>
   findUserGameHistory(userId: string): Promise<GameHistoryRecord[]>
@@ -371,6 +372,7 @@ export interface AchievementRepository {
   countStartedGameSessions(userId: string): Promise<number>
   countAllGuesses(userId: string): Promise<number>
   countCorrectGuesses(userId: string): Promise<number>
+  countWrongGuesses(userId: string): Promise<number>
   countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number>
   countHintFreeCompletedGames(userId: string): Promise<number>
   countGenreCorrectGuesses(userId: string, genre: string): Promise<number>

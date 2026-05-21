@@ -8,16 +8,15 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
-import { showAchievementToast } from '@/components/achievement'
+import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
 import { Trophy, Home, CheckCircle, XCircle, Award, Clock, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
-import { calculateSpeedMultiplier } from '@/lib/utils'
-import { useEffect, useRef, useState, useMemo } from 'react'
-import { playAchievementSound } from '@/lib/audio'
+import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
+import { useEffect, useState, useMemo } from 'react'
 import { gameApi } from '@/lib/api/game'
 import type { GuessResult, GuessAttempt, GameSessionDetailsResponse } from '@/types'
 
@@ -42,28 +41,14 @@ export default function ResultsPage() {
 
   const unseenNotifications = notifications.filter(n => !n.seen)
 
-  // Track if we've already shown toasts for these achievements
-  const shownToastsRef = useRef<Set<string>>(new Set())
-
-  // Show rich achievement toasts and play sound for newly unlocked achievements
+  // Surface achievement toasts. The /notifications socket usually shows
+  // these the instant the unlock lands; notifyAchievementsUnlocked
+  // de-duplicates by key, so this render is a fallback for a missed socket
+  // push rather than a second toast.
   useEffect(() => {
-    const newAchievements = unseenNotifications.filter(
-      n => !shownToastsRef.current.has(n.achievement.key)
-    )
-
-    if (newAchievements.length > 0) {
-      playAchievementSound()
-
-      newAchievements.forEach((notification, index) => {
-        // Stagger the toasts slightly for multiple achievements
-        setTimeout(() => {
-          showAchievementToast(notification.achievement)
-          markNotificationAsSeen(notification.achievement.key)
-        }, index * 300)
-
-        shownToastsRef.current.add(notification.achievement.key)
-      })
-    }
+    if (unseenNotifications.length === 0) return
+    notifyAchievementsUnlocked(unseenNotifications.map(n => n.achievement))
+    unseenNotifications.forEach(n => markNotificationAsSeen(n.achievement.key))
   }, [unseenNotifications, markNotificationAsSeen])
 
   // The per-position attempt chips are sourced from the backend session
@@ -310,19 +295,19 @@ export default function ResultsPage() {
                               <Badge variant="success" className="text-xs sm:text-sm font-bold">
                                 +{result.scoreEarned}
                               </Badge>
-                              {(() => {
+                              {result.timeTakenMs > 0 && (() => {
                                 const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                                if (multiplier > 1.0) {
-                                  return (
-                                    <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
-                                      <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                      <span className="whitespace-nowrap">
-                                        100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                      </span>
-                                    </div>
-                                  )
-                                }
-                                return null
+                                return (
+                                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
+                                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    <span className="whitespace-nowrap">
+                                      {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
+                                      {multiplier > 1.0 && (
+                                        <> · {multiplier.toFixed(1)}x</>
+                                      )}
+                                    </span>
+                                  </div>
+                                )
                               })()}
                             </div>
                           ) : isUnguessed ? (
@@ -400,19 +385,19 @@ export default function ResultsPage() {
                           <Badge variant="success" className="text-sm font-bold">
                             +{result.scoreEarned}
                           </Badge>
-                          {(() => {
+                          {result.timeTakenMs > 0 && (() => {
                             const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
-                            if (multiplier > 1.0) {
-                              return (
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span className="whitespace-nowrap">
-                                    100 pts × {multiplier.toFixed(1)}x {t('game.speed.label')}
-                                  </span>
-                                </div>
-                              )
-                            }
-                            return null
+                            return (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span className="whitespace-nowrap">
+                                  {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
+                                  {multiplier > 1.0 && (
+                                    <> · {multiplier.toFixed(1)}x</>
+                                  )}
+                                </span>
+                              </div>
+                            )
                           })()}
                         </div>
                       ) : isUnguessed ? (
