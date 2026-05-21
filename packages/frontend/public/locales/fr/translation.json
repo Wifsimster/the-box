@@ -2092,6 +2092,7 @@
   "rewards": {
     "inboxTitle": "Tes récompenses",
     "inboxAria": "Ouvrir mes récompenses",
+    "inboxDescription": "Récompenses récentes liées aux paliers, classements et campagnes de retour.",
     "loading": "Chargement…",
     "empty": "Rien à réclamer pour l'instant.",
     "claim": "Réclamer",
@@ -2103,7 +2104,8 @@
       "hint_developer": "Indice Développeur",
       "hint_genre": "Indice Genre",
       "second_chance": "Seconde chance",
-      "streak_freeze": "Protection de série"
+      "streak_freeze": "Protection de série",
+      "ambassador": "Badge Ambassadeur"
     },
     "sources": {
       "reactivation": {

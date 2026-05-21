@@ -95,10 +95,7 @@ export function RewardsInboxBell({ className }: RewardsInboxBellProps) {
                 <SheetHeader>
                     <SheetTitle>{t('rewards.inboxTitle')}</SheetTitle>
                     <SheetDescription className="sr-only">
-                        {t(
-                            'rewards.inboxDescription',
-                            'Recent reward grants from milestones, payouts, and reactivation campaigns.',
-                        )}
+                        {t('rewards.inboxDescription')}
                     </SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 flex flex-col gap-3 overflow-y-auto pb-4">
