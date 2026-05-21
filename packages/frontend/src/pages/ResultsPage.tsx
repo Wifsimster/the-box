@@ -9,14 +9,16 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
-import { Trophy, Home, CheckCircle, XCircle, Award, Clock } from 'lucide-react'
+import { Trophy, Home, CheckCircle, XCircle, Award, Clock, Loader2 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { gameApi } from '@/lib/api/game'
+import type { GuessResult, GuessAttempt, GameSessionDetailsResponse } from '@/types'
 
 export default function ResultsPage() {
   const { t } = useTranslation()
@@ -27,6 +29,7 @@ export default function ResultsPage() {
     totalScreenshots,
     guessResults,
     challengeDate,
+    sessionId,
     updatePersonalBests
   } = useGameStore()
 
@@ -48,8 +51,58 @@ export default function ResultsPage() {
     unseenNotifications.forEach(n => markNotificationAsSeen(n.achievement.key))
   }, [unseenNotifications, markNotificationAsSeen])
 
+  // The per-position attempt chips are sourced from the backend session
+  // record — the authoritative log of every guess — rather than the
+  // client-side store, whose positionAttempts map can carry guesses across
+  // sessions. Falls back to the store's guessResults if the fetch fails
+  // (e.g. mock API mode).
+  const [sessionDetails, setSessionDetails] = useState<GameSessionDetailsResponse | null>(null)
+  const [detailsFailed, setDetailsFailed] = useState(false)
+
+  useEffect(() => {
+    if (!sessionId) return
+    let cancelled = false
+    gameApi.getGameSessionDetails(sessionId)
+      .then(data => { if (!cancelled) setSessionDetails(data) })
+      .catch(() => { if (!cancelled) setDetailsFailed(true) })
+    return () => { cancelled = true }
+  }, [sessionId])
+
+  const results = useMemo<GuessResult[]>(() => {
+    if (!sessionDetails) return guessResults
+    const merged: GuessResult[] = [
+      ...sessionDetails.guesses.map(g => ({
+        position: g.position,
+        isCorrect: g.isCorrect,
+        correctGame: g.correctGame,
+        userGuess: g.userGuess,
+        timeTakenMs: g.timeTakenMs,
+        scoreEarned: g.scoreEarned,
+        hintPenalty: g.hintPenalty,
+        wrongGuessPenalty: g.wrongGuessPenalty,
+        screenshot: g.screenshot,
+        attempts: g.attempts ?? [],
+      })),
+      ...sessionDetails.unfoundGames.map(u => ({
+        position: u.position,
+        isCorrect: false,
+        correctGame: u.game,
+        userGuess: null,
+        timeTakenMs: 0,
+        scoreEarned: -50,
+        screenshot: u.screenshot,
+        attempts: [] as GuessAttempt[],
+      })),
+    ]
+    return merged.sort((a, b) => a.position - b.position)
+  }, [sessionDetails, guessResults])
+
+  // Hold the results list back while the authoritative record loads rather
+  // than flash the store data, which may show attempts from earlier runs.
+  const detailsLoading = Boolean(sessionId) && !sessionDetails && !detailsFailed
+
   // Calculate correct answers from guess results (more reliable than store)
-  const correctAnswers = guessResults.filter(r => r.isCorrect).length
+  const correctAnswers = results.filter(r => r.isCorrect).length
 
   // Use backend score directly (source of truth - includes wrong guess penalties)
   const displayTotalScore = backendTotalScore
@@ -176,16 +229,22 @@ export default function ResultsPage() {
                 rank={rank ?? undefined}
                 totalPlayers={totalPlayers ?? undefined}
                 challengeDate={challengeDate || undefined}
-                guessResults={guessResults}
+                guessResults={results}
                 compact={true}
               />
             </div>
+            {detailsLoading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" aria-hidden="true" />
+              </div>
+            ) : (
+              <>
             {/* ScrollArea only on mobile, full list on desktop */}
             <div className="md:hidden">
               <ScrollArea className="h-[calc(100vh-500px)]">
                 <div className="space-y-2 pr-2">
                   {/* Show all results including unguessed games */}
-                  {guessResults.map((result, index) => {
+                  {results.map((result, index) => {
                     const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
                     return (
                       <motion.div
@@ -265,7 +324,7 @@ export default function ResultsPage() {
                     )
                   })}
 
-                  {guessResults.length === 0 && totalScreenshots === 0 && (
+                  {results.length === 0 && totalScreenshots === 0 && (
                     <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
                       {t('game.noResults')}
                     </p>
@@ -275,7 +334,7 @@ export default function ResultsPage() {
             </div>
             {/* Full list on desktop - no scroll */}
             <div className="hidden md:block">
-              <div className="space-y-3">{guessResults.map((result, index) => {
+              <div className="space-y-3">{results.map((result, index) => {
                 const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
                 return (
                   <motion.div
@@ -355,13 +414,15 @@ export default function ResultsPage() {
                 )
               })}
 
-                {guessResults.length === 0 && totalScreenshots === 0 && (
+                {results.length === 0 && totalScreenshots === 0 && (
                   <p className="text-center text-muted-foreground py-8 text-base">
                     {t('game.noResults')}
                   </p>
                 )}
               </div>
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
