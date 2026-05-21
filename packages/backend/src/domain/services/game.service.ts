@@ -366,7 +366,15 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const challengeDate = new Date(challenge.challenge_date)
     challengeDate.setHours(0, 0, 0, 0)
 
-    const todayStr = today.toISOString().split('T')[0]
+    // Use UTC for the date-string comparison: the daily-challenge worker
+    // dates challenges via `getTodayDateUTC()`, so `todayStr` has to come
+    // from the same UTC clock. The previous code passed `today` (which
+    // had `setHours(0,0,0,0)` applied — local midnight) through
+    // `toISOString()`, which in any TZ ahead of UTC (e.g. Europe/Paris,
+    // the production container TZ) silently rolled the date back a day
+    // and flagged every fresh daily session as `is_catch_up = true`,
+    // hiding it from the daily leaderboard.
+    const todayStr = new Date().toISOString().split('T')[0]
     const challengeDateStr = typeof challenge.challenge_date === 'string'
       ? challenge.challenge_date
       : challengeDate.toISOString().split('T')[0]
