@@ -2063,12 +2063,16 @@
       "totalScoreDescription": "Cumul de tous vos scores de jeu",
       "currentStreakDescription": "Jours consécutifs de jeu",
       "unlockedAchievementsTitle": "Succès débloqués",
-      "earnedOfTotal": "{{earned}}/{{total}} succès obtenus"
+      "earnedOfTotal": "{{earned}}/{{total}} succès obtenus",
+      "achievementPointsDescription": "Points gagnés en débloquant des succès"
     },
     "tabs": {
       "overview": "Aperçu",
       "achievements": "Succès",
-      "stats": "Statistiques"
+      "stats": "Statistiques",
+      "account": "Compte",
+      "creator": "Créateur",
+      "customize": "Personnaliser"
     },
     "avatar": {
       "title": "Changer l'avatar",

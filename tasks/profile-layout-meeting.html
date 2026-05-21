@@ -1,0 +1,369 @@
+<!doctype html>
+<!-- SUMMARY:
+Fast personas meeting on the profile page IA. Three personas (UX, frontend,
+mobile QA) converged independently: the 499-line page is a wall of ~10 cards
+with no grouping — achievements live 6 cards below the fold and the 479-line
+StreamerKit dev console competes equally with GDPR toggles. Decision —
+introduce four URL-persisted tabs (Overview / Account / Creator / Customize),
+extract StatTile + ProfileSection primitives, lazy-load StreamerKit and
+AdvancedStats. Shipped on branch claude/improve-profile-layout-03M3S.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Profile Layout — Personas Meeting</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-elev: #14141c;
+    --fg: #e8e8f0;
+    --muted: #9a9ab0;
+    --border: #2a2a38;
+    --primary: #a855f7;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --ok: #34d399;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: var(--sans);
+    line-height: 1.55;
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+    font-size: 15px;
+  }
+  main { max-width: 72ch; margin: 0 auto; }
+  h1, h2, h3 { font-weight: 600; line-height: 1.2; }
+  h1 { font-size: 1.75rem; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 {
+    font-size: 1.15rem; margin: 2.25rem 0 0.75rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 0.95rem; margin: 1.25rem 0 0.4rem; color: var(--fg); }
+  p, ul, ol { margin: 0.55rem 0; }
+  ul, ol { padding-left: 1.3rem; }
+  li { margin: 0.2rem 0; }
+  code, kbd {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0.05em 0.35em;
+  }
+  pre {
+    font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.85rem 1rem; overflow-x: auto;
+    margin: 0.6rem 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  a { color: var(--primary); }
+  a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .meta {
+    color: var(--muted); font-size: 0.85rem;
+    margin: 0 0 1.5rem; font-family: var(--mono);
+  }
+  .glow { color: var(--primary); text-shadow: 0 0 12px rgba(168, 85, 247, 0.45); }
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem;
+    border-radius: 999px; font-size: 0.7rem; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 0.04em; vertical-align: middle;
+    margin-left: 0.4rem;
+  }
+  .badge.internal { background: rgba(168, 85, 247, 0.15); color: var(--primary); border: 1px solid rgba(168, 85, 247, 0.35); }
+  .badge.ok       { background: rgba(52, 211, 153, 0.12);  color: var(--ok);     border: 1px solid rgba(52, 211, 153, 0.35); }
+  .badge.warn     { background: rgba(251, 191, 36, 0.12);  color: var(--warn);   border: 1px solid rgba(251, 191, 36, 0.35); }
+  .badge.danger   { background: rgba(248, 113, 113, 0.12); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.35); }
+
+  .persona {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 1rem 1.1rem; margin: 0.75rem 0; background: var(--bg-elev);
+  }
+  .persona header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; margin-bottom: 0.35rem;
+  }
+  .persona h3 { margin: 0; }
+  .persona .role { color: var(--muted); font-size: 0.78rem; font-family: var(--mono); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.6rem 0; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td code { word-break: break-word; }
+
+  .decision { border-left: 3px solid var(--primary); padding: 0.4rem 0.9rem; margin: 0.4rem 0; background: rgba(168, 85, 247, 0.06); border-radius: 0 6px 6px 0; }
+  .decision strong { color: var(--primary); }
+
+  .pri { font-family: var(--mono); font-size: 0.7rem; font-weight: 600; padding: 0.02em 0.3em; border-radius: 3px; }
+  .pri.p0 { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+  .pri.p1 { background: rgba(251, 191, 36, 0.15);  color: var(--warn); }
+  .pri.p2 { background: rgba(154, 154, 176, 0.15); color: var(--muted); }
+
+  figure { margin: 1rem 0; }
+  figure svg { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elev); }
+  figcaption { color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem; text-align: center; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Profile Layout &mdash; Personas Meeting <span class="badge internal">Internal</span></h1>
+<p class="meta">
+  branch: <code>claude/improve-profile-layout-03M3S</code> &middot;
+  date: 2026-05-21 &middot;
+  audience: engineering
+</p>
+
+<p>
+  Three personas were spawned in parallel to review the profile page after a
+  year of feature additions left it as a 499-line vertical wall of cards. Each
+  had a narrow lens &mdash; UX/information-architecture, frontend
+  implementation, and mobile QA &mdash; and reported back with prioritised,
+  file-level findings. This note captures the synthesis, the decisions, and
+  what shipped.
+</p>
+
+<h2>Verdict</h2>
+<div class="decision">
+  <strong>Split the profile into four URL-persisted tabs.</strong> All three
+  personas independently picked tabs over accordions or anchored sections.
+  The page today is one <code>space-y-8</code> stack of ten Cards with
+  identical visual weight: GDPR consent toggles compete with a 479-line
+  streamer-developer console, achievements (the actual reason most users
+  visit) sit six cards below the fold, and the staggered Framer-Motion delays
+  (<code>0.45</code>, <code>0.46</code>, <code>0.47</code>, &hellip;) read like
+  an unspoken admission that the ordering already lost.
+</div>
+
+<h2>Starting point</h2>
+<p>
+  <code>ProfilePage.tsx</code> renders, in order: identity-and-stats header
+  card, Referral, EmailConsent, PushNotification, StreamerKit (479 LOC + 396
+  webhooks + 128 recipes), GeoContributor, AdvancedStats (premium-only),
+  ThemeSwitcher, Replay-Tour Card, Achievements grid. Each is its own
+  <code>motion.div</code> with hand-tuned delay; each of the four stat tiles
+  re-declares <code>TooltipProvider</code> independently; the loading skeleton
+  bears no resemblance to the real layout. Total scroll height on a 390-pt
+  iPhone is six to seven viewports for a free user.
+</p>
+
+<figure>
+  <svg viewBox="0 0 720 360" role="img"
+       aria-label="Before and after: a phone showing a 10-card vertical stack versus a phone with a header card, a four-tab strip, and the Overview tab visible.">
+    <!-- BEFORE -->
+    <text x="150" y="22" fill="#9a9ab0" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle">BEFORE</text>
+    <rect x="60" y="34" width="180" height="310" rx="18" fill="#14141c" stroke="#2a2a38"/>
+    <!-- header strip -->
+    <rect x="60" y="34" width="180" height="22" rx="18" fill="#0a0a0f"/>
+    <line x1="60" y1="56" x2="240" y2="56" stroke="#2a2a38"/>
+    <!-- 10 stacked cards -->
+    <g fill="#1f1f2b">
+      <rect x="74" y="68"  width="152" height="40" rx="6"/>
+      <rect x="74" y="114" width="152" height="18" rx="4"/>
+      <rect x="74" y="138" width="152" height="18" rx="4"/>
+      <rect x="74" y="162" width="152" height="18" rx="4"/>
+      <rect x="74" y="186" width="152" height="32" rx="4"/>
+      <rect x="74" y="224" width="152" height="18" rx="4"/>
+      <rect x="74" y="248" width="152" height="22" rx="4"/>
+      <rect x="74" y="276" width="152" height="14" rx="4"/>
+      <rect x="74" y="296" width="152" height="14" rx="4"/>
+      <rect x="74" y="316" width="152" height="14" rx="4"/>
+    </g>
+    <text x="150" y="338" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="9" text-anchor="middle">6–7 viewports of scroll</text>
+
+    <!-- AFTER -->
+    <text x="570" y="22" fill="#a855f7" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" style="text-shadow:0 0 12px rgba(168,85,247,.45)">AFTER</text>
+    <rect x="480" y="34" width="180" height="310" rx="18" fill="#14141c" stroke="#2a2a38"/>
+    <!-- header strip -->
+    <rect x="480" y="34" width="180" height="22" rx="18" fill="#0a0a0f"/>
+    <line x1="480" y1="56" x2="660" y2="56" stroke="#2a2a38"/>
+    <!-- identity card -->
+    <rect x="494" y="68" width="152" height="56" rx="8" fill="#1f1f2b"/>
+    <circle cx="514" cy="96" r="14" fill="#3a2a4a"/>
+    <rect x="536" y="86" width="86" height="8" rx="3" fill="#2a2a38"/>
+    <rect x="536" y="100" width="60" height="6" rx="3" fill="#2a2a38"/>
+    <!-- stat row inside header -->
+    <g fill="#3a2a4a">
+      <rect x="494" y="132" width="34" height="20" rx="4"/>
+      <rect x="534" y="132" width="34" height="20" rx="4"/>
+      <rect x="574" y="132" width="34" height="20" rx="4"/>
+      <rect x="614" y="132" width="32" height="20" rx="4"/>
+    </g>
+    <!-- tab strip -->
+    <rect x="494" y="166" width="152" height="22" rx="6" fill="#0a0a0f" stroke="#2a2a38"/>
+    <rect x="498" y="170" width="36" height="14" rx="4" fill="#a855f7"/>
+    <g fill="#9a9ab0" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">
+      <text x="516" y="180" fill="#fff">Over</text>
+      <text x="554" y="180">Acct</text>
+      <text x="591" y="180">Crea</text>
+      <text x="628" y="180">Cust</text>
+    </g>
+    <!-- achievements grid preview -->
+    <g fill="#1f1f2b">
+      <rect x="494" y="198" width="48" height="48" rx="6"/>
+      <rect x="546" y="198" width="48" height="48" rx="6"/>
+      <rect x="598" y="198" width="48" height="48" rx="6"/>
+      <rect x="494" y="250" width="48" height="48" rx="6"/>
+      <rect x="546" y="250" width="48" height="48" rx="6"/>
+      <rect x="598" y="250" width="48" height="48" rx="6"/>
+      <rect x="494" y="302" width="48" height="34" rx="6"/>
+      <rect x="546" y="302" width="48" height="34" rx="6"/>
+      <rect x="598" y="302" width="48" height="34" rx="6"/>
+    </g>
+  </svg>
+  <figcaption>Profile structure &mdash; before (ten-card stack) vs. after (identity + stats header, four-tab strip, Overview tab is the achievements grid).</figcaption>
+</figure>
+
+<h2>Personas &amp; Findings</h2>
+
+<div class="persona">
+  <header>
+    <h3>UX / Information Architecture <span class="badge danger">Re-architect</span></h3>
+    <span class="role">daily-engagement loop &middot; progressive disclosure</span>
+  </header>
+  <p>
+    The 12-card stack gives identity, GDPR, viral-growth, and a developer
+    console identical billing. <code>StreamerKitCard</code> alone eats roughly
+    40&nbsp;% of total scroll for the &lt;2&nbsp;% of users who use it; for
+    everyone else it pushes achievements off the screen entirely. Premium
+    perks are invisible to free users (no upsell affordance where
+    <code>AdvancedStatsPanel</code> would render).
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> Tabs, URL-anchored &mdash;
+      <strong>Overview &middot; Account &middot; Creator &middot; Customize</strong>.
+      Tabs beat accordions (no double-click), beat anchor-nav (long page still
+      loads everything), beat two-column (StreamerKit needs full width).</li>
+    <li><span class="pri p0">P0</span> Identity card &amp; achievements grid live in Overview &mdash; that&rsquo;s why 95&nbsp;% of users open this page.</li>
+    <li><span class="pri p1">P1</span> Group settings: <code>EmailConsentCard</code>, <code>PushNotificationCard</code>, <code>ReferralCard</code> &rarr; Account. <code>ThemeSwitcher</code>, <code>AdvancedStatsPanel</code>, Replay&nbsp;Tour &rarr; Customize. <code>StreamerKitCard</code> + <code>GeoContributorCard</code> &rarr; Creator.</li>
+    <li><span class="pri p2">P2</span> Eventually relocate Streamer Kit to its own <code>/streamer</code> route &mdash; it&rsquo;s a dev console, not profile content.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>Frontend Engineer <span class="badge ok">Build plan</span></h3>
+    <span class="role">React 19 &middot; Tailwind v4 &middot; shadcn/ui &middot; react-router 7</span>
+  </header>
+  <p>
+    Use the existing shadcn <code>tabs</code> primitive (already in
+    <code>components/ui/tabs.tsx</code>). Persist the active tab in a
+    <code>?tab=</code> search param &mdash; back button works, deep-links work,
+    no route-table churn. Lazy-load StreamerKit (479&nbsp;LOC),
+    GeoContributor, AdvancedStats and ThemeSwitcher per tab so a free-tier
+    overview render no longer ships them. Extract <code>StatTile</code> to
+    kill the four duplicated <code>TooltipProvider</code> blocks; extract
+    <code>ProfileSection</code> to kill the ten <code>motion.div</code>
+    delay-boilerplates.
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> <code>StatTile</code>, <code>ProfileSection</code>, <code>ProfileHeaderCard</code>, <code>ProfileTabs</code>, <code>ProfileSkeleton</code> components.</li>
+    <li><span class="pri p0">P0</span> <code>React.lazy</code> on StreamerKit + AdvancedStats + GeoContributor + ThemeSwitcher; Overview eager (LCP path).</li>
+    <li><span class="pri p1">P1</span> <code>useSearchParams</code> for tab state with <code>overview</code> default.</li>
+    <li><span class="pri p1">P1</span> Skeleton mirrors the real layout (header + stat row + tab strip + 6-card grid) instead of four anonymous blocks.</li>
+  </ul>
+</div>
+
+<div class="persona">
+  <header>
+    <h3>Mobile QA / Real-Device <span class="badge warn">Scroll &amp; reach</span></h3>
+    <span class="role">390&times;844 &middot; bottom-nav clearance &middot; touch tooltips</span>
+  </header>
+  <p>
+    Six to seven viewports of scroll today. The 2&times;2 stat grid stacked
+    below the avatar consumes a whole viewport before any actionable content.
+    Stat tiles are <code>cursor-help</code> divs wrapping
+    <code>Tooltip</code> &mdash; on touch devices the tooltip body is
+    unreachable. The page has no bottom padding for the persistent
+    <code>BottomNav</code>, so the last achievement card sits flush behind it.
+  </p>
+  <ul>
+    <li><span class="pri p0">P0</span> Tabs collapse 80&nbsp;% of the scroll burden &mdash; non-Overview content is opt-in.</li>
+    <li><span class="pri p1">P1</span> Add <code>pb-[var(--bottom-nav-h)]</code> to the page container so achievements don&rsquo;t hide behind the bottom bar.</li>
+    <li><span class="pri p2">P2</span> Swap stat-tile tooltips for a Popover (tap-to-open) in a follow-up &mdash; out of scope here.</li>
+    <li><span class="pri p2">P2</span> Consider gating <code>CubeBackground</code> behind <code>md:</code> &mdash; pure decoration on a scroll-heavy page.</li>
+  </ul>
+</div>
+
+<h2>Decisions</h2>
+<div class="decision">
+  <strong>Scope &mdash; consensus P0 + P1 set.</strong> Four-tab split with
+  URL state, StatTile + ProfileSection + ProfileHeaderCard +
+  ProfileSkeleton extraction, lazy-loaded heavy panels, and bottom-nav
+  padding. P2 follow-ups (tap-tooltips, CubeBackground gating,
+  <code>/streamer</code> relocation) are out of scope.
+</div>
+<div class="decision">
+  <strong>Tab destinations &mdash; Overview &middot; Account &middot; Creator
+  &middot; Customize.</strong> Overview is the default landing tab and renders
+  the identity card + achievements grid; everything else is one tap away.
+</div>
+
+<h2>What shipped</h2>
+<table>
+  <thead><tr><th>File</th><th>Change</th><th>Source</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>profile/StatTile.tsx</code> <em>(new)</em></td>
+      <td>Single tooltip-wrapped tile &mdash; takes <code>icon</code>, <code>value</code>, <code>label</code>, <code>gradient</code>, <code>tooltipTitle</code>, <code>tooltipBody</code>, optional <code>children</code> for the streak-freeze chip.</td>
+      <td>Frontend</td>
+    </tr>
+    <tr>
+      <td><code>profile/ProfileSection.tsx</code> <em>(new)</em></td>
+      <td>Framer-Motion fade-in wrapper with a single <code>delay</code> prop. Replaces ten copy-pasted <code>motion.div</code> blocks.</td>
+      <td>Frontend</td>
+    </tr>
+    <tr>
+      <td><code>profile/ProfileHeaderCard.tsx</code> <em>(new)</em></td>
+      <td>Identity card (avatar, name, premium frame, join date) + four <code>StatTile</code>s under a single <code>TooltipProvider</code>.</td>
+      <td>UX, Frontend</td>
+    </tr>
+    <tr>
+      <td><code>profile/ProfileTabs.tsx</code> <em>(new)</em></td>
+      <td>Tabs shell. <code>useSearchParams</code> keeps <code>?tab=</code> in sync; <code>React.lazy</code> + <code>Suspense</code> boundaries on Creator/Customize content.</td>
+      <td>Frontend, UX</td>
+    </tr>
+    <tr>
+      <td><code>profile/ProfileSkeleton.tsx</code> <em>(new)</em></td>
+      <td>Skeleton that mirrors header strip + stat row + tab strip + achievements grid &mdash; no more layout shift on mount.</td>
+      <td>Frontend, Mobile QA</td>
+    </tr>
+    <tr>
+      <td><code>pages/ProfilePage.tsx</code></td>
+      <td>499&nbsp;&rarr;&nbsp;~110 lines. Composes <code>ProfileHeaderCard</code> + <code>ProfileTabs</code>; bottom-nav-safe padding; routes guest users to a clean Overview-only view.</td>
+      <td>All three</td>
+    </tr>
+    <tr>
+      <td><code>e2e/streamer-kit.spec.ts</code>, <code>e2e/theme-switcher.spec.ts</code></td>
+      <td>Updated <code>goto()</code> calls to land on the tab that mounts the panel under test (<code>?tab=creator</code>, <code>?tab=customize</code>). Selectors unchanged.</td>
+      <td>Frontend</td>
+    </tr>
+    <tr>
+      <td><code>public/locales/{en,fr}/translation.json</code></td>
+      <td>Added <code>profile.tabs.account</code> / <code>creator</code> / <code>customize</code> keys.</td>
+      <td>UX, Frontend</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Follow-ups (out of scope)</h2>
+<ul>
+  <li>Tap-to-toggle Popover for stat tiles on touch devices.</li>
+  <li>Gate <code>CubeBackground</code> behind <code>md:</code> on profile.</li>
+  <li>Move Streamer Kit to a dedicated <code>/streamer</code> route once a second creator surface exists.</li>
+  <li>Replace stat-tile tooltips with progressive disclosure (inline help icon).</li>
+</ul>
+
+</main>
+</body>
+</html>

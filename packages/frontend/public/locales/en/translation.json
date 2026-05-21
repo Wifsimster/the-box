@@ -2063,12 +2063,16 @@
       "totalScoreDescription": "Sum of all your game scores",
       "currentStreakDescription": "Consecutive days played",
       "unlockedAchievementsTitle": "Unlocked achievements",
-      "earnedOfTotal": "{{earned}}/{{total}} achievements earned"
+      "earnedOfTotal": "{{earned}}/{{total}} achievements earned",
+      "achievementPointsDescription": "Points earned by unlocking achievements"
     },
     "tabs": {
       "overview": "Overview",
       "achievements": "Achievements",
-      "stats": "Stats"
+      "stats": "Stats",
+      "account": "Account",
+      "creator": "Creator",
+      "customize": "Customize"
     },
     "avatar": {
       "title": "Change Avatar",
