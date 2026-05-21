@@ -1,6 +1,6 @@
 {
   "name": "@the-box/marketing-video",
-  "version": "2.112.1",
+  "version": "2.112.2",
   "private": true,
   "description": "Remotion compositions for The Box marketing videos",
   "scripts": {
