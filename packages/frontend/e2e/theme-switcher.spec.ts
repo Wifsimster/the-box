@@ -34,7 +34,7 @@ function hexToRgb(hex: string): string {
 authTest.describe('Profile - ThemeSwitcher swatches', () => {
     authTest('each swatch previews its own palette regardless of the active theme', async ({ authenticatedPage }) => {
         const page = authenticatedPage
-        await page.goto('/fr/profile')
+        await page.goto('/fr/profile?tab=customize')
 
         // Anchor on the first swatch so we don't race the lazy ProfilePage
         // render before reading computed styles.
