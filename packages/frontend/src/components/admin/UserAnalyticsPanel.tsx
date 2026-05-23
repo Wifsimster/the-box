@@ -12,6 +12,10 @@ import {
   Loader2,
   ShieldAlert,
   CalendarClock,
+  UserMinus,
+  Zap,
+  TrendingDown,
+  AlertTriangle,
 } from 'lucide-react'
 
 const numberFormat = (n: number, lang: string) =>
@@ -165,6 +169,42 @@ function DistributionBar({ segments }: DistributionBarProps) {
           )
         })}
       </ul>
+    </div>
+  )
+}
+
+interface FunnelStepsProps {
+  steps: Array<{ label: string; value: number; percent: number; colorClass: string }>
+  lang: string
+}
+
+// Vertical funnel: each row is a horizontal bar sized to that step's
+// share of the first step. Lets the admin see drop-off between signup,
+// first play, and week-1 retention in one glance without a charting lib.
+function FunnelSteps({ steps, lang }: FunnelStepsProps) {
+  return (
+    <div className="space-y-2">
+      {steps.map((step) => (
+        <div key={step.label} className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">{step.label}</span>
+            <span className="tabular-nums">
+              <span className="font-semibold">
+                {new Intl.NumberFormat(lang).format(step.value)}
+              </span>
+              <span className="text-muted-foreground ml-2">
+                ({percentFormat(step.percent, lang)})
+              </span>
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full ${step.colorClass} transition-[width] duration-300`}
+              style={{ width: `${Math.min(100, Math.max(0, step.percent))}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -366,6 +406,190 @@ export function UserAnalyticsPanel() {
               },
             ]}
           />
+        </CardContent>
+      </Card>
+
+      {/* === Churn metrics === */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          icon={<TrendingDown className="h-4 w-4" />}
+          label={t('admin.analytics.churn30d')}
+          value={percentFormat(data.churn.churnRate30dPercent, lang)}
+          hint={t('admin.analytics.churnHint', {
+            count: data.churn.inactive30d,
+            total: data.churn.everActive,
+          })}
+          accent="pink"
+        />
+        <StatCard
+          icon={<UserMinus className="h-4 w-4" />}
+          label={t('admin.analytics.churn60d')}
+          value={percentFormat(data.churn.churnRate60dPercent, lang)}
+          hint={t('admin.analytics.churnHint', {
+            count: data.churn.inactive60d,
+            total: data.churn.everActive,
+          })}
+          accent="purple"
+        />
+        <StatCard
+          icon={<UserMinus className="h-4 w-4" />}
+          label={t('admin.analytics.churn90d')}
+          value={percentFormat(data.churn.churnRate90dPercent, lang)}
+          hint={t('admin.analytics.churnHint', {
+            count: data.churn.inactive90d,
+            total: data.churn.everActive,
+          })}
+          accent="purple"
+        />
+        <StatCard
+          icon={<Zap className="h-4 w-4" />}
+          label={t('admin.analytics.stickiness')}
+          value={percentFormat(data.churn.stickinessPercent, lang)}
+          hint={t('admin.analytics.stickinessHint', {
+            dau: data.churn.activeDaily,
+            mau: data.churn.activeMonthly,
+          })}
+          accent="cyan"
+        />
+      </div>
+
+      {/* Dormancy lifecycle distribution */}
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">
+            {t('admin.analytics.dormancyTitle')}
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            {t('admin.analytics.dormancyHint')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <DistributionBar
+            segments={[
+              {
+                label: t('admin.analytics.dormancyActive'),
+                value: data.dormancy.active,
+                colorClass: 'bg-neon-cyan',
+              },
+              {
+                label: t('admin.analytics.dormancyWarm'),
+                value: data.dormancy.warm,
+                colorClass: 'bg-neon-purple',
+              },
+              {
+                label: t('admin.analytics.dormancyAtRisk'),
+                value: data.dormancy.atRisk,
+                colorClass: 'bg-warning/80',
+              },
+              {
+                label: t('admin.analytics.dormancyDormant'),
+                value: data.dormancy.dormant,
+                colorClass: 'bg-score-low/80',
+              },
+              {
+                label: t('admin.analytics.dormancyLost'),
+                value: data.dormancy.lost,
+                colorClass: 'bg-destructive/80',
+              },
+              {
+                label: t('admin.analytics.dormancyNever'),
+                value: data.dormancy.neverLoggedIn,
+                colorClass: 'bg-muted-foreground/40',
+              },
+            ]}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Signup → first-play funnel */}
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">
+            {t('admin.analytics.funnelTitle')}
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            {t('admin.analytics.funnelHint')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-3">
+          {data.funnel.signups30d === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              {t('admin.analytics.empty')}
+            </p>
+          ) : (
+            <FunnelSteps
+              steps={[
+                {
+                  label: t('admin.analytics.funnelStepSignup'),
+                  value: data.funnel.signups30d,
+                  percent: 100,
+                  colorClass: 'bg-neon-purple',
+                },
+                {
+                  label: t('admin.analytics.funnelStepPlayed'),
+                  value: data.funnel.playedAtLeastOnce,
+                  percent: data.funnel.activationRatePercent,
+                  colorClass: 'bg-neon-cyan',
+                },
+                {
+                  label: t('admin.analytics.funnelStepRetained'),
+                  value: data.funnel.stillActiveAfter7d,
+                  percent: data.funnel.week1RetentionPercent,
+                  colorClass: 'bg-neon-pink',
+                },
+              ]}
+              lang={lang}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* At-risk power users (streak ≥3, idle 36h–7d) */}
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            {t('admin.analytics.atRiskTitle')}
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            {t('admin.analytics.atRiskHint')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          {data.atRiskStreaks.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              {t('admin.analytics.atRiskEmpty')}
+            </p>
+          ) : (
+            <ol className="divide-y divide-border">
+              {data.atRiskStreaks.map((row) => (
+                <li
+                  key={row.userId}
+                  className="flex items-center justify-between py-2 gap-2 text-sm"
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <span className="flex items-center gap-1 text-neon-pink tabular-nums font-semibold">
+                      <Flame className="h-3 w-3" />
+                      {row.currentStreak}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-medium truncate block">
+                        {row.displayName}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate block">
+                        {row.email}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                    {t('admin.analytics.atRiskIdle', {
+                      time: formatRelative(row.lastLoginAt, lang, never),
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
         </CardContent>
       </Card>
 
