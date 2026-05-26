@@ -70,8 +70,9 @@ function useImageZoom(resetKey: unknown) {
             if (!el || !natW || !natH) return { x, y }
             const bw = el.clientWidth
             const bh = el.clientHeight
-            // Match the rendered object-fit: cover on all viewports.
-            const fit = Math.max(bw / natW, bh / natH)
+            // Match the rendered object-fit: contain — the whole screenshot
+            // must be visible at base scale so players don't lose pixels.
+            const fit = Math.min(bw / natW, bh / natH)
             const contentW = natW * fit * scale
             const contentH = natH * fit * scale
             const maxX = Math.max(0, (contentW - bw) / 2)
@@ -324,7 +325,7 @@ export function GameCarousel({
                                             alt={image.alt || `Screenshot ${index + 1}`}
                                             draggable={false}
                                             className={cn(
-                                                'w-full h-full object-cover',
+                                                'w-full h-full object-contain',
                                                 'transition-opacity duration-300',
                                                 loadedImages.has(index) ? 'opacity-100' : 'opacity-0',
                                                 imageClassName
