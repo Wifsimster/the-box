@@ -52,11 +52,11 @@ export function IOSInstallHint() {
   }
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-labelledby="ios-install-title"
       className={cn(
-        'fixed inset-x-3 bottom-3 z-50 rounded-xl border bg-card/95 shadow-lg backdrop-blur',
+        'fixed inset-x-3 bottom-3 top-auto z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur',
         'border-border p-4 flex gap-3 items-start',
       )}
     >
@@ -66,9 +66,9 @@ export function IOSInstallHint() {
         </p>
         <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
           {t('pwa.iosInstall.tap')}{' '}
-          <Share className="h-3.5 w-3.5 text-primary inline-block" aria-hidden="true" />{' '}
+          <Share className="size-3.5 text-primary inline-block" aria-hidden="true" />{' '}
           {t('pwa.iosInstall.then')}{' '}
-          <Plus className="h-3.5 w-3.5 text-primary inline-block" aria-hidden="true" />{' '}
+          <Plus className="size-3.5 text-primary inline-block" aria-hidden="true" />{' '}
           {t('pwa.iosInstall.addToHome')}
         </p>
       </div>
@@ -78,8 +78,8 @@ export function IOSInstallHint() {
         aria-label={t('pwa.iosInstall.dismiss')}
         className="text-muted-foreground hover:text-foreground transition-colors"
       >
-        <X className="h-4 w-4" />
+        <X className="size-4" />
       </button>
-    </div>
+    </dialog>
   )
 }

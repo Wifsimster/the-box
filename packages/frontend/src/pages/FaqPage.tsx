@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { HelpCircle } from 'lucide-react'
 
@@ -17,15 +17,15 @@ export default function FaqPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-cyan to-neon-pink shadow-lg shadow-neon-cyan/30">
-              <HelpCircle className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-cyan to-neon-pink shadow-lg shadow-neon-cyan/30">
+              <HelpCircle className="size-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-linear-to-r from-neon-cyan to-neon-pink bg-clip-text text-transparent">
               {t('legal.faqTitle')}
@@ -36,8 +36,8 @@ export default function FaqPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {faqs.map((faq, index) => (
-              <motion.div
-                key={index}
+              <m.div
+                key={faq.question}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -49,11 +49,11 @@ export default function FaqPage() {
                 <p className="text-muted-foreground leading-relaxed">
                   {faq.answer}
                 </p>
-              </motion.div>
+              </m.div>
             ))}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

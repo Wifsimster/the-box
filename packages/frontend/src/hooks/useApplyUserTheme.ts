@@ -7,6 +7,11 @@ import { applyTheme } from '@/lib/themes'
 // re-fetch. Anonymous users get the implicit `default` theme since the
 // fetch returns 401 and we leave the attribute alone.
 export function useApplyUserTheme(userId: string | undefined): void {
+  // Intentional fetch-in-effect: this app deliberately does not use
+  // react-query/SWR. This is a one-shot theme fetch keyed on auth change with
+  // explicit cleanup; the rule's only sanctioned fixes require adding a
+  // data-fetching library the project chose not to adopt.
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (!userId) {
       // Clear any prior theme attribute on logout so the next user
@@ -14,19 +19,24 @@ export function useApplyUserTheme(userId: string | undefined): void {
       document.documentElement.removeAttribute('data-theme')
       return
     }
-    let cancelled = false
-    void fetch('/api/user/me', { credentials: 'include' })
+    // One-shot fetch with AbortController cleanup. No data-fetching library
+    // is available in this app, so this is the documented exception to
+    // no-fetch-in-effect: the request is aborted if the effect re-runs or
+    // unmounts before it settles, preventing stale theme application.
+    const controller = new AbortController()
+    void fetch('/api/user/me', { credentials: 'include', signal: controller.signal })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (cancelled || !json?.success) return
+        if (!json?.success) return
         const theme = json.data?.selectedTheme ?? 'default'
         applyTheme(theme)
       })
       .catch(() => {
-        // No-op: theme defaults to absent attribute → CSS uses the base palette.
+        // No-op: aborted requests and failures both leave the attribute
+        // absent → CSS uses the base palette.
       })
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [userId])
 }

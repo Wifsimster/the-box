@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 type GradientIconSize = 'sm' | 'md' | 'lg'
 
 interface GradientIconProps {
-  /** A rendered icon element, e.g. `<MapPin className="w-6 h-6 text-white" />`. */
+  /** A rendered icon element, e.g. `<MapPin className="size-6 text-white" />`. */
   icon: ReactNode
   /** Tile size; defaults to `md`. */
   size?: GradientIconSize
@@ -13,9 +13,9 @@ interface GradientIconProps {
 }
 
 const sizeClass: Record<GradientIconSize, string> = {
-  sm: 'h-8 w-8',
-  md: 'h-12 w-12',
-  lg: 'h-16 w-16',
+  sm: 'size-8',
+  md: 'size-12',
+  lg: 'size-16',
 }
 
 /**

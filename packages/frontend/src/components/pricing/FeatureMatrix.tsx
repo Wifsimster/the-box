@@ -26,7 +26,7 @@ const ROWS: FeatureRow[] = [
 function FeatureCell({ on, label }: { on: boolean; label: string }) {
   return (
     <span className={cn('inline-flex items-center justify-center', on ? 'text-success' : 'text-muted-foreground/50')}>
-      {on ? <Check className="w-5 h-5" aria-label={label} /> : <X className="w-5 h-5" aria-label={label} />}
+      {on ? <Check className="size-5" aria-label={label} /> : <X className="size-5" aria-label={label} />}
     </span>
   )
 }
@@ -42,7 +42,14 @@ export function FeatureMatrix() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
-              <th className="text-left px-4 sm:px-6 py-2 font-medium text-muted-foreground"></th>
+              <th
+                scope="col"
+                className="text-left px-4 sm:px-6 py-2 font-medium text-muted-foreground"
+              >
+                <span className="sr-only">
+                  {t('pricing.features.title')}
+                </span>
+              </th>
               <th className="px-3 py-2 font-medium text-muted-foreground w-24 text-center">
                 {t('pricing.features.free')}
               </th>

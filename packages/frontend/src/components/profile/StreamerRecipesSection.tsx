@@ -85,7 +85,7 @@ export function StreamerRecipesSection({ slug }: Props) {
   return (
     <div className="space-y-3" data-testid="streamer-kit-recipes">
       <h4 className="text-sm font-semibold flex items-center gap-2">
-        <BookOpen className="h-4 w-4" />
+        <BookOpen className="size-4" />
         {t('streamerKit.recipesTitle')}
       </h4>
       <p className="text-xs text-muted-foreground">{t('streamerKit.recipesHint')}</p>
@@ -114,7 +114,7 @@ export function StreamerRecipesSection({ slug }: Props) {
                 aria-label={t('streamerKit.recipeCopyAria')}
                 data-testid={`streamer-kit-recipe-copy-${r.id}`}
               >
-                {copied === r.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied === r.id ? <Check className="size-4" /> : <Copy className="size-4" />}
               </Button>
             </div>
             <pre className="overflow-x-auto rounded bg-background/60 p-2 text-[11px] leading-relaxed">

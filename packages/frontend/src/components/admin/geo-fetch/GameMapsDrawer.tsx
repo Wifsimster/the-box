@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Star, Check, RotateCcw } from 'lucide-react'
 import {
@@ -21,23 +21,27 @@ interface Props {
 // shows side-by-side candidates from all providers. One click "Choisir" sets
 // is_selected. Closing the drawer clears state — re-opening refetches.
 
-export function GameMapsDrawer({ gameId, onClose }: Props) {
-  const { t } = useTranslation()
+// Loads /maps for the open gameId. Encapsulating the fetch in a hook keeps the
+// data lifecycle (load, cancel-on-switch, manual reload) out of the component
+// body. Guard against fast gameId switches: a slower earlier promise resolving
+// last would otherwise stomp the newer game's data.
+function useGameMaps(gameId: number | null) {
   const [data, setData] = useState<GeoFetchMapsResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [busyMapId, setBusyMapId] = useState<number | null>(null)
-  const selectMap = useGeoFetchStore((s) => s.selectMap)
-  const retrySource = useGeoFetchStore((s) => s.retrySource)
+  const [isLoading, setIsLoading] = useState(() => gameId != null)
+
+  // Reset the cached data / loading flag the instant the gameId changes,
+  // during render, so the drawer never shows the previous game's maps. The
+  // effect below only performs the async work and the (async) state writes.
+  const [prevGameId, setPrevGameId] = useState(gameId)
+  if (gameId !== prevGameId) {
+    setPrevGameId(gameId)
+    setData(null)
+    setIsLoading(gameId != null)
+  }
 
   useEffect(() => {
-    if (gameId == null) {
-      setData(null)
-      return
-    }
-    // Guard against fast gameId switches: a slower earlier promise
-    // resolving last would otherwise stomp the newer game's data.
+    if (gameId == null) return
     let cancelled = false
-    setIsLoading(true)
     geoFetchApi
       .maps(gameId)
       .then((fresh) => {
@@ -51,13 +55,27 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
     }
   }, [gameId])
 
+  const reload = useCallback(async () => {
+    if (gameId == null) return
+    setData(await geoFetchApi.maps(gameId))
+  }, [gameId])
+
+  return { data, isLoading, reload }
+}
+
+export function GameMapsDrawer({ gameId, onClose }: Props) {
+  const { t } = useTranslation()
+  const { data, isLoading, reload } = useGameMaps(gameId)
+  const [busyMapId, setBusyMapId] = useState<number | null>(null)
+  const selectMap = useGeoFetchStore((s) => s.selectMap)
+  const retrySource = useGeoFetchStore((s) => s.retrySource)
+
   async function handleSelect(mapId: number) {
     if (gameId == null) return
     setBusyMapId(mapId)
     try {
       await selectMap(gameId, mapId)
-      const fresh = await geoFetchApi.maps(gameId)
-      setData(fresh)
+      await reload()
     } finally {
       setBusyMapId(null)
     }
@@ -119,12 +137,12 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         <img
                           src={map.imageUrl}
                           alt={map.zoneName ?? ''}
-                          className="w-full h-full object-cover"
+                          className="size-full object-cover"
                           loading="lazy"
                         />
                         {map.isSelected && (
                           <div className="absolute top-1 left-1 bg-neon-purple/90 rounded p-1">
-                            <Star className="h-3 w-3 text-white fill-white" />
+                            <Star className="size-3 text-white fill-white" />
                           </div>
                         )}
                       </div>
@@ -146,7 +164,7 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         >
                           {map.isSelected ? (
                             <>
-                              <Check className="h-3 w-3 mr-1" />
+                              <Check className="size-3 mr-1" />
                               {t('admin.geoFetch.drawer.selected', 'Sélectionnée')}
                             </>
                           ) : (
@@ -177,7 +195,7 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         source: src,
                       })}
                     >
-                      <RotateCcw className="h-3 w-3 mr-1" />
+                      <RotateCcw className="size-3 mr-1" />
                       {t('admin.geoFetch.drawer.refetchSource', 'Re-récupérer ({{source}})', {
                         source: src,
                       })}

@@ -4,7 +4,7 @@ import { fetchWithRetry, parseApiError, logError } from '@/lib/errors'
 /**
  * API-based leaderboard service
  */
-export class ApiLeaderboardService implements LeaderboardService {
+class ApiLeaderboardService implements LeaderboardService {
   private readonly baseUrl: string
 
   constructor(baseUrl = '/api') {

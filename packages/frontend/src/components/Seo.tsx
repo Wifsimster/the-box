@@ -57,14 +57,14 @@ export function Seo({
   jsonLd,
   ogType = 'website',
 }: SeoProps) {
-  const location = useLocation()
+  const { pathname } = useLocation()
   const { i18n } = useTranslation()
 
   useEffect(() => {
     const lang = (SUPPORTED_LANGUAGES.includes(i18n.language as SupportedLanguage)
       ? i18n.language
       : 'fr') as SupportedLanguage
-    const suffix = pathSuffix ?? stripLangPrefix(location.pathname)
+    const suffix = pathSuffix ?? stripLangPrefix(pathname)
     const canonical = buildLocalizedUrl(lang, suffix)
 
     document.title = title
@@ -141,7 +141,7 @@ export function Seo({
       clearManaged('hreflang')
       clearManaged('jsonld')
     }
-  }, [title, description, pathSuffix, image, noindex, jsonLd, ogType, location.pathname, i18n.language])
+  }, [title, description, pathSuffix, image, noindex, jsonLd, ogType, pathname, i18n.language])
 
   return null
 }

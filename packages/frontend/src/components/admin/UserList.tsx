@@ -1,27 +1,23 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { User, BillingEntitlement } from '@/types'
+import type { User } from '@/types'
 import { useAdminStore } from '@/stores/adminStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tooltip } from '@/components/ui/tooltip'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
-import { Search, Loader2, ArrowUpDown, ArrowUp, Trash2, Ban, Unlock, Crown } from 'lucide-react'
-import { toast } from '@/lib/toast'
-import { motion, AnimatePresence } from 'framer-motion'
-import { tableRow } from '@/lib/animations'
+import { UserCard, UserTableRow, type UserActionKind } from './UserListRow'
+import { UserActionDialogs } from './UserActionDialogs'
+import { useUserActions } from './useUserActions'
+import { Search, Loader2, ArrowUpDown, ArrowUp } from 'lucide-react'
+import { m, AnimatePresence } from 'framer-motion'
 
 function debounce<T extends (...args: Parameters<T>) => void>(
   fn: T,
@@ -36,57 +32,16 @@ function debounce<T extends (...args: Parameters<T>) => void>(
 
 function UserSortIcon({ field, sortField, sortOrder }: { field: string; sortField: string; sortOrder: 'asc' | 'desc' }) {
   if (sortField !== field) {
-    return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+    return <ArrowUpDown className="ml-1 size-4 opacity-50" />
   }
   return (
-    <motion.span
+    <m.span
       initial={{ rotate: 0 }}
       animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
       transition={{ duration: 0.2 }}
     >
-      <ArrowUp className="ml-1 h-4 w-4" />
-    </motion.span>
-  )
-}
-
-function PremiumBadge({ entitlement }: { entitlement: BillingEntitlement | undefined }) {
-  const { t } = useTranslation()
-  if (!entitlement) {
-    return <span className="text-xs text-muted-foreground">—</span>
-  }
-  if (!entitlement.isPremium) {
-    return <span className="text-xs text-muted-foreground">{t('admin.users.premium.free')}</span>
-  }
-
-  const tierLabel =
-    entitlement.tier === 'supporter_lifetime'
-      ? t('admin.users.premium.tier.supporterLifetime')
-      : entitlement.tier === 'premium_annual'
-        ? t('admin.users.premium.tier.premiumAnnual')
-        : entitlement.tier === 'premium_monthly'
-          ? t('admin.users.premium.tier.premiumMonthly')
-          : t('admin.users.premium.tier.unknown')
-
-  // supporter (free grant) is bright, paid sub is the same neon-purple/pink
-  // we use elsewhere for the gaming accent — the source dot below carries
-  // the distinction.
-  const sourceDotClass =
-    entitlement.source === 'supporter' ? 'bg-neon-cyan' : 'bg-neon-purple'
-
-  return (
-    <div className="inline-flex items-center gap-1.5 rounded-full border border-neon-purple/40 bg-neon-purple/10 px-2 py-0.5 text-xs">
-      <Crown className="h-3 w-3 text-neon-pink" aria-hidden />
-      <span className="font-medium text-neon-pink">{tierLabel}</span>
-      <span
-        className={`ml-0.5 inline-block h-1.5 w-1.5 rounded-full ${sourceDotClass}`}
-        aria-hidden
-      />
-      {entitlement.cancelAtPeriodEnd && (
-        <span className="ml-1 text-[10px] uppercase tracking-wide text-warning">
-          {t('admin.users.premium.cancelling')}
-        </span>
-      )}
-    </div>
+      <ArrowUp className="ml-1 size-4" />
+    </m.span>
   )
 }
 
@@ -106,6 +61,7 @@ function UserSortableHeader({
   return (
     <TableHead>
       <button
+        type="button"
         className="flex items-center font-medium hover:text-foreground transition-colors"
         onClick={() => onSort(field)}
       >
@@ -116,8 +72,32 @@ function UserSortableHeader({
   )
 }
 
+// At most one user-action confirmation is pending at a time, so the five
+// confirmation targets (delete/ban/unban/grant/revoke) plus the in-flight role
+// change are one mutually-exclusive slice rather than six independent flags.
+type PendingAction =
+  | { kind: 'delete' | 'ban' | 'unban' | 'grant' | 'revoke'; user: User }
+  | { kind: 'role'; user: User; newRole: string }
+  | null
+
+type PendingActionEvent =
+  | { type: 'open'; kind: 'delete' | 'ban' | 'unban' | 'grant' | 'revoke'; user: User }
+  | { type: 'roleChange'; user: User; newRole: string }
+  | { type: 'close' }
+
+function pendingActionReducer(_state: PendingAction, event: PendingActionEvent): PendingAction {
+  switch (event.type) {
+    case 'open':
+      return { kind: event.kind, user: event.user }
+    case 'roleChange':
+      return { kind: 'role', user: event.user, newRole: event.newRole }
+    case 'close':
+      return null
+  }
+}
+
 export function UserList() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const {
     users,
     usersLoading,
@@ -130,22 +110,33 @@ export function UserList() {
     setUsersSearch,
     setUsersSort,
     setUsersPage,
-    setUserRole,
-    banUser,
-    unbanUser,
-    deleteUser,
-    grantSupporter,
-    revokeSupporter,
   } = useAdminStore()
 
-  const [deletingUser, setDeletingUser] = useState<User | null>(null)
-  const [banningUser, setBanningUser] = useState<User | null>(null)
-  const [unbanningUser, setUnbanningUser] = useState<User | null>(null)
-  const [grantingUser, setGrantingUser] = useState<User | null>(null)
-  const [revokingUser, setRevokingUser] = useState<User | null>(null)
-  const [, setRoleChangingUser] = useState<{ user: User; newRole: string } | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pendingAction, dispatchAction] = useReducer(pendingActionReducer, null)
+  const deletingUser = pendingAction?.kind === 'delete' ? pendingAction.user : null
+  const banningUser = pendingAction?.kind === 'ban' ? pendingAction.user : null
+  const unbanningUser = pendingAction?.kind === 'unban' ? pendingAction.user : null
+  const grantingUser = pendingAction?.kind === 'grant' ? pendingAction.user : null
+  const revokingUser = pendingAction?.kind === 'revoke' ? pendingAction.user : null
   const [searchInput, setSearchInput] = useState(usersSearch)
+
+  const closePendingAction = useCallback(() => dispatchAction({ type: 'close' }), [])
+  const {
+    isSubmitting,
+    handleRoleChange,
+    handleBan,
+    handleUnban,
+    handleDelete,
+    handleGrant,
+    handleRevoke,
+  } = useUserActions({
+    banningUser,
+    unbanningUser,
+    deletingUser,
+    grantingUser,
+    revokingUser,
+    onSettled: closePendingAction,
+  })
 
   // Debounced search
   const debouncedSearch = useMemo(
@@ -178,125 +169,23 @@ export function UserList() {
     [usersSort, setUsersSort]
   )
 
-  // Handle role change
-  const handleRoleChange = async (user: User, newRole: string) => {
-    if (user.isAdmin === (newRole === 'admin')) return // No change needed
-
-    setIsSubmitting(true)
-    try {
-      await setUserRole(user.id, newRole)
-      toast.success(t('admin.users.messages.roleUpdated'))
-    } catch {
-      toast.error(t('admin.users.messages.roleUpdateError'))
-    } finally {
-      setIsSubmitting(false)
-      setRoleChangingUser(null)
-    }
-  }
-
-  // Handle ban
-  const handleBan = async () => {
-    if (!banningUser) return
-    setIsSubmitting(true)
-    try {
-      await banUser(banningUser.id)
-      toast.success(t('admin.users.messages.banned'))
-      setBanningUser(null)
-    } catch {
-      toast.error(t('admin.users.messages.banError'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Handle unban
-  const handleUnban = async () => {
-    if (!unbanningUser) return
-    setIsSubmitting(true)
-    try {
-      await unbanUser(unbanningUser.id)
-      toast.success(t('admin.users.messages.unbanned'))
-      setUnbanningUser(null)
-    } catch {
-      toast.error(t('admin.users.messages.unbanError'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Handle delete
-  const handleDelete = async () => {
-    if (!deletingUser) return
-    setIsSubmitting(true)
-    try {
-      await deleteUser(deletingUser.id)
-      toast.success(t('admin.users.messages.deleted'))
-      setDeletingUser(null)
-    } catch {
-      toast.error(t('admin.users.messages.deleteError'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Handle grant premium (supporter lifetime)
-  const handleGrant = async () => {
-    if (!grantingUser) return
-    setIsSubmitting(true)
-    try {
-      await grantSupporter(grantingUser.id)
-      toast.success(t('admin.users.messages.granted'))
-      setGrantingUser(null)
-    } catch {
-      toast.error(t('admin.users.messages.grantError'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Handle revoke premium (supporter lifetime)
-  const handleRevoke = async () => {
-    if (!revokingUser) return
-    setIsSubmitting(true)
-    try {
-      await revokeSupporter(revokingUser.id)
-      toast.success(t('admin.users.messages.revoked'))
-      setRevokingUser(null)
-    } catch {
-      toast.error(t('admin.users.messages.revokeError'))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   const totalPages = Math.ceil(usersPagination.total / usersPagination.limit)
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString(i18n.language)
-    } catch {
-      return dateString
-    }
+  // Map a row's action button to the matching confirmation dialog.
+  const handleRowAction = (kind: UserActionKind, user: User) => {
+    dispatchAction({ type: 'open', kind, user })
   }
 
-  const formatDateTime = (dateString?: string | null) => {
-    if (!dateString) return t('admin.users.neverLoggedIn')
-    try {
-      return new Date(dateString).toLocaleString(i18n.language, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return dateString
-    }
+  // The role <Select> fires immediately (no confirmation step); record the
+  // pending change for in-flight UI, then run the mutation.
+  const handleRoleSelect = (user: User, newRole: string) => {
+    dispatchAction({ type: 'roleChange', user, newRole })
+    void handleRoleChange(user, newRole)
   }
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-y-0">
         <CardTitle className="flex items-center gap-2">
           {t('admin.users.title')}
           {usersPagination.total > 0 && (
@@ -311,7 +200,7 @@ export function UserList() {
         {/* Search */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
               placeholder={t('admin.users.searchPlaceholder')}
@@ -331,7 +220,7 @@ export function UserList() {
         {/* Loading state */}
         {usersLoading && users.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
           </div>
         ) : users.length === 0 ? (
           /* Empty state */
@@ -344,7 +233,7 @@ export function UserList() {
             <div className="relative">
               {usersLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 </div>
               )}
 
@@ -352,143 +241,15 @@ export function UserList() {
               <div className="md:hidden space-y-3">
                 <AnimatePresence mode="popLayout">
                   {users.map((user, index) => (
-                    <motion.div
+                    <UserCard
                       key={user.id}
-                      variants={tableRow}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      custom={index}
-                      layout
-                      transition={{ delay: index * 0.02 }}
-                      className="rounded-lg border border-white/10 bg-card/50 p-3 space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-sm break-all">{user.email}</div>
-                          <div className="text-xs text-muted-foreground truncate mt-0.5">
-                            {user.displayName || user.username}
-                            {user.isGuest && (
-                              <span className="ml-2">({t('admin.users.guest')})</span>
-                            )}
-                          </div>
-                        </div>
-                        <Select
-                          value={user.isAdmin ? 'admin' : 'user'}
-                          onValueChange={(value) => {
-                            setRoleChangingUser({ user, newRole: value })
-                            handleRoleChange(user, value)
-                          }}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="h-8 w-24 shrink-0" aria-label={t('admin.users.role.user')}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="user">{t('admin.users.role.user')}</SelectItem>
-                            <SelectItem value="admin">{t('admin.users.role.admin')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <dl className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="space-y-0.5">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {t('admin.users.totalScore')}
-                          </dt>
-                          <dd className="font-medium tabular-nums">
-                            {(user.totalScore ?? 0).toLocaleString(i18n.language)}
-                          </dd>
-                        </div>
-                        <div className="space-y-0.5">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {t('admin.users.currentStreak')}
-                          </dt>
-                          <dd className="font-medium tabular-nums">{user.currentStreak ?? 0}</dd>
-                        </div>
-                        <div className="space-y-0.5">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {t('admin.users.createdAt')}
-                          </dt>
-                          <dd className="text-muted-foreground">{formatDate(user.createdAt)}</dd>
-                        </div>
-                        <div className="space-y-0.5">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {t('admin.users.lastLoginAt')}
-                          </dt>
-                          <dd className="text-muted-foreground">{formatDateTime(user.lastLoginAt)}</dd>
-                        </div>
-                        <div className="space-y-0.5 col-span-2">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {t('admin.users.premium.label')}
-                          </dt>
-                          <dd>
-                            <PremiumBadge entitlement={usersBilling[user.id]} />
-                          </dd>
-                        </div>
-                      </dl>
-
-                      <div className="flex justify-end gap-1 pt-1 border-t border-white/5">
-                        {usersBilling[user.id]?.source === 'supporter' ? (
-                          <Tooltip content={t('admin.users.revokePremium')}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setRevokingUser(user)}
-                              aria-label={t('admin.users.revokePremium')}
-                              className="hover:text-warning"
-                            >
-                              <Crown className="h-4 w-4 text-neon-pink" />
-                            </Button>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip content={t('admin.users.grantPremium')}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setGrantingUser(user)}
-                              aria-label={t('admin.users.grantPremium')}
-                              className="hover:text-neon-pink"
-                            >
-                              <Crown className="h-4 w-4" />
-                            </Button>
-                          </Tooltip>
-                        )}
-                        {user.isAdmin ? (
-                          <Tooltip content={t('admin.users.unbanUser')}>
-                            <Button
-                              variant="unban"
-                              size="icon"
-                              onClick={() => setUnbanningUser(user)}
-                              aria-label={t('admin.users.unbanUser')}
-                            >
-                              <Unlock className="h-4 w-4" />
-                            </Button>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip content={t('admin.users.banUser')}>
-                            <Button
-                              variant="ban"
-                              size="icon"
-                              onClick={() => setBanningUser(user)}
-                              aria-label={t('admin.users.banUser')}
-                            >
-                              <Ban className="h-4 w-4" />
-                            </Button>
-                          </Tooltip>
-                        )}
-                        <Tooltip content={t('admin.users.deleteUser')}>
-                          <Button
-                            variant="dangerGhost"
-                            size="icon"
-                            onClick={() => setDeletingUser(user)}
-                            aria-label={t('admin.users.deleteUser')}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                      </div>
-                    </motion.div>
+                      user={user}
+                      index={index}
+                      entitlement={usersBilling[user.id]}
+                      isSubmitting={isSubmitting}
+                      onAction={handleRowAction}
+                      onRoleChange={handleRoleSelect}
+                    />
                   ))}
                 </AnimatePresence>
               </div>
@@ -512,131 +273,15 @@ export function UserList() {
                   <TableBody>
                     <AnimatePresence mode="popLayout">
                       {users.map((user, index) => (
-                        <motion.tr
+                        <UserTableRow
                           key={user.id}
-                          variants={tableRow}
-                          initial="initial"
-                          animate="animate"
-                          exit="exit"
-                          custom={index}
-                          layout
-                          transition={{ delay: index * 0.02 }}
-                          className="border-b border-white/5 transition-colors group"
-                          whileHover={{
-                            backgroundColor: 'var(--table-row-hover)',
-                          }}
-                        >
-                          <TableCell className="font-medium group-hover:text-primary/70 transition-colors">
-                            {user.email}
-                            {user.isGuest && (
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                ({t('admin.users.guest')})
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>{user.displayName || user.username}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={user.isAdmin ? 'admin' : 'user'}
-                              onValueChange={(value) => {
-                                setRoleChangingUser({ user, newRole: value })
-                                handleRoleChange(user, value)
-                              }}
-                              disabled={isSubmitting}
-                            >
-                              <SelectTrigger className="h-8 w-28" aria-label={t('admin.users.role.user')}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="user">{t('admin.users.role.user')}</SelectItem>
-                                <SelectItem value="admin">{t('admin.users.role.admin')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>{(user.totalScore ?? 0).toLocaleString(i18n.language)}</TableCell>
-                          <TableCell>{user.currentStreak ?? 0}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatDate(user.createdAt)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground whitespace-nowrap">
-                            {formatDateTime(user.lastLoginAt)}
-                          </TableCell>
-                          <TableCell>
-                            <PremiumBadge entitlement={usersBilling[user.id]} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                              {usersBilling[user.id]?.source === 'supporter' ? (
-                                <Tooltip content={t('admin.users.revokePremium')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setRevokingUser(user)}
-                                      aria-label={t('admin.users.revokePremium')}
-                                      className="hover:text-warning"
-                                    >
-                                      <Crown className="h-4 w-4 text-neon-pink" />
-                                    </Button>
-                                  </motion.div>
-                                </Tooltip>
-                              ) : (
-                                <Tooltip content={t('admin.users.grantPremium')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setGrantingUser(user)}
-                                      aria-label={t('admin.users.grantPremium')}
-                                      className="hover:text-neon-pink"
-                                    >
-                                      <Crown className="h-4 w-4" />
-                                    </Button>
-                                  </motion.div>
-                                </Tooltip>
-                              )}
-                              {user.isAdmin ? (
-                                <Tooltip content={t('admin.users.unbanUser')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                    <Button
-                                      variant="unban"
-                                      size="icon"
-                                      onClick={() => setUnbanningUser(user)}
-                                      aria-label={t('admin.users.unbanUser')}
-                                    >
-                                      <Unlock className="h-4 w-4" />
-                                    </Button>
-                                  </motion.div>
-                                </Tooltip>
-                              ) : (
-                                <Tooltip content={t('admin.users.banUser')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                    <Button
-                                      variant="ban"
-                                      size="icon"
-                                      onClick={() => setBanningUser(user)}
-                                      aria-label={t('admin.users.banUser')}
-                                    >
-                                      <Ban className="h-4 w-4" />
-                                    </Button>
-                                  </motion.div>
-                                </Tooltip>
-                              )}
-                              <Tooltip content={t('admin.users.deleteUser')}>
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                  <Button
-                                    variant="dangerGhost"
-                                    size="icon"
-                                    onClick={() => setDeletingUser(user)}
-                                    aria-label={t('admin.users.deleteUser')}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </motion.div>
-                              </Tooltip>
-                            </div>
-                          </TableCell>
-                        </motion.tr>
+                          user={user}
+                          index={index}
+                          entitlement={usersBilling[user.id]}
+                          isSubmitting={isSubmitting}
+                          onAction={handleRowAction}
+                          onRoleChange={handleRoleSelect}
+                        />
                       ))}
                     </AnimatePresence>
                   </TableBody>
@@ -661,7 +306,7 @@ export function UserList() {
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         isOpen={!!deletingUser}
-        onClose={() => setDeletingUser(null)}
+        onClose={() => dispatchAction({ type: 'close' })}
         onConfirm={handleDelete}
         title={t('admin.users.deleteUser')}
         description={
@@ -672,90 +317,18 @@ export function UserList() {
         isLoading={isSubmitting}
       />
 
-      {/* Ban Confirmation Dialog */}
-      <Dialog open={!!banningUser} onOpenChange={(open) => !open && setBanningUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.banUser')}</DialogTitle>
-            <DialogDescription>
-              {banningUser && t('admin.users.confirmBan', { email: banningUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBanningUser(null)} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={handleBan} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('admin.users.banUser')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Unban Confirmation Dialog */}
-      <Dialog open={!!unbanningUser} onOpenChange={(open) => !open && setUnbanningUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.unbanUser')}</DialogTitle>
-            <DialogDescription>
-              {unbanningUser && t('admin.users.confirmUnban', { email: unbanningUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUnbanningUser(null)} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="default" onClick={handleUnban} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('admin.users.unbanUser')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Grant Premium Confirmation Dialog */}
-      <Dialog open={!!grantingUser} onOpenChange={(open) => !open && setGrantingUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.grantPremium')}</DialogTitle>
-            <DialogDescription>
-              {grantingUser && t('admin.users.confirmGrant', { email: grantingUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setGrantingUser(null)} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="gaming" onClick={handleGrant} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Crown className="mr-1 h-4 w-4" />
-              {t('admin.users.grantPremium')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Revoke Premium Confirmation Dialog */}
-      <Dialog open={!!revokingUser} onOpenChange={(open) => !open && setRevokingUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.revokePremium')}</DialogTitle>
-            <DialogDescription>
-              {revokingUser && t('admin.users.confirmRevoke', { email: revokingUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRevokingUser(null)} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={handleRevoke} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('admin.users.revokePremium')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UserActionDialogs
+        banningUser={banningUser}
+        unbanningUser={unbanningUser}
+        grantingUser={grantingUser}
+        revokingUser={revokingUser}
+        isSubmitting={isSubmitting}
+        onClose={() => dispatchAction({ type: 'close' })}
+        onBan={handleBan}
+        onUnban={handleUnban}
+        onGrant={handleGrant}
+        onRevoke={handleRevoke}
+      />
     </Card>
   )
 }

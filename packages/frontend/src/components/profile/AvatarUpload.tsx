@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useReducer, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Camera, Upload, Trash2, Loader2 } from 'lucide-react'
 import {
@@ -25,6 +25,85 @@ interface AvatarUploadProps {
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
+interface AvatarUploadState {
+  open: boolean
+  isUploading: boolean
+  isDeleting: boolean
+  error: string | null
+  preview: string | null
+  selectedFile: File | null
+}
+
+type AvatarUploadAction =
+  | { type: 'opened' }
+  | { type: 'closed' }
+  | { type: 'reset' }
+  | { type: 'error'; message: string }
+  | { type: 'fileSelected'; file: File; preview: string }
+  | { type: 'previewReady'; preview: string }
+  | { type: 'uploadStarted' }
+  | { type: 'uploadFinished' }
+  | { type: 'deleteStarted' }
+  | { type: 'deleteFinished' }
+
+const initialAvatarUploadState: AvatarUploadState = {
+  open: false,
+  isUploading: false,
+  isDeleting: false,
+  error: null,
+  preview: null,
+  selectedFile: null,
+}
+
+// State cleared whenever the dialog closes or the user cancels a selection.
+const clearedAvatarUploadState: Omit<AvatarUploadState, 'open'> = {
+  isUploading: false,
+  isDeleting: false,
+  error: null,
+  preview: null,
+  selectedFile: null,
+}
+
+function avatarUploadReducer(
+  state: AvatarUploadState,
+  action: AvatarUploadAction,
+): AvatarUploadState {
+  switch (action.type) {
+    case 'opened':
+      return { ...state, open: true }
+    case 'closed':
+      return { ...clearedAvatarUploadState, open: false }
+    case 'reset':
+      return { ...clearedAvatarUploadState, open: state.open }
+    case 'error':
+      return {
+        ...state,
+        error: action.message,
+        isUploading: false,
+        isDeleting: false,
+      }
+    case 'fileSelected':
+      return {
+        ...state,
+        error: null,
+        selectedFile: action.file,
+        preview: action.preview,
+      }
+    case 'previewReady':
+      return { ...state, preview: action.preview }
+    case 'uploadStarted':
+      return { ...state, isUploading: true, error: null }
+    case 'uploadFinished':
+      return { ...state, isUploading: false }
+    case 'deleteStarted':
+      return { ...state, isDeleting: true, error: null }
+    case 'deleteFinished':
+      return { ...state, isDeleting: false }
+    default:
+      return state
+  }
+}
+
 export function AvatarUpload({
   currentAvatarUrl,
   userName,
@@ -32,53 +111,45 @@ export function AvatarUpload({
   onAvatarChange,
 }: AvatarUploadProps) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [state, dispatch] = useReducer(
+    avatarUploadReducer,
+    initialAvatarUploadState,
+  )
+  const { open, isUploading, isDeleting, error, preview, selectedFile } = state
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const resetState = useCallback(() => {
-    setError(null)
-    setPreview(null)
-    setSelectedFile(null)
-    setIsUploading(false)
-    setIsDeleting(false)
+    dispatch({ type: 'reset' })
   }, [])
 
   const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen)
-    if (!isOpen) {
-      resetState()
-    }
+    dispatch(isOpen ? { type: 'opened' } : { type: 'closed' })
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    setError(null)
-
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError(t('profile.avatar.invalidType'))
+      dispatch({ type: 'error', message: t('profile.avatar.invalidType') })
       return
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      setError(t('profile.avatar.fileTooLarge'))
+      dispatch({ type: 'error', message: t('profile.avatar.fileTooLarge') })
       return
     }
 
-    setSelectedFile(file)
-
-    // Create preview
+    // Create preview, then record the selection once it's ready.
     const reader = new FileReader()
     reader.onload = (e) => {
-      setPreview(e.target?.result as string)
+      dispatch({
+        type: 'fileSelected',
+        file,
+        preview: e.target?.result as string,
+      })
     }
     reader.readAsDataURL(file)
   }
@@ -86,34 +157,36 @@ export function AvatarUpload({
   const handleUpload = async () => {
     if (!selectedFile) return
 
-    setIsUploading(true)
-    setError(null)
+    dispatch({ type: 'uploadStarted' })
 
     try {
       const updatedUser = await userApi.uploadAvatar(selectedFile)
       onAvatarChange(updatedUser.avatarUrl ?? null)
-      setOpen(false)
-      resetState()
+      dispatch({ type: 'closed' })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('profile.avatar.uploadError'))
+      dispatch({
+        type: 'error',
+        message: err instanceof Error ? err.message : t('profile.avatar.uploadError'),
+      })
     } finally {
-      setIsUploading(false)
+      dispatch({ type: 'uploadFinished' })
     }
   }
 
   const handleDelete = async () => {
-    setIsDeleting(true)
-    setError(null)
+    dispatch({ type: 'deleteStarted' })
 
     try {
       await userApi.deleteAvatar()
       onAvatarChange(null)
-      setOpen(false)
-      resetState()
+      dispatch({ type: 'closed' })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('profile.avatar.deleteError'))
+      dispatch({
+        type: 'error',
+        message: err instanceof Error ? err.message : t('profile.avatar.deleteError'),
+      })
     } finally {
-      setIsDeleting(false)
+      dispatch({ type: 'deleteFinished' })
     }
   }
 
@@ -131,7 +204,7 @@ export function AvatarUpload({
           className="relative group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
           aria-label={t('profile.avatar.change')}
         >
-          <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl transition-all duration-200 group-hover:border-primary/40">
+          <Avatar className="size-32 border-4 border-primary/20 shadow-xl transition-all duration-200 group-hover:border-primary/40">
             <AvatarImage
               src={displayAvatar || undefined}
               alt={userName || 'User'}
@@ -141,7 +214,7 @@ export function AvatarUpload({
             </AvatarFallback>
           </Avatar>
           <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Camera className="h-8 w-8 text-white" />
+            <Camera className="size-8 text-white" />
           </div>
         </button>
       </ResponsiveDialogTrigger>
@@ -156,7 +229,7 @@ export function AvatarUpload({
 
         <div className="flex flex-col items-center gap-6 py-4">
           {/* Preview Avatar */}
-          <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl">
+          <Avatar className="size-32 border-4 border-primary/20 shadow-xl">
             <AvatarImage
               src={displayAvatar || undefined}
               alt={userName || 'User'}
@@ -184,7 +257,7 @@ export function AvatarUpload({
             disabled={isUploading || isDeleting}
             className="w-full"
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Upload className="size-4 mr-2" />
             {t('profile.avatar.selectImage')}
           </Button>
 
@@ -209,9 +282,9 @@ export function AvatarUpload({
               className="w-full sm:w-auto"
             >
               {isDeleting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="size-4 mr-2 animate-spin" />
               ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="size-4 mr-2" />
               )}
               {t('profile.avatar.remove')}
             </Button>
@@ -235,9 +308,9 @@ export function AvatarUpload({
                 className="w-full sm:w-auto"
               >
                 {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="size-4 mr-2 animate-spin" />
                 ) : (
-                  <Upload className="h-4 w-4 mr-2" />
+                  <Upload className="size-4 mr-2" />
                 )}
                 {t('profile.avatar.upload')}
               </Button>

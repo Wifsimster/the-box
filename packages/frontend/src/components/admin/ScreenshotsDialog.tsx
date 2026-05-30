@@ -19,24 +19,71 @@ interface ScreenshotsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+function getDifficultyLabel(
+  difficulty: number,
+): { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' } {
+  switch (difficulty) {
+    case 1:
+      return { label: 'Easy', variant: 'success' }
+    case 2:
+      return { label: 'Medium', variant: 'warning' }
+    case 3:
+      return { label: 'Hard', variant: 'destructive' }
+    default:
+      return { label: 'Unknown', variant: 'secondary' }
+  }
+}
+
 export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialogProps) {
   const { t } = useTranslation()
-  const [screenshots, setScreenshots] = useState<Screenshot[]>([])
-  const [loading, setLoading] = useState(false)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {t('admin.games.screenshotsDialog.title', { name: game?.name })}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Keying on the game id remounts the viewer per game, giving it fresh
+            state (carousel index + loading) without any reset-on-prop effect. */}
+        {open && game && <ScreenshotsViewer key={game.id} gameId={game.id} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface ScreenshotsState {
+  screenshots: Screenshot[]
+  loading: boolean
+}
+
+function ScreenshotsViewer({ gameId }: { gameId: number }) {
+  const { t } = useTranslation()
+  // `screenshots` and `loading` settle together (one fetch resolves both), so
+  // they live in a single state object updated in one set call rather than a
+  // cascade of setScreenshots/setLoading writes inside the effect.
+  const [{ screenshots, loading }, setState] = useState<ScreenshotsState>({
+    screenshots: [],
+    loading: true,
+  })
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
-    if (open && game) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to fetch screenshots when dialog opens
-      setLoading(true)
-      setCurrentIndex(0)
-      adminApi
-        .getGameScreenshots(game.id)
-        .then(({ screenshots }) => setScreenshots(screenshots))
-        .catch(() => setScreenshots([]))
-        .finally(() => setLoading(false))
+    let cancelled = false
+    adminApi
+      .getGameScreenshots(gameId)
+      .then(({ screenshots }) => {
+        if (!cancelled) setState({ screenshots, loading: false })
+      })
+      .catch(() => {
+        if (!cancelled) setState({ screenshots: [], loading: false })
+      })
+    return () => {
+      cancelled = true
     }
-  }, [open, game])
+  }, [gameId])
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : screenshots.length - 1))
@@ -48,7 +95,7 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
 
   // Keyboard navigation
   useEffect(() => {
-    if (!open || screenshots.length <= 1) return
+    if (screenshots.length <= 1) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
@@ -60,35 +107,15 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, screenshots.length, goToPrevious, goToNext])
-
-  const getDifficultyLabel = (difficulty: number): { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' } => {
-    switch (difficulty) {
-      case 1:
-        return { label: 'Easy', variant: 'success' }
-      case 2:
-        return { label: 'Medium', variant: 'warning' }
-      case 3:
-        return { label: 'Hard', variant: 'destructive' }
-      default:
-        return { label: 'Unknown', variant: 'secondary' }
-    }
-  }
+  }, [screenshots.length, goToPrevious, goToNext])
 
   const currentScreenshot = screenshots[currentIndex]
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {t('admin.games.screenshotsDialog.title', { name: game?.name })}
-          </DialogTitle>
-        </DialogHeader>
-
+    <>
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
           </div>
         ) : screenshots.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
@@ -97,11 +124,11 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
         ) : (
           <div className="relative">
             {/* Main image */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-background">
               <img
                 src={currentScreenshot?.imageUrl}
                 alt={`Screenshot ${currentIndex + 1}`}
-                className="w-full h-full object-contain"
+                className="size-full object-contain"
               />
 
               {/* Navigation arrows */}
@@ -110,20 +137,20 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10"
+                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 size-9 sm:size-10"
                     onClick={goToPrevious}
                     aria-label={t('admin.games.screenshotsDialog.previous')}
                   >
-                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <ChevronLeft className="size-5 sm:size-6" />
                   </Button>
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10"
+                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 size-9 sm:size-10"
                     onClick={goToNext}
                     aria-label={t('admin.games.screenshotsDialog.next')}
                   >
-                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <ChevronRight className="size-5 sm:size-6" />
                   </Button>
                 </>
               )}
@@ -159,7 +186,6 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </>
   )
 }

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -22,9 +22,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapPasswordResetError } from '@/lib/auth-errors'
 
 const formSchema = z.object({
-  email: z
-    .string()
-    .email({ message: 'Please enter a valid email address' }),
+  email: z.email({ message: 'Please enter a valid email address' }),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -77,13 +75,13 @@ export default function ForgotPasswordPage() {
       <>
         <CubeBackground />
         <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
             className="w-full max-w-md -mt-20"
           >
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -98,12 +96,12 @@ export default function ForgotPasswordPage() {
 
               <Link to={localizedPath('/login')}>
                 <Button variant="outline" className="w-full h-12 rounded-xl border-white/10">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="size-4 mr-2" />
                   {t('auth.backToLogin')}
                 </Button>
               </Link>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </div>
       </>
     )
@@ -113,13 +111,13 @@ export default function ForgotPasswordPage() {
     <>
       <CubeBackground />
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md -mt-20"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -146,7 +144,7 @@ export default function ForgotPasswordPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
                           <Input
                             type="email"
                             placeholder="you@example.com"
@@ -161,13 +159,13 @@ export default function ForgotPasswordPage() {
                 />
 
                 {form.formState.errors.root && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
                   >
                     {form.formState.errors.root.message}
-                  </motion.div>
+                  </m.div>
                 )}
 
                 <Button
@@ -178,7 +176,7 @@ export default function ForgotPasswordPage() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="size-5 animate-spin" />
                   ) : (
                     t('auth.sendResetLink')
                   )}
@@ -195,8 +193,8 @@ export default function ForgotPasswordPage() {
                 {t('auth.login')}
               </Link>
             </p>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </>
   )

@@ -4,7 +4,7 @@ import { ApiError } from './errors'
 type WithCode = { code?: string | null }
 type WithMessage = { message?: string | null }
 
-export function getApiErrorTranslationKey(code?: string | null): string {
+function getApiErrorTranslationKey(code?: string | null): string {
   if (!code) return 'apiErrors.default'
   // Only map to the namespaced key if it's a known code; otherwise fall back to default
   const exists = i18n.exists(`apiErrors.${code}`)

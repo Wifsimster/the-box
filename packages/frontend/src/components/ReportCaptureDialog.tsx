@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flag, Loader2 } from 'lucide-react'
 import type { ScreenshotReportReason } from '@the-box/types'
@@ -48,6 +48,60 @@ interface ReportCaptureDialogProps {
     iconOnly?: boolean
 }
 
+interface ReportFormState {
+    open: boolean
+    submitting: boolean
+    submitted: boolean
+    reason: ScreenshotReportReason
+    details: string
+}
+
+type ReportFormAction =
+    | { type: 'openChanged'; open: boolean }
+    | { type: 'reasonChanged'; reason: ScreenshotReportReason }
+    | { type: 'detailsChanged'; details: string }
+    | { type: 'submitStarted' }
+    | { type: 'submitSucceeded' }
+    | { type: 'submitFailed' }
+
+const initialReportFormState: ReportFormState = {
+    open: false,
+    submitting: false,
+    submitted: false,
+    reason: 'wrong_game',
+    details: '',
+}
+
+function reportFormReducer(
+    state: ReportFormState,
+    action: ReportFormAction,
+): ReportFormState {
+    switch (action.type) {
+        case 'openChanged':
+            return action.open
+                ? { ...state, open: true }
+                : {
+                      ...state,
+                      open: false,
+                      reason: 'wrong_game',
+                      details: '',
+                      submitted: false,
+                  }
+        case 'reasonChanged':
+            return { ...state, reason: action.reason }
+        case 'detailsChanged':
+            return { ...state, details: action.details }
+        case 'submitStarted':
+            return { ...state, submitting: true }
+        case 'submitSucceeded':
+            return { ...state, submitting: false, submitted: true, open: false }
+        case 'submitFailed':
+            return { ...state, submitting: false }
+        default:
+            return state
+    }
+}
+
 export function ReportCaptureDialog({
     target,
     isAuthenticated,
@@ -55,19 +109,14 @@ export function ReportCaptureDialog({
     iconOnly = false,
 }: ReportCaptureDialogProps) {
     const { t } = useTranslation()
-    const [open, setOpen] = useState(false)
-    const [submitting, setSubmitting] = useState(false)
-    const [submitted, setSubmitted] = useState(false)
-    const [reason, setReason] = useState<ScreenshotReportReason>('wrong_game')
-    const [details, setDetails] = useState('')
+    const [state, dispatch] = useReducer(
+        reportFormReducer,
+        initialReportFormState,
+    )
+    const { open, submitting, submitted, reason, details } = state
 
     const handleOpenChange = (next: boolean) => {
-        if (!next) {
-            setReason('wrong_game')
-            setDetails('')
-            setSubmitted(false)
-        }
-        setOpen(next)
+        dispatch({ type: 'openChanged', open: next })
     }
 
     const handleSubmit = async () => {
@@ -75,7 +124,7 @@ export function ReportCaptureDialog({
             toast.error(t('report.loginRequired'))
             return
         }
-        setSubmitting(true)
+        dispatch({ type: 'submitStarted' })
         try {
             const payload: SubmitReportInput =
                 'screenshotId' in target && target.screenshotId !== undefined
@@ -96,16 +145,14 @@ export function ReportCaptureDialog({
                     ? t('report.successDeactivated')
                     : t('report.successReceived'),
             )
-            setSubmitted(true)
-            setOpen(false)
+            dispatch({ type: 'submitSucceeded' })
         } catch (err) {
             const message =
                 err instanceof ReportApiError
                     ? err.message
                     : t('report.errorGeneric')
             toast.error(message)
-        } finally {
-            setSubmitting(false)
+            dispatch({ type: 'submitFailed' })
         }
     }
 
@@ -123,7 +170,7 @@ export function ReportCaptureDialog({
                         'text-xs text-muted-foreground hover:text-destructive'
                     }
                 >
-                    <Flag className={iconOnly ? 'h-4 w-4' : 'h-3.5 w-3.5 mr-1.5'} />
+                    <Flag className={iconOnly ? 'size-4' : 'size-3.5 mr-1.5'} />
                     {!iconOnly && t('report.trigger')}
                 </Button>
             </ResponsiveDialogTrigger>
@@ -142,7 +189,10 @@ export function ReportCaptureDialog({
                         <Select
                             value={reason}
                             onValueChange={(v) =>
-                                setReason(v as ScreenshotReportReason)
+                                dispatch({
+                                    type: 'reasonChanged',
+                                    reason: v as ScreenshotReportReason,
+                                })
                             }
                         >
                             <SelectTrigger id="report-reason">
@@ -163,8 +213,14 @@ export function ReportCaptureDialog({
                         </Label>
                         <textarea
                             id="report-details"
+                            aria-label={t('report.detailsLabel')}
                             value={details}
-                            onChange={(e) => setDetails(e.target.value)}
+                            onChange={(e) =>
+                                dispatch({
+                                    type: 'detailsChanged',
+                                    details: e.target.value,
+                                })
+                            }
                             maxLength={500}
                             rows={3}
                             placeholder={t('report.detailsPlaceholder')}
@@ -188,7 +244,7 @@ export function ReportCaptureDialog({
                         className="gradient-gaming hover:opacity-90"
                     >
                         {submitting && (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <Loader2 className="size-4 animate-spin mr-2" />
                         )}
                         {submitting ? t('report.submitting') : t('report.submit')}
                     </Button>

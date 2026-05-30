@@ -56,7 +56,7 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5 text-primary" />
+          <Palette className="size-5 text-primary" />
           {t('themes.title')}
         </CardTitle>
         <CardDescription>{t('themes.description')}</CardDescription>
@@ -94,9 +94,9 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
                     {t(`themes.options.${theme.i18nKey}`)}
                   </span>
                   {locked ? (
-                    <Lock className="h-4 w-4 text-muted-foreground" aria-label={t('themes.locked')} />
+                    <Lock className="size-4 text-muted-foreground" aria-label={t('themes.locked')} />
                   ) : isSelected ? (
-                    <Check className="h-4 w-4 text-success" aria-label={t('themes.selected')} />
+                    <Check className="size-4 text-success" aria-label={t('themes.selected')} />
                   ) : null}
                 </div>
                 {theme.premium && (

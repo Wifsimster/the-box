@@ -22,10 +22,8 @@ export function AdvancedStatsPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
     userApi
       .getAdvancedStats()
       .then((data) => {
@@ -41,14 +39,13 @@ export function AdvancedStatsPanel() {
       cancelled = true
     }
   }, [])
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+            <BarChart3 className="size-5 text-primary" />
             {t('advancedStats.title')}
           </CardTitle>
         </CardHeader>
@@ -70,7 +67,7 @@ export function AdvancedStatsPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+            <BarChart3 className="size-5 text-primary" />
             {t('advancedStats.title')}
           </CardTitle>
           <CardDescription>{t('advancedStats.errorMessage')}</CardDescription>
@@ -87,7 +84,7 @@ export function AdvancedStatsPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+            <BarChart3 className="size-5 text-primary" />
             {t('advancedStats.title')}
           </CardTitle>
           <CardDescription>{t('advancedStats.emptyState')}</CardDescription>
@@ -105,7 +102,7 @@ export function AdvancedStatsPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
+          <BarChart3 className="size-5 text-primary" />
           {t('advancedStats.title')}
         </CardTitle>
         <CardDescription>{t('advancedStats.description')}</CardDescription>
@@ -114,22 +111,22 @@ export function AdvancedStatsPanel() {
         {/* Headline aggregates */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatTile
-            icon={<Sparkles className="h-4 w-4 text-warning" />}
+            icon={<Sparkles className="size-4 text-warning" />}
             label={t('advancedStats.bestScore')}
             value={stats.bestScore.toLocaleString()}
           />
           <StatTile
-            icon={<TrendingUp className="h-4 w-4 text-success" />}
+            icon={<TrendingUp className="size-4 text-success" />}
             label={t('advancedStats.averageScore')}
             value={stats.averageScore.toLocaleString()}
           />
           <StatTile
-            icon={<BarChart3 className="h-4 w-4 text-primary" />}
+            icon={<BarChart3 className="size-4 text-primary" />}
             label={t('advancedStats.completedSessions')}
             value={stats.totalCompletedSessions.toLocaleString()}
           />
           <StatTile
-            icon={<Sparkles className="h-4 w-4 text-neon-pink" />}
+            icon={<Sparkles className="size-4 text-neon-pink" />}
             label={t('advancedStats.perfectSessions')}
             value={stats.perfectSessions.toLocaleString()}
           />
@@ -138,7 +135,7 @@ export function AdvancedStatsPanel() {
         {/* Solve-time percentiles */}
         <section>
           <h3 className="flex items-center gap-2 text-sm font-semibold mb-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="size-4 text-muted-foreground" />
             {t('advancedStats.solveTime')}
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -152,7 +149,7 @@ export function AdvancedStatsPanel() {
         {/* Hint usage */}
         <section>
           <h3 className="flex items-center gap-2 text-sm font-semibold mb-2">
-            <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            <Lightbulb className="size-4 text-muted-foreground" />
             {t('advancedStats.hintUsage')}
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -167,7 +164,7 @@ export function AdvancedStatsPanel() {
         {stats.monthlyScores.length > 0 && (
           <section>
             <h3 className="flex items-center gap-2 text-sm font-semibold mb-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="size-4 text-muted-foreground" />
               {t('advancedStats.monthlyProgression')}
             </h3>
             <div className="flex items-end gap-2 h-32">

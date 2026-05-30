@@ -36,7 +36,7 @@ export function WelcomeModal() {
           <>
             <ResponsiveDialogHeader>
               <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-                <Sparkles className="w-5 h-5 text-neon-purple" />
+                <Sparkles className="size-5 text-neon-purple" />
                 {t('onboarding.welcomeTitle')}
               </ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
@@ -46,13 +46,13 @@ export function WelcomeModal() {
 
             <div className="grid gap-3 my-4">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-card/40 border border-white/5">
-                <Gift className="w-5 h-5 text-neon-cyan mt-0.5 shrink-0" />
+                <Gift className="size-5 text-neon-cyan mt-0.5 shrink-0" />
                 <p className="text-sm text-foreground/90">
                   {t('onboarding.welcomeGift')}
                 </p>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-card/40 border border-white/5">
-                <Trophy className="w-5 h-5 text-neon-pink mt-0.5 shrink-0" />
+                <Trophy className="size-5 text-neon-pink mt-0.5 shrink-0" />
                 <p className="text-sm text-foreground/90">
                   {t('onboarding.welcomeRanked')}
                 </p>
@@ -65,7 +65,7 @@ export function WelcomeModal() {
               </Button>
               <Button variant="gaming" onClick={handleNext}>
                 {t('onboarding.next')}
-                <ArrowRight className="w-4 h-4 ml-1" />
+                <ArrowRight className="size-4 ml-1" />
               </Button>
             </div>
           </>
@@ -73,7 +73,7 @@ export function WelcomeModal() {
           <>
             <ResponsiveDialogHeader>
               <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-                <Camera className="w-5 h-5 text-neon-cyan" />
+                <Camera className="size-5 text-neon-cyan" />
                 {t('onboarding.howTitle')}
               </ResponsiveDialogTitle>
               <ResponsiveDialogDescription>
@@ -83,15 +83,15 @@ export function WelcomeModal() {
 
             <ol className="space-y-3 my-4 text-sm text-foreground/90">
               <li className="flex gap-3">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-purple/20 text-neon-purple font-bold text-xs shrink-0">1</span>
+                <span className="flex items-center justify-center size-6 rounded-full bg-neon-purple/20 text-neon-purple font-bold text-xs shrink-0">1</span>
                 <span>{t('onboarding.step1')}</span>
               </li>
               <li className="flex gap-3">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-cyan/20 text-neon-cyan font-bold text-xs shrink-0">2</span>
+                <span className="flex items-center justify-center size-6 rounded-full bg-neon-cyan/20 text-neon-cyan font-bold text-xs shrink-0">2</span>
                 <span>{t('onboarding.step2')}</span>
               </li>
               <li className="flex gap-3">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-neon-pink/20 text-neon-pink font-bold text-xs shrink-0">3</span>
+                <span className="flex items-center justify-center size-6 rounded-full bg-neon-pink/20 text-neon-pink font-bold text-xs shrink-0">3</span>
                 <span>{t('onboarding.step3')}</span>
               </li>
             </ol>

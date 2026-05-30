@@ -41,7 +41,7 @@ export function DeleteConfirmDialog({
             {t('common.cancel')}
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={isLoading} className="w-full sm:w-auto">
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isLoading && <Loader2 className="size-4 animate-spin" />}
             {t('common.delete')}
           </Button>
         </DialogFooter>

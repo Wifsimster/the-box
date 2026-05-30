@@ -1,5 +1,6 @@
 import {
     useEffect,
+    useEffectEvent,
     useRef,
     useState,
     useCallback,
@@ -52,15 +53,21 @@ function useImageZoom(resetKey: unknown) {
 
     const containerRef = useRef<HTMLDivElement | null>(null)
     const naturalRef = useRef({ w: 0, h: 0 })
-    const pointersRef = useRef(new Map<number, Point>())
+    const pointersRef = useRef<Map<number, Point> | null>(null)
+    if (pointersRef.current === null) {
+        pointersRef.current = new Map<number, Point>()
+    }
     const panRef = useRef<Point | null>(null)
     const pinchRef = useRef<{ dist: number; mid: Point } | null>(null)
 
-    // Reset zoom whenever the displayed image changes.
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset zoom for each new image
+    // Reset zoom whenever the displayed image changes. Adjusting during render
+    // (instead of in an effect) avoids showing the previous image's zoom for a
+    // frame after the source swaps.
+    const [prevResetKey, setPrevResetKey] = useState(resetKey)
+    if (resetKey !== prevResetKey) {
+        setPrevResetKey(resetKey)
         setView({ scale: 1, x: 0, y: 0 })
-    }, [resetKey])
+    }
 
     // Clamp a pan offset so the image edges can't be dragged inside the frame.
     const clampOffset = useCallback(
@@ -109,10 +116,11 @@ function useImageZoom(resetKey: unknown) {
     const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
         const el = containerRef.current
         if (!el) return
+        const pointers = (pointersRef.current ??= new Map<number, Point>())
         el.setPointerCapture(e.pointerId)
-        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
         setIsGesturing(true)
-        const pts = [...pointersRef.current.values()]
+        const pts = [...pointers.values()]
         if (pts.length >= 2) {
             const [p0, p1] = pts
             pinchRef.current = {
@@ -127,9 +135,10 @@ function useImageZoom(resetKey: unknown) {
 
     const onPointerMove = useCallback(
         (e: ReactPointerEvent<HTMLDivElement>) => {
-            if (!pointersRef.current.has(e.pointerId)) return
-            pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-            const pts = [...pointersRef.current.values()]
+            const pointers = (pointersRef.current ??= new Map<number, Point>())
+            if (!pointers.has(e.pointerId)) return
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+            const pts = [...pointers.values()]
 
             if (pts.length >= 2 && pinchRef.current) {
                 // Pinch-to-zoom, anchored on the midpoint between the fingers.
@@ -170,8 +179,9 @@ function useImageZoom(resetKey: unknown) {
     )
 
     const endPointer = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-        pointersRef.current.delete(e.pointerId)
-        const pts = [...pointersRef.current.values()]
+        const pointers = (pointersRef.current ??= new Map<number, Point>())
+        pointers.delete(e.pointerId)
+        const pts = [...pointers.values()]
         if (pts.length === 1) {
             // Pinch ended with one finger still down: hand off to panning.
             panRef.current = { x: pts[0]!.x, y: pts[0]!.y }
@@ -229,14 +239,16 @@ export function GameCarousel({
 }: GameCarouselProps) {
     const [api, setApi] = useState<CarouselApi>()
     const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
-    const [hasUserInteracted, setHasUserInteracted] = useState(false)
+    const hasUserInteractedRef = useRef(false)
 
     const zoom = useImageZoom(images[currentIndex]?.url ?? currentIndex)
     const { view } = zoom
 
     // Track user interaction to enable haptic feedback
     useEffect(() => {
-        const handleInteraction = () => setHasUserInteracted(true)
+        const handleInteraction = () => {
+            hasUserInteractedRef.current = true
+        }
         const events = ['click', 'touchstart', 'keydown']
         events.forEach((e) => document.addEventListener(e, handleInteraction, { once: true }))
         return () => events.forEach((e) => document.removeEventListener(e, handleInteraction))
@@ -244,30 +256,41 @@ export function GameCarousel({
 
     // Trigger haptic feedback on navigation
     const triggerHapticFeedback = useCallback(() => {
-        if (enableHapticFeedback && hasUserInteracted && 'vibrate' in navigator) {
+        if (enableHapticFeedback && hasUserInteractedRef.current && 'vibrate' in navigator) {
             navigator.vibrate(50)
         }
-    }, [enableHapticFeedback, hasUserInteracted])
+    }, [enableHapticFeedback])
+
+    // React to embla's own "select" event. Both the slide-change notification
+    // and the haptic pulse read the latest props/state via an Effect Event, so
+    // the subscription effect only depends on the carousel api itself.
+    const onSelect = useEffectEvent(() => {
+        if (!api) return
+        const selectedIndex = api.selectedScrollSnap()
+        onSlideChange?.(selectedIndex)
+        triggerHapticFeedback()
+    })
 
     // Handle slide selection
     useEffect(() => {
         if (!api) return
 
-        const handleSelect = () => {
-            const selectedIndex = api.selectedScrollSnap()
-            onSlideChange?.(selectedIndex)
-            triggerHapticFeedback()
-        }
+        const handleSelect = () => onSelect()
 
         api.on('select', handleSelect)
 
         return () => {
             api.off('select', handleSelect)
         }
-    }, [api, onSlideChange, triggerHapticFeedback])
+    }, [api])
 
-    // Sync carousel position with currentIndex prop
+    // Sync the embla carousel (an external, imperative system) to the
+    // controlled `currentIndex` prop. This is the React-endorsed "synchronizing
+    // with an external system" effect — there is no user event to hang it on,
+    // since the index can change from the parent's state. no-event-handler is a
+    // false positive here.
     useEffect(() => {
+        // oxlint-disable-next-line react-doctor/no-event-handler
         if (api && api.selectedScrollSnap() !== currentIndex) {
             api.scrollTo(currentIndex, false)
         }
@@ -285,7 +308,7 @@ export function GameCarousel({
     )
 
     return (
-        <div className={cn('relative w-full h-full', className)}>
+        <div className={cn('relative size-full', className)}>
             <Carousel
                 setApi={setApi}
                 opts={{
@@ -296,19 +319,19 @@ export function GameCarousel({
                     containScroll: 'trimSnaps',
                     watchDrag: false,
                 }}
-                className="w-full h-full pointer-events-none"
+                className="size-full pointer-events-none"
             >
                 <CarouselContent className="h-full ml-0">
                     {images.map((image, index) => {
                         const isActive = index === currentIndex
                         const zoomable = isActive && enableZoom
                         return (
-                            <CarouselItem key={index} className="basis-full h-full pl-0 flex items-center justify-center overflow-hidden">
+                            <CarouselItem key={image.url ?? `placeholder-${index}`} className="basis-full h-full pl-0 flex items-center justify-center overflow-hidden">
                                 {image.url ? (
                                     <div
                                         ref={zoomable ? zoom.containerRef : undefined}
                                         className={cn(
-                                            'relative w-full h-full flex items-center justify-center overflow-hidden',
+                                            'relative size-full flex items-center justify-center overflow-hidden',
                                             zoomable && 'pointer-events-auto touch-none',
                                             zoomable && view.scale > 1 &&
                                                 (zoom.isGesturing ? 'cursor-grabbing' : 'cursor-grab')
@@ -317,7 +340,7 @@ export function GameCarousel({
                                     >
                                         {!loadedImages.has(index) && (
                                             <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-                                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                                <Loader2 className="size-8 animate-spin text-primary" />
                                             </div>
                                         )}
                                         <img
@@ -325,7 +348,7 @@ export function GameCarousel({
                                             alt={image.alt || `Screenshot ${index + 1}`}
                                             draggable={false}
                                             className={cn(
-                                                'w-full h-full object-contain',
+                                                'size-full object-contain',
                                                 'transition-opacity duration-300',
                                                 loadedImages.has(index) ? 'opacity-100' : 'opacity-0',
                                                 imageClassName
@@ -353,7 +376,7 @@ export function GameCarousel({
                                         />
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-center text-muted-foreground h-full w-full">
+                                    <div className="flex items-center justify-center text-muted-foreground size-full">
                                         No image available
                                     </div>
                                 )}
@@ -369,22 +392,22 @@ export function GameCarousel({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                         onClick={zoom.zoomIn}
                         disabled={view.scale >= MAX_SCALE - 0.01}
                         title="Zoom in"
                     >
-                        <ZoomIn className="h-4 w-4" />
+                        <ZoomIn className="size-4" />
                     </Button>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                         onClick={zoom.zoomOut}
                         disabled={view.scale <= MIN_SCALE + 0.01}
                         title="Zoom out"
                     >
-                        <ZoomOut className="h-4 w-4" />
+                        <ZoomOut className="size-4" />
                     </Button>
                     <div className={cn(
                         "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
@@ -393,11 +416,11 @@ export function GameCarousel({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                            className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                             onClick={zoom.reset}
                             title="Reset zoom"
                         >
-                            <RotateCcw className="h-4 w-4" />
+                            <RotateCcw className="size-4" />
                         </Button>
                         <span className="text-xs text-foreground/60 px-2 tabular-nums">
                             {Math.round(view.scale * 100)}%

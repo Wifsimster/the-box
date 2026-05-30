@@ -9,19 +9,21 @@ interface AchievementGridProps {
     size?: 'small' | 'medium' | 'large'
 }
 
+const filters = ['all', 'unlocked', 'locked'] as const
+
+function sortByDifficulty(list: AchievementWithProgress[]) {
+    return list.toSorted((a, b) => {
+        // First sort by tier (easiest first: 1, 2, 3)
+        if (a.tier !== b.tier) {
+            return a.tier - b.tier
+        }
+        // Then by points within same tier (lowest points = easiest)
+        return a.points - b.points
+    })
+}
+
 export function AchievementGrid({ achievements, size = 'medium' }: AchievementGridProps) {
     const { t } = useTranslation()
-
-    const sortByDifficulty = (list: AchievementWithProgress[]) => {
-        return [...list].sort((a, b) => {
-            // First sort by tier (easiest first: 1, 2, 3)
-            if (a.tier !== b.tier) {
-                return a.tier - b.tier
-            }
-            // Then by points within same tier (lowest points = easiest)
-            return a.points - b.points
-        })
-    }
 
     const achievementsByStatus = useMemo(() => {
         const unlocked = achievements.filter(a =>
@@ -37,8 +39,6 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
             locked: sortByDifficulty(locked)
         }
     }, [achievements])
-
-    const filters = ['all', 'unlocked', 'locked'] as const
 
     const getFilterLabel = (filter: typeof filters[number]) => {
         return t(`achievements.filters.${filter}`)

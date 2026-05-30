@@ -10,16 +10,15 @@ export function OfflineIndicator() {
   if (isOnline) return null
 
   return (
-    <div
-      role="status"
+    <output
       aria-live="polite"
       className={cn(
         'fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium',
         'bg-warning/15 text-warning border-b border-warning/40 backdrop-blur-md',
       )}
     >
-      <WifiOff className="h-4 w-4" aria-hidden="true" />
+      <WifiOff className="size-4" aria-hidden="true" />
       <span>{t('pwa.offlineBanner')}</span>
-    </div>
+    </output>
   )
 }

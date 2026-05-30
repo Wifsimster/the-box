@@ -1,4 +1,4 @@
-import { forwardRef, type KeyboardEvent } from 'react'
+import { type KeyboardEvent, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoMap } from '@the-box/types'
 import { Shuffle } from 'lucide-react'
@@ -64,7 +64,7 @@ export function MapPicker({
                 side={isMobile ? 'bottom' : 'right'}
                 className={cn(
                     'p-0 flex flex-col gap-0',
-                    isMobile ? 'h-[80dvh] rounded-t-2xl' : 'sm:max-w-md w-full h-full',
+                    isMobile ? 'h-[80dvh] rounded-t-2xl' : 'sm:max-w-md size-full',
                 )}
             >
                 <SheetHeader className="p-4 pb-2 text-left space-y-1">
@@ -131,12 +131,10 @@ interface AnyMapCardProps {
     tabIndex: number
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
+    ref?: Ref<HTMLButtonElement>
 }
 
-const AnyMapCard = forwardRef<HTMLButtonElement, AnyMapCardProps>(function AnyMapCard(
-    { selected, tabIndex, onKeyDown, onSelect },
-    ref,
-) {
+function AnyMapCard({ selected, tabIndex, onKeyDown, onSelect, ref }: AnyMapCardProps) {
     const { t } = useTranslation()
     return (
         <button
@@ -156,14 +154,14 @@ const AnyMapCard = forwardRef<HTMLButtonElement, AnyMapCardProps>(function AnyMa
             )}
         >
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center px-2">
-                <Shuffle className="h-5 w-5 text-neon-pink" aria-hidden />
+                <Shuffle className="size-5 text-neon-pink" aria-hidden />
                 <span className="text-xs font-medium">
                     {t('geo.play.anyMap', 'Surprise me')}
                 </span>
             </div>
         </button>
     )
-})
+}
 
 interface MapCardProps {
     map: GeoMap
@@ -171,12 +169,10 @@ interface MapCardProps {
     tabIndex: number
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
+    ref?: Ref<HTMLButtonElement>
 }
 
-const MapCard = forwardRef<HTMLButtonElement, MapCardProps>(function MapCard(
-    { map, selected, tabIndex, onKeyDown, onSelect },
-    ref,
-) {
+function MapCard({ map, selected, tabIndex, onKeyDown, onSelect, ref }: MapCardProps) {
     const { t } = useTranslation()
     const label = map.region ?? t('geo.daily.chooseMap.worldFallback', 'World map')
     const placeholder = isPlaceholderImageUrl(map.imageUrl)
@@ -202,12 +198,12 @@ const MapCard = forwardRef<HTMLButtonElement, MapCardProps>(function MapCard(
                 <img
                     src={map.imageUrl}
                     alt=""
-                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                    className="size-full object-cover transition group-hover:scale-[1.02]"
                     loading="lazy"
                     decoding="async"
                 />
             ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
                     {label}
                 </div>
             )}
@@ -218,4 +214,4 @@ const MapCard = forwardRef<HTMLButtonElement, MapCardProps>(function MapCard(
             </div>
         </button>
     )
-})
+}

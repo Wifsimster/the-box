@@ -23,7 +23,7 @@ export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: Gue
       <ResponsiveDialogContent className="sm:max-w-md">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-            <Trophy className="w-5 h-5 text-neon-pink" />
+            <Trophy className="size-5 text-neon-pink" />
             {t('guestGate.title')}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>{t('guestGate.subtitle')}</ResponsiveDialogDescription>
@@ -31,15 +31,15 @@ export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: Gue
 
         <ul className="grid gap-2 my-4 text-sm">
           <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
-            <Flame className="w-4 h-4 text-neon-pink mt-0.5 shrink-0" />
+            <Flame className="size-4 text-neon-pink mt-0.5 shrink-0" />
             <span>{t('guestGate.benefitStreak')}</span>
           </li>
           <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
-            <Trophy className="w-4 h-4 text-neon-cyan mt-0.5 shrink-0" />
+            <Trophy className="size-4 text-neon-cyan mt-0.5 shrink-0" />
             <span>{t('guestGate.benefitLeaderboard')}</span>
           </li>
           <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
-            <Gift className="w-4 h-4 text-neon-purple mt-0.5 shrink-0" />
+            <Gift className="size-4 text-neon-purple mt-0.5 shrink-0" />
             <span>{t('guestGate.benefitHints')}</span>
           </li>
         </ul>

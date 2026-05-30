@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { TrendingUp, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,16 +22,16 @@ export function PercentileBanner({
 
   if (isLoading) {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
       >
         <div className="flex items-center justify-center gap-2">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-neon-purple border-t-transparent rounded-full animate-spin" />
+          <div className="size-3 sm:size-4 border-2 border-neon-purple border-t-transparent rounded-full animate-spin" />
           <span className="text-muted-foreground text-xs sm:text-sm">{t('common.loading')}</span>
         </div>
-      </motion.div>
+      </m.div>
     )
   }
 
@@ -43,7 +43,7 @@ export function PercentileBanner({
   const topPercent = Math.max(1, 100 - percentile)
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
@@ -51,20 +51,20 @@ export function PercentileBanner({
     >
       <div className="flex flex-col items-center gap-1.5 sm:gap-2">
         <div className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-bold">
-          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-neon-purple shrink-0" />
+          <TrendingUp className="size-4 sm:size-5 text-neon-purple shrink-0" />
           <span className="gradient-gaming bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
             {t('game.results.percentileTop', { percent: topPercent })}
           </span>
         </div>
         {rank !== null && (
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <Users className="size-3.5 sm:size-4 shrink-0" />
             <span>
               {t('game.results.rankOf', { rank, total: totalPlayers })}
             </span>
           </div>
         )}
       </div>
-    </motion.div>
+    </m.div>
   )
 }

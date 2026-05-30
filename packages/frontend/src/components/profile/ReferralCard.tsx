@@ -55,7 +55,7 @@ export function ReferralCard({ userId, language }: ReferralCardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5" />
+          <UserPlus className="size-5" />
           {t('referral.title')}
         </CardTitle>
         <CardDescription>{t('referral.description')}</CardDescription>
@@ -64,14 +64,14 @@ export function ReferralCard({ userId, language }: ReferralCardProps) {
         <div className="flex flex-col sm:flex-row gap-2">
           <Input readOnly value={inviteUrl} className="font-mono text-xs sm:text-sm" />
           <Button variant="gaming" onClick={handleCopy} className="shrink-0">
-            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+            {copied ? <Check className="size-4 mr-2" /> : <Copy className="size-4 mr-2" />}
             {copied ? t('referral.copied') : t('referral.copyLink')}
           </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Badge variant="outline" className="gap-1.5">
-            <Gift className="h-3.5 w-3.5" />
+            <Gift className="size-3.5" />
             {t('referral.stat', { count: stats?.referralsMade ?? 0 })}
           </Badge>
           {stats?.hasClaimed && (

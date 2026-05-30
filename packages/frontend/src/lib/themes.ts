@@ -80,7 +80,7 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
   },
 ]
 
-export const VALID_THEME_KEYS: ReadonlyArray<ThemeKey> = THEMES.map((t) => t.key)
+const VALID_THEME_KEYS: ReadonlyArray<ThemeKey> = THEMES.map((t) => t.key)
 
 export function isThemeKey(value: unknown): value is ThemeKey {
   return typeof value === 'string' && (VALID_THEME_KEYS as readonly string[]).includes(value)

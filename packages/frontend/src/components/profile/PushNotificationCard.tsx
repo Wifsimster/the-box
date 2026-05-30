@@ -55,7 +55,7 @@ export function PushNotificationCard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
+            <Bell className="size-5" />
             {t('pushNotifications.title')}
           </CardTitle>
           <CardDescription>{t('pushNotifications.description')}</CardDescription>
@@ -96,7 +96,7 @@ export function PushNotificationCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5" />
+          <Bell className="size-5" />
           {t('pushNotifications.title')}
         </CardTitle>
         <CardDescription id={descId}>{t('pushNotifications.description')}</CardDescription>
@@ -114,7 +114,7 @@ export function PushNotificationCard() {
               aria-busy={isLoading}
               aria-describedby={descId}
               onChange={(e) => void handleToggle(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
+              className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
             />
             <span className="flex-1 space-y-1">
               <span className="block text-sm text-foreground/90 group-hover:text-foreground transition-colors">
@@ -122,7 +122,7 @@ export function PushNotificationCard() {
               </span>
               {isLoading && (
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                  <Loader2 className="size-3 animate-spin" aria-hidden="true" />
                   <span className="sr-only">{t('pushNotifications.updating')}</span>
                 </span>
               )}

@@ -32,7 +32,7 @@ function PaginationDots({
           key={index}
           type="button"
           className={cn(
-            "w-2 h-2 rounded-full transition-colors",
+            "size-2 rounded-full transition-colors",
             index === current
               ? "bg-primary"
               : "bg-muted-foreground/30 hover:bg-muted-foreground/50"

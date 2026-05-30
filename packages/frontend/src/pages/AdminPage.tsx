@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useSession } from '@/lib/auth-client'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useAdminStore } from '@/stores/adminStore'
@@ -49,14 +49,14 @@ export default function AdminPage() {
   } = useAdminStore()
 
   const tabs = [
-    { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="h-4 w-4" /> },
-    { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="h-4 w-4" /> },
-    { id: 'users', label: t('admin.tabs.users'), icon: <Users className="h-4 w-4" /> },
-    { id: 'analytics', label: t('admin.tabs.analytics'), icon: <BarChart3 className="h-4 w-4" /> },
-    { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
-    { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="h-4 w-4" /> },
-    { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
-    { id: 'geo', label: t('admin.tabs.geo', 'Géo'), icon: <Compass className="h-4 w-4" /> },
+    { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="size-4" /> },
+    { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="size-4" /> },
+    { id: 'users', label: t('admin.tabs.users'), icon: <Users className="size-4" /> },
+    { id: 'analytics', label: t('admin.tabs.analytics'), icon: <BarChart3 className="size-4" /> },
+    { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="size-4" /> },
+    { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="size-4" /> },
+    { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="size-4" /> },
+    { id: 'geo', label: t('admin.tabs.geo', 'Géo'), icon: <Compass className="size-4" /> },
   ]
 
   // Get active tab from URL, default to 'jobs' if not present or invalid
@@ -117,13 +117,13 @@ export default function AdminPage() {
 
   if (isPending) {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="flex items-center justify-center min-h-[60vh]"
       >
         <LoadingSpinner size="xl" />
-      </motion.div>
+      </m.div>
     )
   }
 
@@ -132,7 +132,7 @@ export default function AdminPage() {
   }
 
   return (
-    <motion.div
+    <m.div
       variants={pageTransition}
       initial="initial"
       animate="animate"
@@ -142,16 +142,16 @@ export default function AdminPage() {
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 transition-all duration-300" style={{ paddingRight: sidebarOffset }}>
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          <motion.div
+          <m.div
             variants={fadeInLeft}
             initial="initial"
             animate="animate"
             transition={{ delay: 0.1 }}
             className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8"
           >
-            <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-neon-purple" />
+            <Settings className="size-6 sm:size-8 text-neon-purple" />
             <h1 className="text-2xl sm:text-3xl font-bold">{t('admin.title')}</h1>
-          </motion.div>
+          </m.div>
 
           <AnimatedTabs
             tabs={tabs}
@@ -161,7 +161,7 @@ export default function AdminPage() {
           />
 
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={activeTab}
               variants={tabContent}
               initial="initial"
@@ -180,13 +180,13 @@ export default function AdminPage() {
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}
               {activeTab === 'geo' && <GeoReviewPanel />}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
       </div>
 
       {/* Permanent Job Queue Panel */}
       <JobQueuePanel onMinimizedChange={setIsPanelMinimized} />
-    </motion.div>
+    </m.div>
   )
 }

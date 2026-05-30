@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { useCallback, useMemo, useState, type KeyboardEvent, type Ref } from 'react'
 import { useRovingTabindex } from '@/hooks/useRovingTabindex'
 import { useTranslation } from 'react-i18next'
 import type { GeoPlayableGame } from '@the-box/types'
@@ -105,7 +105,7 @@ export function GamePicker({
                     'p-0 flex flex-col gap-0',
                     isMobile
                         ? 'h-[85dvh] rounded-t-2xl'
-                        : 'sm:max-w-md w-full h-full',
+                        : 'sm:max-w-md size-full',
                 )}
             >
                 <SheetHeader className="p-4 pb-2 text-left space-y-2">
@@ -118,7 +118,7 @@ export function GamePicker({
                     </SheetDescription>
                     <div className="relative">
                         <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
                             aria-hidden
                         />
                         <Input
@@ -141,16 +141,12 @@ export function GamePicker({
 
                 <div className="flex-1 overflow-y-auto px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
                     {isLoading ? (
-                        <div
-                            className="flex justify-center py-16"
-                            role="status"
-                            aria-live="polite"
-                        >
-                            <Loader2 className="h-6 w-6 animate-spin text-neon-pink" aria-hidden />
+                        <output className="flex justify-center py-16">
+                            <Loader2 className="size-6 animate-spin text-neon-pink" aria-hidden />
                             <span className="sr-only">
                                 {t('common.loading', 'Loading…')}
                             </span>
-                        </div>
+                        </output>
                     ) : filtered.length === 0 ? (
                         <p className="py-12 text-center text-sm text-muted-foreground">
                             {games.length === 0
@@ -218,22 +214,21 @@ interface GameCardProps {
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
     onToggleIgnore?: () => void
+    ref?: Ref<HTMLButtonElement>
 }
 
-const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
-    {
-        game,
-        selected,
-        newCount,
-        completed,
-        ignored,
-        tabIndex,
-        onKeyDown,
-        onSelect,
-        onToggleIgnore,
-    },
+function GameCard({
+    game,
+    selected,
+    newCount,
+    completed,
+    ignored,
+    tabIndex,
+    onKeyDown,
+    onSelect,
+    onToggleIgnore,
     ref,
-) {
+}: GameCardProps) {
     const { t } = useTranslation()
     const cover = game.coverImageUrl && !isPlaceholderImageUrl(game.coverImageUrl)
         ? game.coverImageUrl
@@ -265,7 +260,7 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
                             count: newCount,
                         })}
                     >
-                        <Sparkles className="h-3 w-3" aria-hidden />
+                        <Sparkles className="size-3" aria-hidden />
                         {t('geo.play.newBadge', '+{{count}} new', { count: newCount })}
                     </span>
                 )}
@@ -273,7 +268,7 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
                     <span
                         className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
                     >
-                        <CheckCircle2 className="h-3 w-3" aria-hidden />
+                        <CheckCircle2 className="size-3" aria-hidden />
                         {t('geo.play.completedBadge', 'All seen')}
                     </span>
                 )}
@@ -281,7 +276,7 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
                     <span
                         className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-muted-foreground/80 px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg"
                     >
-                        <EyeOff className="h-3 w-3" aria-hidden />
+                        <EyeOff className="size-3" aria-hidden />
                         {t('geo.play.ignoredBadge', 'Ignored')}
                     </span>
                 )}
@@ -291,14 +286,14 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
                             src={cover}
                             alt=""
                             className={cn(
-                                'h-full w-full object-cover',
+                                'size-full object-cover',
                                 ignored && 'grayscale',
                             )}
                             loading="lazy"
                             decoding="async"
                         />
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground" lang="en">
+                        <div className="flex size-full items-center justify-center text-xs text-muted-foreground" lang="en">
                             {game.name}
                         </div>
                     )}
@@ -307,11 +302,11 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
                     <p className="font-medium text-sm leading-tight line-clamp-2" lang="en">{game.name}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                            <MapPin className="h-3 w-3" aria-hidden />
+                            <MapPin className="size-3" aria-hidden />
                             {t('geo.play.mapCount', '{{count}} maps', { count: game.mapCount })}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                            <ImageIcon className="h-3 w-3" aria-hidden />
+                            <ImageIcon className="size-3" aria-hidden />
                             {t('geo.play.screenshotCount', '{{count}} shots', {
                                 count: game.screenshotCount,
                             })}
@@ -334,9 +329,9 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
                     }
                 >
                     {ignored ? (
-                        <Eye className="h-3 w-3" aria-hidden />
+                        <Eye className="size-3" aria-hidden />
                     ) : (
-                        <EyeOff className="h-3 w-3" aria-hidden />
+                        <EyeOff className="size-3" aria-hidden />
                     )}
                     <span className="hidden sm:inline">
                         {ignored
@@ -347,4 +342,4 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
             )}
         </div>
     )
-})
+}

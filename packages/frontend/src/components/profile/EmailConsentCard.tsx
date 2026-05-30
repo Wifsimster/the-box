@@ -13,8 +13,12 @@ interface EmailConsentCardProps {
 export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCardProps) {
   const { t, i18n } = useTranslation()
   const [consent, setConsent] = useState(initialConsent)
-  const [lastUpdated, setLastUpdated] = useState(updatedAt)
+  // Local override applied only after a successful save. While null we fall
+  // back to the `updatedAt` prop, so the timestamp isn't derived state.
+  const [savedUpdatedAt, setSavedUpdatedAt] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+
+  const lastUpdated = savedUpdatedAt ?? updatedAt
 
   const handleToggle = async (next: boolean) => {
     if (isSaving || next === consent) return
@@ -23,7 +27,7 @@ export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCard
     setConsent(next)
     try {
       const updated = await userApi.updateEmailConsent(next)
-      setLastUpdated(updated.emailConsentUpdatedAt)
+      setSavedUpdatedAt(updated.emailConsentUpdatedAt ?? null)
       toast.success(next ? t('emailConsent.optedIn') : t('emailConsent.optedOut'))
     } catch (err) {
       setConsent(previous)
@@ -46,7 +50,7 @@ export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCard
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
+          <Mail className="size-5" />
           {t('emailConsent.title')}
         </CardTitle>
         <CardDescription>{t('emailConsent.description')}</CardDescription>
@@ -58,14 +62,14 @@ export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCard
             checked={consent}
             disabled={isSaving}
             onChange={(e) => handleToggle(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
+            className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
           />
           <span className="flex-1 space-y-1">
             <span className="block text-sm text-foreground/90 group-hover:text-foreground transition-colors">
               {t('emailConsent.label')}
             </span>
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
-              {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+              {isSaving && <Loader2 className="size-3 animate-spin" />}
               {formattedDate && !isSaving && t('emailConsent.updatedOn', { date: formattedDate })}
             </span>
           </span>

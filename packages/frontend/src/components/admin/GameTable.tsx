@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import type { Game } from '@/types'
 import {
   Table,
@@ -13,6 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, Image } from 'lucide-react'
 import { tableRow } from '@/lib/animations'
 
+function metacriticClass(score: number): string {
+  return score >= 75 ? 'text-success/80' : score >= 50 ? 'text-warning/80' : 'text-error/80'
+}
+
 interface GameTableProps {
   games: Game[]
   onEdit: (game: Game) => void
@@ -25,16 +29,16 @@ interface GameTableProps {
 
 function SortIcon({ field, sortField, sortOrder }: { field: string; sortField: string; sortOrder: 'asc' | 'desc' }) {
   if (sortField !== field) {
-    return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+    return <ArrowUpDown className="ml-1 size-4 opacity-50" />
   }
   return (
-    <motion.span
+    <m.span
       initial={{ rotate: 0 }}
       animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
       transition={{ duration: 0.2 }}
     >
-      <ArrowUp className="ml-1 h-4 w-4" />
-    </motion.span>
+      <ArrowUp className="ml-1 size-4" />
+    </m.span>
   )
 }
 
@@ -54,6 +58,7 @@ function SortableHeader({
   return (
     <TableHead>
       <button
+        type="button"
         className="flex items-center font-medium hover:text-foreground transition-colors"
         onClick={() => onSort(field)}
       >
@@ -75,16 +80,13 @@ export function GameTable({
 }: GameTableProps) {
   const { t } = useTranslation()
 
-  const metacriticClass = (score: number) =>
-    score >= 75 ? 'text-success/80' : score >= 50 ? 'text-warning/80' : 'text-error/80'
-
   return (
     <>
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         <AnimatePresence mode="popLayout">
           {games.map((game, index) => (
-            <motion.div
+            <m.div
               key={game.id}
               variants={tableRow}
               initial="initial"
@@ -143,7 +145,7 @@ export function GameTable({
                   title={t('admin.games.viewScreenshots')}
                   className="hover:bg-primary/20 hover:text-primary/70"
                 >
-                  <Image className="h-4 w-4" />
+                  <Image className="size-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -152,7 +154,7 @@ export function GameTable({
                   title={t('admin.games.editGame')}
                   className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="size-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -161,10 +163,10 @@ export function GameTable({
                   className="text-destructive hover:text-destructive hover:bg-error/20"
                   title={t('admin.games.deleteGame')}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </AnimatePresence>
       </div>
@@ -186,7 +188,7 @@ export function GameTable({
           <TableBody>
             <AnimatePresence mode="popLayout">
               {games.map((game, index) => (
-                <motion.tr
+                <m.tr
                   key={game.id}
                   variants={tableRow}
                   initial="initial"
@@ -225,7 +227,7 @@ export function GameTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -233,10 +235,10 @@ export function GameTable({
                           title={t('admin.games.viewScreenshots')}
                           className="hover:bg-primary/20 hover:text-primary/70"
                         >
-                          <Image className="h-4 w-4" />
+                          <Image className="size-4" />
                         </Button>
-                      </motion.div>
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      </m.div>
+                      <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -244,10 +246,10 @@ export function GameTable({
                           title={t('admin.games.editGame')}
                           className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="size-4" />
                         </Button>
-                      </motion.div>
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      </m.div>
+                      <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -255,12 +257,12 @@ export function GameTable({
                           className="text-destructive hover:text-destructive hover:bg-error/20"
                           title={t('admin.games.deleteGame')}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="size-4" />
                         </Button>
-                      </motion.div>
+                      </m.div>
                     </div>
                   </TableCell>
-                </motion.tr>
+                </m.tr>
               ))}
             </AnimatePresence>
           </TableBody>

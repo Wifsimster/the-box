@@ -58,7 +58,6 @@ function Pagination({
 
   return (
     <nav
-      role="navigation"
       aria-label="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
     >
@@ -71,15 +70,15 @@ function Pagination({
             disabled={currentPage <= 1}
             aria-label="Go to previous page"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="size-4" />
           </Button>
         </li>
 
         {visiblePages.map((page, index) => (
           <li key={`${page}-${index}`}>
             {page === "ellipsis" ? (
-              <span className="flex h-10 w-10 items-center justify-center">
-                <MoreHorizontal className="h-4 w-4" />
+              <span className="flex size-10 items-center justify-center">
+                <MoreHorizontal className="size-4" />
                 <span className="sr-only">More pages</span>
               </span>
             ) : (
@@ -104,7 +103,7 @@ function Pagination({
             disabled={currentPage >= totalPages}
             aria-label="Go to next page"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="size-4" />
           </Button>
         </li>
       </ul>

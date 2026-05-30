@@ -69,7 +69,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                     className
                 )}
             >
-                <div className="text-3xl">{isLocked ? <Lock className="w-8 h-8" aria-hidden="true" /> : achievement.iconUrl}</div>
+                <div className="text-3xl">{isLocked ? <Lock className="size-8" aria-hidden="true" /> : achievement.iconUrl}</div>
                 <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm truncate">
                         {isLocked ? '???' : localizedName}
@@ -91,7 +91,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         </Badge>
                     )}
                     {!isComplete && !isLocked && (
-                        <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                        <Lock className="size-3.5 text-muted-foreground" aria-hidden="true" />
                     )}
                 </div>
             </div>
@@ -121,7 +121,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         variant="outline"
                         className="text-xs flex items-center gap-1 border-muted-foreground/40 text-muted-foreground"
                     >
-                        <Lock className="h-3 w-3" aria-hidden="true" />
+                        <Lock className="size-3" aria-hidden="true" />
                         {lockedLabel}
                     </Badge>
                 </div>
@@ -133,7 +133,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         'text-4xl p-2 rounded-lg',
                         isComplete ? 'bg-primary/20 ring-2 ring-primary/30' : 'bg-muted/20'
                     )}>
-                        {isLocked ? <Lock className="w-10 h-10" aria-hidden="true" /> : achievement.iconUrl}
+                        {isLocked ? <Lock className="size-10" aria-hidden="true" /> : achievement.iconUrl}
                     </div>
                     <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg">

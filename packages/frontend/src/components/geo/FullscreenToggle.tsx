@@ -42,13 +42,13 @@ export function FullscreenToggle({
       // Glassy chip on top of the screenshot/map. `backdrop-blur` keeps it
       // legible across busy backgrounds without a hard scrim.
       className={cn(
-        'h-11 w-11 p-0 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur',
+        'size-11 p-0 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur',
         'border border-white/10 text-white shadow-lg',
         'focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}
     >
-      <Icon className="h-5 w-5" aria-hidden />
+      <Icon className="size-5" aria-hidden />
     </Button>
   )
 }

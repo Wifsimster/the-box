@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
@@ -86,7 +86,7 @@ function NavItemLink({
         )
       }
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
       <span>{t(item.labelKey)}</span>
       {item.badgeKey && (
         <Badge
@@ -178,7 +178,7 @@ function AccountMenu({
             return (
               <Button key={entry.key} variant="ghost" asChild className="h-11 w-full justify-start gap-2 px-3">
                 <Link to={entry.to} onClick={onNavigate}>
-                  <Icon className={cn('h-4 w-4 shrink-0', entry.iconClassName)} aria-hidden="true" />
+                  <Icon className={cn('size-4 shrink-0', entry.iconClassName)} aria-hidden="true" />
                   {entry.label}
                 </Link>
               </Button>
@@ -194,7 +194,7 @@ function AccountMenu({
                 entry.onSelect()
               }}
             >
-              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
               {entry.label}
             </Button>
           )
@@ -214,7 +214,7 @@ function AccountMenu({
           return (
             <DropdownMenuItem key={entry.key} asChild>
               <Link to={entry.to} className="flex cursor-pointer items-center gap-2">
-                <Icon className={cn('h-4 w-4', entry.iconClassName)} aria-hidden="true" />
+                <Icon className={cn('size-4', entry.iconClassName)} aria-hidden="true" />
                 {entry.label}
               </Link>
             </DropdownMenuItem>
@@ -226,13 +226,29 @@ function AccountMenu({
             onClick={entry.onSelect}
             className="flex cursor-pointer items-center gap-2"
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
+            <Icon className="size-4" aria-hidden="true" />
             {entry.label}
           </DropdownMenuItem>
         )
       })}
     </>
   )
+}
+
+// Subscribe the header to the window scroll position via an external store so
+// the initial value is read during render (avoiding a mount-time setState) and
+// SSR gets a stable "not scrolled" snapshot.
+function subscribeScrolled(onChange: () => void) {
+  window.addEventListener('scroll', onChange, { passive: true })
+  return () => window.removeEventListener('scroll', onChange)
+}
+
+function getScrolledSnapshot() {
+  return window.scrollY > 8
+}
+
+function getScrolledServerSnapshot() {
+  return false
 }
 
 /**
@@ -250,7 +266,11 @@ export function Header() {
   const navigate = useNavigate()
   const { session, isPending, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const isScrolled = useSyncExternalStore(
+    subscribeScrolled,
+    getScrolledSnapshot,
+    getScrolledServerSnapshot,
+  )
 
   const handleReplayTour = () => {
     requestTourReplay()
@@ -270,21 +290,15 @@ export function Header() {
   }, [fetchBillingEntitlement, session?.user?.id])
 
   // Keep the mobile menu and the daily reward modal mutually exclusive so the
-  // modal can't render underneath the Sheet on small screens.
-  useEffect(() => {
-    if (mobileMenuOpen && isRewardModalOpen) {
+  // modal can't render underneath the Sheet on small screens. Handled directly
+  // in `handleMobileMenuChange` (the menu's open handler) rather than via an
+  // effect that watches the resulting state.
+  const handleMobileMenuChange = (open: boolean) => {
+    if (open && isRewardModalOpen) {
       closeRewardModal()
     }
-  }, [mobileMenuOpen, isRewardModalOpen, closeRewardModal])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 8)
-    }
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    setMobileMenuOpen(open)
+  }
 
   // Show login/register buttons if there's no session. Also check the session
   // is valid (has user data) — the session endpoint can return invalid data.
@@ -310,10 +324,10 @@ export function Header() {
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4">
         {/* Mobile menu trigger — shown below md */}
         <div className="flex md:hidden">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuChange}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="size-11" aria-label={t('common.toggleMenu')}>
-                <Menu className="h-5 w-5" aria-hidden="true" />
+                <Menu className="size-5" aria-hidden="true" />
                 <span className="sr-only">{t('common.toggleMenu')}</span>
               </Button>
             </SheetTrigger>
@@ -425,7 +439,7 @@ export function Header() {
                     data-tour="profile-menu"
                     className="flex items-center gap-2 border-0 hover:bg-primary/10"
                   >
-                    <User className="h-4 w-4" aria-hidden="true" />
+                    <User className="size-4" aria-hidden="true" />
                     {isAdmin ? (
                       <Badge variant="admin" className="cursor-pointer text-xs">
                         {displayName}
@@ -433,7 +447,7 @@ export function Header() {
                     ) : (
                       <span className="text-sm font-bold">{displayName}</span>
                     )}
-                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    <ChevronDown className="size-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">

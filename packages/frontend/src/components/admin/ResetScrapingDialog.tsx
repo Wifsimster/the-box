@@ -52,7 +52,7 @@ export function ResetScrapingDialog({
             <DialogContent className="max-w-sm sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        <AlertTriangle className="size-5 text-destructive" />
                         {t('admin.geo.reset.dialog.title')}
                     </DialogTitle>
                     <DialogDescription>
@@ -99,7 +99,7 @@ export function ResetScrapingDialog({
                         disabled={!canConfirm}
                         className="w-full sm:w-auto"
                     >
-                        {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {isLoading && <Loader2 className="size-4 animate-spin" />}
                         {t('admin.geo.reset.dialog.confirm')}
                     </Button>
                 </DialogFooter>

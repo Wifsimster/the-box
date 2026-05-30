@@ -17,14 +17,14 @@ export class ApiError extends Error {
   }
 }
 
-export class NetworkError extends ApiError {
+class NetworkError extends ApiError {
   constructor(message = 'Network request failed', originalError?: unknown) {
     super(message, 0, 'NETWORK_ERROR', originalError)
     this.name = 'NetworkError'
   }
 }
 
-export class ValidationError extends ApiError {
+class ValidationError extends ApiError {
   constructor(message: string, originalError?: unknown) {
     super(message, 400, 'VALIDATION_ERROR', originalError)
     this.name = 'ValidationError'
@@ -113,6 +113,10 @@ export async function fetchWithRetry(
   const config = { ...DEFAULT_RETRY_CONFIG, ...retryConfig }
   let lastError: Error | undefined
 
+  // Build the retryable-status lookup once before the loop so each attempt
+  // does an O(1) Set.has() instead of an O(n) Array.includes() scan.
+  const retryableStatuses = new Set(config.retryableStatuses)
+
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     // Create AbortController for timeout
     const controller = new AbortController()
@@ -125,13 +129,18 @@ export async function fetchWithRetry(
         signal: controller.signal,
       }
 
+      // Sequential by design: this is a retry-with-backoff loop, so each
+      // attempt must await the previous one's outcome (and the backoff delay)
+      // before deciding whether to retry. Parallelizing would fire every retry
+      // at once and defeat the purpose.
+      // oxlint-disable-next-line react-doctor/async-await-in-loop
       const response = await fetch(url, fetchOptions)
 
       // Clear timeout on successful response
       clearTimeout(timeoutId)
 
       // If response is OK or not retryable, return it
-      if (response.ok || !config.retryableStatuses.includes(response.status)) {
+      if (response.ok || !retryableStatuses.has(response.status)) {
         return response
       }
 

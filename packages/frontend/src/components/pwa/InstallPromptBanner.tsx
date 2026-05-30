@@ -31,6 +31,14 @@ function isRecentlyDismissed(): boolean {
   }
 }
 
+function persistDismiss() {
+  try {
+    localStorage.setItem(DISMISS_KEY, String(Date.now()))
+  } catch {
+    // localStorage unavailable (private mode) — accept the loss.
+  }
+}
+
 export function InstallPromptBanner() {
   const { t } = useTranslation()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -59,14 +67,6 @@ export function InstallPromptBanner() {
     }
   }, [])
 
-  const persistDismiss = () => {
-    try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()))
-    } catch {
-      // localStorage unavailable (private mode) — accept the loss.
-    }
-  }
-
   const handleInstall = async () => {
     if (!deferredPrompt) return
     setVisible(false)
@@ -88,14 +88,14 @@ export function InstallPromptBanner() {
   if (!visible || !deferredPrompt) return null
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-labelledby="pwa-install-banner-title"
       aria-describedby="pwa-install-banner-desc"
       className={cn(
         // Sit just above the mobile BottomNav; drop to the corner at md where
         // the BottomNav is hidden.
-        'fixed inset-x-3 bottom-[var(--bottom-nav-space)] z-50 rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
+        'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
         'border-border p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
       )}
     >
@@ -108,7 +108,7 @@ export function InstallPromptBanner() {
         </p>
         <div className="mt-3 flex gap-2">
           <Button size="sm" onClick={handleInstall}>
-            <Download className="h-4 w-4 mr-1.5" aria-hidden="true" />
+            <Download className="size-4 mr-1.5" aria-hidden="true" />
             {t('pwa.installBanner.install')}
           </Button>
           <Button size="sm" variant="ghost" onClick={handleDismiss}>
@@ -122,8 +122,8 @@ export function InstallPromptBanner() {
         aria-label={t('pwa.installBanner.dismiss')}
         className="text-muted-foreground hover:text-foreground transition-colors"
       >
-        <X className="h-4 w-4" />
+        <X className="size-4" />
       </button>
-    </div>
+    </dialog>
   )
 }
