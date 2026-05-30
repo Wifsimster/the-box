@@ -45,10 +45,10 @@ export function HintButtons() {
     positionStates,
     challengeId,
     availableHints,
-    useHintYear,
-    useHintPublisher,
-    useHintDeveloper,
-    useHintGenre,
+    useHintYear: applyHintYear,
+    useHintPublisher: applyHintPublisher,
+    useHintDeveloper: applyHintDeveloper,
+    useHintGenre: applyHintGenre,
   } = useGameStore()
 
   // Daily challenge game mode
@@ -73,26 +73,22 @@ export function HintButtons() {
 
   const handleHintYear = () => {
     if (!hasIncorrectGuess || hintYearUsed || !yearAvailable) return
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintYear is a store action, not a React hook
-    useHintYear(currentPosition)
+    applyHintYear(currentPosition)
   }
 
   const handleHintPublisher = () => {
     if (!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable) return
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintPublisher is a store action, not a React hook
-    useHintPublisher(currentPosition)
+    applyHintPublisher(currentPosition)
   }
 
   const handleHintDeveloper = () => {
     if (!hasIncorrectGuess || hintDeveloperUsed || !developerAvailable) return
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintDeveloper is a store action, not a React hook
-    useHintDeveloper(currentPosition)
+    applyHintDeveloper(currentPosition)
   }
 
   const handleHintGenre = () => {
     if (!hasIncorrectGuess || hintGenreUsed || !genreAvailable) return
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- useHintGenre is a store action, not a React hook
-    useHintGenre(currentPosition)
+    applyHintGenre(currentPosition)
   }
 
   return (
