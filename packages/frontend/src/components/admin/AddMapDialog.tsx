@@ -237,10 +237,15 @@ function WandPane({
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
+    // Reset the form when switching to a different game. Adjusting during
+    // render with a prev-prop comparison avoids a frame of the prior game's
+    // values before the effect would have cleared them.
+    const [prevGameId, setPrevGameId] = useState(game.id)
+    if (game.id !== prevGameId) {
+        setPrevGameId(game.id)
         setForm(defaultWandForm(game.slug))
         setError(null)
-    }, [game.id, game.slug])
+    }
 
     const set = <K extends keyof WandFormState>(key: K, value: WandFormState[K]) =>
         setForm((prev) => ({ ...prev, [key]: value }))
@@ -384,10 +389,13 @@ function ManualPane({
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
+    // Reset the form when switching to a different game (see WandPane).
+    const [prevGameId, setPrevGameId] = useState(game.id)
+    if (game.id !== prevGameId) {
+        setPrevGameId(game.id)
         setForm(EMPTY_MANUAL)
         setError(null)
-    }, [game.id])
+    }
 
     const set = <K extends keyof ManualFormState>(key: K, value: ManualFormState[K]) =>
         setForm((prev) => ({ ...prev, [key]: value }))

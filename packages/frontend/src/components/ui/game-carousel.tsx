@@ -56,11 +56,14 @@ function useImageZoom(resetKey: unknown) {
     const panRef = useRef<Point | null>(null)
     const pinchRef = useRef<{ dist: number; mid: Point } | null>(null)
 
-    // Reset zoom whenever the displayed image changes.
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset zoom for each new image
+    // Reset zoom whenever the displayed image changes. Adjusting during render
+    // (instead of in an effect) avoids showing the previous image's zoom for a
+    // frame after the source swaps.
+    const [prevResetKey, setPrevResetKey] = useState(resetKey)
+    if (resetKey !== prevResetKey) {
+        setPrevResetKey(resetKey)
         setView({ scale: 1, x: 0, y: 0 })
-    }, [resetKey])
+    }
 
     // Clamp a pan offset so the image edges can't be dragged inside the frame.
     const clampOffset = useCallback(

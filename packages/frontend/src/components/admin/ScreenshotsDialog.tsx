@@ -25,11 +25,19 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
   const [loading, setLoading] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  // Reset the carousel + loading flag synchronously during render whenever the
+  // dialog is (re)opened for a game, so we never show the previous game's
+  // screenshots. The effect below only performs the async fetch.
+  const openGameId = open && game ? game.id : null
+  const [prevOpenGameId, setPrevOpenGameId] = useState(openGameId)
+  if (openGameId !== prevOpenGameId) {
+    setPrevOpenGameId(openGameId)
+    setCurrentIndex(0)
+    setLoading(openGameId != null)
+  }
+
   useEffect(() => {
     if (open && game) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to fetch screenshots when dialog opens
-      setLoading(true)
-      setCurrentIndex(0)
       adminApi
         .getGameScreenshots(game.id)
         .then(({ screenshots }) => setScreenshots(screenshots))

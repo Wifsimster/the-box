@@ -29,6 +29,16 @@ export function ScreenshotViewer({
     sessionId,
   } = useGameStore()
 
+  // Re-center the carousel whenever the active screenshot changes. Adjusting
+  // during render (rather than in the image-building effect) avoids a stale
+  // off-center frame between commits.
+  const centerKey = `${imageUrl}|${currentPosition}`
+  const [prevCenterKey, setPrevCenterKey] = useState(centerKey)
+  if (centerKey !== prevCenterKey) {
+    setPrevCenterKey(centerKey)
+    setCurrentCarouselIndex(1)
+  }
+
   // Find previous navigable position
   const findPreviousPosition = useMemo(() => {
     for (let i = currentPosition - 1; i >= 1; i--) {
@@ -121,8 +131,6 @@ export function ScreenshotViewer({
 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to update images when dependencies change
     setImages(newImages)
-
-    setCurrentCarouselIndex(1) // Reset to center
   }, [imageUrl, currentPosition, totalScreenshots, sessionId, gamePhase, findPreviousPosition, findNextPosition, t])
 
   // Handle carousel slide change (disabled - swipe removed)

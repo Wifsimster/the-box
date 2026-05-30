@@ -85,16 +85,16 @@ export function MapCanvas({
     // a stray pin.
     const suppressClickRef = useRef(false)
 
-    useEffect(() => {
+    // Reset error/zoom/pan whenever the underlying map changes; otherwise users
+    // get stuck zoomed into the previous map's coordinates. Adjusting state
+    // during render (instead of in an effect) avoids a stale-UI commit.
+    const [prevImageUrl, setPrevImageUrl] = useState(imageUrl)
+    if (imageUrl !== prevImageUrl) {
+        setPrevImageUrl(imageUrl)
         setErrored(isPlaceholderImageUrl(imageUrl))
-    }, [imageUrl])
-
-    // Reset zoom/pan whenever the underlying map changes; otherwise users get
-    // stuck zoomed into the previous map's coordinates.
-    useEffect(() => {
         setZoom(1)
         setPan({ x: 0, y: 0 })
-    }, [imageUrl])
+    }
 
     const clampPan = useCallback(
         (x: number, y: number, z: number) => {

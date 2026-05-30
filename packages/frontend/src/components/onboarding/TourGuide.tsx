@@ -167,17 +167,13 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
   }, [onClose])
 
   // Reset to first step whenever the tour transitions from closed → open.
-  // Using a ref guard keeps the reset out of the render path while
-  // staying compatible with the "no setState in effect" lint rule.
-  const wasOpenRef = useRef(false)
-  /* eslint-disable react-hooks/set-state-in-effect -- reset stepIndex on open transition */
-  useEffect(() => {
-    if (open && !wasOpenRef.current) {
-      setStepIndex(0)
-    }
-    wasOpenRef.current = open
-  }, [open])
-  /* eslint-enable react-hooks/set-state-in-effect */
+  // Adjusting state during render with a prev-prop comparison keeps the reset
+  // out of an effect, so there's no stale-step frame between commits.
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) setStepIndex(0)
+  }
 
   // Measure target + position tooltip on every step / resize / scroll.
   useLayoutEffect(() => {
