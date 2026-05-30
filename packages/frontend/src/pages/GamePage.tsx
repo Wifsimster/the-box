@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { useGameStore } from '@/stores/gameStore'
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
@@ -466,7 +466,7 @@ export default function GamePage() {
       <AnimatePresence mode="wait">
         {/* Loading State - also show while waiting for hydration */}
         {(isLoading || !_hasHydrated) && gamePhase === 'idle' && (
-          <motion.div
+          <m.div
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -474,12 +474,12 @@ export default function GamePage() {
             className="flex items-center justify-center size-full"
           >
             <Loader2 className="size-8 animate-spin text-primary" />
-          </motion.div>
+          </m.div>
         )}
 
         {/* Error State */}
         {error && (
-          <motion.div
+          <m.div
             key="error"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -487,7 +487,7 @@ export default function GamePage() {
             className="flex flex-col items-center justify-center size-full px-4 sm:px-6"
           >
             {error.includes(t('game.alreadyCompleted')) ? (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 12, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -558,7 +558,7 @@ export default function GamePage() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             ) : (
               <div className="flex flex-col items-center gap-4 max-w-md text-center">
                 <p className="text-destructive">{error}</p>
@@ -575,7 +575,7 @@ export default function GamePage() {
                 </div>
               </div>
             )}
-          </motion.div>
+          </m.div>
         )}
 
         {/* Daily Challenge Intro Screen */}
@@ -591,7 +591,7 @@ export default function GamePage() {
 
         {/* Main Game Screen */}
         {(gamePhase === 'playing' || gamePhase === 'result') && (
-          <motion.div
+          <m.div
             key="game"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -611,7 +611,7 @@ export default function GamePage() {
 
             {/* Dynamic Blurred Background Layer */}
             {currentImageUrl && (
-              <motion.div
+              <m.div
                 className="absolute inset-0 size-full z-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -625,7 +625,7 @@ export default function GamePage() {
                 />
                 {/* Gradient overlays for ambient effect */}
                 <div className="absolute inset-0 bg-linear-to-br from-neon-purple/10 via-transparent to-neon-pink/10 pointer-events-none" />
-              </motion.div>
+              </m.div>
             )}
 
             {/* Screenshot Viewer — flex-1 so it fills all space above the dock. */}
@@ -682,12 +682,12 @@ export default function GamePage() {
 
             {/* Completion Choice Modal */}
             <CompletionChoiceModal />
-          </motion.div>
+          </m.div>
         )}
 
         {/* Challenge Complete Screen */}
         {gamePhase === 'challenge_complete' && (
-          <motion.div
+          <m.div
             key="challenge-complete"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -702,20 +702,20 @@ export default function GamePage() {
               {(() => {
                 const totalHintPenalties = guessResults.reduce((sum, result) => sum + (result.hintPenalty || 0), 0)
                 return totalHintPenalties > 0 ? (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     className="text-sm text-score-low mb-6"
                   >
                     {t('game.hints.penaltyApplied', { penalty: totalHintPenalties })}
-                  </motion.div>
+                  </m.div>
                 ) : null
               })()}
 
               {/* World Total Score */}
               {worldScore !== null && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
@@ -725,7 +725,7 @@ export default function GamePage() {
                   <span className="text-lg">
                     {t('game.worldTotal')}: <span className="font-bold text-foreground">{worldScore.toLocaleString()}</span> pts
                   </span>
-                </motion.div>
+                </m.div>
               )}
 
               <div className="flex gap-4 justify-center flex-wrap">
@@ -754,7 +754,7 @@ export default function GamePage() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

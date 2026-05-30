@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { JobCardSkeleton } from '@/components/ui/skeleton'
@@ -281,7 +281,7 @@ export function JobList() {
 
   if (isLoading) {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="space-y-6"
@@ -296,12 +296,12 @@ export function JobList() {
             ))}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     )
   }
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -309,7 +309,7 @@ export function JobList() {
     >
       {/* Jobs List */}
       {allJobs.length > 0 && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -323,7 +323,7 @@ export function JobList() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <AnimatePresence initial={false}>
-                <motion.div
+                <m.div
                   className="space-y-2"
                 >
                   {allJobs.map((job) => {
@@ -337,7 +337,7 @@ export function JobList() {
                         open={isExpanded}
                         onOpenChange={() => toggleJobExpansion(job.id)}
                       >
-                        <motion.div
+                        <m.div
                           layout
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -509,15 +509,15 @@ export function JobList() {
                               </div>
                             </div>
                           </CollapsibleContent>
-                        </motion.div>
+                        </m.div>
                       </Collapsible>
                     )
                   })}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       )}
 
       {/* Cancel Stuck Sync Dialog */}
@@ -548,6 +548,6 @@ export function JobList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </m.div>
   )
 }

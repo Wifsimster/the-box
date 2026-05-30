@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import {
     Crown,
     Gift,
@@ -53,7 +53,7 @@ export function RewardCard({ grant }: RewardCardProps) {
         : `rewards.sources.${grant.source}.pending`
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
@@ -105,6 +105,6 @@ export function RewardCard({ grant }: RewardCardProps) {
                             : t('rewards.locked')}
                 </Button>
             </div>
-        </motion.div>
+        </m.div>
     )
 }

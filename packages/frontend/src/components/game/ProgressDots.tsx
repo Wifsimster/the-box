@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useGameStore } from '@/stores/gameStore'
 import { cn } from '@/lib/utils'
@@ -49,7 +49,7 @@ export function ProgressDots() {
         const isClickable = pos !== currentPosition
 
         return (
-          <motion.button
+          <m.button
             key={pos}
             role="tab"
             onClick={() => handleDotClick(pos)}
@@ -80,7 +80,7 @@ export function ProgressDots() {
             >
               <span className="text-primary-foreground drop-shadow-md tabular-nums">{pos}</span>
             </span>
-          </motion.button>
+          </m.button>
         )
       })}
     </div>

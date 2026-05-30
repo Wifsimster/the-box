@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Trophy, Award, TrendingUp, Flame, Calendar, Snowflake } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -51,7 +51,7 @@ export function ProfileHeaderCard({
       <CardContent className="pt-6 pb-5">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 lg:min-w-[280px]">
-            <motion.div
+            <m.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
@@ -63,7 +63,7 @@ export function ProfileHeaderCard({
                 userInitials={userInitials}
                 onAvatarChange={onAvatarChange}
               />
-            </motion.div>
+            </m.div>
             <div className="flex-1 space-y-2 text-center sm:text-left">
               <h2 className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
                 <span>{userName}</span>

@@ -20,7 +20,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { Search, Loader2, ArrowUpDown, ArrowUp, Trash2, Ban, Unlock, Crown } from 'lucide-react'
 import { toast } from '@/lib/toast'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { tableRow } from '@/lib/animations'
 
 function debounce<T extends (...args: Parameters<T>) => void>(
@@ -39,13 +39,13 @@ function UserSortIcon({ field, sortField, sortOrder }: { field: string; sortFiel
     return <ArrowUpDown className="ml-1 size-4 opacity-50" />
   }
   return (
-    <motion.span
+    <m.span
       initial={{ rotate: 0 }}
       animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
       transition={{ duration: 0.2 }}
     >
       <ArrowUp className="ml-1 size-4" />
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -352,7 +352,7 @@ export function UserList() {
               <div className="md:hidden space-y-3">
                 <AnimatePresence mode="popLayout">
                   {users.map((user, index) => (
-                    <motion.div
+                    <m.div
                       key={user.id}
                       variants={tableRow}
                       initial="initial"
@@ -488,7 +488,7 @@ export function UserList() {
                           </Button>
                         </Tooltip>
                       </div>
-                    </motion.div>
+                    </m.div>
                   ))}
                 </AnimatePresence>
               </div>
@@ -512,7 +512,7 @@ export function UserList() {
                   <TableBody>
                     <AnimatePresence mode="popLayout">
                       {users.map((user, index) => (
-                        <motion.tr
+                        <m.tr
                           key={user.id}
                           variants={tableRow}
                           initial="initial"
@@ -568,7 +568,7 @@ export function UserList() {
                             <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                               {usersBilling[user.id]?.source === 'supporter' ? (
                                 <Tooltip content={t('admin.users.revokePremium')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                  <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -578,11 +578,11 @@ export function UserList() {
                                     >
                                       <Crown className="size-4 text-neon-pink" />
                                     </Button>
-                                  </motion.div>
+                                  </m.div>
                                 </Tooltip>
                               ) : (
                                 <Tooltip content={t('admin.users.grantPremium')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                  <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -592,12 +592,12 @@ export function UserList() {
                                     >
                                       <Crown className="size-4" />
                                     </Button>
-                                  </motion.div>
+                                  </m.div>
                                 </Tooltip>
                               )}
                               {user.isAdmin ? (
                                 <Tooltip content={t('admin.users.unbanUser')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                  <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                     <Button
                                       variant="unban"
                                       size="icon"
@@ -606,11 +606,11 @@ export function UserList() {
                                     >
                                       <Unlock className="size-4" />
                                     </Button>
-                                  </motion.div>
+                                  </m.div>
                                 </Tooltip>
                               ) : (
                                 <Tooltip content={t('admin.users.banUser')}>
-                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                  <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                     <Button
                                       variant="ban"
                                       size="icon"
@@ -619,11 +619,11 @@ export function UserList() {
                                     >
                                       <Ban className="size-4" />
                                     </Button>
-                                  </motion.div>
+                                  </m.div>
                                 </Tooltip>
                               )}
                               <Tooltip content={t('admin.users.deleteUser')}>
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                   <Button
                                     variant="dangerGhost"
                                     size="icon"
@@ -632,11 +632,11 @@ export function UserList() {
                                   >
                                     <Trash2 className="size-4" />
                                   </Button>
-                                </motion.div>
+                                </m.div>
                               </Tooltip>
                             </div>
                           </TableCell>
-                        </motion.tr>
+                        </m.tr>
                       ))}
                     </AnimatePresence>
                   </TableBody>

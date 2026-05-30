@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
   if (tokenError) {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -121,7 +121,7 @@ export default function ResetPasswordPage() {
               </Link>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       </div>
     )
   }
@@ -129,7 +129,7 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -158,14 +158,14 @@ export default function ResetPasswordPage() {
               </Button>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       </div>
     )
   }
 
   return (
     <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -244,7 +244,7 @@ export default function ResetPasswordPage() {
             </form>
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

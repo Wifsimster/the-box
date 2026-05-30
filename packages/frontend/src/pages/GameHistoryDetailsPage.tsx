@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -140,7 +140,7 @@ export default function GameHistoryDetailsPage() {
         </Button>
       </div>
 
-      <motion.div
+      <m.div
         initial={reducedMotion ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reducedMotion ? 0 : 0.5 }}
@@ -148,7 +148,7 @@ export default function GameHistoryDetailsPage() {
       >
         {sessionData.totalScore > 0 ? (
           <>
-            <motion.div
+            <m.div
               initial={reducedMotion ? false : { scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.2, type: reducedMotion ? 'tween' : 'spring' }}
@@ -160,7 +160,7 @@ export default function GameHistoryDetailsPage() {
               aria-hidden="true"
             >
               <Trophy className="size-7 sm:size-10 text-white" />
-            </motion.div>
+            </m.div>
             {sessionData.isPersonalBest && (
               <div className="mb-2">
                 <Badge variant="warning" className="text-medal-gold border-medal-gold/40 bg-medal-gold/10">
@@ -197,7 +197,7 @@ export default function GameHistoryDetailsPage() {
           </>
         )}
 
-        <motion.div
+        <m.div
           initial={reducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.4 }}
@@ -210,7 +210,7 @@ export default function GameHistoryDetailsPage() {
           aria-label={`${sessionData.totalScore} ${t('game.totalScore')}${sessionData.isPersonalBest ? ` — ${t('history.personalBest')}` : ''}`}
         >
           {sessionData.totalScore} pts
-        </motion.div>
+        </m.div>
 
         <div className="flex justify-center gap-4 sm:gap-6 md:gap-8 text-muted-foreground">
           <div className="flex flex-col items-center">
@@ -226,7 +226,7 @@ export default function GameHistoryDetailsPage() {
             <p className="text-xs sm:text-sm mt-1">{t('game.accuracy')}</p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Results Summary — single render, page scrolls naturally on mobile + desktop */}
       <Card className="bg-card/50 border-border">
@@ -237,7 +237,7 @@ export default function GameHistoryDetailsPage() {
               const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
               const multiplier = result.isCorrect && result.scoreEarned > 0 ? calculateSpeedMultiplier(result.timeTakenMs) : 1
               return (
-                <motion.li
+                <m.li
                   key={result.position}
                   initial={reducedMotion ? false : { opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -303,7 +303,7 @@ export default function GameHistoryDetailsPage() {
                       </div>
                     )}
                   </div>
-                </motion.li>
+                </m.li>
               )
             })}
 

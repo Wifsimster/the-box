@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Check, Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +46,7 @@ export function PricingCard({
   const intervalKey = price.interval === 'month' ? 'pricing.billingMonthly' : 'pricing.billingAnnual'
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -99,6 +99,6 @@ export function PricingCard({
           </Button>
         </CardFooter>
       </Card>
-    </motion.div>
+    </m.div>
   )
 }

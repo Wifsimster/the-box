@@ -1,5 +1,5 @@
 import type { NewlyEarnedAchievement } from '@the-box/types'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { toast as sonner } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,7 +51,7 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
 
             <CardHeader className="pb-3 relative">
                 <div className="flex items-center gap-2 mb-2">
-                    <motion.div
+                    <m.div
                         animate={{
                             rotate: [0, 10, -10, 10, 0],
                             scale: [1, 1.1, 1, 1.1, 1],
@@ -59,7 +59,7 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
                         transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
                     >
                         <Trophy className="size-5 text-warning" />
-                    </motion.div>
+                    </m.div>
                     <span className="text-sm font-semibold text-warning flex items-center gap-1">
                         <Sparkles className="size-4" />
                         {t('achievements.unlocked')}
@@ -67,7 +67,7 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
                 </div>
 
                 <div className="flex items-start gap-3">
-                    <motion.div
+                    <m.div
                         className="text-5xl"
                         animate={{
                             scale: [1, 1.2, 1],
@@ -76,7 +76,7 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
                         transition={{ duration: 0.6, delay: 0.2 }}
                     >
                         {achievement.iconUrl || '🏆'}
-                    </motion.div>
+                    </m.div>
                     <div className="flex-1">
                         <CardTitle className="text-xl">{localizedName}</CardTitle>
                         <CardDescription className="mt-1 text-muted-foreground">

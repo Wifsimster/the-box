@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface ProgressBarProps {
@@ -16,7 +16,7 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
         const isUpcoming = position > current
 
         return (
-          <motion.div
+          <m.div
             key={position}
             className={cn(
               "relative flex items-center justify-center",
@@ -40,7 +40,7 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
                 )}
               />
             )}
-          </motion.div>
+          </m.div>
         )
       })}
     </div>

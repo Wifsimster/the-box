@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -360,7 +360,7 @@ export default function HistoryPage() {
                         const { challenge } = item
                         const dateLabel = formatDate(challenge.date)
                         return (
-                          <motion.li
+                          <m.li
                             key={`missed-${challenge.challengeId}`}
                             initial={reducedMotion ? false : { opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -392,7 +392,7 @@ export default function HistoryPage() {
                                 {t('history.playCatchUp')}
                               </Button>
                             </div>
-                          </motion.li>
+                          </m.li>
                         )
                       }
 
@@ -409,7 +409,7 @@ export default function HistoryPage() {
                         : t('history.resumeGame', { date: dateLabel })
 
                       return (
-                        <motion.li
+                        <m.li
                           key={entry.sessionId}
                           initial={reducedMotion ? false : { opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -483,7 +483,7 @@ export default function HistoryPage() {
                               <ChevronRight className="size-5 sm:size-6 text-muted-foreground group-hover:text-primary group-focus-visible:text-primary group-hover:translate-x-1 group-focus-visible:translate-x-1 transition-all" aria-hidden="true" />
                             </div>
                           </Link>
-                        </motion.li>
+                        </m.li>
                       )
                     })}
                   </ul>

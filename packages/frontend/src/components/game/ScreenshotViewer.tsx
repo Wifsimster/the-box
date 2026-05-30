@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useGameStore } from '@/stores/gameStore'
@@ -155,14 +155,14 @@ export function ScreenshotViewer({
       {/* Placeholder when no image */}
       {!imageUrl && (
         <AnimatePresence>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-neon-purple/20 to-neon-pink/20 z-20"
           >
             <p className="text-muted-foreground">{t('game.screenshotPlaceholder')}</p>
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       )}
     </div>

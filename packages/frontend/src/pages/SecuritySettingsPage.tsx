@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import {
   Shield,
   KeyRound,
@@ -243,7 +243,7 @@ export default function SecuritySettingsPage() {
         <ChevronLeft className="size-4" /> {t('security.backToProfile')}
       </button>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -358,7 +358,7 @@ export default function SecuritySettingsPage() {
             </Button>
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
 
       {/* ---------- TOTP enrollment dialog ---------- */}
       <Dialog open={totpStep !== 'idle'} onOpenChange={(open) => !open && closeTotpDialog()}>

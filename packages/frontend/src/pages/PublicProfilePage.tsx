@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Trophy, Flame, Gamepad2, Calendar, Loader2, User as UserIcon, Award } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -73,7 +73,7 @@ export default function PublicProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12 max-w-3xl">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -158,7 +158,7 @@ export default function PublicProfilePage() {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion, type MotionProps } from 'framer-motion'
+import { m, type MotionProps } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
@@ -175,7 +175,7 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
         <StreakRiskBanner />
         {/* Hero Section */}
-        <motion.div
+        <m.div
           {...motionProps({
             initial: { opacity: 0, y: 20 },
             animate: { opacity: 1, y: 0 },
@@ -183,7 +183,7 @@ export default function HomePage() {
           })}
           className="text-center mb-8 sm:mb-10 md:mb-12 lg:mb-16"
         >
-          <motion.img
+          <m.img
             src="/logo.svg"
             alt="The Box"
             {...motionProps({
@@ -201,10 +201,10 @@ export default function HomePage() {
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto px-2 sm:px-4">
             {t('home.subtitle')}
           </p>
-        </motion.div>
+        </m.div>
 
         {/* CTA Button */}
-        <motion.div
+        <m.div
           {...motionProps({
             initial: { opacity: 0, scale: 0.9 },
             animate: { opacity: 1, scale: 1 },
@@ -316,7 +316,7 @@ export default function HomePage() {
 
           {/* Public teaser — renders today's first screenshot for anonymous visitors */}
           {!isLoading && !session && previewAvailable && !isTodayCompleted && (
-            <motion.button
+            <m.button
               type="button"
               onClick={() => navigate(localizedPath('/play'))}
               {...motionProps({
@@ -347,12 +347,12 @@ export default function HomePage() {
                   <p className="text-xs text-white/80 mt-1">{t('home.previewSubtitle')}</p>
                 </div>
               </div>
-            </motion.button>
+            </m.button>
           )}
 
           {/* Show yesterday's challenge option if available and not played */}
           {!isLoading && yesterdayChallenge && !yesterdayChallenge.hasPlayed && (
-            <motion.div
+            <m.div
               {...motionProps({
                 initial: { opacity: 0, y: 10 },
                 animate: { opacity: 1, y: 0 },
@@ -375,16 +375,16 @@ export default function HomePage() {
               <p className="text-xs text-muted-foreground mt-2 opacity-70">
                 {t('home.catchUpNote')}
               </p>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
 
         {/* Premium teaser — surfaces subscriptions now that paid features
             are live. Hidden once the visitor already has Premium so we don't
             nag paying users. Falls back to "show" for anonymous visitors
             since the entitlement store treats 401 as the free tier. */}
         {showPremiumTeaser && (
-          <motion.div
+          <m.div
             {...motionProps({
               initial: { opacity: 0, y: 20 },
               animate: { opacity: 1, y: 0 },
@@ -452,7 +452,7 @@ export default function HomePage() {
                 </div>
               </div>
             </Link>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Achievement teaser — replaces the static "Panorama / Daily"

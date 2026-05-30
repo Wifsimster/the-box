@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -174,7 +174,7 @@ export function ResultCard() {
   }
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -182,16 +182,16 @@ export function ResultCard() {
     >
       {/* Success particles/glow effect */}
       {isCorrect && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           className="absolute inset-0 pointer-events-none"
         >
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 bg-success/20 rounded-full blur-3xl" />
-        </motion.div>
+        </m.div>
       )}
 
-      <motion.div
+      <m.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -203,17 +203,17 @@ export function ResultCard() {
           className="relative border-2 rounded-2xl p-6 shadow-2xl"
         >
         {/* Round Progress Badge */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-muted rounded-full text-xs font-medium text-muted-foreground border border-border"
         >
           {t('game.round')} {currentPosition} / {totalScreenshots}
-        </motion.div>
+        </m.div>
 
         {/* Result Status Header */}
-        <motion.div
+        <m.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.15, type: 'spring', stiffness: 400 }}
@@ -239,10 +239,10 @@ export function ResultCard() {
               </>
             )}
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Game Cover Image */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
@@ -259,21 +259,21 @@ export function ResultCard() {
               <span className="text-4xl font-bold">{correctGame.name[0]}</span>
             </div>
           )}
-        </motion.div>
+        </m.div>
 
         {/* Game Title */}
-        <motion.h2
+        <m.h2
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
           className="text-xl font-bold text-center mb-2 line-clamp-2"
         >
           {correctGame.name}
-        </motion.h2>
+        </m.h2>
 
         {/* Game Details (Release Year and Metascore) */}
         {(correctGame.releaseYear || correctGame.metacritic != null) && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -292,12 +292,12 @@ export function ResultCard() {
                 {t('game.metascore')}: {correctGame.metacritic}
               </span>
             )}
-          </motion.div>
+          </m.div>
         )}
 
         {/* Publisher and Developer */}
         {(correctGame.publisher || correctGame.developer) && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
@@ -309,23 +309,23 @@ export function ResultCard() {
             {correctGame.developer && (
               <span>{t('game.developer')}: <span className="text-foreground font-medium">{correctGame.developer}</span></span>
             )}
-          </motion.div>
+          </m.div>
         )}
 
         {/* User's wrong guess */}
         {!isCorrect && userGuess && (
-          <motion.p
+          <m.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
             className="text-center text-sm text-muted-foreground mb-4"
           >
             {t('game.yourGuess')}: <span className="text-error line-through">{userGuess}</span>
-          </motion.p>
+          </m.p>
         )}
 
         {/* Score Display */}
-        <motion.div
+        <m.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.45 }}
@@ -373,31 +373,31 @@ export function ResultCard() {
 
           {/* Hint Penalty Display */}
           {hintPenalty && hintPenalty > 0 && isCorrect && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
               className="mt-2 text-score-low text-sm font-medium"
             >
               {t('game.hints.penaltyApplied', { penalty: hintPenalty })} ({t('game.hints.percentagePenalty', '20% penalty')})
-            </motion.div>
+            </m.div>
           )}
 
           {/* Wrong Guess Penalty Display */}
           {wrongGuessPenalty && wrongGuessPenalty > 0 && !isCorrect && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
               className="mt-2 text-error text-sm font-medium"
             >
               {t('game.wrongGuessPenalty', { penalty: wrongGuessPenalty, defaultValue: `Wrong guess penalty: -${wrongGuessPenalty} pts` })}
-            </motion.div>
+            </m.div>
           )}
 
           {/* Speed feedback for correct answers */}
           {isCorrect && speedFeedback && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 }}
@@ -406,12 +406,12 @@ export function ResultCard() {
               <speedFeedback.icon className="size-4" />
               <span>{t(`game.speed.${speedFeedback.key}`)}</span>
               <span className="text-muted-foreground">• {timeDisplay}</span>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
 
         {/* Next Button */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
@@ -430,9 +430,9 @@ export function ResultCard() {
           <span className="text-xs text-muted-foreground">
             {t('game.pressEnterToContinue', 'Press Enter to continue')}
           </span>
-        </motion.div>
+        </m.div>
         </Card>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   )
 }

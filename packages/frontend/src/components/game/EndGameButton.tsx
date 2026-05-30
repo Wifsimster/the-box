@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import {
   ResponsiveDialog,
@@ -52,7 +52,7 @@ export function EndGameButton() {
     <>
       <AnimatePresence>
         {canShowButton && (
-          <motion.button
+          <m.button
             onClick={() => setShowConfirm(true)}
             initial={{ opacity: 0, scaleY: 0 }}
             animate={{ opacity: 1, scaleY: 1 }}
@@ -76,7 +76,7 @@ export function EndGameButton() {
           >
             <CheckCircle2 className="size-3.5" />
             <span>{t('game.endGame.button')}</span>
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
 

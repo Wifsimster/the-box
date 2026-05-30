@@ -10,7 +10,7 @@ import type { MotionProps, Transition } from 'framer-motion'
  * toggling the OS setting at runtime sees the change without reload.
  *
  * Pair with {@link motionSafeProps} when feeding props into a
- * `<motion.*>` element so framer-motion-driven animations honour the
+ * `<m.*>` element so framer-motion-driven animations honour the
  * preference (the global CSS reset only neutralizes CSS animations).
  */
 export function useReducedMotionSafe(): boolean {
@@ -25,7 +25,7 @@ export function useReducedMotionSafe(): boolean {
  * Stagger delays passed in `transition.delay` are zeroed too — a common
  * source of "I disabled motion but I still see a wave" reports.
  *
- * Use as `<motion.div {...motionSafeProps(rm, { initial: ..., animate: ..., transition: ... })} />`.
+ * Use as `<m.div {...motionSafeProps(rm, { initial: ..., animate: ..., transition: ... })} />`.
  */
 export function motionSafeProps<P extends MotionProps>(
   reducedMotion: boolean,

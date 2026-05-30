@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -133,31 +133,31 @@ export default function ResultsPage() {
     <>
       {/* Achievement notifications render through sonner toasts — see useEffect above */}
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="text-center mb-4 sm:mb-6 md:mb-8"
         >
-          <motion.div
+          <m.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
             className="inline-flex items-center justify-center size-16 sm:size-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
           >
             <Trophy className="size-8 sm:size-10 text-white" />
-          </motion.div>
+          </m.div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 gradient-gaming bg-clip-text text-transparent">{t('game.tierComplete')}</h1>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary mb-3 sm:mb-4"
           >
             {displayTotalScore} pts
-          </motion.div>
+          </m.div>
 
           <div className="flex justify-center gap-4 sm:gap-6 md:gap-8 text-muted-foreground">
             <div className="flex flex-col items-center">
@@ -173,7 +173,7 @@ export default function ResultsPage() {
               <p className="text-xs sm:text-sm mt-1">{t('game.accuracy')}</p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Percentile Ranking Banner */}
         <PercentileBanner
@@ -247,7 +247,7 @@ export default function ResultsPage() {
                   {results.map((result, index) => {
                     const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
                     return (
-                      <motion.div
+                      <m.div
                         key={result.position}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -320,7 +320,7 @@ export default function ResultsPage() {
                             </Badge>
                           )}
                         </div>
-                      </motion.div>
+                      </m.div>
                     )
                   })}
 
@@ -337,7 +337,7 @@ export default function ResultsPage() {
               <div className="space-y-3">{results.map((result, index) => {
                 const isUnguessed = !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
                 return (
-                  <motion.div
+                  <m.div
                     key={result.position}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -410,7 +410,7 @@ export default function ResultsPage() {
                         </Badge>
                       )}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )
               })}
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { ShieldCheck, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,7 +56,7 @@ export default function TwoFactorChallengePage() {
     <>
       <CubeBackground />
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
@@ -103,13 +103,13 @@ export default function TwoFactorChallengePage() {
               </div>
 
               {error && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center"
                 >
                   {error}
-                </motion.div>
+                </m.div>
               )}
 
               <Button
@@ -137,7 +137,7 @@ export default function TwoFactorChallengePage() {
               </button>
             </form>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </>
   )

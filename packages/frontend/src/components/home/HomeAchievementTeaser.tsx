@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type ReactNode } from 'react'
-import { motion, type MotionProps } from 'framer-motion'
+import { m, type MotionProps } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Lock, Trophy, ArrowRight } from 'lucide-react'
@@ -203,7 +203,7 @@ export function HomeAchievementTeaser() {
       ))
 
   return (
-    <motion.section
+    <m.section
       {...motionProps({
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0 },
@@ -279,6 +279,6 @@ export function HomeAchievementTeaser() {
           <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
-    </motion.section>
+    </m.section>
   )
 }

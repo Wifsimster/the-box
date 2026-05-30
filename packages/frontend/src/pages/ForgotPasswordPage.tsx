@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -77,13 +77,13 @@ export default function ForgotPasswordPage() {
       <>
         <CubeBackground />
         <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
             className="w-full max-w-md -mt-20"
           >
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -102,8 +102,8 @@ export default function ForgotPasswordPage() {
                   {t('auth.backToLogin')}
                 </Button>
               </Link>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </div>
       </>
     )
@@ -113,13 +113,13 @@ export default function ForgotPasswordPage() {
     <>
       <CubeBackground />
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md -mt-20"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -161,13 +161,13 @@ export default function ForgotPasswordPage() {
                 />
 
                 {form.formState.errors.root && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
                   >
                     {form.formState.errors.root.message}
-                  </motion.div>
+                  </m.div>
                 )}
 
                 <Button
@@ -195,8 +195,8 @@ export default function ForgotPasswordPage() {
                 {t('auth.login')}
               </Link>
             </p>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </>
   )

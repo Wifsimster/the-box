@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { GradientIcon } from '@/components/ui/gradient-icon'
@@ -29,14 +29,14 @@ export function PageHero({
     <>
       {background === 'cube' && <CubeBackground />}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12 relative z-10">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="text-center mb-6 sm:mb-8 md:mb-12"
         >
           {logo ? (
-            <motion.img
+            <m.img
               src={logo}
               alt=""
               initial={{ scale: 0.8 }}
@@ -45,16 +45,16 @@ export function PageHero({
               className="size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
             />
           ) : Icon && iconStyle === 'simple' ? (
-            <motion.div
+            <m.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               className="inline-flex items-center justify-center size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6"
             >
               <Icon className="size-10 sm:size-14 md:size-16 text-foreground" />
-            </motion.div>
+            </m.div>
           ) : Icon ? (
-            <motion.div
+            <m.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -65,7 +65,7 @@ export function PageHero({
                 size="lg"
                 className="size-16 sm:size-20 md:size-24 sm:rounded-2xl"
               />
-            </motion.div>
+            </m.div>
           ) : null}
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 px-2 sm:px-0 gradient-gaming-title">
@@ -77,7 +77,7 @@ export function PageHero({
               {subtitle}
             </p>
           )}
-        </motion.div>
+        </m.div>
 
         {children}
       </div>

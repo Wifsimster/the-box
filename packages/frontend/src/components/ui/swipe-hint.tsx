@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface SwipeHintProps {
@@ -27,7 +27,7 @@ export function SwipeHint({ onDismiss, autoHideDelay = 3000 }: SwipeHintProps) {
     return (
         <AnimatePresence>
             {isVisible && (
-                <motion.div
+                <m.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -37,21 +37,21 @@ export function SwipeHint({ onDismiss, autoHideDelay = 3000 }: SwipeHintProps) {
                     onTouchStart={handleInteraction}
                 >
                     <div className="flex items-center gap-4 text-white/70">
-                        <motion.div
+                        <m.div
                             animate={{ x: [-20, 0, -20] }}
                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                         >
                             <ChevronLeft className="size-8" />
-                        </motion.div>
+                        </m.div>
                         <div className="text-sm font-medium">Swipe to navigate</div>
-                        <motion.div
+                        <m.div
                             animate={{ x: [20, 0, 20] }}
                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                         >
                             <ChevronRight className="size-8" />
-                        </motion.div>
+                        </m.div>
                     </div>
-                </motion.div>
+                </m.div>
             )}
         </AnimatePresence>
     )

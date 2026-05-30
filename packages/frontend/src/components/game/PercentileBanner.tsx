@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { TrendingUp, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,7 +22,7 @@ export function PercentileBanner({
 
   if (isLoading) {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
@@ -31,7 +31,7 @@ export function PercentileBanner({
           <div className="size-3 sm:size-4 border-2 border-neon-purple border-t-transparent rounded-full animate-spin" />
           <span className="text-muted-foreground text-xs sm:text-sm">{t('common.loading')}</span>
         </div>
-      </motion.div>
+      </m.div>
     )
   }
 
@@ -43,7 +43,7 @@ export function PercentileBanner({
   const topPercent = Math.max(1, 100 - percentile)
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
@@ -65,6 +65,6 @@ export function PercentileBanner({
           </div>
         )}
       </div>
-    </motion.div>
+    </m.div>
   )
 }

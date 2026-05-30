@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -189,7 +189,7 @@ export function GuessInput() {
       {/* Revealed hint chips - compact inline display above input */}
       <AnimatePresence>
         {hasRevealedHints && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -226,7 +226,7 @@ export function GuessInput() {
                 </Badge>
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -248,7 +248,7 @@ export function GuessInput() {
           </Tooltip>
         )}
 
-        <motion.div
+        <m.div
           className="relative flex-1 min-w-0"
           animate={isShaking ? { x: [-10, 10, -10, 10, 0] } : {}}
           transition={{ duration: 0.4 }}
@@ -293,7 +293,7 @@ export function GuessInput() {
               <Send className={cn('size-4 sm:size-5', query.trim() && 'text-white')} />
             )}
           </Button>
-        </motion.div>
+        </m.div>
 
         {/* Skip/Next button - hidden on last screenshot */}
         {!isLastPosition && (

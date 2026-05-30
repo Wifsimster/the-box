@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import type { Game } from '@/types'
 import {
   Table,
@@ -28,13 +28,13 @@ function SortIcon({ field, sortField, sortOrder }: { field: string; sortField: s
     return <ArrowUpDown className="ml-1 size-4 opacity-50" />
   }
   return (
-    <motion.span
+    <m.span
       initial={{ rotate: 0 }}
       animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
       transition={{ duration: 0.2 }}
     >
       <ArrowUp className="ml-1 size-4" />
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -84,7 +84,7 @@ export function GameTable({
       <div className="md:hidden space-y-3">
         <AnimatePresence mode="popLayout">
           {games.map((game, index) => (
-            <motion.div
+            <m.div
               key={game.id}
               variants={tableRow}
               initial="initial"
@@ -164,7 +164,7 @@ export function GameTable({
                   <Trash2 className="size-4" />
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </AnimatePresence>
       </div>
@@ -186,7 +186,7 @@ export function GameTable({
           <TableBody>
             <AnimatePresence mode="popLayout">
               {games.map((game, index) => (
-                <motion.tr
+                <m.tr
                   key={game.id}
                   variants={tableRow}
                   initial="initial"
@@ -225,7 +225,7 @@ export function GameTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -235,8 +235,8 @@ export function GameTable({
                         >
                           <Image className="size-4" />
                         </Button>
-                      </motion.div>
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      </m.div>
+                      <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -246,8 +246,8 @@ export function GameTable({
                         >
                           <Pencil className="size-4" />
                         </Button>
-                      </motion.div>
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      </m.div>
+                      <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -257,10 +257,10 @@ export function GameTable({
                         >
                           <Trash2 className="size-4" />
                         </Button>
-                      </motion.div>
+                      </m.div>
                     </div>
                   </TableCell>
-                </motion.tr>
+                </m.tr>
               ))}
             </AnimatePresence>
           </TableBody>

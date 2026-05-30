@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Mail, MessageSquare, Bug, Clock, ExternalLink } from 'lucide-react'
 
@@ -31,7 +31,7 @@ export default function ContactPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -52,7 +52,7 @@ export default function ContactPage() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {contactMethods.map((method, index) => (
-                <motion.div
+                <m.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -92,7 +92,7 @@ export default function ContactPage() {
                       )}
                     </div>
                   )}
-                </motion.div>
+                </m.div>
               ))}
             </div>
 
@@ -102,7 +102,7 @@ export default function ContactPage() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

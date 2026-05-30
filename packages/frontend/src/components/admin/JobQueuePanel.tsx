@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AnimatedProgress } from '@/components/ui/animated-progress'
@@ -156,7 +156,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
             {/* Mobile backdrop — overlays page content when the panel is open on phones. */}
             <AnimatePresence>
                 {!isMinimized && isMobile && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -167,7 +167,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                     />
                 )}
             </AnimatePresence>
-            <motion.div
+            <m.div
                 className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] max-w-[100vw] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
                 initial={false}
                 animate={{
@@ -255,7 +255,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                             <div className="space-y-2">
                                 <AnimatePresence initial={false}>
                                     {filteredJobs.map((job) => (
-                                        <motion.div
+                                        <m.div
                                             key={job.id}
                                             layout
                                             initial={{ opacity: 0, scale: 0.95 }}
@@ -331,7 +331,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                     {t('admin.jobs.remove', 'Remove')}
                                                 </Button>
                                             )}
-                                        </motion.div>
+                                        </m.div>
                                     ))}
                                 </AnimatePresence>
                             </div>
@@ -354,7 +354,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                 </>
             )
             }
-            </motion.div>
+            </m.div>
         </>
     )
 }

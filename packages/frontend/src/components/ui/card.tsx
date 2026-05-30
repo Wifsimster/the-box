@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
@@ -41,7 +41,7 @@ function Card({
   if (interactive) {
     const { onClick, onMouseEnter, onMouseLeave, style, id } = props
     return (
-      <motion.div
+      <m.div
         data-slot="card"
         data-variant={variant ?? "default"}
         id={id}
@@ -54,7 +54,7 @@ function Card({
         className={cn(classes, "cursor-pointer transition-colors")}
       >
         {children}
-      </motion.div>
+      </m.div>
     )
   }
 

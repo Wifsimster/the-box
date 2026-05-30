@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { HelpCircle } from 'lucide-react'
 
@@ -17,7 +17,7 @@ export default function FaqPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -36,7 +36,7 @@ export default function FaqPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {faqs.map((faq, index) => (
-              <motion.div
+              <m.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -49,11 +49,11 @@ export default function FaqPage() {
                 <p className="text-muted-foreground leading-relaxed">
                   {faq.answer}
                 </p>
-              </motion.div>
+              </m.div>
             ))}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

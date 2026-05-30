@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 
 /**
  * PenaltyMessage displays a feedback message after a wrong guess
@@ -8,7 +8,7 @@ export function PenaltyMessage({ show }: { show: boolean }) {
   if (!show) return null
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -17,6 +17,6 @@ export function PenaltyMessage({ show }: { show: boolean }) {
       <span className="text-error font-bold text-lg">
         -100 points!
       </span>
-    </motion.div>
+    </m.div>
   )
 }

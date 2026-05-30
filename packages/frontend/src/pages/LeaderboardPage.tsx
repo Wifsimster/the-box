@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -294,7 +294,7 @@ export default function LeaderboardPage() {
                   const colors = ['from-medal-silver to-medal-silver/80', 'from-medal-gold to-medal-gold/80', 'from-medal-bronze to-medal-bronze/80']
 
                   return (
-                    <motion.div
+                    <m.div
                       key={entry.rank}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -312,7 +312,7 @@ export default function LeaderboardPage() {
                       <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
                         <span className="text-2xl font-bold text-white">{entry.rank}</span>
                       </div>
-                    </motion.div>
+                    </m.div>
                   )
                 })}
               </div>
@@ -327,7 +327,7 @@ export default function LeaderboardPage() {
                 <CardContent>
                   <div className="space-y-2">
                     {leaderboard.map((entry, index) => (
-                      <motion.div
+                      <m.div
                         key={entry.rank}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -357,7 +357,7 @@ export default function LeaderboardPage() {
                             <Eye className="size-4 text-muted-foreground" />
                           )}
                         </div>
-                      </motion.div>
+                      </m.div>
                     ))}
                   </div>
                 </CardContent>
@@ -400,7 +400,7 @@ export default function LeaderboardPage() {
                   const colors = ['from-medal-silver to-medal-silver/80', 'from-medal-gold to-medal-gold/80', 'from-medal-bronze to-medal-bronze/80']
 
                   return (
-                    <motion.div
+                    <m.div
                       key={entry.rank}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -421,7 +421,7 @@ export default function LeaderboardPage() {
                       <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
                         <span className="text-2xl font-bold text-white">{entry.rank}</span>
                       </div>
-                    </motion.div>
+                    </m.div>
                   )
                 })}
               </div>
@@ -436,7 +436,7 @@ export default function LeaderboardPage() {
                 <CardContent>
                   <div className="space-y-2">
                     {monthlyLeaderboard.map((entry, index) => (
-                      <motion.div
+                      <m.div
                         key={entry.rank}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -467,7 +467,7 @@ export default function LeaderboardPage() {
                         <div className="text-right shrink-0">
                           <div className="font-bold text-primary">{entry.totalScore}</div>
                         </div>
-                      </motion.div>
+                      </m.div>
                     ))}
                   </div>
                 </CardContent>
@@ -501,7 +501,7 @@ export default function LeaderboardPage() {
                   const rank = displayIndex === 0 ? 2 : displayIndex === 1 ? 1 : 3
 
                   return (
-                    <motion.div
+                    <m.div
                       key={entry.userId}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -522,7 +522,7 @@ export default function LeaderboardPage() {
                       <div className={`w-20 ${heights[displayIndex]} bg-linear-to-t ${colors[displayIndex]} rounded-t-lg mt-2 flex items-start justify-center pt-2`}>
                         <span className="text-2xl font-bold text-white">{rank}</span>
                       </div>
-                    </motion.div>
+                    </m.div>
                   )
                 })}
               </div>
@@ -539,7 +539,7 @@ export default function LeaderboardPage() {
                     {achievementLeaderboard.map((entry, index) => {
                       const rank = index + 1
                       return (
-                        <motion.div
+                        <m.div
                           key={entry.userId}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -569,7 +569,7 @@ export default function LeaderboardPage() {
                             <div className="font-bold text-primary">{entry.totalPoints}</div>
                             <div className="text-xs text-muted-foreground">{t('leaderboard.points')}</div>
                           </div>
-                        </motion.div>
+                        </m.div>
                       )
                     })}
                   </div>
