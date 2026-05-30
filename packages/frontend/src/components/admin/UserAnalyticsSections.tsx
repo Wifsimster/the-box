@@ -1,30 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import type { UserAnalytics } from '@/lib/api/admin'
+import { numberFormat } from './user-analytics-format'
 
-// Intl.NumberFormat loads locale-data tables on construction, so the
-// formatters live at module scope (built once) rather than being recreated on
-// every call / list item. The app ships exactly fr + en; unknown locales fall
-// back to fr (the default UI language).
-const INTEGER_FORMATTERS: Record<string, Intl.NumberFormat> = {
-  fr: new Intl.NumberFormat('fr'),
-  en: new Intl.NumberFormat('en'),
-}
-
-const PERCENT_FORMATTERS: Record<string, Intl.NumberFormat> = {
-  fr: new Intl.NumberFormat('fr', { maximumFractionDigits: 1 }),
-  en: new Intl.NumberFormat('en', { maximumFractionDigits: 1 }),
-}
-
-const localeKey = (lang: string): 'fr' | 'en' => (lang.startsWith('en') ? 'en' : 'fr')
-
-export const numberFormat = (n: number, lang: string) =>
-  INTEGER_FORMATTERS[localeKey(lang)].format(n)
-
-export const percentFormat = (n: number, lang: string) =>
-  `${PERCENT_FORMATTERS[localeKey(lang)].format(n)}%`
-
-export const formatDateTime = (iso: string | null, lang: string, fallback: string) => {
+const formatDateTime = (iso: string | null, lang: string, fallback: string) => {
   if (!iso) return fallback
   return new Date(iso).toLocaleString(lang, {
     dateStyle: 'short',
@@ -32,7 +11,7 @@ export const formatDateTime = (iso: string | null, lang: string, fallback: strin
   })
 }
 
-export const formatRelative = (iso: string | null, lang: string, fallback: string) => {
+const formatRelative = (iso: string | null, lang: string, fallback: string) => {
   if (!iso) return fallback
   const ms = Date.now() - new Date(iso).getTime()
   if (ms < 0) return formatDateTime(iso, lang, fallback)

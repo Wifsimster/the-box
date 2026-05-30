@@ -14,9 +14,8 @@ import {
   CalendarClock,
 } from 'lucide-react'
 
+import { numberFormat, percentFormat } from './user-analytics-format'
 import {
-  numberFormat,
-  percentFormat,
   TopPlayersList,
   RecentlyActiveTable,
 } from './UserAnalyticsSections'

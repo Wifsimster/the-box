@@ -34,7 +34,7 @@ interface CandidateDetail {
 }
 
 export type StatusFilter = 'collecting' | 'pending' | 'promoted' | 'all'
-export const STATUS_FILTERS: StatusFilter[] = ['collecting', 'pending', 'promoted', 'all']
+const STATUS_FILTERS: StatusFilter[] = ['collecting', 'pending', 'promoted', 'all']
 
 export interface GameFilter {
     gameId: number
