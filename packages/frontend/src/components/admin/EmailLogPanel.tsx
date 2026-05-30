@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,20 +27,60 @@ const STATUS_OPTIONS: EmailLogStatus[] = ['sent', 'failed', 'skipped']
 
 const PAGE_SIZE = 25
 
+// The query controls (pagination + the three filters + its debounced mirror)
+// are one cohesive slice: every filter change must atomically reset the page
+// back to 1, so they live in a single reducer that returns the next snapshot
+// in one step rather than chaining setState calls.
+interface QueryState {
+  page: number
+  status: EmailLogStatus | ''
+  type: EmailLogType | ''
+  search: string
+  debouncedSearch: string
+}
+
+type QueryAction =
+  | { type: 'setStatus'; value: EmailLogStatus | '' }
+  | { type: 'setType'; value: EmailLogType | '' }
+  | { type: 'setSearch'; value: string }
+  | { type: 'commitSearch'; value: string }
+  | { type: 'setPage'; value: number }
+
+const INITIAL_QUERY: QueryState = {
+  page: 1,
+  status: '',
+  type: '',
+  search: '',
+  debouncedSearch: '',
+}
+
+function queryReducer(state: QueryState, action: QueryAction): QueryState {
+  switch (action.type) {
+    case 'setStatus':
+      return { ...state, status: action.value, page: 1 }
+    case 'setType':
+      return { ...state, type: action.value, page: 1 }
+    case 'setSearch':
+      return { ...state, search: action.value }
+    case 'commitSearch':
+      if (action.value === state.debouncedSearch) return state
+      return { ...state, debouncedSearch: action.value, page: 1 }
+    case 'setPage':
+      return { ...state, page: action.value }
+  }
+}
+
 export function EmailLogPanel() {
   const { t, i18n } = useTranslation()
   const [entries, setEntries] = useState<EmailLogEntry[] | null>(null)
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
-  const [status, setStatus] = useState<EmailLogStatus | ''>('')
-  const [type, setType] = useState<EmailLogType | ''>('')
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [query, dispatch] = useReducer(queryReducer, INITIAL_QUERY)
+  const { page, status, type, search, debouncedSearch } = query
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(t)
+    const handle = setTimeout(() => dispatch({ type: 'commitSearch', value: search }), 300)
+    return () => clearTimeout(handle)
   }, [search])
 
   const load = useCallback(async () => {
@@ -68,16 +108,11 @@ export function EmailLogPanel() {
     void load()
   }, [load])
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setPage(1)
-  }, [status, type, debouncedSearch])
-
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total])
 
   return (
     <Card>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 gap-y-0 p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2 text-base min-w-0">
           <Mail className="size-4 text-neon-purple shrink-0" />
           <span className="truncate">{t('admin.emailLog.title')}</span>
@@ -100,12 +135,14 @@ export function EmailLogPanel() {
           <Input
             placeholder={t('admin.emailLog.searchPlaceholder')}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => dispatch({ type: 'setSearch', value: e.target.value })}
             className="sm:max-w-xs"
           />
           <select
             value={type}
-            onChange={(e) => setType(e.target.value as EmailLogType | '')}
+            onChange={(e) =>
+              dispatch({ type: 'setType', value: e.target.value as EmailLogType | '' })
+            }
             className="bg-background border border-border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
           >
             <option value="">{t('admin.emailLog.filterType')}</option>
@@ -117,7 +154,9 @@ export function EmailLogPanel() {
           </select>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as EmailLogStatus | '')}
+            onChange={(e) =>
+              dispatch({ type: 'setStatus', value: e.target.value as EmailLogStatus | '' })
+            }
             className="bg-background border border-border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
           >
             <option value="">{t('admin.emailLog.filterStatus')}</option>
@@ -217,7 +256,7 @@ export function EmailLogPanel() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => dispatch({ type: 'setPage', value: Math.max(1, page - 1) })}
                   disabled={page <= 1 || loading}
                 >
                   <ChevronLeft className="size-4" />
@@ -225,7 +264,9 @@ export function EmailLogPanel() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    dispatch({ type: 'setPage', value: Math.min(totalPages, page + 1) })
+                  }
                   disabled={page >= totalPages || loading}
                 >
                   <ChevronRight className="size-4" />

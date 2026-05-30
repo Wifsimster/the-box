@@ -16,17 +16,15 @@ export function MapErrorFallback({
     const { t } = useTranslation()
     const label = t('geo.daily.mapUnavailable', 'Map unavailable')
     return (
-        <div
+        <figure
             style={{ aspectRatio }}
             className={cn(
-                'relative w-full rounded-lg border border-dashed bg-muted/30 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs text-muted-foreground',
+                'relative m-0 w-full rounded-lg border border-dashed bg-muted/30 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs text-muted-foreground',
                 className,
             )}
-            role="img"
-            aria-label={label}
         >
             <ImageOff className="size-6 opacity-60" aria-hidden />
-            <span>{label}</span>
-        </div>
+            <figcaption>{label}</figcaption>
+        </figure>
     )
 }

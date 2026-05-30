@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react'
@@ -140,56 +148,94 @@ function computeTooltipPosition(rect: Rect, preferred: Placement): TooltipPositi
   return { top, left, placement: 'bottom' }
 }
 
+// The target rect, tooltip position and missing-target flag are all derived
+// from a single measure pass, so they live in one reducer and update atomically
+// (one dispatch per measure) instead of cascading separate setState calls.
+interface Measurement {
+  rect: Rect | null
+  tooltipPos: TooltipPosition | null
+  missingTarget: boolean
+}
+
+type MeasurementAction =
+  | { type: 'measured'; rect: Rect; tooltipPos: TooltipPosition }
+  | { type: 'missing' }
+
+const initialMeasurement: Measurement = {
+  rect: null,
+  tooltipPos: null,
+  missingTarget: false,
+}
+
+function measurementReducer(
+  _state: Measurement,
+  action: MeasurementAction,
+): Measurement {
+  switch (action.type) {
+    case 'measured':
+      return {
+        rect: action.rect,
+        tooltipPos: action.tooltipPos,
+        missingTarget: false,
+      }
+    case 'missing':
+      return { rect: null, tooltipPos: null, missingTarget: true }
+    default:
+      return initialMeasurement
+  }
+}
+
+/**
+ * Public entry point. Mounts the actual tour only while `open` is true so the
+ * step index resets naturally on each open (fresh mount) — no derived
+ * prev-prop state needed.
+ */
 export function TourGuide({ open, onClose }: TourGuideProps) {
+  if (!open) return null
+  if (typeof document === 'undefined') return null
+  return <TourGuideContent onClose={onClose} />
+}
+
+function TourGuideContent({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const [stepIndex, setStepIndex] = useState(0)
-  const [rect, setRect] = useState<Rect | null>(null)
-  const [tooltipPos, setTooltipPos] = useState<TooltipPosition | null>(null)
-  const [missingTarget, setMissingTarget] = useState(false)
+  const [{ rect, tooltipPos, missingTarget }, dispatchMeasurement] = useReducer(
+    measurementReducer,
+    initialMeasurement,
+  )
   const rafRef = useRef<number | null>(null)
 
   // Filter steps to only those whose target currently exists in the DOM —
   // anonymous visitors don't have `daily-reward-badge` or `profile-menu`,
   // so we silently skip those rather than showing an empty spotlight.
   const visibleSteps = useMemo(() => {
-    if (!open) return STEPS
     if (typeof document === 'undefined') return STEPS
     return STEPS.filter((s) => document.querySelector(`[data-tour="${s.target}"]`))
-  }, [open])
+  }, [])
 
   const currentStep = visibleSteps[stepIndex]
   const isLast = stepIndex >= visibleSteps.length - 1
 
   const finish = useCallback(() => {
     markTourCompleted()
-    setStepIndex(0)
     onClose()
   }, [onClose])
 
-  // Reset to first step whenever the tour transitions from closed → open.
-  // Adjusting state during render with a prev-prop comparison keeps the reset
-  // out of an effect, so there's no stale-step frame between commits.
-  const [prevOpen, setPrevOpen] = useState(open)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) setStepIndex(0)
-  }
-
   // Measure target + position tooltip on every step / resize / scroll.
   useLayoutEffect(() => {
-    if (!open || !currentStep) return
+    if (!currentStep) return
 
     const measure = () => {
       const r = getTargetRect(currentStep.target)
       if (!r) {
-        setMissingTarget(true)
-        setRect(null)
-        setTooltipPos(null)
+        dispatchMeasurement({ type: 'missing' })
         return
       }
-      setMissingTarget(false)
-      setRect(r)
-      setTooltipPos(computeTooltipPosition(r, currentStep.placement ?? 'bottom'))
+      dispatchMeasurement({
+        type: 'measured',
+        rect: r,
+        tooltipPos: computeTooltipPosition(r, currentStep.placement ?? 'bottom'),
+      })
     }
 
     // Initial measure on next frame so target layout has settled.
@@ -204,18 +250,17 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
       window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', onResize, true)
     }
-  }, [open, currentStep])
+  }, [currentStep])
 
   // Scroll the target into view when stepping.
   useEffect(() => {
-    if (!open || !currentStep) return
+    if (!currentStep) return
     const el = document.querySelector<HTMLElement>(`[data-tour="${currentStep.target}"]`)
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [open, currentStep])
+  }, [currentStep])
 
   // Esc to skip.
   useEffect(() => {
-    if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') finish()
       else if (e.key === 'ArrowRight') setStepIndex((i) => Math.min(i + 1, visibleSteps.length - 1))
@@ -223,9 +268,9 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, finish, visibleSteps.length])
+  }, [finish, visibleSteps.length])
 
-  if (!open || !currentStep) return null
+  if (!currentStep) return null
   if (typeof document === 'undefined') return null
 
   const handleNext = () => {
@@ -239,11 +284,11 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
   const showFallback = missingTarget || !rect || !tooltipPos
 
   return createPortal(
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-modal="true"
       aria-label={t('tour.ariaLabel')}
-      className="fixed inset-0 z-[100]"
+      className="fixed inset-0 z-[100] m-0 size-full max-h-none max-w-none bg-transparent p-0"
     >
       {/* Dim overlay with a transparent hole over the target. We use an SVG
           mask so we don't need to render four separate divs around the rect. */}
@@ -350,7 +395,7 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
           </div>
         </div>
       </div>
-    </div>,
+    </dialog>,
     document.body,
   )
 }

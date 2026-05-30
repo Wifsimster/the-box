@@ -195,9 +195,8 @@ function RunStateRow({ state }: { state: GeoRunStatePayload | null }) {
     if (!state || !state.isActive) return null
     const { active, waiting, delayed, failed } = state.counts
     return (
-        <div
+        <output
             className="flex flex-wrap items-center gap-2 border-t border-neon-pink/20 bg-neon-pink/5 px-3 py-1.5 text-[11px]"
-            role="status"
             aria-live="polite"
         >
             <span className="inline-flex items-center gap-1 text-neon-pink">
@@ -212,7 +211,7 @@ function RunStateRow({ state }: { state: GeoRunStatePayload | null }) {
                     · {t('admin.geo.run.banner.failed', { count: failed })}
                 </span>
             )}
-        </div>
+        </output>
     )
 }
 
@@ -336,9 +335,9 @@ function ErrorsCounter({
                     </p>
                 ) : (
                     <ul className="mt-3 space-y-1.5 max-h-60 overflow-auto pr-1">
-                        {failures.slice(0, 12).map((f, i) => (
+                        {failures.slice(0, 12).map((f) => (
                             <li
-                                key={i}
+                                key={`${f.gameId ?? '?'}:${f.source ?? '?'}:${f.attempt ?? '?'}:${f.reason ?? '?'}`}
                                 className="rounded border border-border/40 bg-muted/20 px-2 py-1.5"
                             >
                                 {t('admin.geo.health.failures.row', {

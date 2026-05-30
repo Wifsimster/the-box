@@ -39,6 +39,7 @@ export function AnimatedTabs({
         return (
           <button
             key={tab.id}
+            type="button"
             onClick={() => onChange(tab.id)}
             className={cn(
               'relative px-4 py-2 text-sm font-medium rounded-lg transition-colors',

@@ -45,9 +45,7 @@ export default function RegisterPage() {
       .string()
       .min(3, { message: t('auth.usernameMin') })
       .max(50, { message: t('auth.usernameMax') }),
-    email: z
-      .string()
-      .email({ message: t('auth.emailInvalid') }),
+    email: z.email({ message: t('auth.emailInvalid') }),
     password: z
       .string()
       .min(8, { message: t('auth.passwordTooShort') })

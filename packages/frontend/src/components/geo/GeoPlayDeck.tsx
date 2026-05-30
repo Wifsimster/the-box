@@ -1,0 +1,321 @@
+import { lazy, Suspense, useMemo, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Home } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import type { GeoPoint } from '@the-box/types'
+import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { ImmersiveLayout } from '@/components/geo/ImmersiveLayout'
+import { FullscreenToggle } from '@/components/geo/FullscreenToggle'
+import { GamePicker } from '@/components/geo/GamePicker'
+import { MapPicker } from '@/components/geo/MapPicker'
+import {
+    ScreenshotPanel,
+    MapChunkLoader,
+    MapPlaceholder,
+    ResultOverlay,
+    ContextHeader,
+    Dock,
+} from '@/components/geo/GeoPlaySlots'
+
+// Defer the Leaflet bundle (~150KB gz 47KB) until the player has actually
+// chosen a game + map. Cold visitors land on the empty/auth state and
+// shouldn't pay tile/marker code on first paint.
+const GeoMapCanvas = lazy(() =>
+    import('@/components/geo/GeoMapCanvas').then((m) => ({ default: m.GeoMapCanvas })),
+)
+
+type Store = ReturnType<typeof useGeoFreePlayStore.getState>
+
+export interface GeoFullscreenState {
+    isImmersive: boolean
+    isSupported: boolean
+    onToggle: () => void
+}
+
+export interface GeoPlayDeckProps {
+    fullscreen: GeoFullscreenState
+    gamePickerOpen: boolean
+    setGamePickerOpen: (open: boolean) => void
+    mapPickerOpen: boolean
+    setMapPickerOpen: (open: boolean) => void
+    pinAnnouncement: string
+    pinsToday: number | null
+    language: string
+    currentGame: Store['games'][number] | null
+    selectedMap: Store['maps'][number] | null
+    isMultiMap: boolean
+    allGamesCompleted: boolean
+    ignoredSet: Set<number>
+    canSubmit: boolean
+    onMapPin: (p: GeoPoint | null) => void
+    onSubmit: () => void
+    store: Store
+}
+
+/**
+ * The immersive play deck: screenshot ↔ map with a sticky action dock.
+ * Split out of GeoPlayPage so the page component stays focused on store
+ * wiring and boot effects while this file owns the layout slots.
+ */
+export function GeoPlayDeck({
+    fullscreen,
+    gamePickerOpen,
+    setGamePickerOpen,
+    mapPickerOpen,
+    setMapPickerOpen,
+    pinAnnouncement,
+    pinsToday,
+    language,
+    currentGame,
+    selectedMap,
+    isMultiMap,
+    allGamesCompleted,
+    ignoredSet,
+    canSubmit,
+    onMapPin,
+    onSubmit,
+    store,
+}: GeoPlayDeckProps) {
+    const { t } = useTranslation()
+    const { isImmersive, isSupported: isFullscreenSupported, onToggle: onToggleFullscreen } = fullscreen
+    const { localizedPath } = useLocalizedPath()
+    const {
+        games,
+        gamesFetchedAt,
+        currentGameId,
+        currentMapId,
+        maps,
+        view,
+        pendingGuess,
+        result,
+        correctMap,
+        phase,
+        errorMessage,
+        round,
+        playedByGame,
+        ignoredGameIds,
+        history: roundHistory,
+        historyIndex,
+        selectGame,
+        selectMap,
+        rerollScreenshot,
+        pickRandomAcrossGames,
+        goPrevious,
+        goNext,
+        nextRound,
+        checkForNewScreenshots,
+        toggleIgnoreGame,
+    } = store
+
+    // Slots feed `ImmersiveLayout`; memoized so a re-render that doesn't touch
+    // their inputs hands the layout a stable element reference.
+    const topRightSlot: ReactNode = useMemo(
+        () => (
+            <>
+                <Link
+                    to={localizedPath('/')}
+                    aria-label={t('common.home', 'Home')}
+                    title={t('common.home', 'Home')}
+                    className="inline-flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white shadow-lg backdrop-blur hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                    <Home className="size-5" aria-hidden />
+                </Link>
+                <FullscreenToggle
+                    isImmersive={isImmersive}
+                    onToggle={onToggleFullscreen}
+                    isNativeSupported={isFullscreenSupported}
+                />
+            </>
+        ),
+        [localizedPath, t, isImmersive, onToggleFullscreen, isFullscreenSupported],
+    )
+
+    const screenshotSlot: ReactNode = useMemo(
+        () => (
+            <ScreenshotPanel
+                imageUrl={view?.candidate.imageUrl ?? null}
+                gameName={currentGame?.name ?? null}
+                loading={phase === 'loading' || (currentGameId != null && phase === 'idle')}
+                empty={currentGameId == null}
+                exhausted={phase === 'exhausted'}
+                allCompleted={allGamesCompleted}
+                authRequired={phase === 'authRequired'}
+                loginHref={localizedPath('/login')}
+                registerHref={localizedPath('/register')}
+                pinsToday={pinsToday}
+                language={language}
+                canIgnoreCurrent={
+                    phase === 'exhausted' && currentGameId != null && !ignoredSet.has(currentGameId)
+                }
+                errorMessage={phase === 'error' ? errorMessage : null}
+                onPickGame={() => setGamePickerOpen(true)}
+                onCheckForNew={() => void checkForNewScreenshots()}
+                onIgnoreCurrent={() => {
+                    if (currentGameId != null) {
+                        toggleIgnoreGame(currentGameId)
+                        setGamePickerOpen(true)
+                    }
+                }}
+            />
+        ),
+        [
+            view,
+            currentGame,
+            phase,
+            currentGameId,
+            allGamesCompleted,
+            localizedPath,
+            pinsToday,
+            language,
+            ignoredSet,
+            errorMessage,
+            setGamePickerOpen,
+            checkForNewScreenshots,
+            toggleIgnoreGame,
+        ],
+    )
+
+    const mapSlot: ReactNode = useMemo(
+        () =>
+            selectedMap ? (
+                <Suspense fallback={<MapChunkLoader />}>
+                    <GeoMapCanvas
+                        imageUrl={selectedMap.imageUrl}
+                        widthPx={selectedMap.widthPx}
+                        heightPx={selectedMap.heightPx}
+                        tiles={selectedMap.tiles}
+                        pin={pendingGuess ?? result?.guess ?? null}
+                        canonical={
+                            phase === 'revealed' && correctMap && selectedMap.id === correctMap.id
+                                ? result?.canonical ?? null
+                                : null
+                        }
+                        disabled={phase !== 'ready'}
+                        onPin={onMapPin}
+                        showGuessLine={
+                            phase === 'revealed' && !!correctMap && selectedMap.id === correctMap.id
+                        }
+                        className="!rounded-none h-full"
+                    />
+                </Suspense>
+            ) : (
+                <MapPlaceholder
+                    hasGame={currentGameId != null}
+                    multiMap={isMultiMap}
+                    onPickMap={() => setMapPickerOpen(true)}
+                />
+            ),
+        [
+            selectedMap,
+            pendingGuess,
+            result,
+            phase,
+            correctMap,
+            onMapPin,
+            currentGameId,
+            isMultiMap,
+            setMapPickerOpen,
+        ],
+    )
+
+    const bottomDockSlot: ReactNode = useMemo(
+        () => (
+            <Dock
+                onShuffleAllGames={() => void pickRandomAcrossGames()}
+                onPrevious={goPrevious}
+                onNext={() => void goNext()}
+                canGoPrevious={historyIndex > 0}
+                canGoNext={historyIndex < roundHistory.length - 1 || currentGameId != null}
+                onSubmit={onSubmit}
+                onNextRound={() => void nextRound()}
+                onSkip={() => void rerollScreenshot()}
+                onPlaceByCoords={onMapPin}
+                canSubmit={canSubmit}
+                phase={phase}
+            />
+        ),
+        [
+            pickRandomAcrossGames,
+            goPrevious,
+            goNext,
+            historyIndex,
+            roundHistory.length,
+            currentGameId,
+            onSubmit,
+            nextRound,
+            rerollScreenshot,
+            onMapPin,
+            canSubmit,
+            phase,
+        ],
+    )
+
+    const playedCountByGame = useMemo(
+        () =>
+            Object.fromEntries(
+                Object.entries(playedByGame).map(([id, ids]) => [id, ids.length]),
+            ),
+        [playedByGame],
+    )
+
+    return (
+        <>
+            {/* Visually hidden live region for the pin-placement
+                announcement. Lives at the top of the page so AT
+                cursors don't have to scrub down to find the result. */}
+            <output aria-live="polite" className="sr-only block">
+                {pinAnnouncement}
+            </output>
+            <ImmersiveLayout
+                isImmersive={isImmersive}
+                mapInert={gamePickerOpen || mapPickerOpen}
+                roundKey={`${currentGameId ?? 'none'}-${round}`}
+                topRight={topRightSlot}
+                screenshot={screenshotSlot}
+                map={mapSlot}
+                resultOverlay={
+                    phase === 'revealed' && result ? (
+                        <ResultOverlay
+                            score={result.score}
+                            distance={result.distance}
+                            wrongMap={!!result.wrongMap}
+                            pinCount={result.pinCount}
+                            language={language}
+                        />
+                    ) : null
+                }
+                topBar={
+                    <ContextHeader
+                        gameLabel={currentGame?.name ?? null}
+                        mapLabel={selectedMap?.region ?? null}
+                        showMapButton={isMultiMap || currentGameId == null}
+                        onChangeGame={() => setGamePickerOpen(true)}
+                        onChangeMap={() => setMapPickerOpen(true)}
+                    />
+                }
+                bottomDock={bottomDockSlot}
+            />
+
+            <GamePicker
+                open={gamePickerOpen}
+                onOpenChange={setGamePickerOpen}
+                games={games}
+                isLoading={gamesFetchedAt == null && games.length === 0}
+                selectedGameId={currentGameId}
+                playedCountByGame={playedCountByGame}
+                ignoredGameIds={ignoredGameIds}
+                onSelect={(id) => void selectGame(id)}
+                onToggleIgnore={toggleIgnoreGame}
+            />
+            <MapPicker
+                open={mapPickerOpen}
+                onOpenChange={setMapPickerOpen}
+                maps={maps}
+                selectedMapId={currentMapId}
+                onSelect={(id) => void selectMap(id)}
+                showAnyMapOption={isMultiMap}
+            />
+        </>
+    )
+}

@@ -134,10 +134,8 @@ export default function GeoContributePage() {
             )}
 
             {!isLocked && phase === 'loading' && (
-                <div
+                <output
                     className="flex justify-center py-20"
-                    role="status"
-                    aria-live="polite"
                     aria-busy="true"
                 >
                     <Loader2
@@ -147,7 +145,7 @@ export default function GeoContributePage() {
                     <span className="sr-only">
                         {t('geo.contribute.loading', 'Loading screenshot…')}
                     </span>
-                </div>
+                </output>
             )}
 
             {!isLocked && phase === 'error' && (
@@ -243,12 +241,20 @@ export default function GeoContributePage() {
                     </CardHeader>
                     <CardContent>
                         <ul className="text-xs text-muted-foreground space-y-1">
-                            {recentRewards.slice(0, 5).map((r, i) => (
-                                <li key={i}>
-                                    +{r.items.reduce((n, it) => n + it.quantity, 0)} hint tokens
-                                    (candidate #{r.geoScreenshotCandidateId})
-                                </li>
-                            ))}
+                            {recentRewards.slice(0, 5).map((r) => {
+                                const tokens = r.items.reduce((n, it) => n + it.quantity, 0)
+                                const itemsKey = r.items
+                                    .map((it) => `${it.itemKey}:${it.quantity}`)
+                                    .join('|')
+                                return (
+                                    <li
+                                        key={`${r.userId}-${r.geoScreenshotCandidateId}-${itemsKey}`}
+                                    >
+                                        +{tokens} hint tokens
+                                        (candidate #{r.geoScreenshotCandidateId})
+                                    </li>
+                                )
+                            })}
                         </ul>
                     </CardContent>
                 </Card>
@@ -256,6 +262,16 @@ export default function GeoContributePage() {
         </div>
     )
 }
+
+// Three buckets, each carrying its weight intent for the future
+// consensus tweak. The label keys live under
+// geo.contribute.confidence.* so a translator can rephrase
+// "Sure / Approx / Guess" without touching code.
+const CONFIDENCE_OPTIONS: Array<{ value: GeoPinConfidence; key: string; fallback: string }> = [
+    { value: 1, key: 'geo.contribute.confidence.sure', fallback: 'Sure' },
+    { value: 2, key: 'geo.contribute.confidence.approx', fallback: 'Approximate' },
+    { value: 3, key: 'geo.contribute.confidence.guess', fallback: 'Guessing' },
+]
 
 function ConfidenceChips({
     value,
@@ -265,22 +281,13 @@ function ConfidenceChips({
     onChange: (c: GeoPinConfidence | null) => void
 }) {
     const { t } = useTranslation()
-    // Three buckets, each carrying its weight intent for the future
-    // consensus tweak. The label keys live under
-    // geo.contribute.confidence.* so a translator can rephrase
-    // "Sure / Approx / Guess" without touching code.
-    const options: Array<{ value: GeoPinConfidence; key: string; fallback: string }> = [
-        { value: 1, key: 'geo.contribute.confidence.sure', fallback: 'Sure' },
-        { value: 2, key: 'geo.contribute.confidence.approx', fallback: 'Approximate' },
-        { value: 3, key: 'geo.contribute.confidence.guess', fallback: 'Guessing' },
-    ]
     return (
         <div role="radiogroup" aria-label={t('geo.contribute.confidence.label', 'How confident are you?')}>
             <p className="text-xs text-muted-foreground mb-1.5">
                 {t('geo.contribute.confidence.label', 'How confident are you?')}
             </p>
             <div className="flex flex-wrap gap-2">
-                {options.map((opt) => {
+                {CONFIDENCE_OPTIONS.map((opt) => {
                     const selected = value === opt.value
                     return (
                         <button

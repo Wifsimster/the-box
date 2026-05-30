@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useReducer, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
@@ -9,15 +9,51 @@ import { resetPassword } from '@/lib/auth-client'
 import { Lock, Loader2, KeyRound, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
+interface ResetState {
+  isLoading: boolean
+  error: string | null
+  success: boolean
+  tokenError: boolean
+}
+
+type ResetAction =
+  | { type: 'submitStart' }
+  | { type: 'fail'; error: string }
+  | { type: 'tokenInvalid' }
+  | { type: 'succeed' }
+  | { type: 'finishLoading' }
+
+const initialResetState: ResetState = {
+  isLoading: false,
+  error: null,
+  success: false,
+  tokenError: false,
+}
+
+function resetReducer(state: ResetState, action: ResetAction): ResetState {
+  switch (action.type) {
+    case 'submitStart':
+      return { ...state, isLoading: true, error: null }
+    case 'fail':
+      return { ...state, error: action.error, isLoading: false }
+    case 'tokenInvalid':
+      return { ...state, tokenError: true, isLoading: false }
+    case 'succeed':
+      return { ...state, success: true }
+    case 'finishLoading':
+      return { ...state, isLoading: false }
+    default:
+      return state
+  }
+}
+
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const [searchParams] = useSearchParams()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [tokenError, setTokenError] = useState(false)
+  const [state, dispatch] = useReducer(resetReducer, initialResetState)
+  const { isLoading, error, success, tokenError } = state
 
   const [formData, setFormData] = useState({
     password: '',
@@ -30,35 +66,31 @@ export default function ResetPasswordPage() {
     // Check for error in URL params (from better-auth redirect)
     const errorParam = searchParams.get('error')
     if (errorParam === 'INVALID_TOKEN') {
-      setTokenError(true)
+      dispatch({ type: 'tokenInvalid' })
     }
 
     // Check if token exists
     if (!token && !errorParam) {
-      setTokenError(true)
+      dispatch({ type: 'tokenInvalid' })
     }
   }, [searchParams, token])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError(null)
+    dispatch({ type: 'submitStart' })
 
     if (formData.password !== formData.confirmPassword) {
-      setError(t('auth.passwordMismatch'))
-      setIsLoading(false)
+      dispatch({ type: 'fail', error: t('auth.passwordMismatch') })
       return
     }
 
     if (formData.password.length < 8) {
-      setError(t('auth.passwordTooShort'))
-      setIsLoading(false)
+      dispatch({ type: 'fail', error: t('auth.passwordTooShort') })
       return
     }
 
     if (formData.password.length > 128) {
-      setError(t('auth.passwordTooLong'))
-      setIsLoading(false)
+      dispatch({ type: 'fail', error: t('auth.passwordTooLong') })
       return
     }
 
@@ -68,20 +100,20 @@ export default function ResetPasswordPage() {
         token: token!,
       }, {
         onSuccess: () => {
-          setSuccess(true)
+          dispatch({ type: 'succeed' })
         },
         onError: (ctx) => {
           if (ctx.error.message?.includes('INVALID_TOKEN') || ctx.error.message?.includes('expired')) {
-            setTokenError(true)
+            dispatch({ type: 'tokenInvalid' })
           } else {
-            setError(t('auth.resetError'))
+            dispatch({ type: 'fail', error: t('auth.resetError') })
           }
         },
       })
     } catch {
-      setError(t('auth.resetError'))
+      dispatch({ type: 'fail', error: t('auth.resetError') })
     } finally {
-      setIsLoading(false)
+      dispatch({ type: 'finishLoading' })
     }
   }
 

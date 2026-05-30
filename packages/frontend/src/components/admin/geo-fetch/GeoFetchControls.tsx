@@ -62,6 +62,7 @@ export function GeoFetchControls() {
         {STAGE_FILTERS.map((f) => (
           <button
             key={f.value ?? 'all'}
+            type="button"
             onClick={() => setFilterStage(f.value)}
             className={`px-2.5 py-1 text-xs rounded-md border whitespace-nowrap ${
               filterStage === f.value

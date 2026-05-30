@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     Dialog,
@@ -89,11 +89,21 @@ export function AddMapDialog({
                     </TabsContent>
 
                     <TabsContent value="wand" className="space-y-3 pt-1">
-                        <WandPane game={game} onSuccess={onSuccess} onClose={onClose} />
+                        <WandPane
+                            key={game.id}
+                            game={game}
+                            onSuccess={onSuccess}
+                            onClose={onClose}
+                        />
                     </TabsContent>
 
                     <TabsContent value="manual" className="space-y-3 pt-1">
-                        <ManualPane game={game} onSuccess={onSuccess} onClose={onClose} />
+                        <ManualPane
+                            key={game.id}
+                            game={game}
+                            onSuccess={onSuccess}
+                            onClose={onClose}
+                        />
                     </TabsContent>
                 </Tabs>
             </DialogContent>
@@ -233,19 +243,12 @@ function WandPane({
     onClose: () => void
 }) {
     const { t } = useTranslation()
-    const [form, setForm] = useState<WandFormState>(defaultWandForm(game.slug))
+    // The parent keys this pane on game.id, so React remounts (with fresh
+    // state) whenever the operator switches to a different game — no
+    // reset-on-prop-change effect needed.
+    const [form, setForm] = useState<WandFormState>(() => defaultWandForm(game.slug))
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    // Reset the form when switching to a different game. Adjusting during
-    // render with a prev-prop comparison avoids a frame of the prior game's
-    // values before the effect would have cleared them.
-    const [prevGameId, setPrevGameId] = useState(game.id)
-    if (game.id !== prevGameId) {
-        setPrevGameId(game.id)
-        setForm(defaultWandForm(game.slug))
-        setError(null)
-    }
 
     const set = <K extends keyof WandFormState>(key: K, value: WandFormState[K]) =>
         setForm((prev) => ({ ...prev, [key]: value }))
@@ -385,17 +388,11 @@ function ManualPane({
     onClose: () => void
 }) {
     const { t } = useTranslation()
+    // Keyed on game.id by the parent, so switching games remounts this pane
+    // with fresh state (see WandPane).
     const [form, setForm] = useState<ManualFormState>(EMPTY_MANUAL)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    // Reset the form when switching to a different game (see WandPane).
-    const [prevGameId, setPrevGameId] = useState(game.id)
-    if (game.id !== prevGameId) {
-        setPrevGameId(game.id)
-        setForm(EMPTY_MANUAL)
-        setError(null)
-    }
 
     const set = <K extends keyof ManualFormState>(key: K, value: ManualFormState[K]) =>
         setForm((prev) => ({ ...prev, [key]: value }))

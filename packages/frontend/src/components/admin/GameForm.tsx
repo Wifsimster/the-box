@@ -68,10 +68,10 @@ function slugify(text: string): string {
 }
 
 function splitCsv(value: string): string[] {
-  return value
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
+  return value.split(',').flatMap((v) => {
+    const trimmed = v.trim()
+    return trimmed ? [trimmed] : []
+  })
 }
 
 function defaults(game?: Game | null): FormValues {

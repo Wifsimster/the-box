@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -101,10 +101,17 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
         onMinimizedChange?.(newState)
     }
 
+    // Keep the latest callback in a ref so the mount-only notification effect
+    // can run with an empty dependency array without re-firing whenever the
+    // parent passes a fresh callback identity.
+    const onMinimizedChangeRef = useRef(onMinimizedChange)
+    useEffect(() => {
+        onMinimizedChangeRef.current = onMinimizedChange
+    }, [onMinimizedChange])
+
     useEffect(() => {
         // Notify parent of initial state
-        onMinimizedChange?.(true)
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- onMinimizedChange is only needed for initial notification
+        onMinimizedChangeRef.current?.(true)
     }, [])
 
     useEffect(() => {

@@ -15,7 +15,7 @@ export function ProfileSkeleton() {
           </div>
           <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center space-y-2">
+              <div key={i} className="flex flex-col items-center gap-y-2">
                 <Skeleton className="size-10 rounded-full" />
                 <Skeleton className="h-6 w-16" />
                 <Skeleton className="h-3 w-10" />

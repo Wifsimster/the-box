@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
@@ -235,6 +235,22 @@ function AccountMenu({
   )
 }
 
+// Subscribe the header to the window scroll position via an external store so
+// the initial value is read during render (avoiding a mount-time setState) and
+// SSR gets a stable "not scrolled" snapshot.
+function subscribeScrolled(onChange: () => void) {
+  window.addEventListener('scroll', onChange, { passive: true })
+  return () => window.removeEventListener('scroll', onChange)
+}
+
+function getScrolledSnapshot() {
+  return window.scrollY > 8
+}
+
+function getScrolledServerSnapshot() {
+  return false
+}
+
 /**
  * Header component
  *
@@ -250,7 +266,11 @@ export function Header() {
   const navigate = useNavigate()
   const { session, isPending, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const isScrolled = useSyncExternalStore(
+    subscribeScrolled,
+    getScrolledSnapshot,
+    getScrolledServerSnapshot,
+  )
 
   const handleReplayTour = () => {
     requestTourReplay()
@@ -270,21 +290,15 @@ export function Header() {
   }, [fetchBillingEntitlement, session?.user?.id])
 
   // Keep the mobile menu and the daily reward modal mutually exclusive so the
-  // modal can't render underneath the Sheet on small screens.
-  useEffect(() => {
-    if (mobileMenuOpen && isRewardModalOpen) {
+  // modal can't render underneath the Sheet on small screens. Handled directly
+  // in `handleMobileMenuChange` (the menu's open handler) rather than via an
+  // effect that watches the resulting state.
+  const handleMobileMenuChange = (open: boolean) => {
+    if (open && isRewardModalOpen) {
       closeRewardModal()
     }
-  }, [mobileMenuOpen, isRewardModalOpen, closeRewardModal])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 8)
-    }
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    setMobileMenuOpen(open)
+  }
 
   // Show login/register buttons if there's no session. Also check the session
   // is valid (has user data) — the session endpoint can return invalid data.
@@ -310,7 +324,7 @@ export function Header() {
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4">
         {/* Mobile menu trigger — shown below md */}
         <div className="flex md:hidden">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuChange}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="size-11" aria-label={t('common.toggleMenu')}>
                 <Menu className="size-5" aria-hidden="true" />

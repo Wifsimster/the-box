@@ -22,9 +22,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapPasswordResetError } from '@/lib/auth-errors'
 
 const formSchema = z.object({
-  email: z
-    .string()
-    .email({ message: 'Please enter a valid email address' }),
+  email: z.email({ message: 'Please enter a valid email address' }),
 })
 
 type FormValues = z.infer<typeof formSchema>

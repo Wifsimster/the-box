@@ -13,6 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, Image } from 'lucide-react'
 import { tableRow } from '@/lib/animations'
 
+function metacriticClass(score: number): string {
+  return score >= 75 ? 'text-success/80' : score >= 50 ? 'text-warning/80' : 'text-error/80'
+}
+
 interface GameTableProps {
   games: Game[]
   onEdit: (game: Game) => void
@@ -54,6 +58,7 @@ function SortableHeader({
   return (
     <TableHead>
       <button
+        type="button"
         className="flex items-center font-medium hover:text-foreground transition-colors"
         onClick={() => onSort(field)}
       >
@@ -74,9 +79,6 @@ export function GameTable({
   onSort,
 }: GameTableProps) {
   const { t } = useTranslation()
-
-  const metacriticClass = (score: number) =>
-    score >= 75 ? 'text-success/80' : score >= 50 ? 'text-warning/80' : 'text-error/80'
 
   return (
     <>

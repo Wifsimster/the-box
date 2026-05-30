@@ -276,10 +276,13 @@ export const useGameStore = create<GameState>()(
           // Check if localStorage data is from the same challenge
           const isSameChallenge = persistedChallengeId === challengeId
 
-          // Build position states by merging backend + persisted data
+          // Build position states by merging backend + persisted data.
+          // Build the correct-position lookup once so the loop does an O(1)
+          // Set.has() instead of an O(n) Array.includes() scan per iteration.
+          const correctPositionSet = new Set(correctPositions)
           const states: Record<number, PositionState> = {}
           for (let i = 1; i <= totalScreenshots; i++) {
-            const isCorrect = correctPositions.includes(i)
+            const isCorrect = correctPositionSet.has(i)
             const existingState = existingStates[i]
 
             // Determine status with priority:

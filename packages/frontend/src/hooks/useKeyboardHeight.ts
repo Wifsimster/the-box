@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface KeyboardState {
   isKeyboardOpen: boolean;
@@ -38,6 +38,14 @@ export function useKeyboardHeight(): KeyboardState {
     });
   }, []);
 
+  // Keep the latest handler in a ref so the subscription effect can read
+  // `handlerRef.current()` through a stable wrapper and never re-subscribe
+  // when the handler identity changes.
+  const handlerRef = useRef(updateKeyboardState);
+  useEffect(() => {
+    handlerRef.current = updateKeyboardState;
+  }, [updateKeyboardState]);
+
   useEffect(() => {
     const viewport = window.visualViewport;
 
@@ -45,18 +53,23 @@ export function useKeyboardHeight(): KeyboardState {
       return;
     }
 
+    const listener = () => handlerRef.current();
+
     // Initial check
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to check keyboard state on mount
-    updateKeyboardState();
+    listener();
 
-    viewport.addEventListener('resize', updateKeyboardState);
-    viewport.addEventListener('scroll', updateKeyboardState);
+    // The handler only reads viewport metrics and never calls
+    // event.preventDefault(), so { passive: true } is safe and avoids
+    // blocking scroll performance.
+    viewport.addEventListener('resize', listener, { passive: true });
+    viewport.addEventListener('scroll', listener, { passive: true });
 
     return () => {
-      viewport.removeEventListener('resize', updateKeyboardState);
-      viewport.removeEventListener('scroll', updateKeyboardState);
+      viewport.removeEventListener('resize', listener);
+      viewport.removeEventListener('scroll', listener);
     };
-  }, [updateKeyboardState]);
+  }, []);
 
   return state;
 }

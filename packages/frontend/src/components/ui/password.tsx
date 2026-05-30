@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils"
 export interface PasswordProps
   extends Omit<React.ComponentProps<"input">, "type"> {
   showToggle?: boolean
+  ref?: React.Ref<HTMLInputElement>
 }
 
-const Password = React.forwardRef<HTMLInputElement, PasswordProps>(
-  ({ className, showToggle = true, ...props }, ref) => {
+const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps) => {
     const [showPassword, setShowPassword] = React.useState(false)
 
     return (
@@ -44,8 +44,7 @@ const Password = React.forwardRef<HTMLInputElement, PasswordProps>(
         )}
       </div>
     )
-  }
-)
+}
 
 Password.displayName = "Password"
 

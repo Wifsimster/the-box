@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { m, AnimatePresence } from 'framer-motion'
@@ -19,17 +19,19 @@ export function EndGameButton() {
   const navigate = useNavigate()
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEnding, setIsEnding] = useState(false)
+  const [funSentence, setFunSentence] = useState('')
 
   const gamePhase = useGameStore((s) => s.gamePhase)
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
-  // Pick a random fun sentence when dialog opens
-  const funSentence = useMemo(() => {
+  // Pick a fresh random fun sentence each time the confirm dialog opens.
+  const openConfirm = () => {
     const sentences = t('game.endGame.confirmDescriptions', { returnObjects: true }) as string[]
-    return sentences[Math.floor(Math.random() * sentences.length)]
-  }, [showConfirm, t]) // eslint-disable-line react-hooks/exhaustive-deps
+    setFunSentence(sentences[Math.floor(Math.random() * sentences.length)])
+    setShowConfirm(true)
+  }
 
   const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted
 
@@ -53,7 +55,7 @@ export function EndGameButton() {
       <AnimatePresence>
         {canShowButton && (
           <m.button
-            onClick={() => setShowConfirm(true)}
+            onClick={openConfirm}
             initial={{ opacity: 0, scaleY: 0 }}
             animate={{ opacity: 1, scaleY: 1 }}
             exit={{ opacity: 0, scaleY: 0 }}

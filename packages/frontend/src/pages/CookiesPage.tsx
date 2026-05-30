@@ -1,10 +1,26 @@
+import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Cookie } from 'lucide-react'
 
+const emptySubscribe = () => () => {}
+let cachedLastUpdated: string | null = null
+const getLastUpdatedSnapshot = () => {
+  if (cachedLastUpdated === null) {
+    cachedLastUpdated = new Date().toLocaleDateString()
+  }
+  return cachedLastUpdated
+}
+const getLastUpdatedServerSnapshot = (): string | null => null
+
 export default function CookiesPage() {
   const { t } = useTranslation()
+  const lastUpdated = useSyncExternalStore(
+    emptySubscribe,
+    getLastUpdatedSnapshot,
+    getLastUpdatedServerSnapshot
+  )
 
   const sections = [
     { title: t('legal.cookiesWhatTitle'), content: t('legal.cookiesWhat') },
@@ -30,7 +46,7 @@ export default function CookiesPage() {
               {t('legal.cookiesTitle')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2">
-              {t('legal.cookiesLastUpdated')}: {new Date().toLocaleDateString()}
+              {t('legal.cookiesLastUpdated')}: {lastUpdated}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -40,7 +56,7 @@ export default function CookiesPage() {
 
             {sections.map((section, index) => (
               <m.div
-                key={index}
+                key={section.title}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}

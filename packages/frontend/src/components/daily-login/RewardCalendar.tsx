@@ -10,6 +10,23 @@ interface RewardCalendarProps {
     className?: string
 }
 
+function getRewardTypeIcon(reward: DailyReward) {
+    if (reward.rewardType === 'legendary') {
+        return '🎁'
+    }
+    if (reward.rewardType === 'points') {
+        return '⭐'
+    }
+    // Power-up type
+    const items = reward.rewardValue.items
+    if (items.length > 0) {
+        const item = items[0]
+        if (item?.key === 'hint_year') return '📅'
+        if (item?.key === 'hint_publisher') return '🏢'
+    }
+    return '🎮'
+}
+
 export function RewardCalendar({
     rewards,
     currentDayInCycle,
@@ -26,23 +43,6 @@ export function RewardCalendar({
             return hasClaimedToday ? 'claimed' : 'available'
         }
         return 'locked'
-    }
-
-    const getRewardTypeIcon = (reward: DailyReward) => {
-        if (reward.rewardType === 'legendary') {
-            return '🎁'
-        }
-        if (reward.rewardType === 'points') {
-            return '⭐'
-        }
-        // Power-up type
-        const items = reward.rewardValue.items
-        if (items.length > 0) {
-            const item = items[0]
-            if (item?.key === 'hint_year') return '📅'
-            if (item?.key === 'hint_publisher') return '🏢'
-        }
-        return '🎮'
     }
 
     return (

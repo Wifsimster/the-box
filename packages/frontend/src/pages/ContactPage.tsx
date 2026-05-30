@@ -53,7 +53,7 @@ export default function ContactPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {contactMethods.map((method, index) => (
                 <m.div
-                  key={index}
+                  key={method.title}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}

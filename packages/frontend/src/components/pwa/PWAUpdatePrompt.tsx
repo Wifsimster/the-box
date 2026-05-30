@@ -61,15 +61,15 @@ export function PWAUpdatePrompt() {
   if (!needRefresh) return null
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-labelledby="pwa-update-panel-title"
       aria-describedby="pwa-update-panel-desc"
       aria-live="polite"
       className={cn(
         // Sit just above the mobile BottomNav; drop to the corner at md where
         // the BottomNav is hidden.
-        'fixed inset-x-3 bottom-[var(--bottom-nav-space)] z-[55] rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
+        'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-[55] m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
         'border-primary/30 p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
       )}
     >
@@ -119,6 +119,6 @@ export function PWAUpdatePrompt() {
       >
         <X className="size-4" />
       </button>
-    </div>
+    </dialog>
   )
 }

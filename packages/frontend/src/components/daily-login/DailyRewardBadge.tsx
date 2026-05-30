@@ -26,7 +26,7 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
     const canClaim = status.canClaim
     const streak = status.currentStreak
 
-    const handleClick = () => {
+    const openRewardModal = () => {
         onClick?.()
         openModal()
     }
@@ -38,7 +38,7 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleClick}
+                        onClick={openRewardModal}
                         className={cn(
                             'relative flex items-center gap-1.5 px-2 sm:px-3',
                             className

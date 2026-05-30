@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { useCallback, useMemo, useState, type KeyboardEvent, type Ref } from 'react'
 import { useRovingTabindex } from '@/hooks/useRovingTabindex'
 import { useTranslation } from 'react-i18next'
 import type { GeoPlayableGame } from '@the-box/types'
@@ -141,16 +141,12 @@ export function GamePicker({
 
                 <div className="flex-1 overflow-y-auto px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
                     {isLoading ? (
-                        <div
-                            className="flex justify-center py-16"
-                            role="status"
-                            aria-live="polite"
-                        >
+                        <output className="flex justify-center py-16">
                             <Loader2 className="size-6 animate-spin text-neon-pink" aria-hidden />
                             <span className="sr-only">
                                 {t('common.loading', 'Loading…')}
                             </span>
-                        </div>
+                        </output>
                     ) : filtered.length === 0 ? (
                         <p className="py-12 text-center text-sm text-muted-foreground">
                             {games.length === 0
@@ -218,22 +214,21 @@ interface GameCardProps {
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
     onToggleIgnore?: () => void
+    ref?: Ref<HTMLButtonElement>
 }
 
-const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
-    {
-        game,
-        selected,
-        newCount,
-        completed,
-        ignored,
-        tabIndex,
-        onKeyDown,
-        onSelect,
-        onToggleIgnore,
-    },
+function GameCard({
+    game,
+    selected,
+    newCount,
+    completed,
+    ignored,
+    tabIndex,
+    onKeyDown,
+    onSelect,
+    onToggleIgnore,
     ref,
-) {
+}: GameCardProps) {
     const { t } = useTranslation()
     const cover = game.coverImageUrl && !isPlaceholderImageUrl(game.coverImageUrl)
         ? game.coverImageUrl
@@ -347,4 +342,4 @@ const GameCard = forwardRef<HTMLButtonElement, GameCardProps>(function GameCard(
             )}
         </div>
     )
-})
+}

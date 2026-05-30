@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useReducer, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,6 +16,42 @@ import {
 import { isThemeKey, type ThemeKey } from '@/lib/themes'
 import type { User as UserType } from '@the-box/types'
 
+interface ProfileDataState {
+  loading: boolean
+  error: string | null
+  userProfile: UserType | null
+}
+
+type ProfileDataAction =
+  | { type: 'fetchStart' }
+  | { type: 'fetchSuccess'; userProfile: UserType }
+  | { type: 'fetchError'; error: string }
+  | { type: 'fetchDone' }
+
+const initialProfileData: ProfileDataState = {
+  loading: true,
+  error: null,
+  userProfile: null,
+}
+
+function profileDataReducer(
+  state: ProfileDataState,
+  action: ProfileDataAction,
+): ProfileDataState {
+  switch (action.type) {
+    case 'fetchStart':
+      return { ...state, error: null }
+    case 'fetchSuccess':
+      return { ...state, userProfile: action.userProfile, error: null }
+    case 'fetchError':
+      return { ...state, error: action.error }
+    case 'fetchDone':
+      return { ...state, loading: false }
+    default:
+      return state
+  }
+}
+
 /**
  * ProfilePage — user identity + achievements (Overview) with Account / Creator /
  * Customize tabs for everything else. Heavy panels (StreamerKit, AdvancedStats,
@@ -26,10 +62,13 @@ export default function ProfilePage() {
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const { session, isPending } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [, setError] = useState<string | null>(null)
-  const [userProfile, setUserProfile] = useState<UserType | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [{ loading, userProfile }, dispatchProfileData] = useReducer(
+    profileDataReducer,
+    initialProfileData,
+  )
+  // User-driven overrides, seeded from the fetched profile during render.
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(null)
+  const [themeOverride, setThemeOverride] = useState<ThemeKey | null>(null)
   const hasFetched = useRef(false)
 
   const {
@@ -45,18 +84,16 @@ export default function ProfilePage() {
   const billingEntitlement = useBillingStore((state) => state.entitlement)
   const fetchBillingEntitlement = useBillingStore((state) => state.fetchEntitlement)
   const isPremium = !!billingEntitlement?.isPremium
-  const [selectedTheme, setSelectedTheme] = useState<ThemeKey>('default')
+
+  // Derived during render: user override wins, otherwise the fetched value.
+  const fetchedTheme = userProfile?.selectedTheme
+  const selectedTheme: ThemeKey =
+    themeOverride ?? (fetchedTheme && isThemeKey(fetchedTheme) ? fetchedTheme : 'default')
+  const avatarUrl = avatarOverride ?? userProfile?.avatarUrl ?? session?.user?.image ?? null
 
   useEffect(() => {
     void fetchBillingEntitlement()
   }, [fetchBillingEntitlement, session?.user?.id])
-
-  /* eslint-disable react-hooks/set-state-in-effect -- Sync server-fetched theme into local state for optimistic switching */
-  useEffect(() => {
-    const fetched = userProfile?.selectedTheme
-    if (fetched && isThemeKey(fetched)) setSelectedTheme(fetched)
-  }, [userProfile?.selectedTheme])
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -65,7 +102,7 @@ export default function ProfilePage() {
   }, [session?.user?.id, fetchInventory])
 
   const handleAvatarChange = useCallback((newAvatarUrl: string | null) => {
-    setAvatarUrl(newAvatarUrl)
+    setAvatarOverride(newAvatarUrl)
   }, [])
 
   useEffect(() => {
@@ -78,7 +115,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (session && !hasFetched.current) {
       hasFetched.current = true
-      setError(null)
+      dispatchProfileData({ type: 'fetchStart' })
 
       Promise.all([
         fetchUserAchievements(),
@@ -86,14 +123,17 @@ export default function ProfilePage() {
           .then((res) => res.json())
           .then((json) => {
             if (json.success && json.data) {
-              setUserProfile(json.data)
-              setAvatarUrl(json.data.avatarUrl ?? session.user.image ?? null)
+              dispatchProfileData({ type: 'fetchSuccess', userProfile: json.data })
             }
           }),
       ])
-        .then(() => setError(null))
-        .catch((err) => setError(err?.message || 'Failed to load profile data'))
-        .finally(() => setLoading(false))
+        .catch((err) =>
+          dispatchProfileData({
+            type: 'fetchError',
+            error: err?.message || 'Failed to load profile data',
+          }),
+        )
+        .finally(() => dispatchProfileData({ type: 'fetchDone' }))
     }
   }, [session, fetchUserAchievements])
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -159,7 +199,7 @@ export default function ProfilePage() {
             totalCount={totalCount}
             isPremium={isPremium}
             selectedTheme={selectedTheme}
-            onThemeChange={setSelectedTheme}
+            onThemeChange={setThemeOverride}
             language={i18n.language}
           />
         </div>

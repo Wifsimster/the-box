@@ -11,6 +11,8 @@ import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapLoginError } from '@/lib/auth-errors'
 
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
 export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -24,8 +26,6 @@ export default function LoginPage() {
     identifier: '',
     password: '',
   })
-
-  const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
   const handlePasskeyLogin = async (): Promise<void> => {
     setIsLoading(true)

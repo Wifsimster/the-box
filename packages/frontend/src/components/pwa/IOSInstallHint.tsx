@@ -52,11 +52,11 @@ export function IOSInstallHint() {
   }
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-labelledby="ios-install-title"
       className={cn(
-        'fixed inset-x-3 bottom-3 z-50 rounded-xl border bg-card/95 shadow-lg backdrop-blur',
+        'fixed inset-x-3 bottom-3 top-auto z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur',
         'border-border p-4 flex gap-3 items-start',
       )}
     >
@@ -80,6 +80,6 @@ export function IOSInstallHint() {
       >
         <X className="size-4" />
       </button>
-    </div>
+    </dialog>
   )
 }

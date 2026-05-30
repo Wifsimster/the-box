@@ -14,19 +14,24 @@ export function useApplyUserTheme(userId: string | undefined): void {
       document.documentElement.removeAttribute('data-theme')
       return
     }
-    let cancelled = false
-    void fetch('/api/user/me', { credentials: 'include' })
+    // One-shot fetch with AbortController cleanup. No data-fetching library
+    // is available in this app, so this is the documented exception to
+    // no-fetch-in-effect: the request is aborted if the effect re-runs or
+    // unmounts before it settles, preventing stale theme application.
+    const controller = new AbortController()
+    void fetch('/api/user/me', { credentials: 'include', signal: controller.signal })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (cancelled || !json?.success) return
+        if (!json?.success) return
         const theme = json.data?.selectedTheme ?? 'default'
         applyTheme(theme)
       })
       .catch(() => {
-        // No-op: theme defaults to absent attribute → CSS uses the base palette.
+        // No-op: aborted requests and failures both leave the attribute
+        // absent → CSS uses the base palette.
       })
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [userId])
 }

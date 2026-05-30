@@ -54,7 +54,7 @@ export function StatTile({
   return (
     <TooltipRoot>
       <TooltipTrigger asChild>
-        <div className="flex flex-col items-center text-center space-y-1.5 cursor-help">
+        <div className="flex flex-col items-center text-center gap-y-1.5 cursor-help">
           <div className={cn('flex items-center justify-center size-10 rounded-full', tones.bubble)}>
             <Icon className={cn('size-5', tones.icon)} />
           </div>

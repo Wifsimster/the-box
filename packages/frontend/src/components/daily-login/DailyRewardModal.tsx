@@ -14,6 +14,30 @@ import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
 import { Flame, Gift, Sparkles } from 'lucide-react'
 
+// i18n key per item_key. New keys (hint_developer, hint_genre,
+// streak_freeze, second_chance) fall back to the raw item_key so
+// a missing translation does not break the modal.
+const REWARD_ITEM_I18N_KEY: Record<string, string> = {
+    hint_year: 'dailyLogin.hintYear',
+    hint_publisher: 'dailyLogin.hintPublisher',
+    hint_developer: 'dailyLogin.hintDeveloper',
+    hint_genre: 'dailyLogin.hintGenre',
+    streak_freeze: 'dailyLogin.streakFreeze',
+    second_chance: 'dailyLogin.secondChance',
+}
+
+function RewardItemBadgeLabel({ item }: { item: { key: string; quantity: number } }) {
+    const { t } = useTranslation()
+    const label = t(REWARD_ITEM_I18N_KEY[item.key] ?? '', {
+        defaultValue: item.key,
+    })
+    return (
+        <Badge variant="secondary" className="bg-primary/20">
+            {`${item.quantity}× ${label}`}
+        </Badge>
+    )
+}
+
 export function DailyRewardModal() {
     const { t } = useTranslation()
     const {
@@ -55,22 +79,6 @@ export function DailyRewardModal() {
 
     const reward = justClaimed?.reward || status.todayReward
     const showClaimSuccess = !!justClaimed
-
-    const renderItemLabel = (item: { key: string; quantity: number }) => {
-        // i18n key per item_key. New keys (hint_developer, hint_genre,
-        // streak_freeze, second_chance) fall back to the raw item_key so
-        // a missing translation does not break the modal.
-        const i18nKey: Record<string, string> = {
-            hint_year: 'dailyLogin.hintYear',
-            hint_publisher: 'dailyLogin.hintPublisher',
-            hint_developer: 'dailyLogin.hintDeveloper',
-            hint_genre: 'dailyLogin.hintGenre',
-            streak_freeze: 'dailyLogin.streakFreeze',
-            second_chance: 'dailyLogin.secondChance',
-        }
-        const label = t(i18nKey[item.key] ?? '', { defaultValue: item.key })
-        return `${item.quantity}× ${label}`
-    }
 
     return (
         <ResponsiveDialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
@@ -114,9 +122,9 @@ export function DailyRewardModal() {
                         {/* Sparkle effect on claim */}
                         {showClaimSuccess && (
                             <div className="absolute inset-0 pointer-events-none">
-                                <Sparkles className="absolute top-2 left-4 size-4 text-warning animate-bounce" />
-                                <Sparkles className="absolute top-4 right-6 size-3 text-warning animate-bounce delay-100" />
-                                <Sparkles className="absolute bottom-4 left-8 size-3 text-warning animate-bounce delay-200" />
+                                <Sparkles className="absolute top-2 left-4 size-4 text-warning animate-pulse" />
+                                <Sparkles className="absolute top-4 right-6 size-3 text-warning animate-pulse delay-100" />
+                                <Sparkles className="absolute bottom-4 left-8 size-3 text-warning animate-pulse delay-200" />
                             </div>
                         )}
 
@@ -134,10 +142,8 @@ export function DailyRewardModal() {
 
                         {/* Reward details */}
                         <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                            {reward.rewardValue.items.map((item: { key: string; quantity: number }, idx: number) => (
-                                <Badge key={idx} variant="secondary" className="bg-primary/20">
-                                    {renderItemLabel(item)}
-                                </Badge>
+                            {reward.rewardValue.items.map((item: { key: string; quantity: number }) => (
+                                <RewardItemBadgeLabel key={item.key} item={item} />
                             ))}
                             {reward.rewardValue.points > 0 && (
                                 <Badge variant="secondary" className="bg-warning/20 text-warning">

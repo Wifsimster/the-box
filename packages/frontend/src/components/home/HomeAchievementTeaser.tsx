@@ -35,8 +35,10 @@ const TEASER_COUNT = 3
 // Match AchievementGrid's `sortByDifficulty`: tier ASC, then points ASC.
 // "First N unearned" needs a deterministic order so re-renders don't shuffle.
 function pickTeaserAchievements<T extends TeaserAchievement>(list: T[]): T[] {
-  return [...list]
-    .sort((a, b) => (a.tier !== b.tier ? a.tier - b.tier : a.points - b.points))
+  return list
+    .toSorted((a, b) =>
+      a.tier !== b.tier ? a.tier - b.tier : a.points - b.points,
+    )
     .slice(0, TEASER_COUNT)
 }
 
@@ -74,10 +76,9 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
           />
           <span
             className="absolute -bottom-1.5 -right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-background/90 border border-neon-purple/40 text-foreground"
-            role="img"
-            aria-label={lockedLabel}
+            aria-hidden="true"
           >
-            <Lock className="size-3" aria-hidden="true" />
+            <Lock className="size-3" />
           </span>
         </div>
         <h3 className="text-sm sm:text-base font-semibold leading-tight text-foreground">
@@ -124,24 +125,28 @@ export function HomeAchievementTeaser() {
     userAchievements,
     isLoading,
     isLoadingUserAchievements,
-    fetchAchievements,
-    fetchUserAchievements,
   } = useAchievementStore()
 
   // Authenticated → fetch progress so we can prefer locked/unearned items.
   // Guest → fetch the public catalog and treat all as locked.
+  //
+  // We intentionally only re-run on auth changes: the store already guards
+  // against parallel fetches and we don't want to refetch on every home-page
+  // render. Reading the guard state and actions via `getState()` keeps the
+  // effect honest with a single `userId` dependency instead of suppressing
+  // exhaustive-deps.
   useEffect(() => {
+    const store = useAchievementStore.getState()
     if (userId) {
-      if (userAchievements.length === 0 && !isLoadingUserAchievements) {
-        fetchUserAchievements().catch(() => {})
+      if (
+        store.userAchievements.length === 0 &&
+        !store.isLoadingUserAchievements
+      ) {
+        store.fetchUserAchievements().catch(() => {})
       }
-    } else if (achievements.length === 0 && !isLoading) {
-      fetchAchievements().catch(() => {})
+    } else if (store.achievements.length === 0 && !store.isLoading) {
+      store.fetchAchievements().catch(() => {})
     }
-    // We intentionally only re-run on auth changes: the store already
-    // guards against parallel fetches and we don't want to refetch on
-    // every render of the home page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   const loading = userId ? isLoadingUserAchievements : isLoading
@@ -194,13 +199,15 @@ export function HomeAchievementTeaser() {
 
   // Render either skeletons or real cards through the same layout shells
   // so mobile/desktop parity is identical between states.
-  const items: ReactNode[] = loading
-    ? Array.from({ length: TEASER_COUNT }).map((_, i) => (
-        <TeaserSkeleton key={`sk-${i}`} />
-      ))
-    : teaser.map((a) => (
-        <TeaserCard key={a.id} achievement={a} lockedLabel={lockedLabel} />
-      ))
+  const items: { key: string; node: ReactNode }[] = loading
+    ? Array.from({ length: TEASER_COUNT }).map((_, i) => ({
+        key: `sk-${i}`,
+        node: <TeaserSkeleton />,
+      }))
+    : teaser.map((a) => ({
+        key: String(a.id),
+        node: <TeaserCard achievement={a} lockedLabel={lockedLabel} />,
+      }))
 
   return (
     <m.section
@@ -248,12 +255,12 @@ export function HomeAchievementTeaser() {
           aria-label={t('home.achievements.heading')}
         >
           <CarouselContent className="-ml-3">
-            {items.map((node, i) => (
+            {items.map((item) => (
               <CarouselItem
-                key={i}
+                key={item.key}
                 className={cn('pl-3 basis-[85%]')}
               >
-                <div className="h-full">{node}</div>
+                <div className="h-full">{item.node}</div>
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -262,9 +269,9 @@ export function HomeAchievementTeaser() {
 
       {/* Desktop md+: static 3-column grid. */}
       <div className="hidden md:grid grid-cols-3 gap-5 lg:gap-6">
-        {items.map((node, i) => (
-          <div key={i} className="h-full">
-            {node}
+        {items.map((item) => (
+          <div key={item.key} className="h-full">
+            {item.node}
           </div>
         ))}
       </div>

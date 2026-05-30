@@ -42,7 +42,14 @@ export function FeatureMatrix() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/60 bg-muted/30">
-              <th className="text-left px-4 sm:px-6 py-2 font-medium text-muted-foreground"></th>
+              <th
+                scope="col"
+                className="text-left px-4 sm:px-6 py-2 font-medium text-muted-foreground"
+              >
+                <span className="sr-only">
+                  {t('pricing.features.title')}
+                </span>
+              </th>
               <th className="px-3 py-2 font-medium text-muted-foreground w-24 text-center">
                 {t('pricing.features.free')}
               </th>

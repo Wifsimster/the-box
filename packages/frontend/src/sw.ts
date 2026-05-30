@@ -295,19 +295,21 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
       const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       // Reuse an existing window if one is already on the same scope —
       // matches the manifest's launch_handler client_mode: navigate-existing.
-      for (const client of allClients) {
-        if ('focus' in client) {
-          await client.focus()
-          if ('navigate' in client && client.url !== new URL(target, self.location.origin).href) {
-            try {
-              await (client as WindowClient).navigate(target)
-            } catch {
-              // navigate() can reject for cross-origin or bfcache cases; the
-              // focus is enough — user lands on whatever page was open.
-            }
+      // Pick the first focusable client without awaiting per-iteration so the
+      // search stays a pure synchronous find; the (loop-carried) focus +
+      // navigate awaits then run once, in order, on that single client.
+      const existing = allClients.find((client) => 'focus' in client)
+      if (existing) {
+        await existing.focus()
+        if ('navigate' in existing && existing.url !== new URL(target, self.location.origin).href) {
+          try {
+            await (existing as WindowClient).navigate(target)
+          } catch {
+            // navigate() can reject for cross-origin or bfcache cases; the
+            // focus is enough — user lands on whatever page was open.
           }
-          return
         }
+        return
       }
       await self.clients.openWindow(target)
     })(),

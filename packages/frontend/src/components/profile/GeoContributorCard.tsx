@@ -130,7 +130,7 @@ function NextTierHint({
     thresholds: Array<{ tier: GeoContributorTier; minAccepted: number; minAccuracy: number; displayOrder: number }>
 }) {
     const { t } = useTranslation()
-    const sorted = [...thresholds].sort((a, b) => a.displayOrder - b.displayOrder)
+    const sorted = thresholds.toSorted((a, b) => a.displayOrder - b.displayOrder)
     const currentIdx = sorted.findIndex((t) => t.tier === currentTier)
     const next = currentIdx >= 0 ? sorted[currentIdx + 1] : undefined
     if (!next) return null

@@ -15,6 +15,19 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 /**
+ * Trigger device haptics when supported. Pure helper with no component state.
+ */
+function vibrate(pattern: number | number[]) {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    try {
+      navigator.vibrate(pattern)
+    } catch {
+      // ignore unsupported
+    }
+  }
+}
+
+/**
  * Game guess input component with simple text input
  *
  * Users type the game name and submit - fuzzy matching is done on the backend
@@ -57,16 +70,6 @@ export function GuessInput() {
   }, [gamePhase])
 
   const prefersReducedMotion = useReducedMotionSafe()
-
-  const vibrate = (pattern: number | number[]) => {
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      try {
-        navigator.vibrate(pattern)
-      } catch {
-        // ignore unsupported
-      }
-    }
-  }
 
   const handleSubmit = async () => {
     if (isSubmitting || !query.trim()) return

@@ -113,6 +113,10 @@ export async function fetchWithRetry(
   const config = { ...DEFAULT_RETRY_CONFIG, ...retryConfig }
   let lastError: Error | undefined
 
+  // Build the retryable-status lookup once before the loop so each attempt
+  // does an O(1) Set.has() instead of an O(n) Array.includes() scan.
+  const retryableStatuses = new Set(config.retryableStatuses)
+
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     // Create AbortController for timeout
     const controller = new AbortController()
@@ -131,7 +135,7 @@ export async function fetchWithRetry(
       clearTimeout(timeoutId)
 
       // If response is OK or not retryable, return it
-      if (response.ok || !config.retryableStatuses.includes(response.status)) {
+      if (response.ok || !retryableStatuses.has(response.status)) {
         return response
       }
 

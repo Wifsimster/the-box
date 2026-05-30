@@ -1,10 +1,26 @@
+import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { FileText } from 'lucide-react'
 
+const emptySubscribe = () => () => {}
+let cachedLastUpdated: string | null = null
+const getLastUpdatedSnapshot = () => {
+  if (cachedLastUpdated === null) {
+    cachedLastUpdated = new Date().toLocaleDateString()
+  }
+  return cachedLastUpdated
+}
+const getLastUpdatedServerSnapshot = (): string | null => null
+
 export default function TermsPage() {
   const { t } = useTranslation()
+  const lastUpdated = useSyncExternalStore(
+    emptySubscribe,
+    getLastUpdatedSnapshot,
+    getLastUpdatedServerSnapshot
+  )
 
   const sections = [
     { title: t('legal.termsAcceptanceTitle'), content: t('legal.termsAcceptance') },
@@ -34,7 +50,7 @@ export default function TermsPage() {
               {t('legal.termsTitle')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2">
-              {t('legal.termsLastUpdated')}: {new Date().toLocaleDateString()}
+              {t('legal.termsLastUpdated')}: {lastUpdated}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -44,7 +60,7 @@ export default function TermsPage() {
 
             {sections.map((section, index) => (
               <m.div
-                key={index}
+                key={section.title}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}

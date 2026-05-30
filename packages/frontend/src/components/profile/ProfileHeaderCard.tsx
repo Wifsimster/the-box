@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Trophy, Award, TrendingUp, Flame, Calendar, Snowflake } from 'lucide-react'
@@ -45,6 +46,22 @@ export function ProfileHeaderCard({
   onAvatarChange,
 }: ProfileHeaderCardProps) {
   const { t } = useTranslation()
+
+  // Memoised so the streak tooltip body keeps a stable reference between
+  // renders unless its inputs change, instead of allocating JSX every render.
+  const currentStreakTooltipBody = useMemo(
+    () => (
+      <>
+        <p>{t('profile.tooltips.currentStreakDescription')}</p>
+        {streakFreezeCount > 0 && (
+          <p className="mt-1">
+            {t('profile.streakFreezeTooltip', { count: streakFreezeCount })}
+          </p>
+        )}
+      </>
+    ),
+    [t, streakFreezeCount],
+  )
 
   return (
     <Card className="border-2 border-primary/20">
@@ -100,16 +117,7 @@ export function ProfileHeaderCard({
                 label={t('profile.days')}
                 tone="score-low"
                 tooltipTitle={t('profile.currentStreak')}
-                tooltipBody={
-                  <>
-                    <p>{t('profile.tooltips.currentStreakDescription')}</p>
-                    {streakFreezeCount > 0 && (
-                      <p className="mt-1">
-                        {t('profile.streakFreezeTooltip', { count: streakFreezeCount })}
-                      </p>
-                    )}
-                  </>
-                }
+                tooltipBody={currentStreakTooltipBody}
                 extra={
                   streakFreezeCount > 0 ? (
                     <div className="flex items-center gap-1 text-[10px] text-neon-blue">

@@ -706,7 +706,7 @@ export const useAdminStore = create<AdminState>()(
           // Fetch billing entitlement for the visible users in parallel.
           // Failure is non-fatal — the table still renders without the
           // premium column populated.
-          const ids = transformedUsers.map((u) => u.id).filter(Boolean)
+          const ids = transformedUsers.flatMap((u) => (u.id ? [u.id] : []))
           if (ids.length > 0) {
             try {
               const entitlements = await adminApi.getUsersBilling(ids)

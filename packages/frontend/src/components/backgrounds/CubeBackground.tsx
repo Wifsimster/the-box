@@ -134,10 +134,10 @@ function DigitalDust() {
 
 export function CubeBackground() {
   return (
-    <div className="fixed inset-0 z-0 bg-black">
+    <div className="fixed inset-0 z-0 bg-background">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 50 }}
-        style={{ background: 'black' }}
+        style={{ background: '#0a0a0f' }}
         dpr={[1, 1.5]}
         gl={{ antialias: false, powerPreference: 'low-power' }}
       >

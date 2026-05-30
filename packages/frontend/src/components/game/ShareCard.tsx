@@ -38,7 +38,7 @@ export function ShareCard({
 
     // Generate emoji grid (Wordle-style)
     const generateEmojiGrid = (): string => {
-        const sortedResults = [...guessResults].sort((a, b) => a.position - b.position)
+        const sortedResults = guessResults.toSorted((a, b) => a.position - b.position)
 
         // Create rows of 5 emojis each (2 rows for 10 screenshots)
         const row1 = sortedResults.slice(0, 5).map(r => r.isCorrect ? '✅' : '❌').join('')

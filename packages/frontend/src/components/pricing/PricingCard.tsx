@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Check, Loader2, Sparkles } from 'lucide-react'
@@ -17,15 +18,6 @@ interface PricingCardProps {
   onSelect: (tier: BillingTier) => void
 }
 
-function formatAmount(unitAmountCents: number, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(unitAmountCents / 100)
-}
-
 export function PricingCard({
   price,
   isCurrentPlan,
@@ -36,6 +28,18 @@ export function PricingCard({
   onSelect,
 }: PricingCardProps) {
   const { t, i18n } = useTranslation()
+  // Hoist the currency formatter out of per-call construction; rebuild only
+  // when the active locale changes.
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(i18n.language, {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [i18n.language],
+  )
   const tierKey = `pricing.tiers.${price.tier}`
   const ctaKey = isCurrentPlan
     ? 'pricing.ctaCurrent'
@@ -74,7 +78,7 @@ export function PricingCard({
 
         <CardContent className="flex-1 space-y-4">
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold">{formatAmount(price.unitAmount, i18n.language)}</span>
+            <span className="text-4xl font-bold">{currencyFormatter.format(price.unitAmount / 100)}</span>
             <span className="text-muted-foreground text-sm">{t(intervalKey)}</span>
           </div>
           {price.tier === 'premium_annual' && (

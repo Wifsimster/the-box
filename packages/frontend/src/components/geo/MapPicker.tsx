@@ -1,4 +1,4 @@
-import { forwardRef, type KeyboardEvent } from 'react'
+import { type KeyboardEvent, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { GeoMap } from '@the-box/types'
 import { Shuffle } from 'lucide-react'
@@ -131,12 +131,10 @@ interface AnyMapCardProps {
     tabIndex: number
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
+    ref?: Ref<HTMLButtonElement>
 }
 
-const AnyMapCard = forwardRef<HTMLButtonElement, AnyMapCardProps>(function AnyMapCard(
-    { selected, tabIndex, onKeyDown, onSelect },
-    ref,
-) {
+function AnyMapCard({ selected, tabIndex, onKeyDown, onSelect, ref }: AnyMapCardProps) {
     const { t } = useTranslation()
     return (
         <button
@@ -163,7 +161,7 @@ const AnyMapCard = forwardRef<HTMLButtonElement, AnyMapCardProps>(function AnyMa
             </div>
         </button>
     )
-})
+}
 
 interface MapCardProps {
     map: GeoMap
@@ -171,12 +169,10 @@ interface MapCardProps {
     tabIndex: number
     onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void
     onSelect: () => void
+    ref?: Ref<HTMLButtonElement>
 }
 
-const MapCard = forwardRef<HTMLButtonElement, MapCardProps>(function MapCard(
-    { map, selected, tabIndex, onKeyDown, onSelect },
-    ref,
-) {
+function MapCard({ map, selected, tabIndex, onKeyDown, onSelect, ref }: MapCardProps) {
     const { t } = useTranslation()
     const label = map.region ?? t('geo.daily.chooseMap.worldFallback', 'World map')
     const placeholder = isPlaceholderImageUrl(map.imageUrl)
@@ -218,4 +214,4 @@ const MapCard = forwardRef<HTMLButtonElement, MapCardProps>(function MapCard(
             </div>
         </button>
     )
-})
+}

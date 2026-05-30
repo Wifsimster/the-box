@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Game } from '@/types'
 import { useAdminStore } from '@/stores/adminStore'
@@ -14,6 +14,54 @@ import { ScreenshotsDialog } from './ScreenshotsDialog'
 import { Plus, Search, Loader2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { adminApi } from '@/lib/api/admin'
+
+// The four dialog-related values describe a single concept — which dialog is
+// open and on which game — so they live in one reducer rather than four loosely
+// coupled useState flags that can drift out of sync.
+interface DialogState {
+  isFormOpen: boolean
+  editingGame: Game | null
+  deletingGame: Game | null
+  screenshotsGame: Game | null
+}
+
+type DialogAction =
+  | { type: 'openCreate' }
+  | { type: 'edit'; game: Game }
+  | { type: 'setEditingGame'; game: Game }
+  | { type: 'delete'; game: Game }
+  | { type: 'screenshots'; game: Game }
+  | { type: 'closeForm' }
+  | { type: 'closeDelete' }
+  | { type: 'closeScreenshots' }
+
+const INITIAL_DIALOG: DialogState = {
+  isFormOpen: false,
+  editingGame: null,
+  deletingGame: null,
+  screenshotsGame: null,
+}
+
+function dialogReducer(state: DialogState, action: DialogAction): DialogState {
+  switch (action.type) {
+    case 'openCreate':
+      return { ...state, isFormOpen: true }
+    case 'edit':
+      return { ...state, editingGame: action.game }
+    case 'setEditingGame':
+      return { ...state, editingGame: action.game }
+    case 'delete':
+      return { ...state, deletingGame: action.game }
+    case 'screenshots':
+      return { ...state, screenshotsGame: action.game }
+    case 'closeForm':
+      return { ...state, isFormOpen: false, editingGame: null }
+    case 'closeDelete':
+      return { ...state, deletingGame: null }
+    case 'closeScreenshots':
+      return { ...state, screenshotsGame: null }
+  }
+}
 
 function debounce<T extends (...args: Parameters<T>) => void>(
   fn: T,
@@ -44,10 +92,8 @@ export function GameList() {
     setGamesPage,
   } = useAdminStore()
 
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingGame, setEditingGame] = useState<Game | null>(null)
-  const [deletingGame, setDeletingGame] = useState<Game | null>(null)
-  const [screenshotsGame, setScreenshotsGame] = useState<Game | null>(null)
+  const [dialog, dispatchDialog] = useReducer(dialogReducer, INITIAL_DIALOG)
+  const { isFormOpen, editingGame, deletingGame, screenshotsGame } = dialog
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [searchInput, setSearchInput] = useState(gamesSearch)
@@ -89,7 +135,7 @@ export function GameList() {
     try {
       await createGame(data)
       toast.success(t('admin.games.messages.created'))
-      setIsFormOpen(false)
+      dispatchDialog({ type: 'closeForm' })
     } catch {
       toast.error(t('admin.games.messages.createError'))
     } finally {
@@ -104,7 +150,7 @@ export function GameList() {
     try {
       await updateGame(editingGame.id, data)
       toast.success(t('admin.games.messages.updated'))
-      setEditingGame(null)
+      dispatchDialog({ type: 'closeForm' })
     } catch {
       toast.error(t('admin.games.messages.updateError'))
     } finally {
@@ -119,7 +165,7 @@ export function GameList() {
     try {
       await deleteGame(deletingGame.id)
       toast.success(t('admin.games.messages.deleted'))
-      setDeletingGame(null)
+      dispatchDialog({ type: 'closeDelete' })
     } catch {
       toast.error(t('admin.games.messages.deleteError'))
     } finally {
@@ -133,7 +179,7 @@ export function GameList() {
     setIsSyncing(true)
     try {
       const { game } = await adminApi.syncGameFromRawg(editingGame.id)
-      setEditingGame(game)
+      dispatchDialog({ type: 'setEditingGame', game })
       toast.success(t('admin.games.messages.synced'))
       fetchGames() // Refresh list
     } catch {
@@ -145,15 +191,14 @@ export function GameList() {
 
   // Close form dialog
   const handleCloseForm = () => {
-    setIsFormOpen(false)
-    setEditingGame(null)
+    dispatchDialog({ type: 'closeForm' })
   }
 
   const totalPages = Math.ceil(gamesPagination.total / gamesPagination.limit)
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
+      <CardHeader className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 sm:gap-3 gap-y-0 p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2 min-w-0 text-base sm:text-lg">
           <span className="truncate">{t('admin.games.title')}</span>
           {gamesPagination.total > 0 && (
@@ -162,7 +207,7 @@ export function GameList() {
             </span>
           )}
         </CardTitle>
-        <Button variant="gaming" onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto shrink-0">
+        <Button variant="gaming" onClick={() => dispatchDialog({ type: 'openCreate' })} className="w-full sm:w-auto shrink-0">
           <Plus className="size-4" />
           {t('admin.games.addGame')}
         </Button>
@@ -201,7 +246,7 @@ export function GameList() {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => setIsFormOpen(true)}
+              onClick={() => dispatchDialog({ type: 'openCreate' })}
             >
               <Plus className="size-4" />
               {t('admin.games.addGame')}
@@ -218,9 +263,9 @@ export function GameList() {
               )}
               <GameTable
                 games={games}
-                onEdit={setEditingGame}
-                onDelete={setDeletingGame}
-                onViewScreenshots={setScreenshotsGame}
+                onEdit={(game) => dispatchDialog({ type: 'edit', game })}
+                onDelete={(game) => dispatchDialog({ type: 'delete', game })}
+                onViewScreenshots={(game) => dispatchDialog({ type: 'screenshots', game })}
                 sortField={gamesSort.field}
                 sortOrder={gamesSort.order}
                 onSort={handleSort}
@@ -261,7 +306,7 @@ export function GameList() {
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         isOpen={!!deletingGame}
-        onClose={() => setDeletingGame(null)}
+        onClose={() => dispatchDialog({ type: 'closeDelete' })}
         onConfirm={handleDelete}
         title={t('admin.games.deleteGame')}
         description={
@@ -276,7 +321,7 @@ export function GameList() {
       <ScreenshotsDialog
         game={screenshotsGame}
         open={!!screenshotsGame}
-        onOpenChange={(open) => !open && setScreenshotsGame(null)}
+        onOpenChange={(open) => !open && dispatchDialog({ type: 'closeScreenshots' })}
       />
     </Card>
   )

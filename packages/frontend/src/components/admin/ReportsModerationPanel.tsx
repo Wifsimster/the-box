@@ -93,7 +93,7 @@ export function ReportsModerationPanel() {
 
     return (
         <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 gap-y-0 p-4 sm:p-6">
                 <CardTitle className="flex items-center gap-2 text-base min-w-0">
                     <Flag className="size-4 text-neon-pink shrink-0" />
                     <span className="truncate">{t('admin.reports.title')}</span>

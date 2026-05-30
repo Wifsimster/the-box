@@ -13,8 +13,6 @@ export function GrowthStats() {
   /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
     adminApi.getGrowthStats()
       .then((data) => {
         if (!cancelled) setStats(data)

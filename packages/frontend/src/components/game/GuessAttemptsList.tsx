@@ -19,17 +19,27 @@ export function GuessAttemptsList({ attempts, compact = false }: GuessAttemptsLi
   const padding = compact ? 'px-1.5 py-0.5' : 'px-2 py-0.5'
   const iconSize = compact ? 'size-2.5' : 'size-3'
 
+  // Tracks how many times each guess text has appeared so duplicate guesses
+  // get distinct keys without relying on the array index.
+  const seenGuesses = new Map<string, number>()
+
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1">
       <span className={`${textSize} text-muted-foreground mr-1`}>
         {t('game.attempts.label')}:
       </span>
-      {attempts.map((attempt, index) => {
+      {attempts.map((attempt) => {
         const display = attempt.guess?.trim() || '—'
         const isCorrect = attempt.isCorrect
+        // Attempts carry no id and the same text can be entered twice, so disambiguate
+        // repeats by their occurrence count to produce a stable, unique key.
+        const occurrence = (seenGuesses.set(
+          display,
+          (seenGuesses.get(display) ?? 0) + 1,
+        ).get(display) ?? 1)
         return (
           <span
-            key={`${index}-${display}`}
+            key={`${display}__${isCorrect ? 'ok' : 'no'}__${occurrence}`}
             className={`inline-flex max-w-full items-center gap-1 rounded-full border ${padding} ${textSize} font-medium ${
               isCorrect
                 ? 'border-success/40 bg-success/10 text-success'

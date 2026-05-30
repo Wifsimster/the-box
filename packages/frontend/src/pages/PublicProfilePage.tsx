@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
@@ -9,13 +9,44 @@ import { Button } from '@/components/ui/button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import type { PublicProfile } from '@the-box/types'
 
+interface PublicProfileState {
+  profile: PublicProfile | null
+  error: string | null
+  loading: boolean
+}
+
+type PublicProfileAction =
+  | { type: 'loaded'; profile: PublicProfile }
+  | { type: 'failed'; error: string }
+
+const initialPublicProfileState: PublicProfileState = {
+  profile: null,
+  error: null,
+  loading: true,
+}
+
+function publicProfileReducer(
+  _state: PublicProfileState,
+  action: PublicProfileAction,
+): PublicProfileState {
+  switch (action.type) {
+    case 'loaded':
+      return { profile: action.profile, error: null, loading: false }
+    case 'failed':
+      return { profile: null, error: action.error, loading: false }
+    default:
+      return _state
+  }
+}
+
 export default function PublicProfilePage() {
   const { username } = useParams<{ username: string }>()
   const { t, i18n } = useTranslation()
   const { localizedPath } = useLocalizedPath()
-  const [profile, setProfile] = useState<PublicProfile | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [{ profile, error, loading }, dispatch] = useReducer(
+    publicProfileReducer,
+    initialPublicProfileState,
+  )
 
   useEffect(() => {
     if (!username) return
@@ -27,17 +58,17 @@ export default function PublicProfilePage() {
       .then((json: { success: boolean; data?: PublicProfile; error?: { message: string } }) => {
         if (controller.signal.aborted) return
         if (json.success && json.data) {
-          setProfile(json.data)
-          setError(null)
+          dispatch({ type: 'loaded', profile: json.data })
         } else {
-          setError(json.error?.message ?? t('publicProfile.notFound'))
+          dispatch({ type: 'failed', error: json.error?.message ?? t('publicProfile.notFound') })
         }
-        setLoading(false)
       })
       .catch((err) => {
         if (controller.signal.aborted) return
-        setError(err instanceof Error ? err.message : t('publicProfile.error'))
-        setLoading(false)
+        dispatch({
+          type: 'failed',
+          error: err instanceof Error ? err.message : t('publicProfile.error'),
+        })
       })
     return () => {
       controller.abort()

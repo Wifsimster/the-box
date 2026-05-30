@@ -4,6 +4,16 @@ import { useGameStore } from '@/stores/gameStore'
 import { cn } from '@/lib/utils'
 import type { PositionStatus } from '@/types'
 
+/** Background colour class for a position dot based on its status. */
+function getStatusColor(status: PositionStatus) {
+  switch (status) {
+    case 'correct':
+      return 'bg-success'
+    default:
+      return 'bg-muted'
+  }
+}
+
 /**
  * ProgressDots displays the status of all screenshots in the challenge.
  * Color coding:
@@ -19,15 +29,6 @@ export function ProgressDots() {
     totalScreenshots,
     navigateToPosition,
   } = useGameStore()
-
-  const getStatusColor = (status: PositionStatus) => {
-    switch (status) {
-      case 'correct':
-        return 'bg-success'
-      default:
-        return 'bg-muted'
-    }
-  }
 
   const handleDotClick = (position: number) => {
     if (position !== currentPosition) {

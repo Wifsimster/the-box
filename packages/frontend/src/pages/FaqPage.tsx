@@ -37,7 +37,7 @@ export default function FaqPage() {
           <CardContent className="space-y-6">
             {faqs.map((faq, index) => (
               <m.div
-                key={index}
+                key={faq.question}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}

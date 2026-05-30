@@ -40,7 +40,7 @@ export function MonthPicker({
   disabled = false,
 }: MonthPickerProps) {
   const [open, setOpen] = useState(false)
-  const [viewYear, setViewYear] = useState(value.getFullYear())
+  const [viewYear, setViewYear] = useState(() => value.getFullYear())
 
   const handlePrevMonth = () => {
     const prev = new Date(value)
@@ -86,12 +86,12 @@ export function MonthPicker({
   }
 
   const handlePrevYear = () => {
-    setViewYear(viewYear - 1)
+    setViewYear((prev) => prev - 1)
   }
 
   const handleNextYear = () => {
     if (!maxDate || viewYear < maxDate.getFullYear()) {
-      setViewYear(viewYear + 1)
+      setViewYear((prev) => prev + 1)
     }
   }
 

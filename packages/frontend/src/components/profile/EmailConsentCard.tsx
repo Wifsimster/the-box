@@ -13,8 +13,12 @@ interface EmailConsentCardProps {
 export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCardProps) {
   const { t, i18n } = useTranslation()
   const [consent, setConsent] = useState(initialConsent)
-  const [lastUpdated, setLastUpdated] = useState(updatedAt)
+  // Local override applied only after a successful save. While null we fall
+  // back to the `updatedAt` prop, so the timestamp isn't derived state.
+  const [savedUpdatedAt, setSavedUpdatedAt] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+
+  const lastUpdated = savedUpdatedAt ?? updatedAt
 
   const handleToggle = async (next: boolean) => {
     if (isSaving || next === consent) return
@@ -23,7 +27,7 @@ export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCard
     setConsent(next)
     try {
       const updated = await userApi.updateEmailConsent(next)
-      setLastUpdated(updated.emailConsentUpdatedAt)
+      setSavedUpdatedAt(updated.emailConsentUpdatedAt ?? null)
       toast.success(next ? t('emailConsent.optedIn') : t('emailConsent.optedOut'))
     } catch (err) {
       setConsent(previous)

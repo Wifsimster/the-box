@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,28 +17,40 @@ interface EmailConfig {
 export function EmailSettings() {
   const { t } = useTranslation()
   const [config, setConfig] = useState<EmailConfig | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [settled, setSettled] = useState(false)
   const [testing, setTesting] = useState(false)
-  const [recipientEmail, setRecipientEmail] = useState('')
+  // Pre-seed the test field with the admin's address (a constant default) at
+  // mount rather than writing it from an effect.
+  const [recipientEmail, setRecipientEmail] = useState('battistella@proton.me')
 
-  const fetchConfig = useCallback(async () => {
-    try {
-      setLoading(true)
-      const emailConfig = await adminApi.getEmailConfig()
-      setConfig(emailConfig)
-    } catch (error) {
-      toast.error(t('admin.email.fetchError'))
-      console.error('Failed to fetch email config:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [t])
+  // `loading` is derived: the panel is loading until the first fetch settles
+  // (resolves or rejects). No separate loading state needed.
+  const loading = !settled
+
+  // Hold the latest translator in a ref so the mount-only fetch effect can run
+  // with an empty dependency array without re-firing on every language switch.
+  const tRef = useRef(t)
+  tRef.current = t
 
   useEffect(() => {
-    fetchConfig()
-    // Set default email to test value
-    setRecipientEmail('battistella@proton.me')
-  }, [fetchConfig])
+    let cancelled = false
+    adminApi
+      .getEmailConfig()
+      .then((emailConfig) => {
+        if (!cancelled) setConfig(emailConfig)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        toast.error(tRef.current('admin.email.fetchError'))
+        console.error('Failed to fetch email config:', error)
+      })
+      .finally(() => {
+        if (!cancelled) setSettled(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleTestEmail = async () => {
     if (!recipientEmail.trim()) {

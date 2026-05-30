@@ -1,5 +1,6 @@
 import {
     useEffect,
+    useEffectEvent,
     useRef,
     useState,
     useCallback,
@@ -52,7 +53,10 @@ function useImageZoom(resetKey: unknown) {
 
     const containerRef = useRef<HTMLDivElement | null>(null)
     const naturalRef = useRef({ w: 0, h: 0 })
-    const pointersRef = useRef(new Map<number, Point>())
+    const pointersRef = useRef<Map<number, Point> | null>(null)
+    if (pointersRef.current === null) {
+        pointersRef.current = new Map<number, Point>()
+    }
     const panRef = useRef<Point | null>(null)
     const pinchRef = useRef<{ dist: number; mid: Point } | null>(null)
 
@@ -112,10 +116,11 @@ function useImageZoom(resetKey: unknown) {
     const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
         const el = containerRef.current
         if (!el) return
+        const pointers = (pointersRef.current ??= new Map<number, Point>())
         el.setPointerCapture(e.pointerId)
-        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
         setIsGesturing(true)
-        const pts = [...pointersRef.current.values()]
+        const pts = [...pointers.values()]
         if (pts.length >= 2) {
             const [p0, p1] = pts
             pinchRef.current = {
@@ -130,9 +135,10 @@ function useImageZoom(resetKey: unknown) {
 
     const onPointerMove = useCallback(
         (e: ReactPointerEvent<HTMLDivElement>) => {
-            if (!pointersRef.current.has(e.pointerId)) return
-            pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-            const pts = [...pointersRef.current.values()]
+            const pointers = (pointersRef.current ??= new Map<number, Point>())
+            if (!pointers.has(e.pointerId)) return
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+            const pts = [...pointers.values()]
 
             if (pts.length >= 2 && pinchRef.current) {
                 // Pinch-to-zoom, anchored on the midpoint between the fingers.
@@ -173,8 +179,9 @@ function useImageZoom(resetKey: unknown) {
     )
 
     const endPointer = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-        pointersRef.current.delete(e.pointerId)
-        const pts = [...pointersRef.current.values()]
+        const pointers = (pointersRef.current ??= new Map<number, Point>())
+        pointers.delete(e.pointerId)
+        const pts = [...pointers.values()]
         if (pts.length === 1) {
             // Pinch ended with one finger still down: hand off to panning.
             panRef.current = { x: pts[0]!.x, y: pts[0]!.y }
@@ -232,14 +239,16 @@ export function GameCarousel({
 }: GameCarouselProps) {
     const [api, setApi] = useState<CarouselApi>()
     const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
-    const [hasUserInteracted, setHasUserInteracted] = useState(false)
+    const hasUserInteractedRef = useRef(false)
 
     const zoom = useImageZoom(images[currentIndex]?.url ?? currentIndex)
     const { view } = zoom
 
     // Track user interaction to enable haptic feedback
     useEffect(() => {
-        const handleInteraction = () => setHasUserInteracted(true)
+        const handleInteraction = () => {
+            hasUserInteractedRef.current = true
+        }
         const events = ['click', 'touchstart', 'keydown']
         events.forEach((e) => document.addEventListener(e, handleInteraction, { once: true }))
         return () => events.forEach((e) => document.removeEventListener(e, handleInteraction))
@@ -247,27 +256,33 @@ export function GameCarousel({
 
     // Trigger haptic feedback on navigation
     const triggerHapticFeedback = useCallback(() => {
-        if (enableHapticFeedback && hasUserInteracted && 'vibrate' in navigator) {
+        if (enableHapticFeedback && hasUserInteractedRef.current && 'vibrate' in navigator) {
             navigator.vibrate(50)
         }
-    }, [enableHapticFeedback, hasUserInteracted])
+    }, [enableHapticFeedback])
+
+    // React to embla's own "select" event. Both the slide-change notification
+    // and the haptic pulse read the latest props/state via an Effect Event, so
+    // the subscription effect only depends on the carousel api itself.
+    const onSelect = useEffectEvent(() => {
+        if (!api) return
+        const selectedIndex = api.selectedScrollSnap()
+        onSlideChange?.(selectedIndex)
+        triggerHapticFeedback()
+    })
 
     // Handle slide selection
     useEffect(() => {
         if (!api) return
 
-        const handleSelect = () => {
-            const selectedIndex = api.selectedScrollSnap()
-            onSlideChange?.(selectedIndex)
-            triggerHapticFeedback()
-        }
+        const handleSelect = () => onSelect()
 
         api.on('select', handleSelect)
 
         return () => {
             api.off('select', handleSelect)
         }
-    }, [api, onSlideChange, triggerHapticFeedback])
+    }, [api])
 
     // Sync carousel position with currentIndex prop
     useEffect(() => {
@@ -306,7 +321,7 @@ export function GameCarousel({
                         const isActive = index === currentIndex
                         const zoomable = isActive && enableZoom
                         return (
-                            <CarouselItem key={index} className="basis-full h-full pl-0 flex items-center justify-center overflow-hidden">
+                            <CarouselItem key={image.url ?? `placeholder-${index}`} className="basis-full h-full pl-0 flex items-center justify-center overflow-hidden">
                                 {image.url ? (
                                     <div
                                         ref={zoomable ? zoom.containerRef : undefined}

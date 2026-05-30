@@ -68,12 +68,12 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           className="mb-4 sm:mb-6 md:mb-8 grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto"
         >
           {[
-            { icon: Images, label: t('game.rules.screenshotsShort', { count: totalScreenshots }), delay: 0 },
-            { icon: Zap, label: t('game.rules.speedShort'), delay: 0.05 },
-            { icon: Gift, label: t('game.rules.hintsShort'), delay: 0.1 },
-          ].map((rule, index) => (
+            { id: 'screenshots', icon: Images, label: t('game.rules.screenshotsShort', { count: totalScreenshots }), delay: 0 },
+            { id: 'speed', icon: Zap, label: t('game.rules.speedShort'), delay: 0.05 },
+            { id: 'hints', icon: Gift, label: t('game.rules.hintsShort'), delay: 0.1 },
+          ].map((rule) => (
             <m.div
-              key={index}
+              key={rule.id}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.2 + rule.delay }}
@@ -133,14 +133,14 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
 
         {/* Decorative elements - Hidden on mobile, shown on larger screens */}
         <m.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
           className="hidden md:block absolute -top-20 -left-20 size-40 bg-neon-purple/10 rounded-full blur-3xl"
         />
         <m.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
           className="hidden md:block absolute -bottom-20 -right-20 size-40 bg-neon-pink/10 rounded-full blur-3xl"
         />
