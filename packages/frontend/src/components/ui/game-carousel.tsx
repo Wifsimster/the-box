@@ -285,7 +285,7 @@ export function GameCarousel({
     )
 
     return (
-        <div className={cn('relative w-full h-full', className)}>
+        <div className={cn('relative size-full', className)}>
             <Carousel
                 setApi={setApi}
                 opts={{
@@ -296,7 +296,7 @@ export function GameCarousel({
                     containScroll: 'trimSnaps',
                     watchDrag: false,
                 }}
-                className="w-full h-full pointer-events-none"
+                className="size-full pointer-events-none"
             >
                 <CarouselContent className="h-full ml-0">
                     {images.map((image, index) => {
@@ -308,7 +308,7 @@ export function GameCarousel({
                                     <div
                                         ref={zoomable ? zoom.containerRef : undefined}
                                         className={cn(
-                                            'relative w-full h-full flex items-center justify-center overflow-hidden',
+                                            'relative size-full flex items-center justify-center overflow-hidden',
                                             zoomable && 'pointer-events-auto touch-none',
                                             zoomable && view.scale > 1 &&
                                                 (zoom.isGesturing ? 'cursor-grabbing' : 'cursor-grab')
@@ -317,7 +317,7 @@ export function GameCarousel({
                                     >
                                         {!loadedImages.has(index) && (
                                             <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-                                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                                <Loader2 className="size-8 animate-spin text-primary" />
                                             </div>
                                         )}
                                         <img
@@ -325,7 +325,7 @@ export function GameCarousel({
                                             alt={image.alt || `Screenshot ${index + 1}`}
                                             draggable={false}
                                             className={cn(
-                                                'w-full h-full object-contain',
+                                                'size-full object-contain',
                                                 'transition-opacity duration-300',
                                                 loadedImages.has(index) ? 'opacity-100' : 'opacity-0',
                                                 imageClassName
@@ -353,7 +353,7 @@ export function GameCarousel({
                                         />
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-center text-muted-foreground h-full w-full">
+                                    <div className="flex items-center justify-center text-muted-foreground size-full">
                                         No image available
                                     </div>
                                 )}
@@ -369,22 +369,22 @@ export function GameCarousel({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                         onClick={zoom.zoomIn}
                         disabled={view.scale >= MAX_SCALE - 0.01}
                         title="Zoom in"
                     >
-                        <ZoomIn className="h-4 w-4" />
+                        <ZoomIn className="size-4" />
                     </Button>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                         onClick={zoom.zoomOut}
                         disabled={view.scale <= MIN_SCALE + 0.01}
                         title="Zoom out"
                     >
-                        <ZoomOut className="h-4 w-4" />
+                        <ZoomOut className="size-4" />
                     </Button>
                     <div className={cn(
                         "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
@@ -393,11 +393,11 @@ export function GameCarousel({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                            className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                             onClick={zoom.reset}
                             title="Reset zoom"
                         >
-                            <RotateCcw className="h-4 w-4" />
+                            <RotateCcw className="size-4" />
                         </Button>
                         <span className="text-xs text-foreground/60 px-2 tabular-nums">
                             {Math.round(view.scale * 100)}%

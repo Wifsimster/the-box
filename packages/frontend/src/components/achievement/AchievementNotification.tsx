@@ -43,10 +43,10 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-6 w-6 rounded-full opacity-70 hover:opacity-100 z-10"
+                className="absolute top-2 right-2 size-6 rounded-full opacity-70 hover:opacity-100 z-10"
                 onClick={() => sonner.dismiss(toastId)}
             >
-                <X className="h-4 w-4" />
+                <X className="size-4" />
             </Button>
 
             <CardHeader className="pb-3 relative">
@@ -58,10 +58,10 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
                         }}
                         transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
                     >
-                        <Trophy className="h-5 w-5 text-warning" />
+                        <Trophy className="size-5 text-warning" />
                     </motion.div>
                     <span className="text-sm font-semibold text-warning flex items-center gap-1">
-                        <Sparkles className="h-4 w-4" />
+                        <Sparkles className="size-4" />
                         {t('achievements.unlocked')}
                     </span>
                 </div>

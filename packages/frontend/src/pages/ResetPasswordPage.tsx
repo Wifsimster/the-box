@@ -96,8 +96,8 @@ export default function ResetPasswordPage() {
         >
           <Card className="bg-card/50 border-border">
             <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-error to-score-low shadow-lg shadow-error/30">
-                <XCircle className="w-8 h-8 text-white" />
+              <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-error to-score-low shadow-lg shadow-error/30">
+                <XCircle className="size-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
                 {t('auth.invalidToken')}
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
               </Link>
               <Link to={localizedPath('/login')}>
                 <Button variant="outline" className="w-full">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="size-4 mr-2" />
                   {t('auth.backToLogin')}
                 </Button>
               </Link>
@@ -137,8 +137,8 @@ export default function ResetPasswordPage() {
         >
           <Card className="bg-card/50 border-border">
             <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-success to-success/80 shadow-lg shadow-success/30">
-                <CheckCircle className="w-8 h-8 text-white" />
+              <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-success to-success/80 shadow-lg shadow-success/30">
+                <CheckCircle className="size-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
                 {t('auth.passwordResetSuccess')}
@@ -173,8 +173,8 @@ export default function ResetPasswordPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <KeyRound className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+              <KeyRound className="size-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold gradient-gaming bg-clip-text text-transparent">
               {t('auth.resetPassword')}
@@ -191,7 +191,7 @@ export default function ResetPasswordPage() {
                   {t('auth.newPassword')}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     type="password"
                     placeholder="••••••••"
@@ -210,7 +210,7 @@ export default function ResetPasswordPage() {
                   {t('auth.confirmNewPassword')}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     type="password"
                     placeholder="••••••••"
@@ -235,9 +235,9 @@ export default function ResetPasswordPage() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <Loader2 className="size-4 animate-spin mr-2" />
                 ) : (
-                  <KeyRound className="w-4 h-4 mr-2" />
+                  <KeyRound className="size-4 mr-2" />
                 )}
                 {t('auth.resetPassword')}
               </Button>

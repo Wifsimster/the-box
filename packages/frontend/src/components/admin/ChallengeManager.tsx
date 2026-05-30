@@ -50,7 +50,7 @@ export function ChallengeManager() {
 
       <CardHeader className="p-4 sm:p-6 sm:pr-32">
         <div className="flex items-start gap-3">
-          <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0 mt-0.5" />
+          <Calendar className="size-5 sm:size-6 text-neon-purple shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-start justify-between gap-2">
               <CardTitle className="text-base sm:text-xl">{t('admin.challenges.todaysChallenge')}</CardTitle>
@@ -97,12 +97,12 @@ export function ChallengeManager() {
             >
               {rerollLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="size-4 animate-spin mr-2" />
                   {t('common.loading')}
                 </>
               ) : (
                 <>
-                  <Dices className="h-4 w-4 mr-2" />
+                  <Dices className="size-4 mr-2" />
                   {t('admin.challenges.confirmReroll')}
                 </>
               )}
@@ -122,7 +122,7 @@ export function ChallengeManager() {
             onClick={handleReroll}
             className="w-full"
           >
-            <Dices className="h-4 w-4 mr-2" />
+            <Dices className="size-4 mr-2" />
             {t('admin.challenges.reroll')}
           </Button>
         )}

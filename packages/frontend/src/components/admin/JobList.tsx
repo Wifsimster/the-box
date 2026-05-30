@@ -117,78 +117,78 @@ function getJobMetadata(jobName: string, t: (key: string) => string) {
   }> = {
     'create-daily-challenge': {
       description: t('admin.jobs.descriptions.createDailyChallenge'),
-      icon: <Calendar className="h-4 w-4" />,
+      icon: <Calendar className="size-4" />,
       category: 'Challenge',
     },
     'schedule-daily-challenge': {
       description: t('admin.jobs.descriptions.scheduleDailyGeoChallenge'),
-      icon: <MapPin className="h-4 w-4" />,
+      icon: <MapPin className="size-4" />,
       category: 'Challenge',
     },
     'sync-all-games': {
       description: t('admin.jobs.descriptions.syncAllGames'),
-      icon: <Database className="h-4 w-4" />,
+      icon: <Database className="size-4" />,
       category: 'Maintenance',
     },
     'cleanup-anonymous-users': {
       description: t('admin.jobs.descriptions.cleanupAnonymousUsers'),
-      icon: <Users className="h-4 w-4" />,
+      icon: <Users className="size-4" />,
       category: 'Maintenance',
     },
     'create-weekly-tournament': {
       description: t('admin.jobs.descriptions.createWeeklyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
+      icon: <Trophy className="size-4" />,
       category: 'Tournament',
     },
     'end-weekly-tournament': {
       description: t('admin.jobs.descriptions.endWeeklyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
+      icon: <Trophy className="size-4" />,
       category: 'Tournament',
     },
     'create-monthly-tournament': {
       description: t('admin.jobs.descriptions.createMonthlyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
+      icon: <Trophy className="size-4" />,
       category: 'Tournament',
     },
     'end-monthly-tournament': {
       description: t('admin.jobs.descriptions.endMonthlyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
+      icon: <Trophy className="size-4" />,
       category: 'Tournament',
     },
     'send-tournament-reminders': {
       description: t('admin.jobs.descriptions.sendTournamentReminders'),
-      icon: <Mail className="h-4 w-4" />,
+      icon: <Mail className="size-4" />,
       category: 'Notification',
     }, 'recalculate-scores': {
       description: t('admin.jobs.descriptions.recalculateScores'),
-      icon: <RefreshCw className="h-4 w-4" />,
+      icon: <RefreshCw className="size-4" />,
       category: 'Maintenance',
     },
     'clear-daily-data': {
       description: t('admin.jobs.descriptions.clearDailyData'),
-      icon: <Trash2 className="h-4 w-4" />,
+      icon: <Trash2 className="size-4" />,
       category: 'Maintenance',
     },
     'streak-risk-email': {
       description: t('admin.jobs.descriptions.streakRiskEmail'),
-      icon: <Mail className="h-4 w-4" />,
+      icon: <Mail className="size-4" />,
       category: 'Notification',
     },
     'relance-email': {
       description: t('admin.jobs.descriptions.relanceEmail'),
-      icon: <Mail className="h-4 w-4" />,
+      icon: <Mail className="size-4" />,
       category: 'Notification',
     },
     'inactive-user-reminder': {
       description: t('admin.jobs.descriptions.inactiveUserReminder'),
-      icon: <Mail className="h-4 w-4" />,
+      icon: <Mail className="size-4" />,
       category: 'Notification',
     },
   }
 
   return metadata[jobName] || {
     description: t('admin.jobs.descriptions.default'),
-    icon: <RefreshCw className="h-4 w-4" />,
+    icon: <RefreshCw className="size-4" />,
     category: 'Other',
   }
 }
@@ -317,7 +317,7 @@ export function JobList() {
           <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
             <CardHeader className="pb-2 p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <RefreshCw className="h-4 w-4 text-neon-purple shrink-0" />
+                <RefreshCw className="size-4 text-neon-purple shrink-0" />
                 {t('admin.jobs.jobList')}
               </CardTitle>
             </CardHeader>
@@ -352,10 +352,10 @@ export function JobList() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 shrink-0"
+                                  className="size-8 p-0 shrink-0"
                                 >
                                   <ChevronDown
-                                    className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+                                    className={`size-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
                                       }`}
                                   />
                                   <span className="sr-only">{t('common.toggleDetails')}</span>
@@ -364,7 +364,7 @@ export function JobList() {
 
                               {job.isActive || isJobLoading ? (
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <Loader2 className="h-4 w-4 animate-spin text-neon-blue shrink-0" />
+                                  <Loader2 className="size-4 animate-spin text-neon-blue shrink-0" />
                                   <span className="text-xs sm:text-sm font-medium text-neon-blue/80 truncate">
                                     {t(getJobRunningTranslationKey(job.name))}
                                   </span>
@@ -410,9 +410,9 @@ export function JobList() {
                                 className="border-neon-purple/30 hover:bg-neon-purple/10 w-full sm:w-auto sm:shrink-0"
                               >
                                 {isJobLoading ? (
-                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  <Loader2 className="size-4 mr-1 animate-spin" />
                                 ) : (
-                                  <Play className="h-4 w-4 mr-1" />
+                                  <Play className="size-4 mr-1" />
                                 )}
                                 {t('admin.jobs.runNow')}
                               </Button>
@@ -424,7 +424,7 @@ export function JobList() {
                             <div className="mt-2 pt-3 border-t border-border/50 space-y-3">
                               {/* Description */}
                               <div className="flex gap-2">
-                                <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <Info className="size-4 text-muted-foreground shrink-0 mt-0.5" />
                                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                                   {metadata.description}
                                 </p>
@@ -435,7 +435,7 @@ export function JobList() {
                                 {/* Interval */}
                                 {job.every && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
-                                    <Timer className="h-3.5 w-3.5 text-neon-purple shrink-0" />
+                                    <Timer className="size-3.5 text-neon-purple shrink-0" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.interval')}
@@ -450,7 +450,7 @@ export function JobList() {
                                 {/* Cron Pattern */}
                                 {job.pattern && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
-                                    <Clock className="h-3.5 w-3.5 text-neon-purple shrink-0" />
+                                    <Clock className="size-3.5 text-neon-purple shrink-0" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.schedule')}
@@ -465,7 +465,7 @@ export function JobList() {
                                 {/* Next Run */}
                                 {job.nextRun && !job.isActive && !job.isManual && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
-                                    <Calendar className="h-3.5 w-3.5 text-neon-purple shrink-0" />
+                                    <Calendar className="size-3.5 text-neon-purple shrink-0" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.nextRun')}
@@ -480,7 +480,7 @@ export function JobList() {
                                 {/* Manual Job Indicator */}
                                 {job.isManual && !job.isActive && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-score-low/10">
-                                    <Play className="h-3.5 w-3.5 text-score-low/80 shrink-0" />
+                                    <Play className="size-3.5 text-score-low/80 shrink-0" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.schedule')}
@@ -495,7 +495,7 @@ export function JobList() {
                                 {/* Status */}
                                 {job.isActive && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-neon-blue/10">
-                                    <Loader2 className="h-3.5 w-3.5 text-neon-blue shrink-0 animate-spin" />
+                                    <Loader2 className="size-3.5 text-neon-blue shrink-0 animate-spin" />
                                     <div className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                                         {t('admin.jobs.status')}
@@ -525,7 +525,7 @@ export function JobList() {
         <DialogContent className="max-w-sm sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
+              <AlertTriangle className="size-5 text-warning" />
               {t('admin.jobs.syncConflict.title', 'Sync Job Already Running')}
             </DialogTitle>
             <DialogDescription>

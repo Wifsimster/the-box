@@ -51,7 +51,7 @@ export default function GameHistoryDetailsPage() {
     return (
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
         <div className="flex justify-center items-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="size-8 animate-spin text-primary" />
         </div>
       </div>
     )
@@ -63,7 +63,7 @@ export default function GameHistoryDetailsPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">{error || 'Session not found'}</p>
           <Button onClick={() => navigate(localizedPath('/history'))}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="size-4 mr-2" />
             {t('common.back')}
           </Button>
         </div>
@@ -126,7 +126,7 @@ export default function GameHistoryDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto px-3 py-3 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
+    <div className="container mx-auto p-3 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
       {/* Back link — top-left, compact on mobile to free vertical space */}
       <div className="mb-3 sm:mb-4 md:mb-6">
         <Button
@@ -135,7 +135,7 @@ export default function GameHistoryDetailsPage() {
           className="-ml-2 h-9 px-2 text-muted-foreground hover:text-foreground"
           onClick={() => navigate(localizedPath('/history'))}
         >
-          <ArrowLeft className="w-4 h-4 mr-1.5" aria-hidden="true" />
+          <ArrowLeft className="size-4 mr-1.5" aria-hidden="true" />
           <span>{t('common.back')}</span>
         </Button>
       </div>
@@ -153,18 +153,18 @@ export default function GameHistoryDetailsPage() {
               animate={{ scale: 1 }}
               transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : 0.2, type: reducedMotion ? 'tween' : 'spring' }}
               style={{ boxShadow: sessionData.isPersonalBest ? 'var(--glow-lg)' : 'var(--glow-md)' }}
-              className={`inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 mb-2 sm:mb-4 rounded-full bg-linear-to-br ${sessionData.isPersonalBest
+              className={`inline-flex items-center justify-center size-14 sm:size-20 mb-2 sm:mb-4 rounded-full bg-linear-to-br ${sessionData.isPersonalBest
                 ? 'from-medal-gold to-medal-gold/70'
                 : 'from-neon-purple to-neon-pink'
                 }`}
               aria-hidden="true"
             >
-              <Trophy className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
+              <Trophy className="size-7 sm:size-10 text-white" />
             </motion.div>
             {sessionData.isPersonalBest && (
               <div className="mb-2">
                 <Badge variant="warning" className="text-medal-gold border-medal-gold/40 bg-medal-gold/10">
-                  <Trophy className="w-3 h-3 mr-1" aria-hidden="true" />
+                  <Trophy className="size-3 mr-1" aria-hidden="true" />
                   {t('history.personalBest')}
                 </Badge>
               </div>
@@ -172,10 +172,10 @@ export default function GameHistoryDetailsPage() {
           </>
         ) : (
           <div
-            className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 mb-2 sm:mb-4 rounded-full bg-secondary border border-border"
+            className="inline-flex items-center justify-center size-14 sm:size-20 mb-2 sm:mb-4 rounded-full bg-secondary border border-border"
             aria-hidden="true"
           >
-            <Target className="w-7 h-7 sm:w-10 sm:h-10 text-muted-foreground" />
+            <Target className="size-7 sm:size-10 text-muted-foreground" />
           </div>
         )}
 
@@ -247,16 +247,16 @@ export default function GameHistoryDetailsPage() {
                 >
                   <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0 pt-0.5" aria-hidden="true">{result.position}.</span>
                   {result.isCorrect ? (
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0 mt-1" aria-hidden="true" />
+                    <CheckCircle className="size-4 sm:size-5 text-success shrink-0 mt-1" aria-hidden="true" />
                   ) : (
-                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0 mt-1" aria-hidden="true" />
+                    <XCircle className="size-4 sm:size-5 text-error shrink-0 mt-1" aria-hidden="true" />
                   )}
                   {result.screenshot && (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0">
+                    <div className="size-12 sm:size-16 rounded overflow-hidden shrink-0">
                       <img
                         src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
                         alt={t('game.screenshotOf', { game: result.correctGame.name })}
-                        className="w-full h-full object-cover"
+                        className="size-full object-cover"
                         loading="lazy"
                       />
                     </div>
@@ -293,7 +293,7 @@ export default function GameHistoryDetailsPage() {
                     )}
                     {result.isCorrect && result.timeTakenMs > 0 && (
                       <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground mt-1">
-                        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                        <Clock className="size-3 sm:size-3.5 shrink-0" aria-hidden="true" />
                         <span className="whitespace-nowrap">
                           {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
                           {result.scoreEarned > 0 && multiplier > 1.0 && (

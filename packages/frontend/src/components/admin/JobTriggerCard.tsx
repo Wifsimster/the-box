@@ -43,9 +43,9 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
       <CardHeader className="p-4 sm:p-6">
         <div className="flex items-center gap-3">
           {isGamesImport ? (
-            <Gamepad2 className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0" />
+            <Gamepad2 className="size-5 sm:size-6 text-neon-purple shrink-0" />
           ) : (
-            <Download className="h-5 w-5 sm:h-6 sm:w-6 text-neon-pink shrink-0" />
+            <Download className="size-5 sm:size-6 text-neon-pink shrink-0" />
           )}
           <div className="min-w-0">
             <CardTitle className="text-base sm:text-lg">
@@ -112,7 +112,7 @@ export function JobTriggerCard({ type }: JobTriggerCardProps) {
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
               {t('common.loading')}
             </>
           ) : (

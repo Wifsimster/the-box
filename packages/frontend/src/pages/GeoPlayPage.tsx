@@ -252,9 +252,9 @@ export default function GeoPlayPage() {
                             to={localizedPath('/')}
                             aria-label={t('common.home', 'Home')}
                             title={t('common.home', 'Home')}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white shadow-lg backdrop-blur hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            className="inline-flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white shadow-lg backdrop-blur hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         >
-                            <Home className="h-5 w-5" aria-hidden />
+                            <Home className="size-5" aria-hidden />
                         </Link>
                         <FullscreenToggle
                             isImmersive={fullscreen.isImmersive}
@@ -431,11 +431,11 @@ function ScreenshotPanel({
     if (exhausted && allCompleted) {
         return (
             <div
-                className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4"
+                className="flex size-full flex-col items-center justify-center px-6 text-center gap-4"
                 role="status"
             >
                 <div className="rounded-full bg-neon-pink/10 p-4">
-                    <Sparkles className="h-8 w-8 text-neon-pink" aria-hidden />
+                    <Sparkles className="size-8 text-neon-pink" aria-hidden />
                 </div>
                 <div className="space-y-1 max-w-sm">
                     <h2 className="text-lg font-semibold">
@@ -449,7 +449,7 @@ function ScreenshotPanel({
                     </p>
                 </div>
                 <Button onClick={onCheckForNew} variant="outline">
-                    <RefreshCw className="h-4 w-4 mr-2" aria-hidden />
+                    <RefreshCw className="size-4 mr-2" aria-hidden />
                     {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
                 </Button>
             </div>
@@ -459,11 +459,11 @@ function ScreenshotPanel({
     if (exhausted) {
         return (
             <div
-                className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4"
+                className="flex size-full flex-col items-center justify-center px-6 text-center gap-4"
                 role="status"
             >
                 <div className="rounded-full bg-neon-pink/10 p-4">
-                    <Trophy className="h-8 w-8 text-neon-pink" aria-hidden />
+                    <Trophy className="size-8 text-neon-pink" aria-hidden />
                 </div>
                 <div className="space-y-1 max-w-xs">
                     <h2 className="text-lg font-semibold">
@@ -478,11 +478,11 @@ function ScreenshotPanel({
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                     <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90">
-                        <Gamepad2 className="h-4 w-4 mr-2" aria-hidden />
+                        <Gamepad2 className="size-4 mr-2" aria-hidden />
                         {t('geo.play.exhausted.pickAnother', 'Pick another game')}
                     </Button>
                     <Button onClick={onCheckForNew} variant="outline">
-                        <RefreshCw className="h-4 w-4 mr-2" aria-hidden />
+                        <RefreshCw className="size-4 mr-2" aria-hidden />
                         {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
                     </Button>
                 </div>
@@ -492,7 +492,7 @@ function ScreenshotPanel({
                         onClick={onIgnoreCurrent}
                         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
                     >
-                        <EyeOff className="h-3.5 w-3.5" aria-hidden />
+                        <EyeOff className="size-3.5" aria-hidden />
                         {t(
                             'geo.play.exhausted.markIgnored',
                             "I don't want to see this game again",
@@ -506,11 +506,11 @@ function ScreenshotPanel({
     if (authRequired) {
         return (
             <div
-                className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4"
+                className="flex size-full flex-col items-center justify-center px-6 text-center gap-4"
                 role="status"
             >
                 <div className="rounded-full bg-neon-pink/10 p-4">
-                    <MapPin className="h-8 w-8 text-neon-pink" aria-hidden />
+                    <MapPin className="size-8 text-neon-pink" aria-hidden />
                 </div>
                 <div className="space-y-1 max-w-sm">
                     <h2 className="text-lg font-semibold">
@@ -542,7 +542,7 @@ function ScreenshotPanel({
     if (errorMessage) {
         return (
             <div
-                className="flex h-full w-full items-center justify-center px-6 text-center"
+                className="flex size-full items-center justify-center px-6 text-center"
                 role="alert"
             >
                 <p className="text-sm text-destructive">{errorMessage}</p>
@@ -552,9 +552,9 @@ function ScreenshotPanel({
 
     if (empty) {
         return (
-            <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center gap-4">
+            <div className="flex size-full flex-col items-center justify-center px-6 text-center gap-4">
                 <div className="rounded-full bg-neon-pink/10 p-4">
-                    <MapPin className="h-8 w-8 text-neon-pink" aria-hidden />
+                    <MapPin className="size-8 text-neon-pink" aria-hidden />
                 </div>
                 <div className="space-y-2 max-w-md">
                     <h2 className="text-lg font-semibold">
@@ -576,7 +576,7 @@ function ScreenshotPanel({
                         className="inline-flex items-center gap-1.5 rounded-full bg-neon-pink/10 px-3 py-1 text-xs text-white/90"
                         aria-live="polite"
                     >
-                        <Sparkles className="h-3 w-3 text-neon-pink" aria-hidden />
+                        <Sparkles className="size-3 text-neon-pink" aria-hidden />
                         {t('geo.play.empty.pinsToday', {
                             defaultValue: '{{count}} pins dropped today by the community',
                             count: pinsToday,
@@ -599,7 +599,7 @@ function ScreenshotPanel({
                     </li>
                 </ol>
                 <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90 min-h-12">
-                    <Gamepad2 className="h-4 w-4 mr-2" aria-hidden />
+                    <Gamepad2 className="size-4 mr-2" aria-hidden />
                     {t('geo.play.empty.cta', 'Pick a game')}
                 </Button>
             </div>
@@ -609,11 +609,11 @@ function ScreenshotPanel({
     if (loading || !safeUrl) {
         return (
             <div
-                className="flex h-full w-full items-center justify-center"
+                className="flex size-full items-center justify-center"
                 role="status"
                 aria-busy="true"
             >
-                <Loader2 className="h-8 w-8 animate-spin text-neon-pink" aria-hidden />
+                <Loader2 className="size-8 animate-spin text-neon-pink" aria-hidden />
                 <span className="sr-only">{t('common.loading', 'Loading…')}</span>
             </div>
         )
@@ -662,13 +662,13 @@ function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
         >
             {scale > 1.01 && <ResetZoomButton />}
             <TransformComponent
-                wrapperClass="!h-full !w-full"
-                contentClass="!h-full !w-full"
+                wrapperClass="!size-full"
+                contentClass="!size-full"
             >
                 <img
                     src={src}
                     alt={alt}
-                    className="h-full w-full object-contain select-none"
+                    className="size-full object-contain select-none"
                     draggable={false}
                     loading="eager"
                     decoding="async"
@@ -694,7 +694,7 @@ function ResetZoomButton() {
             className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white shadow backdrop-blur min-h-9 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
             aria-label={t('geo.play.resetZoom', 'Reset zoom')}
         >
-            <RefreshCw className="h-3 w-3" aria-hidden />
+            <RefreshCw className="size-3" aria-hidden />
             {t('geo.play.resetZoom', 'Reset zoom')}
         </button>
     )
@@ -704,11 +704,11 @@ function MapChunkLoader() {
     const { t } = useTranslation()
     return (
         <div
-            className="flex h-full w-full items-center justify-center"
+            className="flex size-full items-center justify-center"
             role="status"
             aria-busy="true"
         >
-            <Loader2 className="h-8 w-8 animate-spin text-neon-pink" aria-hidden />
+            <Loader2 className="size-8 animate-spin text-neon-pink" aria-hidden />
             <span className="sr-only">{t('common.loading', 'Loading…')}</span>
         </div>
     )
@@ -725,8 +725,8 @@ function MapPlaceholder({
 }) {
     const { t } = useTranslation()
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center">
-            <MapIcon className="h-8 w-8 text-muted-foreground" aria-hidden />
+        <div className="flex size-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <MapIcon className="size-8 text-muted-foreground" aria-hidden />
             <p className="text-sm text-muted-foreground max-w-xs">
                 {!hasGame
                     ? t(
@@ -745,7 +745,7 @@ function MapPlaceholder({
             </p>
             {hasGame && multiMap && (
                 <Button onClick={onPickMap} variant="outline">
-                    <MapIcon className="h-4 w-4 mr-2" aria-hidden />
+                    <MapIcon className="size-4 mr-2" aria-hidden />
                     {t('geo.play.pickMap', 'Pick a map')}
                 </Button>
             )}
@@ -779,7 +779,7 @@ function ResultOverlay({
         >
             <div className="flex items-center justify-between gap-3 text-white">
                 <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-neon-pink" aria-hidden />
+                    <Trophy className="size-4 text-neon-pink" aria-hidden />
                     <span className="font-semibold text-lg">
                         {score.toLocaleString(language)}
                     </span>
@@ -792,7 +792,7 @@ function ResultOverlay({
                 </span>
             </div>
             <div className="mt-1 flex items-center gap-1 text-xs text-white/70">
-                <MapPin className="h-3 w-3 text-neon-pink" aria-hidden />
+                <MapPin className="size-3 text-neon-pink" aria-hidden />
                 <span>{t('geo.daily.pinCount', { count: pinCount })}</span>
             </div>
             {wrongMap && (
@@ -825,7 +825,7 @@ function ContextHeader({
                 onClick={onChangeGame}
                 className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
             >
-                <Gamepad2 className="h-3.5 w-3.5" aria-hidden />
+                <Gamepad2 className="size-3.5" aria-hidden />
                 <span className="max-w-[14rem] truncate" lang={gameLabel ? 'en' : undefined}>
                     {gameLabel ?? t('geo.play.changeGame', 'Choose game')}
                 </span>
@@ -836,7 +836,7 @@ function ContextHeader({
                     onClick={onChangeMap}
                     className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 min-h-11 px-3 py-2 hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                 >
-                    <MapIcon className="h-3.5 w-3.5" aria-hidden />
+                    <MapIcon className="size-3.5" aria-hidden />
                     <span className="max-w-[14rem] truncate" lang={mapLabel ? 'en' : undefined}>
                         {mapLabel ?? t('geo.play.changeMap', 'Choose map')}
                     </span>
@@ -885,12 +885,12 @@ function Dock({
                     variant="ghost"
                     size="icon"
                     onClick={onPrevious}
-                    className="h-12 w-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                    className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
                     disabled={!canGoPrevious || submitting || loading}
                     aria-label={t('geo.play.previous', 'Previous screenshot')}
                     title={t('geo.play.previous', 'Previous screenshot')}
                 >
-                    <ChevronLeft className="h-5 w-5" aria-hidden />
+                    <ChevronLeft className="size-5" aria-hidden />
                 </Button>
                 <Button
                     type="button"
@@ -901,7 +901,7 @@ function Dock({
                     aria-label={t('geo.play.shuffleAllGames', 'Random game')}
                     title={t('geo.play.shuffleAllGames', 'Random game')}
                 >
-                    <Shuffle className="h-4 w-4 sm:mr-1.5" aria-hidden />
+                    <Shuffle className="size-4 sm:mr-1.5" aria-hidden />
                     <span className="hidden sm:inline">
                         {t('geo.play.shuffleAllGames', 'Random game')}
                     </span>
@@ -911,12 +911,12 @@ function Dock({
                     variant="ghost"
                     size="icon"
                     onClick={onNext}
-                    className="h-12 w-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                    className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
                     disabled={!canGoNext || submitting || loading}
                     aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
                     title={t('geo.play.nextScreenshot', 'Next screenshot')}
                 >
-                    <ChevronRight className="h-5 w-5" aria-hidden />
+                    <ChevronRight className="size-5" aria-hidden />
                 </Button>
             </div>
 
@@ -930,7 +930,7 @@ function Dock({
                     className="gradient-gaming hover:opacity-90 min-h-12 w-full"
                 >
                     {t('geo.play.next', 'Next round')}
-                    <ArrowRight className="h-4 w-4 ml-2" aria-hidden />
+                    <ArrowRight className="size-4 ml-2" aria-hidden />
                 </Button>
             ) : (
                 <Button
@@ -941,11 +941,11 @@ function Dock({
                     aria-live="polite"
                 >
                     {submitting ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden />
+                        <Loader2 className="size-4 mr-2 animate-spin" aria-hidden />
                     ) : canSubmit ? (
-                        <Check className="h-4 w-4 mr-2" aria-hidden />
+                        <Check className="size-4 mr-2" aria-hidden />
                     ) : (
-                        <MapPin className="h-4 w-4 mr-2" aria-hidden />
+                        <MapPin className="size-4 mr-2" aria-hidden />
                     )}
                     {canSubmit
                         ? t('geo.play.confirm', 'Confirm pin')
@@ -1034,7 +1034,7 @@ function CoordinateInput({
                         onChange={(e) => setX(e.target.value)}
                         disabled={disabled}
                         required
-                        className="w-20 rounded border border-white/20 bg-black/40 px-2 py-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        className="w-20 rounded border border-white/20 bg-black/40 p-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                     />
                 </label>
                 <label className="flex flex-col items-start gap-1 text-white/80">
@@ -1049,7 +1049,7 @@ function CoordinateInput({
                         onChange={(e) => setY(e.target.value)}
                         disabled={disabled}
                         required
-                        className="w-20 rounded border border-white/20 bg-black/40 px-2 py-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        className="w-20 rounded border border-white/20 bg-black/40 p-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                     />
                 </label>
                 <Button

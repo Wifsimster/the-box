@@ -36,9 +36,9 @@ const Password = React.forwardRef<HTMLInputElement, PasswordProps>(
             tabIndex={-1}
           >
             {showPassword ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="size-4" />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="size-4" />
             )}
           </button>
         )}

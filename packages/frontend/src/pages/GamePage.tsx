@@ -471,9 +471,9 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center justify-center w-full h-full"
+            className="flex items-center justify-center size-full"
           >
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="size-8 animate-spin text-primary" />
           </motion.div>
         )}
 
@@ -484,7 +484,7 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center w-full h-full px-4 sm:px-6"
+            className="flex flex-col items-center justify-center size-full px-4 sm:px-6"
           >
             {error.includes(t('game.alreadyCompleted')) ? (
               <motion.div
@@ -502,8 +502,8 @@ export default function GamePage() {
                   <div className="flex flex-col items-center text-center">
                     <div className="relative mb-4">
                       <div className="absolute inset-0 rounded-full bg-neon-purple/30 blur-xl" aria-hidden="true" />
-                      <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-linear-to-br from-neon-purple to-neon-pink">
-                        <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                      <div className="relative flex items-center justify-center size-16 sm:size-20 rounded-full bg-linear-to-br from-neon-purple to-neon-pink">
+                        <CheckCircle2 className="size-8 sm:size-10 text-white" />
                       </div>
                     </div>
 
@@ -521,7 +521,7 @@ export default function GamePage() {
                       aria-label={`${t('home.nextDailyIn')} ${String(timeRemaining.hours).padStart(2, '0')}:${String(timeRemaining.minutes).padStart(2, '0')}:${String(timeRemaining.seconds).padStart(2, '0')}`}
                       className="w-full flex items-center justify-center gap-2 sm:gap-3 px-4 py-3 rounded-xl bg-background/60 border border-neon-purple/20 mb-6"
                     >
-                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-neon-pink" aria-hidden="true" />
+                      <Clock className="size-4 sm:size-5 text-neon-pink" aria-hidden="true" />
                       <span className="text-xs sm:text-sm text-muted-foreground">
                         {t('home.nextDailyIn')}
                       </span>
@@ -535,21 +535,21 @@ export default function GamePage() {
                     <div className="flex flex-col gap-2 sm:gap-3 w-full">
                       <Button variant="gaming" asChild className="w-full">
                         <Link to={localizedPath('/results')}>
-                          <Trophy className="w-4 h-4 mr-2" />
+                          <Trophy className="size-4 mr-2" />
                           {t('game.completionChoice.seeResults')}
                         </Link>
                       </Button>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
                         <Button variant="outline" asChild className="flex-1">
                           <Link to={localizedPath('/')}>
-                            <Home className="w-4 h-4 mr-2" />
+                            <Home className="size-4 mr-2" />
                             {t('common.home')}
                           </Link>
                         </Button>
                         {session && session.user && session.user.id && (
                           <Button variant="outline" asChild className="flex-1">
                             <Link to={localizedPath('/history')}>
-                              <History className="w-4 h-4 mr-2" />
+                              <History className="size-4 mr-2" />
                               {t('common.history')}
                             </Link>
                           </Button>
@@ -565,7 +565,7 @@ export default function GamePage() {
                 <div className="flex flex-wrap gap-3 justify-center">
                   <Button variant="gaming" asChild>
                     <Link to={localizedPath('/')}>
-                      <Home className="w-4 h-4 mr-2" />
+                      <Home className="size-4 mr-2" />
                       {t('common.home')}
                     </Link>
                   </Button>
@@ -596,7 +596,7 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="relative w-full h-full flex flex-col"
+            className="relative size-full flex flex-col"
           >
             {/* Score and End Game Button (Top Right) */}
             <div
@@ -612,7 +612,7 @@ export default function GamePage() {
             {/* Dynamic Blurred Background Layer */}
             {currentImageUrl && (
               <motion.div
-                className="absolute inset-0 w-full h-full z-0"
+                className="absolute inset-0 size-full z-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
@@ -620,7 +620,7 @@ export default function GamePage() {
                 <img
                   src={currentImageUrl}
                   alt=""
-                  className="w-full h-full object-cover blur-3xl opacity-20 scale-110"
+                  className="size-full object-cover blur-3xl opacity-20 scale-110"
                   aria-hidden="true"
                 />
                 {/* Gradient overlays for ambient effect */}
@@ -636,10 +636,10 @@ export default function GamePage() {
               {currentImageUrl ? (
                 <ScreenshotViewer
                   imageUrl={currentImageUrl}
-                  className="w-full h-full min-h-0"
+                  className="size-full min-h-0"
                 />
               ) : (
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="size-8 animate-spin text-primary" />
               )}
               {/* Report button — overlay on the viewer; only shown while we
                   have a real screenshot in play. Pinned to the bottom-right
@@ -650,7 +650,7 @@ export default function GamePage() {
                     target={{ screenshotId: currentScreenshotData.screenshotId }}
                     isAuthenticated={!!session?.user?.id}
                     iconOnly
-                    triggerClassName="h-8 w-8 p-0 rounded-full bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-background/80"
+                    triggerClassName="size-8 p-0 rounded-full bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-background/80"
                   />
                 </div>
               )}
@@ -692,7 +692,7 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center justify-center w-full h-full"
+            className="flex items-center justify-center size-full"
           >
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4">{t('game.challengeComplete')}</h1>
@@ -721,7 +721,7 @@ export default function GamePage() {
                   transition={{ delay: 0.3 }}
                   className="flex items-center justify-center gap-3 text-muted-foreground mb-8"
                 >
-                  <Globe className="w-5 h-5" />
+                  <Globe className="size-5" />
                   <span className="text-lg">
                     {t('game.worldTotal')}: <span className="font-bold text-foreground">{worldScore.toLocaleString()}</span> pts
                   </span>
@@ -731,13 +731,13 @@ export default function GamePage() {
               <div className="flex gap-4 justify-center flex-wrap">
                 <Button variant="gaming" size="lg" asChild>
                   <Link to={localizedPath('/leaderboard')}>
-                    <Trophy className="w-4 h-4 mr-2" />
+                    <Trophy className="size-4 mr-2" />
                     {t('common.leaderboard')}
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
                   <Link to={localizedPath('/')}>
-                    <Home className="w-4 h-4 mr-2" />
+                    <Home className="size-4 mr-2" />
                     {t('common.home')}
                   </Link>
                 </Button>
@@ -748,7 +748,7 @@ export default function GamePage() {
                     onClick={handleResetSession}
                     disabled={isResetting}
                   >
-                    <RotateCcw className={`w-4 h-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                    <RotateCcw className={`size-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
                     {t('game.resetSession')}
                   </Button>
                 )}

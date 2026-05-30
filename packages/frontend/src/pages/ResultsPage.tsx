@@ -143,9 +143,9 @@ export default function ResultsPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
+            className="inline-flex items-center justify-center size-16 sm:size-20 mb-3 sm:mb-4 rounded-full bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30"
           >
-            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            <Trophy className="size-8 sm:size-10 text-white" />
           </motion.div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 gradient-gaming bg-clip-text text-transparent">{t('game.tierComplete')}</h1>
@@ -201,7 +201,7 @@ export default function ResultsPage() {
             className="w-full sm:w-auto"
             onClick={() => navigate(localizedPath('/'))}
           >
-            <Home className="w-4 h-4 sm:mr-2" />
+            <Home className="size-4 sm:mr-2" />
             <span className="hidden sm:inline">{t('common.home')}</span>
             <span className="sm:hidden">{t('common.home')}</span>
           </Button>
@@ -211,7 +211,7 @@ export default function ResultsPage() {
             className="w-full sm:w-auto"
             onClick={() => navigate(localizedPath('/leaderboard'))}
           >
-            <Award className="w-4 h-4 sm:mr-2" />
+            <Award className="size-4 sm:mr-2" />
             {t('common.leaderboard')}
           </Button>
         </div>
@@ -235,7 +235,7 @@ export default function ResultsPage() {
             </div>
             {detailsLoading ? (
               <div className="flex justify-center py-10">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" aria-hidden="true" />
+                <Loader2 className="size-6 animate-spin text-primary" aria-hidden="true" />
               </div>
             ) : (
               <>
@@ -258,17 +258,17 @@ export default function ResultsPage() {
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                           <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0">{result.position}.</span>
                           {result.isCorrect ? (
-                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success shrink-0" />
+                            <CheckCircle className="size-4 sm:size-5 text-success shrink-0" />
                           ) : (
-                            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-error shrink-0" />
+                            <XCircle className="size-4 sm:size-5 text-error shrink-0" />
                           )}
                           {/* Show screenshot thumbnail for unguessed games */}
                           {isUnguessed && result.screenshot && (
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0">
+                            <div className="size-12 sm:size-16 rounded overflow-hidden shrink-0">
                               <img
                                 src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
                                 alt="Screenshot"
-                                className="w-full h-full object-cover"
+                                className="size-full object-cover"
                               />
                             </div>
                           )}
@@ -299,7 +299,7 @@ export default function ResultsPage() {
                                 const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
                                 return (
                                   <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground">
-                                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    <Clock className="size-3 sm:size-3.5" />
                                     <span className="whitespace-nowrap">
                                       {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
                                       {multiplier > 1.0 && (
@@ -348,17 +348,17 @@ export default function ResultsPage() {
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <span className="text-muted-foreground text-base w-6 shrink-0">{result.position}.</span>
                       {result.isCorrect ? (
-                        <CheckCircle className="w-5 h-5 text-success shrink-0" />
+                        <CheckCircle className="size-5 text-success shrink-0" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-error shrink-0" />
+                        <XCircle className="size-5 text-error shrink-0" />
                       )}
                       {/* Show screenshot thumbnail for unguessed games */}
                       {isUnguessed && result.screenshot && (
-                        <div className="w-16 h-16 rounded overflow-hidden shrink-0">
+                        <div className="size-16 rounded overflow-hidden shrink-0">
                           <img
                             src={result.screenshot.thumbnailUrl || result.screenshot.imageUrl}
                             alt="Screenshot"
-                            className="w-full h-full object-cover"
+                            className="size-full object-cover"
                           />
                         </div>
                       )}
@@ -389,7 +389,7 @@ export default function ResultsPage() {
                             const multiplier = calculateSpeedMultiplier(result.timeTakenMs)
                             return (
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Clock className="w-3.5 h-3.5" />
+                                <Clock className="size-3.5" />
                                 <span className="whitespace-nowrap">
                                   {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
                                   {multiplier > 1.0 && (

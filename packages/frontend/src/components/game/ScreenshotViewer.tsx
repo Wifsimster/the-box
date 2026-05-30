@@ -134,7 +134,7 @@ export function ScreenshotViewer({
   return (
     <div
       className={cn(
-        "relative bg-card select-none w-full h-full",
+        "relative bg-card select-none size-full",
         className
       )}
       style={{ overflow: 'hidden' }}
@@ -146,7 +146,7 @@ export function ScreenshotViewer({
         onImageLoad={onLoad}
         showSwipeHint={gamePhase === 'playing'}
         enableHapticFeedback={true}
-        className="w-full h-full"
+        className="size-full"
       />
 
       {/* Gradient overlay */}

@@ -163,7 +163,7 @@ export function GameList() {
           )}
         </CardTitle>
         <Button variant="gaming" onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto shrink-0">
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
           {t('admin.games.addGame')}
         </Button>
       </CardHeader>
@@ -172,7 +172,7 @@ export function GameList() {
         {/* Search */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
               placeholder={t('admin.games.searchPlaceholder')}
@@ -192,7 +192,7 @@ export function GameList() {
         {/* Loading state */}
         {gamesLoading && games.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
           </div>
         ) : games.length === 0 ? (
           /* Empty state */
@@ -203,7 +203,7 @@ export function GameList() {
               className="mt-4"
               onClick={() => setIsFormOpen(true)}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="size-4" />
               {t('admin.games.addGame')}
             </Button>
           </div>
@@ -213,7 +213,7 @@ export function GameList() {
             <div className="relative">
               {gamesLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 </div>
               )}
               <GameTable

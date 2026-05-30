@@ -50,7 +50,7 @@ export function AddMapDialog({
             <DialogContent className="max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-base">
-                        <Sparkles className="h-4 w-4 text-neon-pink" aria-hidden />
+                        <Sparkles className="size-4 text-neon-pink" aria-hidden />
                         {t('admin.geo.addMap.title', { name: game.name })}
                     </DialogTitle>
                     <DialogDescription className="text-xs">
@@ -67,15 +67,15 @@ export function AddMapDialog({
                 >
                     <TabsList className="w-full">
                         <TabsTrigger value="research" className="gap-1.5 flex-1">
-                            <Search className="h-3.5 w-3.5" />
+                            <Search className="size-3.5" />
                             {t('admin.geo.addMap.tabs.research')}
                         </TabsTrigger>
                         <TabsTrigger value="wand" className="gap-1.5 flex-1">
-                            <Sparkles className="h-3.5 w-3.5" />
+                            <Sparkles className="size-3.5" />
                             {t('admin.geo.addMap.tabs.wand')}
                         </TabsTrigger>
                         <TabsTrigger value="manual" className="gap-1.5 flex-1">
-                            <Upload className="h-3.5 w-3.5" />
+                            <Upload className="size-3.5" />
                             {t('admin.geo.addMap.tabs.manual')}
                         </TabsTrigger>
                     </TabsList>
@@ -181,7 +181,7 @@ function ResearchPane({
                             className="group flex items-start gap-2 rounded-md border border-border/40 bg-muted/10 p-2.5 text-xs transition-colors hover:border-primary/40 hover:bg-primary/5"
                         >
                             <ExternalLink
-                                className="mt-0.5 h-3.5 w-3.5 text-muted-foreground group-hover:text-primary"
+                                className="mt-0.5 size-3.5 text-muted-foreground group-hover:text-primary"
                                 aria-hidden
                             />
                             <div className="min-w-0 flex-1">
@@ -340,7 +340,7 @@ function WandPane({
                     {t('common.cancel')}
                 </Button>
                 <Button onClick={() => void submit()} disabled={submitting}>
-                    {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                    {submitting && <Loader2 className="size-4 animate-spin mr-1.5" />}
                     {game.hasMap
                         ? t('admin.geo.wandMap.submitReplace')
                         : t('admin.geo.wandMap.submit')}
@@ -572,7 +572,7 @@ function ManualPane({
                     {t('common.cancel')}
                 </Button>
                 <Button onClick={() => void submit()} disabled={submitting}>
-                    {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                    {submitting && <Loader2 className="size-4 animate-spin mr-1.5" />}
                     {game.hasMap
                         ? t('admin.geo.manualMap.submitReplace')
                         : t('admin.geo.manualMap.submit')}

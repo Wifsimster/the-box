@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
 
               <Link to={localizedPath('/login')}>
                 <Button variant="outline" className="w-full h-12 rounded-xl border-white/10">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="size-4 mr-2" />
                   {t('auth.backToLogin')}
                 </Button>
               </Link>
@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
                           <Input
                             type="email"
                             placeholder="you@example.com"
@@ -178,7 +178,7 @@ export default function ForgotPasswordPage() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="size-5 animate-spin" />
                   ) : (
                     t('auth.sendResetLink')
                   )}

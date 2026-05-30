@@ -25,7 +25,7 @@ export function MapErrorFallback({
             role="img"
             aria-label={label}
         >
-            <ImageOff className="h-6 w-6 opacity-60" aria-hidden />
+            <ImageOff className="size-6 opacity-60" aria-hidden />
             <span>{label}</span>
         </div>
     )

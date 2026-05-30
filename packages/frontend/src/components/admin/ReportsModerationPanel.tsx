@@ -95,7 +95,7 @@ export function ReportsModerationPanel() {
         <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
                 <CardTitle className="flex items-center gap-2 text-base min-w-0">
-                    <Flag className="h-4 w-4 text-neon-pink shrink-0" />
+                    <Flag className="size-4 text-neon-pink shrink-0" />
                     <span className="truncate">{t('admin.reports.title')}</span>
                 </CardTitle>
                 <div className="flex items-center justify-between sm:justify-end gap-3 sm:shrink-0">
@@ -114,7 +114,7 @@ export function ReportsModerationPanel() {
                         title={t('common.retry')}
                     >
                         <RefreshCw
-                            className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+                            className={`size-4 ${loading ? 'animate-spin' : ''}`}
                         />
                     </Button>
                 </div>
@@ -122,7 +122,7 @@ export function ReportsModerationPanel() {
             <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 {loading && reports === null ? (
                     <div className="flex justify-center py-12">
-                        <Loader2 className="h-6 w-6 animate-spin text-neon-pink" />
+                        <Loader2 className="size-6 animate-spin text-neon-pink" />
                     </div>
                 ) : reports && reports.length > 0 ? (
                     <ul className="divide-y divide-border">
@@ -200,9 +200,9 @@ export function ReportsModerationPanel() {
                                         className="w-full sm:w-auto sm:shrink-0"
                                     >
                                         {pendingKey === rowKey(row) ? (
-                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                            <Loader2 className="size-4 animate-spin mr-2" />
                                         ) : (
-                                            <Undo2 className="h-4 w-4 mr-2" />
+                                            <Undo2 className="size-4 mr-2" />
                                         )}
                                         {t('admin.reports.reactivate')}
                                     </Button>
@@ -231,7 +231,7 @@ function ReportThumbnail({ src, alt }: { src?: string; alt: string }) {
     if (!src || errored) {
         return (
             <div className="h-16 w-24 shrink-0 rounded-md bg-muted/40 flex items-center justify-center">
-                <ImageOff className="h-4 w-4 text-muted-foreground" />
+                <ImageOff className="size-4 text-muted-foreground" />
             </div>
         )
     }

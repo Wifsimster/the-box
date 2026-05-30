@@ -162,7 +162,7 @@ export function ShareCard({
                     size={compact ? "sm" : "lg"}
                     className={compact ? "shrink-0" : "w-full sm:w-auto"}
                 >
-                    <Share2 className="w-4 h-4 mr-2" />
+                    <Share2 className="size-4 mr-2" />
                     <span>{t('common.share')}</span>
                 </Button>
             </PopoverTrigger>
@@ -178,7 +178,7 @@ export function ShareCard({
                             }}
                             className="justify-start"
                         >
-                            <Smartphone className="w-4 h-4 mr-2" />
+                            <Smartphone className="size-4 mr-2" />
                             {t('share.native')}
                         </Button>
                     )}
@@ -191,7 +191,7 @@ export function ShareCard({
                         }}
                         className="justify-start"
                     >
-                        <Twitter className="w-4 h-4 mr-2" />
+                        <Twitter className="size-4 mr-2" />
                         {t('share.twitter')}
                     </Button>
                     <Button
@@ -203,7 +203,7 @@ export function ShareCard({
                         }}
                         className="justify-start"
                     >
-                        <MessageCircle className="w-4 h-4 mr-2" />
+                        <MessageCircle className="size-4 mr-2" />
                         {t('share.whatsapp')}
                     </Button>
                     <Button
@@ -215,7 +215,7 @@ export function ShareCard({
                         }}
                         className="justify-start"
                     >
-                        <MessageSquare className="w-4 h-4 mr-2" />
+                        <MessageSquare className="size-4 mr-2" />
                         {t('share.sms')}
                     </Button>
                     <Button
@@ -227,7 +227,7 @@ export function ShareCard({
                         }}
                         className="justify-start"
                     >
-                        <MessageSquare className="w-4 h-4 mr-2" />
+                        <MessageSquare className="size-4 mr-2" />
                         {t('share.discord')}
                     </Button>
                     <Button
@@ -239,9 +239,9 @@ export function ShareCard({
                         className="justify-start"
                     >
                         {copied ? (
-                            <Check className="w-4 h-4 mr-2 text-success" />
+                            <Check className="size-4 mr-2 text-success" />
                         ) : (
-                            <Copy className="w-4 h-4 mr-2" />
+                            <Copy className="size-4 mr-2" />
                         )}
                         {copied ? t('share.copied') : t('share.copyLink')}
                     </Button>

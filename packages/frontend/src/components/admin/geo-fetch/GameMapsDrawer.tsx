@@ -119,12 +119,12 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         <img
                           src={map.imageUrl}
                           alt={map.zoneName ?? ''}
-                          className="w-full h-full object-cover"
+                          className="size-full object-cover"
                           loading="lazy"
                         />
                         {map.isSelected && (
                           <div className="absolute top-1 left-1 bg-neon-purple/90 rounded p-1">
-                            <Star className="h-3 w-3 text-white fill-white" />
+                            <Star className="size-3 text-white fill-white" />
                           </div>
                         )}
                       </div>
@@ -146,7 +146,7 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         >
                           {map.isSelected ? (
                             <>
-                              <Check className="h-3 w-3 mr-1" />
+                              <Check className="size-3 mr-1" />
                               {t('admin.geoFetch.drawer.selected', 'Sélectionnée')}
                             </>
                           ) : (
@@ -177,7 +177,7 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         source: src,
                       })}
                     >
-                      <RotateCcw className="h-3 w-3 mr-1" />
+                      <RotateCcw className="size-3 mr-1" />
                       {t('admin.geoFetch.drawer.refetchSource', 'Re-récupérer ({{source}})', {
                         source: src,
                       })}

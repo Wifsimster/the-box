@@ -79,7 +79,7 @@ export function LoadingDots({ className }: { className?: string }) {
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-neon-purple"
+          className="size-1.5 rounded-full bg-neon-purple"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.5, 1, 0.5],

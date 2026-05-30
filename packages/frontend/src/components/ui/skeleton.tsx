@@ -28,7 +28,7 @@ export function Skeleton({
 export function TableRowSkeleton() {
   return (
     <div className="flex items-center gap-4 p-4 border-b border-white/5">
-      <Skeleton className="h-10 w-10 shrink-0" variant="circular" />
+      <Skeleton className="size-10 shrink-0" variant="circular" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-3/4" variant="text" />
         <Skeleton className="h-3 w-1/2" variant="text" />
@@ -43,7 +43,7 @@ export function CardSkeleton() {
     <div className="rounded-xl border border-white/10 bg-card/50 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Skeleton className="h-8 w-8" variant="circular" />
+          <Skeleton className="size-8" variant="circular" />
           <div className="space-y-2">
             <Skeleton className="h-4 w-32" variant="text" />
             <Skeleton className="h-3 w-24" variant="text" />
@@ -65,7 +65,7 @@ export function JobCardSkeleton() {
     <div className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Skeleton className="h-4 w-4" variant="circular" />
+          <Skeleton className="size-4" variant="circular" />
           <div className="space-y-1">
             <Skeleton className="h-4 w-40" variant="text" />
             <Skeleton className="h-3 w-32" variant="text" />

@@ -72,7 +72,7 @@ export function ProfileHeaderCard({
               <div className="space-y-1 text-xs text-muted-foreground">
                 {email && <div>{email}</div>}
                 <div className="flex items-center justify-center sm:justify-start gap-1.5">
-                  <Calendar className="h-3 w-3" />
+                  <Calendar className="size-3" />
                   <span>{joinDate}</span>
                   {!emailVerified && (
                     <Badge variant="outline" className="text-xs ml-2">
@@ -113,7 +113,7 @@ export function ProfileHeaderCard({
                 extra={
                   streakFreezeCount > 0 ? (
                     <div className="flex items-center gap-1 text-[10px] text-neon-blue">
-                      <Snowflake className="h-3 w-3" />
+                      <Snowflake className="size-3" />
                       <span>× {streakFreezeCount}</span>
                     </div>
                   ) : null

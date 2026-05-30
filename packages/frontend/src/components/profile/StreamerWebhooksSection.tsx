@@ -147,7 +147,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
     <div className="space-y-3" data-testid="streamer-kit-webhooks">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold flex items-center gap-2">
-          <Webhook className="h-4 w-4" />
+          <Webhook className="size-4" />
           {t('streamerKit.webhooksTitle')}
         </h4>
         <Button
@@ -156,7 +156,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
           disabled={!enabled}
           data-testid="streamer-kit-add-webhook"
         >
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="size-4 mr-1" />
           {t('streamerKit.addWebhook')}
         </Button>
       </div>
@@ -165,7 +165,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
 
       {loading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="size-4 animate-spin" />
           {t('streamerKit.loading')}
         </div>
       )}
@@ -210,7 +210,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
                   aria-label={t('streamerKit.webhookRevokeAria')}
                   data-testid={`streamer-kit-revoke-webhook-${w.id}`}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="size-4" />
                 </Button>
               )}
             </li>
@@ -293,7 +293,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
                           type="checkbox"
                           checked={events.includes(opt.value)}
                           onChange={() => toggleEvent(opt.value)}
-                          className="h-4 w-4 rounded border-white/20 bg-background/50 accent-neon-purple"
+                          className="size-4 rounded border-white/20 bg-background/50 accent-neon-purple"
                         />
                         <code className="text-xs">{opt.value}</code>
                         {!opt.live && (
@@ -310,7 +310,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
                 </div>
                 {createError && (
                   <p className="text-xs text-destructive flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
+                    <AlertTriangle className="size-3" />
                     {createError}
                   </p>
                 )}
@@ -324,7 +324,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
                   disabled={creating || url.trim().length === 0 || label.trim().length === 0}
                   data-testid="streamer-kit-confirm-webhook"
                 >
-                  {creating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                  {creating && <Loader2 className="size-4 mr-1 animate-spin" />}
                   {t('streamerKit.webhookCreateButton')}
                 </Button>
               </DialogFooter>
@@ -352,7 +352,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
                     onClick={copySecret}
                     data-testid="streamer-kit-copy-secret"
                   >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                   </Button>
                 </div>
               </div>

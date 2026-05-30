@@ -113,9 +113,9 @@ export function HintButtons() {
           size="sm"
           onClick={handleHintYear}
           disabled={!hasIncorrectGuess || hintYearUsed || !yearAvailable || gamePhase !== 'playing'}
-          className="relative h-11 w-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
+          className="relative size-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
         >
-          <Calendar className={cn('h-4 w-4 transition-colors duration-300', hintYearUsed && 'text-warning')} />
+          <Calendar className={cn('size-4 transition-colors duration-300', hintYearUsed && 'text-warning')} />
           {!hintYearUsed && hasIncorrectGuess && yearAvailable && (
             yearHintsInInventory > 0 ? (
               <Badge
@@ -152,9 +152,9 @@ export function HintButtons() {
           size="sm"
           onClick={handleHintPublisher}
           disabled={!hasIncorrectGuess || hintPublisherUsed || !publisherAvailable || gamePhase !== 'playing'}
-          className="relative h-11 w-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
+          className="relative size-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
         >
-          <Building2 className={cn('h-4 w-4 transition-colors duration-300', hintPublisherUsed && 'text-warning')} />
+          <Building2 className={cn('size-4 transition-colors duration-300', hintPublisherUsed && 'text-warning')} />
           {!hintPublisherUsed && hasIncorrectGuess && publisherAvailable && (
             publisherHintsInInventory > 0 ? (
               <Badge
@@ -191,9 +191,9 @@ export function HintButtons() {
           size="sm"
           onClick={handleHintDeveloper}
           disabled={!hasIncorrectGuess || hintDeveloperUsed || !developerAvailable || gamePhase !== 'playing'}
-          className="relative h-11 w-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
+          className="relative size-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
         >
-          <Code2 className={cn('h-4 w-4 transition-colors duration-300', hintDeveloperUsed && 'text-warning')} />
+          <Code2 className={cn('size-4 transition-colors duration-300', hintDeveloperUsed && 'text-warning')} />
           {!hintDeveloperUsed && hasIncorrectGuess && developerAvailable && (
             developerHintsInInventory > 0 ? (
               <Badge
@@ -230,9 +230,9 @@ export function HintButtons() {
           size="sm"
           onClick={handleHintGenre}
           disabled={!hasIncorrectGuess || hintGenreUsed || !genreAvailable || gamePhase !== 'playing'}
-          className="relative h-11 w-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
+          className="relative size-11 sm:h-10 sm:w-auto sm:px-4 p-0 touch-manipulation transition-all duration-300"
         >
-          <Tag className={cn('h-4 w-4 transition-colors duration-300', hintGenreUsed && 'text-warning')} />
+          <Tag className={cn('size-4 transition-colors duration-300', hintGenreUsed && 'text-warning')} />
           {!hintGenreUsed && hasIncorrectGuess && genreAvailable && (
             genreHintsInInventory > 0 ? (
               <Badge

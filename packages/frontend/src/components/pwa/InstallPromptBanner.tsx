@@ -108,7 +108,7 @@ export function InstallPromptBanner() {
         </p>
         <div className="mt-3 flex gap-2">
           <Button size="sm" onClick={handleInstall}>
-            <Download className="h-4 w-4 mr-1.5" aria-hidden="true" />
+            <Download className="size-4 mr-1.5" aria-hidden="true" />
             {t('pwa.installBanner.install')}
           </Button>
           <Button size="sm" variant="ghost" onClick={handleDismiss}>
@@ -122,7 +122,7 @@ export function InstallPromptBanner() {
         aria-label={t('pwa.installBanner.dismiss')}
         className="text-muted-foreground hover:text-foreground transition-colors"
       >
-        <X className="h-4 w-4" />
+        <X className="size-4" />
       </button>
     </div>
   )

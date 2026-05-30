@@ -117,7 +117,7 @@ export default function GeoContributePage() {
             {isLocked && (
                 <Card>
                     <CardContent className="py-10 text-center space-y-3">
-                        <Lock className="mx-auto h-8 w-8 text-muted-foreground" />
+                        <Lock className="mx-auto size-8 text-muted-foreground" />
                         <p className="text-sm">
                             {t(
                                 'geo.contribute.lockedTitle',
@@ -141,7 +141,7 @@ export default function GeoContributePage() {
                     aria-busy="true"
                 >
                     <Loader2
-                        className="h-8 w-8 animate-spin text-neon-pink"
+                        className="size-8 animate-spin text-neon-pink"
                         aria-hidden
                     />
                     <span className="sr-only">
@@ -208,7 +208,7 @@ export default function GeoContributePage() {
                                     size="sm"
                                     onClick={handleSkip}
                                 >
-                                    <SkipForward className="h-4 w-4 mr-2" />
+                                    <SkipForward className="size-4 mr-2" />
                                     {t('geo.contribute.skip', 'Skip')}
                                 </Button>
                                 <Button
@@ -237,7 +237,7 @@ export default function GeoContributePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <HandCoins className="h-4 w-4 text-success" />
+                            <HandCoins className="size-4 text-success" />
                             {t('geo.contribute.recent', 'Recent rewards')}
                         </CardTitle>
                     </CardHeader>

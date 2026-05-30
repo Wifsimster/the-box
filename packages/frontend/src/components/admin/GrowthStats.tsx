@@ -32,7 +32,7 @@ export function GrowthStats() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -60,7 +60,7 @@ export function GrowthStats() {
         <Card>
           <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <UserPlus className="h-4 w-4" />
+              <UserPlus className="size-4" />
               {t('admin.growth.referralsClaimed')}
             </CardTitle>
           </CardHeader>
@@ -77,7 +77,7 @@ export function GrowthStats() {
         <Card>
           <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="size-4" />
               {t('admin.growth.consentRate')}
             </CardTitle>
           </CardHeader>
@@ -97,7 +97,7 @@ export function GrowthStats() {
         <Card>
           <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Mail className="h-4 w-4" />
+              <Mail className="size-4" />
               {t('admin.growth.streakEmails')}
             </CardTitle>
           </CardHeader>

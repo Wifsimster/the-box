@@ -17,7 +17,7 @@ export function GuessAttemptsList({ attempts, compact = false }: GuessAttemptsLi
 
   const textSize = compact ? 'text-[10px]' : 'text-xs'
   const padding = compact ? 'px-1.5 py-0.5' : 'px-2 py-0.5'
-  const iconSize = compact ? 'w-2.5 h-2.5' : 'w-3 h-3'
+  const iconSize = compact ? 'size-2.5' : 'size-3'
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1">

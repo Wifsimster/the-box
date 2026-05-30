@@ -60,7 +60,7 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-neon-pink/20 blur-3xl opacity-50 group-hover:opacity-70 transition-opacity"
+        className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-neon-pink/20 blur-3xl opacity-50 group-hover:opacity-70 transition-opacity"
       />
       <div className="relative flex flex-col items-center text-center p-5 sm:p-6 gap-3">
         <div className="relative">
@@ -73,11 +73,11 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
             className="opacity-90 grayscale-[0.3] group-hover:grayscale-0 group-hover:opacity-100 transition"
           />
           <span
-            className="absolute -bottom-1.5 -right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-background/90 border border-neon-purple/40 text-foreground"
+            className="absolute -bottom-1.5 -right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-background/90 border border-neon-purple/40 text-foreground"
             role="img"
             aria-label={lockedLabel}
           >
-            <Lock className="h-3 w-3" aria-hidden="true" />
+            <Lock className="size-3" aria-hidden="true" />
           </span>
         </div>
         <h3 className="text-sm sm:text-base font-semibold leading-tight text-foreground">
@@ -100,7 +100,7 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
 function TeaserSkeleton() {
   return (
     <div className="rounded-xl border border-white/10 bg-card/40 p-5 sm:p-6 flex flex-col items-center gap-3">
-      <Skeleton className="h-12 w-12 rounded-xl" />
+      <Skeleton className="size-12 rounded-xl" />
       <Skeleton className="h-4 w-3/4" variant="text" />
       <Skeleton className="h-3 w-full" variant="text" />
       <Skeleton className="h-3 w-5/6" variant="text" />
@@ -216,7 +216,7 @@ export function HomeAchievementTeaser() {
         <div className="flex items-center gap-3 min-w-0">
           <GradientIcon
             size="sm"
-            icon={<Trophy className="h-4 w-4 text-white" />}
+            icon={<Trophy className="size-4 text-white" />}
             className="shrink-0"
           />
           <div className="min-w-0">
@@ -236,7 +236,7 @@ export function HomeAchievementTeaser() {
           className="hidden sm:inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 -mx-3 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {t('home.achievements.cta')}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
 
@@ -276,7 +276,7 @@ export function HomeAchievementTeaser() {
           className="inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {t('home.achievements.cta')}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
     </motion.section>

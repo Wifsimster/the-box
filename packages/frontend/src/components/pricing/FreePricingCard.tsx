@@ -46,7 +46,7 @@ export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePri
             onClick={onSignUp}
             variant="outline"
           >
-            {isCurrentPlan && <Check className="w-4 h-4 mr-2" aria-hidden="true" />}
+            {isCurrentPlan && <Check className="size-4 mr-2" aria-hidden="true" />}
             {t(ctaKey)}
           </Button>
         </CardFooter>

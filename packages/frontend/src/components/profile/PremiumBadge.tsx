@@ -23,7 +23,7 @@ export function PremiumBadge({ className, compact = false }: PremiumBadgeProps) 
       )}
       aria-label={t('premium.badge')}
     >
-      <Crown className="h-3 w-3" />
+      <Crown className="size-3" />
       {!compact && <span>{t('premium.badge')}</span>}
     </span>
   )

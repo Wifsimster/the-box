@@ -12,11 +12,11 @@ import { Trash2, Loader2, Clock, Play, CheckCircle2, XCircle, Pause, RefreshCw, 
 import type { JobStatus } from '@/types'
 
 const statusIcons: Record<JobStatus, React.ReactNode> = {
-    waiting: <Clock className="h-3 w-3 text-warning" />,
-    active: <Play className="h-3 w-3 text-neon-blue" />,
-    completed: <CheckCircle2 className="h-3 w-3 text-success" />,
-    failed: <XCircle className="h-3 w-3 text-error" />,
-    delayed: <Pause className="h-3 w-3 text-score-low" />,
+    waiting: <Clock className="size-3 text-warning" />,
+    active: <Play className="size-3 text-neon-blue" />,
+    completed: <CheckCircle2 className="size-3 text-success" />,
+    failed: <XCircle className="size-3 text-error" />,
+    delayed: <Pause className="size-3 text-score-low" />,
 }
 
 const statusBadgeVariants: Record<JobStatus, 'success' | 'destructive' | 'info' | 'warning'> = {
@@ -180,13 +180,13 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                 variant="ghost"
                 size="sm"
                 onClick={handleToggleMinimize}
-                className="absolute -left-8 top-4 h-8 w-8 p-0 rounded-l-md rounded-r-none border border-r-0 bg-card hover:bg-muted z-10 shadow-md"
+                className="absolute -left-8 top-4 size-8 p-0 rounded-l-md rounded-r-none border border-r-0 bg-card hover:bg-muted z-10 shadow-md"
                 title={isMinimized ? t('admin.jobs.expand', 'Expand') : t('admin.jobs.minimize', 'Minimize')}
             >
                 {isMinimized ? (
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="size-4" />
                 ) : (
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="size-4" />
                 )}
             </Button>
 
@@ -204,7 +204,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                 disabled={jobs.length === 0}
                                 className="h-7 px-2 text-xs pointer-events-auto cursor-pointer"
                             >
-                                <Trash2 className="h-3 w-3 mr-1" />
+                                <Trash2 className="size-3 mr-1" />
                                 {t('admin.jobs.clearAll', 'Clear')}
                             </Button>
                         </div>
@@ -244,7 +244,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                     <ScrollArea className="flex-1 p-3">
                         {isLoading && jobs.length === 0 ? (
                             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <Loader2 className="size-4 mr-2 animate-spin" />
                                 {t('admin.jobs.loading', 'Loading...')}
                             </div>
                         ) : filteredJobs.length === 0 ? (
@@ -274,7 +274,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                         </span>
                                                         {job.id.startsWith('repeat:') && (
                                                             <Badge variant="outline" className="text-[9px] h-4 px-1">
-                                                                <RefreshCw className="h-2 w-2 mr-0.5" />
+                                                                <RefreshCw className="size-2 mr-0.5" />
                                                                 {t('admin.jobs.recurring', 'Recurring')}
                                                             </Badge>
                                                         )}
@@ -316,7 +316,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                     onClick={() => handleCancelJob(job.id)}
                                                     className="w-full h-6 text-[10px]"
                                                 >
-                                                    <XCircle className="h-3 w-3 mr-1" />
+                                                    <XCircle className="size-3 mr-1" />
                                                     {t('admin.jobs.cancel', 'Cancel')}
                                                 </Button>
                                             )}
@@ -327,7 +327,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                     onClick={() => handleCancelJob(job.id)}
                                                     className="w-full h-6 text-[10px] text-muted-foreground hover:text-destructive"
                                                 >
-                                                    <Trash2 className="h-3 w-3 mr-1" />
+                                                    <Trash2 className="size-3 mr-1" />
                                                     {t('admin.jobs.remove', 'Remove')}
                                                 </Button>
                                             )}
@@ -347,7 +347,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                             disabled={isLoading}
                             className="w-full h-8 text-xs"
                         >
-                            <RefreshCw className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`size-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                             {t('admin.jobs.refresh', 'Refresh')}
                         </Button>
                     </div>

@@ -42,16 +42,16 @@ export function PageHero({
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
+              className="size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
             />
           ) : Icon && iconStyle === 'simple' ? (
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4 sm:mb-5 md:mb-6"
+              className="inline-flex items-center justify-center size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6"
             >
-              <Icon className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 text-foreground" />
+              <Icon className="size-10 sm:size-14 md:size-16 text-foreground" />
             </motion.div>
           ) : Icon ? (
             <motion.div
@@ -61,9 +61,9 @@ export function PageHero({
               className="mb-4 sm:mb-5 md:mb-6"
             >
               <GradientIcon
-                icon={<Icon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />}
+                icon={<Icon className="size-8 sm:size-10 md:size-12 text-white" />}
                 size="lg"
-                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 sm:rounded-2xl"
+                className="size-16 sm:size-20 md:size-24 sm:rounded-2xl"
               />
             </motion.div>
           ) : null}

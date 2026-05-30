@@ -199,28 +199,28 @@ export function GuessInput() {
             <div className="flex flex-wrap justify-center gap-1.5 pb-2">
               {hintYearUsed && availableHints?.year && (
                 <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium">
-                  <Calendar className="h-3 w-3" aria-hidden="true" />
+                  <Calendar className="size-3" aria-hidden="true" />
                   <span className="sr-only">{t('game.hints.yearHint')}: </span>
                   <span>{availableHints.year}</span>
                 </Badge>
               )}
               {hintPublisherUsed && availableHints?.publisher && (
                 <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
-                  <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <Building2 className="size-3 shrink-0" aria-hidden="true" />
                   <span className="sr-only">{t('game.hints.publisherHint')}: </span>
                   <span className="truncate">{availableHints.publisher}</span>
                 </Badge>
               )}
               {hintDeveloperUsed && availableHints?.developer && (
                 <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
-                  <Code2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <Code2 className="size-3 shrink-0" aria-hidden="true" />
                   <span className="sr-only">{t('game.hints.developerHint')}: </span>
                   <span className="truncate">{availableHints.developer}</span>
                 </Badge>
               )}
               {hintGenreUsed && availableHints?.genre && (
                 <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
-                  <Tag className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <Tag className="size-3 shrink-0" aria-hidden="true" />
                   <span className="sr-only">{t('game.hints.genreHint')}: </span>
                   <span className="truncate">{availableHints.genre}</span>
                 </Badge>
@@ -241,9 +241,9 @@ export function GuessInput() {
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.previous')}
-              className="h-12 w-12 sm:h-14 sm:w-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
+              className="size-12 sm:size-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
             >
-              <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
+              <SkipBack className="size-4 sm:size-5" />
             </Button>
           </Tooltip>
         )}
@@ -304,9 +304,9 @@ export function GuessInput() {
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.skip')}
-              className="h-12 w-12 sm:h-14 sm:w-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
+              className="size-12 sm:size-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
             >
-              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
+              <SkipForward className="size-4 sm:size-5" />
             </Button>
           </Tooltip>
         )}

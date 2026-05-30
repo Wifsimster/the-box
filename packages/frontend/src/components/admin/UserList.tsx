@@ -36,7 +36,7 @@ function debounce<T extends (...args: Parameters<T>) => void>(
 
 function UserSortIcon({ field, sortField, sortOrder }: { field: string; sortField: string; sortOrder: 'asc' | 'desc' }) {
   if (sortField !== field) {
-    return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+    return <ArrowUpDown className="ml-1 size-4 opacity-50" />
   }
   return (
     <motion.span
@@ -44,7 +44,7 @@ function UserSortIcon({ field, sortField, sortOrder }: { field: string; sortFiel
       animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
       transition={{ duration: 0.2 }}
     >
-      <ArrowUp className="ml-1 h-4 w-4" />
+      <ArrowUp className="ml-1 size-4" />
     </motion.span>
   )
 }
@@ -75,10 +75,10 @@ function PremiumBadge({ entitlement }: { entitlement: BillingEntitlement | undef
 
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full border border-neon-purple/40 bg-neon-purple/10 px-2 py-0.5 text-xs">
-      <Crown className="h-3 w-3 text-neon-pink" aria-hidden />
+      <Crown className="size-3 text-neon-pink" aria-hidden />
       <span className="font-medium text-neon-pink">{tierLabel}</span>
       <span
-        className={`ml-0.5 inline-block h-1.5 w-1.5 rounded-full ${sourceDotClass}`}
+        className={`ml-0.5 inline-block size-1.5 rounded-full ${sourceDotClass}`}
         aria-hidden
       />
       {entitlement.cancelAtPeriodEnd && (
@@ -311,7 +311,7 @@ export function UserList() {
         {/* Search */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
               placeholder={t('admin.users.searchPlaceholder')}
@@ -331,7 +331,7 @@ export function UserList() {
         {/* Loading state */}
         {usersLoading && users.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
           </div>
         ) : users.length === 0 ? (
           /* Empty state */
@@ -344,7 +344,7 @@ export function UserList() {
             <div className="relative">
               {usersLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 </div>
               )}
 
@@ -438,7 +438,7 @@ export function UserList() {
                               aria-label={t('admin.users.revokePremium')}
                               className="hover:text-warning"
                             >
-                              <Crown className="h-4 w-4 text-neon-pink" />
+                              <Crown className="size-4 text-neon-pink" />
                             </Button>
                           </Tooltip>
                         ) : (
@@ -450,7 +450,7 @@ export function UserList() {
                               aria-label={t('admin.users.grantPremium')}
                               className="hover:text-neon-pink"
                             >
-                              <Crown className="h-4 w-4" />
+                              <Crown className="size-4" />
                             </Button>
                           </Tooltip>
                         )}
@@ -462,7 +462,7 @@ export function UserList() {
                               onClick={() => setUnbanningUser(user)}
                               aria-label={t('admin.users.unbanUser')}
                             >
-                              <Unlock className="h-4 w-4" />
+                              <Unlock className="size-4" />
                             </Button>
                           </Tooltip>
                         ) : (
@@ -473,7 +473,7 @@ export function UserList() {
                               onClick={() => setBanningUser(user)}
                               aria-label={t('admin.users.banUser')}
                             >
-                              <Ban className="h-4 w-4" />
+                              <Ban className="size-4" />
                             </Button>
                           </Tooltip>
                         )}
@@ -484,7 +484,7 @@ export function UserList() {
                             onClick={() => setDeletingUser(user)}
                             aria-label={t('admin.users.deleteUser')}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="size-4" />
                           </Button>
                         </Tooltip>
                       </div>
@@ -576,7 +576,7 @@ export function UserList() {
                                       aria-label={t('admin.users.revokePremium')}
                                       className="hover:text-warning"
                                     >
-                                      <Crown className="h-4 w-4 text-neon-pink" />
+                                      <Crown className="size-4 text-neon-pink" />
                                     </Button>
                                   </motion.div>
                                 </Tooltip>
@@ -590,7 +590,7 @@ export function UserList() {
                                       aria-label={t('admin.users.grantPremium')}
                                       className="hover:text-neon-pink"
                                     >
-                                      <Crown className="h-4 w-4" />
+                                      <Crown className="size-4" />
                                     </Button>
                                   </motion.div>
                                 </Tooltip>
@@ -604,7 +604,7 @@ export function UserList() {
                                       onClick={() => setUnbanningUser(user)}
                                       aria-label={t('admin.users.unbanUser')}
                                     >
-                                      <Unlock className="h-4 w-4" />
+                                      <Unlock className="size-4" />
                                     </Button>
                                   </motion.div>
                                 </Tooltip>
@@ -617,7 +617,7 @@ export function UserList() {
                                       onClick={() => setBanningUser(user)}
                                       aria-label={t('admin.users.banUser')}
                                     >
-                                      <Ban className="h-4 w-4" />
+                                      <Ban className="size-4" />
                                     </Button>
                                   </motion.div>
                                 </Tooltip>
@@ -630,7 +630,7 @@ export function UserList() {
                                     onClick={() => setDeletingUser(user)}
                                     aria-label={t('admin.users.deleteUser')}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="size-4" />
                                   </Button>
                                 </motion.div>
                               </Tooltip>
@@ -686,7 +686,7 @@ export function UserList() {
               {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleBan} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
               {t('admin.users.banUser')}
             </Button>
           </DialogFooter>
@@ -707,7 +707,7 @@ export function UserList() {
               {t('common.cancel')}
             </Button>
             <Button variant="default" onClick={handleUnban} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
               {t('admin.users.unbanUser')}
             </Button>
           </DialogFooter>
@@ -728,8 +728,8 @@ export function UserList() {
               {t('common.cancel')}
             </Button>
             <Button variant="gaming" onClick={handleGrant} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Crown className="mr-1 h-4 w-4" />
+              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+              <Crown className="mr-1 size-4" />
               {t('admin.users.grantPremium')}
             </Button>
           </DialogFooter>
@@ -750,7 +750,7 @@ export function UserList() {
               {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleRevoke} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
               {t('admin.users.revokePremium')}
             </Button>
           </DialogFooter>

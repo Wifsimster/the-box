@@ -191,7 +191,7 @@ export default function HomePage() {
               animate: { scale: 1 },
               transition: { duration: 0.5, delay: 0.2 },
             })}
-            className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
+            className="size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
           />
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 gradient-gaming-title">
@@ -221,7 +221,7 @@ export default function HomePage() {
                 </p>
                 <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base mb-4">
                   <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-neon-cyan" />
+                    <Trophy className="size-4 sm:size-5 text-neon-cyan" />
                     <span className="font-semibold text-foreground">{todayScore} pts</span>
                   </div>
                   <div className="text-muted-foreground">
@@ -240,7 +240,7 @@ export default function HomePage() {
                   aria-label={`${t('home.nextDailyIn')} ${String(timeRemaining.hours).padStart(2, '0')}:${String(timeRemaining.minutes).padStart(2, '0')}:${String(timeRemaining.seconds).padStart(2, '0')}`}
                   className="flex items-center justify-center gap-2 pt-3 border-t border-neon-purple/20"
                 >
-                  <Clock className="h-4 w-4 text-neon-pink" aria-hidden="true" />
+                  <Clock className="size-4 text-neon-pink" aria-hidden="true" />
                   <span className="text-xs sm:text-sm text-muted-foreground">
                     {t('home.nextDailyIn')}
                   </span>
@@ -268,7 +268,7 @@ export default function HomePage() {
                     onClick={() => navigate(localizedPath('/history'))}
                     className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
                   >
-                    <History className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                    <History className="size-4 sm:size-5 md:size-6" />
                     {t('common.history')}
                   </Button>
                 ) : (
@@ -280,7 +280,7 @@ export default function HomePage() {
                     data-tour="play-cta"
                     className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
                   >
-                    <Play className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                    <Play className="size-4 sm:size-5 md:size-6" />
                     {t('home.dailyGuess')}
                   </Button>
                 )}
@@ -291,7 +291,7 @@ export default function HomePage() {
                   data-tour="geo-cta"
                   className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto border-neon-pink/40 text-neon-pink hover:border-neon-pink hover:text-neon-pink"
                 >
-                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                  <MapPin className="size-4 sm:size-5 md:size-6" />
                   {t('home.geoCta')}
                   <Badge
                     variant="outline"
@@ -334,7 +334,7 @@ export default function HomePage() {
                   decoding="async"
                   width={1280}
                   height={720}
-                  className="w-full h-full object-cover transition-transform hover:scale-105"
+                  className="size-full object-cover transition-transform hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent" />
                 <span className="absolute top-3 left-3 text-[10px] uppercase tracking-wide font-semibold text-white bg-black/60 rounded px-2 py-1">
@@ -369,7 +369,7 @@ export default function HomePage() {
                 onClick={() => navigate(localizedPath(`/play?date=${yesterdayChallenge.date}`))}
                 className="gap-2 text-sm"
               >
-                <CalendarDays className="h-4 w-4" />
+                <CalendarDays className="size-4" />
                 {t('home.playYesterday')}
               </Button>
               <p className="text-xs text-muted-foreground mt-2 opacity-70">
@@ -398,17 +398,17 @@ export default function HomePage() {
             >
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+                className="pointer-events-none absolute -top-16 -left-16 size-40 rounded-full bg-neon-pink/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
               />
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -bottom-20 -right-10 h-40 w-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
+                className="pointer-events-none absolute -bottom-20 -right-10 size-40 rounded-full bg-neon-purple/30 blur-3xl opacity-60 group-hover:opacity-80 transition-opacity"
               />
 
               <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 p-5 sm:p-6">
                 <GradientIcon
-                  icon={<Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-white" />}
-                  className="shrink-0 h-12 w-12 sm:h-14 sm:w-14"
+                  icon={<Sparkles className="size-6 sm:size-7 text-white" />}
+                  className="shrink-0 size-12 sm:size-14"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -440,14 +440,14 @@ export default function HomePage() {
                       t('home.premium.perkCosmetics'),
                     ].map((perk) => (
                       <li key={perk} className="flex items-start gap-2">
-                        <Check className="h-4 w-4 mt-0.5 shrink-0 text-neon-pink" aria-hidden="true" />
+                        <Check className="size-4 mt-0.5 shrink-0 text-neon-pink" aria-hidden="true" />
                         <span>{perk}</span>
                       </li>
                     ))}
                   </ul>
                   <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground group-hover:text-neon-pink transition-colors">
                     {t('home.premium.cta')}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </div>
               </div>

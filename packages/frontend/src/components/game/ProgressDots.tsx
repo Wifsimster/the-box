@@ -71,7 +71,7 @@ export function ProgressDots() {
             <span
               className={cn(
                 "flex items-center justify-center rounded-full font-semibold text-[11px] sm:text-xs transition-all duration-300",
-                "h-7 w-7 sm:h-8 sm:w-8",
+                "size-7 sm:size-8",
                 getStatusColor(status),
                 isCurrent && "bg-primary ring-2 ring-ring",
                 isClickable && "hover:brightness-125"

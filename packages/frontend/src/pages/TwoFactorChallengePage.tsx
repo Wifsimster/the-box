@@ -64,8 +64,8 @@ export default function TwoFactorChallengePage() {
         >
           <div className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-neon-purple/15 mb-3">
-                <ShieldCheck className="w-6 h-6 text-neon-purple" />
+              <div className="inline-flex items-center justify-center size-12 rounded-full bg-neon-purple/15 mb-3">
+                <ShieldCheck className="size-6 text-neon-purple" />
               </div>
               <h1 className="text-2xl font-bold mb-2">
                 {t('security.challenge.title')}
@@ -120,7 +120,7 @@ export default function TwoFactorChallengePage() {
                 disabled={isLoading || code.length === 0}
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="size-5 animate-spin" />
                 ) : (
                   t('security.challenge.verify')
                 )}

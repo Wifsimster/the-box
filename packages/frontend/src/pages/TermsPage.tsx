@@ -27,8 +27,8 @@ export default function TermsPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <FileText className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+              <FileText className="size-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold gradient-gaming bg-clip-text text-transparent">
               {t('legal.termsTitle')}

@@ -55,7 +55,7 @@ function MatchExampleRow({ example, accepted }: { example: MatchExample; accepte
   return (
     <li className="rounded-md border border-border bg-card/40 p-3">
       <div className="flex items-start gap-3">
-        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconClasses}`} aria-hidden="true" />
+        <Icon className={`mt-0.5 size-5 shrink-0 ${iconClasses}`} aria-hidden="true" />
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="grid grid-cols-1 gap-x-3 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
             <span className="font-medium text-muted-foreground">
@@ -86,8 +86,8 @@ export default function RulesPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <BookOpen className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+              <BookOpen className="size-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
               {t('legal.rulesTitle')}
@@ -130,7 +130,7 @@ export default function RulesPage() {
               <div className="grid gap-6 md:grid-cols-2 mt-4">
                 <div>
                   <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-success">
-                    <Check className="h-5 w-5" aria-hidden="true" />
+                    <Check className="size-5" aria-hidden="true" />
                     {t('legal.rulesMatchingAcceptedTitle')}
                   </h3>
                   <ul className="space-y-2">
@@ -141,7 +141,7 @@ export default function RulesPage() {
                 </div>
                 <div>
                   <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-error">
-                    <X className="h-5 w-5" aria-hidden="true" />
+                    <X className="size-5" aria-hidden="true" />
                     {t('legal.rulesMatchingRejectedTitle')}
                   </h3>
                   <ul className="space-y-2">

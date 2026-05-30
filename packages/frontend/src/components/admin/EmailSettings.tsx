@@ -74,7 +74,7 @@ export function EmailSettings() {
     return (
       <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-neon-purple" />
+          <Loader2 className="size-6 animate-spin text-neon-purple" />
         </CardContent>
       </Card>
     )
@@ -84,7 +84,7 @@ export function EmailSettings() {
     <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
       <CardHeader className="p-4 sm:p-6">
         <div className="flex items-center gap-3">
-          <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0" />
+          <Mail className="size-5 sm:size-6 text-neon-purple shrink-0" />
           <div className="min-w-0">
             <CardTitle className="text-base sm:text-lg">{t('admin.email.title')}</CardTitle>
             <CardDescription className="text-xs sm:text-sm">{t('admin.email.description')}</CardDescription>
@@ -99,12 +99,12 @@ export function EmailSettings() {
             <div className="flex items-center gap-2 min-w-0">
               {config?.configured ? (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                  <CheckCircle2 className="size-5 text-success shrink-0" />
                   <span className="text-sm text-success truncate">{t('admin.email.configured')}</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="h-5 w-5 text-error shrink-0" />
+                  <XCircle className="size-5 text-error shrink-0" />
                   <span className="text-sm text-error truncate">{t('admin.email.notConfigured')}</span>
                 </>
               )}
@@ -148,12 +148,12 @@ export function EmailSettings() {
         >
           {testing ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Loader2 className="size-4 animate-spin mr-2" />
               {t('admin.email.sending')}
             </>
           ) : (
             <>
-              <Send className="h-4 w-4 mr-2" />
+              <Send className="size-4 mr-2" />
               {t('admin.email.sendTest')}
             </>
           )}

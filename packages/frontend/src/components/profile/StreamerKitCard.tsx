@@ -191,7 +191,7 @@ export function StreamerKitCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Radio className="h-5 w-5" />
+          <Radio className="size-5" />
           {t('streamerKit.title')}
         </CardTitle>
         <CardDescription>{t('streamerKit.description')}</CardDescription>
@@ -199,7 +199,7 @@ export function StreamerKitCard() {
       <CardContent className="space-y-6">
         {loading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="size-4 animate-spin" />
             {t('streamerKit.loading')}
           </div>
         )}
@@ -215,7 +215,7 @@ export function StreamerKitCard() {
                   disabled={savingSettings}
                   onChange={onToggle}
                   data-testid="streamer-kit-toggle"
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
+                  className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
                 />
                 <span className="flex-1 space-y-1">
                   <span className="block text-sm text-foreground/90 group-hover:text-foreground transition-colors">
@@ -256,13 +256,13 @@ export function StreamerKitCard() {
                       disabled={!slugDirty || savingSettings}
                       data-testid="streamer-kit-slug-save"
                     >
-                      {savingSettings && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                      {savingSettings && <Loader2 className="size-3 mr-1 animate-spin" />}
                       {t('streamerKit.slugSave')}
                     </Button>
                   </div>
                   {slugError && (
                     <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
+                      <AlertTriangle className="size-3" />
                       {slugError}
                     </p>
                   )}
@@ -281,7 +281,7 @@ export function StreamerKitCard() {
                   disabled={!enabled}
                   data-testid="streamer-kit-create-key"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="size-4 mr-1" />
                   {t('streamerKit.createKey')}
                 </Button>
               </div>
@@ -378,7 +378,7 @@ export function StreamerKitCard() {
                   disabled={creating || createLabel.trim().length === 0}
                   data-testid="streamer-kit-confirm-create"
                 >
-                  {creating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                  {creating && <Loader2 className="size-4 mr-1 animate-spin" />}
                   {t('streamerKit.confirmCreate')}
                 </Button>
               </DialogFooter>
@@ -406,7 +406,7 @@ export function StreamerKitCard() {
                     onClick={copyPlaintext}
                     data-testid="streamer-kit-copy"
                   >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                   </Button>
                 </div>
               </div>
@@ -471,7 +471,7 @@ function KeyRow({ apiKey, onRevoke, formatDate }: KeyRowProps) {
           aria-label={t('streamerKit.revokeAria')}
           data-testid={`streamer-kit-revoke-${apiKey.id}`}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="size-4" />
         </Button>
       )}
     </li>

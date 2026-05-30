@@ -74,7 +74,7 @@ export function EndGameButton() {
               transition-all duration-150
               touch-manipulation"
           >
-            <CheckCircle2 className="h-3.5 w-3.5" />
+            <CheckCircle2 className="size-3.5" />
             <span>{t('game.endGame.button')}</span>
           </motion.button>
         )}
@@ -83,8 +83,8 @@ export function EndGameButton() {
       <ResponsiveDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <ResponsiveDialogContent className="sm:max-w-md">
           <ResponsiveDialogHeader className="text-center sm:text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
-              <Trophy className="h-8 w-8 text-primary" />
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
+              <Trophy className="size-8 text-primary" />
             </div>
             <ResponsiveDialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
@@ -103,9 +103,9 @@ export function EndGameButton() {
               className="w-full"
             >
               {isEnding ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
               ) : (
-                <Trophy className="w-4 h-4 mr-2" />
+                <Trophy className="size-4 mr-2" />
               )}
               {t('game.endGame.confirm')}
             </Button>

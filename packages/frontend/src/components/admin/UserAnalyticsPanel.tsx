@@ -156,7 +156,7 @@ function DistributionBar({ segments }: DistributionBarProps) {
           const pct = total === 0 ? 0 : Math.round((s.value / total) * 1000) / 10
           return (
             <li key={s.label} className="flex items-center gap-2">
-              <span className={`inline-block h-2.5 w-2.5 rounded-sm ${s.colorClass}`} />
+              <span className={`inline-block size-2.5 rounded-sm ${s.colorClass}`} />
               <span className="text-muted-foreground">{s.label}</span>
               <span className="ml-auto font-semibold tabular-nums">
                 {s.value} ({pct}%)
@@ -200,7 +200,7 @@ export function UserAnalyticsPanel() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -223,7 +223,7 @@ export function UserAnalyticsPanel() {
       {/* Headline metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          icon={<Users className="h-4 w-4" />}
+          icon={<Users className="size-4" />}
           label={t('admin.analytics.totalUsers')}
           value={numberFormat(data.users.total, lang)}
           hint={t('admin.analytics.totalUsersHint', {
@@ -233,7 +233,7 @@ export function UserAnalyticsPanel() {
           accent="gradient"
         />
         <StatCard
-          icon={<Activity className="h-4 w-4" />}
+          icon={<Activity className="size-4" />}
           label={t('admin.analytics.active30d')}
           value={numberFormat(data.active.last30d, lang)}
           hint={t('admin.analytics.activeBreakdown', {
@@ -243,7 +243,7 @@ export function UserAnalyticsPanel() {
           accent="cyan"
         />
         <StatCard
-          icon={<UserPlus className="h-4 w-4" />}
+          icon={<UserPlus className="size-4" />}
           label={t('admin.analytics.newSignups30d')}
           value={numberFormat(data.signups.last30d, lang)}
           hint={t('admin.analytics.signupsBreakdown', {
@@ -253,7 +253,7 @@ export function UserAnalyticsPanel() {
           accent="pink"
         />
         <StatCard
-          icon={<Gamepad2 className="h-4 w-4" />}
+          icon={<Gamepad2 className="size-4" />}
           label={t('admin.analytics.totalSessions')}
           value={numberFormat(data.sessions.total, lang)}
           hint={t('admin.analytics.sessionsHint', {
@@ -267,7 +267,7 @@ export function UserAnalyticsPanel() {
       {/* Retention + streak metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatCard
-          icon={<CalendarClock className="h-4 w-4" />}
+          icon={<CalendarClock className="size-4" />}
           label={t('admin.analytics.retention30d')}
           value={percentFormat(data.users.retentionRate30dPercent, lang)}
           hint={t('admin.analytics.retentionHint', {
@@ -277,7 +277,7 @@ export function UserAnalyticsPanel() {
           accent="cyan"
         />
         <StatCard
-          icon={<Flame className="h-4 w-4" />}
+          icon={<Flame className="size-4" />}
           label={t('admin.analytics.activeStreaks')}
           value={numberFormat(data.loginStreak.usersWithActiveStreak, lang)}
           hint={t('admin.analytics.activeStreaksHint', {
@@ -287,7 +287,7 @@ export function UserAnalyticsPanel() {
           accent="pink"
         />
         <StatCard
-          icon={<ShieldAlert className="h-4 w-4" />}
+          icon={<ShieldAlert className="size-4" />}
           label={t('admin.analytics.neverPlayed')}
           value={numberFormat(data.users.neverPlayed, lang)}
           hint={t('admin.analytics.neverPlayedHint', {
@@ -374,7 +374,7 @@ export function UserAnalyticsPanel() {
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Gamepad2 className="h-4 w-4" />
+              <Gamepad2 className="size-4" />
               {t('admin.analytics.topBySessionsTitle')}
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -419,7 +419,7 @@ export function UserAnalyticsPanel() {
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Trophy className="h-4 w-4" />
+              <Trophy className="size-4" />
               {t('admin.analytics.topByScoreTitle')}
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -492,7 +492,7 @@ export function UserAnalyticsPanel() {
                 <tbody className="divide-y divide-border">
                   {data.recentlyActive.map((row) => (
                     <tr key={row.userId}>
-                      <td className="py-2 px-2">
+                      <td className="p-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="font-medium truncate">{row.displayName}</span>
                           {row.banned && (
@@ -505,16 +505,16 @@ export function UserAnalyticsPanel() {
                           {row.email}
                         </div>
                       </td>
-                      <td className="py-2 px-2 text-xs text-muted-foreground tabular-nums">
+                      <td className="p-2 text-xs text-muted-foreground tabular-nums">
                         {formatDateTime(row.createdAt, lang, never)}
                       </td>
-                      <td className="py-2 px-2 text-xs text-muted-foreground tabular-nums">
+                      <td className="p-2 text-xs text-muted-foreground tabular-nums">
                         {formatRelative(row.lastLoginAt, lang, never)}
                       </td>
-                      <td className="py-2 px-2 text-xs text-muted-foreground tabular-nums">
+                      <td className="p-2 text-xs text-muted-foreground tabular-nums">
                         {formatRelative(row.lastPlayedAt, lang, never)}
                       </td>
-                      <td className="py-2 px-2 text-right text-xs tabular-nums font-semibold text-neon-cyan">
+                      <td className="p-2 text-right text-xs tabular-nums font-semibold text-neon-cyan">
                         {numberFormat(row.totalScore, lang)}
                       </td>
                     </tr>

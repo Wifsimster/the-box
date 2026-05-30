@@ -683,7 +683,7 @@ export function GeoMapsTab({
                                     className="h-7 gap-1.5 text-xs"
                                     title={t('admin.geo.maps.goToAcquisitionTooltip')}
                                 >
-                                    <ArrowUpRight className="h-3.5 w-3.5" />
+                                    <ArrowUpRight className="size-3.5" />
                                     {t('admin.geo.maps.goToAcquisition')}
                                 </Button>
                             )}
@@ -693,10 +693,10 @@ export function GeoMapsTab({
                                 onClick={() => void reload()}
                                 disabled={loading}
                                 aria-label={t('admin.geo.maps.refresh')}
-                                className="h-7 w-7 p-0"
+                                className="size-7 p-0"
                             >
                                 <RefreshCw
-                                    className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
+                                    className={`size-3.5 ${loading ? 'animate-spin' : ''}`}
                                 />
                             </Button>
                         </div>
@@ -734,7 +734,7 @@ export function GeoMapsTab({
                             ))}
                         </div>
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 type="search"
                                 className="h-8 pl-9 text-xs"
@@ -774,7 +774,7 @@ export function GeoMapsTab({
                                     className="h-7 text-xs"
                                 >
                                     {bulkBusy && (
-                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                        <Loader2 className="size-3 animate-spin mr-1" />
                                     )}
                                     {t('admin.geo.catalog.bulk.curate')}
                                 </Button>
@@ -786,7 +786,7 @@ export function GeoMapsTab({
                                     className="h-7 text-xs"
                                 >
                                     {bulkBusy && (
-                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                        <Loader2 className="size-3 animate-spin mr-1" />
                                     )}
                                     {t('admin.geo.catalog.bulk.remove')}
                                 </Button>
@@ -811,7 +811,7 @@ export function GeoMapsTab({
                             aria-label={t('admin.geo.maps.loading')}
                         >
                             <Loader2
-                                className="h-5 w-5 animate-spin text-muted-foreground"
+                                className="size-5 animate-spin text-muted-foreground"
                                 aria-hidden
                             />
                         </div>
@@ -827,7 +827,7 @@ export function GeoMapsTab({
                                             <button
                                                 type="button"
                                                 onClick={selectAllVisible}
-                                                className="flex h-4 w-4 items-center justify-center"
+                                                className="flex size-4 items-center justify-center"
                                                 aria-label={
                                                     selected.size === visibleRows.length &&
                                                     visibleRows.length > 0
@@ -837,9 +837,9 @@ export function GeoMapsTab({
                                             >
                                                 {selected.size === visibleRows.length &&
                                                 visibleRows.length > 0 ? (
-                                                    <CheckSquare className="h-3.5 w-3.5" />
+                                                    <CheckSquare className="size-3.5" />
                                                 ) : (
-                                                    <Square className="h-3.5 w-3.5" />
+                                                    <Square className="size-3.5" />
                                                 )}
                                             </button>
                                         </th>
@@ -1012,7 +1012,7 @@ export function GeoMapsTab({
         <Card className="border-destructive/40 bg-destructive/5">
             <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden />
+                    <AlertTriangle className="size-4 text-destructive" aria-hidden />
                     {t('admin.geo.reset.title')}
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -1028,9 +1028,9 @@ export function GeoMapsTab({
                     className="gap-1.5"
                 >
                     {resetting ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="size-3.5 animate-spin" />
                     ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="size-3.5" />
                     )}
                     {t('admin.geo.reset.cta')}
                 </Button>
@@ -1073,7 +1073,7 @@ export function GeoMapsTab({
                         disabled={uncurating}
                     >
                         {uncurating && (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                            <Loader2 className="size-3.5 animate-spin mr-2" />
                         )}
                         {t('admin.geo.maps.uncurate.dialog.confirm')}
                     </Button>
@@ -1177,7 +1177,7 @@ function SidePanelBody({
                 aria-label={t('admin.geo.maps.sidePanel.loading')}
             >
                 <Loader2
-                    className="h-4 w-4 animate-spin text-muted-foreground"
+                    className="size-4 animate-spin text-muted-foreground"
                     aria-hidden
                 />
             </div>
@@ -1261,7 +1261,7 @@ function SidePanelBody({
                     className="flex-1"
                     onClick={() => onManualUpload(selectedGame)}
                 >
-                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    <Upload className="size-3.5 mr-1.5" />
                     {t('admin.geo.maps.actions.uploadManual')}
                 </Button>
                 <DropdownMenu>
@@ -1269,20 +1269,20 @@ function SidePanelBody({
                         <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 w-8 p-0"
+                            className="size-8 p-0"
                             aria-label={t('admin.geo.maps.sidePanel.moreActions')}
                             title={t('admin.geo.maps.sidePanel.moreActions')}
                         >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                            <MoreHorizontal className="size-3.5" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuItem onSelect={() => onWandImport(selectedGame)}>
-                            <Sparkles className="h-3.5 w-3.5 mr-2" />
+                            <Sparkles className="size-3.5 mr-2" />
                             {t('admin.geo.maps.actions.importWand')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => onResearch(selectedGame)}>
-                            <Search className="h-3.5 w-3.5 mr-2" />
+                            <Search className="size-3.5 mr-2" />
                             {t('admin.geo.maps.actions.research')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -1292,9 +1292,9 @@ function SidePanelBody({
                             className="text-destructive focus:text-destructive"
                         >
                             {busyAction === 'reimport' ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                <Loader2 className="size-3.5 animate-spin mr-2" />
                             ) : (
-                                <RotateCw className="h-3.5 w-3.5 mr-2" />
+                                <RotateCw className="size-3.5 mr-2" />
                             )}
                             {t('admin.geo.maps.actions.rerun')}
                         </DropdownMenuItem>
@@ -1302,7 +1302,7 @@ function SidePanelBody({
                             onSelect={() => onUncurate(selectedGame)}
                             className="text-destructive focus:text-destructive"
                         >
-                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            <Trash2 className="size-3.5 mr-2" />
                             {t('admin.geo.maps.actions.uncurate')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -1466,7 +1466,7 @@ function ActiveMapHeroRow({
                                 'Set as capture default',
                             )}
                         >
-                            <Target className="h-2.5 w-2.5" aria-hidden />
+                            <Target className="size-2.5" aria-hidden />
                             {t(
                                 'admin.geo.maps.multi.captureDefaultBadge',
                                 'Capture default',
@@ -1485,7 +1485,7 @@ function ActiveMapHeroRow({
                         className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
                         title={t('admin.geo.maps.actions.viewCapturesTooltip')}
                     >
-                        <ListChecks className="h-2.5 w-2.5" aria-hidden />
+                        <ListChecks className="size-2.5" aria-hidden />
                         {t('admin.geo.maps.actions.viewCaptures', {
                             count: captureCount,
                         })}
@@ -1499,14 +1499,14 @@ function ActiveMapHeroRow({
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        className="h-7 w-7 flex-none p-0"
+                        className="size-7 flex-none p-0"
                         aria-label={t('admin.geo.maps.sidePanel.moreActions')}
                         title={t('admin.geo.maps.sidePanel.moreActions')}
                     >
                         {busy ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="size-3.5 animate-spin" />
                         ) : (
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                            <MoreHorizontal className="size-3.5" />
                         )}
                     </Button>
                 </DropdownMenuTrigger>
@@ -1515,7 +1515,7 @@ function ActiveMapHeroRow({
                         <DropdownMenuItem
                             onSelect={() => void onSetCaptureDefault(gameId, map.id)}
                         >
-                            <Target className="h-3.5 w-3.5 mr-2" />
+                            <Target className="size-3.5 mr-2" />
                             {t(
                                 'admin.geo.maps.multi.setCaptureDefault',
                                 'Set as capture default',
@@ -1527,7 +1527,7 @@ function ActiveMapHeroRow({
                         onSelect={() => void onDisable(gameId, map.id)}
                         className="text-destructive focus:text-destructive"
                     >
-                        <XCircle className="h-3.5 w-3.5 mr-2" />
+                        <XCircle className="size-3.5 mr-2" />
                         {canDisable
                             ? t('admin.geo.maps.multi.disable', 'Disable map')
                             : t(
@@ -1586,7 +1586,7 @@ function CatalogRowItem({
                 <button
                     type="button"
                     onClick={onToggleSelect}
-                    className="flex h-4 w-4 items-center justify-center"
+                    className="flex size-4 items-center justify-center"
                     aria-label={
                         selected
                             ? t('admin.geo.catalog.deselect')
@@ -1594,9 +1594,9 @@ function CatalogRowItem({
                     }
                 >
                     {selected ? (
-                        <CheckSquare className="h-3.5 w-3.5 text-primary" />
+                        <CheckSquare className="size-3.5 text-primary" />
                     ) : (
-                        <Square className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Square className="size-3.5 text-muted-foreground" />
                     )}
                 </button>
             </td>
@@ -1615,7 +1615,7 @@ function CatalogRowItem({
                                 genres: (row.genres ?? []).join(', '),
                             })}
                         >
-                            <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                            <AlertTriangle className="size-2.5" aria-hidden />
                             {t('admin.geo.games.noMapLikely')}
                         </span>
                     )}
@@ -1638,7 +1638,7 @@ function CatalogRowItem({
                             variant="outline"
                             className="gap-1 text-[10px] px-1.5 py-0 border-neon-pink/40 text-neon-pink"
                         >
-                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                            <Loader2 className="size-2.5 animate-spin" />
                             {t('admin.geo.run.inFlight')}
                         </Badge>
                     )}
@@ -1666,7 +1666,7 @@ function CatalogStatusBadge({
     if (row.hasMap) {
         return (
             <Badge variant="success" className="gap-1 text-[10px] px-1.5 py-0">
-                <CheckCircle2 className="h-3 w-3" aria-hidden />
+                <CheckCircle2 className="size-3" aria-hidden />
                 {t('admin.geo.maps.row.hasMap')}
             </Badge>
         )
@@ -1674,14 +1674,14 @@ function CatalogStatusBadge({
     if (row.metadataStatus === 'unresolved') {
         return (
             <Badge variant="destructive" className="gap-1 text-[10px] px-1.5 py-0">
-                <XCircle className="h-3 w-3" aria-hidden />
+                <XCircle className="size-3" aria-hidden />
                 {t('admin.geo.maps.row.failed')}
             </Badge>
         )
     }
     return (
         <Badge variant="warning" className="gap-1 text-[10px] px-1.5 py-0">
-            <AlertTriangle className="h-3 w-3" aria-hidden />
+            <AlertTriangle className="size-3" aria-hidden />
             {t('admin.geo.maps.row.noMap')}
         </Badge>
     )
@@ -1777,7 +1777,7 @@ function TierRow({
         <li className={`text-xs ${visual.rowBg}`}>
             <div className="flex items-center gap-2 px-2.5 py-1.5">
                 <Icon
-                    className={`h-3 w-3 shrink-0 ${visual.iconColor} ${
+                    className={`size-3 shrink-0 ${visual.iconColor} ${
                         running ? 'animate-spin' : ''
                     }`}
                     aria-hidden
@@ -1800,9 +1800,9 @@ function TierRow({
                                 title={t('admin.geo.maps.tierStatus.retryNowTooltip')}
                             >
                                 {retrying ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <Loader2 className="size-3 animate-spin" />
                                 ) : (
-                                    <RefreshCcw className="h-3 w-3" />
+                                    <RefreshCcw className="size-3" />
                                 )}
                                 {t('admin.geo.maps.tierStatus.retryNow')}
                             </Button>
@@ -1817,9 +1817,9 @@ function TierRow({
                                 title={t('admin.geo.maps.tierStatus.runNowTooltip')}
                             >
                                 {runningNow ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <Loader2 className="size-3 animate-spin" />
                                 ) : (
-                                    <Play className="h-3 w-3" />
+                                    <Play className="size-3" />
                                 )}
                                 {t('admin.geo.maps.tierStatus.runNow')}
                             </Button>
@@ -1852,7 +1852,7 @@ function TierRow({
                         {state.reason}
                     </p>
                     <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <Clock className="h-2.5 w-2.5" aria-hidden />
+                        <Clock className="size-2.5" aria-hidden />
                         {t('admin.geo.maps.tierStatus.retryAfter', {
                             time: new Date(state.retryAfter).toLocaleString(),
                         })}
@@ -1951,9 +1951,9 @@ function MatchedTierDetails({
                                             )}
                                         >
                                             {activating ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                <Loader2 className="size-3 animate-spin" />
                                             ) : (
-                                                <CheckCircle2 className="h-3 w-3" />
+                                                <CheckCircle2 className="size-3" />
                                             )}
                                             {t(
                                                 'admin.geo.maps.tierStatus.useThisMap',

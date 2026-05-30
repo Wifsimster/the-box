@@ -74,10 +74,10 @@ export function PWAUpdatePrompt() {
       )}
     >
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
         aria-hidden="true"
       >
-        <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+        <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
       </div>
       <div className="flex-1 min-w-0">
         <p
@@ -95,7 +95,7 @@ export function PWAUpdatePrompt() {
         <div className="mt-3 flex gap-2">
           <Button size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw
-              className={cn('h-4 w-4 mr-1.5', refreshing && 'animate-spin')}
+              className={cn('size-4 mr-1.5', refreshing && 'animate-spin')}
               aria-hidden="true"
             />
             {refreshing ? t('pwa.updatePanel.refreshing') : t('pwa.updatePanel.refresh')}
@@ -117,7 +117,7 @@ export function PWAUpdatePrompt() {
         aria-label={t('pwa.updatePanel.dismiss')}
         className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
-        <X className="h-4 w-4" />
+        <X className="size-4" />
       </button>
     </div>
   )

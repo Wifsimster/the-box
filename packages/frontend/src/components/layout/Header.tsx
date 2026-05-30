@@ -86,7 +86,7 @@ function NavItemLink({
         )
       }
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
       <span>{t(item.labelKey)}</span>
       {item.badgeKey && (
         <Badge
@@ -178,7 +178,7 @@ function AccountMenu({
             return (
               <Button key={entry.key} variant="ghost" asChild className="h-11 w-full justify-start gap-2 px-3">
                 <Link to={entry.to} onClick={onNavigate}>
-                  <Icon className={cn('h-4 w-4 shrink-0', entry.iconClassName)} aria-hidden="true" />
+                  <Icon className={cn('size-4 shrink-0', entry.iconClassName)} aria-hidden="true" />
                   {entry.label}
                 </Link>
               </Button>
@@ -194,7 +194,7 @@ function AccountMenu({
                 entry.onSelect()
               }}
             >
-              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
               {entry.label}
             </Button>
           )
@@ -214,7 +214,7 @@ function AccountMenu({
           return (
             <DropdownMenuItem key={entry.key} asChild>
               <Link to={entry.to} className="flex cursor-pointer items-center gap-2">
-                <Icon className={cn('h-4 w-4', entry.iconClassName)} aria-hidden="true" />
+                <Icon className={cn('size-4', entry.iconClassName)} aria-hidden="true" />
                 {entry.label}
               </Link>
             </DropdownMenuItem>
@@ -226,7 +226,7 @@ function AccountMenu({
             onClick={entry.onSelect}
             className="flex cursor-pointer items-center gap-2"
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
+            <Icon className="size-4" aria-hidden="true" />
             {entry.label}
           </DropdownMenuItem>
         )
@@ -313,7 +313,7 @@ export function Header() {
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="size-11" aria-label={t('common.toggleMenu')}>
-                <Menu className="h-5 w-5" aria-hidden="true" />
+                <Menu className="size-5" aria-hidden="true" />
                 <span className="sr-only">{t('common.toggleMenu')}</span>
               </Button>
             </SheetTrigger>
@@ -425,7 +425,7 @@ export function Header() {
                     data-tour="profile-menu"
                     className="flex items-center gap-2 border-0 hover:bg-primary/10"
                   >
-                    <User className="h-4 w-4" aria-hidden="true" />
+                    <User className="size-4" aria-hidden="true" />
                     {isAdmin ? (
                       <Badge variant="admin" className="cursor-pointer text-xs">
                         {displayName}
@@ -433,7 +433,7 @@ export function Header() {
                     ) : (
                       <span className="text-sm font-bold">{displayName}</span>
                     )}
-                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    <ChevronDown className="size-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">

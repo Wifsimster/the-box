@@ -151,9 +151,9 @@ export function GameForm({
               className="w-full sm:w-auto"
             >
               {isSyncing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
               ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="size-4 mr-2" />
               )}
               {isSyncing ? t('admin.games.syncing') : t('admin.games.syncRawg')}
             </Button>
@@ -330,12 +330,12 @@ export function GameForm({
                         <img
                           src={field.value}
                           alt={t('admin.games.form.coverPreviewAlt')}
-                          className="w-full h-full object-cover"
+                          className="size-full object-cover"
                           onError={() => setImageError(true)}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          <ImageOff className="h-8 w-8" />
+                        <div className="size-full flex items-center justify-center text-muted-foreground">
+                          <ImageOff className="size-8" />
                         </div>
                       )}
                     </div>
@@ -364,7 +364,7 @@ export function GameForm({
                 {t('common.cancel')}
               </Button>
               <Button type="submit" variant="gaming" disabled={isLoading} className="w-full sm:w-auto">
-                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isLoading && <Loader2 className="size-4 animate-spin" />}
                 {isEditing ? t('common.save') : t('common.create')}
               </Button>
             </div>

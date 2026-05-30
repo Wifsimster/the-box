@@ -45,7 +45,7 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                         )}
                     >
                         <Gift className={cn(
-                            'w-4 h-4',
+                            'size-4',
                             canClaim ? 'text-primary' : 'text-muted-foreground'
                         )} />
 
@@ -61,8 +61,8 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
 
                         {/* Notification dot when can claim */}
                         {canClaim && (
-                            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                            <span className="absolute -top-0.5 -right-0.5 flex size-2">
+                                <span className="relative inline-flex rounded-full size-2 bg-primary" />
                             </span>
                         )}
                     </Button>

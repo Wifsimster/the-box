@@ -24,8 +24,8 @@ export default function FaqPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-cyan to-neon-pink shadow-lg shadow-neon-cyan/30">
-              <HelpCircle className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-cyan to-neon-pink shadow-lg shadow-neon-cyan/30">
+              <HelpCircle className="size-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-linear-to-r from-neon-cyan to-neon-pink bg-clip-text text-transparent">
               {t('legal.faqTitle')}

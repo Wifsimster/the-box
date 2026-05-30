@@ -50,7 +50,7 @@ export function CompletionChoiceModal() {
       >
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-            <Trophy className="w-5 h-5 text-primary" />
+            <Trophy className="size-5 text-primary" />
             {t('game.completionChoice.title')}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
@@ -75,7 +75,7 @@ export function CompletionChoiceModal() {
             variant="gaming"
             className="w-full"
           >
-            <Play className="w-4 h-4 mr-2" />
+            <Play className="size-4 mr-2" />
             {t('game.completionChoice.continuePlaying')}
           </Button>
           <Button
@@ -83,7 +83,7 @@ export function CompletionChoiceModal() {
             variant="outline"
             className="w-full"
           >
-            <Trophy className="w-4 h-4 mr-2" />
+            <Trophy className="size-4 mr-2" />
             {t('game.completionChoice.seeResults')}
           </Button>
         </div>

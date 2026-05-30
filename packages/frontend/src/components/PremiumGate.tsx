@@ -34,7 +34,7 @@ export function PremiumGate({ children, feature, alpha = false }: PremiumGatePro
   if (isLoading || entitlement === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -59,11 +59,11 @@ export function PremiumGate({ children, feature, alpha = false }: PremiumGatePro
       <Card className="max-w-lg w-full border-2 border-primary/30">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Lock className="h-5 w-5 text-primary" />
+            <Lock className="size-5 text-primary" />
             <CardTitle>{copy('title')}</CardTitle>
             {alpha && (
               <span className="ml-auto premium-badge inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide">
-                <Sparkles className="h-3 w-3" />
+                <Sparkles className="size-3" />
                 <span>{t('premium.alpha')}</span>
               </span>
             )}
@@ -73,7 +73,7 @@ export function PremiumGate({ children, feature, alpha = false }: PremiumGatePro
         <CardContent>
           <Button asChild className="w-full">
             <Link to={localizedPath('/pricing')}>
-              <Crown className="h-4 w-4 mr-2" />
+              <Crown className="size-4 mr-2" />
               {copy('ctaLabel')}
             </Link>
           </Button>

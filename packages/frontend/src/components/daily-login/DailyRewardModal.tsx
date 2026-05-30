@@ -77,7 +77,7 @@ export function DailyRewardModal() {
             <ResponsiveDialogContent className="sm:max-w-md">
                 <ResponsiveDialogHeader>
                     <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-                        <Gift className="w-5 h-5 text-primary" />
+                        <Gift className="size-5 text-primary" />
                         {showClaimSuccess
                             ? t('dailyLogin.rewardClaimed')
                             : t('dailyLogin.dailyReward')}
@@ -91,7 +91,7 @@ export function DailyRewardModal() {
 
                 {/* Streak Display */}
                 <div className="flex items-center justify-center gap-2 py-2">
-                    <Flame className="w-5 h-5 text-neon-pink" />
+                    <Flame className="size-5 text-neon-pink" />
                     <span className="text-lg font-bold">
                         {t('dailyLogin.dayStreak', {
                             count: justClaimed?.newStreak ?? status.currentStreak,
@@ -114,9 +114,9 @@ export function DailyRewardModal() {
                         {/* Sparkle effect on claim */}
                         {showClaimSuccess && (
                             <div className="absolute inset-0 pointer-events-none">
-                                <Sparkles className="absolute top-2 left-4 w-4 h-4 text-warning animate-bounce" />
-                                <Sparkles className="absolute top-4 right-6 w-3 h-3 text-warning animate-bounce delay-100" />
-                                <Sparkles className="absolute bottom-4 left-8 w-3 h-3 text-warning animate-bounce delay-200" />
+                                <Sparkles className="absolute top-2 left-4 size-4 text-warning animate-bounce" />
+                                <Sparkles className="absolute top-4 right-6 size-3 text-warning animate-bounce delay-100" />
+                                <Sparkles className="absolute bottom-4 left-8 size-3 text-warning animate-bounce delay-200" />
                             </div>
                         )}
 

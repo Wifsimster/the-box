@@ -53,7 +53,7 @@ export function PersonalBestsCard() {
         <Card className="bg-card/50 border-border">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <Trophy className="w-5 h-5 text-warning" />
+                    <Trophy className="size-5 text-warning" />
                     {t('personalBests.title')}
                 </CardTitle>
             </CardHeader>
@@ -66,7 +66,7 @@ export function PersonalBestsCard() {
                                 key={index}
                                 className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg ${stat.bgColor}`}
                             >
-                                <Icon className={`w-6 h-6 sm:w-8 sm:h-8 mb-2 ${stat.color}`} />
+                                <Icon className={`size-6 sm:size-8 mb-2 ${stat.color}`} />
                                 <div className="text-center">
                                     <div className="text-lg sm:text-2xl font-bold">
                                         {typeof stat.value === 'number' && stat.value > 0 ? (

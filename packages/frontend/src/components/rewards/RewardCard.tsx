@@ -61,8 +61,8 @@ export function RewardCard({ grant }: RewardCardProps) {
             className="rounded-lg border border-border/40 bg-card/60 p-4 backdrop-blur-sm"
         >
             <div className="flex items-start gap-3">
-                <div className={cn('flex h-10 w-10 items-center justify-center rounded-md bg-background/50', accent)}>
-                    <Icon className="h-5 w-5" />
+                <div className={cn('flex size-10 items-center justify-center rounded-md bg-background/50', accent)}>
+                    <Icon className="size-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">

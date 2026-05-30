@@ -240,7 +240,7 @@ export default function SecuritySettingsPage() {
         onClick={() => navigate(localizedPath('/profile'))}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-neon-purple transition-colors"
       >
-        <ChevronLeft className="h-4 w-4" /> {t('security.backToProfile')}
+        <ChevronLeft className="size-4" /> {t('security.backToProfile')}
       </button>
 
       <motion.div
@@ -249,7 +249,7 @@ export default function SecuritySettingsPage() {
         transition={{ duration: 0.3 }}
       >
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          <Shield className="h-7 w-7 text-neon-purple" /> {t('security.title')}
+          <Shield className="size-7 text-neon-purple" /> {t('security.title')}
         </h1>
         <p className="text-muted-foreground mb-6">{t('security.subtitle')}</p>
 
@@ -258,7 +258,7 @@ export default function SecuritySettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5" />
+                <KeyRound className="size-5" />
                 {t('security.totp.title')}
               </span>
               {twoFactorEnabled ? (
@@ -281,7 +281,7 @@ export default function SecuritySettingsPage() {
                 disabled={totpBusy || isAnonymous}
               >
                 {totpBusy ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="size-4 animate-spin mr-2" />
                 ) : null}
                 {t('security.totp.disable')}
               </Button>
@@ -301,7 +301,7 @@ export default function SecuritySettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Fingerprint className="h-5 w-5" />
+              <Fingerprint className="size-5" />
               {t('security.passkey.title')}
             </CardTitle>
             <CardDescription>{t('security.passkey.description')}</CardDescription>
@@ -337,7 +337,7 @@ export default function SecuritySettingsPage() {
                       disabled={passkeyBusy}
                       aria-label={t('security.passkey.delete')}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="size-4 text-destructive" />
                     </Button>
                   </li>
                 ))}
@@ -350,9 +350,9 @@ export default function SecuritySettingsPage() {
               className="w-full sm:w-auto"
             >
               {passkeyBusy ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
               ) : (
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="size-4 mr-2" />
               )}
               {t('security.passkey.addCta')}
             </Button>
@@ -387,7 +387,7 @@ export default function SecuritySettingsPage() {
                   {t('security.totp.cancel')}
                 </Button>
                 <Button type="submit" variant="gaming" disabled={totpBusy || !totpPassword}>
-                  {totpBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('security.totp.continue')}
+                  {totpBusy ? <Loader2 className="size-4 animate-spin" /> : t('security.totp.continue')}
                 </Button>
               </DialogFooter>
             </form>
@@ -437,7 +437,7 @@ export default function SecuritySettingsPage() {
                   {t('security.totp.cancel')}
                 </Button>
                 <Button type="submit" variant="gaming" disabled={totpBusy || totpCode.length !== 6}>
-                  {totpBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('security.totp.verify')}
+                  {totpBusy ? <Loader2 className="size-4 animate-spin" /> : t('security.totp.verify')}
                 </Button>
               </DialogFooter>
             </form>
@@ -463,11 +463,11 @@ export default function SecuritySettingsPage() {
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={copyBackupCodes} className="flex-1">
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy className="size-4 mr-2" />
                   {t('security.totp.copy')}
                 </Button>
                 <Button variant="outline" onClick={downloadBackupCodes} className="flex-1">
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="size-4 mr-2" />
                   {t('security.totp.download')}
                 </Button>
               </div>
@@ -502,7 +502,7 @@ export default function SecuritySettingsPage() {
               onClick={confirmDeletePasskey}
               disabled={passkeyBusy}
             >
-              {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('security.passkey.delete')}
+              {passkeyBusy ? <Loader2 className="size-4 animate-spin" /> : t('security.passkey.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

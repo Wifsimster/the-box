@@ -188,7 +188,7 @@ export default function HistoryPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-8 sm:py-12" role="status" aria-live="polite">
-            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary" aria-hidden="true" />
+            <Loader2 className="size-6 sm:size-8 animate-spin text-primary" aria-hidden="true" />
             <span className="sr-only">{t('common.loading')}</span>
           </div>
         )}
@@ -198,11 +198,11 @@ export default function HistoryPage() {
           <Card variant="neon" className="bg-card/50 max-w-xl mx-auto text-center">
             <CardContent className="py-10 sm:py-12 px-6 sm:px-8 flex flex-col items-center gap-4">
               <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center bg-linear-to-br from-neon-purple to-neon-pink"
+                className="size-16 sm:size-20 rounded-full flex items-center justify-center bg-linear-to-br from-neon-purple to-neon-pink"
                 style={{ boxShadow: 'var(--glow-md)' }}
                 aria-hidden="true"
               >
-                <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                <Sparkles className="size-8 sm:size-10 text-white" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-foreground">
                 {t('history.empty.title')}
@@ -212,7 +212,7 @@ export default function HistoryPage() {
               </p>
               <Button asChild size="lg" className="mt-2">
                 <Link to={localizedPath('/play')}>
-                  <Play className="w-4 h-4 mr-2" aria-hidden="true" />
+                  <Play className="size-4 mr-2" aria-hidden="true" />
                   {t('history.empty.cta')}
                 </Link>
               </Button>
@@ -228,7 +228,7 @@ export default function HistoryPage() {
               <CardContent className="p-4 sm:p-5 flex flex-row items-stretch divide-x divide-border">
                 <div className="flex-1 flex flex-col items-center gap-1 px-3">
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                    <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-pink" aria-hidden="true" />
+                    <Flame className="size-3.5 sm:size-4 text-neon-pink" aria-hidden="true" />
                     <span>{t('history.stats.streak')}</span>
                   </div>
                   <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
@@ -237,7 +237,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex-1 flex flex-col items-center gap-1 px-3">
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                    <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neon-cyan" aria-hidden="true" />
+                    <Gamepad2 className="size-3.5 sm:size-4 text-neon-cyan" aria-hidden="true" />
                     <span>{t('history.stats.played')}</span>
                   </div>
                   <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
@@ -262,7 +262,7 @@ export default function HistoryPage() {
                     aria-busy={loading}
                     className="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-1 transition-colors disabled:opacity-50"
                   >
-                    <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+                    <RefreshCw className={`size-4 sm:size-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
                   </button>
                 </div>
               </CardHeader>
@@ -297,11 +297,11 @@ export default function HistoryPage() {
                       {t('common.all')}
                     </ToggleGroupItem>
                     <ToggleGroupItem value="completed" aria-label={t('history.completed')}>
-                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" aria-hidden="true" />
+                      <CheckCircle2 className="size-3 sm:size-4" aria-hidden="true" />
                       {t('history.completed')}
                     </ToggleGroupItem>
                     <ToggleGroupItem value="inProgress" aria-label={t('history.inProgress')}>
-                      <Clock className="w-3 h-3 sm:w-4 sm:h-4" aria-hidden="true" />
+                      <Clock className="size-3 sm:size-4" aria-hidden="true" />
                       {t('history.inProgress')}
                     </ToggleGroupItem>
                   </ToggleGroup>
@@ -368,8 +368,8 @@ export default function HistoryPage() {
                             className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-warning/10 border border-warning/20"
                           >
                             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low" aria-hidden="true">
-                                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                              <div className="size-10 sm:size-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low" aria-hidden="true">
+                                <Calendar className="size-5 sm:size-6 text-white" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <span className="text-sm sm:text-base font-semibold wrap-break-word">
@@ -388,7 +388,7 @@ export default function HistoryPage() {
                                 aria-label={t('history.resumeGame', { date: dateLabel })}
                                 className="bg-linear-to-r from-warning to-score-low hover:from-warning hover:to-score-low text-white"
                               >
-                                <Play className="w-4 h-4 mr-1" aria-hidden="true" />
+                                <Play className="size-4 mr-1" aria-hidden="true" />
                                 {t('history.playCatchUp')}
                               </Button>
                             </div>
@@ -424,16 +424,16 @@ export default function HistoryPage() {
                             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                               {/* Dynamic icon — three-channel signal (icon + color + Badge label) */}
                               <div
-                                className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${isCompleted
+                                className={`size-10 sm:size-12 shrink-0 rounded-full flex items-center justify-center ${isCompleted
                                   ? 'bg-linear-to-br from-success to-success/80'
                                   : 'bg-linear-to-br from-neon-blue to-neon-cyan'
                                   }`}
                                 aria-hidden="true"
                               >
                                 {isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                  <CheckCircle2 className="size-5 sm:size-6 text-white" />
                                 ) : (
-                                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                  <Clock className="size-5 sm:size-6 text-white" />
                                 )}
                               </div>
 
@@ -444,7 +444,7 @@ export default function HistoryPage() {
                                   </span>
                                   {!isCompleted && (
                                     <Badge variant="info" className="w-fit text-xs">
-                                      <Clock className="w-3 h-3 mr-1" aria-hidden="true" />
+                                      <Clock className="size-3 mr-1" aria-hidden="true" />
                                       {t('history.inProgress')}
                                     </Badge>
                                   )}
@@ -456,7 +456,7 @@ export default function HistoryPage() {
                             {isCompleted && (
                               <div className="flex flex-col items-start sm:items-end gap-0.5">
                                 <div className="flex items-center gap-1.5 text-sm sm:text-base font-semibold text-foreground tabular-nums">
-                                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" aria-hidden="true" />
+                                  <Target className="size-3.5 sm:size-4 text-muted-foreground" aria-hidden="true" />
                                   <span aria-label={t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}>
                                     {t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}
                                   </span>
@@ -471,7 +471,7 @@ export default function HistoryPage() {
                             {/* Right Section: Score & Chevron */}
                             <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
                               <div className="flex items-center gap-2">
-                                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden="true" />
+                                <Trophy className="size-5 sm:size-6 text-primary" aria-hidden="true" />
                                 <Badge
                                   variant={tierBadgeVariant[tier]}
                                   className="text-base sm:text-xl font-bold px-3 sm:px-4 py-1 sm:py-1.5"
@@ -480,7 +480,7 @@ export default function HistoryPage() {
                                   {entry.totalScore}
                                 </Badge>
                               </div>
-                              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-hover:text-primary group-focus-visible:text-primary group-hover:translate-x-1 group-focus-visible:translate-x-1 transition-all" aria-hidden="true" />
+                              <ChevronRight className="size-5 sm:size-6 text-muted-foreground group-hover:text-primary group-focus-visible:text-primary group-hover:translate-x-1 group-focus-visible:translate-x-1 transition-all" aria-hidden="true" />
                             </div>
                           </Link>
                         </motion.li>

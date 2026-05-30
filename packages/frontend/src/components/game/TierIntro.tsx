@@ -32,7 +32,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
     >
       {/* Background grid effect */}
       <div className="absolute inset-0 opacity-20">
-        <div className="w-full h-full bg-grid-neon" />
+        <div className="size-full bg-grid-neon" />
       </div>
 
       {/* Main content container - Mobile-first padding */}
@@ -56,7 +56,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           transition={{ duration: 0.5, delay: 0.15 }}
           className="flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground mb-4 sm:mb-6 md:mb-8"
         >
-          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Calendar className="size-4 sm:size-5" />
           <span className="text-sm sm:text-base md:text-lg">{formattedDate}</span>
         </motion.div>
 
@@ -79,7 +79,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
               transition={{ duration: 0.3, delay: 0.2 + rule.delay }}
               className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-lg bg-card/50 border border-border/50 hover:border-neon-purple/50 transition-colors"
             >
-              <rule.icon className="w-5 h-5 sm:w-6 sm:h-6 text-neon-purple" />
+              <rule.icon className="size-5 sm:size-6 text-neon-purple" />
               <span className="text-[10px] sm:text-xs text-muted-foreground text-center leading-tight">
                 {rule.label}
               </span>
@@ -95,7 +95,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             transition={{ duration: 0.5, delay: 0.25 }}
             className="flex items-center justify-center gap-1.5 sm:gap-2 text-neon-blue mb-4 sm:mb-6 md:mb-8 px-4"
           >
-            <Info className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <Info className="size-4 sm:size-5 shrink-0" />
             <span className="text-xs sm:text-sm">{t('game.catchUpNotice')}</span>
           </motion.div>
         )}
@@ -108,7 +108,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             transition={{ duration: 0.5, delay: isCatchUp ? 0.3 : 0.25 }}
             className="flex items-center justify-center gap-1.5 sm:gap-2 text-warning mb-4 sm:mb-6 md:mb-8 px-4"
           >
-            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <AlertTriangle className="size-4 sm:size-5 shrink-0" />
             <span className="text-xs sm:text-sm">{t('game.guestWarning')}</span>
           </motion.div>
         )}
@@ -127,7 +127,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             className="gap-2 sm:gap-3 text-base sm:text-lg md:text-xl px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 w-full sm:w-auto"
           >
             {t('game.startChallenge')}
-            <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+            <Play className="size-4 sm:size-5 md:size-6" />
           </Button>
         </motion.div>
 
@@ -136,13 +136,13 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="hidden md:block absolute -top-20 -left-20 w-40 h-40 bg-neon-purple/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -top-20 -left-20 size-40 bg-neon-purple/10 rounded-full blur-3xl"
         />
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="hidden md:block absolute -bottom-20 -right-20 w-40 h-40 bg-neon-pink/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -bottom-20 -right-20 size-40 bg-neon-pink/10 rounded-full blur-3xl"
         />
       </div>
     </motion.div>

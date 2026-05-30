@@ -28,7 +28,7 @@ export function EmptyStateCard({
         <div className={cn("flex flex-col items-center justify-center py-8 px-4 text-center", className)}>
             <div className="relative mb-4">
                 <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl" />
-                <Icon className="relative w-12 h-12 text-muted-foreground/60" />
+                <Icon className="relative size-12 text-muted-foreground/60" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">{message}</p>
             {description && (

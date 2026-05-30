@@ -47,7 +47,7 @@ export default function PublicProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -55,7 +55,7 @@ export default function PublicProfilePage() {
   if (error || !profile) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <UserIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+        <UserIcon className="size-12 mx-auto mb-4 text-muted-foreground" />
         <h1 className="text-xl font-bold mb-2">{t('publicProfile.notFound')}</h1>
         <p className="text-muted-foreground mb-6">{error ?? t('publicProfile.notFoundDescription')}</p>
         <Button variant="gaming" asChild>
@@ -81,7 +81,7 @@ export default function PublicProfilePage() {
         <Card className="backdrop-blur-xl bg-card/40 border-white/10">
           <CardContent className="p-6 md:p-8">
             <div className="flex items-center gap-4 mb-6">
-              <Avatar className="w-20 h-20 border-2 border-neon-purple/40">
+              <Avatar className="size-20 border-2 border-neon-purple/40">
                 <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
                 <AvatarFallback className="text-2xl bg-card">
                   {profile.displayName.slice(0, 2).toUpperCase()}
@@ -108,7 +108,7 @@ export default function PublicProfilePage() {
             {profile.badges.length > 0 && (
               <div className="mb-6">
                 <h2 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4" />
+                  <Award className="size-4" />
                   {t('publicProfile.badges')}
                 </h2>
                 <div className="flex flex-wrap gap-2">
@@ -117,7 +117,7 @@ export default function PublicProfilePage() {
                       key={b.key}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 text-xs font-semibold text-foreground"
                     >
-                      <Award className="w-3 h-3" />
+                      <Award className="size-3" />
                       {t(`publicProfile.badgeLabels.${b.key}`, { defaultValue: b.key })}
                       {b.quantity > 1 && <span className="opacity-60">×{b.quantity}</span>}
                     </span>
@@ -129,7 +129,7 @@ export default function PublicProfilePage() {
             {profile.recentSessions.length > 0 && (
               <div>
                 <h2 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="size-4" />
                   {t('publicProfile.recentGames')}
                 </h2>
                 <ul className="space-y-2">
@@ -173,7 +173,7 @@ function StatTile({ icon: Icon, label, value }: StatTileProps) {
   return (
     <div className="p-3 rounded-lg bg-card/40 border border-white/5">
       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-        <Icon className="w-3.5 h-3.5" />
+        <Icon className="size-3.5" />
         <span>{label}</span>
       </div>
       <p className="text-lg font-bold text-foreground">{value}</p>

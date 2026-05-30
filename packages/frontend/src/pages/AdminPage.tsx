@@ -49,14 +49,14 @@ export default function AdminPage() {
   } = useAdminStore()
 
   const tabs = [
-    { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="h-4 w-4" /> },
-    { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="h-4 w-4" /> },
-    { id: 'users', label: t('admin.tabs.users'), icon: <Users className="h-4 w-4" /> },
-    { id: 'analytics', label: t('admin.tabs.analytics'), icon: <BarChart3 className="h-4 w-4" /> },
-    { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="h-4 w-4" /> },
-    { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="h-4 w-4" /> },
-    { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="h-4 w-4" /> },
-    { id: 'geo', label: t('admin.tabs.geo', 'Géo'), icon: <Compass className="h-4 w-4" /> },
+    { id: 'jobs', label: t('admin.tabs.jobs'), icon: <ListTodo className="size-4" /> },
+    { id: 'games', label: t('admin.tabs.games'), icon: <Gamepad2 className="size-4" /> },
+    { id: 'users', label: t('admin.tabs.users'), icon: <Users className="size-4" /> },
+    { id: 'analytics', label: t('admin.tabs.analytics'), icon: <BarChart3 className="size-4" /> },
+    { id: 'email', label: t('admin.tabs.email'), icon: <Mail className="size-4" /> },
+    { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="size-4" /> },
+    { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="size-4" /> },
+    { id: 'geo', label: t('admin.tabs.geo', 'Géo'), icon: <Compass className="size-4" /> },
   ]
 
   // Get active tab from URL, default to 'jobs' if not present or invalid
@@ -149,7 +149,7 @@ export default function AdminPage() {
             transition={{ delay: 0.1 }}
             className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8"
           >
-            <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-neon-purple" />
+            <Settings className="size-6 sm:size-8 text-neon-purple" />
             <h1 className="text-2xl sm:text-3xl font-bold">{t('admin.title')}</h1>
           </motion.div>
 

@@ -88,7 +88,7 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
           </div>
         ) : screenshots.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
@@ -101,7 +101,7 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
               <img
                 src={currentScreenshot?.imageUrl}
                 alt={`Screenshot ${currentIndex + 1}`}
-                className="w-full h-full object-contain"
+                className="size-full object-contain"
               />
 
               {/* Navigation arrows */}
@@ -110,20 +110,20 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10"
+                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 size-9 sm:size-10"
                     onClick={goToPrevious}
                     aria-label={t('admin.games.screenshotsDialog.previous')}
                   >
-                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <ChevronLeft className="size-5 sm:size-6" />
                   </Button>
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10"
+                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 size-9 sm:size-10"
                     onClick={goToNext}
                     aria-label={t('admin.games.screenshotsDialog.next')}
                   >
-                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <ChevronRight className="size-5 sm:size-6" />
                   </Button>
                 </>
               )}

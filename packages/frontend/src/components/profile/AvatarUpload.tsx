@@ -131,7 +131,7 @@ export function AvatarUpload({
           className="relative group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
           aria-label={t('profile.avatar.change')}
         >
-          <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl transition-all duration-200 group-hover:border-primary/40">
+          <Avatar className="size-32 border-4 border-primary/20 shadow-xl transition-all duration-200 group-hover:border-primary/40">
             <AvatarImage
               src={displayAvatar || undefined}
               alt={userName || 'User'}
@@ -141,7 +141,7 @@ export function AvatarUpload({
             </AvatarFallback>
           </Avatar>
           <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Camera className="h-8 w-8 text-white" />
+            <Camera className="size-8 text-white" />
           </div>
         </button>
       </ResponsiveDialogTrigger>
@@ -156,7 +156,7 @@ export function AvatarUpload({
 
         <div className="flex flex-col items-center gap-6 py-4">
           {/* Preview Avatar */}
-          <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl">
+          <Avatar className="size-32 border-4 border-primary/20 shadow-xl">
             <AvatarImage
               src={displayAvatar || undefined}
               alt={userName || 'User'}
@@ -184,7 +184,7 @@ export function AvatarUpload({
             disabled={isUploading || isDeleting}
             className="w-full"
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Upload className="size-4 mr-2" />
             {t('profile.avatar.selectImage')}
           </Button>
 
@@ -209,9 +209,9 @@ export function AvatarUpload({
               className="w-full sm:w-auto"
             >
               {isDeleting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="size-4 mr-2 animate-spin" />
               ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="size-4 mr-2" />
               )}
               {t('profile.avatar.remove')}
             </Button>
@@ -235,9 +235,9 @@ export function AvatarUpload({
                 className="w-full sm:w-auto"
               >
                 {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="size-4 mr-2 animate-spin" />
                 ) : (
-                  <Upload className="h-4 w-4 mr-2" />
+                  <Upload className="size-4 mr-2" />
                 )}
                 {t('profile.avatar.upload')}
               </Button>

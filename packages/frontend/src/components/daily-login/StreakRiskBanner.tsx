@@ -90,7 +90,7 @@ export function StreakRiskBanner() {
 
   return (
     <Alert variant="neon" className="mb-6 p-4 flex items-center gap-3">
-      <Flame className="w-5 h-5 shrink-0" />
+      <Flame className="size-5 shrink-0" />
       <div className="flex-1 min-w-0 pl-7">
         <AlertTitle className="text-sm font-semibold text-foreground">
           {t('streakRisk.title', { count: streak })}
@@ -108,7 +108,7 @@ export function StreakRiskBanner() {
         className="text-muted-foreground hover:text-foreground transition-colors"
         aria-label={t('common.close')}
       >
-        <X className="w-4 h-4" />
+        <X className="size-4" />
       </button>
     </Alert>
   )

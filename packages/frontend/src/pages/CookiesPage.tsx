@@ -23,8 +23,8 @@ export default function CookiesPage() {
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-pink to-neon-purple shadow-lg shadow-neon-pink/30">
-              <Cookie className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-pink to-neon-purple shadow-lg shadow-neon-pink/30">
+              <Cookie className="size-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold bg-linear-to-r from-neon-pink to-neon-purple bg-clip-text text-transparent">
               {t('legal.cookiesTitle')}

@@ -18,7 +18,7 @@ export function OfflineIndicator() {
         'bg-warning/15 text-warning border-b border-warning/40 backdrop-blur-md',
       )}
     >
-      <WifiOff className="h-4 w-4" aria-hidden="true" />
+      <WifiOff className="size-4" aria-hidden="true" />
       <span>{t('pwa.offlineBanner')}</span>
     </div>
   )

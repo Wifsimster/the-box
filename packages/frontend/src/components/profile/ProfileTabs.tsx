@@ -121,7 +121,7 @@ export function ProfileTabs({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
+                <Trophy className="size-5" />
                 {t('profile.title')} ({totalCount})
               </CardTitle>
               <CardDescription>{t('profile.description')}</CardDescription>
@@ -199,14 +199,14 @@ export function ProfileTabs({
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-neon-purple" />
+                    <Sparkles className="size-5 text-neon-purple" />
                     {t('tour.replayTitle')}
                   </CardTitle>
                   <CardDescription>{t('tour.replayDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button variant="outline" onClick={handleReplayTour}>
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className="size-4" />
                     {t('tour.replayCta')}
                   </Button>
                 </CardContent>

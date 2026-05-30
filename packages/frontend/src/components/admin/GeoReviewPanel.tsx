@@ -527,7 +527,7 @@ export function GeoReviewPanel() {
             {/* Page header */}
             <header className="space-y-1">
                 <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-neon-pink" />
+                    <MapPin className="size-5 text-neon-pink" />
                     {t('admin.geo.title')}
                 </h2>
                 <p className="text-sm text-muted-foreground">{t('admin.geo.subtitle')}</p>
@@ -555,19 +555,19 @@ export function GeoReviewPanel() {
             >
                 <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
                     <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
-                        <Library className="h-3.5 w-3.5" />
+                        <Library className="size-3.5" />
                         {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                     <TabsTrigger value="acquisition" className="gap-1.5 shrink-0">
-                        <Workflow className="h-3.5 w-3.5" />
+                        <Workflow className="size-3.5" />
                         {t('admin.geo.tabs.acquisition')}
                     </TabsTrigger>
                     <TabsTrigger value="queue" className="gap-1.5 shrink-0">
-                        <ListChecks className="h-3.5 w-3.5" />
+                        <ListChecks className="size-3.5" />
                         {t('admin.geo.tabs.queue')}
                     </TabsTrigger>
                     <TabsTrigger value="reports" className="gap-1.5 shrink-0">
-                        <Flag className="h-3.5 w-3.5" />
+                        <Flag className="size-3.5" />
                         {t('admin.geo.tabs.reports')}
                     </TabsTrigger>
                 </TabsList>
@@ -645,7 +645,7 @@ export function GeoReviewPanel() {
                             aria-label={t('admin.geo.gameFilter.clear')}
                             className="rounded hover:bg-neon-pink/10"
                         >
-                            <X className="h-3 w-3" aria-hidden />
+                            <X className="size-3" aria-hidden />
                         </button>
                     </Badge>
                 )}
@@ -666,7 +666,7 @@ export function GeoReviewPanel() {
                     aria-label={t('admin.geo.submissionsLoading')}
                 >
                     <Loader2
-                        className="h-6 w-6 animate-spin text-neon-pink"
+                        className="size-6 animate-spin text-neon-pink"
                         aria-hidden
                     />
                 </div>
@@ -695,11 +695,11 @@ export function GeoReviewPanel() {
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    className="h-7 w-7 text-muted-foreground hover:text-neon-pink"
+                                    className="size-7 text-muted-foreground hover:text-neon-pink"
                                     onClick={() => setIntroOpen(true)}
                                     aria-label={t('admin.geo.guide.title')}
                                 >
-                                    <HelpCircle className="h-4 w-4" />
+                                    <HelpCircle className="size-4" />
                                 </Button>
                             </div>
                         </CardHeader>
@@ -750,9 +750,9 @@ export function GeoReviewPanel() {
                                             className="w-full justify-center gap-1.5 border-neon-pink/40 text-neon-pink hover:bg-neon-pink/10"
                                         >
                                             {fetchingMore ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                <Loader2 className="size-3.5 animate-spin" />
                                             ) : (
-                                                <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                                                <Sparkles className="size-3.5" aria-hidden />
                                             )}
                                             {t('admin.geo.fetchMore')}
                                         </Button>
@@ -936,7 +936,7 @@ export function GeoReviewPanel() {
                             onClick={confirmReject}
                             disabled={saving}
                         >
-                            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+                            {saving && <Loader2 className="size-3.5 animate-spin mr-2" />}
                             {t('admin.geo.declineDialog.confirm')}
                         </Button>
                     </DialogFooter>
@@ -964,7 +964,7 @@ export function GeoReviewPanel() {
                             onClick={confirmDemote}
                             disabled={saving}
                         >
-                            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+                            {saving && <Loader2 className="size-3.5 animate-spin mr-2" />}
                             {t('admin.geo.removeOfficialDialog.confirm')}
                         </Button>
                     </DialogFooter>

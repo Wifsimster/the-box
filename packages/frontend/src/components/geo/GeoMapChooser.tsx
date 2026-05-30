@@ -118,11 +118,11 @@ function MapCard({ map, selected, correct, wrong, disabled, onSelect }: MapCardP
         <img
           src={map.imageUrl}
           alt=""
-          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+          className="size-full object-cover transition group-hover:scale-[1.02]"
           loading="lazy"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+        <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
           {label}
         </div>
       )}
@@ -133,18 +133,18 @@ function MapCard({ map, selected, correct, wrong, disabled, onSelect }: MapCardP
       </div>
       {correct && (
         <div
-          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-score-high text-white shadow"
+          className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-score-high text-white shadow"
           aria-label={t('geo.daily.chooseMap.correct', 'Correct map')}
         >
-          <Check className="h-3.5 w-3.5" aria-hidden />
+          <Check className="size-3.5" aria-hidden />
         </div>
       )}
       {wrong && (
         <div
-          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+          className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
           aria-label={t('geo.daily.chooseMap.incorrect', 'Wrong map')}
         >
-          <X className="h-3.5 w-3.5" aria-hidden />
+          <X className="size-3.5" aria-hidden />
         </div>
       )}
     </button>

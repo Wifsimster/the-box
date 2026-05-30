@@ -187,7 +187,7 @@ export function ResultCard() {
           animate={{ opacity: 1, scale: 1 }}
           className="absolute inset-0 pointer-events-none"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-success/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 bg-success/20 rounded-full blur-3xl" />
         </motion.div>
       )}
 
@@ -229,12 +229,12 @@ export function ResultCard() {
           >
             {isCorrect ? (
               <>
-                <CheckCircle className="w-5 h-5" />
+                <CheckCircle className="size-5" />
                 {t('game.correct')}
               </>
             ) : (
               <>
-                <XCircle className="w-5 h-5" />
+                <XCircle className="size-5" />
                 {t('game.incorrect')}
               </>
             )}
@@ -252,10 +252,10 @@ export function ResultCard() {
             <img
               src={correctGame.coverImageUrl}
               alt={correctGame.name}
-              className="w-full h-full object-cover"
+              className="size-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-neon-purple/30 to-neon-pink/30">
+            <div className="size-full flex items-center justify-center bg-linear-to-br from-neon-purple/30 to-neon-pink/30">
               <span className="text-4xl font-bold">{correctGame.name[0]}</span>
             </div>
           )}
@@ -403,7 +403,7 @@ export function ResultCard() {
               transition={{ delay: 0.6 }}
               className={cn("flex items-center justify-center gap-1.5 mt-2 text-sm", speedFeedback.color)}
             >
-              <speedFeedback.icon className="w-4 h-4" />
+              <speedFeedback.icon className="size-4" />
               <span>{t(`game.speed.${speedFeedback.key}`)}</span>
               <span className="text-muted-foreground">• {timeDisplay}</span>
             </motion.div>
@@ -425,7 +425,7 @@ export function ResultCard() {
           >
             {/* Show countdown only when auto-closing (session not completed or has next position) */}
             {(nextPosition !== null || !isSessionCompleted) ? `${getButtonText()} (${countdown}s)` : getButtonText()}
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="size-5" />
           </Button>
           <span className="text-xs text-muted-foreground">
             {t('game.pressEnterToContinue', 'Press Enter to continue')}

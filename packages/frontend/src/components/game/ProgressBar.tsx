@@ -20,7 +20,7 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
             key={position}
             className={cn(
               "relative flex items-center justify-center",
-              "w-8 h-8 rounded text-xs font-bold transition-colors",
+              "size-8 rounded text-xs font-bold transition-colors",
               isCompleted && "bg-primary text-primary-foreground",
               isCurrent && "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background",
               isUpcoming && "bg-muted text-muted-foreground"

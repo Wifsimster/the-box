@@ -253,7 +253,7 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
           mask so we don't need to render four separate divs around the rect. */}
       {!showFallback && rect && (
         <svg
-          className="absolute inset-0 w-full h-full pointer-events-auto"
+          className="absolute inset-0 size-full pointer-events-auto"
           aria-hidden="true"
           onClick={finish}
         >
@@ -317,7 +317,7 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-neon-purple shrink-0" aria-hidden="true" />
+            <Sparkles className="size-4 text-neon-purple shrink-0" aria-hidden="true" />
             <h2 className="font-semibold text-foreground leading-tight">
               {t(currentStep.titleKey)}
             </h2>
@@ -328,7 +328,7 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
             aria-label={t('tour.close')}
             className="text-muted-foreground hover:text-foreground transition-colors rounded p-1 -m-1"
           >
-            <X className="w-4 h-4" />
+            <X className="size-4" />
           </button>
         </div>
 
@@ -343,13 +343,13 @@ export function TourGuide({ open, onClose }: TourGuideProps) {
           <div className="flex items-center gap-2">
             {stepIndex > 0 && (
               <Button variant="ghost" size="sm" onClick={handlePrev}>
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className="size-3.5" />
                 {t('tour.prev')}
               </Button>
             )}
             <Button variant="gaming" size="sm" onClick={handleNext}>
               {isLast ? t('tour.finish') : t('tour.next')}
-              {!isLast && <ArrowRight className="w-3.5 h-3.5" />}
+              {!isLast && <ArrowRight className="size-3.5" />}
             </Button>
           </div>
         </div>

@@ -72,9 +72,9 @@ export function NavigationControls() {
           size="icon"
           onClick={handlePrevious}
           disabled={isDisabled || !previousPosition}
-          className="h-10 w-10"
+          className="size-10"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="size-5" />
         </Button>
       </Tooltip>
 
@@ -85,12 +85,12 @@ export function NavigationControls() {
           size="icon"
           onClick={handleSkip}
           disabled={isDisabled}
-          className="h-10 w-10"
+          className="size-10"
         >
           {hasNext ? (
-            <SkipForward className="w-5 h-5" />
+            <SkipForward className="size-5" />
           ) : (
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="size-5" />
           )}
         </Button>
       </Tooltip>
@@ -119,7 +119,7 @@ export function SkipButton({
         disabled={disabled}
         className="h-14 px-6"
       >
-        <SkipForward className="w-5 h-5" />
+        <SkipForward className="size-5" />
       </Button>
     </Tooltip>
   )

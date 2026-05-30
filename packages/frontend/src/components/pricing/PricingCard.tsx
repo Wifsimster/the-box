@@ -63,7 +63,7 @@ export function PricingCard({
             variant="outline"
             className="absolute top-4 right-4 border-neon-pink/60 text-neon-pink uppercase tracking-wide text-[10px] px-2 py-0.5"
           >
-            <Sparkles className="w-3 h-3 mr-1" />
+            <Sparkles className="size-3 mr-1" />
             {t(`${tierKey}.highlight`, '')}
           </Badge>
         )}
@@ -91,9 +91,9 @@ export function PricingCard({
             variant={highlight ? 'default' : 'outline'}
           >
             {isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+              <Loader2 className="size-4 mr-2 animate-spin" aria-hidden="true" />
             ) : isCurrentPlan ? (
-              <Check className="w-4 h-4 mr-2" aria-hidden="true" />
+              <Check className="size-4 mr-2" aria-hidden="true" />
             ) : null}
             {isPending ? t('pricing.redirecting') : t(ctaKey)}
           </Button>

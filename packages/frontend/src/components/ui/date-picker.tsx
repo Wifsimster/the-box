@@ -55,9 +55,9 @@ export function DatePicker({
         size="icon"
         onClick={handlePrevDay}
         disabled={disabled || isPrevDisabled}
-        className="h-9 w-9"
+        className="size-9"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="size-4" />
         <span className="sr-only">Previous day</span>
       </Button>
 
@@ -71,7 +71,7 @@ export function DatePicker({
               !value && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="h-4 w-4 text-neon-purple" />
+            <CalendarIcon className="size-4 text-neon-purple" />
             {value ? format(value, formatStr, { locale }) : <span>Pick a date</span>}
           </Button>
         </PopoverTrigger>
@@ -101,9 +101,9 @@ export function DatePicker({
         size="icon"
         onClick={handleNextDay}
         disabled={disabled || isNextDisabled}
-        className="h-9 w-9"
+        className="size-9"
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="size-4" />
         <span className="sr-only">Next day</span>
       </Button>
     </div>

@@ -41,14 +41,14 @@ export function SwipeHint({ onDismiss, autoHideDelay = 3000 }: SwipeHintProps) {
                             animate={{ x: [-20, 0, -20] }}
                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                         >
-                            <ChevronLeft className="w-8 h-8" />
+                            <ChevronLeft className="size-8" />
                         </motion.div>
                         <div className="text-sm font-medium">Swipe to navigate</div>
                         <motion.div
                             animate={{ x: [20, 0, 20] }}
                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                         >
-                            <ChevronRight className="w-8 h-8" />
+                            <ChevronRight className="size-8" />
                         </motion.div>
                     </div>
                 </motion.div>

@@ -206,11 +206,11 @@ export default function LeaderboardPage() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy className="w-5 h-5 text-warning" />
+        return <Trophy className="size-5 text-warning" />
       case 2:
-        return <Medal className="w-5 h-5 text-muted-foreground" />
+        return <Medal className="size-5 text-muted-foreground" />
       case 3:
-        return <Award className="w-5 h-5 text-warning" />
+        return <Award className="size-5 text-warning" />
       default:
         return <span className="text-muted-foreground font-bold">{rank}</span>
     }
@@ -236,21 +236,21 @@ export default function LeaderboardPage() {
               value="daily"
               className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
             >
-              <Calendar className="w-4 h-4 sm:mr-2 shrink-0" />
+              <Calendar className="size-4 sm:mr-2 shrink-0" />
               <span className="truncate max-w-full">{t('leaderboard.dailyScores')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="monthly"
               className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
             >
-              <CalendarDays className="w-4 h-4 sm:mr-2 shrink-0" />
+              <CalendarDays className="size-4 sm:mr-2 shrink-0" />
               <span className="truncate max-w-full">{t('leaderboard.monthlyScores')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="achievements"
               className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
             >
-              <Crown className="w-4 h-4 sm:mr-2 shrink-0" />
+              <Crown className="size-4 sm:mr-2 shrink-0" />
               <span className="truncate max-w-full">{t('leaderboard.achievementPoints')}</span>
             </TabsTrigger>
           </TabsList>
@@ -271,7 +271,7 @@ export default function LeaderboardPage() {
             {/* Loading State */}
             {loading && (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="size-8 animate-spin text-primary" />
               </div>
             )}
 
@@ -301,7 +301,7 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
                       className="flex flex-col items-center"
                     >
-                      <Avatar className="w-16 h-16 mb-2">
+                      <Avatar className="size-16 mb-2">
                         <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
                         <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xl font-bold">
                           {entry.displayName[0]}
@@ -341,7 +341,7 @@ export default function LeaderboardPage() {
                         <div className="w-8 shrink-0 flex justify-center">
                           {getRankIcon(entry.rank)}
                         </div>
-                        <Avatar className="w-10 h-10 shrink-0">
+                        <Avatar className="size-10 shrink-0">
                           <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
                           <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
                             {entry.displayName[0]}
@@ -354,7 +354,7 @@ export default function LeaderboardPage() {
                         <div className="text-right flex items-center gap-2 shrink-0">
                           <div className="font-bold text-primary">{entry.totalScore}</div>
                           {entry.sessionId && (
-                            <Eye className="w-4 h-4 text-muted-foreground" />
+                            <Eye className="size-4 text-muted-foreground" />
                           )}
                         </div>
                       </motion.div>
@@ -380,7 +380,7 @@ export default function LeaderboardPage() {
             {/* Loading State */}
             {monthlyLoading && (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="size-8 animate-spin text-primary" />
               </div>
             )}
 
@@ -407,7 +407,7 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
                       className="flex flex-col items-center"
                     >
-                      <Avatar className="w-16 h-16 mb-2">
+                      <Avatar className="size-16 mb-2">
                         <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
                         <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xl font-bold">
                           {entry.displayName[0]}
@@ -446,7 +446,7 @@ export default function LeaderboardPage() {
                         <div className="w-8 shrink-0 flex justify-center">
                           {getRankIcon(entry.rank)}
                         </div>
-                        <Avatar className="w-10 h-10 shrink-0">
+                        <Avatar className="size-10 shrink-0">
                           <AvatarImage src={entry.avatarUrl} alt={entry.displayName} />
                           <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
                             {entry.displayName[0]}
@@ -480,7 +480,7 @@ export default function LeaderboardPage() {
             {/* Loading State */}
             {achievementLoading && (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="size-8 animate-spin text-primary" />
               </div>
             )}
 
@@ -508,7 +508,7 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.5, delay: displayIndex * 0.1 }}
                       className="flex flex-col items-center"
                     >
-                      <Avatar className="w-16 h-16 mb-2">
+                      <Avatar className="size-16 mb-2">
                         <AvatarImage src={entry.avatarUrl ?? undefined} alt={entry.displayName} />
                         <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xl font-bold">
                           {entry.displayName[0]}
@@ -549,7 +549,7 @@ export default function LeaderboardPage() {
                           <div className="w-8 shrink-0 flex justify-center">
                             {getRankIcon(rank)}
                           </div>
-                          <Avatar className="w-10 h-10 shrink-0">
+                          <Avatar className="size-10 shrink-0">
                             <AvatarImage src={entry.avatarUrl ?? undefined} alt={entry.displayName} />
                             <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink font-bold">
                               {entry.displayName[0]}
@@ -559,7 +559,7 @@ export default function LeaderboardPage() {
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="font-semibold truncate">{entry.displayName}</span>
                               <Badge variant="outline" className="text-xs shrink-0">
-                                <Trophy className="w-3 h-3 mr-1" />
+                                <Trophy className="size-3 mr-1" />
                                 {entry.achievementCount}
                               </Badge>
                             </div>
@@ -586,7 +586,7 @@ export default function LeaderboardPage() {
               <ResponsiveDialogTitle className="flex items-center gap-3 min-w-0 pr-8">
                 {selectedPlayer && (
                   <>
-                    <Avatar className="w-8 h-8 shrink-0">
+                    <Avatar className="size-8 shrink-0">
                       <AvatarImage src={selectedPlayer.avatarUrl} alt={selectedPlayer.displayName} />
                       <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-sm font-bold">
                         {selectedPlayer.displayName[0]}
@@ -602,7 +602,7 @@ export default function LeaderboardPage() {
 
             {sessionLoading && (
               <div className="flex justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="size-8 animate-spin text-primary" />
               </div>
             )}
 
@@ -635,7 +635,7 @@ export default function LeaderboardPage() {
                             item.guess.isCorrect ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'
                           }`}
                         >
-                          <div className="w-8 h-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                          <div className="size-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
                             {item.position}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -654,7 +654,7 @@ export default function LeaderboardPage() {
                             ) : null}
                             {item.guess.isCorrect && item.guess.timeTakenMs > 0 && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                <Clock className="size-3 shrink-0" aria-hidden="true" />
                                 <span>{t('game.discoveryTime', { time: formatDiscoveryTime(item.guess.timeTakenMs) })}</span>
                               </div>
                             )}
@@ -663,10 +663,10 @@ export default function LeaderboardPage() {
                             {item.guess.isCorrect ? (
                               <>
                                 <span className="text-success font-bold">+{item.guess.scoreEarned}</span>
-                                <Check className="w-5 h-5 text-success" />
+                                <Check className="size-5 text-success" />
                               </>
                             ) : (
-                              <X className="w-5 h-5 text-error" />
+                              <X className="size-5 text-error" />
                             )}
                           </div>
                         </div>
@@ -675,14 +675,14 @@ export default function LeaderboardPage() {
                           key={`unfound-${item.position}`}
                           className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
                         >
-                          <div className="w-8 h-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                          <div className="size-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
                             {item.position}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate text-muted-foreground">{item.unfound.game.name}</div>
                             <div className="text-sm text-muted-foreground">{t('leaderboard.skipped')}</div>
                           </div>
-                          <Minus className="w-5 h-5 shrink-0 text-muted-foreground" />
+                          <Minus className="size-5 shrink-0 text-muted-foreground" />
                         </div>
                       )
                     )}

@@ -458,7 +458,7 @@ function ZoomControls({
         cb()
     }
     const baseBtn =
-        'flex h-8 w-8 items-center justify-center rounded-md bg-background/80 text-foreground backdrop-blur-sm shadow-md ring-1 ring-border hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+        'flex size-8 items-center justify-center rounded-md bg-background/80 text-foreground backdrop-blur-sm shadow-md ring-1 ring-border hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
     return (
         <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
             <button
@@ -470,7 +470,7 @@ function ZoomControls({
                 disabled={zoom >= MAX_ZOOM}
                 className={baseBtn}
             >
-                <Plus className="h-4 w-4" aria-hidden />
+                <Plus className="size-4" aria-hidden />
             </button>
             <button
                 type="button"
@@ -481,7 +481,7 @@ function ZoomControls({
                 disabled={zoom <= MIN_ZOOM}
                 className={baseBtn}
             >
-                <Minus className="h-4 w-4" aria-hidden />
+                <Minus className="size-4" aria-hidden />
             </button>
             <button
                 type="button"
@@ -492,7 +492,7 @@ function ZoomControls({
                 disabled={zoom === 1}
                 className={baseBtn}
             >
-                <RotateCcw className="h-4 w-4" aria-hidden />
+                <RotateCcw className="size-4" aria-hidden />
             </button>
         </div>
     )
@@ -519,7 +519,7 @@ function Marker({
         >
             <div
                 className={cn(
-                    'h-4 w-4 rounded-full ring-2 ring-white/30 shadow-lg',
+                    'size-4 rounded-full ring-2 ring-white/30 shadow-lg',
                     colorClass,
                 )}
                 // Counter-scale so the marker stays a consistent size on
@@ -551,7 +551,7 @@ function Crosshair({ x, y, faint }: { x: number; y: number; faint?: boolean }) {
 function GuessLine({ from, to }: { from: GeoPoint; to: GeoPoint }) {
     return (
         <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
+            className="pointer-events-none absolute inset-0 size-full"
             viewBox="0 0 1 1"
             preserveAspectRatio="none"
         >

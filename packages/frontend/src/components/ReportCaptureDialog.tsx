@@ -123,7 +123,7 @@ export function ReportCaptureDialog({
                         'text-xs text-muted-foreground hover:text-destructive'
                     }
                 >
-                    <Flag className={iconOnly ? 'h-4 w-4' : 'h-3.5 w-3.5 mr-1.5'} />
+                    <Flag className={iconOnly ? 'size-4' : 'size-3.5 mr-1.5'} />
                     {!iconOnly && t('report.trigger')}
                 </Button>
             </ResponsiveDialogTrigger>
@@ -188,7 +188,7 @@ export function ReportCaptureDialog({
                         className="gradient-gaming hover:opacity-90"
                     >
                         {submitting && (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <Loader2 className="size-4 animate-spin mr-2" />
                         )}
                         {submitting ? t('report.submitting') : t('report.submit')}
                     </Button>

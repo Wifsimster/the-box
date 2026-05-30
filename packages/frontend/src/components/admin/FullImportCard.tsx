@@ -115,7 +115,7 @@ export function FullImportCard() {
       <CardHeader className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <Database className="h-5 w-5 sm:h-6 sm:w-6 text-neon-purple shrink-0" />
+            <Database className="size-5 sm:size-6 text-neon-purple shrink-0" />
             <div className="min-w-0">
               <CardTitle className="text-base sm:text-lg">{t('admin.fullImport.title')}</CardTitle>
               <CardDescription className="text-xs sm:text-sm">{t('admin.fullImport.description')}</CardDescription>
@@ -248,12 +248,12 @@ export function FullImportCard() {
           >
             {fullImportLoading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
                 {t('common.loading')}
               </>
             ) : (
               <>
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="size-4 mr-2" />
                 {t('admin.fullImport.startImport')}
               </>
             )}
@@ -270,12 +270,12 @@ export function FullImportCard() {
           >
             {fullImportLoading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
                 {t('common.loading')}
               </>
             ) : (
               <>
-                <Pause className="h-4 w-4 mr-2" />
+                <Pause className="size-4 mr-2" />
                 {t('admin.fullImport.pause')}
               </>
             )}
@@ -292,12 +292,12 @@ export function FullImportCard() {
           >
             {fullImportLoading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
                 {t('common.loading')}
               </>
             ) : (
               <>
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="size-4 mr-2" />
                 {t('admin.fullImport.resume')}
               </>
             )}
@@ -313,7 +313,7 @@ export function FullImportCard() {
             disabled={fullImportLoading}
             className="w-full sm:w-10"
           >
-            <RefreshCw className={`h-4 w-4 ${fullImportLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-4 ${fullImportLoading ? 'animate-spin' : ''}`} />
           </Button>
         )}
       </CardFooter>

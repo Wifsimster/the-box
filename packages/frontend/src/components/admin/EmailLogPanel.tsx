@@ -79,7 +79,7 @@ export function EmailLogPanel() {
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0 p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2 text-base min-w-0">
-          <Mail className="h-4 w-4 text-neon-purple shrink-0" />
+          <Mail className="size-4 text-neon-purple shrink-0" />
           <span className="truncate">{t('admin.emailLog.title')}</span>
           <Badge variant="outline" className="ml-2 text-xs">
             {t('admin.emailLog.totalCount', { count: total })}
@@ -92,7 +92,7 @@ export function EmailLogPanel() {
           disabled={loading}
           title={t('common.retry')}
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
       <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
@@ -131,7 +131,7 @@ export function EmailLogPanel() {
 
         {loading && entries === null ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-neon-purple" />
+            <Loader2 className="size-6 animate-spin text-neon-purple" />
           </div>
         ) : entries && entries.length > 0 ? (
           <>
@@ -220,7 +220,7 @@ export function EmailLogPanel() {
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1 || loading}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="size-4" />
                 </Button>
                 <Button
                   variant="outline"
@@ -228,7 +228,7 @@ export function EmailLogPanel() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages || loading}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="size-4" />
                 </Button>
               </div>
             </div>

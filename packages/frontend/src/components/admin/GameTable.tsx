@@ -25,7 +25,7 @@ interface GameTableProps {
 
 function SortIcon({ field, sortField, sortOrder }: { field: string; sortField: string; sortOrder: 'asc' | 'desc' }) {
   if (sortField !== field) {
-    return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+    return <ArrowUpDown className="ml-1 size-4 opacity-50" />
   }
   return (
     <motion.span
@@ -33,7 +33,7 @@ function SortIcon({ field, sortField, sortOrder }: { field: string; sortField: s
       animate={{ rotate: sortOrder === 'asc' ? 0 : 180 }}
       transition={{ duration: 0.2 }}
     >
-      <ArrowUp className="ml-1 h-4 w-4" />
+      <ArrowUp className="ml-1 size-4" />
     </motion.span>
   )
 }
@@ -143,7 +143,7 @@ export function GameTable({
                   title={t('admin.games.viewScreenshots')}
                   className="hover:bg-primary/20 hover:text-primary/70"
                 >
-                  <Image className="h-4 w-4" />
+                  <Image className="size-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -152,7 +152,7 @@ export function GameTable({
                   title={t('admin.games.editGame')}
                   className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="size-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -161,7 +161,7 @@ export function GameTable({
                   className="text-destructive hover:text-destructive hover:bg-error/20"
                   title={t('admin.games.deleteGame')}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
             </motion.div>
@@ -233,7 +233,7 @@ export function GameTable({
                           title={t('admin.games.viewScreenshots')}
                           className="hover:bg-primary/20 hover:text-primary/70"
                         >
-                          <Image className="h-4 w-4" />
+                          <Image className="size-4" />
                         </Button>
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
@@ -244,7 +244,7 @@ export function GameTable({
                           title={t('admin.games.editGame')}
                           className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="size-4" />
                         </Button>
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
@@ -255,7 +255,7 @@ export function GameTable({
                           className="text-destructive hover:text-destructive hover:bg-error/20"
                           title={t('admin.games.deleteGame')}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="size-4" />
                         </Button>
                       </motion.div>
                     </div>

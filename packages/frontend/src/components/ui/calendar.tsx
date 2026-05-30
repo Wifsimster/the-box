@@ -27,7 +27,7 @@ function Calendar({
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "size-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
         button_next: cn(
           "absolute right-1",
@@ -35,7 +35,7 @@ function Calendar({
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "size-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
@@ -50,7 +50,7 @@ function Calendar({
           "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
-          "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
+          "size-8 p-0 font-normal aria-selected:opacity-100"
         ),
         range_start: "day-range-start",
         range_end: "day-range-end",
@@ -71,7 +71,7 @@ function Calendar({
       components={{
         Chevron: ({ orientation }) => {
           const Icon = orientation === "left" ? ChevronLeft : ChevronRight
-          return <Icon className="h-4 w-4" />
+          return <Icon className="size-4" />
         },
       }}
       {...props}

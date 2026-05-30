@@ -85,9 +85,9 @@ export function RewardCalendar({
                                 isLocked && 'grayscale'
                             )}>
                                 {isClaimed ? (
-                                    <Check className="w-4 h-4 sm:w-6 sm:h-6 text-success" />
+                                    <Check className="size-4 sm:size-6 text-success" />
                                 ) : isLocked ? (
-                                    <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                                    <Lock className="size-4 sm:size-5 text-muted-foreground" />
                                 ) : (
                                     <span>{getRewardTypeIcon(reward)}</span>
                                 )}
@@ -101,7 +101,7 @@ export function RewardCalendar({
                                 isLocked && 'text-muted-foreground/50'
                             )}>
                                 {reward.rewardType === 'legendary' ? (
-                                    <Gift className="w-3 h-3 inline" />
+                                    <Gift className="size-3 inline" />
                                 ) : reward.rewardValue.points > 0 ? (
                                     `+${reward.rewardValue.points}`
                                 ) : (
