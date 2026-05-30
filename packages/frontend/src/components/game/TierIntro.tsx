@@ -148,6 +148,3 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
     </m.div>
   )
 }
-
-// Backwards compatibility alias
-export const TierIntro = DailyIntro

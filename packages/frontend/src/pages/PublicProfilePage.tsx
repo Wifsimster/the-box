@@ -48,6 +48,9 @@ export default function PublicProfilePage() {
     initialPublicProfileState,
   )
 
+  // Intentional fetch-in-effect (no react-query/SWR in this stack); aborts via
+  // AbortController on unmount / username change.
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (!username) return
     const controller = new AbortController()

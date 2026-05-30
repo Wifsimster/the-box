@@ -284,8 +284,13 @@ export function GameCarousel({
         }
     }, [api])
 
-    // Sync carousel position with currentIndex prop
+    // Sync the embla carousel (an external, imperative system) to the
+    // controlled `currentIndex` prop. This is the React-endorsed "synchronizing
+    // with an external system" effect — there is no user event to hang it on,
+    // since the index can change from the parent's state. no-event-handler is a
+    // false positive here.
     useEffect(() => {
+        // oxlint-disable-next-line react-doctor/no-event-handler
         if (api && api.selectedScrollSnap() !== currentIndex) {
             api.scrollTo(currentIndex, false)
         }

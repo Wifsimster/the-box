@@ -39,6 +39,12 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         sources: SourcesResponse | null
         sourcesLoading: boolean
     }>({ selectedId: null, sources: null, sourcesLoading: false })
+    // `sources` is written both from the selectGame click handler and from the
+    // run-polling external-sync effect below (refetch when a background run
+    // finishes). That second writer is a legitimate "synchronize with an
+    // external system" effect, not a state-as-event-handler smell, so
+    // no-event-handler is a false positive on this slice.
+    // oxlint-disable-next-line react-doctor/no-event-handler
     const { selectedId, sources, sourcesLoading } = panel
 
     // Filter pill + search box + the row checkboxes are the catalog's view

@@ -74,7 +74,7 @@ export function useRovingTabindex<T extends HTMLElement>({
     useEffect(() => {
         if (!userHasMoved.current) return
         refsMap.current.get(focusedIndex)?.focus()
-    }, [focusedIndex])
+    }, [focusedIndex, refsMap])
 
     const onKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -111,7 +111,7 @@ export function useRovingTabindex<T extends HTMLElement>({
             tabIndex: index === focusedIndex ? 0 : -1,
             onKeyDown,
         }),
-        [focusedIndex, onKeyDown],
+        [focusedIndex, onKeyDown, refsMap],
     )
 
     return {

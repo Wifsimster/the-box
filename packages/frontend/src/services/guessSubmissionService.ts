@@ -53,7 +53,7 @@ export interface GuessSubmissionService {
 /**
  * Mock guess submission service for development
  */
-export class MockGuessSubmissionService implements GuessSubmissionService {
+class MockGuessSubmissionService implements GuessSubmissionService {
   private mockCorrectGame: Game = {
     id: 1,
     name: 'The Witcher 3: Wild Hunt',
@@ -119,7 +119,7 @@ export class MockGuessSubmissionService implements GuessSubmissionService {
  * API-based guess submission service
  * Uses backend endpoint: POST /api/game/guess
  */
-export class ApiGuessSubmissionService implements GuessSubmissionService {
+class ApiGuessSubmissionService implements GuessSubmissionService {
   private readonly baseUrl: string
 
   constructor(baseUrl = '/api') {

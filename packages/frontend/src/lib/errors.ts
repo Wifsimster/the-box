@@ -17,14 +17,14 @@ export class ApiError extends Error {
   }
 }
 
-export class NetworkError extends ApiError {
+class NetworkError extends ApiError {
   constructor(message = 'Network request failed', originalError?: unknown) {
     super(message, 0, 'NETWORK_ERROR', originalError)
     this.name = 'NetworkError'
   }
 }
 
-export class ValidationError extends ApiError {
+class ValidationError extends ApiError {
   constructor(message: string, originalError?: unknown) {
     super(message, 400, 'VALIDATION_ERROR', originalError)
     this.name = 'ValidationError'
@@ -129,6 +129,11 @@ export async function fetchWithRetry(
         signal: controller.signal,
       }
 
+      // Sequential by design: this is a retry-with-backoff loop, so each
+      // attempt must await the previous one's outcome (and the backoff delay)
+      // before deciding whether to retry. Parallelizing would fire every retry
+      // at once and defeat the purpose.
+      // oxlint-disable-next-line react-doctor/async-await-in-loop
       const response = await fetch(url, fetchOptions)
 
       // Clear timeout on successful response

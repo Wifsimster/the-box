@@ -71,26 +71,3 @@ export function LoadingSpinner({
     </div>
   )
 }
-
-// Simple inline loading indicator
-export function LoadingDots({ className }: { className?: string }) {
-  return (
-    <div className={cn('flex gap-1', className)}>
-      {[0, 1, 2].map((i) => (
-        <m.div
-          key={i}
-          className="size-1.5 rounded-full bg-neon-purple"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.5, 1, 0.5],
-          }}
-          transition={{
-            duration: 0.8,
-            repeat: Infinity,
-            delay: i * 0.15,
-          }}
-        />
-      ))}
-    </div>
-  )
-}

@@ -8,22 +8,25 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { cn } from '@/lib/utils'
 import type { BillingPrice, BillingTier } from '@the-box/types'
 
-interface PricingCardProps {
-  price: BillingPrice
+/** Per-card status flags, grouped so the component takes a single object prop
+ *  instead of a wide row of booleans. */
+export interface PricingCardStatus {
   isCurrentPlan: boolean
   isLoggedIn: boolean
   isWorking: boolean
   isPending: boolean
+}
+
+interface PricingCardProps {
+  price: BillingPrice
+  status: PricingCardStatus
   highlight?: boolean
   onSelect: (tier: BillingTier) => void
 }
 
 export function PricingCard({
   price,
-  isCurrentPlan,
-  isLoggedIn,
-  isWorking,
-  isPending,
+  status: { isCurrentPlan, isLoggedIn, isWorking, isPending },
   highlight,
   onSelect,
 }: PricingCardProps) {

@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { clamp01, isPlaceholderImageUrl } from '@/lib/geo-image'
 import { formatTileUrl } from '@/lib/geo-tile-url'
 import { MapErrorFallback } from './MapErrorFallback'
-import type { MapCanvasProps } from './MapCanvas'
+import type { MapCanvasProps } from './map-canvas-types'
 
 // Leaflet-based map canvas. Same public API as MapCanvas so the pages are
 // drop-in compatible. Uses CRS.Simple (no real-world projection) and an

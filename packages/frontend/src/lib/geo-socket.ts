@@ -29,7 +29,7 @@ function createSocket(): Socket {
     })
 }
 
-export function getGeoSocket(): Socket {
+function getGeoSocket(): Socket {
     if (!socket) socket = createSocket()
     return socket
 }
@@ -63,8 +63,4 @@ export function connectGeoSocket(userId: string | null | undefined): void {
     }
 
     s.connect()
-}
-
-export function disconnectGeoSocket(): void {
-    if (socket?.connected) socket.disconnect()
 }

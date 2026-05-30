@@ -102,11 +102,16 @@ const Carousel = (
       setApi?.(api)
     })
 
+    // Expose the embla instance to the parent via the public `setApi` prop —
+    // this is shadcn/ui's documented Carousel contract, letting callers drive
+    // the carousel imperatively. The data flows from an external system (embla),
+    // not parent-owned state, so no-pass-data-to-parent is a false positive.
     React.useEffect(() => {
       if (!api) {
         return
       }
 
+      // oxlint-disable-next-line react-doctor/no-pass-data-to-parent
       emitApi(api)
     }, [api])
 
@@ -197,8 +202,13 @@ const CarouselItem = ({ className, ref, ...props }: CarouselItemProps) => {
   const { orientation } = useCarousel()
 
   return (
+    // `role="group"` + `aria-roledescription="slide"` is the WAI-ARIA APG
+    // carousel-slide pattern. No native HTML element conveys "carousel slide",
+    // and the rule's suggested `<address>` is semantically wrong (it's for
+    // contact information), so prefer-tag-over-role is a false positive here.
     <div
       ref={ref}
+      // oxlint-disable-next-line react-doctor/prefer-tag-over-role
       role="group"
       aria-roledescription="slide"
       className={cn(

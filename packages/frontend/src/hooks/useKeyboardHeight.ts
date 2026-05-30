@@ -56,7 +56,7 @@ export function useKeyboardHeight(): KeyboardState {
     const listener = () => handlerRef.current();
 
     // Initial check
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Necessary to check keyboard state on mount
+     
     listener();
 
     // The handler only reads viewport metrics and never calls

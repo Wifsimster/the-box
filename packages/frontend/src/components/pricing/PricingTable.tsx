@@ -106,10 +106,12 @@ export function PricingTable() {
             <PricingCard
               key={price.tier}
               price={price}
-              isCurrentPlan={entitlement?.tier === price.tier && entitlement.isPremium}
-              isLoggedIn={isAuthenticated}
-              isWorking={isStartingCheckout}
-              isPending={pendingTier === price.tier}
+              status={{
+                isCurrentPlan: entitlement?.tier === price.tier && entitlement.isPremium,
+                isLoggedIn: isAuthenticated,
+                isWorking: isStartingCheckout,
+                isPending: pendingTier === price.tier,
+              }}
               highlight={price.tier === 'premium_annual'}
               onSelect={handleSelect}
             />

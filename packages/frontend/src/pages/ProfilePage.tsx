@@ -111,7 +111,10 @@ export default function ProfilePage() {
     }
   }, [isPending, session, navigate, localizedPath])
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Necessary pattern for data fetching */
+   
+  // Intentional fetch-in-effect (no react-query/SWR in this stack); guarded by
+  // a hasFetched ref so it runs once per session.
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (session && !hasFetched.current) {
       hasFetched.current = true
@@ -136,7 +139,7 @@ export default function ProfilePage() {
         .finally(() => dispatchProfileData({ type: 'fetchDone' }))
     }
   }, [session, fetchUserAchievements])
-  /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   if (isPending || loading) {
     return <ProfileSkeleton />

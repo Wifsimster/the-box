@@ -151,6 +151,9 @@ export default function LeaderboardPage() {
     return todayStr === dateStr
   }
 
+  // Intentional fetch-in-effect: this stack has no react-query/SWR; the boards
+  // reducer owns loading/data. (Same rationale for the two effects below.)
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     dispatchBoards({ type: 'dailyStart' })
     const dateStr = formatDateForApi(selectedDate)
@@ -169,6 +172,7 @@ export default function LeaderboardPage() {
 
   // Fetch achievement leaderboard (once, not date-dependent). The loading
   // flag starts `true` in the reducer, so no setState-on-mount is needed.
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     fetch('/api/achievements/leaderboard')
       .then(res => res.json())
@@ -184,6 +188,7 @@ export default function LeaderboardPage() {
   }, [])
 
   // Fetch monthly leaderboard when monthly tab is active or month changes
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (activeTab !== 'monthly') return
 

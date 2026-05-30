@@ -7,6 +7,11 @@ import { applyTheme } from '@/lib/themes'
 // re-fetch. Anonymous users get the implicit `default` theme since the
 // fetch returns 401 and we leave the attribute alone.
 export function useApplyUserTheme(userId: string | undefined): void {
+  // Intentional fetch-in-effect: this app deliberately does not use
+  // react-query/SWR. This is a one-shot theme fetch keyed on auth change with
+  // explicit cleanup; the rule's only sanctioned fixes require adding a
+  // data-fetching library the project chose not to adopt.
+  // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (!userId) {
       // Clear any prior theme attribute on logout so the next user
