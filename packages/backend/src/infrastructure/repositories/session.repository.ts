@@ -272,16 +272,36 @@ export const sessionRepository = {
     })
   },
 
+  // Number of screenshots solved = number of DISTINCT positions with a
+  // correct guess. Counting rows (not distinct positions) let a duplicate
+  // correct row for the same position inflate the completion tally, which
+  // combined with the replay vector below could end a challenge before all
+  // ten screenshots were actually solved.
   async getCorrectAnswersCount(tierSessionId: string): Promise<number> {
     log.debug({ tierSessionId }, 'getCorrectAnswersCount')
     const result = await db('guesses')
       .where('tier_session_id', tierSessionId)
       .andWhere('is_correct', true)
-      .count('id as count')
+      .countDistinct('position as count')
       .first<{ count: string }>()
     const count = parseInt(result?.count ?? '0', 10)
     log.debug({ tierSessionId, correctCount: count }, 'getCorrectAnswersCount result')
     return count
+  },
+
+  // Has this (tier_session, position) already been solved? Used by
+  // submitGuess to reject a replayed winning answer. The round-timer guard
+  // alone is insufficient: `round_position` is never cleared after a correct
+  // guess, so a client that simply re-POSTs the same answer for an
+  // already-solved slot would otherwise re-bank score and insert another
+  // correct row.
+  async hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean> {
+    const row = await db('guesses')
+      .where('tier_session_id', tierSessionId)
+      .andWhere('position', position)
+      .andWhere('is_correct', true)
+      .first<{ id: number }>('id')
+    return !!row
   },
 
   async countGuessesBySession(gameSessionId: string): Promise<number> {

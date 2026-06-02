@@ -245,6 +245,7 @@ export interface SessionRepository {
     scoreEarned: number
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
+  hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
   countGuessesBySession(gameSessionId: string): Promise<number>
   getCorrectPositions(gameSessionId: string): Promise<number[]>
   deleteGameSession(userId: string, challengeId: number): Promise<boolean>
