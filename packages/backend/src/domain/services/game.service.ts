@@ -552,6 +552,23 @@ export function createGameService(deps: GameServiceDeps): GameService {
       throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
     }
 
+    // Anti-replay: a position can only be SOLVED once. The round-timer guard
+    // below only checks `round_position === data.position`, and that field is
+    // never cleared after a correct guess — so without this check a client
+    // could re-POST the same winning answer for an already-solved slot,
+    // re-banking score and inserting a second correct row (which also
+    // inflated the completion tally). Wrong guesses may still repeat; we only
+    // block re-scoring a position that already has a correct guess. Running
+    // inside the tier-session advisory lock makes this check-then-insert
+    // race-safe against two concurrent winning submits.
+    if (await sessionRepository.hasCorrectGuessForPosition(data.tierSessionId, data.position)) {
+      throw new GameError(
+        'POSITION_ALREADY_SOLVED',
+        'This screenshot has already been solved.',
+        409
+      )
+    }
+
     const screenshotData = await screenshotRepository.findWithGame(data.screenshotId)
     if (!screenshotData) {
       throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
@@ -777,9 +794,13 @@ export function createGameService(deps: GameServiceDeps): GameService {
       wrongGuesses: newWrongGuesses,
     })
 
-    // Get count of screenshots found (correct answers)
-    const screenshotsFound = await sessionRepository.getCorrectAnswersCount(data.tierSessionId)
-    const totalScreenshotsFound = screenshotsFound + (isCorrect ? 1 : 0)
+    // Count of screenshots found (distinct solved positions). This runs AFTER
+    // `saveGuess` above has already persisted the current guess (the insert
+    // autocommits on its pooled connection before this read), so the current
+    // correct guess is already included — we must NOT add it again. The old
+    // `+ (isCorrect ? 1 : 0)` double-counted it and ended the challenge after
+    // 9 of 10 screenshots.
+    const totalScreenshotsFound = await sessionRepository.getCorrectAnswersCount(data.tierSessionId)
 
     // Advance to next position only on correct guess
     const shouldAdvance = isCorrect
