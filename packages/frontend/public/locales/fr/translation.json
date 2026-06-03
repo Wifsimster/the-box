@@ -321,6 +321,12 @@
     },
     "screenshots": "captures",
     "screenshotPlaceholder": "La capture apparaîtra ici",
+    "noImageAvailable": "Aucune image disponible",
+    "zoom": {
+      "in": "Zoomer",
+      "out": "Dézoomer",
+      "reset": "Réinitialiser le zoom"
+    },
     "round": "Manche",
     "score": "Score",
     "time": "Temps",

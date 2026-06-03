@@ -123,8 +123,14 @@ export function DailyRewardModal() {
                         {showClaimSuccess && (
                             <div className="absolute inset-0 pointer-events-none">
                                 <Sparkles className="absolute top-2 left-4 size-4 text-warning animate-pulse" />
-                                <Sparkles className="absolute top-4 right-6 size-3 text-warning animate-pulse delay-100" />
-                                <Sparkles className="absolute bottom-4 left-8 size-3 text-warning animate-pulse delay-200" />
+                                <Sparkles
+                                    className="absolute top-4 right-6 size-3 text-warning animate-pulse"
+                                    style={{ animationDelay: '100ms' }}
+                                />
+                                <Sparkles
+                                    className="absolute bottom-4 left-8 size-3 text-warning animate-pulse"
+                                    style={{ animationDelay: '200ms' }}
+                                />
                             </div>
                         )}
 

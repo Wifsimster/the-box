@@ -321,6 +321,12 @@
     },
     "screenshots": "screenshots",
     "screenshotPlaceholder": "Screenshot will appear here",
+    "noImageAvailable": "No image available",
+    "zoom": {
+      "in": "Zoom in",
+      "out": "Zoom out",
+      "reset": "Reset zoom"
+    },
     "round": "Round",
     "score": "Score",
     "time": "Time",
