@@ -116,6 +116,7 @@ the-box/
 ## Features
 
 - **Daily Challenges** with tiered difficulty (Easy → Hard)
+- **Per-Screenshot Countdown Timer** – 45s per screenshot (`tiers.time_limit_seconds`, exposed via `ScreenshotResponse.timeLimitSeconds`); running out is a permanent miss (`timed_out`). Time is a per-position active-time budget (`PositionState.timeSpentMs`) that pauses on navigation and resumes on return, so skipping away and back can't reset it
 - **Catch-Up Mode** – play missed challenges from the last 7 days (doesn't count for leaderboard)
 - **Hints / Power-ups** – reveal release year, developer, publisher; timer extensions
 - **Achievements** (including beginner-tier)

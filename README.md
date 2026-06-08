@@ -39,6 +39,7 @@ Plateforme de jeu où les joueurs identifient des jeux vidéo à partir de captu
 ## Fonctionnalités principales
 
 - **Défi quotidien** — Une nouvelle série de captures à identifier chaque jour, avec une difficulté qui grimpe (Facile → Difficile)
+- **Chronomètre par capture** — 45 secondes pour deviner chaque capture ; au-delà, la capture est définitivement manquée. Le décompte se met en pause quand vous changez de capture et reprend là où il s'était arrêté à votre retour
 - **Mode rattrapage** — Rejouez les défis manqués des 7 derniers jours (hors classement)
 - **Mode Géo** — Localisez la scène d'un jeu sur une carte interactive (Elden Ring, etc.)
 - **Indices et bonus** — Révélez l'année de sortie, le studio ou l'éditeur, ou prolongez le chronomètre
