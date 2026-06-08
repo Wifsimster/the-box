@@ -244,6 +244,29 @@ export function GameCarousel({
     const zoom = useImageZoom(images[currentIndex]?.url ?? currentIndex)
     const { view } = zoom
 
+    // Zoom controls collapse to a single button so the capture's bottom-left
+    // corner stays mostly clear; they expand on tap and re-collapse when idle.
+    // While the image is zoomed in (scale > 1) we force them open so "reset"
+    // remains one tap away.
+    const [zoomExpanded, setZoomExpanded] = useState(false)
+    const zoomIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const scheduleZoomCollapse = useCallback(() => {
+        if (zoomIdleTimer.current) clearTimeout(zoomIdleTimer.current)
+        zoomIdleTimer.current = setTimeout(() => setZoomExpanded(false), 2500)
+    }, [])
+
+    const openZoomControls = useCallback(() => {
+        setZoomExpanded(true)
+        scheduleZoomCollapse()
+    }, [scheduleZoomCollapse])
+
+    useEffect(() => () => {
+        if (zoomIdleTimer.current) clearTimeout(zoomIdleTimer.current)
+    }, [])
+
+    const showZoomCluster = zoomExpanded || view.scale > 1.01
+
     // Track user interaction to enable haptic feedback
     useEffect(() => {
         const handleInteraction = () => {
@@ -386,46 +409,63 @@ export function GameCarousel({
                 </CarouselContent>
             </Carousel>
 
-            {/* Zoom Controls */}
+            {/* Zoom Controls — anchored to the capture's bottom-left corner so
+                the image's center and the other three corners stay clear.
+                Collapsed to a single button by default; expands on tap and
+                auto-collapses when idle (kept open while zoomed in). */}
             {enableZoom && (
-                <div className="absolute top-1/2 -translate-y-1/2 left-4 z-30 flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 pointer-events-auto transition-all duration-200">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
-                        onClick={zoom.zoomIn}
-                        disabled={view.scale >= MAX_SCALE - 0.01}
-                        title="Zoom in"
-                    >
-                        <ZoomIn className="size-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
-                        onClick={zoom.zoomOut}
-                        disabled={view.scale <= MIN_SCALE + 0.01}
-                        title="Zoom out"
-                    >
-                        <ZoomOut className="size-4" />
-                    </Button>
-                    <div className={cn(
-                        "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
-                        view.scale > 1.01 ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
-                    )}>
+                <div className="absolute bottom-4 left-4 z-30 pointer-events-auto">
+                    {showZoomCluster ? (
+                        <div className="flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 transition-all duration-200">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                                onClick={() => { zoom.zoomIn(); scheduleZoomCollapse() }}
+                                disabled={view.scale >= MAX_SCALE - 0.01}
+                                title="Zoom in"
+                            >
+                                <ZoomIn className="size-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                                onClick={() => { zoom.zoomOut(); scheduleZoomCollapse() }}
+                                disabled={view.scale <= MIN_SCALE + 0.01}
+                                title="Zoom out"
+                            >
+                                <ZoomOut className="size-4" />
+                            </Button>
+                            <div className={cn(
+                                "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
+                                view.scale > 1.01 ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+                            )}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                                    onClick={() => { zoom.reset(); scheduleZoomCollapse() }}
+                                    title="Reset zoom"
+                                >
+                                    <RotateCcw className="size-4" />
+                                </Button>
+                                <span className="text-xs text-foreground/60 px-2 tabular-nums">
+                                    {Math.round(view.scale * 100)}%
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
-                            onClick={zoom.reset}
-                            title="Reset zoom"
+                            className="size-9 rounded-full bg-black/60 backdrop-blur-sm text-foreground/70 hover:text-foreground hover:bg-black/70 opacity-80 transition-all duration-200"
+                            onClick={openZoomControls}
+                            title="Zoom"
                         >
-                            <RotateCcw className="size-4" />
+                            <ZoomIn className="size-4" />
                         </Button>
-                        <span className="text-xs text-foreground/60 px-2 tabular-nums">
-                            {Math.round(view.scale * 100)}%
-                        </span>
-                    </div>
+                    )}
                 </div>
             )}
         </div>
