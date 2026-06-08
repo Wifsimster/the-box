@@ -205,10 +205,36 @@ export const useGameStore = create<GameState>()(
           totalScreenshots: total,
         }),
 
-        setScreenshotData: (data) => set({
-          currentScreenshotData: data,
-          currentPosition: data.position,
-          roundStartedAt: Date.now(),
+        setScreenshotData: (data) => set((state) => {
+          const now = Date.now()
+          const prevPos = state.currentScreenshotData?.position
+          let positionStates = state.positionStates
+
+          // Flush the segment we're leaving into the outgoing position's
+          // accumulator so the countdown RESUMES (never resets) when the player
+          // comes back. Only for a real segment on a DIFFERENT position — a
+          // same-position re-fetch must not double-count, and the timer simply
+          // continues from the live `roundStartedAt` re-stamp.
+          if (prevPos != null && prevPos !== data.position && state.roundStartedAt != null) {
+            const segment = Math.max(0, now - state.roundStartedAt)
+            const prevState = positionStates[prevPos]
+            if (prevState) {
+              positionStates = {
+                ...positionStates,
+                [prevPos]: {
+                  ...prevState,
+                  timeSpentMs: (prevState.timeSpentMs ?? 0) + segment,
+                },
+              }
+            }
+          }
+
+          return {
+            currentScreenshotData: data,
+            currentPosition: data.position,
+            roundStartedAt: now,
+            positionStates,
+          }
         }),
 
         setScreenshotsFound: (count) => set({ screenshotsFound: count }),

@@ -37,10 +37,14 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         }
       }
 
-      // Calculate round time (from current screenshot start to now)
-      const roundTimeTakenMs = store.roundStartedAt
-        ? Date.now() - store.roundStartedAt
-        : 0
+      // Total active time on this screenshot = time banked on previous visits
+      // plus the current segment. Sending the accumulated value (not just the
+      // current segment) stops the skip-away-and-back trick from also resetting
+      // the speed multiplier — the server takes Math.max(server, client), so
+      // the honest larger time wins with no backend change.
+      const liveSegmentMs = store.roundStartedAt ? Date.now() - store.roundStartedAt : 0
+      const accumulatedMs = store.positionStates[store.currentPosition]?.timeSpentMs ?? 0
+      const roundTimeTakenMs = Math.max(0, accumulatedMs + liveSegmentMs)
 
       // Check if hints were used for current position
       const currentPosState = store.positionStates[store.currentPosition]

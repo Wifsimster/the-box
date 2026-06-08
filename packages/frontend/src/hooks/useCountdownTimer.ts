@@ -48,6 +48,11 @@ export function useCountdownTimer(): CountdownState {
   const limitSeconds = useGameStore(
     (s) => s.currentScreenshotData?.timeLimitSeconds ?? DEFAULT_TIME_LIMIT_SECONDS
   )
+  // Active time already banked on this position from previous visits — the
+  // countdown resumes from the remaining budget rather than resetting.
+  const timeSpentMs = useGameStore(
+    (s) => s.positionStates[s.currentPosition]?.timeSpentMs ?? 0
+  )
 
   // Active only when the loaded screenshot is the one we're playing. During the
   // brief navigation/fetch gap `screenshotPosition` lags `currentPosition`, so
@@ -73,7 +78,7 @@ export function useCountdownTimer(): CountdownState {
     return () => clearInterval(id)
   }, [roundStartedAt, limitMs, isActive])
 
-  const remainingMs = computeRemainingMs(now, roundStartedAt, limitMs)
+  const remainingMs = computeRemainingMs(now, roundStartedAt, limitMs, timeSpentMs)
   const seconds = toSeconds(remainingMs)
 
   return {
@@ -95,24 +100,25 @@ export function useCountdownTimer(): CountdownState {
 export function useRoundTimer(): CountdownState {
   const state = useCountdownTimer()
   const { t } = useTranslation()
-  const roundStartedAt = useGameStore((s) => s.roundStartedAt)
+  const currentPosition = useGameStore((s) => s.currentPosition)
 
-  // Remember which round we've already timed out, so the expiry effect — which
-  // keeps re-running while `isExpired` stays true during the fetch gap — only
-  // acts once.
-  const firedForRound = useRef<number | null>(null)
+  // Latch per POSITION (not per `roundStartedAt`, which now re-stamps on every
+  // segment): a position times out at most once, and the effect — which keeps
+  // re-running while `isExpired` stays true during the fetch gap — only acts on
+  // the first crossing.
+  const firedForPosition = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!state.isExpired || roundStartedAt == null) return
-    if (firedForRound.current === roundStartedAt) return
+    if (!state.isExpired) return
+    if (firedForPosition.current === currentPosition) return
 
     const store = useGameStore.getState()
-    const { currentPosition, positionStates } = store
+    const { currentPosition: pos, positionStates } = store
     // Only time out a screenshot the player is actively guessing. Guards the
     // race where an in-flight correct guess has already marked it 'correct'.
-    if (positionStates[currentPosition]?.status !== 'in_progress') return
+    if (positionStates[pos]?.status !== 'in_progress') return
 
-    firedForRound.current = roundStartedAt
+    firedForPosition.current = pos
     toast.error(t('game.timeUp'))
 
     const next = store.timeOutCurrentPosition()
@@ -122,7 +128,7 @@ export function useRoundTimer(): CountdownState {
         console.error('Failed to end game after timeout:', err)
       })
     }
-  }, [state.isExpired, roundStartedAt, t])
+  }, [state.isExpired, currentPosition, t])
 
   return state
 }

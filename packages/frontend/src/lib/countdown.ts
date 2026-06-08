@@ -17,24 +17,28 @@ export const CRITICAL_THRESHOLD_SECONDS = 5
 export type TimerPhase = 'normal' | 'warning' | 'critical'
 
 /**
- * Milliseconds left on the round, clamped to `[0, limitMs]`.
+ * Milliseconds left on the round, clamped to `[0, budget]` where the budget is
+ * `limitMs - alreadySpentMs` (time spent on previous visits to this position).
  *
  * Recomputed from the wall clock (`now - startedAt`) rather than decrementing a
- * counter, so a throttled/backgrounded tab can never desync — when it resumes
- * it reads the true elapsed. Clamping makes it clock-skew safe: a `now` before
- * `startedAt` yields the full limit (never more), and an overshoot yields 0
- * (never negative).
+ * counter, so a throttled/backgrounded tab can never desync. Clamping makes it
+ * clock-skew safe: a `now` before `startedAt` yields the remaining budget
+ * (never the full limit — this is what stops navigate-away-and-back from
+ * resetting the timer), and an overshoot yields 0 (never negative).
  */
 export function computeRemainingMs(
   now: number,
   startedAt: number | null,
-  limitMs: number
+  limitMs: number,
+  alreadySpentMs = 0
 ): number {
   if (limitMs <= 0) return 0
-  if (startedAt == null) return limitMs
-  const remaining = limitMs - (now - startedAt)
+  const budget = limitMs - Math.max(0, alreadySpentMs)
+  if (budget <= 0) return 0
+  if (startedAt == null) return budget
+  const remaining = budget - (now - startedAt)
   if (remaining <= 0) return 0
-  if (remaining > limitMs) return limitMs
+  if (remaining > budget) return budget
   return remaining
 }
 
