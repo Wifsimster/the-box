@@ -290,6 +290,14 @@ export interface PositionState {
    * and the disabled state of the inventory item.
    */
   secondChanceActivated?: boolean
+  /**
+   * Total active (on-screen) milliseconds already spent guessing this
+   * position, excluding the segment currently in progress. Lets the countdown
+   * timer RESUME from the remaining budget when the player navigates back to a
+   * skipped position instead of resetting to the full limit. Persisted with
+   * `positionStates`, so a refresh can't reset it either.
+   */
+  timeSpentMs?: number
 }
 
 // ============================================

@@ -5,6 +5,8 @@
   status, non-revisitable, revealed as unfound at end). Client-only (no server enforcement v1).
   timeLimitSeconds plumbed through ScreenshotResponse (default 45). Tested via page.clock e2e +
   pure-helper unit tests. Outcome of the UX/architect/QA sub-agent design meeting.
+  v2: per-position active-time budget (timeSpentMs) so navigating away and back RESUMES the
+  countdown instead of resetting it — closes the skip-and-return exploit (incl. the speed multiplier).
 -->
 <html lang="en">
 <head>
@@ -128,8 +130,8 @@ information. <code>role="timer"</code> + a localized <code>aria-label</code>; ro
     <p class="muted">A single latched effect (keyed on <code>roundStartedAt</code>, gated to <code>status === 'in_progress'</code>) calls <code>timeOutCurrentPosition()</code>: marks <span class="tag">timed_out</span>, advances to the next playable position, or ends the game if none remain.</p>
   </div>
   <div class="card">
-    <h3>Wall-clock honesty</h3>
-    <p class="muted">No pause on <code>document.hidden</code> (matches the server's own elapsed measure, no cheat vector). Recompute-from-clock means a throttled background tab can't desync — it shows expired on return.</p>
+    <h3>Resume budget (anti-reset)</h3>
+    <p class="muted">Each position carries a persisted <code>timeSpentMs</code> accumulator. <code>setScreenshotData</code> flushes the segment you're leaving into the outgoing position, so navigating away and back <strong>resumes</strong> the remaining budget instead of resetting to 45s. No <code>document.hidden</code> pause within a segment (matches the server's elapsed measure). The timeout latch keys on <code>currentPosition</code>, and <code>useGameGuess</code> sends the accumulated time so the server's <code>Math.max</code> also neutralises the speed-multiplier reset.</p>
   </div>
 </div>
 

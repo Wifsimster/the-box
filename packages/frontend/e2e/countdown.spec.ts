@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { loginAsUser, waitForGameLoad, startDailyGame } from './helpers/game-helpers'
+import { loginAsUser, waitForGameLoad, startDailyGame, skipScreenshot } from './helpers/game-helpers'
 
 /**
  * E2E for the per-screenshot 45s countdown timer.
@@ -81,5 +81,42 @@ test.describe('Daily Game - Countdown Timer', () => {
     await expect
       .poll(async () => readTimerSeconds(page), { timeout: 10000 })
       .toBeGreaterThan(30)
+  })
+
+  test('navigating away and back does NOT reset the countdown (exploit closed)', async ({ page }) => {
+    await startPlayingWithFrozenClock(page)
+
+    // Spend ~15s on position 1 → ~30s remaining.
+    await page.clock.fastForward(15_000)
+    await page.waitForTimeout(150)
+    const p1Before = await readTimerSeconds(page)
+    expect(p1Before).toBeGreaterThanOrEqual(28)
+    expect(p1Before).toBeLessThanOrEqual(32)
+
+    // Skip to position 2 (banks ~15s into position 1) — fresh ~45s there.
+    await skipScreenshot(page)
+    await expect.poll(async () => readTimerSeconds(page), { timeout: 10000 }).toBeGreaterThan(40)
+
+    // Navigate back to position 1 (skipped → revisitable).
+    await page.getByRole('tab').filter({ hasText: /^1$/ }).first().click()
+    await page.waitForTimeout(300)
+
+    // Exploit check: the timer RESUMES at ~30s, it is NOT reset to 45.
+    const p1After = await readTimerSeconds(page)
+    expect(p1After).toBeGreaterThan(20)
+    expect(p1After).toBeLessThanOrEqual(31)
+
+    // …and it keeps ticking DOWN from the resumed value.
+    await page.clock.fastForward(5_000)
+    await page.waitForTimeout(150)
+    const ticking = await readTimerSeconds(page)
+    expect(ticking).toBeLessThan(p1After)
+
+    // Exhausting the remaining budget still times the position out — the
+    // round-trip didn't buy extra time.
+    await page.clock.fastForward((ticking + 1) * 1000)
+    await expect(
+      page.getByRole('tab').filter({ hasText: /^1$/ }).first()
+    ).toHaveAttribute('aria-label', /timed out/i)
   })
 })
