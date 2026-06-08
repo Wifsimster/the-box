@@ -302,7 +302,8 @@
         "correct": "correct",
         "skipped": "skipped",
         "in_progress": "in progress",
-        "not_visited": "not visited"
+        "not_visited": "not visited",
+        "timed_out": "timed out"
       },
       "summary": {
         "found_one": "{{count}} found",
@@ -329,6 +330,9 @@
     "correct": "Correct!",
     "incorrect": "Incorrect",
     "timeUp": "Time's up!",
+    "timer": {
+      "label": "Time remaining: {{seconds}} seconds"
+    },
     "totalScore": "Total Score",
     "correctAnswers": "Correct Answers",
     "accuracy": "Accuracy",

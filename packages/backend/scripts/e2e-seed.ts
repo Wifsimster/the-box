@@ -228,7 +228,7 @@ async function createTodayChallenge(): Promise<void> {
     dailyChallengeId: challenge.id,
     tierNumber: 1,
     name: 'Daily Challenge',
-    timeLimitSeconds: 30,
+    timeLimitSeconds: 45,
   })
   console.log(`  ✓ Created tier (ID: ${tier.id})`)
 

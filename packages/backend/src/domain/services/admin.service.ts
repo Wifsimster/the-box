@@ -214,7 +214,7 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
         dailyChallengeId: challenge.id,
         tierNumber: 1,
         name: 'Daily Challenge',
-        timeLimitSeconds: 30,
+        timeLimitSeconds: 45,
       })
 
       await challengeRepository.createTierScreenshots(tier.id, data.screenshotIds)

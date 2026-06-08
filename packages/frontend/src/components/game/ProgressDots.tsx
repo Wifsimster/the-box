@@ -9,6 +9,8 @@ function getStatusColor(status: PositionStatus) {
   switch (status) {
     case 'correct':
       return 'bg-success'
+    case 'timed_out':
+      return 'bg-error'
     default:
       return 'bg-muted'
   }
@@ -31,7 +33,8 @@ export function ProgressDots() {
   } = useGameStore()
 
   const handleDotClick = (position: number) => {
-    if (position !== currentPosition) {
+    // Timed-out positions are locked (permanent miss) — not navigable.
+    if (position !== currentPosition && positionStates[position]?.status !== 'timed_out') {
       navigateToPosition(position)
     }
   }
@@ -47,7 +50,7 @@ export function ProgressDots() {
         const state = positionStates[pos]
         const status = state?.status ?? 'not_visited'
         const isCurrent = pos === currentPosition
-        const isClickable = pos !== currentPosition
+        const isClickable = pos !== currentPosition && status !== 'timed_out'
 
         return (
           <m.button
