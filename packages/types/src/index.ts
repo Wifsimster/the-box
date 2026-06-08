@@ -268,8 +268,11 @@ export interface GuessResult {
   attempts?: GuessAttempt[]
 }
 
-// Position tracking for navigation
-export type PositionStatus = 'not_visited' | 'in_progress' | 'skipped' | 'correct'
+// Position tracking for navigation.
+// `timed_out` is a terminal state: the player ran out of time on this
+// screenshot. Unlike `skipped` it is NOT revisitable and is revealed as an
+// unfound game at the end of the challenge.
+export type PositionStatus = 'not_visited' | 'in_progress' | 'skipped' | 'correct' | 'timed_out'
 
 export interface PositionState {
   position: number
@@ -367,6 +370,12 @@ export interface ScreenshotResponse {
   position: number
   imageUrl: string
   bonusMultiplier?: number
+  /**
+   * Seconds the player has to guess this screenshot before it times out.
+   * Sourced from the tier's `time_limit_seconds` (defaults to 45). Drives
+   * the in-game countdown timer.
+   */
+  timeLimitSeconds: number
 }
 
 // Guess API

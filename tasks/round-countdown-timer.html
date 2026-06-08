@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!-- SUMMARY:
+  Per-screenshot 45s countdown for the daily game. Circular ring top-left (mirrors score panel),
+  purple→yellow→red bands, "Temps écoulé !" on expiry. Timeout = permanent miss (new 'timed_out'
+  status, non-revisitable, revealed as unfound at end). Client-only (no server enforcement v1).
+  timeLimitSeconds plumbed through ScreenshotResponse (default 45). Tested via page.clock e2e +
+  pure-helper unit tests. Outcome of the UX/architect/QA sub-agent design meeting.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>PRD — Per-Screenshot Countdown Timer</title>
+<style>
+  :root {
+    --bg: #0a0a0f; --panel: #14141c; --border: #26263a;
+    --fg: #e8e8f0; --muted: #a9a9c0; --purple: #a855f7; --pink: #ec4899;
+    --warn: #eab308; --error: #ef4444; --ok: #22c55e;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--sans); line-height: 1.6;
+    padding: 2.5rem 1.25rem; max-width: 76ch; margin-inline: auto;
+  }
+  h1, h2, h3 { line-height: 1.25; font-weight: 700; }
+  h1 { font-size: 1.9rem; margin-bottom: .25rem; }
+  h1 + .sub { color: var(--muted); margin-top: 0; font-size: .95rem; }
+  h2 {
+    font-size: 1.25rem; margin-top: 2.5rem; padding-bottom: .35rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.02rem; margin-top: 1.6rem; color: #f3f3fa; }
+  a { color: var(--purple); }
+  code, kbd { font-family: var(--mono); font-size: .86em; }
+  code { background: #1c1c28; padding: .12em .42em; border-radius: 4px; color: #d6c8ff; }
+  p, li { color: var(--fg); }
+  .muted { color: var(--muted); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1rem 1.2rem; margin: 1rem 0;
+  }
+  .grid { display: grid; gap: 1rem; }
+  @media (min-width: 640px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .92rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .tag {
+    display: inline-block; font-family: var(--mono); font-size: .72rem;
+    padding: .15em .5em; border-radius: 5px; border: 1px solid var(--border);
+    background: #1a1a26; color: var(--muted);
+  }
+  .pill { padding: .15em .6em; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+  .pill.normal { background: rgba(168,85,247,.15); color: #c98bff; }
+  .pill.warn { background: rgba(234,179,8,.15); color: var(--warn); }
+  .pill.crit { background: rgba(239,68,68,.15); color: #ff7a7a; }
+  .decision { border-left: 3px solid var(--purple); padding-left: 1rem; }
+  .glow { box-shadow: 0 0 26px rgba(168,85,247,.28); }
+  ul { padding-left: 1.2rem; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .flow { font-family: var(--mono); font-size: .82rem; color: var(--muted); white-space: pre; overflow-x: auto; }
+  figure { margin: 1rem 0; }
+  figcaption { color: var(--muted); font-size: .82rem; margin-top: .4rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<h1>PRD — Per-Screenshot Countdown Timer</h1>
+<p class="sub">Daily game · 45s per screenshot · outcome of the UX / Architect / QA design meeting</p>
+
+<div class="card glow">
+  <strong>One-liner.</strong> Each daily screenshot now has a <strong>45-second</strong> limit. A circular
+  countdown ring sits top-left; when it expires the screenshot is a <strong>permanent miss</strong>
+  (« Temps écoulé ! ») and play moves on. The answer is revealed with the other unfound games at the end.
+</div>
+
+<h2>1. Decisions locked</h2>
+<div class="card decision">
+  <table>
+    <tr><th>Question</th><th>Decision</th></tr>
+    <tr><td>Visual form</td><td>Circular ring (~48–56px) + numeric core, <strong>top-left</strong>, z-40 — mirrors the score panel shell so the two top corners read as a pair. Keyboard-immune (top-anchored).</td></tr>
+    <tr><td>On timeout</td><td><strong>Permanent miss (« échec définitif »)</strong> — position locked, non-revisitable, revealed as unfound at game end.</td></tr>
+    <tr><td>Enforcement</td><td><strong>Client-only (v1)</strong> — no server cutoff. The speed multiplier already floors at 1.0× past 20s, so a late guess earns nothing extra anyway; a hard server cliff would risk the guarded scoring path.</td></tr>
+    <tr><td>Source of 45</td><td>Plumbed through the API (<code>ScreenshotResponse.timeLimitSeconds</code>), default <strong>45</strong>. The <code>tiers.time_limit_seconds</code> column already existed; we expose &amp; bump it rather than hardcode.</td></tr>
+  </table>
+</div>
+
+<h2>2. Player flow</h2>
+<figure>
+<div class="flow">
+ load screenshot ──▶ roundStartedAt = now ──▶ ring counts 45 → 0
+        │                                            │
+        │  guess correct ──▶ result card (timer off) │ time hits 0
+        │  skip          ──▶ next position           ▼
+        │                                    « Temps écoulé ! »
+        ▼                                    position → timed_out (locked)
+   advance / next round                              │
+                                              next playable position?
+                                               ├─ yes ─▶ load it, ring resets to 45
+                                               └─ no  ─▶ end game → reveal unfound
+</div>
+<figcaption>The timer is live only in <code>gamePhase === 'playing'</code>. Submitting/skip/result all stop it; the next round re-arms it.</figcaption>
+</figure>
+
+<h2>3. Timer states</h2>
+<table>
+  <tr><th>Band</th><th>Range</th><th>Colour + glow</th><th>Motion (zeroed under reduced-motion)</th></tr>
+  <tr><td><span class="pill normal">normal</span></td><td>45 → 16s</td><td>neon-purple, faint glow</td><td>ring depletes only</td></tr>
+  <tr><td><span class="pill warn">warning</span></td><td>15 → 6s</td><td>warning-yellow, <code>--glow-warning</code></td><td>slow 1s breathing</td></tr>
+  <tr><td><span class="pill crit">critical</span></td><td>5 → 0s</td><td>error-red, <code>--glow-error</code></td><td>1s tick-pop on the digit</td></tr>
+</table>
+<p class="muted">Colour is never the only signal — the shrinking ring and the decreasing number carry the same
+information. <code>role="timer"</code> + a localized <code>aria-label</code>; routine ticks are not a live region
+(no per-second screen-reader spam).</p>
+
+<h2>4. Architecture</h2>
+<div class="grid cols-3">
+  <div class="card">
+    <h3>Derived, not stored</h3>
+    <p class="muted"><code>useCountdownTimer</code> computes <code>remaining = limit·1000 − (now − roundStartedAt)</code> on a 250ms interval. No duplicate countdown in the store → correct for free across round change, navigation and resume (all re-stamp <code>roundStartedAt</code>).</p>
+  </div>
+  <div class="card">
+    <h3>Timeout action</h3>
+    <p class="muted">A single latched effect (keyed on <code>roundStartedAt</code>, gated to <code>status === 'in_progress'</code>) calls <code>timeOutCurrentPosition()</code>: marks <span class="tag">timed_out</span>, advances to the next playable position, or ends the game if none remain.</p>
+  </div>
+  <div class="card">
+    <h3>Wall-clock honesty</h3>
+    <p class="muted">No pause on <code>document.hidden</code> (matches the server's own elapsed measure, no cheat vector). Recompute-from-clock means a throttled background tab can't desync — it shows expired on return.</p>
+  </div>
+</div>
+
+<h3>The <code>timed_out</code> status</h3>
+<p>New <code>PositionStatus</code> member. It slots into existing navigation logic without special-casing:
+<code>findNextUnfinished</code> / <code>canNavigateTo</code> don't return it (locked), <code>hasSkippedPositions</code>
+ignores it (not offered for review), and <code>hasVisitedAllPositions</code> counts it as visited. It survives
+refresh via the persisted <code>positionStates</code>, and the backend reveals it as unfound at <code>endGame</code>.</p>
+
+<h2>5. Changes by layer</h2>
+<table>
+  <tr><th>Layer</th><th>Change</th></tr>
+  <tr><td><span class="tag">types</span></td><td><code>timeLimitSeconds: number</code> on <code>ScreenshotResponse</code>; <code>'timed_out'</code> on <code>PositionStatus</code>. Rebuild types pkg.</td></tr>
+  <tr><td><span class="tag">backend</span></td><td><code>getScreenshot</code> returns <code>tier.time_limit_seconds ?? 45</code> (tier already loaded — no extra query). Seeds/worker/create-script set 45. Migration bumps the column default 30→45.</td></tr>
+  <tr><td><span class="tag">frontend</span></td><td><code>lib/countdown.ts</code> (pure helpers), <code>useCountdownTimer</code> hook, <code>CountdownTimer</code> ring, <code>timeOutCurrentPosition</code> store action, wiring in <code>GamePlayScreen</code>, ProgressDots colour, i18n (fr/en).</td></tr>
+  <tr><td><span class="tag">tests</span></td><td>Pure-helper unit tests (new frontend node:test runner); backend <code>getScreenshot</code> exposure test; <code>countdown.spec.ts</code> e2e driven by <code>page.clock</code>.</td></tr>
+</table>
+
+<h2>6. Test strategy</h2>
+<ul>
+  <li><strong>Determinism.</strong> Playwright <code>page.clock</code> installed before navigation; <code>runFor</code> advances virtual time so a 45s flow runs in milliseconds. The ring renders without an opacity-entrance so visibility never depends on clock advancement.</li>
+  <li><strong>E2E scenarios.</strong> ring visible at the limit; ticks to warning/critical; auto-advance at 0 moves to the next position; a correct guess before 0 stops it; mobile viewport.</li>
+  <li><strong>Unit.</strong> <code>computeRemainingMs</code> (clamped, no negatives, clock-skew safe), <code>getTimerPhase</code> thresholds, <code>formatCountdown</code>.</li>
+  <li><strong>No regression.</strong> Legacy daily-game specs dwell &lt;45s per position, so seed=45 leaves them green; we deliberately do <em>not</em> install a global fake clock in them (it would freeze framer-motion entrances and hide elements).</li>
+</ul>
+
+<hr />
+<p class="muted" style="font-size:.82rem">Internal engineering doc · dark-theme HTML-first per <code>.claude/CLAUDE.md</code> · not served from the Express app.</p>
+
+</body>
+</html>

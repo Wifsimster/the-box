@@ -9,6 +9,8 @@ import { ResultCard } from '@/components/game/ResultCard'
 import { CompletionChoiceModal } from '@/components/game/CompletionChoiceModal'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
+import { CountdownTimer } from '@/components/game/CountdownTimer'
+import { useRoundTimer } from '@/hooks/useCountdownTimer'
 import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 
 /**
@@ -29,6 +31,10 @@ export function GamePlayScreen({
   isAuthenticated: boolean
   isKeyboardOpen: boolean
 }) {
+  // Per-screenshot countdown. The hook also owns the timeout side-effect
+  // (lock the screenshot as a permanent miss and advance) when time runs out.
+  const timer = useRoundTimer()
+
   return (
     <m.div
       key="game"
@@ -37,6 +43,14 @@ export function GamePlayScreen({
       exit={{ opacity: 0 }}
       className="relative size-full flex flex-col"
     >
+      {/* Round Countdown Timer (Top Left) — mirrors the score panel shell. */}
+      <div
+        className="absolute left-2 sm:left-4 z-40"
+        style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+      >
+        <CountdownTimer state={timer} />
+      </div>
+
       {/* Score and End Game Button (Top Right) */}
       <div
         className="absolute right-2 sm:right-4 z-40 flex flex-col items-stretch min-w-28 sm:min-w-36"

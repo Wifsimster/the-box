@@ -99,6 +99,13 @@ interface GameState {
   initializePositionStates: (total: number) => void
   updatePositionState: (position: number, updates: Partial<PositionState>) => void
   skipToNextPosition: () => number | null
+  /**
+   * Time-out the current screenshot: lock it as a permanent miss
+   * (`timed_out`) and advance to the next *playable* position. Returns the
+   * next position, or `null` when nothing playable remains (caller should
+   * end the game to reveal results).
+   */
+  timeOutCurrentPosition: () => number | null
   navigateToPosition: (position: number) => void
   findNextUnfinished: (fromPosition: number) => number | null
   canNavigateTo: (position: number) => boolean
@@ -447,11 +454,75 @@ export const useGameStore = create<GameState>()(
           return null
         },
 
+        timeOutCurrentPosition: () => {
+          const { currentPosition, positionStates, totalScreenshots } = get()
+          const currentState = positionStates[currentPosition]
+
+          // Only a position the player is actively guessing can time out.
+          if (!currentState || currentState.status !== 'in_progress') {
+            return currentPosition
+          }
+
+          // Lock it as a permanent miss — unlike 'skipped' this is terminal and
+          // not revisitable; it surfaces as an unfound game at the end.
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [currentPosition]: {
+                ...state.positionStates[currentPosition],
+                status: 'timed_out',
+              },
+            },
+            lastResult: null,
+            // Dismiss any pending second-chance prompt for this position — it's
+            // moot once the clock has run out.
+            secondChancePrompt: null,
+          }))
+
+          // Next *playable* position = one the player can still act on
+          // (not_visited or skipped). Correct/timed_out positions are finalized
+          // and skipped over. Scan forward then wrap to the start.
+          const findNextPlayable = (): number | null => {
+            const states = get().positionStates
+            for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
+              const s = states[i]
+              if (!s || s.status === 'not_visited' || s.status === 'skipped') return i
+            }
+            for (let i = 1; i < currentPosition; i++) {
+              const s = states[i]
+              if (s?.status === 'not_visited' || s?.status === 'skipped') return i
+            }
+            return null
+          }
+
+          const nextPos = findNextPlayable()
+          if (nextPos !== null) {
+            set((state) => ({
+              currentPosition: nextPos,
+              positionStates: {
+                ...state.positionStates,
+                [nextPos]: {
+                  ...state.positionStates[nextPos],
+                  position: nextPos,
+                  status: 'in_progress',
+                  isCorrect: state.positionStates[nextPos]?.isCorrect ?? false,
+                },
+              },
+            }))
+            return nextPos
+          }
+
+          // Nothing playable left — caller ends the game to reveal results.
+          return null
+        },
+
         navigateToPosition: (position) => {
           const { positionStates } = get()
           const state = positionStates[position]
 
           if (!state) return
+          // Timed-out positions are terminal — never navigable back into.
+          if (state.status === 'timed_out') return
 
           // Update current position
           set({

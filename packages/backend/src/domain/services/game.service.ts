@@ -522,6 +522,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       position: tierScreenshot.position,
       imageUrl: proxyImageUrl,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
+      // Expose the per-screenshot countdown limit so the client can run the
+      // round timer. Falls back to 45s if a legacy tier has no value.
+      timeLimitSeconds: tier.time_limit_seconds ?? 45,
     }
   },
 

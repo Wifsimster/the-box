@@ -302,7 +302,8 @@
         "correct": "trouvée",
         "skipped": "passée",
         "in_progress": "en cours",
-        "not_visited": "non visitée"
+        "not_visited": "non visitée",
+        "timed_out": "temps écoulé"
       },
       "summary": {
         "found_one": "{{count}} trouvée",
@@ -329,6 +330,9 @@
     "correct": "Correct !",
     "incorrect": "Incorrect",
     "timeUp": "Temps écoulé !",
+    "timer": {
+      "label": "Temps restant : {{seconds}} secondes"
+    },
     "totalScore": "Score Total",
     "correctAnswers": "Bonnes Réponses",
     "accuracy": "Précision",
