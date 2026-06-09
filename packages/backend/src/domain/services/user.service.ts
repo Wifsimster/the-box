@@ -94,11 +94,16 @@ export function createUserService(deps: UserServiceDeps): UserService {
         }))
 
         if (correctGuess) {
-          // Calculate hint penalty (20% of score if hint was used)
+          // Calculate hint penalty (20% of score if hint was used). All four
+          // hint types carry the penalty, but only when the hint was NOT paid
+          // from inventory (inventory/premium hints are free).
           let hintPenalty: number | undefined
           if (
-            correctGuess.powerUpUsed === 'hint_year' ||
-            correctGuess.powerUpUsed === 'hint_publisher'
+            !correctGuess.hintFromInventory &&
+            (correctGuess.powerUpUsed === 'hint_year' ||
+              correctGuess.powerUpUsed === 'hint_publisher' ||
+              correctGuess.powerUpUsed === 'hint_developer' ||
+              correctGuess.powerUpUsed === 'hint_genre')
           ) {
             // The score_earned already has hint penalty deducted, so we need to calculate original
             // Original score = scoreEarned / 0.8, hint penalty = original * 0.2
