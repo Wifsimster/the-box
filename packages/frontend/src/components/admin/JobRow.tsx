@@ -365,7 +365,7 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                   <Loader2 className="size-3.5 text-neon-blue shrink-0 animate-spin" />
                   <div className="flex flex-col">
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      {t('admin.jobs.status')}
+                      {t('admin.jobs.statusLabel')}
                     </span>
                     <span className="text-xs font-medium text-neon-blue/80">
                       {t('admin.jobs.running')}
