@@ -2121,9 +2121,9 @@
       "selectImage": "Choose an image",
       "upload": "Upload",
       "remove": "Remove",
-      "sizeHint": "JPEG, PNG, GIF or WebP. Max 5MB.",
+      "sizeHint": "JPEG, PNG, GIF or WebP. Max 10MB.",
       "invalidType": "Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.",
-      "fileTooLarge": "File is too large. Maximum size is 5MB.",
+      "fileTooLarge": "File is too large. Maximum size is 10MB.",
       "uploadError": "Failed to upload avatar. Please try again.",
       "deleteError": "Failed to remove avatar. Please try again."
     }
