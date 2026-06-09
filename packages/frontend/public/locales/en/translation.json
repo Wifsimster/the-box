@@ -48,7 +48,8 @@
       "first": "1st place",
       "second": "2nd place",
       "third": "3rd place"
-    }
+    },
+    "menuDescription": "Site navigation and account links"
   },
   "nav": {
     "primary": "Primary navigation",
@@ -441,7 +442,8 @@
       "totalScore": "Your Total Score",
       "penaltyApplied": "Penalty",
       "finalScore": "Final Score",
-      "points": "points"
+      "points": "points",
+      "error": "Failed to end the game. Please try again."
     },
     "hints": {
       "yearTooltip": "Show release year (-20%)",
@@ -463,7 +465,8 @@
       "developerHint": "Developer",
       "genreHint": "Genre",
       "penalty": "-20%",
-      "penaltyApplied": "Hint penalty: -{{penalty}} points"
+      "penaltyApplied": "Hint penalty: -{{penalty}} points",
+      "percentagePenalty": "20% penalty"
     },
     "secondChance": {
       "title": "Activate a second chance?",
@@ -487,7 +490,11 @@
       "gamesRemaining_other": "{{count}} games left to guess",
       "continuePlaying": "Continue Playing",
       "seeResults": "See Results"
-    }
+    },
+    "submit": "Submit guess",
+    "guessCorrect": "Correct guess!",
+    "guessIncorrect": "Incorrect guess. Try again.",
+    "wrongGuessPenalty": "Wrong guess penalty: -{{penalty}} pts"
   },
   "home": {
     "title": "The Box",
@@ -762,7 +769,18 @@
         "candidateCount_other": "{{count}} candidates",
         "selected": "Selected",
         "choose": "Choose",
-        "refetch": "Refetch"
+        "refetch": "Refetch",
+        "refetchSource": "Re-fetch ({{source}})"
+      },
+      "startConfirm": {
+        "title": "Start the global fetch?",
+        "body": "All curated and resolved games will be queued. The server caps the queue at 1000 games maximum.",
+        "confirm": "Start"
+      },
+      "cancelConfirm": {
+        "title": "Cancel the ongoing ingestion?",
+        "body": "Tasks already running will finish. All pending tasks (maps:*) will be removed from the queue.",
+        "confirm": "Cancel all"
       }
     },
     "emailLog": {
@@ -1447,7 +1465,12 @@
         "streakRiskEmail": "Sends an alert email to players whose daily streak is about to expire, encouraging them to come back and play.",
         "relanceEmail": "Sends a re-engagement email to registered users who haven't played yet, encouraging them to try their first challenge.",
         "inactiveUserReminder": "Sends a win-back email to long-inactive users to invite them back to the platform.",
-        "default": "Automatic system scheduled task."
+        "default": "Automatic system scheduled task.",
+        "createWeeklyTournament": "Creates a new weekly tournament so players can compete on a fresh weekly leaderboard.",
+        "endWeeklyTournament": "Closes the active weekly tournament, finalizes rankings, and awards the winners.",
+        "createMonthlyTournament": "Creates a new monthly tournament so players can compete on a fresh monthly leaderboard.",
+        "endMonthlyTournament": "Closes the active monthly tournament, finalizes rankings, and awards the winners.",
+        "sendTournamentReminders": "Sends reminder emails to participants about ongoing tournaments and approaching deadlines."
       },
       "categories": {
         "Challenge": "Challenge",
@@ -1475,6 +1498,16 @@
         "title": "Sync Job Already Running",
         "description": "A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?",
         "cancelAndRestart": "Cancel & Restart"
+      },
+      "statusLabel": "Status",
+      "expand": "Expand",
+      "minimize": "Minimize",
+      "remove": "Remove",
+      "filter": {
+        "all": "All",
+        "active": "Active",
+        "completed": "Done",
+        "failed": "Failed"
       }
     },
     "fullImport": {
@@ -1637,7 +1670,8 @@
       "recipientEmailPlaceholder": "Enter email address",
       "emailRequired": "Please enter a recipient email address",
       "invalidEmail": "Please enter a valid email address"
-    }
+    },
+    "cancel": "Cancel"
   },
   "pricing": {
     "title": "The Box Premium",

@@ -48,7 +48,8 @@
       "first": "1re place",
       "second": "2e place",
       "third": "3e place"
-    }
+    },
+    "menuDescription": "Navigation du site et liens du compte"
   },
   "nav": {
     "primary": "Navigation principale",
@@ -441,7 +442,8 @@
       "totalScore": "Votre Score Total",
       "penaltyApplied": "Pénalité",
       "finalScore": "Score final",
-      "points": "points"
+      "points": "points",
+      "error": "Échec de la fin de partie. Veuillez réessayer."
     },
     "hints": {
       "yearTooltip": "Afficher l'année de sortie (-20%)",
@@ -463,7 +465,8 @@
       "developerHint": "Développeur",
       "genreHint": "Genre",
       "penalty": "-20%",
-      "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
+      "penaltyApplied": "Pénalité d'indice : -{{penalty}} points",
+      "percentagePenalty": "pénalité de 20 %"
     },
     "secondChance": {
       "title": "Activer une seconde chance ?",
@@ -487,7 +490,11 @@
       "gamesRemaining_other": "{{count}} jeux restants à deviner",
       "continuePlaying": "Continuer à jouer",
       "seeResults": "Voir les résultats"
-    }
+    },
+    "submit": "Valider la proposition",
+    "guessCorrect": "Bonne réponse !",
+    "guessIncorrect": "Mauvaise réponse. Réessayez.",
+    "wrongGuessPenalty": "Pénalité de mauvaise réponse : -{{penalty}} pts"
   },
   "home": {
     "title": "The Box",
@@ -762,7 +769,18 @@
         "candidateCount_other": "{{count}} candidates",
         "selected": "Sélectionnée",
         "choose": "Choisir",
-        "refetch": "Re-récupérer"
+        "refetch": "Re-récupérer",
+        "refetchSource": "Re-récupérer ({{source}})"
+      },
+      "startConfirm": {
+        "title": "Lancer la récupération globale ?",
+        "body": "Tous les jeux curés et résolus seront mis en file. Le serveur tronque la file à 1000 jeux maximum.",
+        "confirm": "Lancer"
+      },
+      "cancelConfirm": {
+        "title": "Annuler l'ingestion en cours ?",
+        "body": "Les tâches déjà actives terminent leur exécution. Toutes les tâches en attente (maps:*) seront supprimées de la file.",
+        "confirm": "Tout annuler"
       }
     },
     "emailLog": {
@@ -1447,7 +1465,12 @@
         "streakRiskEmail": "Envoie un email d'alerte aux joueurs dont la série quotidienne est sur le point d'expirer afin de les inciter à revenir jouer.",
         "relanceEmail": "Envoie un email de relance aux utilisateurs inscrits qui n'ont pas encore joué pour les encourager à essayer leur premier défi.",
         "inactiveUserReminder": "Envoie un email de réactivation aux utilisateurs inactifs depuis longtemps pour les inviter à revenir sur la plateforme.",
-        "default": "Tâche planifiée automatique du système."
+        "default": "Tâche planifiée automatique du système.",
+        "createWeeklyTournament": "Crée un nouveau tournoi hebdomadaire pour que les joueurs s'affrontent sur un classement hebdomadaire inédit.",
+        "endWeeklyTournament": "Clôture le tournoi hebdomadaire en cours, finalise les classements et récompense les gagnants.",
+        "createMonthlyTournament": "Crée un nouveau tournoi mensuel pour que les joueurs s'affrontent sur un classement mensuel inédit.",
+        "endMonthlyTournament": "Clôture le tournoi mensuel en cours, finalise les classements et récompense les gagnants.",
+        "sendTournamentReminders": "Envoie des e-mails de rappel aux participants concernant les tournois en cours et les échéances à venir."
       },
       "categories": {
         "Challenge": "Défi",
@@ -1475,6 +1498,16 @@
         "title": "Synchronisation déjà en cours",
         "description": "Une tâche de synchronisation est déjà en cours ou en pause. Voulez-vous l'annuler et en démarrer une nouvelle ?",
         "cancelAndRestart": "Annuler et relancer"
+      },
+      "statusLabel": "Statut",
+      "expand": "Agrandir",
+      "minimize": "Réduire",
+      "remove": "Supprimer",
+      "filter": {
+        "all": "Tous",
+        "active": "Actifs",
+        "completed": "Terminés",
+        "failed": "Échoués"
       }
     },
     "games": {
@@ -1637,7 +1670,8 @@
       "recipientEmailPlaceholder": "Entrez l'adresse email",
       "emailRequired": "Veuillez entrer une adresse email destinataire",
       "invalidEmail": "Veuillez entrer une adresse email valide"
-    }
+    },
+    "cancel": "Annuler"
   },
   "pricing": {
     "title": "The Box Premium",
