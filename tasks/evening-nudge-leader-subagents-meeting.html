@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: "Beat the leader" personalized evening nudge — subagents meeting (2026-06-09).
+  Decided how to personalize the evening play-reminder with today's title holder
+  ("Venez battre {X} qui a fait {Y} aujourd'hui"). Outcome: new evening PUSH job
+  (~18:00 UTC) as primary + inject the leader line into the existing 19:00
+  streak-risk email; one leader lookup per run via leaderboardService.getTodayLeader();
+  pure copy fn in domain; new last_evening_nudge_at cooldown column. LAUNCH BLOCKERS:
+  display-name profanity filter + generic fallback, and a feature_in_notifications
+  opt-out column shipped day one. Self-leader suppressed in v1 (defend-title = fast-follow).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beat-the-Leader Evening Nudge — Subagents Meeting · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--neon-purple);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start;
+    font-size: 0.875rem;
+    border-left: 1px solid var(--border);
+    padding-left: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover, aside.toc a.active { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.125rem; margin: 1.5rem 0 0.5rem; color: var(--fg); }
+  p, li { color: var(--fg); }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 0.5rem; padding: 1.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero p.thesis { font-size: 1.05rem; margin: 0; color: var(--fg); }
+  .hero p.thesis em { color: var(--neon-purple); font-style: normal; font-weight: 500; }
+
+  .notif {
+    margin: 1.25rem 0; max-width: 380px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    display: grid; grid-template-columns: 38px 1fr; gap: 0.75rem; align-items: start;
+    box-shadow: 0 8px 30px -12px rgba(0,0,0,0.7);
+  }
+  .notif .ico {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+    display: grid; place-items: center; font-size: 1.1rem;
+  }
+  .notif .n-title { font-weight: 600; font-size: 0.92rem; margin: 0 0 0.15rem; }
+  .notif .n-body { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.45; }
+  .notif .n-app { color: var(--muted); font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.35rem; }
+
+  .persona {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .persona summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 500;
+  }
+  .persona summary::-webkit-details-marker { display: none; }
+  .persona summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); transition: transform .15s; }
+  .persona[open] summary::after { content: '\2212'; }
+  .persona summary .role { color: var(--neon-purple); font-family: var(--mono); font-size: 0.85rem; }
+  .persona summary .name { color: var(--muted); font-size: 0.9rem; }
+  .persona .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+  .persona .body h4 { margin: 1rem 0 0.4rem; font-size: 0.95rem; color: var(--neon-purple); }
+  .persona ul { padding-left: 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.mono, .mono { font-family: var(--mono); font-size: 0.85rem; }
+
+  .decisions { display: grid; gap: 0.75rem; margin: 1rem 0; }
+  .decision {
+    display: grid; grid-template-columns: 28px 1fr; gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--neon-purple);
+    border-radius: var(--radius);
+  }
+  .decision .num { font-family: var(--mono); color: var(--neon-purple); font-weight: 600; }
+  .decision strong { color: var(--fg); }
+
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.ok { color: var(--ok); }
+  .badge.warn { color: var(--warn); }
+  .badge.risk { color: var(--risk); }
+  .badge.info { color: var(--neon-blue); }
+
+  .ships { display: grid; gap: 0.5rem; margin: 1rem 0; }
+  .ship {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 0.75rem; align-items: center;
+    padding: 0.6rem 0.85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+  }
+  .ship code { background: transparent; color: var(--neon-purple); padding: 0; }
+
+  blockquote.callout {
+    margin: 1rem 0; padding: 0.85rem 1rem;
+    border-left: 3px solid var(--warn);
+    background: rgba(245,158,11,0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem;
+  }
+  blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
+  blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
+
+  footer.foot {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+    color: var(--muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  footer.foot a { color: var(--muted); border: none; }
+  footer.foot a:hover { color: var(--neon-purple); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">Beat-the-Leader Evening Nudge · Subagents Meeting</span>
+  <span class="repo">wifsimster/the-box · 2026-06-09</span>
+</header>
+
+<div class="layout">
+<main>
+
+  <h1>Personalized Evening Nudge</h1>
+  <p class="meta"><b>Date</b> 2026-06-09 · <b>Attendees</b> PM/Growth · Backend/Architect · UX&nbsp;Writer/i18n · Privacy &amp; Trust · <b>Facilitator</b> Claude</p>
+
+  <div class="hero">
+    <p class="thesis">
+      The evening reminder that pulls players back to today's daily challenge should be
+      <em>personalized with the current title holder</em> — <em>"Venez battre {X} qui a fait
+      un score de {Y} aujourd'hui&nbsp;!"</em> The data is one query away
+      (<code>leaderboardRepository.findByChallenge(id)[0]</code>); the hard parts are channel
+      choice, dedupe against the existing evening jobs, and not broadcasting an unmoderated
+      user-chosen name to thousands of people.
+    </p>
+  </div>
+
+  <div class="notif" aria-label="Example push notification">
+    <div class="ico" aria-hidden="true">🎮</div>
+    <div>
+      <p class="n-title">Le défi du jour t'attend</p>
+      <p class="n-body">PixelHero mène avec 4&nbsp;820 pts. À toi de jouer avant minuit pour le coiffer au poteau&nbsp;!</p>
+      <p class="n-app">The Box · 18:00</p>
+    </div>
+  </div>
+
+  <h2 id="why">1. Why this meeting</h2>
+  <p>
+    The user asked: <em>"la notification du soir pour inciter les joueurs à jouer sur la partie
+    du jour devrait être personnalisée — comme inclure la personne qui détient le titre du jour."</em>
+    Before designing, we mapped what The Box does <strong>today</strong>:
+  </p>
+  <ul>
+    <li>Evening nudges are currently <strong>e-mails</strong> (Resend), scheduled as BullMQ
+      recurring jobs in <code>src/index.ts</code>: <code>streak-risk-email</code> at
+      <strong>19:00&nbsp;UTC</strong> ("Ta série de N jours est en danger") and
+      <code>relance-email</code> at 17:00&nbsp;UTC (unclaimed daily reward). Both gate on
+      <code>email_marketing_consent</code> and carry a 20&nbsp;h per-user cooldown column.</li>
+    <li>A full <strong>web-push</strong> stack already exists
+      (<code>pushService.sendToUser(userId, payload)</code> → VAPID fan-out worker), opt-in
+      per device — but <em>no scheduled push uses the leaderboard leader.</em></li>
+    <li>The title holder is free: <code>findByChallenge(challengeId)[0]</code> is rank&nbsp;1,
+      deterministically tie-broken (score desc → fastest finish → user id), anonymous and
+      catch-up sessions already excluded. Fields: <code>displayName</code>,
+      <code>totalScore</code>, <code>completedAt</code>.</li>
+  </ul>
+  <p>So this is a <strong>net-new personalization</strong> layered on the evening-reminder slot, not a tweak to one string.</p>
+
+  <h2 id="personas">2. The personas</h2>
+  <p>Four agents ran in parallel against the real code. Their contributions are below; the synthesis is section&nbsp;3.</p>
+
+  <details class="persona" open>
+    <summary><span class="role">PM / Growth</span> <span class="name">Channel, audience, KPI</span></summary>
+    <div class="body">
+      <h4>Channel — both, sequenced</h4>
+      <p>Push is the primary vehicle: it reaches the large <em>non-streak</em> population, renders
+      the personalized line natively on the lock screen, and is where "play before midnight"
+      urgency lands. But opt-in is partial, so we'd strand engaged users → <strong>also inject the
+      leader line into the existing 19:00 streak-risk email</strong>. No third e-mail.</p>
+      <h4>Audience &amp; dedupe</h4>
+      <ul>
+        <li>Push: opted-in devices, haven't played today (exclude catch-up/anon), account age ≥ 2 days.</li>
+        <li><b>Mutual exclusion:</b> if a user qualifies for the streak-risk e-mail, <em>suppress the leader push</em> that night — loss-aversion converts harder than competition, and double-nudging burns goodwill. Relance (17:00, reward) stays separate.</li>
+      </ul>
+      <h4>Timing</h4>
+      <p>Fire push at <strong>~18:00 UTC</strong> (a touch later → the leader/score is more "real" and harder to beat) but no later than ~21:00 so there's a comfortable play window before the midnight reset. Email stays 19:00.</p>
+      <h4>KPI &amp; experiment</h4>
+      <p>Primary metric: <b>play-rate uplift</b> (qualified-nudged users who complete today's daily).
+      Secondary: CTR, D1 return. A/B: personalized-with-leader vs. generic "Le défi du jour t'attend", 50/50, 2 weeks.
+      <b>Guardrails:</b> push opt-out rate, e-mail unsubscribe rate, and a "named-and-shamed" check — does <em>being</em> the leader correlate with that user opting out?</p>
+      <h4>Fallback stance</h4>
+      <p>Empty board → generic reminder, never fabricate a leader. Recipient is the leader → flip to title-defense or simply suppress (they already played).</p>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Backend / Architect</span> <span class="name">Job shape, edge cases, migration</span></summary>
+    <div class="body">
+      <h4>One leader lookup per run</h4>
+      <p>Add <code>leaderboardService.getTodayLeader()</code> → resolves today's challenge id, calls
+      <code>findByChallenge(id, 1)</code>, returns <code>{ userId, displayName, totalScore } | null</code>.
+      Call it <strong>once</strong> at the top of the job; never inside the recipient loop (N+1 on <code>game_sessions</code>).</p>
+<pre><code>// queue/workers/evening-nudge-logic.ts
+const leader = await leaderboardService.getTodayLeader()   // ONCE
+if (!leader) return { sent: 0, message: 'no leader yet' }  // empty board
+
+const candidates = await findCandidates()  // not-played-today, consent, cooldown
+for (const u of candidates) {
+  if (u.id === leader.userId) continue     // don't tell them to beat themselves
+  await sendOne(u, leader)
+}</code></pre>
+      <h4>New worker, not an extension</h4>
+      <p>Extending <code>streak-risk-email</code> couples two audiences and two cooldowns. Register a
+      separate recurring <code>evening-nudge</code> job mirroring the streak block, with an explicit
+      mutual-exclusion clause in the candidate query (verify against the relance worker's existing logic before merge).</p>
+      <h4>Edge cases</h4>
+      <ul>
+        <li><b>Empty board</b> → <code>getTodayLeader()</code> returns null → bail early.</li>
+        <li><b>Recipient is leader</b> → <code>.whereNot('id', leader.userId)</code> in the query.</li>
+        <li><b>Ties at rank 1</b> → already deterministic; no work.</li>
+        <li><b>Perfect score</b> → copy fn branches to a "personne ne l'a encore battu" framing.</li>
+      </ul>
+      <h4>Pure copy fn (domain, unit-testable)</h4>
+<pre><code>// domain/services/evening-nudge-copy.ts — zero infra imports
+buildEveningNudge(locale, { leaderName, leaderScore, isPerfect }): { title, body }</code></pre>
+      <h4>Idempotency &amp; migration</h4>
+      <p>Stamp <code>last_evening_nudge_at = NOW()</code> on enqueue success (push is fire-and-forget);
+      the 20&nbsp;h cooldown makes a BullMQ retry a no-op. Migration
+      <code>20260610_add_evening_nudge_cooldown.ts</code> adds nullable
+      <code>last_evening_nudge_at TIMESTAMPTZ</code> to <code>user</code>, mirroring <code>last_streak_risk_email_at</code>.</p>
+      <blockquote class="callout">
+        <strong>Flagged.</strong> Three evening jobs now target overlapping audiences — the
+        mutual-exclusion must live <em>in the query</em>, not be assumed. Keep the
+        <code>new Date()</code> UTC-slice consistent with the other UTC crons; introduce no timezone here.
+      </blockquote>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">UX Writer / i18n</span> <span class="name">Paste-ready FR/EN copy</span></summary>
+    <div class="body">
+      <p>Matched the repo's i18next conventions: warm second-person <code>tu</code>, French-first,
+      <code>{{name}}</code>/<code>{{score}}</code> interpolation, <code>_one</code>/<code>_other</code> plurals.</p>
+      <h4>Main case (there is a leader, not the recipient)</h4>
+      <table>
+        <tr><th>Surface</th><th>FR</th><th>EN</th></tr>
+        <tr>
+          <td>Push title</td>
+          <td>Le défi du jour t'attend 🎮</td>
+          <td>Today's challenge is waiting 🎮</td>
+        </tr>
+        <tr>
+          <td>Push body</td>
+          <td>{{name}} mène avec {{score}} pts. À toi de jouer avant minuit pour le coiffer au poteau&nbsp;!</td>
+          <td>{{name}} is on top with {{score}} pts. Play before midnight and take the lead!</td>
+        </tr>
+        <tr>
+          <td>Email heading</td>
+          <td>{{name}} domine le classement du jour&nbsp;!</td>
+          <td>{{name}} is leading today's board!</td>
+        </tr>
+        <tr>
+          <td>Email CTA</td>
+          <td>Jouer le défi du jour</td>
+          <td>Play today's challenge</td>
+        </tr>
+      </table>
+      <h4>Fallbacks</h4>
+      <ul>
+        <li><b>Empty board</b> — FR: "Personne n'a encore joué aujourd'hui. Sois la première personne à poser un score&nbsp;!" / EN: "Nobody has played today yet. Be the first to set a score!"</li>
+        <li><b>Recipient is leader</b> (defend-title) — FR: "Tu es en tête avec {{score}} pts&nbsp;! Reviens défendre ton titre avant qu'on te détrône." / EN: "You're in the lead with {{score}} pts! Come defend your title before someone overtakes you."</li>
+      </ul>
+      <h4>i18n keys</h4>
+      <p>Namespace <code>notifications.eveningNudge.{push|email}.{leader|empty|selfLeader}</code>,
+      plus <code>pts_one</code>/<code>pts_other</code> for the unit. Full FR+EN JSON delivered in the meeting record (see PR description).</p>
+      <h4>Tone / safety</h4>
+      <ul>
+        <li><b>Gender-neutral FR:</b> infinitives only on the player — "coiffer au poteau", "passer devant", "te détrôner" — never the agreed past participle "détrôné·e".</li>
+        <li><b>Long names:</b> truncate <code>{{name}}</code> to ~20 chars + ellipsis at the <em>data layer</em> (OS hard-truncates push titles at ~40 chars).</li>
+        <li><b>Plurals:</b> render the unit via <code>t('…pts', { count: score })</code> for the rare 1-pt case.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="persona" open>
+    <summary><span class="role">Privacy &amp; Trust</span> <span class="name">Broadcast risk, opt-out, moderation</span></summary>
+    <div class="body">
+      <h4>Is this a new exposure?</h4>
+      <p>The name+score pair is <em>already public</em> via <code>GET /api/leaderboard/today</code>, so
+      it isn't a fresh disclosure of content. <strong>But context escalates it</strong>: the
+      leaderboard is <em>pull</em>; a notification is <em>push</em> to thousands. Confirmed in the
+      schema: there is <strong>no leaderboard hide / opt-out flag</strong> — a player cannot remove
+      themselves from the board at all. That's the core gap.</p>
+      <h4>Featuring opt-out — ship the column day one</h4>
+      <p>Add one boolean <code>feature_in_notifications</code> (default <code>true</code>) on
+      <code>user</code>. Do <em>not</em> overload <code>email_marketing_consent</code> — that governs
+      <em>receiving</em>, not <em>being mentioned</em>. Column at launch (no backfill later); the
+      profile toggle UI can be a fast-follow.</p>
+      <h4>Offensive / impersonating names — BLOCKER</h4>
+      <p>Putting a user-chosen string into outbound mail/push effectively endorses it under our brand,
+      and there is <strong>no profanity/moderation filter today</strong>. Minimum bar: a server-side
+      profanity/blocklist check on the leader's <code>display_name</code> at send time; on failure,
+      <strong>fall back to generic copy</strong>. Do not launch personalized copy without this.</p>
+      <blockquote class="callout risk">
+        <strong>GDPR.</strong> Naming the leader to market to <em>others</em> processes the leader's
+        personal data for our promotional purpose — public-leaderboard legitimate interest covers
+        in-app display, not mass marketing. Safe stance: featuring requires opt-out availability
+        <em>and</em> name moderation; document the legitimate-interest basis + easy objection.
+      </blockquote>
+      <h4>Minimum viable safe version</h4>
+      <p>Personalize <strong>only if</strong> name passes the profanity/blocklist check
+      <strong>and</strong> <code>feature_in_notifications ≠ false</code>. Otherwise ship the
+      score-only generic line ("Un joueur a fait {{score}} aujourd'hui — viens le battre&nbsp;!"),
+      which is always safe.</p>
+    </div>
+  </details>
+
+  <h2 id="decisions">3. Decisions</h2>
+  <div class="decisions">
+    <div class="decision"><span class="num">1</span><div><strong>Both channels.</strong> Primary: a new evening <strong>push</strong> at ~18:00 UTC. Secondary: inject the leader line into the existing 19:00 <code>streak-risk-email</code>. No third e-mail.</div></div>
+    <div class="decision"><span class="num">2</span><div><strong>New <code>evening-nudge</code> worker</strong>, not an extension of streak-risk. Mirrors the streak block; mutual-exclusion lives <em>in the candidate query</em> so a streak-risk user is not double-nudged.</div></div>
+    <div class="decision"><span class="num">3</span><div><strong>One leader lookup per run.</strong> <code>leaderboardService.getTodayLeader()</code> returns <code>{ userId, displayName, totalScore } | null</code>; called once, passed into the loop. Reuses the deterministic, anon/catch-up-excluding <code>findByChallenge</code>.</div></div>
+    <div class="decision"><span class="num">4</span><div><strong>Pure copy fn in domain.</strong> <code>buildEveningNudge(locale, {...})</code> in <code>domain/services/</code>, zero infra imports, unit-tested across leader / empty / self / perfect / flagged-name branches.</div></div>
+    <div class="decision"><span class="num">5</span><div><strong>Edge cases.</strong> Empty board → generic, never fabricate. Recipient is leader → <span class="badge info">v1</span> suppress via <code>whereNot('id', leader.userId)</code> (defend-title copy is a fast-follow). Ties → already deterministic. Perfect score → "personne ne l'a encore battu" framing.</div></div>
+    <div class="decision"><span class="num">6</span><div><strong>Privacy gate is a LAUNCH BLOCKER.</strong> <span class="badge risk">blocker</span> Personalize only if the leader's <code>display_name</code> passes a profanity/blocklist check AND <code>feature_in_notifications ≠ false</code>; otherwise score-only generic copy.</div></div>
+    <div class="decision"><span class="num">7</span><div><strong>Ship the opt-out column day one.</strong> <code>feature_in_notifications BOOLEAN DEFAULT true</code> on <code>user</code> — separate from <code>email_marketing_consent</code>. Profile toggle UI is a fast-follow.</div></div>
+    <div class="decision"><span class="num">8</span><div><strong>Cooldown &amp; idempotency.</strong> New <code>last_evening_nudge_at TIMESTAMPTZ</code> column, 20&nbsp;h window, stamped on enqueue. Migration <code>20260610_add_evening_nudge_cooldown.ts</code>.</div></div>
+  </div>
+
+  <h2 id="ships">4. Proposed work (for the implementation PR)</h2>
+  <div class="ships">
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>tasks/evening-nudge-leader-subagents-meeting.html</code> — this record</span>
+      <span class="badge info">meeting</span>
+    </div>
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>migrations/20260610_add_evening_nudge_cooldown.ts</code> — <code>last_evening_nudge_at</code> + <code>feature_in_notifications</code></span>
+      <span class="badge info">db</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">edit</span>
+      <span><code>leaderboard.service.ts</code> — add <code>getTodayLeader()</code></span>
+      <span class="badge info">domain</span>
+    </div>
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>domain/services/evening-nudge-copy.ts</code> + unit tests</span>
+      <span class="badge info">domain</span>
+    </div>
+    <div class="ship">
+      <span class="badge ok">new</span>
+      <span><code>queue/workers/evening-nudge-logic.ts</code> + register cron in <code>index.ts</code></span>
+      <span class="badge info">worker</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">edit</span>
+      <span><code>streak-risk-email-logic.ts</code> — inject leader line when present + safe</span>
+      <span class="badge info">email</span>
+    </div>
+    <div class="ship">
+      <span class="badge warn">edit</span>
+      <span><code>locales/{fr,en}/translation.json</code> — <code>notifications.eveningNudge.*</code></span>
+      <span class="badge info">i18n</span>
+    </div>
+  </div>
+
+  <h2 id="open">5. Open / deferred</h2>
+  <ol>
+    <li><strong>Profile toggle UI</strong> for <code>feature_in_notifications</code> — fast-follow (column ships now).</li>
+    <li><strong>Defend-title push</strong> to the current leader — fast-follow; copy already drafted (<code>selfLeader</code> keys).</li>
+    <li><strong>Profanity filter source</strong> — reuse an existing blocklist or pull a French+English wordlist dependency? Owner: Backend, before the implementation PR.</li>
+    <li><strong>A/B plumbing</strong> — do we have an experiment-bucketing helper, or hardcode a 50/50 hash on user id for the 2-week test?</li>
+  </ol>
+
+  <h2 id="success">6. How we'll know it worked</h2>
+  <p>
+    Two-week A/B (personalized-with-leader vs. generic): the personalized arm shows a measurable
+    <b>play-rate uplift</b> on qualified-nudged users <em>without</em> a rise in push opt-out or
+    e-mail unsubscribe — and no correlation between <em>being featured as the leader</em> and that
+    user opting out. If personalization moves nothing, we keep the cheaper generic copy and drop the name.
+  </p>
+
+</main>
+
+<aside class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#why">1. Why this meeting</a></li>
+    <li><a href="#personas">2. The personas</a></li>
+    <li><a href="#decisions">3. Decisions</a></li>
+    <li><a href="#ships">4. Proposed work</a></li>
+    <li><a href="#open">5. Open / deferred</a></li>
+    <li><a href="#success">6. Success signal</a></li>
+  </ol>
+</aside>
+
+</div>
+
+<footer class="foot">
+  Generated 2026-06-09 · Meeting format mirrors
+  <a href="./html-first-subagents-meeting.html"><code>tasks/html-first-subagents-meeting.html</code></a> ·
+  Grounded in <code>streak-risk-email-logic.ts</code>, <code>leaderboard.repository.ts</code>, <code>push.service.ts</code>.
+</footer>
+
+<script>
+  // Active TOC highlight on scroll. Inline, vanilla.
+  (function () {
+    const links = Array.from(document.querySelectorAll('aside.toc a'));
+    const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!targets.length) return;
+    const setActive = (id) => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    const obs = new IntersectionObserver(entries => {
+      const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]) setActive(visible[0].target.id);
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    targets.forEach(t => obs.observe(t));
+  })();
+</script>
+
+</body>
+</html>
