@@ -336,6 +336,7 @@
     "totalScore": "Score Total",
     "correctAnswers": "Bonnes Réponses",
     "accuracy": "Précision",
+    "averageTime": "Temps moyen",
     "scoreQuality": {
       "label": "Qualité du score",
       "mastered": "Maîtrisé",

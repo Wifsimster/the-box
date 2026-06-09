@@ -20,14 +20,21 @@ export function SessionResultsList({
   results,
   totalScreenshots,
   reducedMotion = false,
+  columns = 1,
 }: {
   results: GuessResult[]
   totalScreenshots: number
   reducedMotion?: boolean
+  /** Lay the rows out in two balanced columns on wider screens (≥ md). */
+  columns?: 1 | 2
 }) {
   const { t } = useTranslation()
+  // Multi-column relies on CSS columns; framer's per-item x-transform can
+  // confuse `break-inside-avoid`, so the slide-in is dropped in that mode.
+  const isGrid = columns === 2
+  const animate = !reducedMotion && !isGrid
   return (
-    <ul className="space-y-2 sm:space-y-3 list-none">
+    <ul className={isGrid ? 'list-none gap-4 md:columns-2' : 'space-y-2 sm:space-y-3 list-none'}>
       {results.map((result, index) => {
         const isUnguessed =
           !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
@@ -39,10 +46,10 @@ export function SessionResultsList({
         return (
           <m.li
             key={result.position}
-            initial={reducedMotion ? false : { opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
-            className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
+            initial={animate ? { opacity: 0, x: -20 } : false}
+            animate={animate ? { opacity: 1, x: 0 } : undefined}
+            transition={animate ? { duration: 0.3, delay: index * 0.05 } : undefined}
+            className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isGrid ? 'break-inside-avoid mb-4' : ''} ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
               }`}
           >
             <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0 pt-0.5" aria-hidden="true">{result.position}.</span>

@@ -66,9 +66,9 @@ export function PlayerAnswersDialog({
 
   return (
     <ResponsiveDialog open={!!selectedPlayer} onOpenChange={(open) => !open && onClose()}>
-      <ResponsiveDialogContent className="sm:max-w-2xl">
+      <ResponsiveDialogContent className="sm:max-w-4xl">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-center gap-3 min-w-0 pr-8">
+          <ResponsiveDialogTitle className="flex items-center gap-3 min-w-0 pr-12">
             {selectedPlayer && (
               <>
                 <Avatar className="size-8 shrink-0">
@@ -108,6 +108,7 @@ export function PlayerAnswersDialog({
             totalPlayers={totalPlayers > 0 ? totalPlayers : null}
             shareEnabled={isOwn}
             reducedMotion={reducedMotion}
+            density="compact"
             bare
           />
         )}
