@@ -188,6 +188,7 @@ export interface GuessWithGameRecord {
   sessionElapsedMs: number
   scoreEarned: number
   powerUpUsed: string | null
+  hintFromInventory: boolean
   correctGameId: number
   correctGameName: string
   correctGameSlug: string
@@ -243,6 +244,8 @@ export interface SessionRepository {
     isCorrect: boolean
     sessionElapsedMs: number
     scoreEarned: number
+    powerUpUsed: string | null
+    hintFromInventory: boolean
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
   hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>

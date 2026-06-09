@@ -31,8 +31,14 @@ const TOTAL_SCREENSHOTS = 10
  *     `round_position === position`, which is never cleared after a correct
  *     guess), re-banking score and inserting another correct row.
  */
-function buildHarness() {
-  const guesses: Array<{ position: number; isCorrect: boolean }> = []
+function buildHarness(opts: { hintInInventory?: boolean } = {}) {
+  const guesses: Array<{
+    position: number
+    isCorrect: boolean
+    powerUpUsed: string | null
+    hintFromInventory: boolean
+    scoreEarned: number
+  }> = []
   const tierSession = {
     id: 'tier-1',
     user_id: 'user-1',
@@ -50,8 +56,20 @@ function buildHarness() {
   const sessionRepository = {
     withTierSessionLock: async <T>(_id: string, fn: () => Promise<T>) => fn(),
     findTierSessionWithContext: async () => ({ ...tierSession }),
-    saveGuess: async (data: { position: number; isCorrect: boolean }) => {
-      guesses.push({ position: data.position, isCorrect: data.isCorrect })
+    saveGuess: async (data: {
+      position: number
+      isCorrect: boolean
+      powerUpUsed: string | null
+      hintFromInventory: boolean
+      scoreEarned: number
+    }) => {
+      guesses.push({
+        position: data.position,
+        isCorrect: data.isCorrect,
+        powerUpUsed: data.powerUpUsed,
+        hintFromInventory: data.hintFromInventory,
+        scoreEarned: data.scoreEarned,
+      })
     },
     // Mirrors the repository: number of DISTINCT positions with a correct
     // guess. The just-saved guess is already visible here (autocommitted on a
@@ -103,7 +121,7 @@ function buildHarness() {
       updateStreak: async () => {},
       updateScore: async () => {},
     },
-    inventoryRepository: { useItems: async () => false },
+    inventoryRepository: { useItems: async () => !!opts.hintInInventory },
     gameRepository: { getGenresById: async () => [] },
     funnelEventRepository: { record: async () => {} },
     positionSecondChanceRepository: { findPending: async () => null },
@@ -111,7 +129,11 @@ function buildHarness() {
 
   const service = createGameService(deps)
 
-  const submit = (position: number, text: string) => {
+  const submit = (
+    position: number,
+    text: string,
+    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
+  ) => {
     // Simulate the client fetching the screenshot for `position`, which is the
     // only thing that stamps the round timer server-side.
     tierSession.round_position = position
@@ -124,6 +146,7 @@ function buildHarness() {
       guessText: text,
       roundTimeTakenMs: 5000,
       userId: 'user-1',
+      powerUpUsed,
     })
   }
 
@@ -182,5 +205,39 @@ describe('game.service submitGuess — completion tally', () => {
     const correct = await h.submit(1, 'right')
     assert.equal(correct.isCorrect, true)
     assert.equal(correct.screenshotsFound, 1)
+  })
+})
+
+describe('game.service submitGuess — hint persistence', () => {
+  it('persists powerUpUsed and the penalty path when the hint is not in inventory', async () => {
+    const h = buildHarness({ hintInInventory: false })
+    const res = await h.submit(1, 'right', 'hint_genre')
+    assert.equal(res.isCorrect, true)
+
+    const saved = h.guesses[0]!
+    assert.equal(saved.powerUpUsed, 'hint_genre', 'hint type must be persisted on the guess row')
+    assert.equal(saved.hintFromInventory, false)
+    // 5s round → 1.5x multiplier → 150 points, minus the 20% hint penalty (30).
+    assert.equal(saved.scoreEarned, 120, 'score must carry the 20% hint penalty')
+    assert.equal(res.hintPenalty, 30)
+  })
+
+  it('persists hintFromInventory=true and skips the penalty when the hint is in inventory', async () => {
+    const h = buildHarness({ hintInInventory: true })
+    const res = await h.submit(1, 'right', 'hint_year')
+    assert.equal(res.isCorrect, true)
+
+    const saved = h.guesses[0]!
+    assert.equal(saved.powerUpUsed, 'hint_year')
+    assert.equal(saved.hintFromInventory, true, 'inventory-paid hint must be flagged')
+    assert.equal(saved.scoreEarned, 150, 'inventory hint must not cost score')
+    assert.equal(res.hintFromInventory, true)
+  })
+
+  it('persists powerUpUsed=null for a plain guess', async () => {
+    const h = buildHarness()
+    await h.submit(1, 'right')
+    assert.equal(h.guesses[0]!.powerUpUsed, null)
+    assert.equal(h.guesses[0]!.hintFromInventory, false)
   })
 })

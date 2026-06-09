@@ -248,6 +248,8 @@ export const sessionRepository = {
     isCorrect: boolean
     sessionElapsedMs: number
     scoreEarned: number
+    powerUpUsed: string | null
+    hintFromInventory: boolean
   }): Promise<void> {
     log.info(
       {
@@ -269,6 +271,8 @@ export const sessionRepository = {
       time_taken_ms: data.sessionElapsedMs,
       session_elapsed_ms: data.sessionElapsedMs,
       score_earned: data.scoreEarned,
+      power_up_used: data.powerUpUsed,
+      hint_from_inventory: data.hintFromInventory,
     })
   },
 
@@ -420,6 +424,7 @@ export const sessionRepository = {
     sessionElapsedMs: number
     scoreEarned: number
     powerUpUsed: string | null
+    hintFromInventory: boolean
     correctGameId: number
     correctGameName: string
     correctGameSlug: string
@@ -451,6 +456,7 @@ export const sessionRepository = {
           session_elapsed_ms: number
           score_earned: number
           power_up_used: string | null
+          hint_from_inventory: boolean
           correct_game_id: number
           correct_game_name: string
           correct_game_slug: string
@@ -473,6 +479,7 @@ export const sessionRepository = {
         'guesses.session_elapsed_ms',
         'guesses.score_earned',
         'guesses.power_up_used',
+        'guesses.hint_from_inventory',
         'correct_game.id as correct_game_id',
         'correct_game.name as correct_game_name',
         'correct_game.slug as correct_game_slug',
@@ -505,6 +512,7 @@ export const sessionRepository = {
         sessionElapsedMs: row.session_elapsed_ms,
         scoreEarned: row.score_earned,
         powerUpUsed: row.power_up_used,
+        hintFromInventory: row.hint_from_inventory,
         correctGameId: row.correct_game_id,
         correctGameName: row.correct_game_name,
         correctGameSlug: row.correct_game_slug,

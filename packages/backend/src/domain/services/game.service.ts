@@ -754,6 +754,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
       // actually drove the score, not the client's self-report.
       sessionElapsedMs: effectiveTimeTakenMs,
       scoreEarned,
+      powerUpUsed: data.powerUpUsed ?? null,
+      hintFromInventory,
     })
 
     if (pendingSecondChanceActivationId !== null) {
