@@ -116,17 +116,22 @@ export const leaderboardRepository = {
       // refreshes don't shuffle rows.
       .orderByRaw('SUM(game_sessions.total_score) DESC, game_sessions.user_id ASC')
       .limit(limit)
-      .select<MonthlyLeaderboardRow[]>(
+      .select<(MonthlyLeaderboardRow & { dense_rank: string })[]>(
         'game_sessions.user_id',
         db.raw('SUM(game_sessions.total_score) as total_score'),
         db.raw('COUNT(game_sessions.id) as games_played'),
         'user.username',
         'user.display_name',
-        'user.avatar_url'
+        'user.avatar_url',
+        // DENSE_RANK so tied monthly totals share the same rank, matching
+        // the daily board instead of splitting ties by user id.
+        db.raw(
+          'DENSE_RANK() OVER (ORDER BY SUM(game_sessions.total_score) DESC) as dense_rank'
+        )
       )
 
-    return rows.map((row, index) => ({
-      rank: index + 1,
+    return rows.map((row) => ({
+      rank: Number(row.dense_rank),
       userId: row.user_id,
       username: row.username ?? 'Anonymous',
       displayName: row.display_name ?? row.username ?? 'Anonymous',
