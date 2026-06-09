@@ -15,6 +15,7 @@ import {
   type AchievementLeaderboardEntry,
 } from '@/components/leaderboard/LeaderboardPanels'
 import { PlayerAnswersDialog } from '@/components/leaderboard/PlayerAnswersDialog'
+import { useSession } from '@/lib/auth-client'
 import type { GameSessionDetailsResponse } from '@the-box/types'
 
 const formatDateForApi = (date: Date) => format(date, 'yyyy-MM-dd')
@@ -106,6 +107,8 @@ function sessionDialogReducer(
 
 export default function LeaderboardPage() {
   const { t, i18n } = useTranslation()
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id ?? null
   const [searchParams] = useSearchParams()
   const [boards, dispatchBoards] = useReducer(boardsReducer, initialBoards)
   const {
@@ -327,6 +330,8 @@ export default function LeaderboardPage() {
           playerSession={playerSession}
           sessionLoading={sessionLoading}
           sessionError={sessionError}
+          currentUserId={currentUserId}
+          totalPlayers={leaderboard.length}
           onClose={handleCloseDialog}
         />
       </div>
