@@ -4,35 +4,26 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
-import type { GameSessionDetailsResponse, GuessAttempt } from '@/types'
-
-export interface HistoryResultItem {
-  position: number
-  isCorrect: boolean
-  correctGame: GameSessionDetailsResponse['guesses'][0]['correctGame']
-  userGuess: string | null
-  timeTakenMs: number
-  scoreEarned: number
-  hintPenalty?: number
-  wrongGuessPenalty?: number
-  tryNumber: number
-  screenshot?: { thumbnailUrl?: string; imageUrl: string }
-  attempts: GuessAttempt[]
-}
+import type { GuessResult } from '@/types'
 
 /**
- * Per-screenshot results breakdown for a finished game session. Extracted
- * from GameHistoryDetailsPage so the page component stays focused on
- * data-fetching and the score header.
+ * Per-screenshot results breakdown for a finished game session. This is the
+ * single, canonical list rendering shared by every session-detail surface —
+ * the post-game results page, the game-history details page, and the
+ * leaderboard answers dialog — so they never drift apart again.
+ *
+ * Each row shows the screenshot thumbnail, the (revealed) game name, the
+ * score badge, every guess attempt, and — for correct guesses — the discovery
+ * time and speed multiplier. Unfound games render with the miss styling.
  */
-export function GameHistoryResultsList({
+export function SessionResultsList({
   results,
   totalScreenshots,
-  reducedMotion,
+  reducedMotion = false,
 }: {
-  results: HistoryResultItem[]
+  results: GuessResult[]
   totalScreenshots: number
-  reducedMotion: boolean
+  reducedMotion?: boolean
 }) {
   const { t } = useTranslation()
   return (
@@ -40,6 +31,7 @@ export function GameHistoryResultsList({
       {results.map((result, index) => {
         const isUnguessed =
           !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
+        const attempts = result.attempts ?? []
         const multiplier =
           result.isCorrect && result.scoreEarned > 0
             ? calculateSpeedMultiplier(result.timeTakenMs)
@@ -86,17 +78,17 @@ export function GameHistoryResultsList({
                   </Badge>
                 )}
               </div>
-              {isUnguessed && result.attempts.length === 0 && (
+              {isUnguessed && attempts.length === 0 && (
                 <span className="text-xs sm:text-sm text-destructive block mt-0.5">
                   {t('game.notFound')}
                 </span>
               )}
-              {result.attempts.length > 0 && (
+              {attempts.length > 0 && (
                 <>
                   <span className="text-xs text-muted-foreground block mt-0.5">
-                    {t('game.attempts.count', { count: result.attempts.length })}
+                    {t('game.attempts.count', { count: attempts.length })}
                   </span>
-                  <GuessAttemptsList attempts={result.attempts} />
+                  <GuessAttemptsList attempts={attempts} />
                 </>
               )}
               {result.isCorrect && result.timeTakenMs > 0 && (

@@ -1,6 +1,6 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Check, X, Minus, Clock } from 'lucide-react'
-import { formatDiscoveryTime } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   ResponsiveDialog,
@@ -8,29 +8,62 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/ui/responsive-dialog'
-import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
+import { SessionDetails } from '@/components/game/SessionDetails'
+import { mergeSessionResults } from '@/lib/sessionResults'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import type { GameSessionDetailsResponse } from '@the-box/types'
 import type { LeaderboardEntry } from './LeaderboardPanels'
 
 /**
- * Read-only modal showing another player's daily answers, opened from a
- * leaderboard row. Extracted from LeaderboardPage to keep that component
- * focused on data orchestration.
+ * Modal showing a player's daily answers, opened from a leaderboard row.
+ *
+ * It renders the same shared {@link SessionDetails} body as the post-game
+ * results and game-history pages — so it shows the full breakdown (score,
+ * ranking, per-screenshot results) instead of a stripped-down list. The
+ * ShareCard is only enabled when the row is the signed-in user's own score.
  */
 export function PlayerAnswersDialog({
   selectedPlayer,
   playerSession,
   sessionLoading,
   sessionError,
+  currentUserId,
+  totalPlayers,
   onClose,
 }: {
   selectedPlayer: LeaderboardEntry | null
   playerSession: GameSessionDetailsResponse | null
   sessionLoading: boolean
   sessionError: string | null
+  currentUserId: string | null
+  totalPlayers: number
   onClose: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const reducedMotion = useReducedMotionSafe()
+
+  const isOwn = Boolean(currentUserId) && selectedPlayer?.userId === currentUserId
+  const rank = selectedPlayer?.rank ?? null
+  // Derive "top X%" from the row's rank — the daily board has no separate
+  // percentile endpoint, but rank / total is the same information.
+  const percentile =
+    rank !== null && totalPlayers > 0
+      ? Math.max(1, Math.ceil((rank / totalPlayers) * 100))
+      : null
+
+  const results = useMemo(
+    () => (playerSession ? mergeSessionResults(playerSession) : []),
+    [playerSession],
+  )
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString(i18n.language, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
   return (
     <ResponsiveDialog open={!!selectedPlayer} onOpenChange={(open) => !open && onClose()}>
       <ResponsiveDialogContent className="sm:max-w-2xl">
@@ -63,81 +96,20 @@ export function PlayerAnswersDialog({
         )}
 
         {playerSession && !sessionLoading && (
-          <div className="space-y-4 min-w-0">
-            {/* Summary */}
-            <div className="flex justify-between items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-              <span className="text-muted-foreground truncate">{t('game.totalScore')}</span>
-              <span className="font-bold text-primary text-xl shrink-0">{playerSession.totalScore}</span>
-            </div>
-
-            {/* Guesses List — merged and sorted by position ascending */}
-            <div className="space-y-2">
-              {[
-                ...playerSession.guesses.map((guess) => ({ kind: 'guess' as const, position: guess.position, guess })),
-                ...playerSession.unfoundGames.map((unfound) => ({ kind: 'unfound' as const, position: unfound.position, unfound })),
-              ]
-                .sort((a, b) => a.position - b.position)
-                .map((item) =>
-                  item.kind === 'guess' ? (
-                    <div
-                      key={`guess-${item.position}`}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        item.guess.isCorrect ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'
-                      }`}
-                    >
-                      <div className="size-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
-                        {item.position}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{item.guess.correctGame.name}</div>
-                        {item.guess.attempts && item.guess.attempts.length > 0 ? (
-                          <>
-                            <span className="text-xs text-muted-foreground block mt-0.5">
-                              {t('game.attempts.count', { count: item.guess.attempts.length })}
-                            </span>
-                            <GuessAttemptsList attempts={item.guess.attempts} compact />
-                          </>
-                        ) : item.guess.userGuess ? (
-                          <div className="text-sm text-muted-foreground truncate">
-                            {t('game.yourGuess')}: {item.guess.userGuess}
-                          </div>
-                        ) : null}
-                        {item.guess.isCorrect && item.guess.timeTakenMs > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                            <Clock className="size-3 shrink-0" aria-hidden="true" />
-                            <span>{t('game.discoveryTime', { time: formatDiscoveryTime(item.guess.timeTakenMs) })}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {item.guess.isCorrect ? (
-                          <>
-                            <span className="text-success font-bold">+{item.guess.scoreEarned}</span>
-                            <Check className="size-5 text-success" />
-                          </>
-                        ) : (
-                          <X className="size-5 text-error" />
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      key={`unfound-${item.position}`}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border"
-                    >
-                      <div className="size-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
-                        {item.position}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate text-muted-foreground">{item.unfound.game.name}</div>
-                        <div className="text-sm text-muted-foreground">{t('leaderboard.skipped')}</div>
-                      </div>
-                      <Minus className="size-5 shrink-0 text-muted-foreground" />
-                    </div>
-                  ),
-                )}
-            </div>
-          </div>
+          <SessionDetails
+            results={results}
+            totalScore={playerSession.totalScore}
+            totalScreenshots={playerSession.totalScreenshots}
+            challengeDate={playerSession.challengeDate}
+            isPersonalBest={playerSession.isPersonalBest}
+            heroTitle={formatDate(playerSession.challengeDate)}
+            percentile={percentile}
+            rank={rank}
+            totalPlayers={totalPlayers > 0 ? totalPlayers : null}
+            shareEnabled={isOwn}
+            reducedMotion={reducedMotion}
+            bare
+          />
         )}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
