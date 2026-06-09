@@ -2,23 +2,28 @@
 
 ## Project Overview
 
-"The Box" is a gaming screenshot guessing application where players identify games from screenshots. Features include daily challenges with tiered difficulty, power-ups/hints, achievements, daily login rewards, and live leaderboards with real-time updates.
+"The Box" is a gaming screenshot guessing application where players identify games from screenshots. The classic mode is a daily challenge with tiered difficulty, power-ups/hints, achievements, daily login rewards, tournaments, and live leaderboards with real-time updates. It also ships a second game mode (**Geo Mode** – pinpoint where a screenshot was taken on a game map), a **premium subscription** tier (Stripe), a **referral** program, **web push** notifications, two-factor auth/passkeys, and a key-authenticated **public API / streamer kit** with outbound webhooks.
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite 7 + TypeScript + TailwindCSS v4 + Zustand + i18next + react-router-dom 7
+- **Frontend**: React 19 + Vite 7 + TypeScript + TailwindCSS v4 + Zustand + i18next + react-router-dom 7 (PWA)
 - **Backend**: Node.js 24 + Express 5 + Knex.js + Kysely + Socket.io 4 (Clean Architecture)
 - **Database**: PostgreSQL 16 (via Docker)
-- **Authentication**: Better Auth (session-based, email/password)
-- **Job Queue**: BullMQ + Redis for background tasks
-- **Email**: Resend for transactional emails (password reset)
+- **Authentication**: Better Auth (session-based, email/password) + TOTP 2FA and passkeys
+- **Job Queue**: BullMQ + Redis (imports, daily challenge, geo ingestion, push fan-out, emails, webhook delivery, leaderboard payouts)
+- **Payments**: Stripe (premium subscription + lifetime supporter; Checkout + Billing Portal + webhooks)
+- **Web Push**: W3C Web Push via VAPID, rendered by the PWA service worker
+- **Email**: Resend (password reset, lifecycle / re-engagement)
+- **Maps (Geo Mode)**: Leaflet tile rendering over ingested game maps
 - **Screenshot Viewer**: Embla Carousel (`ScreenshotViewer` shows the current screenshot with prev/next pre-loaded)
 - **Decorative 3D**: Three.js / React Three Fiber (used only by `CubeBackground` on the home page)
 - **Animation**: Framer Motion
 - **Forms**: React Hook Form + Zod validation
 - **UI Primitives**: Radix UI + Shadcn components, Lucide icons
-- **Testing**: Playwright for E2E tests
-- **Monorepo**: npm workspaces
+- **Analytics**: GoatCounter + Koe feedback widget (HMAC identity)
+- **Marketing**: Remotion (`@the-box/marketing-video`) for rendered promo videos
+- **Testing**: Node test runner (unit) + Playwright (E2E, incl. a11y & visual-regression)
+- **Monorepo**: npm workspaces (`types`, `backend`, `frontend`, `marketing-video`)
 - **Logging**: Pino (with pino-pretty in dev)
 - **Validation**: Zod (both frontend and backend)
 
@@ -34,79 +39,82 @@ the-box/
 ├── tsconfig.json             # Root TS config
 ├── commitlint.config.js      # Conventional commits rules
 ├── .husky/                   # Git hooks (commit-msg validation)
-├── .github/workflows/        # release.yml (manual release + multi-arch docker)
+├── .github/workflows/        # release, security review, GitHub Pages (docs/*.html)
 ├── .claude/                  # Project-specific Claude Code config + this file
-├── tasks/                    # Task PRDs (markdown)
-├── docs/                     # Architecture / API / feature docs
+├── AGENT.md                  # French autonomous-agent brief (read before automated edits)
+├── tasks/                    # Task PRDs (markdown + HTML)
+├── docs/                     # Architecture / API / feature docs (md + some html)
 ├── scripts/                  # db-backup helpers
+├── secrets/                  # Docker secret mounts (gitkeep only)
 ├── backups/                  # DB backup storage (gitignored volume)
 ├── uploads/                  # Game screenshot storage (gitignored volume)
 └── packages/
     ├── types/                # @the-box/types - Shared TypeScript types
     │   └── src/index.ts      # All domain types exported here
+    ├── marketing-video/      # @the-box/marketing-video - Remotion promo compositions
     ├── backend/              # @the-box/backend - Express API (Clean Architecture)
     │   ├── src/
     │   │   ├── index.ts            # Entrypoint (boots HTTP + Socket + workers)
-    │   │   ├── config/             # Environment/config loading
+    │   │   ├── config/             # env.ts, billing.ts (Stripe prices), themes.ts
     │   │   ├── domain/services/    # Business logic (no infra deps)
-    │   │   │   ├── achievement.service.ts
-    │   │   │   ├── admin.service.ts
-    │   │   │   ├── auth.service.ts
-    │   │   │   ├── daily-login.service.ts
-    │   │   │   ├── fuzzy-match.service.ts  # Game name matching
-    │   │   │   ├── game.service.ts
-    │   │   │   ├── job.service.ts
-    │   │   │   ├── leaderboard.service.ts
-    │   │   │   └── user.service.ts
+    │   │   │   ├── achievement / admin / auth / daily-login / user
+    │   │   │   ├── fuzzy-match.service.ts          # Game name matching
+    │   │   │   ├── game / leaderboard / job
+    │   │   │   ├── geo-*.service.ts                # consensus, contributor, game,
+    │   │   │   │                                   # metadata, reward, scoring, tile-url
+    │   │   │   ├── billing / referral / rewards / push
+    │   │   │   ├── sandbox.service.ts              # `boxbot` public-API demo streamer
+    │   │   │   ├── webhook-dispatch / webhook-signer
+    │   │   │   └── display-name-safety, evening-nudge-copy
     │   │   ├── infrastructure/
-    │   │   │   ├── auth/          # Better Auth setup
+    │   │   │   ├── auth/          # Better Auth (+ 2FA / passkey)
+    │   │   │   ├── crypto/        # secret encryption at rest
     │   │   │   ├── database/      # Knex + Kysely connection
+    │   │   │   ├── email/         # Resend client + templates
     │   │   │   ├── logger/        # Pino logger
-    │   │   │   ├── queue/         # BullMQ connection + queues + workers/
-    │   │   │   ├── repositories/  # achievement, challenge, daily-login,
-    │   │   │   │                  # game, import-state, inventory,
-    │   │   │   │                  # leaderboard, screenshot, session, user
+    │   │   │   ├── push/          # Web Push (VAPID) sender
+    │   │   │   ├── queue/         # BullMQ connection + queues.ts + workers/
+    │   │   │   ├── redis/         # Redis client
+    │   │   │   ├── repositories/  # ~30 repos (game, challenge, geo-*, subscription,
+    │   │   │   │                  # reward, webhook, api-key, push-subscription, …)
+    │   │   │   ├── stripe/        # Stripe client
     │   │   │   └── socket/        # Socket.io setup
     │   │   ├── presentation/
-    │   │   │   ├── routes/        # achievement, admin, auth, daily-login,
-    │   │   │   │                  # game, leaderboard, user
-    │   │   │   └── middleware/    # auth, validation, request logging
-    │   │   └── tools/             # CLI (screenshot-fetcher via RAWG API)
+    │   │   │   ├── routes/        # achievement, admin, auth, daily-login, game,
+    │   │   │   │                  # leaderboard, user, geo, geo-fetch, billing,
+    │   │   │   │                  # billing-webhook, push, referral, rewards,
+    │   │   │   │                  # public (+ public-sse), streamer-keys, koe,
+    │   │   │   │                  # og, screenshot-report
+    │   │   │   └── middleware/    # auth, validation, request logging, rate limit
+    │   │   └── tools/             # screenshot-fetcher (RAWG) + steam-screenshot-fetcher
     │   ├── migrations/            # Knex TS migrations (date-prefixed)
-    │   ├── seeds/                 # DB seed files
-    │   ├── scripts/               # e2e-seed.ts and utilities
+    │   ├── seeds/                 # DB seed files (incl. geo seed)
+    │   ├── scripts/               # e2e-seed, stripe-check, generate-vapid, utilities
     │   ├── data/                  # JSON seed data
     │   └── knexfile.ts            # Knex config
-    └── frontend/                  # @the-box/frontend - React SPA
+    └── frontend/                  # @the-box/frontend - React SPA (+ PWA)
         ├── src/
         │   ├── main.tsx           # App bootstrap
         │   ├── App.tsx            # Router + providers
-        │   ├── components/
-        │   │   ├── achievement/   # Cards, grid, notifications
-        │   │   ├── admin/         # Admin panels (games, users, jobs, challenges)
-        │   │   ├── backgrounds/   # Visual backgrounds
-        │   │   ├── daily-login/   # Reward modal, calendar, badge
-        │   │   ├── game/          # Viewer, hints, input, results
-        │   │   ├── layout/        # Header, Footer, PageHero
-        │   │   ├── profile/       # Profile UI
-        │   │   ├── ui/            # Shadcn/Radix primitives
-        │   │   └── ErrorBoundary.tsx
-        │   ├── pages/             # 17 route pages (Home, Game, Leaderboard,
-        │   │                      # Profile, Admin, History, Legal, Auth...)
-        │   ├── hooks/             # useAuth, useGameGuess, useIsMobile,
-        │   │                      # useKeyboardHeight, useLocalizedPath,
-        │   │                      # useNextDailyCountdown, usePercentileRank,
-        │   │                      # useWorldScore
-        │   ├── lib/               # Utilities, API client, i18n setup
-        │   ├── services/          # scoring, validation, search, submission,
-        │   │                      # leaderboard (client-side logic)
-        │   ├── stores/            # Zustand: auth, game, achievement,
-        │   │                      # dailyLogin, admin
+        │   ├── sw.ts              # PWA / push service worker
+        │   ├── components/        # achievement, admin, backgrounds, daily-login,
+        │   │                      # game, geo, history, home, layout, onboarding,
+        │   │                      # pricing, profile, pwa, rewards, security, ui
+        │   ├── pages/             # ~23 route pages (Home, Game, Leaderboard, Profile,
+        │   │                      # PublicProfile, Admin, History, GeoPlay,
+        │   │                      # GeoContribute, Pricing, SecuritySettings,
+        │   │                      # TwoFactorChallenge, FAQ, Contact, Legal, Auth...)
+        │   ├── hooks/             # useAuth, useGameGuess, useWebPush, useGeoHealth,
+        │   │                      # useGeoRunPolling, useFullscreen, useReferralCapture…
+        │   ├── lib/               # Utilities, API client (incl. koe), i18n, analytics
+        │   ├── services/          # guessSubmission, leaderboard (client-side logic)
+        │   ├── stores/            # Zustand: auth, game, achievement, dailyLogin,
+        │   │                      # admin, billing, geo, geoFetch, geoFreePlay, rewards
         │   ├── utils/             # Helpers
         │   └── types/             # Frontend-only types
-        ├── e2e/                   # Playwright specs (achievements, admin-users,
-        │                          # auth, daily-game, daily-login, history,
-        │                          # leaderboard, profile, registration)
+        ├── e2e/                   # Playwright specs (auth, daily-game, leaderboard,
+        │                          # geo-*, billing, referral, rewards, streamer-kit,
+        │                          # a11y-smoke, visual-regression, …)
         ├── public/locales/        # i18n translations (en, fr)
         ├── vite.config.ts
         ├── playwright.config.ts
@@ -115,17 +123,33 @@ the-box/
 
 ## Features
 
+**Classic mode**
 - **Daily Challenges**: New challenge each day with tiered difficulty (Easy → Hard)
 - **Per-Screenshot Countdown Timer**: 45s per screenshot (`tiers.time_limit_seconds` → `ScreenshotResponse.timeLimitSeconds`); running out is a permanent miss (`timed_out`). Time is a per-position active-time budget (`PositionState.timeSpentMs`) that pauses on navigation and resumes on return, so skipping away and back can't reset it
 - **Catch-Up Mode**: Play missed challenges from the last 7 days (scores don't count for leaderboard)
 - **Hint System**: Power-ups reveal hints (release year, developer, publisher) and timer extensions
-- **Achievements**: Unlockable achievements including beginner-tier entries
-- **Daily Login Rewards**: Streak-based rewards with calendar display
-- **Leaderboards**: Daily and monthly rankings with Socket.io live updates
-- **User Profiles**: Stats, game history, achievement display
-- **Admin Panel**: Game management, user management, job queue monitoring, challenge management
+- **Achievements**: Unlockable achievements (beginner-tier + mastery / account-age milestones)
+- **Daily Login Rewards**: Streak-based rewards (UTC boundaries, streak-freeze) with calendar display
+- **Reward grants / chests**: Day-7 chest and other reward grants (`rewards` store + routes)
+- **Leaderboards**: Daily and monthly rankings with Socket.io live updates + periodic payouts
+- **Tournaments**: Weekly + monthly, created/closed by scheduled jobs
+
+**Geo Mode**
+- **Geo Play**: Pinpoint where a screenshot was taken on the game map (Leaflet); distance-based scoring
+- **Geo Contribute**: Eligible players place/confirm pins; consensus service resolves ground truth
+- **Ingestion pipeline**: BullMQ workers import maps & screenshots from many sources (RAWG, Steam, Fandom, Fextralife, StrategyWiki, MapGenie/Wand, Wikidata, registry); admin Geo-Fetch panel drives it (`docs/geo-mode.md`)
+
+**Account & monetization**
+- **Premium / Lifetime Supporter**: Stripe Checkout + Billing Portal, premium-only features (`docs/billing-stripe.md`)
+- **Referrals**: Invite codes, capture on signup, reward announcements
+- **Two-Factor Auth & Passkeys**: TOTP + WebAuthn via Better Auth (`SecuritySettingsPage`, `TwoFactorChallengePage`)
+- **Web Push**: Daily-challenge / streak-risk notifications via VAPID + service worker (`docs/push.md`)
+- **Public API / Streamer Kit**: Read-only, key-authenticated HTTP API + SSE + outbound webhooks; `boxbot` sandbox streamer (`docs/public-api.md`)
+
+**Platform**
+- **User Profiles**: Stats, game history, achievement display; public shareable profiles + OG images
+- **Admin Panel**: Games, users, job queue, challenges, geo ingestion, screenshot reports, audit log
 - **i18n**: French (default) + English, translations under `public/locales/`
-- **Tournaments**: Tournament-style competition (migration `20260115_add_tournaments.ts`)
 
 ## Development Commands
 
@@ -161,26 +185,31 @@ npm test                # All package tests
 npm run db:migrate              # Run all pending migrations
 npm run db:rollback             # Rollback last migration
 npm run db:seed                 # Run seeds
+npm run db:seed:geo             # Seed the Geo-mode demo (Elden Ring)
 
 # From packages/backend
 npm run db:make-migration name  # Create new .ts migration
 npm run e2e:seed                # Seed DB for Playwright runs
+npm run stripe:check            # Validate Stripe price/config wiring
+npm run vapid:generate          # Generate VAPID keypair for web push
 ```
 
 ## Testing Commands
 
 ```bash
 # Root
-npm test                        # Run tests in all workspaces
+npm test                        # Run tests in all workspaces (Node test runner, unit)
 
 # Playwright (from packages/frontend)
 npm run test:e2e                # Headless
 npm run test:e2e:ui             # Interactive UI mode
 npm run test:e2e:headed         # Headed browser
 npm run test:e2e:debug          # Debug mode
+npm run test:e2e:a11y           # a11y-smoke spec
+npm run test:e2e:visual         # visual-regression spec (--visual:update to refresh)
 ```
 
-E2E specs cover: `achievements`, `admin-users`, `auth`, `daily-game`, `daily-login`, `history`, `leaderboard`, `profile`, `registration`.
+E2E specs cover: `auth` (+ rate-limit), `registration`, `daily-game`, `daily-login`, `countdown`, `history`, `leaderboard`, `achievements`, `profile`, `public-profile-share`, `admin-users`, `geo-play/contribute/admin`, `billing-webhook`, `referral`, `rewards`, `streamer-kit`, `i18n-switch`, `theme-switcher`, `a11y-smoke`, `visual-regression`.
 
 ## Docker / Release Commands
 
@@ -205,6 +234,18 @@ Release workflow (`.github/workflows/release.yml`) is triggered manually and pub
 npm run fetch:games     # Fetch game metadata from RAWG
 npm run fetch:download  # Download screenshots
 npm run fetch:all       # Fetch + download in one pass
+
+# Steam variant
+npm run fetch:steam
+npm run fetch:steam-download
+npm run fetch:steam-all
+```
+
+## Marketing Video (Remotion)
+
+```bash
+npm run dev:video       # Remotion preview/studio (@the-box/marketing-video)
+npm run render:video    # Render the promo composition
 ```
 
 ## Clean Architecture (Backend)
@@ -212,18 +253,18 @@ npm run fetch:all       # Fetch + download in one pass
 The backend follows a 3-layer architecture with strict dependency direction (presentation → domain → infrastructure, domain has no outward deps):
 
 1. **Domain Layer** (`src/domain/services/`)
-   - Pure business logic: scoring, fuzzy matching, achievement evaluation, daily login streak logic
+   - Pure business logic: scoring, fuzzy matching, achievement evaluation, daily-login streak logic, geo consensus/scoring, billing rules, reward grants, webhook signing
    - No DB, HTTP, or external-service imports
 
 2. **Infrastructure Layer** (`src/infrastructure/`)
    - Repositories (Knex/Kysely) for all data access
-   - Better Auth, Socket.io server, BullMQ workers, Pino logger
-   - Queues under `queue/queues.ts`; workers under `queue/workers/` (import, sync, daily-challenge, cleanup)
+   - Better Auth (+ 2FA/passkey), Socket.io server, Stripe, Web Push, Resend, BullMQ workers, Pino logger
+   - Queues under `queue/queues.ts`; workers under `queue/workers/` (import, sync, daily-challenge, geo ingestion, push fan-out, lifecycle emails, webhook delivery, leaderboard payouts, cleanup)
 
 3. **Presentation Layer** (`src/presentation/`)
    - Thin Express controllers in `routes/*.routes.ts`
-   - Middleware: auth (session check), validation (Zod), request logging
-   - All routes mounted under `/api/` prefix
+   - Middleware: auth (session check), validation (Zod), request logging, rate limiting
+   - App routes mounted under `/api/`; the public API under `/api/public/` (key-authenticated)
 
 ## Key Conventions
 
@@ -259,16 +300,29 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_SSL` | Toggle SSL for the DB connection |
 | `REDIS_URL` | Redis connection string (BullMQ) |
 | `BETTER_AUTH_SECRET` | Auth secret (min 32 chars; `openssl rand -base64 32`) |
 | `API_URL` | Public backend URL (used by Better Auth callbacks) |
+| `FRONTEND_URL` | Public frontend URL (email links, redirects) |
 | `CORS_ORIGIN` | Allowed frontend origin |
 | `PORT` | Backend port (default 3000) |
+| `LOG_LEVEL` | Pino log level |
 | `RESEND_API_KEY` | Resend email API key (optional, for password reset) |
 | `EMAIL_FROM` | Sender address |
+| `RELANCE_EMAIL_ENABLED` / `_CRON` | Re-engagement email job toggle + schedule |
+| `INACTIVE_USER_REMINDER_ENABLED` / `_CRON` / `_DAYS` | Inactive win-back email job config |
+| `STRIPE_SECRET_KEY` | Stripe API key (billing) |
+| `STRIPE_WEBHOOK_SECRET` | Verifies Stripe webhook signatures |
+| `STRIPE_CHECKOUT_SUCCESS_URL` / `_CANCEL_URL` | Checkout redirect URLs |
+| `STRIPE_PORTAL_RETURN_URL` / `STRIPE_PORTAL_CONFIG_ID` | Billing Portal config |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (VAPID) keys |
+| `KOE_IDENTITY_SECRET` | Optional — HMAC secret for the Koe feedback widget |
 | `RAWG_API_KEY` | Optional, for screenshot-fetcher + admin game imports |
 | `VITE_API_URL` | Frontend API base URL |
 | `VITE_USE_MOCK_API` | If `true`, frontend uses mock services |
+| `VITE_KOE_PROJECT_KEY` / `VITE_KOE_API_URL` | Koe feedback widget config |
+| `VITE_GOATCOUNTER_URL` | GoatCounter analytics endpoint |
 
 See `.env.example` for defaults. In production (single Docker image) the Node server serves the built frontend on port 80 and exposes the API under `/api/`.
 
@@ -284,12 +338,17 @@ See `.env.example` for defaults. In production (single Docker image) the Node se
 
 Detailed docs live in `docs/`:
 
-- `architecture.md` — Clean architecture overview
-- `authentication.md`, `better-auth-setup.md` — Auth flow
+- `architecture.md` (+ `architecture.html`) — Clean architecture overview
+- `authentication.md`, `better-auth-setup.md` — Auth flow (incl. 2FA / passkeys)
 - `game-flow.md` — Scoring, tiers, challenge mechanics
-- `api.md` — REST endpoint reference
+- `geo-mode.md` — Geo mode mechanics + ingestion pipeline
+- `billing-stripe.md` — Premium subscription + lifetime supporter
+- `push.md` — Web Push lifecycle (VAPID, fan-out, service worker)
+- `public-api.md` (+ `public-api.openapi.yaml`), `streamer-kit.html` — Public API / streamer kit
+- `api.md` — Internal REST endpoint reference
 - `database.md` — Schema
 - `realtime.md` — Socket.io events
+- `ui-tokens.md`, `oxygen-design-system.md` — Design tokens / system
 
 ## HTML-First Artifacts
 
