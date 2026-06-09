@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>The Box — 31 Viral-Product Principles Review</title>
+<!-- SUMMARY:
+Scores The Box's landing/pricing/marketing surfaces against Marc Lou's "31 Principles of a Viral Product".
+Verdict: 6 PASS, 14 PARTIAL, 11 FAIL. Biggest gaps: no testimonials/social proof, no founder presence,
+no problem/empathy framing, hero leads with brand name not value, multiple competing CTAs, "does one thing" violated.
+Notable code finding: supporter_lifetime tier exists in types + docs but is NOT in BILLING_CATALOG (no purchasable one-time option).
+Caveat: principles target paid SaaS landing pages; The Box is a freemium daily game, so "no free plan / hard paywall / no subscription" are intentionally off-strategy, not bugs.
+-->
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #14141c;
+    --panel-2: #1a1a24;
+    --border: #2a2a38;
+    --text: #e7e7ef;
+    --muted: #a0a0b2;
+    --primary: #a855f7;
+    --pass: #4ade80;
+    --partial: #fbbf24;
+    --fail: #f87171;
+    --na: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .wrap { max-width: 78ch; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h1 .glow { color: var(--primary); text-shadow: 0 0 24px rgba(168,85,247,.45); }
+  h2 { font-size: 1.35rem; margin: 3rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+  h3 { font-size: 1.05rem; margin: 1.5rem 0 .4rem; }
+  p, li { color: var(--text); }
+  .lead { color: var(--muted); font-size: 1.05rem; }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
+  code { background: var(--panel-2); padding: .1em .4em; border-radius: 4px; color: #d6bcfa; }
+  a { color: var(--primary); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .meta { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
+
+  /* scoreboard */
+  .board { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0; }
+  .stat { flex: 1 1 120px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; }
+  .stat .n { font-size: 1.8rem; font-weight: 700; font-family: "JetBrains Mono", monospace; }
+  .stat .l { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .n.pass { color: var(--pass); } .n.partial { color: var(--partial); }
+  .n.fail { color: var(--fail); } .n.na { color: var(--na); }
+
+  .badge { display: inline-block; font-family: "JetBrains Mono", monospace; font-size: .72rem; font-weight: 700;
+           padding: .15em .55em; border-radius: 5px; letter-spacing: .04em; vertical-align: middle; }
+  .badge.pass { background: rgba(74,222,128,.14); color: var(--pass); border: 1px solid rgba(74,222,128,.35); }
+  .badge.partial { background: rgba(251,191,36,.13); color: var(--partial); border: 1px solid rgba(251,191,36,.35); }
+  .badge.fail { background: rgba(248,113,113,.13); color: var(--fail); border: 1px solid rgba(248,113,113,.35); }
+  .badge.na { background: rgba(107,114,128,.15); color: #9aa0ad; border: 1px solid rgba(107,114,128,.4); }
+
+  .principle { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; margin: .75rem 0; overflow: hidden; }
+  .principle > summary { list-style: none; cursor: pointer; padding: .85rem 1.1rem; display: flex; align-items: baseline; gap: .6rem; }
+  .principle > summary::-webkit-details-marker { display: none; }
+  .principle > summary:hover { background: var(--panel-2); }
+  .principle .num { font-family: "JetBrains Mono", monospace; color: var(--muted); font-size: .8rem; min-width: 1.6rem; }
+  .principle .ptitle { font-weight: 600; flex: 1; }
+  .principle .body { padding: 0 1.1rem 1.1rem 1.1rem; border-top: 1px solid var(--border); }
+  .principle .body p { margin: .7rem 0; }
+  .principle .body .lbl { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .1rem; }
+
+  blockquote { margin: .5rem 0; padding: .4rem .9rem; border-left: 3px solid var(--primary); background: var(--panel-2); color: var(--muted); border-radius: 0 6px 6px 0; }
+
+  .callout { border: 1px solid var(--border); border-left: 3px solid var(--partial); background: var(--panel); border-radius: 0 8px 8px 0; padding: .9rem 1.1rem; margin: 1.25rem 0; }
+  .callout.danger { border-left-color: var(--fail); }
+  .callout h3 { margin-top: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .92rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+
+  ol.recs { padding-left: 1.2rem; }
+  ol.recs li { margin: .5rem 0; }
+  .tag { font-size: .72rem; font-family: "JetBrains Mono", monospace; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Box vs. the <span class="glow">31 Principles of a Viral Product</span></h1>
+  <p class="meta">Review packet · 2026-06-09 · audience: engineering · source: Marc Lou, "31 Principles of a Viral Product" (Just Ship It, 2026-06-09)</p>
+
+  <p class="lead">A pass over The Box's landing, pricing, OG, and copy surfaces against Lou's 31 patterns. These are a compass, not a checklist &mdash; and several principles are written for paid-SaaS landing pages, while The Box is a <strong>freemium daily game</strong>. Where a "failure" is actually a deliberate, defensible strategy difference, it's flagged as such rather than treated as a defect.</p>
+
+  <div class="board">
+    <div class="stat"><div class="n pass">6</div><div class="l">Pass</div></div>
+    <div class="stat"><div class="n partial">14</div><div class="l">Partial</div></div>
+    <div class="stat"><div class="n fail">11</div><div class="l">Fail</div></div>
+  </div>
+
+  <div class="callout danger">
+    <h3>⚠ Code finding worth a ticket (independent of the principles)</h3>
+    <p>The <code>supporter_lifetime</code> tier is a first-class <code>BillingTier</code> in <code>packages/types/src/index.ts:1331</code> and is fully documented in <code>docs/billing-stripe.md</code> (one-time "supporter à vie" payment, dedicated webhook branch, <code>users.supporter_lifetime_at</code> column). But it is <strong>not present in <code>BILLING_CATALOG</code></strong> (<code>packages/backend/src/config/billing.ts</code>) &mdash; only <code>premium_monthly</code> and <code>premium_annual</code> are. So there is no resolvable price / purchasable path for the lifetime option today. This is exactly the one-time-payment lever principle&nbsp;#27 argues for, sitting half-wired in the codebase. Either finish wiring it or prune the dead tier from types/docs.</p>
+  </div>
+
+  <h2>Per-principle scorecard</h2>
+  <p class="meta">Click any row to expand evidence + recommendation.</p>
+
+  <!-- 1 -->
+  <details class="principle">
+    <summary><span class="num">01</span><span class="ptitle">No free plan</span><span class="badge fail">FAIL*</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>There is an explicit <code>Free</code> tier (€0) on <code>PricingPage.tsx</code> + <code>FreePricingCard.tsx</code>, plus anonymous guest play of the daily challenge.</p>
+      <p class="lbl">Verdict</p>
+      <p><strong>Deliberate, not a defect.</strong> A daily-puzzle game lives and dies on top-of-funnel reach; the free daily challenge <em>is</em> the viral loop. Lou's "no free plan" is a B2B-SaaS rule that doesn't map. Keep the free tier; just make the premium upgrade trigger sharper (see #25, #8).</p>
+    </div>
+  </details>
+
+  <!-- 2 -->
+  <details class="principle">
+    <summary><span class="num">02</span><span class="ptitle">Three colors</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Design system is a dark gaming theme with purple/pink <em>gradients</em> plus cyan accents (OG image uses purple→pink→cyan), neon glows, glassmorphism on the premium teaser.</p>
+      <p class="lbl">Verdict</p>
+      <p>The intent ("one color for the action") is mostly there &mdash; primary actions use the gaming gradient. But multiple competing accents + glassmorphism dilute focus. Note the repo's own HTML-doc rule already bans glassmorphism and caps "one neon glow per page" &mdash; the product UI is held to a looser bar than the docs. Tighten toward: dark bg, one accent for the play CTA.</p>
+    </div>
+  </details>
+
+  <!-- 3 -->
+  <details class="principle">
+    <summary><span class="num">03</span><span class="ptitle">Numbers instead of adjectives</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence — EN subtitle (<code>home.subtitle</code>)</p>
+      <blockquote>"Daily video game challenges with screenshot guessing, speed-based scoring, <strong>21 achievements</strong> to unlock, live leaderboards, and win streaks…"</blockquote>
+      <p class="lbl">Evidence — FR subtitle</p>
+      <blockquote>"Une capture, un jeu à reconnaître. Voyons si ta culture gaming tient encore debout."</blockquote>
+      <p class="lbl">Verdict</p>
+      <p>EN does the numbers thing ("21 achievements", "7 days"). FR has zero numbers (it's pure attitude). The two locales aren't pursuing the same strategy &mdash; the FR is more memorable (#18) but less concrete. Add a number to FR; add the "45s per screenshot" hook to both (it's the most concrete, distinctive mechanic and isn't surfaced in marketing at all).</p>
+    </div>
+  </details>
+
+  <!-- 4 -->
+  <details class="principle">
+    <summary><span class="num">04</span><span class="ptitle">A footer people want to share</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p><code>Footer.tsx</code> is legal/utility links only: Terms, Privacy, Cookies, FAQ, Game Rules, Contact, copyright + build version.</p>
+      <p class="lbl">Verdict</p>
+      <p>No shareable closing moment. The natural "finish strong" asset already exists elsewhere — the daily completion messages and the OG share card. Surface a "share your result" / streak flex in the footer or post-game screen instead of ending on legalese.</p>
+    </div>
+  </details>
+
+  <!-- 5 -->
+  <details class="principle">
+    <summary><span class="num">05</span><span class="ptitle">OG image = YouTube thumbnail</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p><code>og.routes.ts</code> renders a 1200×630 SVG/PNG: "THE BOX" wordmark, the formatted date, tagline ("Guess the game from a screenshot."), and a CTA pill ("Play today's challenge"). Good caching, PNG fallback for Twitter/iMessage.</p>
+      <p class="lbl">Verdict</p>
+      <p>Technically solid, visually generic. It's a text card, not a thumbnail with intrigue. It shows <em>no screenshot</em> &mdash; the entire hook of the game is "can you name THIS?" Put a (blurred/cropped) piece of today's actual screenshot on the card with a "Can you name it?" overlay. That's a thumbnail people click.</p>
+    </div>
+  </details>
+
+  <!-- 6 -->
+  <details class="principle">
+    <summary><span class="num">06</span><span class="ptitle">One idea per screen</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Home stacks: hero, daily CTA, premium teaser, achievement teaser. The EN subtitle alone lists 6 features in one sentence.</p>
+      <p class="lbl">Verdict</p>
+      <p>Section-level structure is reasonably one-idea-per-block, but the hero sub-headline tries to say everything. Cut it to one idea: the challenge. Let the lower sections carry achievements/premium.</p>
+    </div>
+  </details>
+
+  <!-- 7 -->
+  <details class="principle">
+    <summary><span class="num">07</span><span class="ptitle">Headline a fifth grader understands</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>The h1 is literally just the brand: "The Box". Meaning is carried entirely by the subtitle.</p>
+      <p class="lbl">Verdict</p>
+      <p>"The Box" is simple words but conveys nothing about the product on its own (also see #20). The OG tagline "Guess the game from a screenshot" is the real fifth-grade headline — promote it into the hero h1 (or as an h2 directly under the wordmark).</p>
+    </div>
+  </details>
+
+  <!-- 8 -->
+  <details class="principle">
+    <summary><span class="num">08</span><span class="ptitle">Hard paywall</span><span class="badge fail">FAIL*</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p><strong>Intentional.</strong> Same reasoning as #1 — a hard paywall would kill the daily-habit funnel. Validation here comes from retention/streaks, not credit-card-before-data. Not applicable as written.</p>
+    </div>
+  </details>
+
+  <!-- 9 -->
+  <details class="principle">
+    <summary><span class="num">09</span><span class="ptitle">Copy only you could write</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>FR copy is distinctive and voicey ("Voyons si ta culture gaming tient encore debout"; achievement teaser "Trois trophées que tu n'as pas encore. Encore."). EN copy is a generic feature list a competitor could paste.</p>
+      <p class="lbl">Verdict</p>
+      <p>The French has a personality the English lacks. Port the FR voice into EN rather than translating the feature list. The completion messages (e.g. "did you recognize at least one game?") are the strongest, most ownable copy in the app — mine that tone for the landing page.</p>
+    </div>
+  </details>
+
+  <!-- 10 -->
+  <details class="principle">
+    <summary><span class="num">10</span><span class="ptitle">Show the product before explaining it</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Hero shows a logo + text, then a CTA. No screenshot/demo above the fold. Mitigant: guest play means the real product is one click away.</p>
+      <p class="lbl">Verdict</p>
+      <p>"Show, don't tell" is half-met via instant guest play, but the landing itself tells before it shows. Drop a real (blurred) screenshot + answer field directly in the hero so the game <em>is</em> the hero. This also fixes #20 and #25 at once.</p>
+    </div>
+  </details>
+
+  <!-- 11 -->
+  <details class="principle">
+    <summary><span class="num">11</span><span class="ptitle">Does one thing</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Classic mode + Geo mode + tournaments + referrals + premium + web push + public API/streamer kit + 2FA/passkeys. A genuine Swiss Army knife.</p>
+      <p class="lbl">Verdict</p>
+      <p>This is the sharpest tension between the product and the principles. For <em>marketing</em>, pick one thing — "the daily game-screenshot challenge" — and let everything else be discovered after the hook lands. The breadth is fine as product depth; it's a liability only when it's the first thing a new visitor sees. Geo mode being marketed on the home nav (with an "Alpha" badge) dilutes the core pitch.</p>
+    </div>
+  </details>
+
+  <!-- 12 -->
+  <details class="principle">
+    <summary><span class="num">12</span><span class="ptitle">Popcorn pricing (Good / Better / Best)</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Exactly three cards: Free (€0) / Premium Monthly (€3.99) / Premium Annual (€29.99, "Most popular" badge, "~37% savings"). Annual is the anchored middle-of-attention.</p>
+      <p class="lbl">Verdict</p>
+      <p>Clean three-choice layout with a highlighted recommended tier. Caveat: it's the same product at two cadences, not true Good/Better/Best feature ladders — but for a single-product game that's the right call.</p>
+    </div>
+  </details>
+
+  <!-- 13 -->
+  <details class="principle">
+    <summary><span class="num">13</span><span class="ptitle">Rides a wave</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>Daily one-shot challenge with shareable results is squarely in the Wordle/GeoGuessr wave — a format people already understand and share. The mechanic does half the marketing. Lean harder into the "daily, everyone gets the same one" framing (it's underused in the copy).</p>
+    </div>
+  </details>
+
+  <!-- 14 -->
+  <details class="principle">
+    <summary><span class="num">14</span><span class="ptitle">Steal your best copy from customers</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>No testimonials, no captured user quotes, no review surface feeding copy. (Koe feedback widget exists but isn't mined for landing copy.)</p>
+      <p class="lbl">Verdict</p>
+      <p>Can't write like customers talk if you're not capturing how they talk. The Koe widget is a ready-made source — pull the best lines into the landing page.</p>
+    </div>
+  </details>
+
+  <!-- 15 -->
+  <details class="principle">
+    <summary><span class="num">15</span><span class="ptitle">A founder people can see and hear</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>No founder face, voice, screen-recording, or personal note anywhere on the marketing surfaces. There <em>is</em> a Remotion marketing-video package — but it's a product promo, not a founder.</p>
+      <p class="lbl">Verdict</p>
+      <p>Easy, high-leverage gap. A 30-second founder screen-recording playing today's challenge would outperform the current text hero. The Remotion pipeline is already in place to produce/host it.</p>
+    </div>
+  </details>
+
+  <!-- 16 -->
+  <details class="principle">
+    <summary><span class="num">16</span><span class="ptitle">Pricing impossible to miss</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>"Premium" lives in the header nav with an accent-pink treatment; a premium teaser card sits mid-home. Pricing is at <code>/premium</code>.</p>
+      <p class="lbl">Verdict</p>
+      <p>Pricing is reachable in one click from anywhere and visually distinguished. Met.</p>
+    </div>
+  </details>
+
+  <!-- 17 -->
+  <details class="principle">
+    <summary><span class="num">17</span><span class="ptitle">Headline people remember next day</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>"The Box" the <em>name</em> is sticky; the <em>value</em> headline isn't (it's a feature list). The thing people would actually remember is the dare in the FR copy. Run Lou's test — write 5 headlines around "name the game in 45 seconds", pick the one friends recall a day later.</p>
+    </div>
+  </details>
+
+  <!-- 18 -->
+  <details class="principle">
+    <summary><span class="num">18</span><span class="ptitle">An emotional headline</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>FR nails it ("let's see if your gaming cred still holds up" — provokes ego/challenge). EN is flat and informational. Bring the emotional dare into EN; that's the "wow/wtf/laugh" Lou wants.</p>
+    </div>
+  </details>
+
+  <!-- 19 -->
+  <details class="principle">
+    <summary><span class="num">19</span><span class="ptitle">Something people have never seen</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>Screenshot-guessing is a known genre (clones exist). The novel angle is <strong>Geo mode for game maps</strong> (pinpoint where a screenshot was taken) — genuinely fresh — but it's buried behind an "Alpha" badge and gated to premium. The differentiator isn't the headline. If novelty is the goal, Geo is the surprise to lead with; if focus (#11) is the goal, keep it secondary. Pick one.</p>
+    </div>
+  </details>
+
+  <!-- 20 -->
+  <details class="principle">
+    <summary><span class="num">20</span><span class="ptitle">Sellable from the hero alone</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Hero = wordmark + subtitle + play button. A motivated visitor gets it; a cold visitor sees a brand name and a paragraph.</p>
+      <p class="lbl">Verdict</p>
+      <p>80% won't scroll. The hero needs (1) a value headline not a brand name, and (2) the product shown (a screenshot) not described. Currently it's carried by the subtitle doing too much work. This is the highest-ROI fix.</p>
+    </div>
+  </details>
+
+  <!-- 21 -->
+  <details class="principle">
+    <summary><span class="num">21</span><span class="ptitle">Empathy before selling</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>No problem framing anywhere — the copy jumps straight to features. For a game the "problem" is emotional (boredom, wanting to prove gaming knowledge, daily ritual). The FR dare gestures at it; nothing develops it. Lighter weight than for SaaS, but a one-line "you think you know games?" beat would help.</p>
+    </div>
+  </details>
+
+  <!-- 22 -->
+  <details class="principle">
+    <summary><span class="num">22</span><span class="ptitle">One call to action</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Home presents many competing actions: "Play Today's Challenge", "Geo Mode" (Alpha), "History", "Play Yesterday", plus "See plans" in the premium teaser.</p>
+      <p class="lbl">Verdict</p>
+      <p>Multiple paths → decision paralysis. There should be exactly one primary action above the fold: <strong>play today</strong>. Demote Geo/History/Yesterday/plans to secondary/contextual placement.</p>
+    </div>
+  </details>
+
+  <!-- 23 -->
+  <details class="principle">
+    <summary><span class="num">23</span><span class="ptitle">A name people remember</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>"The Box" — real words, no wordplay, easy to say/spell. Trade-off: it's generic and SEO-hostile (un-searchable, no category signal). Memorable: yes. Discoverable: no. Met on the letter of the principle.</p>
+    </div>
+  </details>
+
+  <!-- 24 -->
+  <details class="principle">
+    <summary><span class="num">24</span><span class="ptitle">Sell a human desire, not a feature</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Verdict</p>
+      <p>EN copy sells features ("21 achievements, leaderboards, win streaks"). The underlying desire is <em>status</em> ("prove you're a real gamer") — present implicitly in FR, never named in EN. Sell the bragging rights / leaderboard glory; the achievements are just the vehicle.</p>
+    </div>
+  </details>
+
+  <!-- 25 -->
+  <details class="principle">
+    <summary><span class="num">25</span><span class="ptitle">Let people try before buying</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Guest play + free daily challenge with full core loop (10 screenshots, scoring, leaderboard) before any signup or payment.</p>
+      <p class="lbl">Verdict</p>
+      <p>Strongest principle alignment in the whole app. "Play before you pay" is the default. Keep it — and make sure the upgrade prompt fires at the moment of desire (e.g. when a free user hits the 7-day archive wall).</p>
+    </div>
+  </details>
+
+  <!-- 26 -->
+  <details class="principle">
+    <summary><span class="num">26</span><span class="ptitle">No weak words</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Mostly concrete. Minor hedging: "~37% savings", "From {{price}} / month", "Best value per month". No egregious "most/many/rarely".</p>
+      <p class="lbl">Verdict</p>
+      <p>Largely clean. The "~" and "From" soften otherwise strong claims — fine for pricing accuracy, but the value copy could make harder statements ("the same challenge for everyone, every day").</p>
+    </div>
+  </details>
+
+  <!-- 27 -->
+  <details class="principle">
+    <summary><span class="num">27</span><span class="ptitle">No subscription</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Both paid tiers are recurring (<code>interval: 'month' | 'year'</code> in <code>BILLING_CATALOG</code>). The one-time <code>supporter_lifetime</code> tier is defined in types + docs but <strong>has no catalog entry / purchasable price</strong> (see top callout).</p>
+      <p class="lbl">Verdict</p>
+      <p>Lou: "one-time payments are 10× easier to sell." The lifetime/supporter one-time option is literally half-built. Finishing it would both satisfy this principle and give the "support the game" framing (already used in the pricing subtitle) a concrete product. Recommend wiring <code>supporter_lifetime</code> into the catalog + pricing UI, or removing the dead tier.</p>
+    </div>
+  </details>
+
+  <!-- 28 -->
+  <details class="principle">
+    <summary><span class="num">28</span><span class="ptitle">CTA says what happens next</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>Primary CTA is "Play Today's Challenge" / "Défi Quotidien" — specific, action-naming. No generic "Get Started". OG CTA: "Play today's challenge".</p>
+      <p class="lbl">Verdict</p>
+      <p>Met. Minor: "See plans" / "Voir les offres" is weaker than the play CTA — could be "Unlock the full archive" to name the outcome.</p>
+    </div>
+  </details>
+
+  <!-- 29 -->
+  <details class="principle">
+    <summary><span class="num">29</span><span class="ptitle">Don't launch without testimonials</span><span class="badge fail">FAIL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>No testimonials, ratings, user counts, or any third-party proof on the landing page. The achievement teaser shows aspirational locked trophies — not social proof.</p>
+      <p class="lbl">Verdict</p>
+      <p>Highest-impact, lowest-effort gap alongside #15. Even "X players solved today's challenge" (a number you already have) is real-time social proof. Add player counts / streak stats / a few quotes before driving traffic.</p>
+    </div>
+  </details>
+
+  <!-- 30 -->
+  <details class="principle">
+    <summary><span class="num">30</span><span class="ptitle">Describable in under 10 words</span><span class="badge pass">PASS</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>The OG tagline does it in six: "Guess the game from a screenshot." (FR: "Devinez le jeu à partir d'une capture d'écran.")</p>
+      <p class="lbl">Verdict</p>
+      <p>Met — but the one-liner lives in the OG image, not the hero h1. Promote it (ties back to #7, #20).</p>
+    </div>
+  </details>
+
+  <!-- 31 -->
+  <details class="principle">
+    <summary><span class="num">31</span><span class="ptitle">More expensive than competitors</span><span class="badge partial">PARTIAL</span></summary>
+    <div class="body">
+      <p class="lbl">Evidence</p>
+      <p>€3.99/mo, €29.99/yr. For a casual daily game this is mid-to-low, not premium-priced.</p>
+      <p class="lbl">Verdict</p>
+      <p>"Nobody talks about the second cheapest option." Pricing power for a game is real but bounded — most direct competitors (Wordle-likes) are free/ad-supported, so "charge more than competitors" is awkward here. The lifetime/supporter tier (#27) is the better lever: a higher one-time "supporter" price reframes payment as patronage rather than a cheap subscription.</p>
+    </div>
+  </details>
+
+  <h2>Top 5 recommendations (ranked by ROI)</h2>
+  <ol class="recs">
+    <li><span class="tag">#20 #7 #10 #30</span> <strong>Rebuild the hero around the product, not the brand.</strong> Lead with a value headline ("Name the game from one screenshot"), show a real (blurred) screenshot + answer box, single primary CTA. Fixes 4 principles in one change.</li>
+    <li><span class="tag">#29 #14</span> <strong>Add social proof.</strong> "N players solved today" (data you already have) + a handful of Koe-sourced quotes. Cheap, high-trust.</li>
+    <li><span class="tag">#15</span> <strong>Founder screen-recording in the hero.</strong> The Remotion pipeline already exists; a 30s founder clip beats the text block.</li>
+    <li><span class="tag">#27 #31</span> <strong>Finish or kill <code>supporter_lifetime</code>.</strong> Wire it into <code>BILLING_CATALOG</code> + pricing UI as a one-time "supporter" purchase (and consider pricing it boldly), or remove the dead tier from types/docs.</li>
+    <li><span class="tag">#22 #11 #9 #18</span> <strong>Focus the home page.</strong> One primary CTA (play today); demote Geo/History/Yesterday. Port the punchy FR voice into EN so the copy is ownable and emotional.</li>
+  </ol>
+
+  <h2>Scope &amp; caveats</h2>
+  <p class="meta">This review covers marketing/landing/pricing/OG surfaces and copy only — not gameplay, infra, or correctness. Quoted copy is from <code>public/locales/{en,fr}/translation.json</code> and may drift. Six "FAIL/FAIL*" verdicts (#1, #8, partially #27, #31) reflect deliberate freemium-game strategy that diverges from Lou's paid-SaaS framing; they're listed for completeness, not as defects. The principles are a compass, not a spec.</p>
+
+</div>
+</body>
+</html>
