@@ -41,7 +41,12 @@ jobs:
         run: docker compose up -d
 
       - name: Show status
-        run: docker compose ps
+        # The repo is public, so Actions logs are world-readable. Keep the
+        # status output to names/state and omit the ports column (internal
+        # topology). Fall back for older compose versions without --format.
+        run: |
+          docker compose ps --format "table {{.Name}}\t{{.Service}}\t{{.Status}}" \
+            || docker compose ps --services
 
       - name: Wait for the-box to become healthy
         # `up -d` returns as soon as containers start, not when the app is
@@ -51,21 +56,35 @@ jobs:
         # start_period; allow ~3 minutes before declaring the deploy failed.
         run: |
           set -euo pipefail
+
+          # Actions logs on a public repo are world-readable; production app
+          # logs can carry emails, session ids or connection strings from
+          # stack traces. Keep the dump on the runner host and print only a
+          # pointer in the public log.
+          save_logs() {
+            local dump_dir="$HOME/the-box-deploy-logs"
+            local dump="$dump_dir/fail-$(date -u +%Y%m%dT%H%M%SZ).log"
+            mkdir -p "$dump_dir"
+            docker logs --tail=500 the-box > "$dump" 2>&1 || true
+            find "$dump_dir" -name 'fail-*.log' -mtime +30 -delete || true
+            echo "Container logs withheld from public Actions log; saved on runner at: $dump"
+          }
+
           for i in $(seq 1 36); do
             status=$(docker inspect --format='{{.State.Health.Status}}' the-box 2>/dev/null || echo "missing")
             echo "[$i/36] the-box health: $status"
             case "$status" in
               healthy)  exit 0 ;;
               unhealthy)
-                echo "Container reported unhealthy — dumping recent logs:"
-                docker logs --tail=200 the-box || true
+                echo "Container reported unhealthy."
+                save_logs
                 exit 1
                 ;;
             esac
             sleep 5
           done
           echo "Timed out waiting for the-box to become healthy"
-          docker logs --tail=200 the-box || true
+          save_logs
           exit 1
 
       - name: Prune dangling images
