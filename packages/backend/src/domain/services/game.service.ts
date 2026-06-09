@@ -207,8 +207,13 @@ export function createGameService(deps: GameServiceDeps): GameService {
     userId: string,
     user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: string } | null
   ): Promise<{ currentStreak: number; longestStreak: number }> {
+    // Day boundaries are UTC: challenges are dated by the daily-challenge
+    // worker's getTodayDateUTC() and daily-login streaks compare UTC date
+    // strings. Local midnight (the old behaviour) drifted a day in any TZ
+    // ahead of UTC (e.g. Europe/Paris, the production container TZ), so a
+    // player finishing every UTC day could see daysDiff 0 or 2 instead of 1.
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    today.setUTCHours(0, 0, 0, 0)
 
     let currentStreak = user?.currentStreak || 0
     let longestStreak = user?.longestStreak || 0
@@ -220,7 +225,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       log.info({ userId, currentStreak, longestStreak }, 'First game - streak started')
     } else {
       const lastPlayed = new Date(lastPlayedAtStr)
-      lastPlayed.setHours(0, 0, 0, 0)
+      lastPlayed.setUTCHours(0, 0, 0, 0)
 
       const daysDiff = Math.floor((today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24))
 
