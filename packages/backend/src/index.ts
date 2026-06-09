@@ -369,6 +369,7 @@ async function start(): Promise<void> {
       'cleanup-anonymous-users',
       'recalculate-scores',
       'streak-risk-email',
+      'evening-nudge',
       'relance-email',
       'inactive-user-reminder',
       'streak-freeze-grant',
@@ -490,6 +491,26 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring streak-risk-email job (daily at 19:00 UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring streak-risk-email job')
+    }
+
+    // Schedule recurring evening-nudge push (daily at 18:00 UTC ~ evening
+    // Europe). Personalizes the "play today's challenge" reminder with the
+    // current title holder. Runs an hour before the streak-risk email; its
+    // candidate query excludes users who will get that email, so no user is
+    // double-nudged. A later slot means the leader/score is more "real" while
+    // still leaving a comfortable window before the midnight UTC reset.
+    try {
+      await importQueue.add(
+        'evening-nudge',
+        {},
+        {
+          repeat: { pattern: '0 18 * * *', tz: 'UTC' },
+          jobId: 'evening-nudge-recurring',
+        }
+      )
+      logger.info('scheduled recurring evening-nudge job (daily at 18:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring evening-nudge job')
     }
 
     // Schedule recurring relance (re-engagement) email for users with an
