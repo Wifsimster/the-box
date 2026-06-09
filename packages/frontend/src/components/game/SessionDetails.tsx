@@ -113,7 +113,7 @@ export function SessionDetails({
   )
 
   return (
-    <div className={compact ? 'space-y-3 sm:space-y-4' : 'space-y-4 sm:space-y-6'}>
+    <div className={`min-w-0 ${compact ? 'space-y-3 sm:space-y-4' : 'space-y-4 sm:space-y-6'}`}>
       {/* Score hero */}
       <m.div
         initial={reducedMotion ? false : { opacity: 0, y: 20 }}
