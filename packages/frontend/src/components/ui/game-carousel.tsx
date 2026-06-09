@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/carousel'
 import { Button } from '@/components/ui/button'
 
-// Magnification range: 1x = fit-to-frame (default), up to 4x.
-const MIN_SCALE = 1
+// Zoom range: 1x = fit-to-frame (default). Players can zoom out below fit
+// (down to MIN_SCALE, letterboxed) for a smaller overview, or in up to MAX_SCALE.
+const MIN_SCALE = 0.4
 const MAX_SCALE = 4
 // Multiplier applied per zoom-button press.
 const ZOOM_STEP = 1.6
@@ -169,7 +170,9 @@ function useImageZoom(resetKey: unknown) {
                 const dy = e.clientY - panRef.current.y
                 panRef.current = { x: e.clientX, y: e.clientY }
                 setView((v) => {
-                    if (v.scale <= MIN_SCALE) return v
+                    // Panning is only meaningful once zoomed in past fit; at or
+                    // below fit the image is fully within the frame.
+                    if (v.scale <= 1) return v
                     const c = clampOffset(v.x + dx, v.y + dy, v.scale)
                     return { ...v, x: c.x, y: c.y }
                 })
@@ -265,7 +268,11 @@ export function GameCarousel({
         if (zoomIdleTimer.current) clearTimeout(zoomIdleTimer.current)
     }, [])
 
-    const showZoomCluster = zoomExpanded || view.scale > 1.01
+    // "Adjusted" = the view is no longer at the default fit-to-frame scale,
+    // whether zoomed in or out. Keep the controls (incl. reset) open in either
+    // case so getting back to fit is always one tap away.
+    const isAdjusted = Math.abs(view.scale - 1) > 0.01
+    const showZoomCluster = zoomExpanded || isAdjusted
 
     // Track user interaction to enable haptic feedback
     useEffect(() => {
@@ -439,7 +446,7 @@ export function GameCarousel({
                             </Button>
                             <div className={cn(
                                 "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
-                                view.scale > 1.01 ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+                                isAdjusted ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
                             )}>
                                 <Button
                                     variant="ghost"
