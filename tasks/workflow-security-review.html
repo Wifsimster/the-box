@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- SUMMARY: Security review of the 4 GitHub Actions workflows (ci, release, deploy, pages) as of 2026-06-09.
-1 high finding: self-hosted homelab runner exposed to fork PRs on a public repo. 2 medium: npm lifecycle
-scripts running with a contents:write token in the release publish job, and production container logs dumped
-into publicly readable Actions logs. Plus SHA-pinning and expression-injection hardening recommendations.
-No secrets leaked, permissions model is otherwise sound. -->
+<!-- SUMMARY: Security review of the 4 GitHub Actions workflows (ci, release, deploy, pages) as of 2026-06-09,
+with remediations applied in the same PR. Fixed: npm lifecycle scripts with write token (F2), prod logs in
+public Actions logs (F3), SHA-pinning + Dependabot (F4), expression injection via env vars + semver guard (F5).
+Remaining manual action: F1 — repo setting "Require approval for all outside collaborators" plus an ephemeral
+or pull-based deploy runner for the self-hosted homelab box. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -88,15 +88,16 @@ No secrets leaked, permissions model is otherwise sound. -->
   <p>The permissions model is fundamentally sound: default <code>contents: read</code> everywhere, write scopes elevated only on the single job that needs them, no <code>pull_request_target</code>, no untrusted event data (PR titles, issue bodies, branch names) interpolated into shell. The findings below are about the <strong>operating environment</strong> the workflows run in, not the workflow logic itself — the worst one comes from combining a public repository with a self-hosted homelab runner.</p>
 
   <table>
-    <thead><tr><th>ID</th><th>Severity</th><th>File</th><th>Title</th></tr></thead>
+    <thead><tr><th>ID</th><th>Severity</th><th>File</th><th>Title</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td>F1</td><td><span class="sev high">High</span></td><td><code>deploy.yml</code></td><td>Self-hosted runner reachable from fork PRs on a public repo</td></tr>
-      <tr><td>F2</td><td><span class="sev med">Medium</span></td><td><code>release.yml</code></td><td>npm lifecycle scripts run with a persisted <code>contents: write</code> token</td></tr>
-      <tr><td>F3</td><td><span class="sev med">Medium</span></td><td><code>deploy.yml</code></td><td>Production container logs dumped into publicly readable Actions logs</td></tr>
-      <tr><td>F4</td><td><span class="sev low">Low</span></td><td>all</td><td>Third-party actions pinned to mutable tags, not commit SHAs</td></tr>
-      <tr><td>F5</td><td><span class="sev low">Low</span></td><td><code>release.yml</code></td><td><code>${{ }}</code> job outputs interpolated into <code>run:</code> scripts</td></tr>
+      <tr><td>F1</td><td><span class="sev high">High</span></td><td><code>deploy.yml</code></td><td>Self-hosted runner reachable from fork PRs on a public repo</td><td><span class="sev med">manual</span></td></tr>
+      <tr><td>F2</td><td><span class="sev med">Medium</span></td><td><code>release.yml</code></td><td>npm lifecycle scripts run with a persisted <code>contents: write</code> token</td><td><span class="sev ok">fixed</span></td></tr>
+      <tr><td>F3</td><td><span class="sev med">Medium</span></td><td><code>deploy.yml</code></td><td>Production container logs dumped into publicly readable Actions logs</td><td><span class="sev ok">fixed</span></td></tr>
+      <tr><td>F4</td><td><span class="sev low">Low</span></td><td>all</td><td>Third-party actions pinned to mutable tags, not commit SHAs</td><td><span class="sev ok">fixed</span></td></tr>
+      <tr><td>F5</td><td><span class="sev low">Low</span></td><td><code>release.yml</code></td><td><code>${{ }}</code> job outputs interpolated into <code>run:</code> scripts</td><td><span class="sev ok">fixed</span></td></tr>
     </tbody>
   </table>
+  <p>F2–F5 were remediated in the same PR that adds this report: SHA-pinned actions everywhere + Dependabot <code>github-actions</code> updates, <code>persist-credentials: false</code> on all checkouts with explicit token auth on the release push step, <code>npm ci --ignore-scripts</code> in <code>publish</code>, failure log dumps kept on the runner host, all workflow-expression values passed to bash through <code>env:</code>, and a strict semver guard on the version read from <code>package.json</code>. F1 needs two things no workflow file can do: the repo setting below (1 minute) and an infra change on the homelab runner.</p>
 
   <section class="finding">
     <h3>F1 · Self-hosted runner on a public repository <span class="sev high">High</span></h3>
@@ -154,15 +155,12 @@ No secrets leaked, permissions model is otherwise sound. -->
     <li><span class="sev ok">ok</span> Bot-loop guard on <code>decide</code> is belt-and-suspenders on top of GITHUB_TOKEN's no-retrigger behavior.</li>
   </ul>
 
-  <h2>Suggested order of remediation</h2>
+  <h2>Remaining actions (F1)</h2>
   <ul>
-    <li>1. F1 repo setting ("all outside collaborators") — 1 minute, closes the worst path today.</li>
-    <li>2. F3 log redaction — small <code>deploy.yml</code> edit.</li>
-    <li>3. F2 <code>--ignore-scripts</code> + <code>persist-credentials: false</code> — small <code>release.yml</code> edit.</li>
-    <li>4. F4 SHA pinning + Dependabot — mechanical, slightly noisy diff.</li>
-    <li>5. F1 structural fix (ephemeral runner or pull-based deploy) — schedule as a task.</li>
-    <li>6. F5 env-var hygiene — fold into the next <code>release.yml</code> touch.</li>
+    <li><strong>Now (repo admin, 1 minute):</strong> Settings → Actions → General → Fork pull request workflows → <em>"Require approval for all outside collaborators"</em>. Closes the worst path today.</li>
+    <li><strong>Scheduled task (infra):</strong> make the homelab runner ephemeral (re-provisioned per job) and drop its Docker-socket access, or invert to a pull-based deploy on the box so no GitHub-controlled execution lands there at all.</li>
   </ul>
+  <p>Everything else (F2–F5) is done — see the status column above and the PR diff.</p>
 
   <footer class="foot">
     Reviewed 2026-06-09 against <code>main @ 5682a88</code>. Note: this file is published to GitHub Pages by <code>pages.yml</code> on merge — acceptable since the workflows themselves are already public, and no secrets or non-public infrastructure details beyond <code>deploy.yml</code>'s own contents appear above.
