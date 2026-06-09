@@ -20,6 +20,19 @@ const router = Router()
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
 
+// Map a stored `/uploads/...` URL to an absolute file path, refusing any
+// value whose resolved path escapes the uploads directory. imageUrl comes
+// from the DB (admin-managed), but a crafted `/uploads/../...` value must
+// not turn either image route into an arbitrary-file read.
+function resolveUploadFilePath(imageUrl: string): string | null {
+  const relativePath = imageUrl.replace('/uploads/', '')
+  const filePath = path.resolve(uploadsPath, relativePath)
+  if (filePath !== uploadsPath && !filePath.startsWith(uploadsPath + path.sep)) {
+    return null
+  }
+  return filePath
+}
+
 // Resolve today's first easy-tier screenshot. Shared by the public
 // preview endpoints so anonymous visitors can glimpse the challenge
 // before signing up without gaining access to the rest of the set.
@@ -84,8 +97,14 @@ router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
       return
     }
 
-    const relativePath = preview.imageUrl.replace('/uploads/', '')
-    const filePath = path.join(uploadsPath, relativePath)
+    const filePath = resolveUploadFilePath(preview.imageUrl)
+    if (!filePath) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
+      })
+      return
+    }
 
     res.sendFile(
       filePath,
@@ -169,8 +188,14 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
     }
 
     // Convert /uploads/screenshots/... to absolute file path
-    const relativePath = screenshot.imageUrl.replace('/uploads/', '')
-    const filePath = path.join(uploadsPath, relativePath)
+    const filePath = resolveUploadFilePath(screenshot.imageUrl)
+    if (!filePath) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
+      })
+      return
+    }
 
     res.sendFile(filePath, {
       maxAge: '1d',
