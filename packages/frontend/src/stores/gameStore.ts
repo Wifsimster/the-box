@@ -7,7 +7,8 @@ import type {
   TierScreenshot,
   ScreenshotResponse,
   PositionStatus,
-  PositionState
+  PositionState,
+  LetterRevealState
 } from '@/types'
 import { gameApi } from '@/lib/api/game'
 
@@ -118,6 +119,11 @@ interface GameState {
     genre: string | null
   }) => void
   markIncorrectGuess: (position: number) => void
+  /**
+   * Persist the latest masked-title state for a position (after a
+   * successful POST /reveal-letter, or seeded from ScreenshotResponse).
+   */
+  setLetterRevealState: (position: number, state: LetterRevealState) => void
   useHintYear: (position: number) => void
   useHintPublisher: (position: number) => void
   useHintDeveloper: (position: number) => void
@@ -226,6 +232,19 @@ export const useGameStore = create<GameState>()(
                   timeSpentMs: (prevState.timeSpentMs ?? 0) + segment,
                 },
               }
+            }
+          }
+
+          // Seed the masked-title state from the server on every fetch —
+          // it already includes any letters paid for in this session, so a
+          // refresh or navigation restores the exact same mask.
+          if (data.letterReveal) {
+            positionStates = {
+              ...positionStates,
+              [data.position]: {
+                ...positionStates[data.position],
+                letterReveal: data.letterReveal,
+              },
             }
           }
 
@@ -644,6 +663,18 @@ export const useGameStore = create<GameState>()(
               [position]: {
                 ...state.positionStates[position],
                 hasIncorrectGuess: true,
+              },
+            },
+          }))
+        },
+
+        setLetterRevealState: (position, letterReveal) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                letterReveal,
               },
             },
           }))

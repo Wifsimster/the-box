@@ -148,7 +148,7 @@ export function ResultCard() {
   // Early return after all hooks
   if (!lastResult) return null
 
-  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, wrongGuessPenalty } = lastResult
+  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, letterPenalty, wrongGuessPenalty } = lastResult
   const maxScore = 200
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
@@ -253,6 +253,7 @@ export function ResultCard() {
           timeTakenSeconds={timeTakenSeconds}
           timeDisplay={timeDisplay}
           hintPenalty={hintPenalty}
+          letterPenalty={letterPenalty}
           wrongGuessPenalty={wrongGuessPenalty}
         />
 

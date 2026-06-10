@@ -249,6 +249,10 @@ export interface SessionRepository {
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
   hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
+  // Letter-reveal gate: the first paid reveal requires at least one honest
+  // (wrong) attempt on the position — same spirit as the metadata hints'
+  // "first wrong guess" unlock, enforced server-side.
+  hasWrongGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
   countGuessesBySession(gameSessionId: string): Promise<number>
   getCorrectPositions(gameSessionId: string): Promise<number[]>
   deleteGameSession(userId: string, challengeId: number): Promise<boolean>
@@ -574,6 +578,44 @@ export interface PositionSecondChanceRepository {
   markApplied(activationId: number, guessId: number | null): Promise<void>
 }
 
+// ---------- Position letter reveal (masked-title hint state) ----------
+
+export interface PositionLetterRevealRow {
+  id: number
+  tier_session_id: string
+  position: number
+  letters_revealed: number
+  /** Cumulative score penalty percent locked in at reveal time. */
+  penalty_pct: number
+  last_revealed_at: Date
+  applied_to_guess_id: number | null
+}
+
+export interface PositionLetterRevealRepository {
+  /** Current reveal state for the slot, applied or not. */
+  find(tierSessionId: string, position: number): Promise<PositionLetterRevealRow | null>
+  /**
+   * Record one more revealed letter for the slot (upsert), adding
+   * `addPenaltyPct` to the cumulative penalty. Callers run under the
+   * tier-session advisory lock, so the read-compute-write of the penalty
+   * step is already serialised; the upsert keeps the row unique per
+   * (tier_session_id, position).
+   */
+  recordReveal(input: {
+    tierSessionId: string
+    position: number
+    addPenaltyPct: number
+  }): Promise<PositionLetterRevealRow>
+  /**
+   * Reveal state whose penalty has not yet been applied to a correct
+   * guess (`applied_to_guess_id IS NULL`). `submitGuess` reads this on
+   * every correct guess to deduct the accrued letter penalty exactly once.
+   */
+  findPending(tierSessionId: string, position: number): Promise<PositionLetterRevealRow | null>
+  /** Flag the reveal row as applied so a later guess can't re-deduct. */
+  markApplied(revealId: number, guessId: number | null): Promise<void>
+}
+
 // ---------- Inventory ----------
 
 export interface InventoryRepository {
@@ -729,6 +771,7 @@ export type FunnelEventName =
   | 'guess_submitted'
   | 'session_completed'
   | 'session_abandoned'
+  | 'letter_revealed'
 
 export interface FunnelEventInput {
   eventName: FunnelEventName

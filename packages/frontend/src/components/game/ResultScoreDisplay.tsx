@@ -26,6 +26,7 @@ interface ResultScoreDisplayProps {
   timeTakenSeconds: number
   timeDisplay: string
   hintPenalty?: number
+  letterPenalty?: number
   wrongGuessPenalty?: number
 }
 
@@ -41,6 +42,7 @@ export function ResultScoreDisplay({
   timeTakenSeconds,
   timeDisplay,
   hintPenalty,
+  letterPenalty,
   wrongGuessPenalty,
 }: ResultScoreDisplayProps) {
   const { t } = useTranslation()
@@ -91,6 +93,18 @@ export function ResultScoreDisplay({
           className="mt-2 text-score-low text-sm font-medium"
         >
           {t('game.hints.penaltyApplied', { penalty: hintPenalty })} ({t('game.hints.percentagePenalty', '20% penalty')})
+        </m.div>
+      )}
+
+      {/* Letter Reveal Penalty Display */}
+      {letterPenalty && letterPenalty > 0 && isCorrect && (
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="mt-2 text-score-low text-sm font-medium"
+        >
+          {t('game.hints.letterPenaltyApplied', { penalty: letterPenalty })}
         </m.div>
       )}
 

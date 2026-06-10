@@ -111,8 +111,23 @@ Des tours bonus peuvent apparaître après les positions 6, 12 et 18 et offrir u
 | `hint_publisher` | Révèle l'éditeur | Daily-login (jours 2, 5, 7), parrainage |
 | `hint_developer` | Révèle le développeur | Daily-login (jour 7), parrainage |
 | `hint_genre` | Révèle le tag de genre principal | Daily-login (jour 7), parrainage |
+| `hint_letter` | Révèle une lettre du titre masqué (voir ci-dessous) | Daily-login (jour 7) |
 | `streak_freeze` | Préserve la série lorsqu'un jour est manqué | Octroi mensuel automatique uniquement |
 | `second_chance` | Garantit un score plancher (FLOOR) de 70 points sur la prochaine bonne réponse à la position | Daily-login (jour 7), parrainage |
+
+### Révélation de lettres (titre masqué)
+
+Le squelette du titre (nombre de mots + longueurs, ex. `E____ R___`) est affiché **gratuitement** dès le début de chaque capture ; les espaces, chiffres, ponctuation et articles initiaux (The/A/Le/La/Les/L') sont visibles d'office. Chaque révélation payante dévoile la lettre masquée suivante, de gauche à droite.
+
+| Règle | Contrat |
+|---|---|
+| Côté serveur | `POST /api/game/reveal-letter` est la seule source du masque — le titre complet ne quitte jamais le backend avant résolution. Le masque est une fonction pure de `(gameName, letters_revealed)` (table `position_letter_reveals`), donc idempotent au refresh. |
+| Porte d'entrée | La première lettre payante exige **au moins une mauvaise réponse** sur la position (le squelette, lui, est toujours visible). |
+| Plafond anti-fuite | `min(2, ceil(lettres_masquables × 0.3))`, **vérifié dynamiquement contre le fuzzy matcher** (`effectiveMaxReveals`) : aucun fragment révélé ne peut être accepté comme réponse gagnante. Test unitaire bloquant (`letter-reveal.service.test.ts`). Certains titres courts ou à article (ex. « La Mulana ») peuvent n'autoriser aucune lettre. |
+| Coût | Convexe : -15 % puis -20 % (cumul -35 %) du score de la position, verrouillé au moment de la révélation, appliqué après le plafond de 200 et **avant** le plancher `second_chance`. Le coût en score s'applique **même si l'objet vient de l'inventaire**. |
+| Défi du jour (classé) | Chaque révélation **consomme un item `hint_letter`** ; sans inventaire → 402 `NO_INVENTORY` (upsell). |
+| Catch-up | Pas d'inventaire requis (hors classement). Premium : révélations **gratuites** (pénalité 0) en catch-up uniquement — jamais sur le défi du jour. |
+| Anti-fuite (réponse) | La réponse d'une mauvaise tentative n'expose **ni `correctGame` ni `availableHints`** — sinon une seule mauvaise réponse offrirait le nom du jeu en devtools. |
 
 ### Invariants de l'économie de récompense
 

@@ -308,6 +308,18 @@ export const sessionRepository = {
     return !!row
   },
 
+  // Letter-reveal gate: the first paid reveal requires at least one honest
+  // (wrong) attempt on the position, enforced server-side so a client
+  // can't skip straight to buying letters.
+  async hasWrongGuessForPosition(tierSessionId: string, position: number): Promise<boolean> {
+    const row = await db('guesses')
+      .where('tier_session_id', tierSessionId)
+      .andWhere('position', position)
+      .andWhere('is_correct', false)
+      .first<{ id: number }>('id')
+    return !!row
+  },
+
   async countGuessesBySession(gameSessionId: string): Promise<number> {
     const row = await db('guesses')
       .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')

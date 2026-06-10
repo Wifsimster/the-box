@@ -18,6 +18,11 @@ const silentLogger: DomainLogger = {
 function buildService(timeLimitSeconds: number | null) {
   const deps = {
     logger: silentLogger,
+    fuzzyMatchService: {
+      // Fragments never match in this harness — letter caps stay at the
+      // static formula, which is all the masked-title assertions need.
+      isMatch: () => false,
+    },
     sessionRepository: {
       findGameSessionById: async () => ({ id: 'game-1', daily_challenge_id: 1 }),
       findLatestTierSession: async () => ({ id: 'tier-session-1' }),
@@ -30,6 +35,19 @@ function buildService(timeLimitSeconds: number | null) {
         position: 3,
         bonus_multiplier: '1.0',
       }),
+    },
+    screenshotRepository: {
+      findWithGame: async () => ({
+        screenshot: { gameId: 99 },
+        gameName: 'Elden Ring',
+        coverImageUrl: null,
+        aliases: [],
+        releaseYear: 2022,
+        metacritic: null,
+      }),
+    },
+    positionLetterRevealRepository: {
+      find: async () => null,
     },
   } as unknown as GameServiceDeps
   return createGameService(deps)
@@ -54,5 +72,14 @@ describe('game.service getScreenshot — countdown limit', () => {
     const service = buildService(null)
     const res = await service.getScreenshot('game-1', 3, 'user-1')
     assert.equal(res.timeLimitSeconds, 45)
+  })
+
+  it('ships the free masked-title skeleton, never the game name', async () => {
+    const service = buildService(45)
+    const res = await service.getScreenshot('game-1', 3, 'user-1')
+    assert.equal(res.letterReveal?.maskedTitle, '_____ ____')
+    assert.equal(res.letterReveal?.lettersRevealed, 0)
+    assert.equal(res.letterReveal?.penaltyPct, 0)
+    assert.ok(!JSON.stringify(res).includes('Elden'), 'response must not leak the title')
   })
 })

@@ -80,6 +80,8 @@ function buildHarness(opts: { hintInInventory?: boolean } = {}) {
     },
     hasCorrectGuessForPosition: async (_id: string, position: number) =>
       guesses.some((g) => g.isCorrect && g.position === position),
+    hasWrongGuessForPosition: async (_id: string, position: number) =>
+      guesses.some((g) => !g.isCorrect && g.position === position),
     updateTierSession: async (
       _id: string,
       data: { score: number; correctAnswers: number; wrongGuesses: number }
@@ -125,6 +127,11 @@ function buildHarness(opts: { hintInInventory?: boolean } = {}) {
     gameRepository: { getGenresById: async () => [] },
     funnelEventRepository: { record: async () => {} },
     positionSecondChanceRepository: { findPending: async () => null },
+    positionLetterRevealRepository: {
+      find: async () => null,
+      findPending: async () => null,
+      markApplied: async () => {},
+    },
   } as unknown as GameServiceDeps
 
   const service = createGameService(deps)
@@ -194,6 +201,21 @@ describe('game.service submitGuess — completion tally', () => {
       1,
       'only one correct guess row should exist for position 1'
     )
+  })
+
+  it('does NOT leak the answer on a wrong guess (no correctGame, no hints)', async () => {
+    const wrong = await h.submit(1, 'nope')
+    assert.equal(wrong.isCorrect, false)
+    assert.equal(
+      wrong.correctGame,
+      undefined,
+      'wrong-guess response must not contain the answer'
+    )
+    assert.equal(wrong.availableHints, undefined)
+    assert.ok(!JSON.stringify(wrong).includes('Halo'), 'response must not mention the game name')
+
+    const correct = await h.submit(1, 'right')
+    assert.equal(correct.correctGame?.name, 'Halo', 'correct guess reveals the answer')
   })
 
   it('still allows multiple wrong attempts on an unsolved position', async () => {

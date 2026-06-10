@@ -466,7 +466,15 @@
       "genreHint": "Genre",
       "penalty": "-20%",
       "penaltyApplied": "Hint penalty: -{{penalty}} points",
-      "percentagePenalty": "20% penalty"
+      "percentagePenalty": "20% penalty",
+      "letterButton": "Reveal a letter",
+      "letterTooltip": "Reveal one letter of the title (-{{penalty}}%)",
+      "letterTooltipItem": "Reveal one letter: uses 1 power-up, -{{penalty}}% ({{count}} owned)",
+      "letterCapReached": "No more letters can be revealed",
+      "letterNoInventory": "Requires a Letter reveal power-up (earn them with daily login rewards)",
+      "letterMaskAria": "Masked title, {{revealed}} letter(s) revealed",
+      "letterPenaltyCurrent": "Current letter penalty: -{{penalty}}%",
+      "letterPenaltyApplied": "Letter reveal penalty: -{{penalty}} points"
     },
     "secondChance": {
       "title": "Activate a second chance?",
@@ -1844,7 +1852,7 @@
     "rulesScoringHints": "Hints cost 20% of the round's score, unless you have a hint power-up in your inventory (earned through daily login rewards), in which case the hint is free.",
     "rulesScoringSkip": "Skipping a screenshot or running out the timer ends the round at zero points for that position.",
     "rulesHintsTitle": "4. Hints and power-ups",
-    "rulesHints": "Four hints are available per screenshot: release year, publisher, developer, and genre. You can stack them if you need to — each one applied costs another 20% penalty unless covered by an inventory power-up. Daily login streaks earn free hint power-ups that you can spend at any time.",
+    "rulesHints": "Five hints are available per screenshot. The masked title shows the word shape for free; after one wrong guess you can reveal its letters one by one (-15% then -20%, requires a Letter reveal power-up on today's challenge). The four metadata hints — release year, publisher, developer, genre — cost 20% each unless covered by an inventory power-up. Daily login streaks earn free hint power-ups.",
     "rulesMatchingTitle": "5. How we match your guess",
     "rulesMatchingIntro": "Typing the exact official title is never required. The Box runs your answer through a structured fuzzy matcher designed to be generous about typos and phrasing, but strict about anything that would let an unrelated guess slip through. Here is exactly what it accepts and rejects.",
     "rulesMatchingAcceptedTitle": "Accepted",
@@ -2189,7 +2197,8 @@
       "hint_genre": "Genre hint",
       "second_chance": "Second chance",
       "streak_freeze": "Streak freeze",
-      "ambassador": "Ambassador badge"
+      "ambassador": "Ambassador badge",
+      "hint_letter": "Letter reveal"
     },
     "sources": {
       "reactivation": {
@@ -2281,7 +2290,8 @@
         "name": "Legendary Chest",
         "description": "The ultimate chest: 2x each hint + 500 points!"
       }
-    }
+    },
+    "hintLetter": "Letter Reveal"
   },
   "onboarding": {
     "welcomeTitle": "Welcome to The Box!",

@@ -147,7 +147,14 @@ export interface Guess {
 // Power-up Domain
 // ============================================
 
-export type PowerUpType = 'x2_timer' | 'hint' | 'hint_year' | 'hint_publisher' | 'hint_developer'
+export type PowerUpType =
+  | 'x2_timer'
+  | 'hint'
+  | 'hint_year'
+  | 'hint_publisher'
+  | 'hint_developer'
+  | 'hint_genre'
+  | 'hint_letter'
 
 export interface PowerUp {
   id: number
@@ -262,6 +269,8 @@ export interface GuessResult {
   timeTakenMs: number
   scoreEarned: number
   hintPenalty?: number
+  /** Points deducted for letters of the title revealed on this position. */
+  letterPenalty?: number
   wrongGuessPenalty?: number
   screenshot?: Screenshot
   /** All guesses the user made for this position, in chronological order. */
@@ -290,6 +299,12 @@ export interface PositionState {
    * and the disabled state of the inventory item.
    */
   secondChanceActivated?: boolean
+  /**
+   * Latest masked-title reveal state for this position, written after each
+   * successful POST /reveal-letter. Seeded from ScreenshotResponse on
+   * fetch so refresh/navigation restores the same mask.
+   */
+  letterReveal?: LetterRevealState
   /**
    * Total active (on-screen) milliseconds already spent guessing this
    * position, excluding the segment currently in progress. Lets the countdown
@@ -384,6 +399,37 @@ export interface ScreenshotResponse {
    * the in-game countdown timer.
    */
   timeLimitSeconds: number
+  /**
+   * Server-authoritative masked-title state for the letter-reveal hint.
+   * The skeleton (word count + lengths, zero letters) is free and shown
+   * from the start; revealed letters reflect prior POST /reveal-letter
+   * calls so a page refresh restores the exact same state. The full title
+   * is NEVER sent to the client before the position is solved.
+   */
+  letterReveal?: LetterRevealState
+}
+
+/**
+ * Masked-title reveal state for one (tierSession, position). All values
+ * are computed server-side from the canonical game name — the client only
+ * ever sees the masked string.
+ */
+export interface LetterRevealState {
+  /** e.g. "E____ R___" — structural chars (spaces, digits, punctuation) and leading articles are free. */
+  maskedTitle: string
+  lettersRevealed: number
+  /** Hard cap on reveals for this title: min(2, ceil(maskable × 0.3)). */
+  maxLetters: number
+  /** Cumulative score penalty (percent of the round's earned score) accrued so far. */
+  penaltyPct: number
+  /** Penalty the NEXT reveal would add, or null once the cap is reached. */
+  nextPenaltyPct: number | null
+}
+
+// Letter-reveal API (POST /api/game/reveal-letter)
+export interface RevealLetterResponse extends LetterRevealState {
+  /** True when this reveal consumed a `hint_letter` inventory item (ranked daily is inventory-gated). */
+  fromInventory: boolean
 }
 
 // Guess API
@@ -399,7 +445,14 @@ export interface GuessRequest {
 
 export interface GuessResponse {
   isCorrect: boolean
-  correctGame: Game
+  /**
+   * The answer for this position. Only present once the round is over for
+   * the player — on a correct guess or session completion. Wrong-guess
+   * responses omit it: shipping the name (plus year/publisher/developer)
+   * on every miss let one bad guess read the answer from devtools, which
+   * defeats both the hint economy and the masked-title letter reveal.
+   */
+  correctGame?: Game
   scoreEarned: number
   totalScore: number
   screenshotsFound: number
@@ -408,6 +461,13 @@ export interface GuessResponse {
   completionReason?: 'all_found' | 'forfeit'
   hintPenalty?: number
   hintFromInventory?: boolean
+  /**
+   * Points deducted from this round's score because the player revealed
+   * letters of the title (cumulative percent locked in at reveal time,
+   * applied after the speed-multiplier cap). Absent when no letters were
+   * revealed for this position.
+   */
+  letterPenalty?: number
   wrongGuessPenalty?: number
   /**
    * Set on the response that follows a correct guess where a previously
@@ -1391,11 +1451,13 @@ export interface AdvancedStats {
   }
 
   // How often the user reaches for each hint type. Counts only.
+  // `hint_letter` counts total letters revealed (one reveal = one letter).
   hintUsage: {
     hint_year: number
     hint_publisher: number
     hint_developer: number
     hint_genre: number
+    hint_letter: number
   }
 
   // Last-six-months progression (oldest → newest). `month` is YYYY-MM.
