@@ -282,6 +282,26 @@ export const userRepository = {
     return Number(row?.current_streak ?? 0)
   },
 
+  // RGPD Art. 16 (rectification): update only the columns the caller
+  // supplied. `username` and `display_username` are kept in sync so the
+  // Better Auth username plugin and our public-profile lookups agree.
+  async updateProfile(
+    userId: string,
+    fields: { displayName?: string; username?: string }
+  ): Promise<User | null> {
+    log.info({ userId, fields }, 'updateProfile')
+    const update: Record<string, unknown> = { updatedAt: new Date() }
+    if (fields.displayName !== undefined) {
+      update.display_name = fields.displayName
+    }
+    if (fields.username !== undefined) {
+      update.username = fields.username
+      update.display_username = fields.username
+    }
+    await db('user').where('id', userId).update(update)
+    return this.findById(userId)
+  },
+
   async updateSelectedTheme(userId: string, theme: string): Promise<User | null> {
     log.info({ userId, theme }, 'updateSelectedTheme')
     await db('user')

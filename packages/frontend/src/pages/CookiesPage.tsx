@@ -27,6 +27,7 @@ export default function CookiesPage() {
     { title: t('legal.cookiesTypesTitle'), content: t('legal.cookiesTypes') },
     { title: t('legal.cookiesEssentialTitle'), content: t('legal.cookiesEssential') },
     { title: t('legal.cookiesManageTitle'), content: t('legal.cookiesManage') },
+    { title: t('legal.cookiesConsentTitle'), content: t('legal.cookiesConsent') },
     { title: t('legal.cookiesChangesTitle'), content: t('legal.cookiesChanges') },
   ]
 

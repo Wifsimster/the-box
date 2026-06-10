@@ -1,6 +1,8 @@
 export { AvatarUpload } from './AvatarUpload'
 export { ReferralCard } from './ReferralCard'
 export { EmailConsentCard } from './EmailConsentCard'
+export { EditProfileCard } from './EditProfileCard'
+export { AccountDataCard } from './AccountDataCard'
 export { PushNotificationCard } from './PushNotificationCard'
 export { AdvancedStatsPanel } from './AdvancedStatsPanel'
 export { PremiumBadge } from './PremiumBadge'

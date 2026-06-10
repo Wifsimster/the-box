@@ -4,6 +4,8 @@ import { billingService } from '../../domain/services/billing.service.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
+import { gdprRepository } from '../../infrastructure/repositories/gdpr.repository.js'
+import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { db } from '../../infrastructure/database/connection.js'
@@ -426,6 +428,135 @@ router.put('/theme', authMiddleware, async (req, res, next) => {
     }
     logger.info({ userId: req.userId, theme }, 'theme updated')
     res.json({ success: true, data: updated })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== RGPD Art. 16: right to rectification =====
+//
+// Lets the caller correct their own display name and/or username. At least
+// one field must be present. Validation mirrors registration: display names
+// pass the safety gate, usernames are alnum/underscore 3–20 and globally
+// unique. `display_username` is kept in sync by the repository.
+router.put('/profile', authMiddleware, async (req, res, next) => {
+  try {
+    const body = (req.body ?? {}) as { displayName?: unknown; username?: unknown }
+    const fields: { displayName?: string; username?: string } = {}
+
+    if (body.displayName !== undefined) {
+      if (typeof body.displayName !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_DISPLAY_NAME', message: 'displayName must be a string' },
+        })
+      }
+      const trimmed = body.displayName.trim()
+      if (trimmed.length < 1 || trimmed.length > 32 || !isDisplayNameSafe(trimmed)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_DISPLAY_NAME', message: 'Display name is invalid' },
+        })
+      }
+      fields.displayName = trimmed
+    }
+
+    if (body.username !== undefined) {
+      if (typeof body.username !== 'string' || !/^[a-zA-Z0-9_]{3,20}$/.test(body.username)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_USERNAME', message: 'Username is invalid' },
+        })
+      }
+      // Uniqueness: a row with this username belonging to someone else blocks it.
+      const existing = await userRepository.findByUsername(body.username)
+      if (existing && existing.id !== req.userId) {
+        return res.status(409).json({
+          success: false,
+          error: { code: 'USERNAME_TAKEN', message: 'This username is already taken' },
+        })
+      }
+      fields.username = body.username
+    }
+
+    if (fields.displayName === undefined && fields.username === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'NO_FIELDS', message: 'At least one field is required' },
+      })
+    }
+
+    const updated = await userRepository.updateProfile(req.userId!, fields)
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    logger.info({ userId: req.userId, fields }, 'user profile updated')
+    res.json({ success: true, data: updated })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== RGPD Art. 15 & 20: data access / portability =====
+//
+// Streams the full export object as a downloadable JSON attachment. The
+// repository excludes all secret material (push keys, api-key/webhook
+// hashes, auth credentials). Deliberately NOT wrapped in the usual
+// {success,data} envelope — it's a file, not an API payload.
+router.get('/export', authMiddleware, async (req, res, next) => {
+  try {
+    const data = await gdprRepository.exportUserData(req.userId!)
+    const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="the-box-data-export-${date}.json"`
+    )
+    res.setHeader('Cache-Control', 'no-store')
+    logger.info({ userId: req.userId }, 'user data exported')
+    res.send(JSON.stringify(data, null, 2))
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== RGPD Art. 17: right to erasure (self-service) =====
+//
+// Hard-deletes the caller's account after a typed-username confirmation.
+// CASCADE foreign keys remove sessions, accounts, and all game/geo data —
+// the same mechanism the admin delete path relies on.
+router.delete('/account', authMiddleware, async (req, res, next) => {
+  try {
+    const { confirmUsername } = (req.body ?? {}) as { confirmUsername?: unknown }
+
+    const user = await userRepository.findById(req.userId!)
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    if (typeof confirmUsername !== 'string' || confirmUsername !== user.username) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'CONFIRMATION_MISMATCH',
+          message: 'Username confirmation does not match',
+        },
+      })
+    }
+
+    // CASCADE removes sessions / accounts / game data, mirroring the admin
+    // delete path. The cascaded `session` rows are enough to log the user out.
+    await db('user').where('id', req.userId).del()
+
+    logger.info({ userId: req.userId }, 'user self-deleted account')
+    res.json({ success: true, data: { deleted: true } })
   } catch (error) {
     next(error)
   }

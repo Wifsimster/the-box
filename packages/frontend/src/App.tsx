@@ -20,7 +20,8 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
-import { useGoatCounterPageviews } from '@/lib/analytics'
+import { useGoatCounterPageviews, useConsentedAnalytics } from '@/lib/analytics'
+import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { useApplyUserTheme } from '@/hooks/useApplyUserTheme'
 import {
   connectNotificationsSocket,
@@ -177,6 +178,10 @@ function LanguageLayout() {
 
       {/* Daily Login Reward Modal */}
       <DailyRewardModal />
+
+      {/* GDPR / RGPD cookie consent banner — shown on every page until the
+          user makes a choice; gates analytics + support tracking. */}
+      <ConsentBanner />
     </div>
   )
 }
@@ -184,6 +189,7 @@ function LanguageLayout() {
 function App() {
   useReferralCapture()
   useGoatCounterPageviews()
+  useConsentedAnalytics()
 
   return (
     <ErrorBoundary>

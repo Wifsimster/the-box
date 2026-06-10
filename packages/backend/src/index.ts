@@ -632,6 +632,24 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to schedule recurring prune-push-subscriptions job')
     }
 
+    // Daily data-retention sweep — 04:15 UTC. Hard-deletes personal-data
+    // bearing audit / log rows past their per-table retention windows
+    // (RGPD Art. 5(1)(e) storage limitation): email_log >1y,
+    // admin_audit_log >2y, webhook_deliveries >30d, stripe_event_log >1y.
+    try {
+      await importQueue.add(
+        'data-retention',
+        {},
+        {
+          repeat: { pattern: '15 4 * * *', tz: 'UTC' },
+          jobId: 'data-retention-recurring',
+        },
+      )
+      logger.info('scheduled recurring data-retention job (daily at 04:15 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring data-retention job')
+    }
+
     // Monthly leaderboard payout — 1st of each month at 00:30 UTC. Awards
     // a time-stamped cosmetic frame (`frame_top100_YYYY_MM`) to the top
     // 100 players of the PRIOR calendar month. Idempotent on YYYY-MM
