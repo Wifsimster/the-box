@@ -44,13 +44,22 @@ export function PricingCard({
     [i18n.language],
   )
   const tierKey = `pricing.tiers.${price.tier}`
+  // One-time tiers (interval === null, e.g. supporter_lifetime) aren't a
+  // "subscription" — use patronage wording and a one-time price label.
+  const isOneTime = price.interval === null
   const ctaKey = isCurrentPlan
     ? 'pricing.ctaCurrent'
     : !isLoggedIn
       ? 'pricing.ctaLogin'
-      : 'pricing.ctaSubscribe'
+      : isOneTime
+        ? 'pricing.ctaSupporter'
+        : 'pricing.ctaSubscribe'
 
-  const intervalKey = price.interval === 'month' ? 'pricing.billingMonthly' : 'pricing.billingAnnual'
+  const intervalKey = isOneTime
+    ? 'pricing.billingLifetime'
+    : price.interval === 'month'
+      ? 'pricing.billingMonthly'
+      : 'pricing.billingAnnual'
 
   return (
     <m.div
@@ -86,6 +95,9 @@ export function PricingCard({
           </div>
           {price.tier === 'premium_annual' && (
             <p className="text-xs text-neon-pink/80 font-medium">{t('pricing.savingsAnnual')}</p>
+          )}
+          {isOneTime && (
+            <p className="text-xs text-neon-pink/80 font-medium">{t('pricing.supporterNote')}</p>
           )}
         </CardContent>
 

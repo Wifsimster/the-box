@@ -1678,8 +1678,11 @@
     "subtitle": "Support the game, unlock the full archive, and customize your profile.",
     "billingMonthly": "/month",
     "billingAnnual": "/year",
+    "billingLifetime": "one-time",
     "savingsAnnual": "~37% savings vs monthly",
+    "supporterNote": "Pay once. Premium forever.",
     "ctaSubscribe": "Subscribe",
+    "ctaSupporter": "Become a supporter",
     "ctaManage": "Manage subscription",
     "ctaLogin": "Sign in to subscribe",
     "ctaCurrent": "Current plan",
@@ -1708,6 +1711,10 @@
         "name": "Premium Annual",
         "description": "Best value per month",
         "highlight": "Most popular"
+      },
+      "supporter_lifetime": {
+        "name": "Lifetime Supporter",
+        "description": "Back the game once, keep Premium for good"
       }
     },
     "features": {

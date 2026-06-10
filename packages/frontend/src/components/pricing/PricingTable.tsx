@@ -84,13 +84,14 @@ export function PricingTable() {
 
   const onFreePlan = isAuthenticated && !entitlement?.isPremium
 
-  // Three-card grid: Free (anchor) → Monthly → Annual (highlighted). On
-  // mobile each card stacks; the cap at lg:max-w-5xl keeps cards from
-  // stretching too wide on big screens.
+  // Card grid: Free (anchor) → Monthly → Annual (highlighted) → Lifetime.
+  // Two columns on tablet, four on desktop; on mobile each card stacks.
+  // The max-w cap keeps cards from stretching too wide on big screens.
   return (
-    <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
       {!pricesLoaded ? (
         <>
+          <PricingCardSkeleton />
           <PricingCardSkeleton />
           <PricingCardSkeleton />
           <PricingCardSkeleton />

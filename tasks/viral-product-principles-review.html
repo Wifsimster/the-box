@@ -7,9 +7,9 @@
 <title>The Box — 31 Viral-Product Principles Review</title>
 <!-- SUMMARY:
 Scores The Box's landing/pricing/marketing surfaces against Marc Lou's "31 Principles of a Viral Product".
-Verdict: 6 PASS, 14 PARTIAL, 11 FAIL. Biggest gaps: no testimonials/social proof, no founder presence,
+Verdict: 6 PASS, 15 PARTIAL, 10 FAIL (after wiring the lifetime tier in this branch). Biggest gaps: no testimonials/social proof, no founder presence,
 no problem/empathy framing, hero leads with brand name not value, multiple competing CTAs, "does one thing" violated.
-Notable code finding: supporter_lifetime tier exists in types + docs but is NOT in BILLING_CATALOG (no purchasable one-time option).
+Code finding (now fixed in this branch): supporter_lifetime was wired in types/docs/webhook/DB but missing from BILLING_CATALOG + checkout — now added as a one-time tier with a pricing card.
 Caveat: principles target paid SaaS landing pages; The Box is a freemium daily game, so "no free plan / hard paywall / no subscription" are intentionally off-strategy, not bugs.
 -->
 <style>
@@ -101,13 +101,13 @@ Caveat: principles target paid SaaS landing pages; The Box is a freemium daily g
 
   <div class="board">
     <div class="stat"><div class="n pass">6</div><div class="l">Pass</div></div>
-    <div class="stat"><div class="n partial">14</div><div class="l">Partial</div></div>
-    <div class="stat"><div class="n fail">11</div><div class="l">Fail</div></div>
+    <div class="stat"><div class="n partial">15</div><div class="l">Partial</div></div>
+    <div class="stat"><div class="n fail">10</div><div class="l">Fail</div></div>
   </div>
 
-  <div class="callout danger">
-    <h3>⚠ Code finding worth a ticket (independent of the principles)</h3>
-    <p>The <code>supporter_lifetime</code> tier is a first-class <code>BillingTier</code> in <code>packages/types/src/index.ts:1331</code> and is fully documented in <code>docs/billing-stripe.md</code> (one-time "supporter à vie" payment, dedicated webhook branch, <code>users.supporter_lifetime_at</code> column). But it is <strong>not present in <code>BILLING_CATALOG</code></strong> (<code>packages/backend/src/config/billing.ts</code>) &mdash; only <code>premium_monthly</code> and <code>premium_annual</code> are. So there is no resolvable price / purchasable path for the lifetime option today. This is exactly the one-time-payment lever principle&nbsp;#27 argues for, sitting half-wired in the codebase. Either finish wiring it or prune the dead tier from types/docs.</p>
+  <div class="callout">
+    <h3>✓ Code finding — now resolved in this branch</h3>
+    <p>The <code>supporter_lifetime</code> tier was a first-class <code>BillingTier</code> (<code>packages/types/src/index.ts:1331</code>), fully documented in <code>docs/billing-stripe.md</code>, with a webhook branch, a <code>users.supporter_lifetime_at</code> column, and entitlement/grant/revoke logic already in place &mdash; but it was <strong>missing from <code>BILLING_CATALOG</code></strong> and from the <code>/checkout</code> allowlist, so there was no purchasable path. This branch finishes the wiring: a one-time catalog entry (<code>the_box_supporter_lifetime</code>, &euro;79.99, <code>interval: null</code> &rarr; Stripe <code>mode: 'payment'</code>), the tier added to the checkout allowlist, a "Lifetime Supporter / Supporter à vie" pricing card with one-time copy in EN&nbsp;+&nbsp;FR, and a catalog regression test. The one-time-payment lever principle&nbsp;#27 argues for is now live. <em>Remaining ops step: create the matching Stripe price with lookup_key <code>the_box_supporter_lifetime</code> so <code>npm run stripe:check</code> passes and the card renders active in prod.</em></p>
   </div>
 
   <h2>Per-principle scorecard</h2>
@@ -387,12 +387,12 @@ Caveat: principles target paid SaaS landing pages; The Box is a freemium daily g
 
   <!-- 27 -->
   <details class="principle">
-    <summary><span class="num">27</span><span class="ptitle">No subscription</span><span class="badge fail">FAIL</span></summary>
+    <summary><span class="num">27</span><span class="ptitle">No subscription</span><span class="badge partial">PARTIAL ↑</span></summary>
     <div class="body">
       <p class="lbl">Evidence</p>
-      <p>Both paid tiers are recurring (<code>interval: 'month' | 'year'</code> in <code>BILLING_CATALOG</code>). The one-time <code>supporter_lifetime</code> tier is defined in types + docs but <strong>has no catalog entry / purchasable price</strong> (see top callout).</p>
+      <p>Originally both paid tiers were recurring and the one-time <code>supporter_lifetime</code> tier had no catalog entry. <strong>This branch adds the one-time tier</strong> (€79.99, <code>interval: null</code>) to <code>BILLING_CATALOG</code>, the checkout allowlist, and the pricing UI — so the app now offers a one-time option alongside the subscriptions.</p>
       <p class="lbl">Verdict</p>
-      <p>Lou: "one-time payments are 10× easier to sell." The lifetime/supporter one-time option is literally half-built. Finishing it would both satisfy this principle and give the "support the game" framing (already used in the pricing subtitle) a concrete product. Recommend wiring <code>supporter_lifetime</code> into the catalog + pricing UI, or removing the dead tier.</p>
+      <p>Lou: "one-time payments are 10× easier to sell." Moved from FAIL → PARTIAL: the one-time "support the game" product now exists (the framing was already in the pricing subtitle). Subscriptions remain the default path, which is reasonable for a recurring-content game. Remaining: create the Stripe price so the card renders active in prod, and consider whether to promote the lifetime tier harder per principle #31.</p>
     </div>
   </details>
 
@@ -450,7 +450,7 @@ Caveat: principles target paid SaaS landing pages; The Box is a freemium daily g
   </ol>
 
   <h2>Scope &amp; caveats</h2>
-  <p class="meta">This review covers marketing/landing/pricing/OG surfaces and copy only — not gameplay, infra, or correctness. Quoted copy is from <code>public/locales/{en,fr}/translation.json</code> and may drift. Six "FAIL/FAIL*" verdicts (#1, #8, partially #27, #31) reflect deliberate freemium-game strategy that diverges from Lou's paid-SaaS framing; they're listed for completeness, not as defects. The principles are a compass, not a spec.</p>
+  <p class="meta">This review covers marketing/landing/pricing/OG surfaces and copy only — not gameplay, infra, or correctness. Quoted copy is from <code>public/locales/{en,fr}/translation.json</code> and may drift. Several "FAIL*" verdicts (#1, #8, #31, and the subscription-default in #27) reflect deliberate freemium-game strategy that diverges from Lou's paid-SaaS framing; they're listed for completeness, not as defects. The principles are a compass, not a spec.</p>
 
 </div>
 </body>

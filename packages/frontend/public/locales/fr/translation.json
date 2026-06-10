@@ -1678,8 +1678,11 @@
     "subtitle": "Soutenez le jeu, débloquez l'archive complète et personnalisez votre profil.",
     "billingMonthly": "/mois",
     "billingAnnual": "/an",
+    "billingLifetime": "paiement unique",
     "savingsAnnual": "Soit ~37 % d'économies",
+    "supporterNote": "Payez une fois. Premium pour toujours.",
     "ctaSubscribe": "S'abonner",
+    "ctaSupporter": "Devenir supporter",
     "ctaManage": "Gérer mon abonnement",
     "ctaLogin": "Se connecter pour s'abonner",
     "ctaCurrent": "Plan actuel",
@@ -1708,6 +1711,10 @@
         "name": "Premium Annuel",
         "description": "Le meilleur rapport qualité-prix",
         "highlight": "Le plus populaire"
+      },
+      "supporter_lifetime": {
+        "name": "Supporter à vie",
+        "description": "Soutenez le jeu une fois, gardez Premium à vie"
       }
     },
     "features": {
