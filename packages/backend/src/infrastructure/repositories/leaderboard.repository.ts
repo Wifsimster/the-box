@@ -64,6 +64,21 @@ export const leaderboardRepository = {
     }))
   },
 
+  async countPlayersByChallenge(challengeId: number): Promise<number> {
+    // Mirrors the totalPlayers query in getPercentileForScore: ranked
+    // sessions only (completed, not catch-up, not anonymous). Used by the
+    // public "players today" social-proof badge on the home page.
+    const result = await db('game_sessions')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .where('game_sessions.daily_challenge_id', challengeId)
+      .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false)
+      .whereRaw('"user"."isAnonymous" = ?', [false])
+      .count('game_sessions.id as count')
+      .first()
+    return Number(result?.count ?? 0)
+  },
+
   async getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse> {
     // Count total completed sessions for this challenge (excluding anonymous users and catch-up sessions)
     const totalResult = await db('game_sessions')

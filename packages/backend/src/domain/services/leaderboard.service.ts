@@ -22,6 +22,12 @@ export interface LeaderboardService {
    * nobody has completed a ranked session yet. Cheap — fetches a single row.
    */
   getTodayLeader(): Promise<TodayLeader | null>
+  /**
+   * How many ranked players have finished today's challenge. Powers the
+   * public "joined by N players today" social-proof badge. Returns count 0
+   * when there is no challenge yet.
+   */
+  getTodayPlayerCount(): Promise<{ date: string; count: number }>
 }
 
 export interface LeaderboardServiceDeps {
@@ -102,6 +108,14 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
         displayName: leader.displayName,
         totalScore: leader.totalScore,
       }
+    },
+
+    async getTodayPlayerCount(): Promise<{ date: string; count: number }> {
+      const today = new Date().toISOString().split('T')[0]!
+      const challenge = await challengeRepository.findByDate(today)
+      if (!challenge) return { date: today, count: 0 }
+      const count = await leaderboardRepository.countPlayersByChallenge(challenge.id)
+      return { date: today, count }
     },
 
     async getTodayPercentile(score: number): Promise<PercentileResponse> {

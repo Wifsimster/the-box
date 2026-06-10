@@ -487,6 +487,8 @@ export interface DailyLoginRepository {
 export interface LeaderboardRepository {
   findByChallenge(challengeId: number, limit?: number): Promise<LeaderboardEntry[]>
   getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse>
+  /** Total ranked players (completed, non-catch-up, non-anonymous) for a challenge. */
+  countPlayersByChallenge(challengeId: number): Promise<number>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>
 }
 

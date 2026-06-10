@@ -62,6 +62,20 @@ router.get('/today', async (_req, res, next) => {
   }
 })
 
+// Public lightweight player count for today's challenge — powers the home
+// page "joined by N players today" social-proof badge. No auth: it's an
+// aggregate with no per-user data. Short cache so the number feels live
+// without hammering the DB on every homepage view.
+router.get('/today/count', async (_req, res, next) => {
+  try {
+    const data = await leaderboardService.getTodayPlayerCount()
+    res.set('Cache-Control', 'public, max-age=60')
+    res.json({ success: true, data })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Get percentile ranking for a score on today's challenge
 router.get('/today/percentile', async (req, res, next) => {
   try {

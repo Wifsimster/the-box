@@ -498,7 +498,10 @@
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Daily video game challenges with screenshot guessing, speed-based scoring, 21 achievements to unlock, live leaderboards, and win streaks. Play instantly as a guest or create an account.",
+    "headline": "Name the game from one screenshot.",
+    "subtitle": "A fresh video-game challenge every day. Play instantly — no account needed.",
+    "playersToday_one": "{{formatted}} player has taken on today's challenge",
+    "playersToday_other": "{{formatted}} players have taken on today's challenge",
     "playToday": "Play Today's Challenge",
     "dailyGuess": "Daily Guess",
     "geoCta": "Geo Mode",

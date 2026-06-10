@@ -498,7 +498,10 @@
   },
   "home": {
     "title": "The Box",
+    "headline": "Devine le jeu à partir d'une seule capture.",
     "subtitle": "Une capture, un jeu à reconnaître. Voyons si ta culture gaming tient encore debout.",
+    "playersToday_one": "{{formatted}} joueur a relevé le défi du jour",
+    "playersToday_other": "{{formatted}} joueurs ont relevé le défi du jour",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
     "geoCta": "Mode Géo",
