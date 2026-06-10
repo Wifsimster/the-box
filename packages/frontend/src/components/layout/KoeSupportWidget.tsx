@@ -4,6 +4,7 @@ import '@wifsimster/koe/style.css'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { koeApi } from '@/lib/api'
+import { useConsentStore } from '@/stores/consentStore'
 
 const KOE_PROJECT_KEY = import.meta.env.VITE_KOE_PROJECT_KEY as string | undefined
 const KOE_API_URL = import.meta.env.VITE_KOE_API_URL as string | undefined
@@ -21,6 +22,7 @@ const KOE_API_URL = import.meta.env.VITE_KOE_API_URL as string | undefined
 export function KoeSupportWidget() {
   const { user, isAuthenticated } = useAuth()
   const { i18n } = useTranslation()
+  const supportConsent = useConsentStore((s) => s.support)
   const [userHash, setUserHash] = useState<string | null>(null)
 
   const userId = user?.id
@@ -42,6 +44,10 @@ export function KoeSupportWidget() {
 
   if (!KOE_PROJECT_KEY || !KOE_API_URL) return null
   if (!isAuthenticated || !user?.id) return null
+  // Gated behind explicit "support" consent (GDPR / RGPD) — the widget loads a
+  // third-party script and identifies the user, so it must not run until the
+  // user opts in.
+  if (supportConsent !== true) return null
 
   return (
     <>

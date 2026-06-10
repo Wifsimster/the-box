@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { AchievementGrid } from '@/components/achievement'
 import { ReferralCard } from './ReferralCard'
 import { EmailConsentCard } from './EmailConsentCard'
+import { EditProfileCard } from './EditProfileCard'
+import { AccountDataCard } from './AccountDataCard'
 import { PushNotificationCard } from './PushNotificationCard'
 import { ProfileSection } from './ProfileSection'
 import { clearTourCompleted, markTourPending } from '@/components/onboarding/tour-storage'
@@ -56,6 +58,7 @@ interface ProfileTabsProps {
   selectedTheme: ThemeKey
   onThemeChange: (theme: ThemeKey) => void
   language: string
+  onProfileUpdated?: (user: UserType) => void
 }
 
 export function ProfileTabs({
@@ -67,6 +70,7 @@ export function ProfileTabs({
   selectedTheme,
   onThemeChange,
   language,
+  onProfileUpdated,
 }: ProfileTabsProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -152,16 +156,26 @@ export function ProfileTabs({
         {userProfile && !userProfile.isGuest && (
           <>
             <ProfileSection>
-              <ReferralCard userId={userProfile.id} language={language} />
+              <EditProfileCard
+                displayName={userProfile.displayName}
+                username={userProfile.username}
+                onUpdated={onProfileUpdated}
+              />
             </ProfileSection>
             <ProfileSection delay={0.05}>
+              <ReferralCard userId={userProfile.id} language={language} />
+            </ProfileSection>
+            <ProfileSection delay={0.1}>
               <EmailConsentCard
                 initialConsent={userProfile.emailMarketingConsent}
                 updatedAt={userProfile.emailConsentUpdatedAt}
               />
             </ProfileSection>
-            <ProfileSection delay={0.1}>
+            <ProfileSection delay={0.15}>
               <PushNotificationCard />
+            </ProfileSection>
+            <ProfileSection delay={0.2}>
+              <AccountDataCard username={userProfile.username} />
             </ProfileSection>
           </>
         )}
