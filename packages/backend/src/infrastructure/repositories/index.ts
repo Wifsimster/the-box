@@ -10,6 +10,7 @@ export { dailyLoginRepository } from './daily-login.repository.js'
 export { inventoryRepository } from './inventory.repository.js'
 export { rewardRepository } from './reward.repository.js'
 export { positionSecondChanceRepository } from './position-second-chance.repository.js'
+export { positionLetterRevealRepository } from './position-letter-reveal.repository.js'
 export { funnelEventRepository } from './funnel-event.repository.js'
 export {
   emailLogRepository,

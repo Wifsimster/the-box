@@ -391,6 +391,53 @@ router.post('/second-chance', authMiddleware, async (req, res, next) => {
   }
 })
 
+// Reveal one more letter of the masked title for a position. Server-
+// authoritative: returns only the recomputed masked string, never the
+// title. Gated server-side (one wrong guess first), capped per title, and
+// inventory-gated on the ranked daily (402 NO_INVENTORY → upsell). The
+// score penalty is locked in at reveal time and deducted by submitGuess.
+// Rate-limited: reveals are at most 2 per screenshot, so a burst beyond
+// this is automation, not play.
+const revealLetterLimiter = createRateLimiter({ windowMs: 60_000, max: 20 })
+router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, res, next) => {
+  try {
+    const { tierSessionId, position } = req.body ?? {}
+
+    if (typeof tierSessionId !== 'string' || typeof position !== 'number') {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_PARAMS',
+          message: 'tierSessionId (string) and position (number) required',
+        },
+      })
+      return
+    }
+
+    // Premium only changes the score cost in catch-up sessions (free
+    // letters off the leaderboard) — same scoping as the metadata hints.
+    const isPremium = await billingService.isPremium(req.userId!)
+
+    const data = await gameService.revealLetter({
+      tierSessionId,
+      position,
+      userId: req.userId!,
+      isPremium,
+    })
+
+    res.json({ success: true, data })
+  } catch (error) {
+    if (error instanceof GameError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: { code: error.code, message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
 // End game early (forfeit)
 router.post('/end', authMiddleware, async (req, res, next) => {
   try {

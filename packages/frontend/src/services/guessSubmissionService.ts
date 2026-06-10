@@ -23,7 +23,8 @@ export interface GuessSubmissionRequest {
  */
 export interface GuessSubmissionResult {
   isCorrect: boolean
-  correctGame: Game
+  /** Present only on a correct guess or session completion — wrong guesses don't reveal the answer. */
+  correctGame?: Game
   scoreEarned: number
   totalScore: number
   screenshotsFound: number
@@ -32,6 +33,7 @@ export interface GuessSubmissionResult {
   completionReason?: 'all_found' | 'forfeit'
   hintPenalty?: number
   hintFromInventory?: boolean
+  letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
   availableHints?: {

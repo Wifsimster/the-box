@@ -466,7 +466,15 @@
       "genreHint": "Genre",
       "penalty": "-20%",
       "penaltyApplied": "Pénalité d'indice : -{{penalty}} points",
-      "percentagePenalty": "pénalité de 20 %"
+      "percentagePenalty": "pénalité de 20 %",
+      "letterButton": "Révéler une lettre",
+      "letterTooltip": "Révéler une lettre du titre (-{{penalty}}%)",
+      "letterTooltipItem": "Révéler une lettre : utilise 1 bonus, -{{penalty}}% ({{count}} possédés)",
+      "letterCapReached": "Plus aucune lettre à révéler",
+      "letterNoInventory": "Nécessite un bonus Révélation de lettre (à gagner avec les récompenses quotidiennes)",
+      "letterMaskAria": "Titre masqué, {{revealed}} lettre(s) révélée(s)",
+      "letterPenaltyCurrent": "Pénalité de lettres actuelle : -{{penalty}}%",
+      "letterPenaltyApplied": "Pénalité de révélation : -{{penalty}} points"
     },
     "secondChance": {
       "title": "Activer une seconde chance ?",
@@ -1852,7 +1860,7 @@
     "rulesScoringHints": "Les indices coûtent 20 % du score de la manche, sauf si vous possédez un power-up d'indice dans votre inventaire (gagné via les récompenses de connexion quotidienne), auquel cas l'indice est gratuit.",
     "rulesScoringSkip": "Passer une capture ou laisser le chrono atteindre zéro met fin à la manche avec zéro point pour cette position.",
     "rulesHintsTitle": "4. Indices et power-ups",
-    "rulesHints": "Quatre indices sont disponibles par capture : année de sortie, éditeur, développeur et genre. Vous pouvez les cumuler — chaque indice appliqué coûte 20 % de pénalité supplémentaire, sauf s'il est couvert par un power-up de l'inventaire. Les séries de connexions quotidiennes rapportent des power-ups d'indice gratuits, utilisables à tout moment.",
+    "rulesHints": "Cinq indices sont disponibles par capture. Le titre masqué montre gratuitement la forme des mots ; après une première mauvaise réponse, vous pouvez révéler ses lettres une à une (-15 % puis -20 %, nécessite un bonus Révélation de lettre sur le défi du jour). Les quatre indices classiques — année de sortie, éditeur, développeur, genre — coûtent 20 % chacun, sauf s'ils sont couverts par un power-up de l'inventaire. Les séries de connexions quotidiennes rapportent des power-ups gratuits.",
     "rulesMatchingTitle": "5. Comment votre réponse est vérifiée",
     "rulesMatchingIntro": "Taper le titre officiel exact n'est jamais requis. The Box passe votre réponse dans un comparateur flou structuré, conçu pour être généreux face aux fautes de frappe et aux variantes, mais strict sur tout ce qui laisserait passer une réponse sans rapport. Voici précisément ce qu'il accepte et ce qu'il refuse.",
     "rulesMatchingAcceptedTitle": "Accepté",
@@ -2246,7 +2254,8 @@
       "hint_genre": "Indice Genre",
       "second_chance": "Seconde chance",
       "streak_freeze": "Protection de série",
-      "ambassador": "Badge Ambassadeur"
+      "ambassador": "Badge Ambassadeur",
+      "hint_letter": "Révélation de lettre"
     },
     "sources": {
       "reactivation": {
@@ -2338,7 +2347,8 @@
         "name": "Coffre Légendaire",
         "description": "Le coffre ultime : 2x chaque indice + 500 points !"
       }
-    }
+    },
+    "hintLetter": "Révélation de lettre"
   },
   "onboarding": {
     "welcomeTitle": "Bienvenue dans The Box !",

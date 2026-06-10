@@ -323,11 +323,23 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
       hint_publisher: 0,
       hint_developer: 0,
       hint_genre: 0,
+      hint_letter: 0,
     }
     for (const row of hintRows) {
       const key = row.power_up_used as keyof typeof hintUsage
       if (key in hintUsage) hintUsage[key] = Number(row.count)
     }
+
+    // Letter reveals live in their own table (one row per slot, counter
+    // per letter) rather than on the guess row — sum the letters so the
+    // matrix shows reveal volume, comparable to per-use hint counts.
+    const letterRow = await db('position_letter_reveals')
+      .join('tier_sessions', 'position_letter_reveals.tier_session_id', 'tier_sessions.id')
+      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+      .where('game_sessions.user_id', userId)
+      .sum<{ sum: string | null }>('position_letter_reveals.letters_revealed as sum')
+      .first()
+    hintUsage.hint_letter = Number(letterRow?.sum ?? 0)
 
     // Last-six-months progression. Bucketing on completed_at gives the
     // calendar months the user actually finished sessions in; an empty

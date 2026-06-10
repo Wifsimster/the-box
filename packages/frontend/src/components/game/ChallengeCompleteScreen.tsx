@@ -29,7 +29,7 @@ export function ChallengeCompleteScreen({
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const totalHintPenalties = guessResults.reduce(
-    (sum, result) => sum + (result.hintPenalty || 0),
+    (sum, result) => sum + (result.hintPenalty || 0) + (result.letterPenalty || 0),
     0,
   )
 

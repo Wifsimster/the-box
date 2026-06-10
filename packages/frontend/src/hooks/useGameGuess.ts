@@ -142,8 +142,10 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         // Determine if we should advance to next screenshot (only on correct)
         const shouldAdvance = result.isCorrect
 
-        // Record result only when advancing (to show in result screen)
-        if (shouldAdvance) {
+        // Record result only when advancing (to show in result screen).
+        // correctGame is always present on a correct guess — the server
+        // only omits it on wrong guesses (anti-leak).
+        if (shouldAdvance && result.correctGame) {
           const attempts = store.positionAttempts[store.currentPosition] ?? []
           store.addGuessResult({
             position: store.currentPosition,
@@ -153,6 +155,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             timeTakenMs: roundTimeTakenMs,
             scoreEarned: result.scoreEarned,
             hintPenalty: result.hintPenalty,
+            letterPenalty: result.letterPenalty,
             wrongGuessPenalty: result.wrongGuessPenalty,
             attempts,
           })
