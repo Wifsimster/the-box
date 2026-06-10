@@ -176,7 +176,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <User className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="text"
                             placeholder={t('auth.usernamePlaceholder')}
@@ -201,7 +201,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <Mail className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="email"
                             placeholder="you@example.com"
@@ -226,7 +226,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="password"
                             placeholder="••••••••"
@@ -251,7 +251,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="password"
                             placeholder="••••••••"

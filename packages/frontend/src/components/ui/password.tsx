@@ -32,7 +32,7 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-3 inset-y-0 my-auto flex h-fit items-center text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
           >
             {showPassword ? (

@@ -144,7 +144,7 @@ export default function ForgotPasswordPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
+                          <Mail className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
                           <Input
                             type="email"
                             placeholder="you@example.com"

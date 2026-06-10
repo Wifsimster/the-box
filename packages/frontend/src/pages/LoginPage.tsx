@@ -112,7 +112,7 @@ export default function LoginPage() {
                   {t('auth.emailOrUsername')}
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
+                  <User className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
                   <Input
                     type="text"
                     placeholder={t('auth.emailOrUsernamePlaceholder')}
@@ -130,7 +130,7 @@ export default function LoginPage() {
                   {t('auth.password')}
                 </label>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors z-10" />
+                  <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors z-10" />
                   <Password
                     placeholder="••••••••"
                     value={formData.password}
