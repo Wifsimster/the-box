@@ -36,6 +36,17 @@ export const BILLING_CATALOG: readonly BillingCatalogEntry[] = [
     currency: 'eur',
     interval: 'year',
   },
+  {
+    // One-time "supporter à vie" purchase. interval=null routes the
+    // Checkout Session to mode:'payment' (see billing.routes.ts), and the
+    // checkout.session.completed webhook grants users.supporter_lifetime_at
+    // directly since no Stripe Subscription is ever created.
+    tier: 'supporter_lifetime',
+    lookupKey: 'the_box_supporter_lifetime',
+    unitAmount: 7999,
+    currency: 'eur',
+    interval: null,
+  },
 ] as const
 
 export function getCatalogEntry(tier: BillingTier): BillingCatalogEntry | undefined {

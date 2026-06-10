@@ -18,6 +18,7 @@ const silentLogger: DomainLogger = {
 function makeService(opts: {
   challengeForDate?: { id: number } | null
   entries?: LeaderboardEntry[]
+  playerCount?: number
 }) {
   const challengeRepository = {
     findByDate: async () => opts.challengeForDate ?? null,
@@ -29,6 +30,7 @@ function makeService(opts: {
       lastLimit = limit
       return opts.entries ?? []
     },
+    countPlayersByChallenge: async () => opts.playerCount ?? 0,
   } as unknown as LeaderboardRepository
 
   const service = createLeaderboardService({
@@ -70,5 +72,20 @@ describe('leaderboardService.getTodayLeader', () => {
       totalScore: 4820,
     })
     assert.equal(getLastLimit(), 1, 'should ask the repository for a single row')
+  })
+})
+
+describe('leaderboardService.getTodayPlayerCount', () => {
+  it('returns count 0 when there is no challenge today', async () => {
+    const { service } = makeService({ challengeForDate: null, playerCount: 42 })
+    const result = await service.getTodayPlayerCount()
+    assert.equal(result.count, 0, 'no challenge means no ranked players')
+    assert.match(result.date, /^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('returns the ranked player count for today\'s challenge', async () => {
+    const { service } = makeService({ challengeForDate: { id: 7 }, playerCount: 128 })
+    const result = await service.getTodayPlayerCount()
+    assert.equal(result.count, 128)
   })
 })

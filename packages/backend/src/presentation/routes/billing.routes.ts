@@ -14,11 +14,10 @@ const log = logger.child({ route: 'billing' })
 
 const router = Router()
 
-// Only the active subset of BillingTier is accepted by /checkout. The
-// shared union still lists supporter_lifetime so webhook reverse lookups
-// can recognise legacy subscriptions, but the route refuses new checkouts
-// for tiers that aren't in BILLING_CATALOG.
-const TIERS = ['premium_monthly', 'premium_annual'] as const satisfies readonly BillingTier[]
+// Tiers accepted by /checkout — must each have a BILLING_CATALOG entry.
+// supporter_lifetime resolves to a one-time (interval=null) price, which
+// the session below turns into mode:'payment'; the other two are recurring.
+const TIERS = ['premium_monthly', 'premium_annual', 'supporter_lifetime'] as const satisfies readonly BillingTier[]
 
 // Public catalog. Used by the marketing page so the displayed amount is
 // always the same string the rest of the system asserts against. Cached
