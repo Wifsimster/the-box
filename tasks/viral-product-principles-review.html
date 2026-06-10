@@ -441,13 +441,15 @@ Caveat: principles target paid SaaS landing pages; The Box is a freemium daily g
   </details>
 
   <h2>Top 5 recommendations (ranked by ROI)</h2>
+  <p class="meta">Status tags below: <span class="badge pass">DONE</span> shipped in this branch · <span class="badge partial">PARTIAL</span> partly addressed · <span class="badge fail">OPEN</span> not started.</p>
   <ol class="recs">
-    <li><span class="tag">#20 #7 #10 #30</span> <strong>Rebuild the hero around the product, not the brand.</strong> Lead with a value headline ("Name the game from one screenshot"), show a real (blurred) screenshot + answer box, single primary CTA. Fixes 4 principles in one change.</li>
-    <li><span class="tag">#29 #14</span> <strong>Add social proof.</strong> "N players solved today" (data you already have) + a handful of Koe-sourced quotes. Cheap, high-trust.</li>
-    <li><span class="tag">#15</span> <strong>Founder screen-recording in the hero.</strong> The Remotion pipeline already exists; a 30s founder clip beats the text block.</li>
-    <li><span class="tag">#27 #31</span> <strong>Finish or kill <code>supporter_lifetime</code>.</strong> Wire it into <code>BILLING_CATALOG</code> + pricing UI as a one-time "supporter" purchase (and consider pricing it boldly), or remove the dead tier from types/docs.</li>
-    <li><span class="tag">#22 #11 #9 #18</span> <strong>Focus the home page.</strong> One primary CTA (play today); demote Geo/History/Yesterday. Port the punchy FR voice into EN so the copy is ownable and emotional.</li>
+    <li><span class="badge partial">PARTIAL</span> <span class="tag">#20 #7 #10 #30</span> <strong>Rebuild the hero around the product, not the brand.</strong> <em>Done:</em> value headline ("Name the game from one screenshot") promoted to the h1, brand demoted to a small wordmark, single primary CTA (Geo demoted to a quiet link). <em>Still open:</em> the screenshot preview only shows for anonymous, not-completed visitors — consider surfacing it more universally.</li>
+    <li><span class="badge partial">PARTIAL</span> <span class="tag">#29 #14</span> <strong>Add social proof.</strong> <em>Done:</em> a live "N players have taken on today's challenge" badge backed by real data (<code>GET /api/leaderboard/today/count</code>), shown only when the count is positive. <em>Still open:</em> Koe-sourced testimonial quotes (needs real user input — not fabricated).</li>
+    <li><span class="badge fail">OPEN</span> <span class="tag">#15</span> <strong>Founder screen-recording in the hero.</strong> The Remotion pipeline already exists; a 30s founder clip beats the text block. Needs a real recorded asset.</li>
+    <li><span class="badge pass">DONE</span> <span class="tag">#27 #31</span> <strong>Finish <code>supporter_lifetime</code>.</strong> Wired into <code>BILLING_CATALOG</code> + checkout + pricing UI as a one-time €79.99 "supporter" purchase. Remaining: create the matching Stripe price so the card renders active in prod.</li>
+    <li><span class="badge partial">PARTIAL</span> <span class="tag">#22 #11 #9 #18</span> <strong>Focus the home page.</strong> <em>Done:</em> one loud primary CTA (play today); Geo demoted to a quiet secondary link. FR headline/subtitle keep the punchy voice; EN headline tightened. <em>Still open:</em> History/Yesterday prompts still appear contextually.</li>
   </ol>
+  <p class="meta"><strong>Also shipped:</strong> the OG share card now embeds today's actual (blurred) screenshot under a scrim with a "Can you name this game?" hook (principle #5), instead of the text-only date card.</p>
 
   <h2>Scope &amp; caveats</h2>
   <p class="meta">This review covers marketing/landing/pricing/OG surfaces and copy only — not gameplay, infra, or correctness. Quoted copy is from <code>public/locales/{en,fr}/translation.json</code> and may drift. Several "FAIL*" verdicts (#1, #8, #31, and the subscription-default in #27) reflect deliberate freemium-game strategy that diverges from Lou's paid-SaaS framing; they're listed for completeness, not as defects. The principles are a compass, not a spec.</p>
