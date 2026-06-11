@@ -53,10 +53,10 @@ const REWARDS_BLOCK = `
     <div style="background:#1c0e34;border:1px solid #3a1f5c;border-radius:10px;padding:18px 20px;margin:22px 0;">
       <div style="font-size:12px;letter-spacing:1.5px;color:#a78bfa;text-transform:uppercase;margin-bottom:10px;">Récompenses</div>
       <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#ece8f5;">
-        <strong style="color:#f0abfc;">Pour ton filleul :</strong> 3 indices « année » + 2 indices « éditeur ».
+        <strong style="color:#f0abfc;">Pour ton filleul :</strong> 2 révélations de lettre + 1 seconde chance.
       </p>
       <p style="margin:0;font-size:14px;line-height:1.5;color:#ece8f5;">
-        <strong style="color:#f0abfc;">Pour toi, le parrain :</strong> 2 indices « année », 1 indice « éditeur » et le badge exclusif <em>Ambassadeur</em> sur ton profil.
+        <strong style="color:#f0abfc;">Pour toi, le parrain :</strong> 1 révélation de lettre, 1 gel de série et le badge exclusif <em>Ambassadeur</em> sur ton profil.
       </p>
     </div>
 `
@@ -80,8 +80,8 @@ function buildText(displayName: string, inviteUrl: string, unsubscribeUrl: strin
     heading: `Le parrainage débarque, ${displayName} !`,
     paragraphs: [
       'On vient de lancer le parrainage : invite tes amis sur The Box et vous gagnez tous les deux des bonus.',
-      'Pour ton filleul : 3 indices « année » + 2 indices « éditeur ».',
-      'Pour toi : 2 indices « année », 1 indice « éditeur » et le badge Ambassadeur.',
+      'Pour ton filleul : 2 révélations de lettre + 1 seconde chance.',
+      'Pour toi : 1 révélation de lettre, 1 gel de série et le badge Ambassadeur.',
     ],
     cta: { label: "Ton lien d'invitation", url: inviteUrl },
     tip: 'Astuce : tu retrouveras ton lien dans la carte « Parrainage » de ton profil.',

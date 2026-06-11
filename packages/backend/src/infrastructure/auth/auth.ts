@@ -9,9 +9,11 @@ import { inventoryRepository } from "../repositories/inventory.repository.js";
 import { emailLogRepository } from "../repositories/email-log.repository.js";
 import { renderEmailHtml, renderEmailText } from "../email/template.js";
 
+// Legacy metadata hints were retired 2026-06 (see migration
+// 20260613_retire_legacy_metadata_hints) — new accounts start with
+// letter-reveal currency instead.
 const STARTER_INVENTORY: Array<{ itemType: string; itemKey: string; quantity: number }> = [
-  { itemType: "powerup", itemKey: "hint_year", quantity: 2 },
-  { itemType: "powerup", itemKey: "hint_publisher", quantity: 1 },
+  { itemType: "powerup", itemKey: "hint_letter", quantity: 2 },
 ];
 
 export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;

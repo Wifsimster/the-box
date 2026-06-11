@@ -94,9 +94,11 @@ export function createUserService(deps: UserServiceDeps): UserService {
         }))
 
         if (correctGuess) {
-          // Calculate hint penalty (20% of score if hint was used). All four
-          // hint types carry the penalty, but only when the hint was NOT paid
-          // from inventory (inventory/premium hints are free).
+          // LEGACY — historical rows only, do not remove. The metadata
+          // hints were retired 2026-06 and new guesses always persist
+          // power_up_used = null, but old sessions still display their
+          // 20% hint penalty here. Only hints NOT paid from inventory
+          // (inventory/premium hints were free) carried the penalty.
           let hintPenalty: number | undefined
           if (
             !correctGuess.hintFromInventory &&

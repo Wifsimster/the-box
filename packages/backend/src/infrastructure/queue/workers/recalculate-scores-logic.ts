@@ -109,9 +109,11 @@ function calculateGuessScore(
     // Cap max score per screenshot at 200 points
     scoreEarned = Math.min(scoreEarned, 200)
 
-    // Calculate hint penalty as 20% of earned score (after speed multiplier).
-    // All four hint types carry the penalty in game.service.ts; hints paid
-    // from inventory (or free premium catch-up hints) carry none.
+    // LEGACY — historical rows only, do not remove. The four metadata
+    // hints were retired 2026-06 (new guesses persist power_up_used =
+    // null), but recalculation must keep reproducing the 20% penalty on
+    // historical rows; hints paid from inventory (or free premium
+    // catch-up hints) carried none.
     const isHint =
         powerUpUsed === 'hint_year' ||
         powerUpUsed === 'hint_publisher' ||

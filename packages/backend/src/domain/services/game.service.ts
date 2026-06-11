@@ -57,23 +57,6 @@ const CATCH_UP_DAYS = 0
 // produces one row per day, so the upper bound on cardinality is small.
 export const PREMIUM_CATCH_UP_DAYS = 365
 
-// Hint payload shape mirrors the inline objects that previously appeared
-// at the two submitGuess return sites; helper keeps both call sites in
-// sync as we tighten the gating.
-function buildAvailableHints(
-  releaseYear: number | null | undefined,
-  fullGameData: { publisher?: string | null; developer?: string | null; genres?: string[] | null } | null
-): { year: string | null; publisher: string | null; developer: string | null; genre: string | null } {
-  return {
-    year: releaseYear != null ? releaseYear.toString() : null,
-    publisher: fullGameData?.publisher ?? null,
-    developer: fullGameData?.developer ?? null,
-    // Primary genre only — the full tag list often tips the answer
-    // (e.g. "Action / Stealth / WW2" ≈ Wolfenstein).
-    genre: fullGameData?.genres?.[0] ?? null,
-  }
-}
-
 // Letter-reveal state payload shared by getScreenshot (restore on fetch)
 // and revealLetter (after a paid reveal). Pure recomputation from the
 // stored integer count — the masked string is never persisted. `maxLetters`
@@ -188,8 +171,6 @@ export interface GameService {
     guessText: string
     roundTimeTakenMs: number
     userId: string
-    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
-    isPremium?: boolean
   }): Promise<GuessResponse>
   endGame(sessionId: string, userId: string): Promise<EndGameResponse>
   /**
@@ -612,8 +593,6 @@ export function createGameService(deps: GameServiceDeps): GameService {
     guessText: string
     roundTimeTakenMs: number
     userId: string
-    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
-    isPremium?: boolean
   }): Promise<GuessResponse> {
     // Serialise the whole submission against other concurrent calls for
     // the same tier_session. Without this, two rapid POSTs (two tabs, a
@@ -709,61 +688,19 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // Calculate score based on speed multiplier (only for correct guesses)
     // Base score is 100 points, multiplied by speed factor
     let scoreEarned = 0
-    let hintPenalty = 0
-    let hintFromInventory = false
     if (isCorrect) {
       const speedMultiplier = calculateSpeedMultiplier(effectiveTimeTakenMs)
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
       // Cap max score per screenshot at 200 points
       scoreEarned = Math.min(scoreEarned, 200)
-
-      // Check if hint was used and handle penalty/inventory
-      if (
-        data.powerUpUsed === 'hint_year' ||
-        data.powerUpUsed === 'hint_publisher' ||
-        data.powerUpUsed === 'hint_developer' ||
-        data.powerUpUsed === 'hint_genre'
-      ) {
-        // Premium entitlement bypasses the hint cost ENTIRELY in catch-up
-        // sessions only — never on today's daily, since today is what
-        // feeds the leaderboard and ranked integrity is non-negotiable.
-        const premiumFreeHint = !!data.isPremium && !!tierSession.is_catch_up
-
-        if (premiumFreeHint) {
-          hintFromInventory = true // accounting bucket: "no penalty"
-          log.info(
-            { userId: data.userId, hintType: data.powerUpUsed },
-            'hint free for premium in catch-up',
-          )
-        } else {
-          // Check if user has hint in inventory (use it for free)
-          const hasHintInInventory = await inventoryRepository.useItems(
-            data.userId,
-            'powerup',
-            data.powerUpUsed,
-            1
-          )
-
-          if (hasHintInInventory) {
-            // Hint from inventory - no penalty
-            hintFromInventory = true
-            log.info({ userId: data.userId, hintType: data.powerUpUsed }, 'hint used from inventory (no penalty)')
-          } else {
-            // No inventory - apply 20% penalty
-            hintPenalty = Math.round(scoreEarned * 0.20)
-            scoreEarned -= hintPenalty
-            log.info({ userId: data.userId, hintType: data.powerUpUsed, penalty: hintPenalty }, 'hint used with penalty (no inventory)')
-          }
-        }
-      }
     }
 
     // Letter-reveal penalty — the cumulative percent was locked in at
     // reveal time (POST /reveal-letter) and is deducted here exactly once,
     // on the correct guess. Ordering contract: after the speed-multiplier
-    // cap and the metadata-hint penalty, BEFORE the second-chance floor —
-    // a paid floor still wins over letter costs. Re-deduction on a later
-    // guess is blocked by the POSITION_ALREADY_SOLVED anti-replay guard.
+    // cap, BEFORE the second-chance floor — a paid floor still wins over
+    // letter costs. Re-deduction on a later guess is blocked by the
+    // POSITION_ALREADY_SOLVED anti-replay guard.
     let letterPenalty = 0
     let pendingLetterRevealId: number | null = null
     if (isCorrect) {
@@ -862,8 +799,11 @@ export function createGameService(deps: GameServiceDeps): GameService {
       // actually drove the score, not the client's self-report.
       sessionElapsedMs: effectiveTimeTakenMs,
       scoreEarned,
-      powerUpUsed: data.powerUpUsed ?? null,
-      hintFromInventory,
+      // Legacy metadata hints are retired — new guesses always persist
+      // null. The column (and historical non-null values) stay untouched
+      // for history-display and recalculation paths.
+      powerUpUsed: null,
+      hintFromInventory: false,
     })
 
     if (pendingSecondChanceActivationId !== null) {
@@ -903,7 +843,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
         position: data.position,
         isCorrect,
         roundTimeTakenMs: effectiveTimeTakenMs,
-        powerUpUsed: data.powerUpUsed ?? null,
+        // Retired field, kept in the payload shape so funnel queries that
+        // segment on it keep working across the retirement boundary.
+        powerUpUsed: null,
       },
     })
 
@@ -1045,16 +987,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
         nextPosition,
         isCompleted,
         completionReason,
-        hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
-        hintFromInventory: hintFromInventory || undefined,
         letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
-        // Hints reveal the year/publisher/developer/genre of the answer.
-        // On a wrong guess we'd otherwise hand a free harvest path to any
-        // player willing to spend one bad guess. On the completion path
-        // we deliberately reveal them — the round is over either way.
-        availableHints: isCorrect || isCompleted ? buildAvailableHints(releaseYear, fullGameData) : undefined,
         newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
     }
@@ -1080,10 +1015,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     return {
       isCorrect,
-      // Same anti-leak gate as availableHints below: a wrong guess must
-      // not hand back the answer (name + metadata) — that free harvest
-      // path would make the hint penalties and the metered letter
-      // reveal meaningless.
+      // Anti-leak gate: a wrong guess must not hand back the answer
+      // (name + metadata) — that free harvest path would make the
+      // metered letter reveal meaningless.
       correctGame: isCorrect ? correctGame : undefined,
       scoreEarned,
       totalScore: newTotalScore,
@@ -1091,14 +1025,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       nextPosition,
       isCompleted,
       completionReason,
-      hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
-      hintFromInventory: hintFromInventory || undefined,
       letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       secondChanceFloorBoost,
-      // Same gating as the completion path above — wrong guesses don't
-      // leak the answer's metadata back to the client.
-      availableHints: isCorrect ? buildAvailableHints(releaseYear, fullGameData) : undefined,
     }
     }) // end withTierSessionLock
   },
@@ -1173,8 +1102,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
       }
 
       // Premium entitlement zeroes the score cost in catch-up sessions
-      // only — never on today's daily (ranked integrity, same line the
-      // metadata hints draw).
+      // only — never on today's daily (ranked integrity is
+      // non-negotiable).
       const premiumFree = !!isPremium && !!tierSession.is_catch_up
 
       // Ranked daily is inventory-gated: every reveal burns one

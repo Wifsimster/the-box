@@ -347,16 +347,34 @@ export class AchievementRepository {
 
     async countHintFreeCompletedGames(userId: string): Promise<number> {
         // Count completed game sessions that have zero power-up usage across
-        // all of their guesses.
+        // all of their guesses AND zero letter reveals. power_up_used is only
+        // ever non-null on historical rows (legacy metadata hints, retired
+        // 2026-06) but must stay in the predicate so old hint-assisted
+        // sessions don't retroactively become "hint-free".
         const rows = await db('game_sessions')
             .leftJoin('tier_sessions', 'game_sessions.id', 'tier_sessions.game_session_id')
             .leftJoin('guesses', 'tier_sessions.id', 'guesses.tier_session_id')
+            .leftJoin(
+                'position_letter_reveals',
+                'tier_sessions.id',
+                'position_letter_reveals.tier_session_id'
+            )
             .where('game_sessions.user_id', userId)
             .where('game_sessions.is_completed', true)
             .groupBy('game_sessions.id')
             .havingRaw('COALESCE(MAX(CASE WHEN guesses.power_up_used IS NOT NULL THEN 1 ELSE 0 END), 0) = 0')
+            .havingRaw('COALESCE(MAX(position_letter_reveals.letters_revealed), 0) = 0')
             .count('* as count')
         return rows.length
+    }
+
+    async countSessionLetterReveals(gameSessionId: string): Promise<number> {
+        const row = await db('position_letter_reveals')
+            .join('tier_sessions', 'position_letter_reveals.tier_session_id', 'tier_sessions.id')
+            .where('tier_sessions.game_session_id', gameSessionId)
+            .sum<{ sum: string | null }>('position_letter_reveals.letters_revealed as sum')
+            .first()
+        return Number(row?.sum ?? 0)
     }
 
     async countGenreCorrectGuesses(userId: string, genre: string): Promise<number> {
