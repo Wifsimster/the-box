@@ -616,7 +616,9 @@
     "skipped": "Passé",
     "errorLoading": "Impossible de charger les réponses",
     "clickToView": "Cliquez pour voir les réponses de ce joueur",
-    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs."
+    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs.",
+    "capturesFound": "Captures découvertes",
+    "avgCaptureTime": "Temps moyen par capture"
   },
   "history": {
     "title": "Historique des Parties",

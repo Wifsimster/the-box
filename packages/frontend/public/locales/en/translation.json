@@ -616,7 +616,9 @@
     "skipped": "Skipped",
     "errorLoading": "Failed to load player answers",
     "clickToView": "Click to view this player's answers",
-    "todayLocked": "Complete today's challenge to view other players' answers."
+    "todayLocked": "Complete today's challenge to view other players' answers.",
+    "capturesFound": "Captures found",
+    "avgCaptureTime": "Average time per capture"
   },
   "history": {
     "title": "Game History",
