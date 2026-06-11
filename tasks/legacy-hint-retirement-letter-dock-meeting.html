@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<!-- SUMMARY: Legacy hint retirement + letter-reveal dock integration — subagents meeting record (2026-06-11).
+Decision: fully retire the four metadata hints (year/publisher/developer/genre) from UI AND economy,
+overriding the 2026-06-10 "add, don't replace" decision, per PO directive. Convert earned inventory
+2:1 into hint_letter (pooled, ceil, min 1) via a ledgered migration + rewards-inbox announcement.
+Fuse the masked title + reveal button into the guess field as one bordered unit (Option B). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Legacy Hint Retirement &amp; Letter-Reveal Dock — Senior Meeting Record</title>
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --text: #e4e4ef; --muted: #9a9ab0; --primary: #a855f7;
+    --pink: #ec4899; --success: #34d399; --warn: #fbbf24; --error: #f87171;
+    --border: #2a2a3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: Inter, system-ui, sans-serif;
+    line-height: 1.6; margin: 0; padding: 2rem 1rem;
+  }
+  main { max-width: 72ch; margin: 0 auto; }
+  h1 { font-size: 1.6rem; line-height: 1.25; }
+  h1 .glow { color: var(--primary); text-shadow: 0 0 24px rgba(168,85,247,.45); }
+  h2 { font-size: 1.15rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: .35rem; margin-top: 2.2rem; }
+  h3 { font-size: 1rem; margin-top: 1.4rem; }
+  code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .85em; }
+  code { background: var(--surface2); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .9rem 1rem; overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .87rem; margin: 1rem 0; }
+  th, td { border: 1px solid var(--border); padding: .45rem .6rem; text-align: left; vertical-align: top; }
+  th { background: var(--surface2); }
+  .meta { color: var(--muted); font-size: .85rem; }
+  .seat { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 8px; padding: .9rem 1.1rem; margin: 1rem 0; }
+  .seat h3 { margin-top: 0; }
+  .decision { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--success); border-radius: 8px; padding: .7rem 1rem; margin: .8rem 0; }
+  .decision b:first-child { color: var(--success); }
+  .dissent { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 8px; padding: .7rem 1rem; margin: .8rem 0; }
+  .dissent b:first-child { color: var(--warn); }
+  .pill { display: inline-block; font-size: .72rem; padding: .1em .6em; border-radius: 99px; border: 1px solid var(--border); color: var(--muted); margin-right: .35rem; }
+  a { color: var(--pink); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  ul { padding-left: 1.2rem; }
+  li { margin: .25rem 0; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Senior meeting — <span class="glow">Legacy hint retirement</span> &amp; letter-reveal dock integration</h1>
+<p class="meta">
+  2026-06-11 · Chair: Claude (session agent) · Seats: Game Economy Designer, Staff Frontend/UX,
+  Staff Backend, Senior QA/A11y/i18n · Supersedes the relevant decisions of
+  <a href="hint-letter-reveal-subagents-meeting.html">hint-letter-reveal-subagents-meeting.html</a> (2026-06-10).
+</p>
+
+<h2>Why this meeting</h2>
+<p>
+  The Product Owner believed the four legacy metadata hints (year / publisher / developer / genre,
+  −20% each) had been removed when the masked-title letter reveal shipped. They had not — the
+  2026-06-10 meeting explicitly decided <em>"add, don't replace"</em> to protect the login economy.
+  The PO's new directive overrides that: <b>only the letter reveal survives</b>. Second complaint:
+  the letter-reveal UI (mask + "Révéler une lettre" pill) floats two rows above the guess field,
+  visually disconnected from where the player actually types.
+</p>
+
+<h2>Ground truth established before debate</h2>
+<ul>
+  <li>Letter reveal: server-authoritative <code>POST /reveal-letter</code>; penalty steps
+      <code>[15, 20]</code> ⇒ cost {0, −15%, −35%}; hard cap 2 letters/title; consumes a
+      <code>hint_letter</code> item on the ranked daily <em>and still</em> costs score.</li>
+  <li>Legacy hints: flat −20%, but <b>free when paid from inventory</b> — a hidden
+      rich-get-richer asymmetry favouring streak players.</li>
+  <li><b>Seven</b> grant sources mint legacy keys (the brief assumed four):
+      daily-login calendar (days 1/2/4/5 + day-7 chest), <b>signup starter inventory</b>
+      (<code>auth.ts</code>: hint_year ×2 + hint_publisher ×1 on every registration),
+      referral (both sides + hardcoded FR email copy), geo-consensus pins, geo first-pin
+      reward, reactivation chest.</li>
+  <li><code>timer_extension</code> is a dead key: granted by geo-consensus, consumed by
+      <b>nothing</b> anywhere in backend or frontend.</li>
+  <li><code>HintButtons.tsx</code> owns the <code>fetchInventory()</code> on-mount effect that
+      <code>MaskedTitle</code> silently depends on — naïve deletion breaks ranked-daily
+      inventory state.</li>
+  <li>The "hint-free game" achievement is defined as <code>powerUpUsed !== null</code>; once
+      that column is always null, every game becomes "hint-free" unless letter reveals are
+      counted too.</li>
+</ul>
+
+<h2>Decisions</h2>
+
+<div class="decision"><b>D1 — Full retirement.</b> The four metadata hints leave both the play
+surface and the economy. UI components <code>HintButtons.tsx</code> and the revealed-hint chips
+in <code>GuessInput.tsx</code> are deleted; the <code>submitGuess</code> penalty/inventory path
+is removed. Explicitly overrides 2026-06-10 "add, don't replace".</div>
+
+<div class="decision"><b>D2 — Convert, never delete.</b> One ledgered, idempotent migration
+(<code>20260613_retire_legacy_metadata_hints.ts</code>): pooled conversion
+<b>2 legacy → 1 <code>hint_letter</code></b>, rounded up, minimum 1 if the user held any.
+Atomic <code>DELETE … RETURNING</code> CTE so concurrent old replicas can't double-spend;
+<code>legacy_hint_retirement_log</code> audit table powers support queries and an exact
+<code>down()</code>. Announced through the existing rewards-inbox grant flow (idempotent on
+<code>sourceRef</code>, socket event + inbox card for free) — framed in French as an upgrade,
+never a removal. No conversion cap: score cost, not item count, is the leaderboard invariant.</div>
+
+<div class="decision"><b>D3 — Retire <code>timer_extension</code> in the same pass.</b> Dead key
+with live grants reads as a player-facing bug. Existing inventory converts 1:1 →
+<code>streak_freeze</code>; geo-consensus "every 10th pin" grant becomes
+<code>streak_freeze ×1</code>.</div>
+
+<div class="decision"><b>D4 — Grant rewiring (all seven sources).</b>
+<table>
+  <tr><th>Source</th><th>Was</th><th>Becomes</th></tr>
+  <tr><td>Calendar day 1</td><td>hint_year ×1</td><td>hint_letter ×1</td></tr>
+  <tr><td>Calendar day 2</td><td>hint_publisher ×1</td><td>streak_freeze ×1</td></tr>
+  <tr><td>Calendar day 4</td><td>hint_year ×2</td><td>hint_letter ×1</td></tr>
+  <tr><td>Calendar day 5</td><td>hint_publisher ×2</td><td>second_chance ×1</td></tr>
+  <tr><td>Day-7 chest</td><td>4 legacy keys + hint_letter ×1 + 500 pts</td><td>hint_letter ×2 + streak_freeze ×1 + 500 pts</td></tr>
+  <tr><td>Signup starter</td><td>hint_year ×2 + hint_publisher ×1</td><td>hint_letter ×2</td></tr>
+  <tr><td>Referral — referee</td><td>hint_year ×3 + hint_publisher ×2</td><td>hint_letter ×2 + second_chance ×1</td></tr>
+  <tr><td>Referral — referrer</td><td>hint_year ×2 + hint_publisher ×1 + badge</td><td>hint_letter ×1 + streak_freeze ×1 + badge</td></tr>
+  <tr><td>Geo 1σ pin</td><td>hint_year ×1</td><td>hint_letter ×1</td></tr>
+  <tr><td>Geo 0.5σ pin</td><td>hint_publisher/developer (alternating)</td><td>second_chance ×1</td></tr>
+  <tr><td>Geo every-10th pin</td><td>timer_extension ×1</td><td>streak_freeze ×1</td></tr>
+  <tr><td>Geo first pin</td><td>hint_year ×1</td><td>hint_letter ×1</td></tr>
+  <tr><td>Reactivation chest</td><td>hint_developer ×1 + …</td><td>hint_letter ×1 + … (unchanged rest)</td></tr>
+</table>
+The referral-announcement email's hardcoded FR reward copy ships in the same release or it
+advertises dead items.</div>
+
+<div class="decision"><b>D5 — Fused guess field (UX Option B).</b> One bordered shell: a slim
+mask bar fused to the input's top edge, sharing the existing neon frame
+(<code>border-primary/30</code> + <code>shadow-[var(--glow-md)]</code>, lifted from the
+<code>&lt;Input&gt;</code> onto a wrapper with <code>focus-within:</code>). The reveal button is a
+labelled pill at the bar's right end — stacked above send, never beside it (mis-tap risk on
+≤360px). <code>onPointerDown preventDefault</code> keeps the mobile keyboard open. Logic moves
+to a <code>useLetterReveal</code> hook (including the inventory fetch rescued from HintButtons);
+<code>MaskedTitle.tsx</code> and <code>HintButtons.tsx</code> die; a presentational
+<code>LetterRevealBar.tsx</code> renders inside <code>GuessInput</code>. Freed dock height goes
+to the screenshot (flex-1 absorbs it) — nothing new fills it. Rejected: crossword-style typing
+into the mask (breaks fuzzy matching — players legitimately type "gta 5"), reveal icon beside
+send (fat-finger factory under a 45s timer).</div>
+
+<div class="decision"><b>D6 — Button states are visible, not tooltip-only.</b> Always-rendered
+text label carrying the cost (<code>Lettre −15%</code> / <code>Lettre ×2</code>);
+<code>aria-disabled</code> + tap-fires-toast instead of a dead <code>disabled</code> button
+(touch users currently get zero explanation of the locked gate); cap-reached unmounts the
+button leaving the penalty tag as residue; per-letter reveals announced in the existing polite
+live region ("Lettre R révélée…"). Reveal animation uses the sanctioned reward-reveal bounce,
+zeroed under <code>prefers-reduced-motion</code>. Stable test-ids:
+<code>letter-reveal-button</code>, <code>masked-title</code>, <code>letter-penalty-badge</code>.</div>
+
+<div class="decision"><b>D7 — Anti-leak: stop sending <code>availableHints</code>.</b>
+<code>buildAvailableHints</code> dies; <code>correctGame</code> already carries everything the
+result UI needs. <code>SubmitGuessRequest.powerUpUsed</code>, <code>GuessResponse.hintPenalty /
+hintFromInventory / availableHints</code> and <code>PositionState.hint*Used</code> leave the
+shared types. <code>/guess</code> <b>accepts and ignores</b> a stale client's
+<code>powerUpUsed</code> — never 400 a guess over a retired optional field.</div>
+
+<div class="decision"><b>D8 — History is sacred.</b> <code>guesses.power_up_used</code> stays
+untouched; session-details penalty display and the recalculation worker keep understanding
+legacy values (marked <code>// LEGACY — historical rows only</code>); advanced stats fold the
+four keys into one <code>legacyMetadataHints</code> rollup beside <code>hint_letter</code>.</div>
+
+<div class="decision"><b>D9 — Achievement integrity.</b> "Hint-free game" extends to require
+zero <code>position_letter_reveals</code> rows for the session, otherwise retirement makes it
+trivially earnable.</div>
+
+<div class="decision"><b>D10 — QA gates before merge.</b> Rewrite the lying test
+(<code>daily-game.spec.ts</code> "should display hint buttons" keeps passing against any
+disabled button); replace <code>locator('..')</code> parent-traversal submit lookups with
+role+name; delete the dead <code>clickHint</code> helper; new <code>letter-reveal</code>
+coverage (locked gate, happy path, cap, no-inventory ranked daily, server-authoritative race);
+~18 dead <code>game.hints.*</code> i18n keys removed and new keys land in <b>fr + en in the
+same PR</b> (incl. the how-to-play copy still citing the −20% economy); migration conversion
+gets its own idempotency test.</div>
+
+<h2>Seat summaries</h2>
+
+<div class="seat"><h3>Game Economy Designer</h3>
+<span class="pill">conversion</span><span class="pill">grant rewiring</span><span class="pill">balance</span>
+<p>Full retirement over half-measures (hidden-but-held items are permanent support debt).
+2:1 pooled/ceil/min-1 reads as "two weak hints become one strong hint". Post-retirement
+variance {0, −15%, −35%} is <em>healthier</em> than today, where inventory-rich players used
+hints free. Watch the letter-penalty × second-chance-floor interaction (floor partially erases
+letter costs — the optimal slow-play line once letters are the only hint).</p></div>
+
+<div class="seat"><h3>Staff Frontend / UX</h3>
+<span class="pill">fused field</span><span class="pill">thumb reach</span><span class="pill">keyboard</span>
+<p>Option B wins on mobile: the mask stays glued above the keyboard where the player is
+looking; the reveal action sits next to the glyphs it changes, making cause→effect spatial.
+Caught the <code>fetchInventory</code> dependency hiding in HintButtons. Recommends against a
+<code>GuessDock</code> wrapper (would lift success/shake state for zero user value) and against
+live-highlighting typed-vs-mask matches (fuzzy matching means divergence is legitimate; the UI
+must not look like a correctness oracle).</p></div>
+
+<div class="seat"><h3>Staff Backend</h3>
+<span class="pill">migration</span><span class="pill">rollout</span><span class="pill">compat</span>
+<p>Single deploy is safe: migrations run before serve via <code>docker-entrypoint.sh</code>;
+old code tolerates the post-migration DB and vice-versa, so both rollback directions work.
+Found the signup starter inventory and reactivation chest grant sources the brief missed.
+Atomic CTE conversion + audit ledger + verbatim calendar backups for an exact
+<code>down()</code>. Flagged the achievement side-effect (D9).</p></div>
+
+<div class="seat"><h3>Senior QA / A11y / i18n</h3>
+<span class="pill">e2e</span><span class="pill">WCAG</span><span class="pill">fr-first</span>
+<p>Two quiet failure modes matter more than loud ones: the lying hint-button test and
+parent-traversal selectors that may resolve to the new docked button. The in-input send button
+is already sub-44px — don't compound it; tooltip-only state info is unacceptable on touch.
+French typography: settle one convention for "−15 %" (non-breaking space) across all penalty
+copy; conversion announcement needs proper <code>_one/_other</code> plurals. Add the game dock
+to the a11y-smoke axe scan (currently no in-game surface is scanned) and a masked mid-game
+visual snapshot (fr + en — French copy is longer and drives wrap).</p></div>
+
+<h2>Dissents on the record</h2>
+
+<div class="dissent"><b>Economy → PO:</b> retirement removes the game's only
+<em>zero-score-cost</em> help path; that's regressive for the bottom of the skill curve — the
+cohort the login economy retains. Pre-negotiated mitigation if completion rates dip: <b>first
+letter of the day becomes score-free</b> (a penaltyStep-0 carve-out), not a return of metadata
+hints.</div>
+
+<div class="dissent"><b>UX → PO:</b> a cost-bearing, irreversible action now lives one tap from
+the typing surface under a 45s timer. Accepted because the cost label is always visible and the
+gate locks it by default. If telemetry shows reveals spiking within ~300ms of a failed send
+tap, the fix is a brief post-submit disabled window — <em>not</em> a confirmation dialog.</div>
+
+<div class="dissent"><b>Backend → team:</b> during the rolling-deploy window, old replicas run
+the penalty path against already-drained inventory — a user who "owned" a hint eats −20% on the
+ranked daily. Deploy at the daily-reset low-traffic point; keep the window short.</div>
+
+<div class="dissent"><b>QA → PO:</b> instrument daily completion rate, correct-guesses/session
+and reveal usage segmented by skill quartile, with a pre-removal baseline. The reveal pill
+(~36px) matches the existing send button but sits below the 44px AAA touch floor — accepted as
+consistent-with-current, revisit both together. Chair also overruled QA's persistent inline
+helper text in favour of tap-toast + <code>aria-describedby</code> (dock height is precious
+with the keyboard open).</div>
+
+<h2>Implementation order</h2>
+<ol>
+  <li><b>Types</b> (<code>@the-box/types</code>): deprecate legacy <code>PowerUpType</code>
+      members, drop request/response hint fields, reshape <code>AdvancedStats.hintUsage</code>.</li>
+  <li><b>Backend</b>: migration (ledger + conversion + calendar/chest rewrite + inbox
+      announcement), <code>game.service</code> penalty-path removal + <code>availableHints</code>
+      removal, grant swaps (referral, geo ×2, auth starter, reactivation), achievement extension,
+      stats fold, unit-test updates, e2e-seed fixture swap.</li>
+  <li><b>Frontend</b>: <code>useLetterReveal</code> hook → <code>LetterRevealBar</code> →
+      <code>GuessInput</code> frame restructure → delete <code>MaskedTitle</code>/<code>HintButtons</code>
+      → gameStore cleanup → stats panel rollup → i18n fr+en.</li>
+  <li><b>QA</b>: spec rewrites + new letter-reveal coverage, a11y-smoke dock scan,
+      visual snapshots.</li>
+</ol>
+
+<p class="meta">Artifact conventions: single file, inline CSS, no external assets.
+Published to GitHub Pages on merge to main.</p>
+</main>
+</body>
+</html>
