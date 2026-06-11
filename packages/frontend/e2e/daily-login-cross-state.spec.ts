@@ -11,9 +11,9 @@ import { loginAsUser } from './helpers/game-helpers'
 //
 // We assert the server-side cross-state invariant here. A separate
 // follow-up should add a UI-level spec around the same flow once
-// stable test-ids land on DailyRewardBadge / RewardsInboxBell /
-// HintButtons (tracked separately — would touch production code, out
-// of scope for an API-only spec).
+// stable test-ids land on DailyRewardBadge / RewardsInboxBell
+// (tracked separately — would touch production code, out of scope
+// for an API-only spec).
 //
 // Re-running without a fresh seed will skip cleanly because
 // canClaim flips to false after the first successful claim. To
@@ -71,6 +71,23 @@ test.describe('Daily-login claim — cross-state invariant', () => {
         // assert the inventory diff matches — proves both writes happened
         // in the same logical transaction.
         const expectedItems = statusBefore.todayReward?.reward?.items ?? []
+
+        // The legacy hint economy was retired 2026-06: the calendar must
+        // never mint a retired item key again (the migration rewired every
+        // grant source to hint_letter / streak_freeze / second_chance).
+        const RETIRED_ITEM_KEYS = [
+            'hint_year',
+            'hint_publisher',
+            'hint_developer',
+            'hint_genre',
+            'timer_extension',
+        ]
+        for (const item of expectedItems) {
+            expect(
+                RETIRED_ITEM_KEYS,
+                `daily-login granted '${item.itemKey}', a retired legacy key — grant rewiring regressed`,
+            ).not.toContain(item.itemKey)
+        }
         // If today's reward is somehow item-less (e.g. a "rest day"), the
         // diff assertion below would be vacuous; skip rather than pass on
         // a hollow assertion.

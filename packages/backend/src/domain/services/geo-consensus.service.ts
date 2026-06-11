@@ -170,16 +170,18 @@ export function evaluateConsensus(
  */
 export interface GeoRewardGrant {
   itemType: 'powerup'
-  itemKey: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'timer_extension'
+  itemKey: 'hint_letter' | 'second_chance' | 'streak_freeze'
   quantity: number
 }
 
 /**
  * Reward policy: tokens only (never multipliers / currency / score).
+ * Legacy metadata hints and the dead `timer_extension` key were retired
+ * 2026-06 (migration 20260613_retire_legacy_metadata_hints).
  *
- *  - every accepted pin inside 1σ → +1 hint_year
- *  - accepted pin inside 0.5σ     → also +1 hint_publisher or hint_developer
- *  - every 10th accepted pin      → +1 timer_extension
+ *  - every accepted pin inside 1σ → +1 hint_letter
+ *  - accepted pin inside 0.5σ     → also +1 second_chance
+ *  - every 10th accepted pin      → +1 streak_freeze
  */
 export function grantsForAcceptedPin(args: {
   distanceFromCentroid: number
@@ -191,17 +193,15 @@ export function grantsForAcceptedPin(args: {
   const sigma = Math.max(args.sigmaX, args.sigmaY, 1e-6)
 
   if (args.distanceFromCentroid <= sigma) {
-    grants.push({ itemType: 'powerup', itemKey: 'hint_year', quantity: 1 })
+    grants.push({ itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 })
   }
 
   if (args.distanceFromCentroid <= sigma * 0.5) {
-    const tight: GeoRewardGrant['itemKey'] =
-      args.userAcceptedCountAfterThis % 2 === 0 ? 'hint_publisher' : 'hint_developer'
-    grants.push({ itemType: 'powerup', itemKey: tight, quantity: 1 })
+    grants.push({ itemType: 'powerup', itemKey: 'second_chance', quantity: 1 })
   }
 
   if (args.userAcceptedCountAfterThis > 0 && args.userAcceptedCountAfterThis % 10 === 0) {
-    grants.push({ itemType: 'powerup', itemKey: 'timer_extension', quantity: 1 })
+    grants.push({ itemType: 'powerup', itemKey: 'streak_freeze', quantity: 1 })
   }
 
   return grants

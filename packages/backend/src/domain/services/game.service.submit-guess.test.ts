@@ -31,7 +31,7 @@ const TOTAL_SCREENSHOTS = 10
  *     `round_position === position`, which is never cleared after a correct
  *     guess), re-banking score and inserting another correct row.
  */
-function buildHarness(opts: { hintInInventory?: boolean } = {}) {
+function buildHarness() {
   const guesses: Array<{
     position: number
     isCorrect: boolean
@@ -39,6 +39,9 @@ function buildHarness(opts: { hintInInventory?: boolean } = {}) {
     hintFromInventory: boolean
     scoreEarned: number
   }> = []
+  // Records every inventoryRepository.useItems call so the retirement
+  // tests can prove a stale client's powerUpUsed never touches inventory.
+  const useItemsCalls: Array<{ itemType: string; itemKey: string }> = []
   const tierSession = {
     id: 'tier-1',
     user_id: 'user-1',
@@ -123,7 +126,12 @@ function buildHarness(opts: { hintInInventory?: boolean } = {}) {
       updateStreak: async () => {},
       updateScore: async () => {},
     },
-    inventoryRepository: { useItems: async () => !!opts.hintInInventory },
+    inventoryRepository: {
+      useItems: async (_userId: string, itemType: string, itemKey: string) => {
+        useItemsCalls.push({ itemType, itemKey })
+        return true
+      },
+    },
     gameRepository: { getGenresById: async () => [] },
     funnelEventRepository: { record: async () => {} },
     positionSecondChanceRepository: { findPending: async () => null },
@@ -136,15 +144,14 @@ function buildHarness(opts: { hintInInventory?: boolean } = {}) {
 
   const service = createGameService(deps)
 
-  const submit = (
-    position: number,
-    text: string,
-    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
-  ) => {
+  const submit = (position: number, text: string, extraBodyFields?: Record<string, unknown>) => {
     // Simulate the client fetching the screenshot for `position`, which is the
     // only thing that stamps the round timer server-side.
     tierSession.round_position = position
     tierSession.round_started_at = new Date(Date.now() - 5000)
+    // `extraBodyFields` simulates a stale client smuggling retired fields
+    // (e.g. powerUpUsed) past the route's destructuring — the service
+    // contract is accept-and-ignore, never 400.
     return service.submitGuess({
       tierSessionId: tierSession.id,
       screenshotId: position,
@@ -153,11 +160,11 @@ function buildHarness(opts: { hintInInventory?: boolean } = {}) {
       guessText: text,
       roundTimeTakenMs: 5000,
       userId: 'user-1',
-      powerUpUsed,
-    })
+      ...extraBodyFields,
+    } as Parameters<typeof service.submitGuess>[0])
   }
 
-  return { submit, guesses, tierSession }
+  return { submit, guesses, tierSession, useItemsCalls }
 }
 
 describe('game.service submitGuess — completion tally', () => {
@@ -211,7 +218,6 @@ describe('game.service submitGuess — completion tally', () => {
       undefined,
       'wrong-guess response must not contain the answer'
     )
-    assert.equal(wrong.availableHints, undefined)
     assert.ok(!JSON.stringify(wrong).includes('Halo'), 'response must not mention the game name')
 
     const correct = await h.submit(1, 'right')
@@ -230,30 +236,30 @@ describe('game.service submitGuess — completion tally', () => {
   })
 })
 
-describe('game.service submitGuess — hint persistence', () => {
-  it('persists powerUpUsed and the penalty path when the hint is not in inventory', async () => {
-    const h = buildHarness({ hintInInventory: false })
-    const res = await h.submit(1, 'right', 'hint_genre')
+describe('game.service submitGuess — legacy metadata hints retired', () => {
+  it('ignores a client-supplied powerUpUsed: no penalty, no inventory decrement, persists null', async () => {
+    const h = buildHarness()
+    // A stale client still sending the retired field must get a normal,
+    // full-score guess back — never a 400, never a penalty.
+    const res = await h.submit(1, 'right', { powerUpUsed: 'hint_genre' })
     assert.equal(res.isCorrect, true)
+    // 5s round → 1.5x multiplier → 150 points, untouched by the retired
+    // 20% metadata-hint penalty.
+    assert.equal(res.scoreEarned, 150, 'no hint penalty may be applied')
+    assert.ok(
+      !('hintPenalty' in res) || (res as Record<string, unknown>)['hintPenalty'] === undefined,
+      'response must not carry a hintPenalty'
+    )
 
     const saved = h.guesses[0]!
-    assert.equal(saved.powerUpUsed, 'hint_genre', 'hint type must be persisted on the guess row')
+    assert.equal(saved.powerUpUsed, null, 'retired hint types must persist as null')
     assert.equal(saved.hintFromInventory, false)
-    // 5s round → 1.5x multiplier → 150 points, minus the 20% hint penalty (30).
-    assert.equal(saved.scoreEarned, 120, 'score must carry the 20% hint penalty')
-    assert.equal(res.hintPenalty, 30)
-  })
-
-  it('persists hintFromInventory=true and skips the penalty when the hint is in inventory', async () => {
-    const h = buildHarness({ hintInInventory: true })
-    const res = await h.submit(1, 'right', 'hint_year')
-    assert.equal(res.isCorrect, true)
-
-    const saved = h.guesses[0]!
-    assert.equal(saved.powerUpUsed, 'hint_year')
-    assert.equal(saved.hintFromInventory, true, 'inventory-paid hint must be flagged')
-    assert.equal(saved.scoreEarned, 150, 'inventory hint must not cost score')
-    assert.equal(res.hintFromInventory, true)
+    assert.equal(saved.scoreEarned, 150)
+    assert.equal(
+      h.useItemsCalls.length,
+      0,
+      'a stale powerUpUsed must never decrement inventory'
+    )
   })
 
   it('persists powerUpUsed=null for a plain guess', async () => {

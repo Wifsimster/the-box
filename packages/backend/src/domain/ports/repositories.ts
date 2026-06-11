@@ -383,6 +383,14 @@ export interface AchievementRepository {
   countWrongGuesses(userId: string): Promise<number>
   countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number>
   countHintFreeCompletedGames(userId: string): Promise<number>
+  /**
+   * Total letters revealed (position_letter_reveals) across all tier
+   * sessions of one game session. The "hint-free game" achievement
+   * requires this to be zero in addition to power_up_used being null on
+   * every guess — without it, the 2026-06 metadata-hint retirement would
+   * make the achievement trivially earnable.
+   */
+  countSessionLetterReveals(gameSessionId: string): Promise<number>
   countGenreCorrectGuesses(userId: string, genre: string): Promise<number>
   /**
    * Counts the number of completed game sessions where the user achieved

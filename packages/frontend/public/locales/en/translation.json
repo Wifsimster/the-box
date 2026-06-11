@@ -395,7 +395,7 @@
       "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
       "time": "The faster you answer, the more points you earn",
       "speedShort": "Speed = points",
-      "hintsShort": "Daily hints",
+      "hintsShort": "Letter reveals",
       "quality": "All games have a Metascore of 85 or higher"
     },
     "scoring": {
@@ -403,7 +403,7 @@
       "basePoints": "100 points per correct guess",
       "speedMultiplier": "Speed multiplier: <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Unlimited tries - wrong guesses don't affect score",
-      "hints": "Hints: Free if in inventory (from daily rewards), otherwise -20% score penalty",
+      "hints": "Revealing letters of the title costs -15% then -20% of the round's score (requires a Letter reveal power-up on today's challenge)",
       "penalty": "-50 points per game not found when ending early"
     },
     "navigation": {
@@ -446,33 +446,19 @@
       "error": "Failed to end the game. Please try again."
     },
     "hints": {
-      "yearTooltip": "Show release year (-20%)",
-      "publisherTooltip": "Show publisher (-20%)",
-      "developerTooltip": "Show developer (-20%)",
-      "genreTooltip": "Show genre (-20%)",
-      "yearTooltipFree": "Show release year ({{count}} free)",
-      "publisherTooltipFree": "Show publisher ({{count}} free)",
-      "developerTooltipFree": "Show developer ({{count}} free)",
-      "genreTooltipFree": "Show genre ({{count}} free)",
       "lockedTooltip": "Available after first wrong guess",
-      "unavailableYear": "Release year not available",
-      "unavailablePublisher": "Publisher not available",
-      "unavailableDeveloper": "Developer not available",
-      "unavailableGenre": "Genre not available",
-      "alreadyUsed": "Already used",
-      "yearHint": "Release Year",
-      "publisherHint": "Publisher",
-      "developerHint": "Developer",
-      "genreHint": "Genre",
-      "penalty": "-20%",
       "penaltyApplied": "Hint penalty: -{{penalty}} points",
       "percentagePenalty": "20% penalty",
-      "letterButton": "Reveal a letter",
+      "letterButtonWithPenalty": "Letter -{{penalty}}%",
+      "letterButtonWithCount": "Letter ×{{count}}",
+      "letterLockedShort": "After 1 try",
+      "letterNoInventoryShort": "0 power-ups",
       "letterTooltip": "Reveal one letter of the title (-{{penalty}}%)",
       "letterTooltipItem": "Reveal one letter: uses 1 power-up, -{{penalty}}% ({{count}} owned)",
       "letterCapReached": "No more letters can be revealed",
       "letterNoInventory": "Requires a Letter reveal power-up (earn them with daily login rewards)",
       "letterMaskAria": "Masked title, {{revealed}} letter(s) revealed",
+      "letterRevealAnnounce": "Letter {{letter}} revealed — {{revealed}}/{{max}}",
       "letterPenaltyCurrent": "Current letter penalty: -{{penalty}}%",
       "letterPenaltyApplied": "Letter reveal penalty: -{{penalty}} points"
     },
@@ -1740,7 +1726,7 @@
         "achievements": "Achievements and progression",
         "catchUp7d": "Catch up on the last 7 days",
         "catchUpFull": "Full archive of past challenges",
-        "hintsBaseline": "Base hints",
+        "hintsBaseline": "Letter reveals",
         "hintsUnlimitedCatchUp": "Unlimited hints in catch-up",
         "advancedStats": "Advanced profile statistics",
         "cosmetics": "Premium badge and animated frames",
@@ -1859,10 +1845,10 @@
     "rulesScoringBase": "Each correct answer is worth 100 base points.",
     "rulesScoringSpeed": "Speed multiplier: under 3s → 2.0× (200 pts), 3–5s → 1.75× (175 pts), 5–10s → 1.5× (150 pts), 10–20s → 1.25× (125 pts), over 20s → 1.0× (100 pts).",
     "rulesScoringTries": "Unlimited tries per screenshot. Wrong guesses do not directly reduce your score, but the speed multiplier ticks down while the round timer runs.",
-    "rulesScoringHints": "Metadata hints cost 20% of the round's score; revealing letters of the title costs 15% then 20%. A matching power-up in your inventory (earned through daily login rewards) makes a metadata hint free, while a letter reveal always costs score but is the only way to reveal letters on today's ranked challenge.",
+    "rulesScoringHints": "Revealing letters of the title costs 15% then 20% of the round's score (-35% total for two letters). On today's ranked challenge each reveal also consumes a Letter reveal power-up (earned through daily login rewards) on top of the score cost.",
     "rulesScoringSkip": "Skipping a screenshot or running out the timer ends the round at zero points for that position.",
     "rulesHintsTitle": "4. Hints and power-ups",
-    "rulesHints": "Five hints are available per screenshot. The masked title shows the word shape for free; after one wrong guess you can reveal its letters one by one (-15% then -20%, requires a Letter reveal power-up on today's challenge). The four metadata hints — release year, publisher, developer, genre — cost 20% each unless covered by an inventory power-up. Daily login streaks earn free hint power-ups.",
+    "rulesHints": "The masked title shows the word shape for free; after one wrong guess you can reveal its letters one by one (-15% then -20%, two letters max). On today's challenge each reveal requires a Letter reveal power-up. Daily login streaks earn free power-ups (letter reveals, streak freezes, second chances). The old metadata hints (year, publisher, developer, genre) have been retired.",
     "rulesMatchingTitle": "5. How we match your guess",
     "rulesMatchingIntro": "Typing the exact official title is never required. The Box runs your answer through a structured fuzzy matcher designed to be generous about typos and phrasing, but strict about anything that would let an unrelated guess slip through. Here is exactly what it accepts and rejects.",
     "rulesMatchingAcceptedTitle": "Accepted",
@@ -1887,7 +1873,7 @@
     "rulesPremiumTitle": "7. Premium",
     "rulesPremium": "Premium is an optional paid subscription (monthly or annual) that supports the project and unlocks extras: the full catch-up archive, unlimited hints while catching up, full Geo mode, advanced stats, cosmetics and themes, and early access to new features. The daily challenge, leaderboards, achievements and baseline hints are always free. Manage or cancel any time from the Premium page.",
     "rulesReferralTitle": "8. Invite friends",
-    "rulesReferral": "Share your referral link from your profile. When a friend signs up with it, you both receive free hint power-ups, and you earn an exclusive \"Ambassador\" badge on your public profile. Rewards are granted once per friend who joins.",
+    "rulesReferral": "Share your referral link from your profile. When a friend signs up with it, you both receive free power-ups, and you earn an exclusive \"Ambassador\" badge on your public profile. Rewards are granted once per friend who joins.",
     "rulesLeaderboardTitle": "9. Leaderboard",
     "rulesLeaderboard": "Daily and monthly leaderboards update in real time as players finish challenges. Only main-challenge plays count — catch-up plays do not. Geo mode keeps its own separate daily and monthly leaderboards. Each player's games-played count and achievement total are shown next to their name.",
     "rulesFairPlayTitle": "10. Fair play",
@@ -1958,14 +1944,14 @@
   },
   "referral": {
     "title": "Invite Friends",
-    "description": "Share your personal invite link. When a friend signs up, you both get bonus hints.",
+    "description": "Share your personal invite link. When a friend signs up, you both receive bonuses (letter reveals, streak freeze, second chance).",
     "copyLink": "Copy invite link",
     "copied": "Copied!",
     "copyError": "Failed to copy to clipboard",
     "stat_one": "{{count}} friend joined",
     "stat_other": "{{count}} friends joined",
     "claimedNote": "You were referred by a friend — thanks!",
-    "rewardHint": "Reward: both of you get 3 Year hints + 2 Publisher hints."
+    "rewardHint": "Reward: your friend gets 2 letter reveals + 1 second chance, and you get 1 letter reveal + 1 streak freeze."
   },
   "security": {
     "title": "Security",
@@ -2250,10 +2236,6 @@
     "claiming": "Claiming…",
     "locked": "Locked",
     "items": {
-      "hint_year": "Year hint",
-      "hint_publisher": "Publisher hint",
-      "hint_developer": "Developer hint",
-      "hint_genre": "Genre hint",
       "second_chance": "Second chance",
       "streak_freeze": "Streak freeze",
       "ambassador": "Ambassador badge",
@@ -2286,7 +2268,7 @@
         "pending": "Preparing."
       },
       "powerup_drop": {
-        "title": "New hints",
+        "title": "New power-ups",
         "ready": "Added to your inventory.",
         "pending": "Available soon."
       },
@@ -2313,33 +2295,29 @@
     "onFire": "On fire!",
     "weeklyProgress": "Weekly progress",
     "day": "D",
-    "hintYear": "Year Hint",
-    "hintPublisher": "Publisher Hint",
-    "hintDeveloper": "Developer Hint",
-    "hintGenre": "Genre Hint",
     "streakFreeze": "Streak freeze",
     "secondChance": "Second chance",
     "points": "points",
     "rewards": {
       "day1": {
-        "name": "Year Hint",
-        "description": "Get a hint about the game's release year"
+        "name": "Letter Reveal",
+        "description": "Reveal one letter of the masked title during a game"
       },
       "day2": {
-        "name": "Publisher Hint",
-        "description": "Get a hint about the game's publisher"
+        "name": "Streak Freeze",
+        "description": "Protect your login streak when you miss a day"
       },
       "day3": {
         "name": "100 Points",
         "description": "100 bonus points added to your score"
       },
       "day4": {
-        "name": "2x Year Hint",
-        "description": "Get two hints about the release year"
+        "name": "Letter Reveal",
+        "description": "Reveal one letter of the masked title during a game"
       },
       "day5": {
-        "name": "2x Publisher Hint",
-        "description": "Get two hints about the publisher"
+        "name": "Second Chance",
+        "description": "Guarantee a minimum score on a screenshot you already tried"
       },
       "day6": {
         "name": "250 Points",
@@ -2347,7 +2325,7 @@
       },
       "day7": {
         "name": "Legendary Chest",
-        "description": "The ultimate chest: 2x each hint + 500 points!"
+        "description": "The ultimate chest: 2x letter reveal, 1x streak freeze + 500 points!"
       }
     },
     "hintLetter": "Letter Reveal"
@@ -2660,10 +2638,8 @@
     "p75": "75th percentile",
     "mean": "Mean",
     "hintUsage": "Hint usage",
-    "hintYear": "Year",
-    "hintPublisher": "Publisher",
-    "hintDeveloper": "Developer",
-    "hintGenre": "Genre",
+    "hintLetter": "Letters revealed",
+    "legacyMetadataHints": "Classic hints (retired)",
     "monthlyProgression": "6-month progression"
   },
   "themes": {

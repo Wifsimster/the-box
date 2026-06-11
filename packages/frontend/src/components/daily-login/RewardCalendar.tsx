@@ -17,12 +17,14 @@ function getRewardTypeIcon(reward: DailyReward) {
     if (reward.rewardType === 'points') {
         return '⭐'
     }
-    // Power-up type
+    // Power-up type. Legacy metadata-hint keys (retired 2026-06) fall
+    // through to the generic icon.
     const items = reward.rewardValue.items
     if (items.length > 0) {
         const item = items[0]
-        if (item?.key === 'hint_year') return '📅'
-        if (item?.key === 'hint_publisher') return '🏢'
+        if (item?.key === 'hint_letter') return '🔤'
+        if (item?.key === 'streak_freeze') return '❄️'
+        if (item?.key === 'second_chance') return '🛡️'
     }
     return '🎮'
 }

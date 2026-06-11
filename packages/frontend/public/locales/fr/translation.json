@@ -395,7 +395,7 @@
       "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
       "time": "Plus vous répondez vite, plus vous gagnez de points",
       "speedShort": "Vitesse = points",
-      "hintsShort": "Indices quotidiens",
+      "hintsShort": "Révélation de lettres",
       "quality": "Tous les jeux ont un Metascore d'au moins 85"
     },
     "scoring": {
@@ -403,7 +403,7 @@
       "basePoints": "100 points par bonne réponse",
       "speedMultiplier": "Multiplicateur de vitesse : <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Essais illimités - les mauvaises réponses n'affectent pas le score",
-      "hints": "Indices : Gratuits si disponibles dans l'inventaire (récompenses quotidiennes), sinon -20% du score",
+      "hints": "Révéler des lettres du titre coûte -15 % puis -20 % du score de la manche (bonus Révélation de lettre requis sur le défi du jour)",
       "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
     },
     "navigation": {
@@ -446,33 +446,19 @@
       "error": "Échec de la fin de partie. Veuillez réessayer."
     },
     "hints": {
-      "yearTooltip": "Afficher l'année de sortie (-20%)",
-      "publisherTooltip": "Afficher l'éditeur (-20%)",
-      "developerTooltip": "Afficher le développeur (-20%)",
-      "genreTooltip": "Afficher le genre (-20%)",
-      "yearTooltipFree": "Afficher l'année de sortie ({{count}} gratuit)",
-      "publisherTooltipFree": "Afficher l'éditeur ({{count}} gratuit)",
-      "developerTooltipFree": "Afficher le développeur ({{count}} gratuit)",
-      "genreTooltipFree": "Afficher le genre ({{count}} gratuit)",
       "lockedTooltip": "Disponible après la première mauvaise réponse",
-      "unavailableYear": "Année de sortie non disponible",
-      "unavailablePublisher": "Éditeur non disponible",
-      "unavailableDeveloper": "Développeur non disponible",
-      "unavailableGenre": "Genre non disponible",
-      "alreadyUsed": "Déjà utilisé",
-      "yearHint": "Année de sortie",
-      "publisherHint": "Éditeur",
-      "developerHint": "Développeur",
-      "genreHint": "Genre",
-      "penalty": "-20%",
       "penaltyApplied": "Pénalité d'indice : -{{penalty}} points",
       "percentagePenalty": "pénalité de 20 %",
-      "letterButton": "Révéler une lettre",
+      "letterButtonWithPenalty": "Lettre -{{penalty}}%",
+      "letterButtonWithCount": "Lettre ×{{count}}",
+      "letterLockedShort": "Après 1 essai",
+      "letterNoInventoryShort": "0 bonus",
       "letterTooltip": "Révéler une lettre du titre (-{{penalty}}%)",
       "letterTooltipItem": "Révéler une lettre : utilise 1 bonus, -{{penalty}}% ({{count}} possédés)",
       "letterCapReached": "Plus aucune lettre à révéler",
       "letterNoInventory": "Nécessite un bonus Révélation de lettre (à gagner avec les récompenses quotidiennes)",
       "letterMaskAria": "Titre masqué, {{revealed}} lettre(s) révélée(s)",
+      "letterRevealAnnounce": "Lettre {{letter}} révélée — {{revealed}}/{{max}}",
       "letterPenaltyCurrent": "Pénalité de lettres actuelle : -{{penalty}}%",
       "letterPenaltyApplied": "Pénalité de révélation : -{{penalty}} points"
     },
@@ -1740,7 +1726,7 @@
         "achievements": "Succès et progression",
         "catchUp7d": "Rattrapage des 7 derniers jours",
         "catchUpFull": "Archive complète des défis passés",
-        "hintsBaseline": "Indices de base",
+        "hintsBaseline": "Révélation de lettres",
         "hintsUnlimitedCatchUp": "Indices illimités en rattrapage",
         "advancedStats": "Statistiques avancées du profil",
         "cosmetics": "Badge et cadres animés",
@@ -1859,10 +1845,10 @@
     "rulesScoringBase": "Chaque bonne réponse vaut 100 points de base.",
     "rulesScoringSpeed": "Multiplicateur de vitesse : moins de 3s → 2,0× (200 pts), 3–5s → 1,75× (175 pts), 5–10s → 1,5× (150 pts), 10–20s → 1,25× (125 pts), plus de 20s → 1,0× (100 pts).",
     "rulesScoringTries": "Essais illimités par capture. Les mauvaises réponses ne réduisent pas directement le score, mais le multiplicateur de vitesse baisse pendant que le chrono tourne.",
-    "rulesScoringHints": "Les indices classiques coûtent 20 % du score de la manche ; révéler des lettres du titre coûte 15 % puis 20 %. Un power-up correspondant dans votre inventaire (gagné via les récompenses de connexion quotidienne) rend un indice classique gratuit, tandis que la révélation de lettre coûte toujours du score mais reste le seul moyen de révéler des lettres sur le défi classé du jour.",
+    "rulesScoringHints": "Révéler des lettres du titre coûte 15 % puis 20 % du score de la manche (-35 % au total pour deux lettres). Sur le défi classé du jour, chaque révélation consomme aussi un bonus Révélation de lettre (gagné via les récompenses de connexion quotidienne) en plus du coût en score.",
     "rulesScoringSkip": "Passer une capture ou laisser le chrono atteindre zéro met fin à la manche avec zéro point pour cette position.",
     "rulesHintsTitle": "4. Indices et power-ups",
-    "rulesHints": "Cinq indices sont disponibles par capture. Le titre masqué montre gratuitement la forme des mots ; après une première mauvaise réponse, vous pouvez révéler ses lettres une à une (-15 % puis -20 %, nécessite un bonus Révélation de lettre sur le défi du jour). Les quatre indices classiques — année de sortie, éditeur, développeur, genre — coûtent 20 % chacun, sauf s'ils sont couverts par un power-up de l'inventaire. Les séries de connexions quotidiennes rapportent des power-ups gratuits.",
+    "rulesHints": "Le titre masqué montre gratuitement la forme des mots ; après une première mauvaise réponse, vous pouvez révéler ses lettres une à une (-15 % puis -20 %, deux lettres maximum). Sur le défi du jour, chaque révélation nécessite un bonus Révélation de lettre. Les séries de connexions quotidiennes rapportent des power-ups gratuits (révélations de lettres, protections de série, secondes chances). Les anciens indices classiques (année, éditeur, développeur, genre) ont été retirés.",
     "rulesMatchingTitle": "5. Comment votre réponse est vérifiée",
     "rulesMatchingIntro": "Taper le titre officiel exact n'est jamais requis. The Box passe votre réponse dans un comparateur flou structuré, conçu pour être généreux face aux fautes de frappe et aux variantes, mais strict sur tout ce qui laisserait passer une réponse sans rapport. Voici précisément ce qu'il accepte et ce qu'il refuse.",
     "rulesMatchingAcceptedTitle": "Accepté",
@@ -1887,7 +1873,7 @@
     "rulesPremiumTitle": "7. Premium",
     "rulesPremium": "Premium est un abonnement payant optionnel (mensuel ou annuel) qui soutient le projet et débloque des extras : l'archive de rattrapage complète, les indices illimités en rattrapage, le mode Géo complet, les statistiques avancées, les cosmétiques et thèmes, et l'accès anticipé aux nouveautés. Le défi quotidien, les classements, les succès et les indices de base restent toujours gratuits. Gérez ou résiliez à tout moment depuis la page Premium.",
     "rulesReferralTitle": "8. Inviter des amis",
-    "rulesReferral": "Partagez votre lien de parrainage depuis votre profil. Quand un ami s'inscrit avec, vous recevez tous les deux des power-ups d'indice gratuits, et vous gagnez un badge exclusif « Ambassadeur » sur votre profil public. Les récompenses sont attribuées une fois par ami inscrit.",
+    "rulesReferral": "Partagez votre lien de parrainage depuis votre profil. Quand un ami s'inscrit avec, vous recevez tous les deux des power-ups gratuits, et vous gagnez un badge exclusif « Ambassadeur » sur votre profil public. Les récompenses sont attribuées une fois par ami inscrit.",
     "rulesLeaderboardTitle": "9. Classement",
     "rulesLeaderboard": "Les classements quotidien et mensuel sont mis à jour en temps réel à mesure que les joueurs terminent les défis. Seules les parties du défi principal comptent — pas les rattrapages. Le mode Géo possède ses propres classements quotidien et mensuel, distincts. Le nombre de parties jouées et le total de succès de chaque joueur sont affichés à côté de son nom.",
     "rulesFairPlayTitle": "10. Fair-play",
@@ -1958,14 +1944,14 @@
   },
   "referral": {
     "title": "Inviter des amis",
-    "description": "Partagez votre lien d'invitation personnel. Quand un ami s'inscrit, vous recevez tous les deux des indices bonus.",
+    "description": "Partagez votre lien d'invitation personnel. Quand un ami s'inscrit, vous recevez tous les deux des bonus (révélations de lettre, protection de série, seconde chance).",
     "copyLink": "Copier le lien",
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
     "stat_one": "{{count}} ami inscrit",
     "stat_other": "{{count}} amis inscrits",
     "claimedNote": "Vous avez été parrainé par un ami — merci !",
-    "rewardHint": "Récompense : vous recevez chacun 3 indices Année + 2 indices Éditeur."
+    "rewardHint": "Récompense : votre ami reçoit 2 révélations de lettre + 1 seconde chance, et vous 1 révélation de lettre + 1 protection de série."
   },
   "security": {
     "title": "Sécurité",
@@ -2250,10 +2236,6 @@
     "claiming": "En cours…",
     "locked": "À débloquer",
     "items": {
-      "hint_year": "Indice Année",
-      "hint_publisher": "Indice Éditeur",
-      "hint_developer": "Indice Développeur",
-      "hint_genre": "Indice Genre",
       "second_chance": "Seconde chance",
       "streak_freeze": "Protection de série",
       "ambassador": "Badge Ambassadeur",
@@ -2286,7 +2268,7 @@
         "pending": "Préparation en cours."
       },
       "powerup_drop": {
-        "title": "Nouveaux indices",
+        "title": "Nouveaux bonus",
         "ready": "Ajoutés à ton inventaire.",
         "pending": "Bientôt disponibles."
       },
@@ -2313,33 +2295,29 @@
     "onFire": "En feu !",
     "weeklyProgress": "Progression hebdomadaire",
     "day": "J",
-    "hintYear": "Indice Année",
-    "hintPublisher": "Indice Éditeur",
-    "hintDeveloper": "Indice Développeur",
-    "hintGenre": "Indice Genre",
     "streakFreeze": "Protection de série",
     "secondChance": "Seconde chance",
     "points": "points",
     "rewards": {
       "day1": {
-        "name": "Indice Année",
-        "description": "Obtenez un indice sur l'année de sortie du jeu"
+        "name": "Révélation de Lettre",
+        "description": "Révélez une lettre du titre masqué pendant une partie"
       },
       "day2": {
-        "name": "Indice Éditeur",
-        "description": "Obtenez un indice sur l'éditeur du jeu"
+        "name": "Gel de Série",
+        "description": "Protégez votre série de connexion en cas de jour manqué"
       },
       "day3": {
         "name": "100 Points",
         "description": "Bonus de 100 points ajoutés à votre score"
       },
       "day4": {
-        "name": "2x Indice Année",
-        "description": "Obtenez deux indices sur l'année de sortie"
+        "name": "Révélation de Lettre",
+        "description": "Révélez une lettre du titre masqué pendant une partie"
       },
       "day5": {
-        "name": "2x Indice Éditeur",
-        "description": "Obtenez deux indices sur l'éditeur"
+        "name": "Seconde Chance",
+        "description": "Garantissez un score minimum sur une capture déjà tentée"
       },
       "day6": {
         "name": "250 Points",
@@ -2347,7 +2325,7 @@
       },
       "day7": {
         "name": "Coffre Légendaire",
-        "description": "Le coffre ultime : 2x chaque indice + 500 points !"
+        "description": "Le coffre ultime : 2x révélation de lettre, 1x gel de série + 500 points !"
       }
     },
     "hintLetter": "Révélation de lettre"
@@ -2660,10 +2638,8 @@
     "p75": "75e centile",
     "mean": "Moyenne",
     "hintUsage": "Utilisation des indices",
-    "hintYear": "Année",
-    "hintPublisher": "Éditeur",
-    "hintDeveloper": "Studio",
-    "hintGenre": "Genre",
+    "hintLetter": "Lettres révélées",
+    "legacyMetadataHints": "Indices classiques (retirés)",
     "monthlyProgression": "Progression sur 6 mois"
   },
   "themes": {

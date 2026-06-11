@@ -150,9 +150,13 @@ export interface Guess {
 export type PowerUpType =
   | 'x2_timer'
   | 'hint'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — appears on historical `guesses.power_up_used` values only, never on new guesses. */
   | 'hint_year'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_publisher'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_developer'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_genre'
   | 'hint_letter'
 
@@ -291,10 +295,6 @@ export interface PositionState {
   isCorrect: boolean
   screenshotData?: ScreenshotResponse
   hasIncorrectGuess?: boolean
-  hintYearUsed?: boolean
-  hintPublisherUsed?: boolean
-  hintDeveloperUsed?: boolean
-  hintGenreUsed?: boolean
   /**
    * True once the user has spent a `second_chance` for this position in
    * the current tier session. Drives the modal's "show once" behaviour
@@ -434,7 +434,9 @@ export interface RevealLetterResponse extends LetterRevealState {
   fromInventory: boolean
 }
 
-// Guess API
+// Guess API. Note: legacy clients may still send a `powerUpUsed` field
+// (metadata hints, retired 2026-06); the server accepts and ignores it —
+// it is no longer part of the contract.
 export interface GuessRequest {
   tierSessionId: string
   screenshotId: number
@@ -442,7 +444,6 @@ export interface GuessRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
 }
 
 export interface GuessResponse {
@@ -461,8 +462,6 @@ export interface GuessResponse {
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
-  hintPenalty?: number
-  hintFromInventory?: boolean
   /**
    * Points deducted from this round's score because the player revealed
    * letters of the title (cumulative percent locked in at reveal time,
@@ -480,18 +479,6 @@ export interface GuessResponse {
    * active activation.
    */
   secondChanceFloorBoost?: number
-  availableHints?: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    /**
-     * Primary genre tag for the screenshot's game, or null when the
-     * game has no genres set. Frontend renders the first tag only —
-     * genre arrays are intentionally not exposed (privacy/discriminative
-     * value: revealing all tags ≈ revealing the game).
-     */
-    genre: string | null
-  }
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
@@ -1455,14 +1442,16 @@ export interface AdvancedStats {
     mean: number
   }
 
-  // How often the user reaches for each hint type. Counts only.
-  // `hint_letter` counts total letters revealed (one reveal = one letter).
+  // How often the user reaches for hints. Counts only.
   hintUsage: {
-    hint_year: number
-    hint_publisher: number
-    hint_developer: number
-    hint_genre: number
-    hint_letter: number
+    /** Total letters revealed via the masked-title hint (one reveal = one letter). */
+    hintLetter: number
+    /**
+     * Historical uses of the four retired metadata hints
+     * (year/publisher/developer/genre, retired 2026-06), folded into one
+     * rollup. Frozen — can only ever come from pre-retirement guess rows.
+     */
+    legacyMetadataHints: number
   }
 
   // Last-six-months progression (oldest → newest). `month` is YYYY-MM.

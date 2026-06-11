@@ -2,8 +2,6 @@ import { m, AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { ScreenshotViewer } from '@/components/game/ScreenshotViewer'
 import { GuessInput } from '@/components/game/GuessInput'
-import { HintButtons } from '@/components/game/HintButtons'
-import { MaskedTitle } from '@/components/game/MaskedTitle'
 import { SecondChanceModal } from '@/components/game/SecondChanceModal'
 import { ScoreDisplay } from '@/components/game/ScoreDisplay'
 import { ResultCard } from '@/components/game/ResultCard'
@@ -117,8 +115,6 @@ export function GamePlayScreen({
         }}
       >
         <div className="container mx-auto space-y-2 sm:space-y-3 md:space-y-4">
-          <MaskedTitle />
-          <HintButtons />
           <div className="flex justify-center items-center">
             <ProgressDots />
           </div>

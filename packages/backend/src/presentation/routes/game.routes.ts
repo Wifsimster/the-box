@@ -295,15 +295,13 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Submit a guess
+// Submit a guess.
+// Note: stale clients may still send `powerUpUsed` (legacy metadata hints,
+// retired 2026-06). It is accepted and IGNORED — never 400 a guess over a
+// retired optional field.
 router.post('/guess', authMiddleware, async (req, res, next) => {
   try {
-    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs, powerUpUsed } = req.body
-
-    // Premium status only changes hint accounting in catch-up sessions
-    // (see game.service: premium + is_catch_up → free hint, no penalty).
-    // The flag is checked once here so the service stays sync-friendly.
-    const isPremium = await billingService.isPremium(req.userId!)
+    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs } = req.body
 
     const data = await gameService.submitGuess({
       tierSessionId,
@@ -313,8 +311,6 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
       guessText,
       roundTimeTakenMs: roundTimeTakenMs || 0, // Fallback for backward compatibility
       userId: req.userId!,
-      powerUpUsed,
-      isPremium,
     })
 
     // Push the unlock to the user's /notifications socket so the toast
@@ -415,7 +411,7 @@ router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, r
     }
 
     // Premium only changes the score cost in catch-up sessions (free
-    // letters off the leaderboard) — same scoping as the metadata hints.
+    // letters off the leaderboard) — never on the ranked daily.
     const isPremium = await billingService.isPremium(req.userId!)
 
     const data = await gameService.revealLetter({

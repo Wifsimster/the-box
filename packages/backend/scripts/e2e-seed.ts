@@ -346,7 +346,7 @@ const IDOR_GRANT_SOURCE_REF = 'milestone:e2e_idor_test_grant'
 
 async function seedIdorRewardGrant(userId: string): Promise<void> {
   const payload = JSON.stringify({
-    items: [{ itemType: 'powerup', itemKey: 'hint_year', quantity: 1 }],
+    items: [{ itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 }],
   })
   await db.raw(
     `

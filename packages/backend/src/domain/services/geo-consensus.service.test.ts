@@ -216,7 +216,7 @@ describe('grantsForAcceptedPin', () => {
     assert.equal(grants.length, 0)
   })
 
-  it('accepted pin inside 1σ → +1 hint_year', () => {
+  it('accepted pin inside 1σ → +1 hint_letter', () => {
     const grants = grantsForAcceptedPin({
       distanceFromCentroid: 0.009,
       sigmaX: 0.01,
@@ -224,43 +224,46 @@ describe('grantsForAcceptedPin', () => {
       userAcceptedCountAfterThis: 1,
     })
     assert.equal(grants.length, 1)
-    assert.equal(grants[0]?.itemKey, 'hint_year')
+    assert.equal(grants[0]?.itemKey, 'hint_letter')
   })
 
-  it('accepted pin inside 0.5σ → +1 hint_year + a publisher/developer hint', () => {
+  it('accepted pin inside 0.5σ → +1 hint_letter + 1 second_chance', () => {
+    // The old publisher/developer alternation died with the metadata-hint
+    // retirement — the tight-pin bonus is a flat second_chance regardless
+    // of the user's accepted count parity.
     const odd = grantsForAcceptedPin({
       distanceFromCentroid: 0.001,
       sigmaX: 0.01,
       sigmaY: 0.01,
-      userAcceptedCountAfterThis: 1, // odd → developer
+      userAcceptedCountAfterThis: 1,
     })
     assert.equal(odd.length, 2)
-    assert.equal(odd[0]?.itemKey, 'hint_year')
-    assert.equal(odd[1]?.itemKey, 'hint_developer')
+    assert.equal(odd[0]?.itemKey, 'hint_letter')
+    assert.equal(odd[1]?.itemKey, 'second_chance')
 
     const even = grantsForAcceptedPin({
       distanceFromCentroid: 0.001,
       sigmaX: 0.01,
       sigmaY: 0.01,
-      userAcceptedCountAfterThis: 2, // even → publisher
+      userAcceptedCountAfterThis: 2,
     })
-    assert.equal(even[1]?.itemKey, 'hint_publisher')
+    assert.equal(even[1]?.itemKey, 'second_chance')
   })
 
-  it('every 10th accepted pin → +1 timer_extension', () => {
+  it('every 10th accepted pin → +1 streak_freeze', () => {
     const out = grantsForAcceptedPin({
       distanceFromCentroid: 0.005, // outside 0.5σ but inside 1σ
       sigmaX: 0.01,
       sigmaY: 0.01,
       userAcceptedCountAfterThis: 10,
     })
-    // Inside 1σ → hint_year. 10 % 10 === 0 → timer_extension. Count: 2.
+    // Inside 1σ → hint_letter. 10 % 10 === 0 → streak_freeze. Count: 2.
     const keys = out.map((g) => g.itemKey)
-    assert.ok(keys.includes('hint_year'))
-    assert.ok(keys.includes('timer_extension'))
+    assert.ok(keys.includes('hint_letter'))
+    assert.ok(keys.includes('streak_freeze'))
   })
 
-  it('count=0 does not award a timer_extension (0 % 10 === 0 but guarded)', () => {
+  it('count=0 does not award a streak_freeze (0 % 10 === 0 but guarded)', () => {
     const out = grantsForAcceptedPin({
       distanceFromCentroid: 0.005,
       sigmaX: 0.01,
@@ -271,6 +274,6 @@ describe('grantsForAcceptedPin', () => {
     // explicitly excludes it from the every-10th bonus to avoid silly
     // behavior on a fresh user.
     const keys = out.map((g) => g.itemKey)
-    assert.ok(!keys.includes('timer_extension'))
+    assert.ok(!keys.includes('streak_freeze'))
   })
 })

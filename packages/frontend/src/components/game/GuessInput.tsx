@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { m, AnimatePresence } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
-import { Badge } from '@/components/ui/badge'
 import { useGameStore } from '@/stores/gameStore'
-import { SkipForward, SkipBack, Loader2, Send, Calendar, Building2, Code2, Tag } from 'lucide-react'
+import { SkipForward, SkipBack, Loader2, Send } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
+import { LetterRevealBar } from '@/components/game/LetterRevealBar'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { useOnline } from '@/hooks/useOnline'
@@ -30,7 +30,10 @@ function vibrate(pattern: number | number[]) {
 /**
  * Game guess input component with simple text input
  *
- * Users type the game name and submit - fuzzy matching is done on the backend
+ * Users type the game name and submit - fuzzy matching is done on the backend.
+ * The masked-title letter-reveal bar is fused to the input's top edge inside
+ * one shared neon frame (one bordered unit — see the 2026-06-11 decision
+ * record on legacy hint retirement).
  */
 export function GuessInput() {
   const { t } = useTranslation()
@@ -57,7 +60,6 @@ export function GuessInput() {
     totalScreenshots,
     navigateToPosition,
     positionStates,
-    availableHints,
   } = useGameStore()
 
   // Focus input when playing.
@@ -159,25 +161,12 @@ export function GuessInput() {
   // Hide skip button on last screenshot
   const isLastPosition = currentPosition === totalScreenshots
 
-  // Get current position state for hint display
-  const currentPosState = positionStates[currentPosition]
-  const hintYearUsed = currentPosState?.hintYearUsed || false
-  const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
-  const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
-  const hintGenreUsed = currentPosState?.hintGenreUsed || false
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       handleSubmit()
     }
   }
-
-  const hasRevealedHints =
-    (hintYearUsed && availableHints?.year) ||
-    (hintPublisherUsed && availableHints?.publisher) ||
-    (hintDeveloperUsed && availableHints?.developer) ||
-    (hintGenreUsed && availableHints?.genre)
 
   return (
     <div className="relative">
@@ -189,52 +178,9 @@ export function GuessInput() {
         {isShaking && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
       </div>
 
-      {/* Revealed hint chips - compact inline display above input */}
-      <AnimatePresence>
-        {hasRevealedHints && (
-          <m.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="flex flex-wrap justify-center gap-1.5 pb-2">
-              {hintYearUsed && availableHints?.year && (
-                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium">
-                  <Calendar className="size-3" aria-hidden="true" />
-                  <span className="sr-only">{t('game.hints.yearHint')}: </span>
-                  <span>{availableHints.year}</span>
-                </Badge>
-              )}
-              {hintPublisherUsed && availableHints?.publisher && (
-                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
-                  <Building2 className="size-3 shrink-0" aria-hidden="true" />
-                  <span className="sr-only">{t('game.hints.publisherHint')}: </span>
-                  <span className="truncate">{availableHints.publisher}</span>
-                </Badge>
-              )}
-              {hintDeveloperUsed && availableHints?.developer && (
-                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
-                  <Code2 className="size-3 shrink-0" aria-hidden="true" />
-                  <span className="sr-only">{t('game.hints.developerHint')}: </span>
-                  <span className="truncate">{availableHints.developer}</span>
-                </Badge>
-              )}
-              {hintGenreUsed && availableHints?.genre && (
-                <Badge variant="info" className="gap-1 py-1 px-2.5 text-xs font-medium max-w-[60vw] truncate">
-                  <Tag className="size-3 shrink-0" aria-hidden="true" />
-                  <span className="sr-only">{t('game.hints.genreHint')}: </span>
-                  <span className="truncate">{availableHints.genre}</span>
-                </Badge>
-              )}
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
-
-      {/* Input with submit button */}
-      <div className="flex gap-1.5 sm:gap-2">
+      {/* Input with submit button. `items-end` keeps the nav buttons level
+          with the input row when the letter bar makes the shell taller. */}
+      <div className="flex items-end gap-1.5 sm:gap-2">
         {/* Previous button - shown when there are skipped positions before current */}
         {canGoPrevious && (
           <Tooltip content={t('game.navigation.previous')}>
@@ -256,46 +202,57 @@ export function GuessInput() {
           animate={isShaking ? { x: [-10, 10, -10, 10, 0] } : {}}
           transition={{ duration: 0.4 }}
         >
-          <Input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('game.guessPlaceholder')}
-            enterKeyHint="send"
-            inputMode="text"
-            autoComplete="off"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
+          {/* One bordered shell shared by the letter-reveal bar and the
+              input — the neon frame lives here (focus-within mirrors the
+              old input focus styles). */}
+          <div
             className={cn(
-              'h-12 sm:h-14 text-base md:text-lg bg-linear-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl border-2 border-primary/30 shadow-[var(--glow-md)] focus:border-primary focus:shadow-[var(--glow-lg)] pl-3 sm:pl-4 pr-12 sm:pr-14 max-[360px]:pr-10 transition-all duration-300',
+              'rounded-xl overflow-hidden border-2 border-primary/30 shadow-[var(--glow-md)] bg-linear-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl focus-within:border-primary focus-within:shadow-[var(--glow-lg)] transition-all duration-300',
               isSuccess && 'border-success shadow-[var(--glow-success)] animate-pulse',
               !isSuccess && isShaking && 'border-error shadow-[var(--glow-error)]'
             )}
-            disabled={gamePhase !== 'playing'}
-          />
-
-          {/* Submit button inside input */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSubmit}
-            disabled={!query.trim() || isSubmitting || gamePhase !== 'playing' || !isOnline}
-            aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
-            className={cn(
-              'absolute right-1.5 sm:right-2 inset-y-0 my-auto size-9 sm:size-10 max-[360px]:size-8 p-0 touch-manipulation transition-all duration-300',
-              query.trim()
-                ? 'bg-linear-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
-                : 'hover:bg-accent'
-            )}
           >
-            {isSubmitting ? (
-              <Loader2 className={cn('size-4 sm:size-5 animate-spin', query.trim() && 'text-white')} />
-            ) : (
-              <Send className={cn('size-4 sm:size-5', query.trim() && 'text-white')} />
-            )}
-          </Button>
+            <LetterRevealBar />
+
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t('game.guessPlaceholder')}
+                enterKeyHint="send"
+                inputMode="text"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="h-12 sm:h-14 text-base md:text-lg border-0 rounded-none bg-transparent shadow-none focus-visible:ring-0 pl-3 sm:pl-4 pr-12 sm:pr-14 max-[360px]:pr-10"
+                disabled={gamePhase !== 'playing'}
+              />
+
+              {/* Submit button inside input */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSubmit}
+                disabled={!query.trim() || isSubmitting || gamePhase !== 'playing' || !isOnline}
+                aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
+                className={cn(
+                  'absolute right-1.5 sm:right-2 inset-y-0 my-auto size-9 sm:size-10 max-[360px]:size-8 p-0 touch-manipulation transition-all duration-300',
+                  query.trim()
+                    ? 'bg-linear-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
+                    : 'hover:bg-accent'
+                )}
+              >
+                {isSubmitting ? (
+                  <Loader2 className={cn('size-4 sm:size-5 animate-spin', query.trim() && 'text-white')} />
+                ) : (
+                  <Send className={cn('size-4 sm:size-5', query.trim() && 'text-white')} />
+                )}
+              </Button>
+            </div>
+          </div>
         </m.div>
 
         {/* Skip/Next button - hidden on last screenshot */}

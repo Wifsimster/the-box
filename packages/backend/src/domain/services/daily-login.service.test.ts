@@ -108,7 +108,7 @@ function makeFakeDailyLogin(
                     id: 1,
                     dayNumber: 1,
                     rewardType: 'powerup',
-                    rewardValue: { items: [{ key: 'hint_year', quantity: 1 }], points: 0 },
+                    rewardValue: { items: [{ key: 'hint_letter', quantity: 1 }], points: 0 },
                     displayName: 'Day 1',
                     description: null,
                     iconUrl: null,

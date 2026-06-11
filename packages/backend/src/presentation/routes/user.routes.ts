@@ -299,10 +299,12 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
       )
       .first()
 
-    // Hint usage: per-type counts. Filter to the four hint types we
-    // surface in the matrix; "free" entries (no power_up_used) are
-    // ignored. Same join shape as the time aggregation.
-    const hintRows = await db('guesses')
+    // Hint usage. The four legacy metadata hints were retired 2026-06
+    // (migration 20260613_retire_legacy_metadata_hints); their historical
+    // guess rows are sacred, so we keep querying them but fold the four
+    // keys into a single `legacyMetadataHints` rollup beside the live
+    // letter-reveal count. "Free" entries (no power_up_used) are ignored.
+    const legacyHintRow = await db('guesses')
       .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
       .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
       .where('game_sessions.user_id', userId)
@@ -312,23 +314,8 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
         'hint_developer',
         'hint_genre',
       ])
-      .groupBy('guesses.power_up_used')
-      .select<Array<{ power_up_used: string; count: string }>>(
-        'guesses.power_up_used',
-        db.raw('COUNT(*) as count'),
-      )
-
-    const hintUsage = {
-      hint_year: 0,
-      hint_publisher: 0,
-      hint_developer: 0,
-      hint_genre: 0,
-      hint_letter: 0,
-    }
-    for (const row of hintRows) {
-      const key = row.power_up_used as keyof typeof hintUsage
-      if (key in hintUsage) hintUsage[key] = Number(row.count)
-    }
+      .count<{ count: string }>({ count: '*' })
+      .first()
 
     // Letter reveals live in their own table (one row per slot, counter
     // per letter) rather than on the guess row — sum the letters so the
@@ -339,7 +326,11 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
       .where('game_sessions.user_id', userId)
       .sum<{ sum: string | null }>('position_letter_reveals.letters_revealed as sum')
       .first()
-    hintUsage.hint_letter = Number(letterRow?.sum ?? 0)
+
+    const hintUsage = {
+      hintLetter: Number(letterRow?.sum ?? 0),
+      legacyMetadataHints: Number(legacyHintRow?.count ?? 0),
+    }
 
     // Last-six-months progression. Bucketing on completed_at gives the
     // calendar months the user actually finished sessions in; an empty
