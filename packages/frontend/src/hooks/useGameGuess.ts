@@ -18,7 +18,7 @@ import {
  * - Uses roundTimeTakenMs (time per screenshot) for speed multiplier calculation
  * - Wrong guesses: -30 points per incorrect attempt
  * - Base score: 100 points, multiplied by speed factor (capped at 200)
- * - Hint penalty: -20% of earned score
+ * - Letter-reveal penalty: locked in server-side at reveal time
  */
 export function useGameGuess(submissionService: GuessSubmissionService) {
   const store = useGameStore()
@@ -46,31 +46,6 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
       const accumulatedMs = store.positionStates[store.currentPosition]?.timeSpentMs ?? 0
       const roundTimeTakenMs = Math.max(0, accumulatedMs + liveSegmentMs)
 
-      // Check if hints were used for current position
-      const currentPosState = store.positionStates[store.currentPosition]
-      const hintYearUsed = currentPosState?.hintYearUsed || false
-      const hintPublisherUsed = currentPosState?.hintPublisherUsed || false
-      const hintDeveloperUsed = currentPosState?.hintDeveloperUsed || false
-      const hintGenreUsed = currentPosState?.hintGenreUsed || false
-
-      // Determine which power-up was used (send one hint type for penalty calculation)
-      // Priority: developer > publisher > genre > year (most → least specific)
-      let powerUpUsed:
-        | 'hint_year'
-        | 'hint_publisher'
-        | 'hint_developer'
-        | 'hint_genre'
-        | undefined
-      if (hintDeveloperUsed) {
-        powerUpUsed = 'hint_developer'
-      } else if (hintPublisherUsed) {
-        powerUpUsed = 'hint_publisher'
-      } else if (hintGenreUsed) {
-        powerUpUsed = 'hint_genre'
-      } else if (hintYearUsed) {
-        powerUpUsed = 'hint_year'
-      }
-
       try {
         // Submit guess to service (handles validation + scoring)
         const result = await submissionService.submitGuess({
@@ -80,7 +55,6 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           gameId: game?.id || null,
           guessText: userInput,
           roundTimeTakenMs,
-          powerUpUsed,
         })
 
         // Handle newly earned achievements
@@ -88,11 +62,6 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           achievementStore.addNotifications(result.newlyEarnedAchievements)
           // Refresh user achievements
           achievementStore.fetchUserAchievements().catch(console.error)
-        }
-
-        // Refresh inventory if hint was used from inventory (to update UI count)
-        if (result.hintFromInventory) {
-          dailyLoginStore.fetchInventory().catch(console.error)
         }
 
         // Always record the attempt (wrong or correct) so the results
@@ -104,11 +73,6 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
 
         // Update screenshots found
         store.setScreenshotsFound(result.screenshotsFound)
-
-        // Store available hints for current position
-        if (result.availableHints) {
-          store.setAvailableHints(result.availableHints)
-        }
 
         // Update position state for navigation tracking
         const currentPos = store.currentPosition
@@ -154,7 +118,6 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             userGuess: game?.name || userInput,
             timeTakenMs: roundTimeTakenMs,
             scoreEarned: result.scoreEarned,
-            hintPenalty: result.hintPenalty,
             letterPenalty: result.letterPenalty,
             wrongGuessPenalty: result.wrongGuessPenalty,
             attempts,

@@ -153,10 +153,16 @@ export function AdvancedStatsPanel() {
             {t('advancedStats.hintUsage')}
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatTile label={t('advancedStats.hintYear')} value={String(stats.hintUsage.hint_year)} dim />
-            <StatTile label={t('advancedStats.hintPublisher')} value={String(stats.hintUsage.hint_publisher)} dim />
-            <StatTile label={t('advancedStats.hintDeveloper')} value={String(stats.hintUsage.hint_developer)} dim />
-            <StatTile label={t('advancedStats.hintGenre')} value={String(stats.hintUsage.hint_genre)} dim />
+            <StatTile label={t('advancedStats.hintLetter')} value={String(stats.hintUsage.hintLetter)} dim />
+            {/* Historical rollup of the four metadata hints retired 2026-06 —
+                only shown when the user actually used them pre-retirement. */}
+            {stats.hintUsage.legacyMetadataHints > 0 && (
+              <StatTile
+                label={t('advancedStats.legacyMetadataHints')}
+                value={String(stats.hintUsage.legacyMetadataHints)}
+                dim
+              />
+            )}
           </div>
         </section>
 

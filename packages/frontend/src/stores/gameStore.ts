@@ -39,14 +39,6 @@ interface GameState {
 
   screenshotsFound: number
 
-  // Available hints data for current position
-  availableHints: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    genre: string | null
-  } | null
-
   // Round timing (for per-screenshot time tracking)
   roundStartedAt: number | null
 
@@ -112,22 +104,12 @@ interface GameState {
   canNavigateTo: (position: number) => boolean
 
   // Hint actions
-  setAvailableHints: (hints: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    genre: string | null
-  }) => void
   markIncorrectGuess: (position: number) => void
   /**
    * Persist the latest masked-title state for a position (after a
    * successful POST /reveal-letter, or seeded from ScreenshotResponse).
    */
   setLetterRevealState: (position: number, state: LetterRevealState) => void
-  useHintYear: (position: number) => void
-  useHintPublisher: (position: number) => void
-  useHintDeveloper: (position: number) => void
-  useHintGenre: (position: number) => void
   showSecondChancePrompt: (position: number) => void
   dismissSecondChancePrompt: () => void
   markSecondChanceActivated: (position: number) => void
@@ -168,8 +150,6 @@ const initialState = {
   positionStates: {} as Record<number, PositionState>,
   secondChancePrompt: null,
   screenshotsFound: 0,
-  // Available hints
-  availableHints: null,
   // Round timing
   roundStartedAt: null,
   // Score tracking
@@ -654,8 +634,6 @@ export const useGameStore = create<GameState>()(
         },
 
         // Hint actions
-        setAvailableHints: (hints) => set({ availableHints: hints }),
-
         markIncorrectGuess: (position) => {
           set((state) => ({
             positionStates: {
@@ -675,54 +653,6 @@ export const useGameStore = create<GameState>()(
               [position]: {
                 ...state.positionStates[position],
                 letterReveal,
-              },
-            },
-          }))
-        },
-
-        useHintYear: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintYearUsed: true,
-              },
-            },
-          }))
-        },
-
-        useHintPublisher: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintPublisherUsed: true,
-              },
-            },
-          }))
-        },
-
-        useHintDeveloper: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintDeveloperUsed: true,
-              },
-            },
-          }))
-        },
-
-        useHintGenre: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintGenreUsed: true,
               },
             },
           }))

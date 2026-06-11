@@ -14,14 +14,12 @@ import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
 import { Flame, Gift, Sparkles } from 'lucide-react'
 
-// i18n key per item_key. New keys (hint_developer, hint_genre,
-// streak_freeze, second_chance) fall back to the raw item_key so
-// a missing translation does not break the modal.
+// i18n key per item_key. Unknown keys (including the metadata hints
+// retired 2026-06, which can still appear on historical claims) fall
+// back to the raw item_key so a missing translation does not break
+// the modal.
 const REWARD_ITEM_I18N_KEY: Record<string, string> = {
-    hint_year: 'dailyLogin.hintYear',
-    hint_publisher: 'dailyLogin.hintPublisher',
-    hint_developer: 'dailyLogin.hintDeveloper',
-    hint_genre: 'dailyLogin.hintGenre',
+    hint_letter: 'dailyLogin.hintLetter',
     streak_freeze: 'dailyLogin.streakFreeze',
     second_chance: 'dailyLogin.secondChance',
 }

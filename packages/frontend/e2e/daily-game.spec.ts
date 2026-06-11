@@ -144,17 +144,10 @@ test.describe('Daily Game - Gameplay', () => {
       await gameInput.fill('Super Mario')
       await page.waitForTimeout(500) // Wait for button state to update
 
-      // The submit button is adjacent to the input - look for any button near it
-      const inputContainer = gameInput.locator('..')
-      const siblingButton = inputContainer.locator('button').first()
-      const hasSibling = await siblingButton.isVisible().catch(() => false)
-
-      // Or check if there's any non-disabled button on the page
-      const anyButton = page.locator('button:not([disabled])').first()
-      const hasAnyButton = await anyButton.isVisible().catch(() => false)
-
-      // Page should have a usable button
-      expect(hasSibling || hasAnyButton).toBeTruthy()
+      // The submit button carries the game.submit aria-label
+      const submitButton = page.getByRole('button', { name: /submit guess|valider la proposition/i }).first()
+      await expect(submitButton).toBeVisible()
+      await expect(submitButton).toBeEnabled()
     } else {
       expect(true).toBeTruthy()
     }
@@ -217,9 +210,8 @@ test.describe('Daily Game - Gameplay', () => {
     if (hasInput) {
       await gameInput.fill('Minecraft')
 
-      // Find submit button - could be icon button near input
-      const inputParent = gameInput.locator('..')
-      const submitButton = inputParent.locator('button').first()
+      // The submit button carries the game.submit aria-label
+      const submitButton = page.getByRole('button', { name: /submit guess|valider la proposition/i }).first()
 
       if (await submitButton.isVisible().catch(() => false)) {
         await submitButton.click()
@@ -235,19 +227,25 @@ test.describe('Daily Game - Gameplay', () => {
     expect(hasTitle || hasInput).toBeTruthy()
   })
 
-  test('should display hint buttons (year and publisher)', async ({ page }) => {
+  test('should display the letter-reveal dock locked before any wrong guess', async ({ page }) => {
     await page.waitForTimeout(1000)
 
-    // Hint buttons could be anywhere in the game UI - look for disabled buttons with icons
-    const hintButtons = page.locator('button[disabled]')
-    const hintCount = await hintButtons.count()
-
-    // Should have at least some disabled hint buttons
-    // Or if hints are available, just check game is loaded
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
-    expect(hintCount > 0 || hasInput).toBeTruthy()
+    if (hasInput) {
+      // The letter-reveal bar is fused into the guess field: masked title
+      // glyphs plus the reveal button, which must exist (never a dead
+      // `disabled` control) and be aria-disabled until a first wrong guess
+      // opens the server gate.
+      await expect(page.getByTestId('masked-title')).toBeVisible()
+      const revealButton = page.getByTestId('letter-reveal-button')
+      await expect(revealButton).toBeVisible()
+      await expect(revealButton).toHaveAttribute('aria-disabled', 'true')
+    } else {
+      // Session may already be complete - nothing to assert on the dock
+      expect(true).toBeTruthy()
+    }
   })
 })
 

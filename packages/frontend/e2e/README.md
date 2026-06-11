@@ -113,7 +113,7 @@ Comprehensive test suite for the daily party game flow:
 - ✅ Skip screenshots
 - ✅ Navigate between positions using progress dots
 - ✅ Show result card after guessing
-- ✅ Display hint buttons (year, publisher)
+- ✅ Display the letter-reveal dock (masked title + locked reveal button)
 
 #### End Game Flow
 - ✅ Show end game button after visiting all positions
@@ -235,7 +235,7 @@ The `helpers/game-helpers.ts` file provides reusable functions for common game o
 ### Utility Helpers
 - `getCurrentScore(page)` - Get current score value
 - `isOnPosition(page, position)` - Check current position
-- `clickHint(page, 'year' | 'publisher')` - Click hint button
+- `revealLetter(page)` - Click the letter-reveal button in the guess-field dock
 
 ### Example Usage
 

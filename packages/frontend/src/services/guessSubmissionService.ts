@@ -15,7 +15,6 @@ export interface GuessSubmissionRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
 }
 
 /**
@@ -31,17 +30,9 @@ export interface GuessSubmissionResult {
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
-  hintPenalty?: number
-  hintFromInventory?: boolean
   letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
-  availableHints?: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    genre: string | null
-  }
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 

@@ -301,27 +301,16 @@ export async function isOnPosition(page: Page, position: number): Promise<boolea
 }
 
 /**
- * Click a hint button (year or publisher)
+ * Click the letter-reveal button in the guess-field dock.
+ *
+ * Note: the button is gated server-side (one wrong guess first) and uses
+ * aria-disabled rather than the disabled attribute — clicking while locked
+ * is a no-op that surfaces an explanatory toast.
  */
-export async function clickHint(page: Page, hintType: 'year' | 'publisher') {
-  let hintButton
-
-  if (hintType === 'year') {
-    hintButton = page
-      .locator('button')
-      .filter({ hasText: /year|année|calendar/i })
-      .or(page.locator('button svg[class*="calendar"]').locator('..'))
-      .first()
-  } else {
-    hintButton = page
-      .locator('button')
-      .filter({ hasText: /publisher|éditeur|building/i })
-      .or(page.locator('button svg[class*="building"]').locator('..'))
-      .first()
-  }
-
-  await expect(hintButton).toBeVisible()
-  await hintButton.click()
+export async function revealLetter(page: Page) {
+  const revealButton = page.locator('[data-testid=letter-reveal-button]')
+  await expect(revealButton).toBeVisible()
+  await revealButton.click()
   await page.waitForTimeout(500)
 }
 
