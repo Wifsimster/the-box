@@ -178,6 +178,8 @@ export interface LeaderboardEntry {
   totalScore: number
   correctAnswers?: number
   totalTimeMs?: number
+  /** Average time to find a capture (correct guesses only), in ms */
+  avgCaptureTimeMs?: number
   completedAt?: string
   sessionId?: string
 }
@@ -538,6 +540,9 @@ export interface MonthlyLeaderboardEntry {
   avatarUrl?: string
   totalScore: number
   gamesPlayed: number
+  correctAnswers?: number
+  /** Average time to find a capture (correct guesses only), in ms */
+  avgCaptureTimeMs?: number
 }
 
 export interface MonthlyLeaderboardResponse {

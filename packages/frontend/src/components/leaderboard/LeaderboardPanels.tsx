@@ -3,7 +3,7 @@ import { m } from 'framer-motion'
 import type { Locale } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Medal, Award, Loader2, Eye } from 'lucide-react'
+import { Trophy, Medal, Award, Loader2, Eye, Images, Timer } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -16,6 +16,8 @@ export interface LeaderboardEntry {
   displayName: string
   avatarUrl?: string
   totalScore: number
+  correctAnswers?: number
+  avgCaptureTimeMs?: number
   completedAt?: string
 }
 
@@ -27,6 +29,8 @@ export interface MonthlyLeaderboardEntry {
   avatarUrl?: string
   totalScore: number
   gamesPlayed: number
+  correctAnswers?: number
+  avgCaptureTimeMs?: number
 }
 
 export interface AchievementLeaderboardEntry {
@@ -63,6 +67,45 @@ function LoadingState() {
     <div className="flex justify-center py-12">
       <Loader2 className="size-8 animate-spin text-primary" />
     </div>
+  )
+}
+
+function formatAvgTime(ms: number) {
+  const seconds = ms / 1000
+  return seconds >= 10 ? `${Math.round(seconds)}s` : `${seconds.toFixed(1)}s`
+}
+
+// Captures found + average time to find one. Hidden on mobile — the row
+// variant lives in the @username subtitle line instead.
+function CaptureStats({ entry }: { entry: { correctAnswers?: number; avgCaptureTimeMs?: number } }) {
+  const { t } = useTranslation()
+  if (entry.correctAnswers === undefined) return null
+  return (
+    <div className="hidden sm:flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1" title={t('leaderboard.capturesFound')}>
+        <Images className="size-3.5" />
+        {entry.correctAnswers}
+      </span>
+      {entry.avgCaptureTimeMs !== undefined && (
+        <span className="flex items-center gap-1" title={t('leaderboard.avgCaptureTime')}>
+          <Timer className="size-3.5" />
+          {formatAvgTime(entry.avgCaptureTimeMs)}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Mobile fallback: same stats appended to the @username line.
+function CaptureStatsInline({ entry }: { entry: { correctAnswers?: number; avgCaptureTimeMs?: number } }) {
+  if (entry.correctAnswers === undefined) return null
+  return (
+    <span className="sm:hidden">
+      {' '}· {entry.correctAnswers} <Images className="inline size-3" aria-hidden />
+      {entry.avgCaptureTimeMs !== undefined && (
+        <> · {formatAvgTime(entry.avgCaptureTimeMs)} <Timer className="inline size-3" aria-hidden /></>
+      )}
+    </span>
   )
 }
 
@@ -160,8 +203,12 @@ export function DailyLeaderboardPanel({
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">{entry.displayName}</div>
-                    <div className="text-xs text-muted-foreground truncate">@{entry.username}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      <span>@{entry.username}</span>
+                      <CaptureStatsInline entry={entry} />
+                    </div>
                   </div>
+                  <CaptureStats entry={entry} />
                   <div className="text-right flex items-center gap-2 shrink-0">
                     <div className="font-bold text-primary">{entry.totalScore}</div>
                     {entry.sessionId && <Eye className="size-4 text-muted-foreground" />}
@@ -267,8 +314,10 @@ export function MonthlyLeaderboardPanel({
                     <div className="text-xs text-muted-foreground truncate">
                       <span>@{entry.username}</span>
                       <span className="sm:hidden"> · {entry.gamesPlayed} {t('leaderboard.gamesPlayed')}</span>
+                      <CaptureStatsInline entry={entry} />
                     </div>
                   </div>
+                  <CaptureStats entry={entry} />
                   <div className="text-right shrink-0">
                     <div className="font-bold text-primary">{entry.totalScore}</div>
                   </div>
