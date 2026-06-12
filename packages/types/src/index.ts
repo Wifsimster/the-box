@@ -403,10 +403,11 @@ export interface ScreenshotResponse {
   timeLimitSeconds: number
   /**
    * Server-authoritative masked-title state for the letter-reveal hint.
-   * The skeleton (word count + lengths, zero letters) is free and shown
-   * from the start; revealed letters reflect prior POST /reveal-letter
-   * calls so a page refresh restores the exact same state. The full title
-   * is NEVER sent to the client before the position is solved.
+   * Before the first paid reveal `maskedTitle` is empty — even the
+   * skeleton (word count + lengths) stays hidden; revealed letters reflect
+   * prior POST /reveal-letter calls so a page refresh restores the exact
+   * same state. The full title is NEVER sent to the client before the
+   * position is solved.
    */
   letterReveal?: LetterRevealState
 }
@@ -417,7 +418,11 @@ export interface ScreenshotResponse {
  * ever sees the masked string.
  */
 export interface LetterRevealState {
-  /** e.g. "E____ R___" — structural chars (spaces, digits, punctuation) and leading articles are free. */
+  /**
+   * Empty string until the first paid reveal (the word-shape skeleton is
+   * part of what a reveal buys). Afterwards e.g. "E____ R___" — structural
+   * chars (spaces, digits, punctuation) and leading articles come free.
+   */
   maskedTitle: string
   lettersRevealed: number
   /** Hard cap on reveals for this title: min(2, ceil(maskable × 0.3)). */

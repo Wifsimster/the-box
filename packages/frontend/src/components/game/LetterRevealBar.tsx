@@ -102,39 +102,47 @@ export function LetterRevealBar() {
     >
       {/* Visual mask — glyphs are decorative; the accessible name is the
           group's aria-label, and reveals are announced via the live region
-          below. */}
+          below. Before the first paid reveal the server sends an empty
+          mask (even the letter count is part of what a reveal buys), so we
+          show a neutral placeholder instead of the skeleton. */}
       <div
         data-testid="masked-title"
         className="flex-1 min-w-0 overflow-x-auto whitespace-nowrap font-mono tracking-wide select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
-        <span aria-hidden="true">
-          {letterState.maskedTitle.split('').map((char, i) => (
-            <m.span
-              // Keyed on the char so a '_' flipping to a letter remounts
-              // and replays the entrance animation for that glyph only.
-              key={`${i}-${char}`}
-              initial={
-                prefersReducedMotion ? { opacity: 0 } : { scale: 1.4, opacity: 0 }
-              }
-              animate={
-                prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }
-              }
-              transition={
-                prefersReducedMotion
-                  ? { duration: 0.3 }
-                  : { duration: 0.3, type: 'spring', bounce: 0.4 }
-              }
-              className={cn(
-                'inline-block',
-                char === '_'
-                  ? 'text-muted-foreground/70'
-                  : 'text-primary font-semibold'
-              )}
-            >
-              {char === ' ' ? ' ' : char}
-            </m.span>
-          ))}
-        </span>
+        {letterState.maskedTitle === '' ? (
+          <span aria-hidden="true" className="text-muted-foreground/70 italic">
+            {t('game.hints.maskHiddenPlaceholder')}
+          </span>
+        ) : (
+          <span aria-hidden="true">
+            {letterState.maskedTitle.split('').map((char, i) => (
+              <m.span
+                // Keyed on the char so a '_' flipping to a letter remounts
+                // and replays the entrance animation for that glyph only.
+                key={`${i}-${char}`}
+                initial={
+                  prefersReducedMotion ? { opacity: 0 } : { scale: 1.4, opacity: 0 }
+                }
+                animate={
+                  prefersReducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }
+                }
+                transition={
+                  prefersReducedMotion
+                    ? { duration: 0.3 }
+                    : { duration: 0.3, type: 'spring', bounce: 0.4 }
+                }
+                className={cn(
+                  'inline-block',
+                  char === '_'
+                    ? 'text-muted-foreground/70'
+                    : 'text-primary font-semibold'
+                )}
+              >
+                {char === ' ' ? ' ' : char}
+              </m.span>
+            ))}
+          </span>
+        )}
       </div>
 
       {/* Running penalty tag — stays as residue after the cap unmounts the button. */}

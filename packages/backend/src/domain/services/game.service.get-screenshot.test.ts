@@ -74,12 +74,13 @@ describe('game.service getScreenshot — countdown limit', () => {
     assert.equal(res.timeLimitSeconds, 45)
   })
 
-  it('ships the free masked-title skeleton, never the game name', async () => {
+  it('keeps the mask empty before the first paid reveal — no skeleton, no title', async () => {
     const service = buildService(45)
     const res = await service.getScreenshot('game-1', 3, 'user-1')
-    assert.equal(res.letterReveal?.maskedTitle, '_____ ____')
+    assert.equal(res.letterReveal?.maskedTitle, '')
     assert.equal(res.letterReveal?.lettersRevealed, 0)
     assert.equal(res.letterReveal?.penaltyPct, 0)
     assert.ok(!JSON.stringify(res).includes('Elden'), 'response must not leak the title')
+    assert.ok(!JSON.stringify(res).includes('_'), 'response must not leak the word shape')
   })
 })
