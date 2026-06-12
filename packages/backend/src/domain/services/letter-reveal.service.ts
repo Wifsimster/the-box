@@ -16,9 +16,11 @@
 //     gate for the feature — see letter-reveal.service.test.ts.
 //
 // Masking rules (player-facing contract, mirrored in docs/game-flow.md):
-//   - Structural characters are free: spaces, digits, punctuation. They
-//     define the skeleton ("word count + lengths") which is shown from the
-//     start at zero cost.
+//   - Nothing ships before the first paid reveal: even the skeleton ("word
+//     count + lengths") is a strong clue, so game.service sends an empty
+//     mask until lettersRevealed > 0.
+//   - Once a reveal has been paid, structural characters come free with it:
+//     spaces, digits, punctuation — they define the skeleton.
 //   - A leading article (The/A/An/Le/La/Les/L') is free too — burning a
 //     paid reveal on "T" of "The ..." would be a scam.
 //   - Every other letter (Unicode-aware, diacritics included) is masked as

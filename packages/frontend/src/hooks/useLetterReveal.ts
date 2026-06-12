@@ -5,6 +5,29 @@ import { useAuth } from '@/hooks/useAuth'
 import { gameApi } from '@/lib/api/game'
 import type { LetterRevealState } from '@/types'
 
+// Mirror of the server's free leading-article rule (letter-reveal.service):
+// articles are visible in the mask without being paid reveals, so the
+// first-reveal announcement must skip them.
+const LEADING_ARTICLE = /^(?:(?:the|an|a|les|le|la)(?=\s)|l')/i
+
+/**
+ * Leftmost revealed letter of a mask, ignoring a free leading article.
+ * Digits are only considered when the title has no letters at all
+ * (digit-only titles mask their digits instead).
+ */
+function firstUnmaskedLetter(mask: string): string | null {
+  const article = mask.match(LEADING_ARTICLE)
+  const start = article ? article[0].length : 0
+  let firstDigit: string | null = null
+  for (let i = start; i < mask.length; i++) {
+    const ch = mask[i]!
+    if (ch === '_') continue
+    if (/\p{L}/u.test(ch)) return ch
+    if (firstDigit === null && /\d/.test(ch)) firstDigit = ch
+  }
+  return firstDigit
+}
+
 export type LetterRevealStatus =
   | 'hidden'
   | 'locked'
@@ -129,14 +152,22 @@ export function useLetterReveal(): UseLetterRevealResult {
         position: currentPosition,
       })
       // Diff old vs new mask to find the letter this reveal uncovered —
-      // a reveal flips one or more '_' into the same character.
+      // a reveal flips one or more '_' into the same character. On the
+      // first reveal the previous mask is empty (the server hides even the
+      // skeleton until a reveal is paid), so fall back to the leftmost
+      // unmasked letter: reveals go left-to-right and the only other free
+      // letters are a leading article, which firstUnmaskedLetter skips.
       const nextMask = result.maskedTitle
       let revealedChar: string | null = null
-      for (let i = 0; i < nextMask.length; i++) {
-        if (previousMask[i] === '_' && nextMask[i] !== '_') {
-          revealedChar = nextMask[i]
-          break
+      if (previousMask.length === nextMask.length) {
+        for (let i = 0; i < nextMask.length; i++) {
+          if (previousMask[i] === '_' && nextMask[i] !== '_') {
+            revealedChar = nextMask[i]
+            break
+          }
         }
+      } else {
+        revealedChar = firstUnmaskedLetter(nextMask)
       }
       if (revealedChar) setLastRevealedLetter(revealedChar)
       setLetterRevealState(currentPosition, result)

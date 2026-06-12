@@ -117,12 +117,12 @@ Des tours bonus peuvent apparaître après les positions 6, 12 et 18 et offrir u
 
 ### Révélation de lettres (titre masqué)
 
-Le squelette du titre (nombre de mots + longueurs, ex. `E____ R___`) est affiché **gratuitement** dès le début de chaque capture ; les espaces, chiffres, ponctuation et articles initiaux (The/A/Le/La/Les/L') sont visibles d'office. Chaque révélation payante dévoile la lettre masquée suivante, de gauche à droite.
+Le titre reste **entièrement caché** avant la première révélation payante : le serveur envoie un masque vide, donc même le nombre de mots et de lettres n'est pas visible (ni dans l'UI, ni dans la réponse réseau). La première révélation dévoile à la fois le squelette (espaces, chiffres, ponctuation et articles initiaux The/A/Le/La/Les/L' visibles d'office, ex. `E____ R___`) et la première lettre ; chaque révélation suivante dévoile la lettre masquée suivante, de gauche à droite.
 
 | Règle | Contrat |
 |---|---|
 | Côté serveur | `POST /api/game/reveal-letter` est la seule source du masque — le titre complet ne quitte jamais le backend avant résolution. Le masque est une fonction pure de `(gameName, letters_revealed)` (table `position_letter_reveals`), donc idempotent au refresh. |
-| Porte d'entrée | La première lettre payante exige **au moins une mauvaise réponse** sur la position (le squelette, lui, est toujours visible). |
+| Porte d'entrée | La première lettre payante exige **au moins une mauvaise réponse** sur la position (avant cela, même le squelette reste caché). |
 | Plafond anti-fuite | `min(2, ceil(lettres_masquables × 0.3))`, **vérifié dynamiquement contre le fuzzy matcher** (`effectiveMaxReveals`) : aucun fragment révélé ne peut être accepté comme réponse gagnante. Test unitaire bloquant (`letter-reveal.service.test.ts`). Certains titres courts ou à article (ex. « La Mulana ») peuvent n'autoriser aucune lettre. |
 | Coût | Convexe : -15 % puis -20 % (cumul -35 %) du score de la position, verrouillé au moment de la révélation, appliqué après le plafond de 200 et **avant** le plancher `second_chance`. Le coût en score s'applique **même si l'objet vient de l'inventaire**. |
 | Défi du jour (classé) | Chaque révélation **consomme un item `hint_letter`** ; sans inventaire → 402 `NO_INVENTORY` (upsell). |

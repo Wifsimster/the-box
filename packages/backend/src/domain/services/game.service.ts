@@ -62,6 +62,10 @@ export const PREMIUM_CATCH_UP_DAYS = 365
 // stored integer count — the masked string is never persisted. `maxLetters`
 // is the matcher-verified cap from effectiveMaxReveals, computed by the
 // caller (it needs the fuzzy service + aliases).
+//
+// Before the first paid reveal the mask ships EMPTY: even the skeleton
+// (word count + lengths) is too strong a clue to hand out for free, so it
+// only unlocks together with the first revealed letter.
 function buildLetterRevealState(
   gameName: string,
   maxLetters: number,
@@ -69,7 +73,7 @@ function buildLetterRevealState(
 ): LetterRevealState {
   const lettersRevealed = row?.letters_revealed ?? 0
   return {
-    maskedTitle: buildMaskedTitle(gameName, lettersRevealed),
+    maskedTitle: lettersRevealed > 0 ? buildMaskedTitle(gameName, lettersRevealed) : '',
     lettersRevealed,
     maxLetters,
     penaltyPct: row?.penalty_pct ?? 0,
@@ -556,11 +560,12 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // Use proxy URL to hide the actual file path (which contains game slug)
     const proxyImageUrl = `/api/game/image/${tierScreenshot.screenshot_id}`
 
-    // Masked-title state for the letter-reveal hint. The zero-reveal
-    // skeleton (word count + lengths) is free by design; any letters the
-    // player already paid for in this session are restored from
-    // position_letter_reveals so refresh/navigation can't reset (or
-    // re-charge) the mask. Only the masked string ships — never the title.
+    // Masked-title state for the letter-reveal hint. Until the first paid
+    // reveal the mask ships empty (even the word count + lengths skeleton
+    // stays hidden); any letters the player already paid for in this
+    // session are restored from position_letter_reveals so
+    // refresh/navigation can't reset (or re-charge) the mask. Only the
+    // masked string ships — never the title.
     let letterReveal: LetterRevealState | undefined
     const screenshotWithGame = await screenshotRepository.findWithGame(
       tierScreenshot.screenshot_id
