@@ -83,8 +83,10 @@ test.describe('History - Authenticated User', () => {
     await expect
       .poll(
         async () => {
-          const hasTrophy = await authenticatedPage.locator('svg.lucide-trophy').first().isVisible().catch(() => false)
-          const hasBadge = await authenticatedPage.locator('[data-slot="badge"]').first().isVisible().catch(() => false)
+          // :visible filters out the desktop-only timeline elements (hidden
+          // md:block) so the mobile card layout's status/score badges count too.
+          const hasTrophy = await authenticatedPage.locator('svg.lucide-trophy:visible').first().isVisible().catch(() => false)
+          const hasBadge = await authenticatedPage.locator('[data-slot="badge"]:visible').first().isVisible().catch(() => false)
           const hasPercentage = await authenticatedPage.locator('text=/\\d+%/').first().isVisible().catch(() => false)
           const isEmpty = await authenticatedPage
             .getByText(/no games (yet|played|match)|aucun/i)
