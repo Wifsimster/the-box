@@ -269,41 +269,24 @@ async function onAfterSessionCompleted(params: {
   reason: 'all_found' | 'forfeit'
   isCatchUp: boolean
 }): Promise<void> {
-  // Resolve slug + public flag in one cheap query. If the user hasn't
-  // opted in, there's nothing to dispatch — bail before fetching subs.
-  const { db } = await import('../../infrastructure/database/connection.js')
-  const userRow = await db('user')
-    .where('id', params.userId)
-    .select<{ public_slug: string | null; public_profile_enabled: boolean }>(
-      'public_slug',
-      'public_profile_enabled'
-    )
-    .first()
-  if (!userRow?.public_profile_enabled || !userRow.public_slug) return
+  // Resolve slug + public flag. If the user hasn't opted in, there's nothing
+  // to dispatch — bail before fetching subs.
+  const profile = await userRepository.getPublicProfileRef(params.userId)
+  if (!profile?.publicProfileEnabled || !profile.publicSlug) return
 
   const challenge = await challengeRepository.findById(params.challengeId)
   if (!challenge) return
 
-  // Final rank — same pure-DB query the public profile endpoint uses.
+  // Final rank — shared with the public profile endpoint via the repository.
   // Catch-up sessions are explicitly excluded from the leaderboard so
   // `rank` is null in that path.
-  let rank: number | null = null
-  if (!params.isCatchUp) {
-    const higher = await db('game_sessions')
-      .join('user', 'game_sessions.user_id', 'user.id')
-      .where('daily_challenge_id', params.challengeId)
-      .andWhere('is_completed', true)
-      .andWhere('is_catch_up', false)
-      .whereRaw('"user"."isAnonymous" = ?', [false])
-      .andWhere('total_score', '>', params.finalScore)
-      .count<{ count: string }[]>('game_sessions.id as count')
-      .first()
-    rank = Number(higher?.count ?? 0) + 1
-  }
+  const rank: number | null = params.isCatchUp
+    ? null
+    : await leaderboardRepository.rankForScore(params.challengeId, params.finalScore)
 
   await webhookDispatch.sessionCompleted({
     userId: params.userId,
-    slug: userRow.public_slug,
+    slug: profile.publicSlug,
     sessionId: params.sessionId,
     challengeDate: challenge.challenge_date,
     score: params.finalScore,
@@ -318,7 +301,7 @@ async function onAfterSessionCompleted(params: {
   if (!params.isCatchUp && rank !== null) {
     await webhookDispatch.rankChanged({
       userId: params.userId,
-      slug: userRow.public_slug,
+      slug: profile.publicSlug,
       sessionId: params.sessionId,
       challengeDate: challenge.challenge_date,
       rank,
@@ -338,19 +321,12 @@ async function onAfterSessionStarted(params: {
   challengeDate: string
   isCatchUp: boolean
 }): Promise<void> {
-  const { db } = await import('../../infrastructure/database/connection.js')
-  const userRow = await db('user')
-    .where('id', params.userId)
-    .select<{ public_slug: string | null; public_profile_enabled: boolean }>(
-      'public_slug',
-      'public_profile_enabled'
-    )
-    .first()
-  if (!userRow?.public_profile_enabled || !userRow.public_slug) return
+  const profile = await userRepository.getPublicProfileRef(params.userId)
+  if (!profile?.publicProfileEnabled || !profile.publicSlug) return
 
   await webhookDispatch.sessionStarted({
     userId: params.userId,
-    slug: userRow.public_slug,
+    slug: profile.publicSlug,
     sessionId: params.sessionId,
     challengeDate: params.challengeDate,
     countsForLeaderboard: !params.isCatchUp,

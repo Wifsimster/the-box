@@ -170,19 +170,9 @@ async function buildStreamerProfile(row: PublicStreamerRow): Promise<PublicStrea
     if (session) {
       // Rank is only meaningful when the session is finished — partial
       // scores ride the leaderboard once completed_at is set, never before.
-      let rank: number | null = null
-      if (session.is_completed) {
-        const higher = await db('game_sessions')
-          .join('user', 'game_sessions.user_id', 'user.id')
-          .where('daily_challenge_id', challenge.id)
-          .andWhere('is_completed', true)
-          .andWhere('is_catch_up', false)
-          .whereRaw('"user"."isAnonymous" = ?', [false])
-          .andWhere('total_score', '>', session.total_score)
-          .count<{ count: string }[]>('game_sessions.id as count')
-          .first()
-        rank = Number(higher?.count ?? 0) + 1
-      }
+      const rank: number | null = session.is_completed
+        ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
+        : null
       today = {
         score: session.total_score,
         rank,
@@ -322,19 +312,9 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
       .first()
     const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(tierAgg?.sum ?? 0))
 
-    let rank: number | null = null
-    if (session.is_completed) {
-      const higher = await db('game_sessions')
-        .join('user', 'game_sessions.user_id', 'user.id')
-        .where('daily_challenge_id', challenge.id)
-        .andWhere('is_completed', true)
-        .andWhere('is_catch_up', false)
-        .whereRaw('"user"."isAnonymous" = ?', [false])
-        .andWhere('total_score', '>', session.total_score)
-        .count<{ count: string }[]>('game_sessions.id as count')
-        .first()
-      rank = Number(higher?.count ?? 0) + 1
-    }
+    const rank: number | null = session.is_completed
+      ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
+      : null
 
     const data: PublicStreamerToday = {
       slug,

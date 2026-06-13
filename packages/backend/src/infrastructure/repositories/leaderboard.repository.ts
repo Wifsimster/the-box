@@ -147,6 +147,24 @@ export const leaderboardRepository = {
     return { percentile: topPercentile, totalPlayers, rank }
   },
 
+  // Final leaderboard rank for a score on a challenge: 1 + the number of
+  // ranked sessions (completed, not catch-up, not anonymous) that scored
+  // higher. The public profile / streamer endpoints and the session-completed
+  // webhook hook all share this so the ranking rule lives in exactly one
+  // place rather than being copy-pasted as a raw query.
+  async rankForScore(challengeId: number, score: number): Promise<number> {
+    const higher = await db('game_sessions')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .where('game_sessions.daily_challenge_id', challengeId)
+      .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false)
+      .whereRaw('"user"."isAnonymous" = ?', [false])
+      .andWhere('game_sessions.total_score', '>', score)
+      .count<{ count: string }[]>('game_sessions.id as count')
+      .first()
+    return Number(higher?.count ?? 0) + 1
+  },
+
   async findByMonth(year: number, month: number, limit = 100): Promise<MonthlyLeaderboardEntry[]> {
     const rows = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
