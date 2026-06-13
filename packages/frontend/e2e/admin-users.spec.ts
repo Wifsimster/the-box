@@ -150,7 +150,10 @@ test.describe('Admin User Management', () => {
     expect(hasTable || hasUserList || hasContent).toBeTruthy()
   })
 
-  test('should display user table with columns', async ({ page }) => {
+  test('should display user table with columns', async ({ page }, testInfo) => {
+    // The columnar user table is desktop-only (hidden md:block); the mobile
+    // layout renders user cards instead, so column headers don't exist there.
+    test.skip(testInfo.project.name !== 'chromium', 'desktop-only user table')
     // Navigate to users tab
     await page.getByRole('tab', { name: /users|utilisateurs/i }).or(page.getByRole('button', { name: /users|utilisateurs/i })).click()
     await page.waitForSelector('text=/Users|Utilisateurs/i')

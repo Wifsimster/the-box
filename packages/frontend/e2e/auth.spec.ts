@@ -286,9 +286,12 @@ test.describe('Password Reset Flow', () => {
     await page.goto('/en/forgot-password')
     await page.waitForTimeout(1000)
 
-    // Look for link to login
-    const loginLink = page.getByRole('link', { name: /login|sign in|back|connexion/i })
-      .or(page.locator('a[href*="/login"]'))
+    // Look for the back-to-login link inside the page content. Scope to
+    // #main-content so we don't match the header nav's Login link, which is
+    // collapsed behind the hamburger (and thus hidden) on mobile viewports.
+    const main = page.locator('#main-content')
+    const loginLink = main.getByRole('link', { name: /login|sign in|back|connexion/i })
+      .or(main.locator('a[href*="/login"]'))
       .first()
 
     await expect(loginLink).toBeVisible()
