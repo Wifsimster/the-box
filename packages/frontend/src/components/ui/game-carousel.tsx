@@ -6,6 +6,7 @@ import {
     useCallback,
     type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Loader2, ZoomOut, ZoomIn, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -240,6 +241,7 @@ export function GameCarousel({
     onImageLoad,
     enableZoom = true,
 }: GameCarouselProps) {
+    const { t } = useTranslation()
     const [api, setApi] = useState<CarouselApi>()
     const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
     const hasUserInteractedRef = useRef(false)
@@ -407,7 +409,7 @@ export function GameCarousel({
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center text-muted-foreground size-full">
-                                        No image available
+                                        {t('game.noImageAvailable')}
                                     </div>
                                 )}
                             </CarouselItem>
@@ -430,7 +432,8 @@ export function GameCarousel({
                                 className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                                 onClick={() => { zoom.zoomIn(); scheduleZoomCollapse() }}
                                 disabled={view.scale >= MAX_SCALE - 0.01}
-                                title="Zoom in"
+                                title={t('game.zoom.in')}
+                                aria-label={t('game.zoom.in')}
                             >
                                 <ZoomIn className="size-4" />
                             </Button>
@@ -440,7 +443,8 @@ export function GameCarousel({
                                 className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                                 onClick={() => { zoom.zoomOut(); scheduleZoomCollapse() }}
                                 disabled={view.scale <= MIN_SCALE + 0.01}
-                                title="Zoom out"
+                                title={t('game.zoom.out')}
+                                aria-label={t('game.zoom.out')}
                             >
                                 <ZoomOut className="size-4" />
                             </Button>
@@ -453,7 +457,8 @@ export function GameCarousel({
                                     size="icon"
                                     className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
                                     onClick={() => { zoom.reset(); scheduleZoomCollapse() }}
-                                    title="Reset zoom"
+                                    title={t('game.zoom.reset')}
+                                    aria-label={t('game.zoom.reset')}
                                 >
                                     <RotateCcw className="size-4" />
                                 </Button>
@@ -468,7 +473,8 @@ export function GameCarousel({
                             size="icon"
                             className="size-9 rounded-full bg-black/60 backdrop-blur-sm text-foreground/70 hover:text-foreground hover:bg-black/70 opacity-80 transition-all duration-200"
                             onClick={openZoomControls}
-                            title="Zoom"
+                            title={t('game.zoom.open')}
+                            aria-label={t('game.zoom.open')}
                         >
                             <ZoomIn className="size-4" />
                         </Button>

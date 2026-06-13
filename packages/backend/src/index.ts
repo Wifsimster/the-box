@@ -786,7 +786,13 @@ async function start(): Promise<void> {
         ),
       ])
 
-    httpServer.close()
+    // Stop accepting new connections and wait for in-flight HTTP requests
+    // to finish. Without awaiting, the DB and Redis teardown below could
+    // race with a request still writing.
+    await closeWithTimeout(
+      'httpServer',
+      () => new Promise<void>((resolve) => httpServer.close(() => resolve()))
+    )
     if (io) {
       await closeWithTimeout('socket.io', () => new Promise<void>((resolve) => io.close(() => resolve())))
     }
