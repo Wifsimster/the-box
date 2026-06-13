@@ -64,6 +64,13 @@ export {
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
 export {
+  createPushService,
+  type PushService,
+  type PushServiceDeps,
+  type SendToUserResult,
+  type PushPayload,
+} from './push.service.js'
+export {
   createWebhookDispatchService,
   type WebhookDispatchService,
   type WebhookDispatchDeps,
@@ -102,8 +109,10 @@ import { createGeoRewardService } from './geo-reward.service.js'
 import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
 import { createWebhookDispatchService } from './webhook-dispatch.service.js'
+import { createPushService } from './push.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
-import { importQueue, geoQueue, webhookQueue } from '../../infrastructure/queue/queues.js'
+import { importQueue, geoQueue, webhookQueue, pushQueue } from '../../infrastructure/queue/queues.js'
+import { isPushConfigured } from '../../infrastructure/push/push-sender.js'
 import { emitRewardGranted } from '../../infrastructure/socket/socket.js'
 import {
   achievementRepository,
@@ -138,6 +147,23 @@ export const webhookDispatch = createWebhookDispatchService({
   enqueueDelivery: async (deliveryId) => {
     await webhookQueue.add('deliver', { kind: 'deliver', deliveryId })
   },
+})
+
+// Web Push fan-out. The factory stays pure; the BullMQ push queue + the
+// VAPID-configured check are bound here. The per-device fan-out (timeout,
+// allSettled, retry, 410-deactivation) runs in push.worker.ts — sendToUser
+// only enqueues, so the request thread never blocks on FCM round-trips.
+export const pushService = createPushService({
+  isConfigured: isPushConfigured,
+  enqueueSendToUser: async (userId, payload) => {
+    const job = await pushQueue.add('send-to-user', {
+      kind: 'send-to-user',
+      userId,
+      payload,
+    })
+    return { id: job.id }
+  },
+  log: serviceLogger.child({ service: 'push' }),
 })
 
 export const fuzzyMatchService = createFuzzyMatchService({ logger: serviceLogger })
