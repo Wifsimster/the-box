@@ -39,7 +39,20 @@ async function prepare(page: import('@playwright/test').Page) {
 // baseline. Wait for the font set to settle before every capture.
 async function settle(page: import('@playwright/test').Page) {
   await page.waitForLoadState('networkidle')
-  await page.evaluate(() => document.fonts.ready)
+  // Wait for the web fonts to load AND for the resulting reflow to paint —
+  // fonts.ready can resolve a frame before the layout settles, which shifted
+  // the (vertically-centered) login card ~16px between runs and flaked the
+  // diff. The double rAF guarantees a painted frame after the font swap.
+  await page.evaluate(
+    () =>
+      document.fonts.ready.then(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      ),
+  )
+  await page.waitForTimeout(250)
 }
 
 base.describe('visual regression — public surfaces', () => {

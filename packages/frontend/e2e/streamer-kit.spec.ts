@@ -42,8 +42,16 @@ test.describe('Streamer Kit — public API M1', () => {
     authenticatedPage: page,
   }) => {
     await expect(page.getByText(/streamer kit/i).first()).toBeVisible()
-    await expect(page.getByTestId('streamer-kit-toggle')).toBeVisible()
-    // Create-key button is disabled until the toggle is on.
+    const toggle = page.getByTestId('streamer-kit-toggle')
+    await expect(toggle).toBeVisible()
+    // Establish the precondition locally rather than trusting incoming state:
+    // other specs that share this user (e.g. public-profile-share) may have
+    // left the public profile enabled. With the toggle off, the create-key
+    // button must be disabled.
+    if (await toggle.isChecked()) {
+      await toggle.uncheck()
+      await page.waitForTimeout(300)
+    }
     await expect(page.getByTestId('streamer-kit-create-key')).toBeDisabled()
   })
 
