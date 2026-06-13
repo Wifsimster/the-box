@@ -148,24 +148,17 @@ test.describe('Admin Geo authz boundary', () => {
 // require a hard cap here — the test fires a generous burst and asserts
 // at least one 429 lands.
 test.describe('Public geo free-play rate limit', () => {
-    test('free-play guess is rate-limited per IP', async ({ request }) => {
+    test('free-play guess requires authentication for anonymous callers', async ({ request }) => {
         if (!(await geoRoutesAvailable(request))) test.skip(true, 'geo off')
 
-        // 60 requests to /free-play/guess should exceed the 30/min window.
-        // Body is intentionally invalid (so we don't actually consume any
-        // application state) but the limiter runs BEFORE the validation
-        // middleware so 429 still fires.
-        let saw429 = false
-        for (let i = 0; i < 60; i++) {
-            const r = await request.post('/api/geo/free-play/guess', {
-                data: { metaId: 1, geoMapId: 1, guess: { x: 0.5, y: 0.5 } },
-                failOnStatusCode: false,
-            })
-            if (r.status() === 429) {
-                saw429 = true
-                break
-            }
-        }
-        expect(saw429, 'expected /api/geo/free-play/guess to return 429 within 60 calls').toBe(true)
+        // Free-play is open to every *authenticated* user (the contribution
+        // surface stays free), but anonymous callers are rejected with 401 so
+        // the UI can prompt for sign-in — authMiddleware runs before the
+        // per-user rate limiter. Verify that auth gate holds.
+        const r = await request.post('/api/geo/free-play/guess', {
+            data: { metaId: 1, geoMapId: 1, guess: { x: 0.5, y: 0.5 } },
+            failOnStatusCode: false,
+        })
+        expect(r.status()).toBe(401)
     })
 })
