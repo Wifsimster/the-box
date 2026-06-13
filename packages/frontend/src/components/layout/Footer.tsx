@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useOpenChangelog } from '@/components/pwa'
 import { format } from 'date-fns'
 
 // Get build-time constants (injected by Vite at build time)
@@ -10,6 +11,7 @@ const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
 export function Footer() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
+  const openChangelog = useOpenChangelog()
   const currentYear = new Date().getFullYear()
 
   // Format build time for display
@@ -64,7 +66,15 @@ export function Footer() {
         &copy; {currentYear} The Box. {t('footer.allRightsReserved')}
         {appVersion !== 'dev' && (
           <>
-            {' • '}v{appVersion}
+            {' • '}
+            <button
+              type="button"
+              onClick={openChangelog}
+              className="underline-offset-2 hover:text-neon-purple hover:underline transition-colors"
+              title={t('changelog.openTitle')}
+            >
+              v{appVersion}
+            </button>
             {formattedBuildTime && ` • ${formattedBuildTime}`}
           </>
         )}
