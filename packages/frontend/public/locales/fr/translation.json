@@ -2727,6 +2727,36 @@
       "dismiss": "Fermer"
     }
   },
+  "changelog": {
+    "title": "Nouveautés",
+    "versionLine": "Version {{version}} · {{date}}",
+    "openTitle": "Voir les nouveautés de cette version",
+    "gotIt": "J'ai compris",
+    "empty": "Cette version apporte des améliorations et corrections internes.",
+    "sections": {
+      "features": "Nouveautés",
+      "improvements": "Améliorations",
+      "fixes": "Corrections"
+    },
+    "releases": {
+      "2.127.0": {
+        "summary": "Nous avons repensé le fonctionnement des indices et peaufiné l'app sur mobile.",
+        "features": [
+          "Les indices sont désormais intégrés directement dans le champ de réponse, avec les lettres de la solution révélées une à une.",
+          "Le squelette du titre masqué reste caché jusqu'à la première lettre révélée, pour ne rien dévoiler trop tôt."
+        ],
+        "improvements": [
+          "Les champs de formulaire respectent les règles de taille iPhone : toucher un champ ne zoome plus la page.",
+          "Les bannières de notification ne se chevauchent plus sur iOS et Android."
+        ],
+        "fixes": [
+          "Un code de parrainage inconnu renvoie désormais un message « introuvable » clair au lieu d'une erreur générique.",
+          "La validation des requêtes est entièrement compatible avec Express 5.",
+          "Plusieurs libellés d'accessibilité ont été corrigés sur les onglets, les barres de progression et le chronomètre."
+        ]
+      }
+    }
+  },
   "seo": {
     "home": {
       "title": "The Box — Le défi quotidien de jeux vidéo",
