@@ -34,11 +34,19 @@ async function prepare(page: import('@playwright/test').Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' })
 }
 
+// Web fonts load asynchronously; screenshotting before they swap in renders
+// text in the fallback face and produces large pixel diffs that flake the
+// baseline. Wait for the font set to settle before every capture.
+async function settle(page: import('@playwright/test').Page) {
+  await page.waitForLoadState('networkidle')
+  await page.evaluate(() => document.fonts.ready)
+}
+
 base.describe('visual regression — public surfaces', () => {
   base('Home @ 1280×720', async ({ page }) => {
     await prepare(page)
     await page.goto('/en')
-    await page.waitForLoadState('networkidle')
+    await settle(page)
     await expect(page).toHaveScreenshot('home.png', SNAPSHOT_OPTIONS)
   })
 
@@ -46,13 +54,14 @@ base.describe('visual regression — public surfaces', () => {
     await prepare(page)
     await page.goto('/en/login')
     await page.waitForSelector('form')
+    await settle(page)
     await expect(page).toHaveScreenshot('login.png', SNAPSHOT_OPTIONS)
   })
 
   base('Leaderboard @ 1280×720', async ({ page }) => {
     await prepare(page)
     await page.goto('/en/leaderboard')
-    await page.waitForLoadState('networkidle')
+    await settle(page)
     await expect(page).toHaveScreenshot('leaderboard.png', SNAPSHOT_OPTIONS)
   })
 })
@@ -62,7 +71,7 @@ authTest.describe('visual regression — authenticated surfaces', () => {
     await authenticatedPage.setViewportSize(VIEWPORT)
     await authenticatedPage.emulateMedia({ reducedMotion: 'reduce' })
     await authenticatedPage.goto('/en/profile')
-    await authenticatedPage.waitForLoadState('networkidle')
+    await settle(authenticatedPage)
     await expect(authenticatedPage).toHaveScreenshot('profile.png', SNAPSHOT_OPTIONS)
   })
 
@@ -74,7 +83,7 @@ authTest.describe('visual regression — authenticated surfaces', () => {
     await authenticatedPage.setViewportSize(VIEWPORT)
     await authenticatedPage.emulateMedia({ reducedMotion: 'reduce' })
     await authenticatedPage.goto('/en/play')
-    await authenticatedPage.waitForLoadState('networkidle')
+    await settle(authenticatedPage)
     await expect(authenticatedPage).toHaveScreenshot('game-intro.png', SNAPSHOT_OPTIONS)
   })
 })
