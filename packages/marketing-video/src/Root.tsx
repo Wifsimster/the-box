@@ -2,6 +2,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { MarketingVideo } from "./MarketingVideo";
 import { ShortVideo } from "./ShortVideo";
+import { FounderClip } from "./FounderClip";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -25,6 +26,22 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={1080}
         height={1920}
+      />
+
+      {/* ~19.7s founder clip (1920×1080 @ 30fps).
+          60 + 450 + 120 sequence frames − two 20-frame transitions = 590. */}
+      <Composition
+        id="the-box-founder"
+        component={FounderClip}
+        durationInFrames={590}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          founderName: "",
+          withFounderVideo: false,
+          withAudio: false,
+        }}
       />
     </>
   );

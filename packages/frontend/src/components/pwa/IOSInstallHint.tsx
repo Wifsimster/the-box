@@ -56,8 +56,11 @@ export function IOSInstallHint() {
       open
       aria-labelledby="ios-install-title"
       className={cn(
-        'fixed inset-x-3 bottom-3 top-auto z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur',
-        'border-border p-4 flex gap-3 items-start',
+        // Sit just above the mobile BottomNav (matching the other PWA banners);
+        // drop to the corner at md where the BottomNav is hidden. A bare
+        // bottom-3 anchored the hint on top of the fixed bottom nav.
+        'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
+        'border-border p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
       )}
     >
       <div className="flex-1 min-w-0">

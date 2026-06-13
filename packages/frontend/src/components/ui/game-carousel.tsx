@@ -17,8 +17,9 @@ import {
 } from '@/components/ui/carousel'
 import { Button } from '@/components/ui/button'
 
-// Magnification range: 1x = fit-to-frame (default), up to 4x.
-const MIN_SCALE = 1
+// Zoom range: 1x = fit-to-frame (default). Players can zoom out below fit
+// (down to MIN_SCALE, letterboxed) for a smaller overview, or in up to MAX_SCALE.
+const MIN_SCALE = 0.4
 const MAX_SCALE = 4
 // Multiplier applied per zoom-button press.
 const ZOOM_STEP = 1.6
@@ -170,7 +171,9 @@ function useImageZoom(resetKey: unknown) {
                 const dy = e.clientY - panRef.current.y
                 panRef.current = { x: e.clientX, y: e.clientY }
                 setView((v) => {
-                    if (v.scale <= MIN_SCALE) return v
+                    // Panning is only meaningful once zoomed in past fit; at or
+                    // below fit the image is fully within the frame.
+                    if (v.scale <= 1) return v
                     const c = clampOffset(v.x + dx, v.y + dy, v.scale)
                     return { ...v, x: c.x, y: c.y }
                 })
@@ -245,6 +248,33 @@ export function GameCarousel({
 
     const zoom = useImageZoom(images[currentIndex]?.url ?? currentIndex)
     const { view } = zoom
+
+    // Zoom controls collapse to a single button so the capture's bottom-left
+    // corner stays mostly clear; they expand on tap and re-collapse when idle.
+    // While the image is zoomed in (scale > 1) we force them open so "reset"
+    // remains one tap away.
+    const [zoomExpanded, setZoomExpanded] = useState(false)
+    const zoomIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const scheduleZoomCollapse = useCallback(() => {
+        if (zoomIdleTimer.current) clearTimeout(zoomIdleTimer.current)
+        zoomIdleTimer.current = setTimeout(() => setZoomExpanded(false), 2500)
+    }, [])
+
+    const openZoomControls = useCallback(() => {
+        setZoomExpanded(true)
+        scheduleZoomCollapse()
+    }, [scheduleZoomCollapse])
+
+    useEffect(() => () => {
+        if (zoomIdleTimer.current) clearTimeout(zoomIdleTimer.current)
+    }, [])
+
+    // "Adjusted" = the view is no longer at the default fit-to-frame scale,
+    // whether zoomed in or out. Keep the controls (incl. reset) open in either
+    // case so getting back to fit is always one tap away.
+    const isAdjusted = Math.abs(view.scale - 1) > 0.01
+    const showZoomCluster = zoomExpanded || isAdjusted
 
     // Track user interaction to enable haptic feedback
     useEffect(() => {
@@ -388,49 +418,67 @@ export function GameCarousel({
                 </CarouselContent>
             </Carousel>
 
-            {/* Zoom Controls */}
+            {/* Zoom Controls — anchored to the capture's bottom-left corner so
+                the image's center and the other three corners stay clear.
+                Collapsed to a single button by default; expands on tap and
+                auto-collapses when idle (kept open while zoomed in). */}
             {enableZoom && (
-                <div className="absolute top-1/2 -translate-y-1/2 left-4 z-30 flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 pointer-events-auto transition-all duration-200">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
-                        onClick={zoom.zoomIn}
-                        disabled={view.scale >= MAX_SCALE - 0.01}
-                        title={t('game.zoom.in')}
-                        aria-label={t('game.zoom.in')}
-                    >
-                        <ZoomIn className="size-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
-                        onClick={zoom.zoomOut}
-                        disabled={view.scale <= MIN_SCALE + 0.01}
-                        title={t('game.zoom.out')}
-                        aria-label={t('game.zoom.out')}
-                    >
-                        <ZoomOut className="size-4" />
-                    </Button>
-                    <div className={cn(
-                        "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
-                        view.scale > 1.01 ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
-                    )}>
+                <div className="absolute bottom-4 left-4 z-30 pointer-events-auto">
+                    {showZoomCluster ? (
+                        <div className="flex flex-col items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 transition-all duration-200">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                                onClick={() => { zoom.zoomIn(); scheduleZoomCollapse() }}
+                                disabled={view.scale >= MAX_SCALE - 0.01}
+                                title={t('game.zoom.in')}
+                                aria-label={t('game.zoom.in')}
+                            >
+                                <ZoomIn className="size-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                                onClick={() => { zoom.zoomOut(); scheduleZoomCollapse() }}
+                                disabled={view.scale <= MIN_SCALE + 0.01}
+                                title={t('game.zoom.out')}
+                                aria-label={t('game.zoom.out')}
+                            >
+                                <ZoomOut className="size-4" />
+                            </Button>
+                            <div className={cn(
+                                "flex flex-col items-center gap-1 overflow-hidden transition-all duration-200",
+                                isAdjusted ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+                            )}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
+                                    onClick={() => { zoom.reset(); scheduleZoomCollapse() }}
+                                    title={t('game.zoom.reset')}
+                                    aria-label={t('game.zoom.reset')}
+                                >
+                                    <RotateCcw className="size-4" />
+                                </Button>
+                                <span className="text-xs text-foreground/60 px-2 tabular-nums">
+                                    {Math.round(view.scale * 100)}%
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 text-foreground/80 hover:text-foreground hover:bg-foreground/20"
-                            onClick={zoom.reset}
-                            title={t('game.zoom.reset')}
-                            aria-label={t('game.zoom.reset')}
+                            className="size-9 rounded-full bg-black/60 backdrop-blur-sm text-foreground/70 hover:text-foreground hover:bg-black/70 opacity-80 transition-all duration-200"
+                            onClick={openZoomControls}
+                            title={t('game.zoom.open')}
+                            aria-label={t('game.zoom.open')}
                         >
-                            <RotateCcw className="size-4" />
+                            <ZoomIn className="size-4" />
                         </Button>
-                        <span className="text-xs text-foreground/60 px-2 tabular-nums">
-                            {Math.round(view.scale * 100)}%
-                        </span>
-                    </div>
+                    )}
                 </div>
             )}
         </div>

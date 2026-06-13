@@ -82,7 +82,7 @@ describe('rewardsService.grant', () => {
       userId: 'user-1',
       source: 'milestone',
       sourceRef: 'milestone:games_played_100',
-      items: [{ itemType: 'powerup', itemKey: 'hint_year', quantity: 1 }],
+      items: [{ itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 }],
     })
 
     assert.equal(result.wasNew, true)
@@ -92,7 +92,7 @@ describe('rewardsService.grant', () => {
     assert.equal(call.source, 'milestone')
     assert.equal(call.sourceRef, 'milestone:games_played_100')
     assert.deepEqual(call.payload.items, [
-      { itemType: 'powerup', itemKey: 'hint_year', quantity: 1 },
+      { itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 },
     ])
     // milestone is in the auto-unlock set
     assert.equal(call.autoUnlock, true)
@@ -139,7 +139,7 @@ describe('rewardsService.grant', () => {
       userId: 'user-1',
       source: 'reactivation',
       sourceRef: 'reactivation:2026-w18',
-      items: [{ itemType: 'powerup', itemKey: 'hint_developer', quantity: 1 }],
+      items: [{ itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 }],
     })
 
     const call = state.grantAtomicCalls[0]
@@ -155,7 +155,7 @@ describe('rewardsService.grant', () => {
       userId: 'user-1',
       source: 'reactivation',
       sourceRef: 'reactivation:2026-w18',
-      items: [{ itemType: 'powerup', itemKey: 'hint_developer', quantity: 1 }],
+      items: [{ itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 }],
       autoUnlock: true,
     })
 

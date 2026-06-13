@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Eye, EyeOff } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 export interface PasswordProps
@@ -10,6 +11,7 @@ export interface PasswordProps
 
 const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps) => {
     const [showPassword, setShowPassword] = React.useState(false)
+    const { t } = useTranslation()
 
     return (
       <div className="relative">
@@ -17,7 +19,9 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
           type={showPassword ? "text" : "password"}
           data-slot="password"
           className={cn(
-            "flex h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground",
+            // 16px on mobile avoids iOS Safari's focus zoom; `md:text-sm`
+            // keeps the desktop scale. Mirrors the base Input component.
+            "flex h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-base md:text-sm text-foreground",
             "placeholder:text-muted-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             "disabled:cursor-not-allowed disabled:opacity-50",
@@ -32,7 +36,9 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
+            aria-pressed={showPassword}
+            className="absolute right-3 inset-y-0 my-auto flex h-fit items-center text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
           >
             {showPassword ? (

@@ -18,8 +18,11 @@ test.describe('Zoom Feature', () => {
     // Wait for game to fully load with screenshot
     await page.waitForTimeout(3000)
 
-    // Take screenshot for debugging
-    await page.screenshot({ path: '/tmp/zoom-test-gameplay.png' })
+    // The zoom cluster collapses to a single toggle (title="Zoom") by default
+    // and expands on tap; expand it before asserting the in/out controls.
+    const zoomToggle = page.locator('button[title="Zoom"]')
+    await expect(zoomToggle).toBeVisible({ timeout: 5000 })
+    await zoomToggle.click()
 
     // Check for zoom controls - they should be in the bottom-left
     const zoomIn = page.locator('button[title="Zoom in"]')
@@ -38,6 +41,12 @@ test.describe('Zoom Feature', () => {
     await startDailyGame(page)
 
     await page.waitForTimeout(3000)
+
+    // Expand the collapsed zoom cluster first.
+    const zoomToggle = page.locator('button[title="Zoom"]')
+    if (await zoomToggle.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await zoomToggle.click()
+    }
 
     const zoomOut = page.locator('button[title="Zoom out"]')
 

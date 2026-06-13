@@ -12,6 +12,11 @@ export function Toaster(props: ToasterProps) {
       position="top-right"
       richColors
       closeButton
+      // On phones sonner renders edge-to-edge from the top; without an offset
+      // the stack lands on top of the sticky Header (h-14 + the iOS notch) and
+      // covers its controls. Push it below the header and clear of the
+      // safe-area so multiple stacked toasts stay tappable and readable.
+      mobileOffset={{ top: 'calc(env(safe-area-inset-top) + 4rem)', left: '0.75rem', right: '0.75rem' }}
       toastOptions={{
         classNames: {
           toast:

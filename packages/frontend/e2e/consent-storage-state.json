@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "the-box-consent",
+          "value": "{\"state\":{\"analytics\":false,\"support\":false,\"decided\":true},\"version\":0}"
+        }
+      ]
+    }
+  ]
+}

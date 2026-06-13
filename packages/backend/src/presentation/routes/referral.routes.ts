@@ -26,7 +26,11 @@ router.post('/claim', authMiddleware, async (req, res, next) => {
     res.json({ success: true, data: result })
   } catch (error) {
     if (error instanceof ReferralError) {
-      const status = error.code === 'USER_NOT_FOUND' ? 404 : 400
+      // A missing referee (USER_NOT_FOUND) or a referrer code that resolves to
+      // no account (REFERRER_NOT_FOUND) are both "not found" — 404. Everything
+      // else (self-referral, already-claimed, guest, ineligible) is a 400.
+      const notFound = error.code === 'USER_NOT_FOUND' || error.code === 'REFERRER_NOT_FOUND'
+      const status = notFound ? 404 : 400
       return res.status(status).json({
         success: false,
         error: { code: error.code, message: error.message },

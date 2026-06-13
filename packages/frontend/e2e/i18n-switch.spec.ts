@@ -36,20 +36,20 @@ test.describe('i18n URL-prefix switch (public pages)', () => {
         // The FR string must appear somewhere on the page (title, nav,
         // heading — we don't care which, just that the i18n catalog
         // loaded and resolved keys to FR copy).
-        await expect(page.locator(`text=${KNOWN_FR_STRING}`).first()).toBeVisible({ timeout: 10_000 })
+        await expect(page.getByRole("heading", { name: KNOWN_FR_STRING })).toBeVisible({ timeout: 10_000 })
     })
 
     test('EN prefix sets html[lang]=en and renders the EN translation', async ({ page }) => {
         await page.goto('/en/leaderboard')
         await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe('en')
-        await expect(page.locator(`text=${KNOWN_EN_STRING}`).first()).toBeVisible({ timeout: 10_000 })
+        await expect(page.getByRole("heading", { name: KNOWN_EN_STRING })).toBeVisible({ timeout: 10_000 })
     })
 
     test('switching FR→EN mid-session updates html[lang] and the rendered copy', async ({ page }) => {
         // Start in FR, confirm we are reading FR copy.
         await page.goto('/fr/leaderboard')
         await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe('fr')
-        await expect(page.locator(`text=${KNOWN_FR_STRING}`).first()).toBeVisible({ timeout: 10_000 })
+        await expect(page.getByRole("heading", { name: KNOWN_FR_STRING })).toBeVisible({ timeout: 10_000 })
 
         // Navigate to the EN equivalent of the same route.
         await page.goto('/en/leaderboard')
@@ -59,8 +59,8 @@ test.describe('i18n URL-prefix switch (public pages)', () => {
         // The EN copy must appear, AND the FR copy must NOT remain on
         // the page. A stale catalog or a missing EN key would leave the
         // FR string visible after the switch.
-        await expect(page.locator(`text=${KNOWN_EN_STRING}`).first()).toBeVisible({ timeout: 10_000 })
-        const stillFr = await page.locator(`text=${KNOWN_FR_STRING}`).first().isVisible().catch(() => false)
+        await expect(page.getByRole("heading", { name: KNOWN_EN_STRING })).toBeVisible({ timeout: 10_000 })
+        const stillFr = await page.getByRole("heading", { name: KNOWN_FR_STRING }).isVisible().catch(() => false)
         expect(
             stillFr,
             `after switching to EN, the FR string '${KNOWN_FR_STRING}' is still visible — i18n did not re-render`,

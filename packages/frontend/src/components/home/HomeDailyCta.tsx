@@ -109,10 +109,13 @@ export function HomeDailyCta({
         </div>
       )}
 
-      {/* Show appropriate button based on completion status */}
+      {/* Show appropriate button based on completion status.
+          One loud primary action (play / history) so visitors have a single
+          obvious next step; Geo mode is demoted to a quiet secondary link
+          below rather than competing as an equal-weight button. */}
       {!isLoading && (
         <div className="flex flex-col items-center gap-3 sm:gap-4 w-full sm:w-auto">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+          <div className="flex justify-center w-full sm:w-auto">
             {isTodayCompleted ? (
               <Button
                 variant="outline"
@@ -136,23 +139,23 @@ export function HomeDailyCta({
                 {t('home.dailyGuess')}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="xl"
-              onClick={() => navigate(localizedPath('/geo'))}
-              data-tour="geo-cta"
-              className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto border-neon-pink/40 text-neon-pink hover:border-neon-pink hover:text-neon-pink"
-            >
-              <MapPin className="size-4 sm:size-5 md:size-6" />
-              {t('home.geoCta')}
-              <Badge
-                variant="outline"
-                className="ml-1 h-5 px-1.5 text-[10px] font-semibold uppercase tracking-wide border-neon-pink/50 text-neon-pink"
-              >
-                {t('common.alpha')}
-              </Badge>
-            </Button>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(localizedPath('/geo'))}
+            data-tour="geo-cta"
+            className="gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-neon-pink"
+          >
+            <MapPin className="size-4" />
+            {t('home.geoCta')}
+            <Badge
+              variant="outline"
+              className="ml-1 h-4 px-1 text-[9px] font-semibold uppercase tracking-wide border-neon-pink/40 text-neon-pink"
+            >
+              {t('common.alpha')}
+            </Badge>
+          </Button>
           {!isTodayCompleted && !hasSession && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {t('home.guestHint')}

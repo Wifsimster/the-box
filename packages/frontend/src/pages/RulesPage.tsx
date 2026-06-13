@@ -153,11 +153,24 @@ export default function RulesPage() {
               </div>
             </Section>
 
-            <Section title={t('legal.rulesLeaderboardTitle')} delay={0.3}>
+            <Section title={t('legal.rulesGeoTitle')} delay={0.3}>
+              <p>{t('legal.rulesGeoIntro')}</p>
+              <p>{t('legal.rulesGeoScoring')}</p>
+            </Section>
+
+            <Section title={t('legal.rulesPremiumTitle')} delay={0.35}>
+              <p>{t('legal.rulesPremium')}</p>
+            </Section>
+
+            <Section title={t('legal.rulesReferralTitle')} delay={0.4}>
+              <p>{t('legal.rulesReferral')}</p>
+            </Section>
+
+            <Section title={t('legal.rulesLeaderboardTitle')} delay={0.45}>
               <p>{t('legal.rulesLeaderboard')}</p>
             </Section>
 
-            <Section title={t('legal.rulesFairPlayTitle')} delay={0.35}>
+            <Section title={t('legal.rulesFairPlayTitle')} delay={0.5}>
               <p>{t('legal.rulesFairPlay')}</p>
             </Section>
           </CardContent>

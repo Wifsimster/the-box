@@ -1,23 +1,4 @@
 import type { PushPayload } from '@the-box/types'
-import { isPushConfigured } from '../../infrastructure/push/push-sender.js'
-import { serviceLogger } from '../../infrastructure/logger/logger.js'
-
-// Lazy import: pulling queues.js at module load constructs a BullMQ Queue
-// and opens a Redis connection, which keeps the event loop alive forever
-// in unit tests that import this module. Importing inside the production
-// dep means tests using `createPushService(fakeDeps)` never trigger it.
-async function enqueueViaQueue(
-  userId: string,
-  payload: PushPayload,
-): Promise<{ id?: string }> {
-  const { pushQueue } = await import('../../infrastructure/queue/queues.js')
-  const job = await pushQueue.add('send-to-user', {
-    kind: 'send-to-user',
-    userId,
-    payload,
-  })
-  return { id: job.id }
-}
 
 // Re-export the wire type so existing imports (`import { PushPayload } from
 // '../../domain/services/push.service.js'`) keep compiling. New code should
@@ -29,25 +10,22 @@ export interface SendToUserResult {
   jobId?: string
 }
 
-// Ports the service depends on. The default factory binds them to the
+// Ports the service depends on. The composition root binds them to the
 // concrete BullMQ queue + push-sender; tests pass fakes via
-// `createPushService(deps)`. Keeps the service free of import cycles
-// against infrastructure for the parts that are interesting to test.
+// `createPushService(deps)`. Keeps the service file free of infrastructure
+// imports — it stays a pure domain unit.
 export interface PushServiceDeps {
   isConfigured: () => boolean
   enqueueSendToUser: (userId: string, payload: PushPayload) => Promise<{ id?: string }>
   log?: { info: (...args: unknown[]) => void; warn: (...args: unknown[]) => void }
 }
 
-const defaultLog = serviceLogger.child({ service: 'push' })
-
-const productionDeps: PushServiceDeps = {
-  isConfigured: isPushConfigured,
-  enqueueSendToUser: enqueueViaQueue,
-  log: defaultLog,
+export interface PushService {
+  isConfigured: () => boolean
+  sendToUser(userId: string, payload: PushPayload): Promise<SendToUserResult>
 }
 
-export function createPushService(deps: PushServiceDeps = productionDeps) {
+export function createPushService(deps: PushServiceDeps): PushService {
   const log = deps.log ?? { info: () => {}, warn: () => {} }
 
   return {
@@ -68,7 +46,3 @@ export function createPushService(deps: PushServiceDeps = productionDeps) {
     },
   }
 }
-
-// Default singleton wired with concrete adapters. Routes and other domain
-// services use this; tests build their own via `createPushService(...)`.
-export const pushService = createPushService()

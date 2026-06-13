@@ -2,7 +2,7 @@ import { Router } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { gameService, GameError } from '../../domain/services/index.js'
-import { billingService } from '../../domain/services/billing.service.js'
+import { billingService } from '../../domain/services/index.js'
 import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
@@ -19,6 +19,19 @@ const router = Router()
 // Get uploads path for serving screenshot images
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
+
+// Map a stored `/uploads/...` URL to an absolute file path, refusing any
+// value whose resolved path escapes the uploads directory. imageUrl comes
+// from the DB (admin-managed), but a crafted `/uploads/../...` value must
+// not turn either image route into an arbitrary-file read.
+function resolveUploadFilePath(imageUrl: string): string | null {
+  const relativePath = imageUrl.replace('/uploads/', '')
+  const filePath = path.resolve(uploadsPath, relativePath)
+  if (filePath !== uploadsPath && !filePath.startsWith(uploadsPath + path.sep)) {
+    return null
+  }
+  return filePath
+}
 
 // Resolve today's first easy-tier screenshot. Shared by the public
 // preview endpoints so anonymous visitors can glimpse the challenge
@@ -84,8 +97,14 @@ router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
       return
     }
 
-    const relativePath = preview.imageUrl.replace('/uploads/', '')
-    const filePath = path.join(uploadsPath, relativePath)
+    const filePath = resolveUploadFilePath(preview.imageUrl)
+    if (!filePath) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
+      })
+      return
+    }
 
     res.sendFile(
       filePath,
@@ -169,8 +188,14 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
     }
 
     // Convert /uploads/screenshots/... to absolute file path
-    const relativePath = screenshot.imageUrl.replace('/uploads/', '')
-    const filePath = path.join(uploadsPath, relativePath)
+    const filePath = resolveUploadFilePath(screenshot.imageUrl)
+    if (!filePath) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
+      })
+      return
+    }
 
     res.sendFile(filePath, {
       maxAge: '1d',
@@ -270,15 +295,13 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Submit a guess
+// Submit a guess.
+// Note: stale clients may still send `powerUpUsed` (legacy metadata hints,
+// retired 2026-06). It is accepted and IGNORED — never 400 a guess over a
+// retired optional field.
 router.post('/guess', authMiddleware, async (req, res, next) => {
   try {
-    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs, powerUpUsed } = req.body
-
-    // Premium status only changes hint accounting in catch-up sessions
-    // (see game.service: premium + is_catch_up → free hint, no penalty).
-    // The flag is checked once here so the service stays sync-friendly.
-    const isPremium = await billingService.isPremium(req.userId!)
+    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs } = req.body
 
     const data = await gameService.submitGuess({
       tierSessionId,
@@ -288,8 +311,6 @@ router.post('/guess', authMiddleware, async (req, res, next) => {
       guessText,
       roundTimeTakenMs: roundTimeTakenMs || 0, // Fallback for backward compatibility
       userId: req.userId!,
-      powerUpUsed,
-      isPremium,
     })
 
     // Push the unlock to the user's /notifications socket so the toast
@@ -354,6 +375,53 @@ router.post('/second-chance', authMiddleware, async (req, res, next) => {
     }
 
     res.json({ success: true, data: { activated: true } })
+  } catch (error) {
+    if (error instanceof GameError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: { code: error.code, message: error.message },
+      })
+      return
+    }
+    next(error)
+  }
+})
+
+// Reveal one more letter of the masked title for a position. Server-
+// authoritative: returns only the recomputed masked string, never the
+// title. Gated server-side (one wrong guess first), capped per title, and
+// inventory-gated on the ranked daily (402 NO_INVENTORY → upsell). The
+// score penalty is locked in at reveal time and deducted by submitGuess.
+// Rate-limited: reveals are at most 2 per screenshot, so a burst beyond
+// this is automation, not play.
+const revealLetterLimiter = createRateLimiter({ windowMs: 60_000, max: 20 })
+router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, res, next) => {
+  try {
+    const { tierSessionId, position } = req.body ?? {}
+
+    if (typeof tierSessionId !== 'string' || typeof position !== 'number') {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_PARAMS',
+          message: 'tierSessionId (string) and position (number) required',
+        },
+      })
+      return
+    }
+
+    // Premium only changes the score cost in catch-up sessions (free
+    // letters off the leaderboard) — never on the ranked daily.
+    const isPremium = await billingService.isPremium(req.userId!)
+
+    const data = await gameService.revealLetter({
+      tierSessionId,
+      position,
+      userId: req.userId!,
+      isPremium,
+    })
+
+    res.json({ success: true, data })
   } catch (error) {
     if (error instanceof GameError) {
       res.status(error.statusCode).json({

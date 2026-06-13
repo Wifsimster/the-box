@@ -4,42 +4,42 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
-import type { GameSessionDetailsResponse, GuessAttempt } from '@/types'
-
-export interface HistoryResultItem {
-  position: number
-  isCorrect: boolean
-  correctGame: GameSessionDetailsResponse['guesses'][0]['correctGame']
-  userGuess: string | null
-  timeTakenMs: number
-  scoreEarned: number
-  hintPenalty?: number
-  wrongGuessPenalty?: number
-  tryNumber: number
-  screenshot?: { thumbnailUrl?: string; imageUrl: string }
-  attempts: GuessAttempt[]
-}
+import type { GuessResult } from '@/types'
 
 /**
- * Per-screenshot results breakdown for a finished game session. Extracted
- * from GameHistoryDetailsPage so the page component stays focused on
- * data-fetching and the score header.
+ * Per-screenshot results breakdown for a finished game session. This is the
+ * single, canonical list rendering shared by every session-detail surface —
+ * the post-game results page, the game-history details page, and the
+ * leaderboard answers dialog — so they never drift apart again.
+ *
+ * Each row shows the screenshot thumbnail, the (revealed) game name, the
+ * score badge, every guess attempt, and — for correct guesses — the discovery
+ * time and speed multiplier. Unfound games render with the miss styling.
  */
-export function GameHistoryResultsList({
+export function SessionResultsList({
   results,
   totalScreenshots,
-  reducedMotion,
+  reducedMotion = false,
+  columns = 1,
 }: {
-  results: HistoryResultItem[]
+  results: GuessResult[]
   totalScreenshots: number
-  reducedMotion: boolean
+  reducedMotion?: boolean
+  /** Lay the rows out in two balanced columns on wider screens (≥ md). */
+  columns?: 1 | 2
 }) {
   const { t } = useTranslation()
+  // Two-column uses CSS grid with minmax(0,1fr) tracks (Tailwind grid-cols-2)
+  // so each column has a definite width and the row contents can truncate —
+  // CSS multi-column leaves children unconstrained and overflows instead.
+  const isGrid = columns === 2
+  const animate = !reducedMotion && !isGrid
   return (
-    <ul className="space-y-2 sm:space-y-3 list-none">
+    <ul className={isGrid ? 'list-none grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3' : 'space-y-2 sm:space-y-3 list-none'}>
       {results.map((result, index) => {
         const isUnguessed =
           !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
+        const attempts = result.attempts ?? []
         const multiplier =
           result.isCorrect && result.scoreEarned > 0
             ? calculateSpeedMultiplier(result.timeTakenMs)
@@ -47,10 +47,10 @@ export function GameHistoryResultsList({
         return (
           <m.li
             key={result.position}
-            initial={reducedMotion ? false : { opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
-            className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
+            initial={animate ? { opacity: 0, x: -20 } : false}
+            animate={animate ? { opacity: 1, x: 0 } : undefined}
+            transition={animate ? { duration: 0.3, delay: index * 0.05 } : undefined}
+            className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg ${isGrid ? 'min-w-0' : ''} ${isUnguessed ? 'bg-destructive/10 border border-destructive/20' : 'bg-secondary/50'
               }`}
           >
             <span className="text-muted-foreground text-sm sm:text-base w-5 sm:w-6 shrink-0 pt-0.5" aria-hidden="true">{result.position}.</span>
@@ -86,17 +86,17 @@ export function GameHistoryResultsList({
                   </Badge>
                 )}
               </div>
-              {isUnguessed && result.attempts.length === 0 && (
+              {isUnguessed && attempts.length === 0 && (
                 <span className="text-xs sm:text-sm text-destructive block mt-0.5">
                   {t('game.notFound')}
                 </span>
               )}
-              {result.attempts.length > 0 && (
+              {attempts.length > 0 && (
                 <>
                   <span className="text-xs text-muted-foreground block mt-0.5">
-                    {t('game.attempts.count', { count: result.attempts.length })}
+                    {t('game.attempts.count', { count: attempts.length })}
                   </span>
-                  <GuessAttemptsList attempts={result.attempts} />
+                  <GuessAttemptsList attempts={attempts} />
                 </>
               )}
               {result.isCorrect && result.timeTakenMs > 0 && (

@@ -28,7 +28,10 @@ export default function PrivacyPage() {
     { title: t('legal.privacyCookiesTitle'), content: t('legal.privacyCookies') },
     { title: t('legal.privacySecurityTitle'), content: t('legal.privacySecurity') },
     { title: t('legal.privacyPaymentsTitle'), content: t('legal.privacyPayments') },
+    { title: t('legal.privacySubprocessorsTitle'), content: t('legal.privacySubprocessors') },
+    { title: t('legal.privacyRetentionTitle'), content: t('legal.privacyRetention') },
     { title: t('legal.privacyRightsTitle'), content: t('legal.privacyRights') },
+    { title: t('legal.privacyMinorsTitle'), content: t('legal.privacyMinors') },
     { title: t('legal.privacyContactTitle'), content: t('legal.privacyContact') },
   ]
 

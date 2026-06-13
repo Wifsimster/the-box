@@ -245,7 +245,7 @@ export async function createDailyChallenge(
     dailyChallengeId: challenge.id,
     tierNumber: 1,
     name: 'Daily Challenge',
-    timeLimitSeconds: 30,
+    timeLimitSeconds: 45,
   })
 
   // Step 5: Assign screenshots to positions 1-10

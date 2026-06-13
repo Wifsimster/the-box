@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!-- SUMMARY: Security review of the 4 GitHub Actions workflows (ci, release, deploy, pages) as of 2026-06-09,
+with remediations applied in the same PR. Fixed: npm lifecycle scripts with write token (F2), prod logs in
+public Actions logs (F3), SHA-pinning + Dependabot (F4), expression injection via env vars + semver guard (F5).
+Remaining manual action: F1 — repo setting "Require approval for all outside collaborators" plus an ephemeral
+or pull-based deploy runner for the self-hosted homelab box. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>The Box — GitHub Actions workflow security review (2026-06-09)</title>
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #14141c; --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7; --muted: #a1a1aa;
+    --neon-purple: #a855f7; --neon-pink: #ec4899; --neon-blue: #38bdf8;
+    --ok: #34d399; --warn: #fbbf24; --high: #f87171;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  a { color: var(--neon-purple); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--neon-purple); outline-offset: 2px; border-radius: 4px; }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.9rem 1rem; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .wrap { max-width: 72ch; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+  header.hero {
+    padding: 1.75rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(56,189,248,0.05));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+    margin-bottom: 2.25rem;
+  }
+  header.hero h1 { margin: 0 0 0.4rem; font-size: 1.55rem; letter-spacing: -0.01em; }
+  header.hero p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.92rem; }
+  header.hero .scope {
+    display: inline-block; margin-top: 0.75rem;
+    font-family: var(--mono); font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0.25rem 0.55rem; border-radius: 999px;
+    border: 1px solid var(--neon-pink); color: var(--neon-pink);
+  }
+
+  h2 { font-size: 1.15rem; margin: 2.5rem 0 0.75rem; letter-spacing: -0.01em; }
+  h3 { font-size: 0.98rem; margin: 1.75rem 0 0.5rem; }
+  p, li { font-size: 0.95rem; }
+  ul { padding-left: 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 1rem 0; }
+  th, td { text-align: left; padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+
+  .sev { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid currentColor; white-space: nowrap; }
+  .sev.high { color: var(--high); }
+  .sev.med  { color: var(--warn); }
+  .sev.low  { color: var(--neon-blue); }
+  .sev.ok   { color: var(--ok); }
+
+  section.finding { margin: 1.5rem 0; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  section.finding > h3 { margin-top: 0; }
+  section.finding .meta { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); margin-bottom: 0.6rem; }
+
+  footer.foot { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>GitHub Actions — workflow security review</h1>
+    <p>Scope: <code>.github/workflows/ci.yml</code>, <code>release.yml</code>, <code>deploy.yml</code>, <code>pages.yml</code> on <code>main</code> @ <code>5682a88</code> (2026-06-09). Repository is <strong>public</strong>.</p>
+    <span class="scope">internal · senior developers only</span>
+  </header>
+
+  <h2>Verdict</h2>
+  <p>The permissions model is fundamentally sound: default <code>contents: read</code> everywhere, write scopes elevated only on the single job that needs them, no <code>pull_request_target</code>, no untrusted event data (PR titles, issue bodies, branch names) interpolated into shell. The findings below are about the <strong>operating environment</strong> the workflows run in, not the workflow logic itself — the worst one comes from combining a public repository with a self-hosted homelab runner.</p>
+
+  <table>
+    <thead><tr><th>ID</th><th>Severity</th><th>File</th><th>Title</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>F1</td><td><span class="sev high">High</span></td><td><code>deploy.yml</code></td><td>Self-hosted runner reachable from fork PRs on a public repo</td><td><span class="sev med">manual</span></td></tr>
+      <tr><td>F2</td><td><span class="sev med">Medium</span></td><td><code>release.yml</code></td><td>npm lifecycle scripts run with a persisted <code>contents: write</code> token</td><td><span class="sev ok">fixed</span></td></tr>
+      <tr><td>F3</td><td><span class="sev med">Medium</span></td><td><code>deploy.yml</code></td><td>Production container logs dumped into publicly readable Actions logs</td><td><span class="sev ok">fixed</span></td></tr>
+      <tr><td>F4</td><td><span class="sev low">Low</span></td><td>all</td><td>Third-party actions pinned to mutable tags, not commit SHAs</td><td><span class="sev ok">fixed</span></td></tr>
+      <tr><td>F5</td><td><span class="sev low">Low</span></td><td><code>release.yml</code></td><td><code>${{ }}</code> job outputs interpolated into <code>run:</code> scripts</td><td><span class="sev ok">fixed</span></td></tr>
+    </tbody>
+  </table>
+  <p>F2–F5 were remediated in the same PR that adds this report: SHA-pinned actions everywhere + Dependabot <code>github-actions</code> updates, <code>persist-credentials: false</code> on all checkouts with explicit token auth on the release push step, <code>npm ci --ignore-scripts</code> in <code>publish</code>, failure log dumps kept on the runner host, all workflow-expression values passed to bash through <code>env:</code>, and a strict semver guard on the version read from <code>package.json</code>. F1 needs two things no workflow file can do: the repo setting below (1 minute) and an infra change on the homelab runner.</p>
+
+  <section class="finding">
+    <h3>F1 · Self-hosted runner on a public repository <span class="sev high">High</span></h3>
+    <p class="meta">deploy.yml:25 — <code>runs-on: [self-hosted]</code></p>
+    <p><code>deploy.yml</code> itself is triggered safely (<code>workflow_run</code> gated on Release success on <code>main</code>, plus manual dispatch). The problem is the runner, not this workflow: on a <strong>public</strong> repo, a fork PR ships its own modified workflow files, and any workflow with an unrestricted <code>pull_request</code> trigger (like <code>ci.yml</code>) can be edited in the fork to declare <code>runs-on: [self-hosted]</code>. If that run is allowed to start, arbitrary attacker code executes on the homelab box — which has the Docker socket (root-equivalent), the production compose stack in <code>/opt/docker/the-box</code> with its <code>.env</code> secrets, and LAN access. GitHub's own docs recommend never attaching self-hosted runners to public repositories.</p>
+    <p>The default protection ("require approval for first-time contributors") is weak here: any account with one previously merged PR — even a typo fix — runs workflows without approval forever after.</p>
+    <ul>
+      <li><strong>Minimum, do now:</strong> Settings → Actions → General → Fork pull request workflows → <em>"Require approval for all outside collaborators"</em>.</li>
+      <li><strong>Better:</strong> make the runner ephemeral (registered with <code>--ephemeral</code>, re-provisioned per job, e.g. via a container or VM snapshot) so a compromise doesn't persist, and drop its Docker-socket access in favor of a constrained deploy user.</li>
+      <li><strong>Structural alternative:</strong> invert the flow — keep deploys pull-based on the homelab (systemd timer or webhook listener that verifies a signature) so no GitHub-controlled execution ever lands on the box. This restores the Watchtower trust model while keeping the observable log.</li>
+    </ul>
+  </section>
+
+  <section class="finding">
+    <h3>F2 · <code>npm ci</code> with a persisted write token in <code>publish</code> <span class="sev med">Medium</span></h3>
+    <p class="meta">release.yml:240–258 — checkout persists <code>GITHUB_TOKEN</code> (<code>contents: write</code>), then <code>npm ci</code></p>
+    <p><code>actions/checkout</code> stores the job's <code>GITHUB_TOKEN</code> in <code>.git/config</code> by default. In the <code>publish</code> job that token has <code>contents: write</code> (it later pushes the version bump and tag to <code>main</code>). <code>npm ci</code> then executes every dependency's lifecycle scripts — a compromised transitive dependency (the npm-supply-chain scenario) can read that token and push to <code>main</code>, tag releases, or tamper with the repo. The <code>checks</code> and <code>decide</code> jobs only hold read tokens, so the blast radius is specific to <code>publish</code>.</p>
+    <ul>
+      <li>Run <code>npm ci --ignore-scripts</code> in <code>publish</code> — the version bump (<code>npm run version:*</code> → <code>npm version</code> in workspaces) doesn't need dependency lifecycle scripts.</li>
+      <li>Add <code>persist-credentials: false</code> to the checkout and authenticate explicitly only for the push step (e.g. <code>git push https://x-access-token:${GITHUB_TOKEN}@github.com/…</code> with the token passed as <code>env</code> to that single step).</li>
+    </ul>
+  </section>
+
+  <section class="finding">
+    <h3>F3 · Production logs in public Actions logs <span class="sev med">Medium</span></h3>
+    <p class="meta">deploy.yml:60–68 — <code>docker logs --tail=200 the-box</code> on failure</p>
+    <p>Actions run logs on a public repository are readable by <strong>anyone</strong>. On a failed health gate, the workflow dumps the last 200 lines of the production app's logs. Pino request logs and boot errors can carry emails, session identifiers, internal URLs, or connection strings from stack traces — straight onto a public page. The same applies, more mildly, to <code>docker compose ps</code> output (internal port topology).</p>
+    <ul>
+      <li>Write the log dump to a workflow <em>artifact</em> (artifacts inherit repo-collaborator access semantics less cleanly — on public repos they're downloadable by anyone too, so prefer the next option), or</li>
+      <li>keep logs on the box: <code>docker logs … &gt; /var/log/the-box-deploy-fail.log</code> and print only a pointer + exit code in the public log, or</li>
+      <li>grep-filter to safe lines (migration/boot markers) before echoing.</li>
+    </ul>
+  </section>
+
+  <section class="finding">
+    <h3>F4 · Actions pinned to mutable tags <span class="sev low">Low</span></h3>
+    <p class="meta">all workflows — <code>@v3</code>/<code>@v4</code>/<code>@v6</code> tags</p>
+    <p>Every action is referenced by major tag. Tags are mutable: a compromised action repo can repoint <code>v2</code> at malicious code. Highest-value targets here: <code>softprops/action-gh-release@v2</code> (third-party, runs in the job holding <code>contents: write</code>) and <code>docker/login-action@v3</code> / <code>docker/build-push-action@v6</code> (see the <code>DOCKERHUB_TOKEN</code> secret — a hijack could push poisoned images under <code>wifsimster/the-box:latest</code>, which the homelab then auto-deploys). Pin all actions to full commit SHAs with the version as a trailing comment, and add Dependabot's <code>github-actions</code> ecosystem to keep them current.</p>
+  </section>
+
+  <section class="finding">
+    <h3>F5 · Job outputs interpolated into shell <span class="sev low">Low</span></h3>
+    <p class="meta">release.yml — <code>${{ needs.decide.outputs.new_version }}</code> etc. inside <code>run:</code></p>
+    <p><code>new_version</code> derives from <code>package.json</code>'s version string; on a <em>patch</em> bump, MAJOR/MINOR pass through verbatim. A crafted version like <code>1; curl …/.2.3</code> survives the split-and-increment and is then template-substituted into several <code>run:</code> scripts before bash parses them — textbook expression injection. Exploiting it requires write access to <code>main</code> (who could edit workflows anyway), hence Low — but it's free to fix and removes a class of surprise: pass outputs through <code>env:</code> blocks and reference them as <code>"$NEW_VERSION"</code> so bash sees them as data, never code. (<code>inputs.version_type</code> is a <code>choice</code> enum, so its inline use is safe.)</p>
+  </section>
+
+  <h2>What's already good</h2>
+  <ul>
+    <li><span class="sev ok">ok</span> Top-level <code>permissions: contents: read</code> in every workflow; only <code>release.yml/publish</code> elevates, and only to what it uses.</li>
+    <li><span class="sev ok">ok</span> No <code>pull_request_target</code>, no checkout of PR head refs with secrets in scope.</li>
+    <li><span class="sev ok">ok</span> No attacker-controlled event data (PR titles, branch names, issue bodies) in any <code>${{ }}</code> shell interpolation; commit subjects in the changelog go to a file, never through <code>eval</code>-able shell.</li>
+    <li><span class="sev ok">ok</span> <code>deploy.yml</code> correctly gates <code>workflow_run</code> on <code>branches: [main]</code> + <code>conclusion == 'success'</code>.</li>
+    <li><span class="sev ok">ok</span> <code>pages.yml</code> HTML-escapes summaries and filenames before injecting into the index; Pages serves from a separate origin per the repo security policy.</li>
+    <li><span class="sev ok">ok</span> Release concurrency serialized (<code>cancel-in-progress: false</code>), push failures fail loudly; buildx GHA cache scopes can't be poisoned from PR branches (cache isolation + ci.yml doesn't share scopes).</li>
+    <li><span class="sev ok">ok</span> Bot-loop guard on <code>decide</code> is belt-and-suspenders on top of GITHUB_TOKEN's no-retrigger behavior.</li>
+  </ul>
+
+  <h2>Remaining actions (F1)</h2>
+  <ul>
+    <li><strong>Now (repo admin, 1 minute):</strong> Settings → Actions → General → Fork pull request workflows → <em>"Require approval for all outside collaborators"</em>. Closes the worst path today.</li>
+    <li><strong>Scheduled task (infra):</strong> make the homelab runner ephemeral (re-provisioned per job) and drop its Docker-socket access, or invert to a pull-based deploy on the box so no GitHub-controlled execution lands there at all.</li>
+  </ul>
+  <p>Everything else (F2–F5) is done — see the status column above and the PR diff.</p>
+
+  <footer class="foot">
+    Reviewed 2026-06-09 against <code>main @ 5682a88</code>. Note: this file is published to GitHub Pages by <code>pages.yml</code> on merge — acceptable since the workflows themselves are already public, and no secrets or non-public infrastructure details beyond <code>deploy.yml</code>'s own contents appear above.
+  </footer>
+</div>
+</body>
+</html>

@@ -97,7 +97,8 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
 function calculateGuessScore(
     isCorrect: boolean,
     timeTakenMs: number,
-    powerUpUsed: string | null
+    powerUpUsed: string | null,
+    hintFromInventory: boolean
 ): number {
     if (!isCorrect) {
         return 0
@@ -108,8 +109,17 @@ function calculateGuessScore(
     // Cap max score per screenshot at 200 points
     scoreEarned = Math.min(scoreEarned, 200)
 
-    // Calculate hint penalty as 20% of earned score (after speed multiplier)
-    if (powerUpUsed === 'hint_year' || powerUpUsed === 'hint_publisher') {
+    // LEGACY — historical rows only, do not remove. The four metadata
+    // hints were retired 2026-06 (new guesses persist power_up_used =
+    // null), but recalculation must keep reproducing the 20% penalty on
+    // historical rows; hints paid from inventory (or free premium
+    // catch-up hints) carried none.
+    const isHint =
+        powerUpUsed === 'hint_year' ||
+        powerUpUsed === 'hint_publisher' ||
+        powerUpUsed === 'hint_developer' ||
+        powerUpUsed === 'hint_genre'
+    if (isHint && !hintFromInventory) {
         const hintPenalty = Math.round(scoreEarned * HINT_PENALTY_MULTIPLIER)
         scoreEarned -= hintPenalty
     }
@@ -146,6 +156,7 @@ async function recalculateSessionScore(
             'guesses.is_correct',
             'guesses.time_taken_ms',
             'guesses.power_up_used',
+            'guesses.hint_from_inventory',
             'guesses.score_earned as old_guess_score'
         )
         .orderBy('guesses.created_at', 'asc')
@@ -159,7 +170,8 @@ async function recalculateSessionScore(
         const guessScore = calculateGuessScore(
             guess.is_correct,
             guess.time_taken_ms || 0,
-            guess.power_up_used
+            guess.power_up_used,
+            !!guess.hint_from_inventory
         )
         newScore += guessScore
 

@@ -86,7 +86,7 @@ export async function seed(knex: Knex): Promise<void> {
         daily_challenge_id: challenge.id,
         tier_number: 1,
         name: 'Daily Challenge',
-        time_limit_seconds: 30,
+        time_limit_seconds: 45,
       })
       .returning<Array<{ id: number }>>('id')
     console.log(`Created tier ID: ${tier.id}`)

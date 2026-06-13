@@ -29,7 +29,7 @@ import { emitGeoRewarded } from '../../infrastructure/socket/socket.js'
 // without dwarfing the consensus-based grants that follow.
 const FIRST_PIN_REWARD = {
   itemType: 'powerup' as const,
-  itemKey: 'hint_year' as const,
+  itemKey: 'hint_letter' as const,
   quantity: 1,
 }
 

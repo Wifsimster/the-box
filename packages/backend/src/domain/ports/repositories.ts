@@ -9,6 +9,8 @@
  */
 import type {
   DailyReward,
+  PublicEventType,
+  SubscriptionStatus,
   Game,
   GameSearchResult,
   ImportState,
@@ -188,6 +190,7 @@ export interface GuessWithGameRecord {
   sessionElapsedMs: number
   scoreEarned: number
   powerUpUsed: string | null
+  hintFromInventory: boolean
   correctGameId: number
   correctGameName: string
   correctGameSlug: string
@@ -243,9 +246,15 @@ export interface SessionRepository {
     isCorrect: boolean
     sessionElapsedMs: number
     scoreEarned: number
+    powerUpUsed: string | null
+    hintFromInventory: boolean
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
   hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
+  // Letter-reveal gate: the first paid reveal requires at least one honest
+  // (wrong) attempt on the position — same spirit as the metadata hints'
+  // "first wrong guess" unlock, enforced server-side.
+  hasWrongGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
   countGuessesBySession(gameSessionId: string): Promise<number>
   getCorrectPositions(gameSessionId: string): Promise<number[]>
   deleteGameSession(userId: string, challengeId: number): Promise<boolean>
@@ -376,6 +385,14 @@ export interface AchievementRepository {
   countWrongGuesses(userId: string): Promise<number>
   countSpeedCorrectGuesses(userId: string, maxTimeMs: number): Promise<number>
   countHintFreeCompletedGames(userId: string): Promise<number>
+  /**
+   * Total letters revealed (position_letter_reveals) across all tier
+   * sessions of one game session. The "hint-free game" achievement
+   * requires this to be zero in addition to power_up_used being null on
+   * every guess — without it, the 2026-06 metadata-hint retirement would
+   * make the achievement trivially earnable.
+   */
+  countSessionLetterReveals(gameSessionId: string): Promise<number>
   countGenreCorrectGuesses(userId: string, genre: string): Promise<number>
   /**
    * Counts the number of completed game sessions where the user achieved
@@ -484,6 +501,8 @@ export interface DailyLoginRepository {
 export interface LeaderboardRepository {
   findByChallenge(challengeId: number, limit?: number): Promise<LeaderboardEntry[]>
   getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse>
+  /** Total ranked players (completed, non-catch-up, non-anonymous) for a challenge. */
+  countPlayersByChallenge(challengeId: number): Promise<number>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>
 }
 
@@ -567,6 +586,44 @@ export interface PositionSecondChanceRepository {
    * `submitGuess` after the floor is applied and the guess is saved.
    */
   markApplied(activationId: number, guessId: number | null): Promise<void>
+}
+
+// ---------- Position letter reveal (masked-title hint state) ----------
+
+export interface PositionLetterRevealRow {
+  id: number
+  tier_session_id: string
+  position: number
+  letters_revealed: number
+  /** Cumulative score penalty percent locked in at reveal time. */
+  penalty_pct: number
+  last_revealed_at: Date
+  applied_to_guess_id: number | null
+}
+
+export interface PositionLetterRevealRepository {
+  /** Current reveal state for the slot, applied or not. */
+  find(tierSessionId: string, position: number): Promise<PositionLetterRevealRow | null>
+  /**
+   * Record one more revealed letter for the slot (upsert), adding
+   * `addPenaltyPct` to the cumulative penalty. Callers run under the
+   * tier-session advisory lock, so the read-compute-write of the penalty
+   * step is already serialised; the upsert keeps the row unique per
+   * (tier_session_id, position).
+   */
+  recordReveal(input: {
+    tierSessionId: string
+    position: number
+    addPenaltyPct: number
+  }): Promise<PositionLetterRevealRow>
+  /**
+   * Reveal state whose penalty has not yet been applied to a correct
+   * guess (`applied_to_guess_id IS NULL`). `submitGuess` reads this on
+   * every correct guess to deduct the accrued letter penalty exactly once.
+   */
+  findPending(tierSessionId: string, position: number): Promise<PositionLetterRevealRow | null>
+  /** Flag the reveal row as applied so a later guess can't re-deduct. */
+  markApplied(revealId: number, guessId: number | null): Promise<void>
 }
 
 // ---------- Inventory ----------
@@ -724,6 +781,7 @@ export type FunnelEventName =
   | 'guess_submitted'
   | 'session_completed'
   | 'session_abandoned'
+  | 'letter_revealed'
 
 export interface FunnelEventInput {
   eventName: FunnelEventName
@@ -873,4 +931,62 @@ export interface GeoContributorRepository {
   setTier(userId: string, tier: GeoContributorTier): Promise<void>
   setShadowBanned(userId: string, shadowBanned: boolean): Promise<void>
   listThresholds(): Promise<GeoContributorTierThreshold[]>
+}
+
+// ---------- Webhook (public-API outbound delivery) ----------
+
+// Domain-facing webhook records. The dispatch service only needs the row
+// id off each — the concrete infra rows (WebhookRow / WebhookDeliveryRow)
+// carry more columns and are structurally assignable to these.
+export interface WebhookSubscriptionRecord {
+  id: number
+}
+
+export interface WebhookDeliveryRecord {
+  id: number
+}
+
+export interface WebhookRepository {
+  findActiveByUserAndEvent(
+    userId: string,
+    event: PublicEventType,
+  ): Promise<WebhookSubscriptionRecord[]>
+}
+
+export interface WebhookDeliveryRepository {
+  /**
+   * Idempotent enqueue keyed on (webhookId, eventId). Returns the new row,
+   * or null when the tuple already exists (duplicate — skip silently).
+   */
+  enqueue(params: {
+    webhookId: number
+    eventId: string
+    eventType: PublicEventType
+    payload: Record<string, unknown>
+  }): Promise<WebhookDeliveryRecord | null>
+}
+
+// ---------- Billing ----------
+
+// The billing-specific slice of the user table the billing service reads.
+// Kept separate from UserRepository so the entitlement service doesn't pull
+// in the full gameplay user surface.
+export interface BillingUserRepository {
+  getSupporterLifetimeAt(userId: string): Promise<Date | null>
+  getStripeCustomerId(userId: string): Promise<string | null>
+  setStripeCustomerId(userId: string, customerId: string): Promise<void>
+  findByStripeCustomerId(customerId: string): Promise<{ id: string; email: string } | null>
+}
+
+// Domain-facing view of an active subscription row. The concrete
+// SubscriptionRow carries more columns and is structurally assignable.
+export interface BillingSubscriptionRecord {
+  stripe_price_id: string
+  status: SubscriptionStatus
+  current_period_end: Date | null
+  cancel_at_period_end: boolean
+}
+
+export interface BillingSubscriptionRepository {
+  findActiveByUserId(userId: string): Promise<BillingSubscriptionRecord | null>
 }

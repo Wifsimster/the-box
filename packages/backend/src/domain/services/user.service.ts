@@ -94,11 +94,18 @@ export function createUserService(deps: UserServiceDeps): UserService {
         }))
 
         if (correctGuess) {
-          // Calculate hint penalty (20% of score if hint was used)
+          // LEGACY — historical rows only, do not remove. The metadata
+          // hints were retired 2026-06 and new guesses always persist
+          // power_up_used = null, but old sessions still display their
+          // 20% hint penalty here. Only hints NOT paid from inventory
+          // (inventory/premium hints were free) carried the penalty.
           let hintPenalty: number | undefined
           if (
-            correctGuess.powerUpUsed === 'hint_year' ||
-            correctGuess.powerUpUsed === 'hint_publisher'
+            !correctGuess.hintFromInventory &&
+            (correctGuess.powerUpUsed === 'hint_year' ||
+              correctGuess.powerUpUsed === 'hint_publisher' ||
+              correctGuess.powerUpUsed === 'hint_developer' ||
+              correctGuess.powerUpUsed === 'hint_genre')
           ) {
             // The score_earned already has hint penalty deducted, so we need to calculate original
             // Original score = scoreEarned / 0.8, hint penalty = original * 0.2

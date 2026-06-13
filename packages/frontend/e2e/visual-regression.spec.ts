@@ -18,6 +18,22 @@
 import { test as authTest } from './fixtures/auth.fixture'
 import { test as base, expect } from '@playwright/test'
 
+// These baselines are captured at a fixed 1280×720 desktop viewport and stored
+// per-platform as *-chromium-linux.png. They are meaningless under the Mobile
+// Chrome project (which would demand its own baselines), so skip them there.
+base.beforeEach((_args, testInfo) => {
+  base.skip(
+    testInfo.project.name !== 'chromium',
+    'Visual baselines are desktop chromium @1280×720 only.',
+  )
+})
+authTest.beforeEach((_args, testInfo) => {
+  authTest.skip(
+    testInfo.project.name !== 'chromium',
+    'Visual baselines are desktop chromium @1280×720 only.',
+  )
+})
+
 const VIEWPORT = { width: 1280, height: 720 }
 const SNAPSHOT_OPTIONS = {
   maxDiffPixelRatio: 0.01,
@@ -34,11 +50,32 @@ async function prepare(page: import('@playwright/test').Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' })
 }
 
+// Web fonts load asynchronously; screenshotting before they swap in renders
+// text in the fallback face and produces large pixel diffs that flake the
+// baseline. Wait for the font set to settle before every capture.
+async function settle(page: import('@playwright/test').Page) {
+  await page.waitForLoadState('networkidle')
+  // Wait for the web fonts to load AND for the resulting reflow to paint —
+  // fonts.ready can resolve a frame before the layout settles, which shifted
+  // the (vertically-centered) login card ~16px between runs and flaked the
+  // diff. The double rAF guarantees a painted frame after the font swap.
+  await page.evaluate(
+    () =>
+      document.fonts.ready.then(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      ),
+  )
+  await page.waitForTimeout(250)
+}
+
 base.describe('visual regression — public surfaces', () => {
   base('Home @ 1280×720', async ({ page }) => {
     await prepare(page)
     await page.goto('/en')
-    await page.waitForLoadState('networkidle')
+    await settle(page)
     await expect(page).toHaveScreenshot('home.png', SNAPSHOT_OPTIONS)
   })
 
@@ -46,13 +83,14 @@ base.describe('visual regression — public surfaces', () => {
     await prepare(page)
     await page.goto('/en/login')
     await page.waitForSelector('form')
+    await settle(page)
     await expect(page).toHaveScreenshot('login.png', SNAPSHOT_OPTIONS)
   })
 
   base('Leaderboard @ 1280×720', async ({ page }) => {
     await prepare(page)
     await page.goto('/en/leaderboard')
-    await page.waitForLoadState('networkidle')
+    await settle(page)
     await expect(page).toHaveScreenshot('leaderboard.png', SNAPSHOT_OPTIONS)
   })
 })
@@ -62,7 +100,7 @@ authTest.describe('visual regression — authenticated surfaces', () => {
     await authenticatedPage.setViewportSize(VIEWPORT)
     await authenticatedPage.emulateMedia({ reducedMotion: 'reduce' })
     await authenticatedPage.goto('/en/profile')
-    await authenticatedPage.waitForLoadState('networkidle')
+    await settle(authenticatedPage)
     await expect(authenticatedPage).toHaveScreenshot('profile.png', SNAPSHOT_OPTIONS)
   })
 
@@ -74,7 +112,7 @@ authTest.describe('visual regression — authenticated surfaces', () => {
     await authenticatedPage.setViewportSize(VIEWPORT)
     await authenticatedPage.emulateMedia({ reducedMotion: 'reduce' })
     await authenticatedPage.goto('/en/play')
-    await authenticatedPage.waitForLoadState('networkidle')
+    await settle(authenticatedPage)
     await expect(authenticatedPage).toHaveScreenshot('game-intro.png', SNAPSHOT_OPTIONS)
   })
 })

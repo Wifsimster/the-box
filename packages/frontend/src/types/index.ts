@@ -33,6 +33,8 @@ export type {
   ScreenshotResponse,
   GuessRequest,
   GuessResponse,
+  LetterRevealState,
+  RevealLetterResponse,
   EndGameResponse,
   GameSearchResult,
   LeaderboardResponse,

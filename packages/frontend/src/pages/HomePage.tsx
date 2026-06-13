@@ -13,6 +13,7 @@ import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { HomeDailyCta } from '@/components/home/HomeDailyCta'
 import { HomePremiumTeaser } from '@/components/home/HomePremiumTeaser'
+import { HomeSocialProof } from '@/components/home/HomeSocialProof'
 import { useBillingStore } from '@/stores/billingStore'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
@@ -251,13 +252,22 @@ export default function HomePage() {
             className="size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
           />
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 gradient-gaming-title">
+          {/* Brand wordmark stays small — the logo already carries it — so
+              the value headline is the loudest thing in the hero (principle:
+              sell from the hero, lead with value not the brand name). */}
+          <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-neon-purple/80 mb-2">
             {t('home.title')}
+          </p>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 gradient-gaming-title">
+            {t('home.headline')}
           </h1>
 
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto px-2 sm:px-4">
             {t('home.subtitle')}
           </p>
+
+          <HomeSocialProof />
         </m.div>
 
         {/* CTA Button */}

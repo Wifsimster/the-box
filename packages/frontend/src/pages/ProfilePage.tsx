@@ -105,6 +105,10 @@ export default function ProfilePage() {
     setAvatarOverride(newAvatarUrl)
   }, [])
 
+  const handleProfileUpdated = useCallback((updated: UserType) => {
+    dispatchProfileData({ type: 'fetchSuccess', userProfile: updated })
+  }, [])
+
   useEffect(() => {
     if (!isPending && !session) {
       navigate(localizedPath('/login'))
@@ -204,6 +208,7 @@ export default function ProfilePage() {
             selectedTheme={selectedTheme}
             onThemeChange={setThemeOverride}
             language={i18n.language}
+            onProfileUpdated={handleProfileUpdated}
           />
         </div>
       </div>

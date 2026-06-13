@@ -15,7 +15,6 @@ export interface GuessSubmissionRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
 }
 
 /**
@@ -23,23 +22,17 @@ export interface GuessSubmissionRequest {
  */
 export interface GuessSubmissionResult {
   isCorrect: boolean
-  correctGame: Game
+  /** Present only on a correct guess or session completion — wrong guesses don't reveal the answer. */
+  correctGame?: Game
   scoreEarned: number
   totalScore: number
   screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
-  hintPenalty?: number
-  hintFromInventory?: boolean
+  letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
-  availableHints?: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    genre: string | null
-  }
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 

@@ -10,6 +10,7 @@ import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
 import { sendStreakRiskEmails } from './streak-risk-email-logic.js'
+import { sendEveningNudges } from './evening-nudge-logic.js'
 import { sendRelanceEmails } from './relance-email-logic.js'
 import { sendInactiveUserReminderEmails } from './inactive-user-reminder-logic.js'
 import { sendReferralAnnouncementEmails } from './referral-announcement-email-logic.js'
@@ -18,6 +19,8 @@ import { scanReactivationCandidates } from './reactivation-scan-logic.js'
 import { evaluateAccountAgeMilestones } from './milestone-account-age-logic.js'
 import { grantMonthlyLeaderboardPayout } from './leaderboard-payout-logic.js'
 import { prunePushSubscriptions } from './prune-push-subscriptions-logic.js'
+import { runDataRetention } from './data-retention-logic.js'
+import { db } from '../../database/connection.js'
 
 const log = queueLogger
 
@@ -321,6 +324,20 @@ export const importWorker = new Worker<JobData, JobResult>(
         return jobResult
       }
 
+      if (name === 'evening-nudge') {
+        const result = await sendEveningNudges((current, total) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0
+          job.updateProgress(progress)
+        })
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result }, 'evening-nudge job completed')
+        return jobResult
+      }
+
       if (name === 'relance-email') {
         const result = await sendRelanceEmails((current, total) => {
           const progress = total > 0 ? Math.round((current / total) * 100) : 0
@@ -413,6 +430,17 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, deleted: result.deleted }, 'prune-push-subscriptions job completed')
+        return jobResult
+      }
+
+      if (name === 'data-retention') {
+        const result = await runDataRetention({ db, logger: log })
+
+        const jobResult: JobResult = {
+          message: result.message,
+        }
+
+        log.info({ jobId: id, result }, 'data-retention job completed')
         return jobResult
       }
 

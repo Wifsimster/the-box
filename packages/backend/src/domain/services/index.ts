@@ -64,6 +64,31 @@ export {
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
 export {
+  createBillingService,
+  toSubscriptionStatus,
+  type BillingService,
+  type BillingServiceDeps,
+  type BillingStripeGateway,
+  type BillingCatalogResolver,
+} from './billing.service.js'
+// Pre-wired billing singleton. Constructed in a queue-free composition module
+// (see billing.composition.ts) so the unit-tested webhook route can import it
+// without pulling the Redis-backed queues this barrel constructs.
+export { billingService } from './billing.composition.js'
+export {
+  createPushService,
+  type PushService,
+  type PushServiceDeps,
+  type SendToUserResult,
+  type PushPayload,
+} from './push.service.js'
+export {
+  createWebhookDispatchService,
+  type WebhookDispatchService,
+  type WebhookDispatchDeps,
+  hashPayload,
+} from './webhook-dispatch.service.js'
+export {
   wikiSubdomainCandidates,
   scoreMapTitle,
   parseSteamAppIdFromUrl,
@@ -95,8 +120,11 @@ import { createGeoConsensusService } from './geo-consensus.service.js'
 import { createGeoRewardService } from './geo-reward.service.js'
 import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
+import { createWebhookDispatchService } from './webhook-dispatch.service.js'
+import { createPushService } from './push.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
-import { importQueue, geoQueue } from '../../infrastructure/queue/queues.js'
+import { importQueue, geoQueue, webhookQueue, pushQueue } from '../../infrastructure/queue/queues.js'
+import { isPushConfigured } from '../../infrastructure/push/push-sender.js'
 import { emitRewardGranted } from '../../infrastructure/socket/socket.js'
 import {
   achievementRepository,
@@ -107,6 +135,7 @@ import {
   inventoryRepository,
   leaderboardRepository,
   positionSecondChanceRepository,
+  positionLetterRevealRepository,
   rewardRepository,
   screenshotRepository,
   sessionRepository,
@@ -115,7 +144,39 @@ import {
   geoMapRepository,
   geoPinRepository,
   geoScreenshotRepository,
+  webhookRepository,
+  webhookDeliveryRepository,
 } from '../../infrastructure/repositories/index.js'
+
+// Public-API outbound webhook dispatch. Wired here (composition root) from the
+// concrete repositories + BullMQ webhook queue so the service file stays
+// infrastructure-free. The game-service completion hooks below dispatch
+// through this singleton.
+export const webhookDispatch = createWebhookDispatchService({
+  logger: serviceLogger,
+  webhookRepository,
+  webhookDeliveryRepository,
+  enqueueDelivery: async (deliveryId) => {
+    await webhookQueue.add('deliver', { kind: 'deliver', deliveryId })
+  },
+})
+
+// Web Push fan-out. The factory stays pure; the BullMQ push queue + the
+// VAPID-configured check are bound here. The per-device fan-out (timeout,
+// allSettled, retry, 410-deactivation) runs in push.worker.ts — sendToUser
+// only enqueues, so the request thread never blocks on FCM round-trips.
+export const pushService = createPushService({
+  isConfigured: isPushConfigured,
+  enqueueSendToUser: async (userId, payload) => {
+    const job = await pushQueue.add('send-to-user', {
+      kind: 'send-to-user',
+      userId,
+      payload,
+    })
+    return { id: job.id }
+  },
+  log: serviceLogger.child({ service: 'push' }),
+})
 
 export const fuzzyMatchService = createFuzzyMatchService({ logger: serviceLogger })
 
@@ -208,42 +269,24 @@ async function onAfterSessionCompleted(params: {
   reason: 'all_found' | 'forfeit'
   isCatchUp: boolean
 }): Promise<void> {
-  // Resolve slug + public flag in one cheap query. If the user hasn't
-  // opted in, there's nothing to dispatch — bail before fetching subs.
-  const { db } = await import('../../infrastructure/database/connection.js')
-  const userRow = await db('user')
-    .where('id', params.userId)
-    .select<{ public_slug: string | null; public_profile_enabled: boolean }>(
-      'public_slug',
-      'public_profile_enabled'
-    )
-    .first()
-  if (!userRow?.public_profile_enabled || !userRow.public_slug) return
+  // Resolve slug + public flag. If the user hasn't opted in, there's nothing
+  // to dispatch — bail before fetching subs.
+  const profile = await userRepository.getPublicProfileRef(params.userId)
+  if (!profile?.publicProfileEnabled || !profile.publicSlug) return
 
   const challenge = await challengeRepository.findById(params.challengeId)
   if (!challenge) return
 
-  // Final rank — same pure-DB query the public profile endpoint uses.
+  // Final rank — shared with the public profile endpoint via the repository.
   // Catch-up sessions are explicitly excluded from the leaderboard so
   // `rank` is null in that path.
-  let rank: number | null = null
-  if (!params.isCatchUp) {
-    const higher = await db('game_sessions')
-      .join('user', 'game_sessions.user_id', 'user.id')
-      .where('daily_challenge_id', params.challengeId)
-      .andWhere('is_completed', true)
-      .andWhere('is_catch_up', false)
-      .whereRaw('"user"."isAnonymous" = ?', [false])
-      .andWhere('total_score', '>', params.finalScore)
-      .count<{ count: string }[]>('game_sessions.id as count')
-      .first()
-    rank = Number(higher?.count ?? 0) + 1
-  }
+  const rank: number | null = params.isCatchUp
+    ? null
+    : await leaderboardRepository.rankForScore(params.challengeId, params.finalScore)
 
-  const { webhookDispatch } = await import('./webhook-dispatch.service.js')
   await webhookDispatch.sessionCompleted({
     userId: params.userId,
-    slug: userRow.public_slug,
+    slug: profile.publicSlug,
     sessionId: params.sessionId,
     challengeDate: challenge.challenge_date,
     score: params.finalScore,
@@ -258,7 +301,7 @@ async function onAfterSessionCompleted(params: {
   if (!params.isCatchUp && rank !== null) {
     await webhookDispatch.rankChanged({
       userId: params.userId,
-      slug: userRow.public_slug,
+      slug: profile.publicSlug,
       sessionId: params.sessionId,
       challengeDate: challenge.challenge_date,
       rank,
@@ -278,20 +321,12 @@ async function onAfterSessionStarted(params: {
   challengeDate: string
   isCatchUp: boolean
 }): Promise<void> {
-  const { db } = await import('../../infrastructure/database/connection.js')
-  const userRow = await db('user')
-    .where('id', params.userId)
-    .select<{ public_slug: string | null; public_profile_enabled: boolean }>(
-      'public_slug',
-      'public_profile_enabled'
-    )
-    .first()
-  if (!userRow?.public_profile_enabled || !userRow.public_slug) return
+  const profile = await userRepository.getPublicProfileRef(params.userId)
+  if (!profile?.publicProfileEnabled || !profile.publicSlug) return
 
-  const { webhookDispatch } = await import('./webhook-dispatch.service.js')
   await webhookDispatch.sessionStarted({
     userId: params.userId,
-    slug: userRow.public_slug,
+    slug: profile.publicSlug,
     sessionId: params.sessionId,
     challengeDate: params.challengeDate,
     countsForLeaderboard: !params.isCatchUp,
@@ -310,6 +345,7 @@ export const gameService = createGameService({
   gameRepository,
   funnelEventRepository,
   positionSecondChanceRepository,
+  positionLetterRevealRepository,
   onAfterGuessSubmitted,
   onAfterSessionCompleted,
   onAfterSessionStarted,

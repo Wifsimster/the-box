@@ -53,7 +53,7 @@ async function loginAsE2EAdmin(page: Page): Promise<void> {
   await page.waitForTimeout(100)
 
   // Submit
-  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
   await page.waitForTimeout(300)
   await loginButton.click()

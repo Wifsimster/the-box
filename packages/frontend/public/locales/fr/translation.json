@@ -44,11 +44,14 @@
     "menu": "Menu",
     "toggleMenu": "Ouvrir/fermer le menu",
     "toggleDetails": "Afficher/masquer les détails",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
     "rankBadge": {
       "first": "1re place",
       "second": "2e place",
       "third": "3e place"
-    }
+    },
+    "menuDescription": "Navigation du site et liens du compte"
   },
   "nav": {
     "primary": "Navigation principale",
@@ -302,7 +305,8 @@
         "correct": "trouvée",
         "skipped": "passée",
         "in_progress": "en cours",
-        "not_visited": "non visitée"
+        "not_visited": "non visitée",
+        "timed_out": "temps écoulé"
       },
       "summary": {
         "found_one": "{{count}} trouvée",
@@ -325,7 +329,8 @@
     "zoom": {
       "in": "Zoomer",
       "out": "Dézoomer",
-      "reset": "Réinitialiser le zoom"
+      "reset": "Réinitialiser le zoom",
+      "open": "Zoom"
     },
     "round": "Manche",
     "score": "Score",
@@ -335,9 +340,13 @@
     "correct": "Correct !",
     "incorrect": "Incorrect",
     "timeUp": "Temps écoulé !",
+    "timer": {
+      "label": "Temps restant : {{seconds}} secondes"
+    },
     "totalScore": "Score Total",
     "correctAnswers": "Bonnes Réponses",
     "accuracy": "Précision",
+    "averageTime": "Temps moyen",
     "scoreQuality": {
       "label": "Qualité du score",
       "mastered": "Maîtrisé",
@@ -395,7 +404,7 @@
       "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
       "time": "Plus vous répondez vite, plus vous gagnez de points",
       "speedShort": "Vitesse = points",
-      "hintsShort": "Indices quotidiens",
+      "hintsShort": "Révélation de lettres",
       "quality": "Tous les jeux ont un Metascore d'au moins 85"
     },
     "scoring": {
@@ -403,7 +412,7 @@
       "basePoints": "100 points par bonne réponse",
       "speedMultiplier": "Multiplicateur de vitesse : <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Essais illimités - les mauvaises réponses n'affectent pas le score",
-      "hints": "Indices : Gratuits si disponibles dans l'inventaire (récompenses quotidiennes), sinon -20% du score",
+      "hints": "Révéler des lettres du titre coûte -15 % puis -20 % du score de la manche (bonus Révélation de lettre requis sur le défi du jour)",
       "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
     },
     "navigation": {
@@ -442,29 +451,26 @@
       "totalScore": "Votre Score Total",
       "penaltyApplied": "Pénalité",
       "finalScore": "Score final",
-      "points": "points"
+      "points": "points",
+      "error": "Échec de la fin de partie. Veuillez réessayer."
     },
     "hints": {
-      "yearTooltip": "Afficher l'année de sortie (-20%)",
-      "publisherTooltip": "Afficher l'éditeur (-20%)",
-      "developerTooltip": "Afficher le développeur (-20%)",
-      "genreTooltip": "Afficher le genre (-20%)",
-      "yearTooltipFree": "Afficher l'année de sortie ({{count}} gratuit)",
-      "publisherTooltipFree": "Afficher l'éditeur ({{count}} gratuit)",
-      "developerTooltipFree": "Afficher le développeur ({{count}} gratuit)",
-      "genreTooltipFree": "Afficher le genre ({{count}} gratuit)",
       "lockedTooltip": "Disponible après la première mauvaise réponse",
-      "unavailableYear": "Année de sortie non disponible",
-      "unavailablePublisher": "Éditeur non disponible",
-      "unavailableDeveloper": "Développeur non disponible",
-      "unavailableGenre": "Genre non disponible",
-      "alreadyUsed": "Déjà utilisé",
-      "yearHint": "Année de sortie",
-      "publisherHint": "Éditeur",
-      "developerHint": "Développeur",
-      "genreHint": "Genre",
-      "penalty": "-20%",
-      "penaltyApplied": "Pénalité d'indice : -{{penalty}} points"
+      "penaltyApplied": "Pénalité d'indice : -{{penalty}} points",
+      "percentagePenalty": "pénalité de 20 %",
+      "letterButtonWithPenalty": "Lettre -{{penalty}}%",
+      "letterButtonWithCount": "Lettre ×{{count}}",
+      "letterLockedShort": "Après 1 essai",
+      "letterNoInventoryShort": "0 bonus",
+      "letterTooltip": "Révéler une lettre du titre (-{{penalty}}%)",
+      "letterTooltipItem": "Révéler une lettre : utilise 1 bonus, -{{penalty}}% ({{count}} possédés)",
+      "letterCapReached": "Plus aucune lettre à révéler",
+      "letterNoInventory": "Nécessite un bonus Révélation de lettre (à gagner avec les récompenses quotidiennes)",
+      "maskHiddenPlaceholder": "Titre secret",
+      "letterMaskAria": "Titre masqué, {{revealed}} lettre(s) révélée(s)",
+      "letterRevealAnnounce": "Lettre {{letter}} révélée — {{revealed}}/{{max}}",
+      "letterPenaltyCurrent": "Pénalité de lettres actuelle : -{{penalty}}%",
+      "letterPenaltyApplied": "Pénalité de révélation : -{{penalty}} points"
     },
     "secondChance": {
       "title": "Activer une seconde chance ?",
@@ -488,11 +494,18 @@
       "gamesRemaining_other": "{{count}} jeux restants à deviner",
       "continuePlaying": "Continuer à jouer",
       "seeResults": "Voir les résultats"
-    }
+    },
+    "submit": "Valider la proposition",
+    "guessCorrect": "Bonne réponse !",
+    "guessIncorrect": "Mauvaise réponse. Réessayez.",
+    "wrongGuessPenalty": "Pénalité de mauvaise réponse : -{{penalty}} pts"
   },
   "home": {
     "title": "The Box",
+    "headline": "Devine le jeu à partir d'une seule capture.",
     "subtitle": "Une capture, un jeu à reconnaître. Voyons si ta culture gaming tient encore debout.",
+    "playersToday_one": "{{formatted}} joueur a relevé le défi du jour",
+    "playersToday_other": "{{formatted}} joueurs ont relevé le défi du jour",
     "playToday": "Jouer au Défi du Jour",
     "dailyGuess": "Défi Quotidien",
     "geoCta": "Mode Géo",
@@ -599,7 +612,9 @@
     "skipped": "Passé",
     "errorLoading": "Impossible de charger les réponses",
     "clickToView": "Cliquez pour voir les réponses de ce joueur",
-    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs."
+    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs.",
+    "capturesFound": "Captures découvertes",
+    "avgCaptureTime": "Temps moyen par capture"
   },
   "history": {
     "title": "Historique des Parties",
@@ -763,7 +778,18 @@
         "candidateCount_other": "{{count}} candidates",
         "selected": "Sélectionnée",
         "choose": "Choisir",
-        "refetch": "Re-récupérer"
+        "refetch": "Re-récupérer",
+        "refetchSource": "Re-récupérer ({{source}})"
+      },
+      "startConfirm": {
+        "title": "Lancer la récupération globale ?",
+        "body": "Tous les jeux curés et résolus seront mis en file. Le serveur tronque la file à 1000 jeux maximum.",
+        "confirm": "Lancer"
+      },
+      "cancelConfirm": {
+        "title": "Annuler l'ingestion en cours ?",
+        "body": "Les tâches déjà actives terminent leur exécution. Toutes les tâches en attente (maps:*) seront supprimées de la file.",
+        "confirm": "Tout annuler"
       }
     },
     "emailLog": {
@@ -1448,7 +1474,12 @@
         "streakRiskEmail": "Envoie un email d'alerte aux joueurs dont la série quotidienne est sur le point d'expirer afin de les inciter à revenir jouer.",
         "relanceEmail": "Envoie un email de relance aux utilisateurs inscrits qui n'ont pas encore joué pour les encourager à essayer leur premier défi.",
         "inactiveUserReminder": "Envoie un email de réactivation aux utilisateurs inactifs depuis longtemps pour les inviter à revenir sur la plateforme.",
-        "default": "Tâche planifiée automatique du système."
+        "default": "Tâche planifiée automatique du système.",
+        "createWeeklyTournament": "Crée un nouveau tournoi hebdomadaire pour que les joueurs s'affrontent sur un classement hebdomadaire inédit.",
+        "endWeeklyTournament": "Clôture le tournoi hebdomadaire en cours, finalise les classements et récompense les gagnants.",
+        "createMonthlyTournament": "Crée un nouveau tournoi mensuel pour que les joueurs s'affrontent sur un classement mensuel inédit.",
+        "endMonthlyTournament": "Clôture le tournoi mensuel en cours, finalise les classements et récompense les gagnants.",
+        "sendTournamentReminders": "Envoie des e-mails de rappel aux participants concernant les tournois en cours et les échéances à venir."
       },
       "categories": {
         "Challenge": "Défi",
@@ -1476,6 +1507,16 @@
         "title": "Synchronisation déjà en cours",
         "description": "Une tâche de synchronisation est déjà en cours ou en pause. Voulez-vous l'annuler et en démarrer une nouvelle ?",
         "cancelAndRestart": "Annuler et relancer"
+      },
+      "statusLabel": "Statut",
+      "expand": "Agrandir",
+      "minimize": "Réduire",
+      "remove": "Supprimer",
+      "filter": {
+        "all": "Tous",
+        "active": "Actifs",
+        "completed": "Terminés",
+        "failed": "Échoués"
       }
     },
     "games": {
@@ -1638,15 +1679,19 @@
       "recipientEmailPlaceholder": "Entrez l'adresse email",
       "emailRequired": "Veuillez entrer une adresse email destinataire",
       "invalidEmail": "Veuillez entrer une adresse email valide"
-    }
+    },
+    "cancel": "Annuler"
   },
   "pricing": {
     "title": "The Box Premium",
     "subtitle": "Soutenez le jeu, débloquez l'archive complète et personnalisez votre profil.",
     "billingMonthly": "/mois",
     "billingAnnual": "/an",
+    "billingLifetime": "paiement unique",
     "savingsAnnual": "Soit ~37 % d'économies",
+    "supporterNote": "Payez une fois. Premium pour toujours.",
     "ctaSubscribe": "S'abonner",
+    "ctaSupporter": "Devenir supporter",
     "ctaManage": "Gérer mon abonnement",
     "ctaLogin": "Se connecter pour s'abonner",
     "ctaCurrent": "Plan actuel",
@@ -1675,6 +1720,10 @@
         "name": "Premium Annuel",
         "description": "Le meilleur rapport qualité-prix",
         "highlight": "Le plus populaire"
+      },
+      "supporter_lifetime": {
+        "name": "Supporter à vie",
+        "description": "Soutenez le jeu une fois, gardez Premium à vie"
       }
     },
     "features": {
@@ -1687,7 +1736,7 @@
         "achievements": "Succès et progression",
         "catchUp7d": "Rattrapage des 7 derniers jours",
         "catchUpFull": "Archive complète des défis passés",
-        "hintsBaseline": "Indices de base",
+        "hintsBaseline": "Révélation de lettres",
         "hintsUnlimitedCatchUp": "Indices illimités en rattrapage",
         "advancedStats": "Statistiques avancées du profil",
         "cosmetics": "Badge et cadres animés",
@@ -1736,18 +1785,24 @@
     "privacyLastUpdated": "Dernière mise à jour",
     "privacyIntro": "Votre vie privée est importante pour nous. Cette politique explique comment nous collectons et utilisons vos données.",
     "privacyCollectionTitle": "1. Données collectées",
-    "privacyCollection": "Nous collectons les informations que vous nous fournissez lors de l'inscription (email, nom d'utilisateur) ainsi que vos scores et statistiques de jeu.",
+    "privacyCollection": "Nous collectons les informations que vous fournissez lors de l'inscription (adresse email, nom d'utilisateur, nom affiché) ainsi que les données générées par votre jeu (scores, réponses, statistiques, succès). Nous traitons également des données techniques limitées nécessaires au fonctionnement sécurisé du service : votre adresse IP et l'agent utilisateur de votre navigateur (conservés avec vos sessions de connexion à des fins de sécurité et de prévention de la fraude) et, uniquement si vous les activez, les informations de votre abonnement aux notifications push. Si vous arrivez via un lien de parrainage, nous enregistrons le compte qui vous a parrainé.",
     "privacyUsageTitle": "2. Utilisation des données",
     "privacyUsage": "Vos données sont utilisées pour gérer votre compte, afficher les classements, et améliorer nos services. Nous ne vendons jamais vos données personnelles.",
     "privacyCookiesTitle": "3. Cookies",
-    "privacyCookies": "Nous utilisons des cookies essentiels pour le fonctionnement du site (session, préférences de langue). Aucun cookie publicitaire n'est utilisé.",
+    "privacyCookies": "Nous utilisons uniquement des cookies strictement nécessaires au fonctionnement du site (session d'authentification, préférence de langue). Aucun cookie publicitaire ou de suivi n'est utilisé. Les statistiques respectueuses de la vie privée (sans cookie) et le widget de support optionnel ne sont chargés qu'après votre acceptation dans la bannière de consentement affichée lors de votre première visite.",
     "privacySecurityTitle": "4. Sécurité",
     "privacySecurity": "Nous mettons en œuvre des mesures de sécurité pour protéger vos données, incluant le chiffrement des mots de passe et les connexions sécurisées HTTPS.",
     "privacyPaymentsTitle": "5. Paiements et sous-traitants",
     "privacyPayments": "Les paiements liés aux abonnements Premium sont traités par Stripe Payments Europe Limited, agissant en qualité de sous-traitant au sens du RGPD. Lorsque vous initiez un paiement, Stripe collecte directement les informations nécessaires (numéro de carte, adresse de facturation, pays) ; aucune donnée de carte n'est stockée sur nos serveurs. Stripe est certifié PCI DSS niveau 1 et applique son propre accord de traitement des données (DPA), disponible sur stripe.com/dpa. Pour les utilisateurs de l'UE, Stripe Tax applique automatiquement la TVA en fonction du pays. Nous conservons uniquement un identifiant client opaque (stripe_customer_id) afin de lier votre compte à votre historique de facturation.",
-    "privacyRightsTitle": "6. Vos droits",
-    "privacyRights": "Conformément au RGPD, vous pouvez demander l'accès, la modification ou la suppression de vos données personnelles en nous contactant.",
-    "privacyContactTitle": "7. Contact",
+    "privacySubprocessorsTitle": "6. Autres sous-traitants",
+    "privacySubprocessors": "Outre Stripe, nous faisons appel à un petit nombre de sous-traitants au sens du RGPD pour exploiter le service : Resend (resend.com) envoie les emails transactionnels et, si vous y consentez, occasionnels — il reçoit votre adresse email et le contenu du message ; le service de notifications push de votre navigateur (exploité par Apple, Google ou Mozilla selon votre appareil) délivre les notifications web que vous avez explicitement activées ; et GoatCounter, un outil de statistiques sans cookie et respectueux de la vie privée que nous hébergeons nous-mêmes, qui ne reçoit que des données de pages vues anonymes et jamais votre identité. Nous ne vendons jamais vos données personnelles et n'utilisons aucune publicité ni suivi inter-sites.",
+    "privacyRetentionTitle": "7. Conservation des données",
+    "privacyRetention": "Nous conservons les données de votre compte tant que celui-ci existe. Lorsque vous supprimez votre compte, votre profil et vos données de jeu sont effacés immédiatement. Certaines traces sont conservées pour une durée limitée à des fins de sécurité, de comptabilité et de prévention des abus : les journaux d'envoi d'emails jusqu'à 12 mois, les journaux d'audit administratif jusqu'à 24 mois et les journaux de livraison des webhooks jusqu'à 30 jours. Les abonnements push inactifs sont purgés après 30 jours et les sessions invitées anonymes après 24 heures.",
+    "privacyRightsTitle": "8. Vos droits",
+    "privacyRights": "Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de portabilité et d'effacement de vos données personnelles. Vous pouvez exercer la plupart de ces droits vous-même à tout moment depuis les paramètres de votre profil : modifier votre nom d'utilisateur et votre nom affiché, télécharger une copie complète de vos données au format JSON, et supprimer définitivement votre compte. Pour toute autre demande, contactez-nous et nous répondrons sous 30 jours.",
+    "privacyMinorsTitle": "9. Mineurs",
+    "privacyMinors": "The Box ne s'adresse pas aux enfants. Vous devez avoir au moins 16 ans, ou l'âge minimum du consentement numérique dans votre pays, pour créer un compte. Si vous pensez qu'un mineur nous a communiqué des données personnelles, contactez-nous et nous les supprimerons.",
+    "privacyContactTitle": "10. Contact",
     "privacyContact": "Pour toute question concernant cette politique, contactez-nous via notre page de contact.",
     "contactTitle": "Nous contacter",
     "contactIntro": "Une question, une suggestion ou un problème ? Nous sommes là pour vous aider.",
@@ -1770,7 +1825,9 @@
     "cookiesEssential": "Ces cookies sont nécessaires au fonctionnement du site et ne peuvent pas être désactivés. Ils incluent : les jetons de session pour la connexion, les préférences de langue et le suivi de progression de jeu.",
     "cookiesManageTitle": "4. Gestion des Cookies",
     "cookiesManage": "Vous pouvez gérer les cookies via les paramètres de votre navigateur. Notez que la désactivation des cookies essentiels peut affecter le fonctionnement du site. Nous n'utilisons pas de cookies publicitaires ou de suivi.",
-    "cookiesChangesTitle": "5. Modifications de cette Politique",
+    "cookiesConsentTitle": "5. Consentement",
+    "cookiesConsent": "Comme nous n'utilisons que des cookies strictement nécessaires, aucune bannière de consentement n'est requise pour les cookies eux-mêmes. Nous demandons toutefois votre consentement avant de charger des services optionnels : une bannière lors de votre première visite vous permet d'accepter ou de refuser les statistiques anonymes et le widget de support intégré. Vous pouvez modifier ces choix à tout moment, et les refuser n'affecte jamais le jeu.",
+    "cookiesChangesTitle": "6. Modifications de cette Politique",
     "cookiesChanges": "Nous pouvons mettre à jour cette politique de cookies de temps en temps. Les modifications seront publiées sur cette page avec une date de révision mise à jour.",
     "faqTitle": "Questions Fréquentes",
     "faqIntro": "Trouvez les réponses aux questions courantes sur The Box.",
@@ -1793,15 +1850,15 @@
     "rulesChallengeTitle": "2. Défi quotidien",
     "rulesChallenge": "Chaque jour à minuit UTC, un nouveau défi se débloque avec une série de captures de jeux différents. La difficulté augmente d'une capture à l'autre. Tout le monde joue le même défi, ce qui rend le classement comparable.",
     "rulesCatchupTitle": "Mode rattrapage",
-    "rulesCatchup": "Vous avez manqué une journée ? Vous pouvez rejouer les défis des 7 derniers jours. Les parties de rattrapage ne comptent pas pour le classement quotidien ou mensuel, mais elles débloquent toujours des succès.",
+    "rulesCatchup": "Vous avez manqué une journée ? Avec le plan gratuit, seul le défi du jour est jouable. Premium débloque toute l'archive — rejouez n'importe lequel des 365 derniers jours. Les parties de rattrapage ne comptent jamais pour le classement quotidien ou mensuel, mais elles débloquent toujours des succès, et les joueurs Premium ne subissent aucune pénalité d'indice en rattrapage.",
     "rulesScoringTitle": "3. Score",
     "rulesScoringBase": "Chaque bonne réponse vaut 100 points de base.",
     "rulesScoringSpeed": "Multiplicateur de vitesse : moins de 3s → 2,0× (200 pts), 3–5s → 1,75× (175 pts), 5–10s → 1,5× (150 pts), 10–20s → 1,25× (125 pts), plus de 20s → 1,0× (100 pts).",
     "rulesScoringTries": "Essais illimités par capture. Les mauvaises réponses ne réduisent pas directement le score, mais le multiplicateur de vitesse baisse pendant que le chrono tourne.",
-    "rulesScoringHints": "Les indices coûtent 20 % du score de la manche, sauf si vous possédez un power-up d'indice dans votre inventaire (gagné via les récompenses de connexion quotidienne), auquel cas l'indice est gratuit.",
+    "rulesScoringHints": "Révéler des lettres du titre coûte 15 % puis 20 % du score de la manche (-35 % au total pour deux lettres). Sur le défi classé du jour, chaque révélation consomme aussi un bonus Révélation de lettre (gagné via les récompenses de connexion quotidienne) en plus du coût en score.",
     "rulesScoringSkip": "Passer une capture ou laisser le chrono atteindre zéro met fin à la manche avec zéro point pour cette position.",
     "rulesHintsTitle": "4. Indices et power-ups",
-    "rulesHints": "Quatre indices sont disponibles par capture : année de sortie, éditeur, développeur et genre. Vous pouvez les cumuler — chaque indice appliqué coûte 20 % de pénalité supplémentaire, sauf s'il est couvert par un power-up de l'inventaire. Les séries de connexions quotidiennes rapportent des power-ups d'indice gratuits, utilisables à tout moment.",
+    "rulesHints": "Le titre reste entièrement caché — même le nombre de lettres — tant que vous n'avez pas utilisé de révélation. Après une première mauvaise réponse, vous pouvez révéler ses lettres une à une (-15 % puis -20 %, deux lettres maximum) ; la première révélation dévoile aussi la forme des mots. Sur le défi du jour, chaque révélation nécessite un bonus Révélation de lettre. Les séries de connexions quotidiennes rapportent des power-ups gratuits (révélations de lettres, protections de série, secondes chances). Les anciens indices classiques (année, éditeur, développeur, genre) ont été retirés.",
     "rulesMatchingTitle": "5. Comment votre réponse est vérifiée",
     "rulesMatchingIntro": "Taper le titre officiel exact n'est jamais requis. The Box passe votre réponse dans un comparateur flou structuré, conçu pour être généreux face aux fautes de frappe et aux variantes, mais strict sur tout ce qui laisserait passer une réponse sans rapport. Voici précisément ce qu'il accepte et ce qu'il refuse.",
     "rulesMatchingAcceptedTitle": "Accepté",
@@ -1820,9 +1877,16 @@
     "rulesMatchingReject3Why": "Les extensions et DLC nécessitent le nom de l'extension, pas seulement celui du jeu de base.",
     "rulesMatchingReject4Why": "Une saisie tronquée (mot incomplet à la fin de votre réponse) est considérée comme incomplète et refusée.",
     "rulesMatchingReject5Why": "Si votre réponse ne partage aucun mot significatif avec la cible — et rien dans notre liste d'alias — le comparateur refuse de deviner à votre place.",
-    "rulesLeaderboardTitle": "6. Classement",
-    "rulesLeaderboard": "Les classements quotidien et mensuel sont mis à jour en temps réel à mesure que les joueurs terminent les défis. Seules les parties du défi principal comptent — pas les rattrapages. Les tiers et badges Premium sont visibles à côté du nom de chaque joueur.",
-    "rulesFairPlayTitle": "7. Fair-play",
+    "rulesGeoTitle": "6. Mode Géo",
+    "rulesGeoIntro": "Le mode Géo est une autre façon de jouer : au lieu de nommer un jeu, vous placez sur la carte du monde du jeu l'endroit où une capture a été prise. Choisissez le jeu, indiquez à quelle carte appartient la capture, puis posez votre épingle. Le jeu libre permet d'explorer n'importe quel jeu et n'importe quelle carte, sans classement, à tout moment ; le défi Géo quotidien propose à tous la même capture pour s'affronter.",
+    "rulesGeoScoring": "Une épingle parfaite rapporte jusqu'à 2 000 points, le score diminuant à mesure que votre épingle s'éloigne du vrai point. Choisir la mauvaise carte réduit votre score à presque rien : choisissez donc la carte avec soin avant de poser l'épingle. L'accès complet au mode Géo fait partie de Premium.",
+    "rulesPremiumTitle": "7. Premium",
+    "rulesPremium": "Premium est un abonnement payant optionnel (mensuel ou annuel) qui soutient le projet et débloque des extras : l'archive de rattrapage complète, les indices illimités en rattrapage, le mode Géo complet, les statistiques avancées, les cosmétiques et thèmes, et l'accès anticipé aux nouveautés. Le défi quotidien, les classements, les succès et les indices de base restent toujours gratuits. Gérez ou résiliez à tout moment depuis la page Premium.",
+    "rulesReferralTitle": "8. Inviter des amis",
+    "rulesReferral": "Partagez votre lien de parrainage depuis votre profil. Quand un ami s'inscrit avec, vous recevez tous les deux des power-ups gratuits, et vous gagnez un badge exclusif « Ambassadeur » sur votre profil public. Les récompenses sont attribuées une fois par ami inscrit.",
+    "rulesLeaderboardTitle": "9. Classement",
+    "rulesLeaderboard": "Les classements quotidien et mensuel sont mis à jour en temps réel à mesure que les joueurs terminent les défis. Seules les parties du défi principal comptent — pas les rattrapages. Le mode Géo possède ses propres classements quotidien et mensuel, distincts. Le nombre de parties jouées et le total de succès de chaque joueur sont affichés à côté de son nom.",
+    "rulesFairPlayTitle": "10. Fair-play",
     "rulesFairPlay": "Partager les réponses, automatiser les saisies ou utiliser plusieurs comptes pour grimper au classement n'est pas autorisé et entraînera une réinitialisation du score et une suspension du compte. Si vous repérez un jeu mal classé ou une mauvaise réponse acceptée, signalez-le via la page Contact."
   },
   "party": {
@@ -1890,14 +1954,14 @@
   },
   "referral": {
     "title": "Inviter des amis",
-    "description": "Partagez votre lien d'invitation personnel. Quand un ami s'inscrit, vous recevez tous les deux des indices bonus.",
+    "description": "Partagez votre lien d'invitation personnel. Quand un ami s'inscrit, vous recevez tous les deux des bonus (révélations de lettre, protection de série, seconde chance).",
     "copyLink": "Copier le lien",
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
     "stat_one": "{{count}} ami inscrit",
     "stat_other": "{{count}} amis inscrits",
     "claimedNote": "Vous avez été parrainé par un ami — merci !",
-    "rewardHint": "Récompense : vous recevez chacun 3 indices Année + 2 indices Éditeur."
+    "rewardHint": "Récompense : votre ami reçoit 2 révélations de lettre + 1 seconde chance, et vous 1 révélation de lettre + 1 protection de série."
   },
   "security": {
     "title": "Sécurité",
@@ -1961,6 +2025,55 @@
       "button": "Se connecter avec une passkey",
       "error": "La connexion par passkey a échoué."
     }
+  },
+  "consent": {
+    "title": "Vos choix de confidentialité",
+    "description": "Nous utilisons des cookies strictement nécessaires pour faire fonctionner The Box. Avec votre accord, nous chargeons aussi des statistiques respectueuses de la vie privée et un widget de support intégré. Vous pouvez modifier ce choix à tout moment.",
+    "acceptAll": "Tout accepter",
+    "rejectNonEssential": "Refuser le non-essentiel",
+    "managePreferences": "Gérer mes préférences",
+    "save": "Enregistrer mes choix",
+    "essentialLabel": "Strictement nécessaire",
+    "essentialDesc": "Requis pour la connexion, la sécurité et le jeu. Toujours actif.",
+    "analyticsLabel": "Statistiques anonymes",
+    "analyticsDesc": "Statistiques de pages vues sans cookie et auto-hébergées. Ne vous identifie jamais.",
+    "supportLabel": "Widget de support",
+    "supportDesc": "Widget d'aide/retour intégré. Partage vos informations de compte avec notre outil de support.",
+    "privacyLink": "Lire notre politique de confidentialité"
+  },
+  "accountData": {
+    "title": "Vos données et votre compte",
+    "description": "Exercez vos droits RGPD : téléchargez une copie de vos données ou supprimez définitivement votre compte.",
+    "exportTitle": "Exporter mes données",
+    "exportDescription": "Téléchargez tout ce que nous détenons à votre sujet au format JSON.",
+    "exportButton": "Télécharger mes données",
+    "exporting": "Préparation de votre export…",
+    "exportError": "Échec de l'export de vos données. Veuillez réessayer.",
+    "deleteTitle": "Supprimer mon compte",
+    "deleteDescription": "Effacez définitivement votre compte et toutes les données associées. Cette action est irréversible.",
+    "deleteButton": "Supprimer mon compte",
+    "deleteDialogTitle": "Supprimer votre compte ?",
+    "deleteDialogWarning": "Cela efface définitivement votre profil, vos scores, votre historique et toutes les données associées. Cette action est irréversible.",
+    "deleteConfirmLabel": "Saisissez votre nom d'utilisateur {{username}} pour confirmer.",
+    "deleteConfirmPlaceholder": "Votre nom d'utilisateur",
+    "deleteConfirmButton": "Supprimer définitivement",
+    "deleting": "Suppression…",
+    "deleteError": "Échec de la suppression de votre compte. Veuillez réessayer.",
+    "deleteMismatch": "Le nom d'utilisateur ne correspond pas.",
+    "cancel": "Annuler"
+  },
+  "editProfile": {
+    "title": "Modifier le profil",
+    "description": "Mettez à jour l'affichage de votre nom et votre nom d'utilisateur unique.",
+    "displayNameLabel": "Nom affiché",
+    "usernameLabel": "Nom d'utilisateur",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Profil mis à jour.",
+    "error": "Échec de la mise à jour du profil. Veuillez réessayer.",
+    "usernameTaken": "Ce nom d'utilisateur est déjà pris.",
+    "invalidUsername": "Le nom d'utilisateur doit comporter 3 à 20 caractères : lettres, chiffres et tirets bas uniquement.",
+    "invalidDisplayName": "Veuillez choisir un autre nom affiché."
   },
   "emailConsent": {
     "title": "Préférences e-mail",
@@ -2116,9 +2229,9 @@
       "selectImage": "Choisir une image",
       "upload": "Télécharger",
       "remove": "Supprimer",
-      "sizeHint": "JPEG, PNG, GIF ou WebP. Max 5 Mo.",
+      "sizeHint": "JPEG, PNG, GIF ou WebP. Max 10 Mo.",
       "invalidType": "Type de fichier invalide. Seuls les formats JPEG, PNG, GIF et WebP sont autorisés.",
-      "fileTooLarge": "Le fichier est trop volumineux. La taille maximum est de 5 Mo.",
+      "fileTooLarge": "Le fichier est trop volumineux. La taille maximum est de 10 Mo.",
       "uploadError": "Échec du téléchargement de l'avatar. Veuillez réessayer.",
       "deleteError": "Échec de la suppression de l'avatar. Veuillez réessayer."
     }
@@ -2133,13 +2246,10 @@
     "claiming": "En cours…",
     "locked": "À débloquer",
     "items": {
-      "hint_year": "Indice Année",
-      "hint_publisher": "Indice Éditeur",
-      "hint_developer": "Indice Développeur",
-      "hint_genre": "Indice Genre",
       "second_chance": "Seconde chance",
       "streak_freeze": "Protection de série",
-      "ambassador": "Badge Ambassadeur"
+      "ambassador": "Badge Ambassadeur",
+      "hint_letter": "Révélation de lettre"
     },
     "sources": {
       "reactivation": {
@@ -2168,7 +2278,7 @@
         "pending": "Préparation en cours."
       },
       "powerup_drop": {
-        "title": "Nouveaux indices",
+        "title": "Nouveaux bonus",
         "ready": "Ajoutés à ton inventaire.",
         "pending": "Bientôt disponibles."
       },
@@ -2195,33 +2305,29 @@
     "onFire": "En feu !",
     "weeklyProgress": "Progression hebdomadaire",
     "day": "J",
-    "hintYear": "Indice Année",
-    "hintPublisher": "Indice Éditeur",
-    "hintDeveloper": "Indice Développeur",
-    "hintGenre": "Indice Genre",
     "streakFreeze": "Protection de série",
     "secondChance": "Seconde chance",
     "points": "points",
     "rewards": {
       "day1": {
-        "name": "Indice Année",
-        "description": "Obtenez un indice sur l'année de sortie du jeu"
+        "name": "Révélation de Lettre",
+        "description": "Révélez une lettre du titre masqué pendant une partie"
       },
       "day2": {
-        "name": "Indice Éditeur",
-        "description": "Obtenez un indice sur l'éditeur du jeu"
+        "name": "Gel de Série",
+        "description": "Protégez votre série de connexion en cas de jour manqué"
       },
       "day3": {
         "name": "100 Points",
         "description": "Bonus de 100 points ajoutés à votre score"
       },
       "day4": {
-        "name": "2x Indice Année",
-        "description": "Obtenez deux indices sur l'année de sortie"
+        "name": "Révélation de Lettre",
+        "description": "Révélez une lettre du titre masqué pendant une partie"
       },
       "day5": {
-        "name": "2x Indice Éditeur",
-        "description": "Obtenez deux indices sur l'éditeur"
+        "name": "Seconde Chance",
+        "description": "Garantissez un score minimum sur une capture déjà tentée"
       },
       "day6": {
         "name": "250 Points",
@@ -2229,9 +2335,10 @@
       },
       "day7": {
         "name": "Coffre Légendaire",
-        "description": "Le coffre ultime : 2x chaque indice + 500 points !"
+        "description": "Le coffre ultime : 2x révélation de lettre, 1x gel de série + 500 points !"
       }
-    }
+    },
+    "hintLetter": "Révélation de lettre"
   },
   "onboarding": {
     "welcomeTitle": "Bienvenue dans The Box !",
@@ -2541,10 +2648,8 @@
     "p75": "75e centile",
     "mean": "Moyenne",
     "hintUsage": "Utilisation des indices",
-    "hintYear": "Année",
-    "hintPublisher": "Éditeur",
-    "hintDeveloper": "Studio",
-    "hintGenre": "Genre",
+    "hintLetter": "Lettres révélées",
+    "legacyMetadataHints": "Indices classiques (retirés)",
     "monthlyProgression": "Progression sur 6 mois"
   },
   "themes": {

@@ -46,7 +46,7 @@ import { geoWorker } from './infrastructure/queue/workers/geo.worker.js'
 import { pushWorker } from './infrastructure/queue/workers/push.worker.js'
 import { webhookWorker } from './infrastructure/queue/workers/webhook-delivery.worker.js'
 import { db } from './infrastructure/database/connection.js'
-import { pushService } from './domain/services/push.service.js'
+import { pushService } from './domain/services/index.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
 // Validate environment
@@ -369,6 +369,7 @@ async function start(): Promise<void> {
       'cleanup-anonymous-users',
       'recalculate-scores',
       'streak-risk-email',
+      'evening-nudge',
       'relance-email',
       'inactive-user-reminder',
       'streak-freeze-grant',
@@ -492,6 +493,26 @@ async function start(): Promise<void> {
       logger.warn({ error: String(error) }, 'failed to schedule recurring streak-risk-email job')
     }
 
+    // Schedule recurring evening-nudge push (daily at 18:00 UTC ~ evening
+    // Europe). Personalizes the "play today's challenge" reminder with the
+    // current title holder. Runs an hour before the streak-risk email; its
+    // candidate query excludes users who will get that email, so no user is
+    // double-nudged. A later slot means the leader/score is more "real" while
+    // still leaving a comfortable window before the midnight UTC reset.
+    try {
+      await importQueue.add(
+        'evening-nudge',
+        {},
+        {
+          repeat: { pattern: '0 18 * * *', tz: 'UTC' },
+          jobId: 'evening-nudge-recurring',
+        }
+      )
+      logger.info('scheduled recurring evening-nudge job (daily at 18:00 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring evening-nudge job')
+    }
+
     // Schedule recurring relance (re-engagement) email for users with an
     // unclaimed daily reward (daily at 17:00 UTC ~ early evening Europe).
     // Runs two hours before the streak-risk job and the worker's eligibility
@@ -609,6 +630,24 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring prune-push-subscriptions job (daily at 02:00 UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring prune-push-subscriptions job')
+    }
+
+    // Daily data-retention sweep — 04:15 UTC. Hard-deletes personal-data
+    // bearing audit / log rows past their per-table retention windows
+    // (RGPD Art. 5(1)(e) storage limitation): email_log >1y,
+    // admin_audit_log >2y, webhook_deliveries >30d, stripe_event_log >1y.
+    try {
+      await importQueue.add(
+        'data-retention',
+        {},
+        {
+          repeat: { pattern: '15 4 * * *', tz: 'UTC' },
+          jobId: 'data-retention-recurring',
+        },
+      )
+      logger.info('scheduled recurring data-retention job (daily at 04:15 UTC)')
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'failed to schedule recurring data-retention job')
     }
 
     // Monthly leaderboard payout — 1st of each month at 00:30 UTC. Awards

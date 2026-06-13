@@ -5,11 +5,29 @@ import type {
   LeaderboardRepository,
 } from '../ports/index.js'
 
+/** Minimal projection of today's rank-1 player for outbound nudges. */
+export interface TodayLeader {
+  userId: string
+  displayName: string
+  totalScore: number
+}
+
 export interface LeaderboardService {
   getTodayLeaderboard(): Promise<LeaderboardResponse>
   getLeaderboardByDate(date: string): Promise<LeaderboardResponse>
   getTodayPercentile(score: number): Promise<PercentileResponse>
   getMonthlyLeaderboard(year: number, month: number): Promise<MonthlyLeaderboardResponse>
+  /**
+   * Today's title holder (rank 1), or null when there is no challenge or
+   * nobody has completed a ranked session yet. Cheap — fetches a single row.
+   */
+  getTodayLeader(): Promise<TodayLeader | null>
+  /**
+   * How many ranked players have finished today's challenge. Powers the
+   * public "joined by N players today" social-proof badge. Returns count 0
+   * when there is no challenge yet.
+   */
+  getTodayPlayerCount(): Promise<{ date: string; count: number }>
 }
 
 export interface LeaderboardServiceDeps {
@@ -71,6 +89,33 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
         challengeId: challenge.id,
         entries,
       }
+    },
+
+    async getTodayLeader(): Promise<TodayLeader | null> {
+      const today = new Date().toISOString().split('T')[0]!
+
+      const challenge = await challengeRepository.findByDate(today)
+      if (!challenge) return null
+
+      // findByChallenge is already deterministically tie-broken (score desc →
+      // fastest finish → user id) and excludes anonymous + catch-up sessions,
+      // so the first row is unambiguously today's leader. Fetch just one.
+      const [leader] = await leaderboardRepository.findByChallenge(challenge.id, 1)
+      if (!leader) return null
+
+      return {
+        userId: leader.userId,
+        displayName: leader.displayName,
+        totalScore: leader.totalScore,
+      }
+    },
+
+    async getTodayPlayerCount(): Promise<{ date: string; count: number }> {
+      const today = new Date().toISOString().split('T')[0]!
+      const challenge = await challengeRepository.findByDate(today)
+      if (!challenge) return { date: today, count: 0 }
+      const count = await leaderboardRepository.countPlayersByChallenge(challenge.id)
+      return { date: today, count }
     },
 
     async getTodayPercentile(score: number): Promise<PercentileResponse> {

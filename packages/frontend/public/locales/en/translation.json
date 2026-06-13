@@ -44,11 +44,14 @@
     "menu": "Menu",
     "toggleMenu": "Toggle menu",
     "toggleDetails": "Toggle details",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "rankBadge": {
       "first": "1st place",
       "second": "2nd place",
       "third": "3rd place"
-    }
+    },
+    "menuDescription": "Site navigation and account links"
   },
   "nav": {
     "primary": "Primary navigation",
@@ -302,7 +305,8 @@
         "correct": "correct",
         "skipped": "skipped",
         "in_progress": "in progress",
-        "not_visited": "not visited"
+        "not_visited": "not visited",
+        "timed_out": "timed out"
       },
       "summary": {
         "found_one": "{{count}} found",
@@ -325,7 +329,8 @@
     "zoom": {
       "in": "Zoom in",
       "out": "Zoom out",
-      "reset": "Reset zoom"
+      "reset": "Reset zoom",
+      "open": "Zoom"
     },
     "round": "Round",
     "score": "Score",
@@ -335,9 +340,13 @@
     "correct": "Correct!",
     "incorrect": "Incorrect",
     "timeUp": "Time's up!",
+    "timer": {
+      "label": "Time remaining: {{seconds}} seconds"
+    },
     "totalScore": "Total Score",
     "correctAnswers": "Correct Answers",
     "accuracy": "Accuracy",
+    "averageTime": "Avg. time",
     "scoreQuality": {
       "label": "Score quality",
       "mastered": "Mastered",
@@ -395,7 +404,7 @@
       "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
       "time": "The faster you answer, the more points you earn",
       "speedShort": "Speed = points",
-      "hintsShort": "Daily hints",
+      "hintsShort": "Letter reveals",
       "quality": "All games have a Metascore of 85 or higher"
     },
     "scoring": {
@@ -403,7 +412,7 @@
       "basePoints": "100 points per correct guess",
       "speedMultiplier": "Speed multiplier: <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Unlimited tries - wrong guesses don't affect score",
-      "hints": "Hints: Free if in inventory (from daily rewards), otherwise -20% score penalty",
+      "hints": "Revealing letters of the title costs -15% then -20% of the round's score (requires a Letter reveal power-up on today's challenge)",
       "penalty": "-50 points per game not found when ending early"
     },
     "navigation": {
@@ -442,29 +451,26 @@
       "totalScore": "Your Total Score",
       "penaltyApplied": "Penalty",
       "finalScore": "Final Score",
-      "points": "points"
+      "points": "points",
+      "error": "Failed to end the game. Please try again."
     },
     "hints": {
-      "yearTooltip": "Show release year (-20%)",
-      "publisherTooltip": "Show publisher (-20%)",
-      "developerTooltip": "Show developer (-20%)",
-      "genreTooltip": "Show genre (-20%)",
-      "yearTooltipFree": "Show release year ({{count}} free)",
-      "publisherTooltipFree": "Show publisher ({{count}} free)",
-      "developerTooltipFree": "Show developer ({{count}} free)",
-      "genreTooltipFree": "Show genre ({{count}} free)",
       "lockedTooltip": "Available after first wrong guess",
-      "unavailableYear": "Release year not available",
-      "unavailablePublisher": "Publisher not available",
-      "unavailableDeveloper": "Developer not available",
-      "unavailableGenre": "Genre not available",
-      "alreadyUsed": "Already used",
-      "yearHint": "Release Year",
-      "publisherHint": "Publisher",
-      "developerHint": "Developer",
-      "genreHint": "Genre",
-      "penalty": "-20%",
-      "penaltyApplied": "Hint penalty: -{{penalty}} points"
+      "penaltyApplied": "Hint penalty: -{{penalty}} points",
+      "percentagePenalty": "20% penalty",
+      "letterButtonWithPenalty": "Letter -{{penalty}}%",
+      "letterButtonWithCount": "Letter ×{{count}}",
+      "letterLockedShort": "After 1 try",
+      "letterNoInventoryShort": "0 power-ups",
+      "letterTooltip": "Reveal one letter of the title (-{{penalty}}%)",
+      "letterTooltipItem": "Reveal one letter: uses 1 power-up, -{{penalty}}% ({{count}} owned)",
+      "letterCapReached": "No more letters can be revealed",
+      "letterNoInventory": "Requires a Letter reveal power-up (earn them with daily login rewards)",
+      "maskHiddenPlaceholder": "Hidden title",
+      "letterMaskAria": "Masked title, {{revealed}} letter(s) revealed",
+      "letterRevealAnnounce": "Letter {{letter}} revealed — {{revealed}}/{{max}}",
+      "letterPenaltyCurrent": "Current letter penalty: -{{penalty}}%",
+      "letterPenaltyApplied": "Letter reveal penalty: -{{penalty}} points"
     },
     "secondChance": {
       "title": "Activate a second chance?",
@@ -488,11 +494,18 @@
       "gamesRemaining_other": "{{count}} games left to guess",
       "continuePlaying": "Continue Playing",
       "seeResults": "See Results"
-    }
+    },
+    "submit": "Submit guess",
+    "guessCorrect": "Correct guess!",
+    "guessIncorrect": "Incorrect guess. Try again.",
+    "wrongGuessPenalty": "Wrong guess penalty: -{{penalty}} pts"
   },
   "home": {
     "title": "The Box",
-    "subtitle": "Daily video game challenges with screenshot guessing, speed-based scoring, 21 achievements to unlock, live leaderboards, and win streaks. Play instantly as a guest or create an account.",
+    "headline": "Name the game from one screenshot.",
+    "subtitle": "A fresh video-game challenge every day. Play instantly — no account needed.",
+    "playersToday_one": "{{formatted}} player has taken on today's challenge",
+    "playersToday_other": "{{formatted}} players have taken on today's challenge",
     "playToday": "Play Today's Challenge",
     "dailyGuess": "Daily Guess",
     "geoCta": "Geo Mode",
@@ -599,7 +612,9 @@
     "skipped": "Skipped",
     "errorLoading": "Failed to load player answers",
     "clickToView": "Click to view this player's answers",
-    "todayLocked": "Complete today's challenge to view other players' answers."
+    "todayLocked": "Complete today's challenge to view other players' answers.",
+    "capturesFound": "Captures found",
+    "avgCaptureTime": "Average time per capture"
   },
   "history": {
     "title": "Game History",
@@ -763,7 +778,18 @@
         "candidateCount_other": "{{count}} candidates",
         "selected": "Selected",
         "choose": "Choose",
-        "refetch": "Refetch"
+        "refetch": "Refetch",
+        "refetchSource": "Re-fetch ({{source}})"
+      },
+      "startConfirm": {
+        "title": "Start the global fetch?",
+        "body": "All curated and resolved games will be queued. The server caps the queue at 1000 games maximum.",
+        "confirm": "Start"
+      },
+      "cancelConfirm": {
+        "title": "Cancel the ongoing ingestion?",
+        "body": "Tasks already running will finish. All pending tasks (maps:*) will be removed from the queue.",
+        "confirm": "Cancel all"
       }
     },
     "emailLog": {
@@ -1448,7 +1474,12 @@
         "streakRiskEmail": "Sends an alert email to players whose daily streak is about to expire, encouraging them to come back and play.",
         "relanceEmail": "Sends a re-engagement email to registered users who haven't played yet, encouraging them to try their first challenge.",
         "inactiveUserReminder": "Sends a win-back email to long-inactive users to invite them back to the platform.",
-        "default": "Automatic system scheduled task."
+        "default": "Automatic system scheduled task.",
+        "createWeeklyTournament": "Creates a new weekly tournament so players can compete on a fresh weekly leaderboard.",
+        "endWeeklyTournament": "Closes the active weekly tournament, finalizes rankings, and awards the winners.",
+        "createMonthlyTournament": "Creates a new monthly tournament so players can compete on a fresh monthly leaderboard.",
+        "endMonthlyTournament": "Closes the active monthly tournament, finalizes rankings, and awards the winners.",
+        "sendTournamentReminders": "Sends reminder emails to participants about ongoing tournaments and approaching deadlines."
       },
       "categories": {
         "Challenge": "Challenge",
@@ -1476,6 +1507,16 @@
         "title": "Sync Job Already Running",
         "description": "A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?",
         "cancelAndRestart": "Cancel & Restart"
+      },
+      "statusLabel": "Status",
+      "expand": "Expand",
+      "minimize": "Minimize",
+      "remove": "Remove",
+      "filter": {
+        "all": "All",
+        "active": "Active",
+        "completed": "Done",
+        "failed": "Failed"
       }
     },
     "fullImport": {
@@ -1638,15 +1679,19 @@
       "recipientEmailPlaceholder": "Enter email address",
       "emailRequired": "Please enter a recipient email address",
       "invalidEmail": "Please enter a valid email address"
-    }
+    },
+    "cancel": "Cancel"
   },
   "pricing": {
     "title": "The Box Premium",
     "subtitle": "Support the game, unlock the full archive, and customize your profile.",
     "billingMonthly": "/month",
     "billingAnnual": "/year",
+    "billingLifetime": "one-time",
     "savingsAnnual": "~37% savings vs monthly",
+    "supporterNote": "Pay once. Premium forever.",
     "ctaSubscribe": "Subscribe",
+    "ctaSupporter": "Become a supporter",
     "ctaManage": "Manage subscription",
     "ctaLogin": "Sign in to subscribe",
     "ctaCurrent": "Current plan",
@@ -1675,6 +1720,10 @@
         "name": "Premium Annual",
         "description": "Best value per month",
         "highlight": "Most popular"
+      },
+      "supporter_lifetime": {
+        "name": "Lifetime Supporter",
+        "description": "Back the game once, keep Premium for good"
       }
     },
     "features": {
@@ -1687,7 +1736,7 @@
         "achievements": "Achievements and progression",
         "catchUp7d": "Catch up on the last 7 days",
         "catchUpFull": "Full archive of past challenges",
-        "hintsBaseline": "Base hints",
+        "hintsBaseline": "Letter reveals",
         "hintsUnlimitedCatchUp": "Unlimited hints in catch-up",
         "advancedStats": "Advanced profile statistics",
         "cosmetics": "Premium badge and animated frames",
@@ -1736,18 +1785,24 @@
     "privacyLastUpdated": "Last updated",
     "privacyIntro": "Your privacy is important to us. This policy explains how we collect and use your data.",
     "privacyCollectionTitle": "1. Data Collected",
-    "privacyCollection": "We collect information you provide during registration (email, username) as well as your game scores and statistics.",
+    "privacyCollection": "We collect the information you provide when you register (email address, username, display name) and the data you generate by playing (game scores, guesses, statistics, achievements). We also process limited technical data needed to run the service securely: your IP address and browser user-agent (stored with your login sessions for security and fraud prevention) and, only if you enable them, your web-push subscription details. If you arrive through a referral link, we record which account referred you.",
     "privacyUsageTitle": "2. Data Usage",
     "privacyUsage": "Your data is used to manage your account, display leaderboards, and improve our services. We never sell your personal data.",
     "privacyCookiesTitle": "3. Cookies",
-    "privacyCookies": "We use essential cookies for site functionality (session, language preferences). No advertising cookies are used.",
+    "privacyCookies": "We use only strictly necessary cookies for site functionality (authentication session, language preference). No advertising or tracking cookies are used. Privacy-friendly, cookieless analytics and the optional support widget are loaded only after you accept them in the consent banner shown on your first visit.",
     "privacySecurityTitle": "4. Security",
     "privacySecurity": "We implement security measures to protect your data, including password encryption and secure HTTPS connections.",
     "privacyPaymentsTitle": "5. Payment Processing and Sub-processors",
     "privacyPayments": "Payments for Premium subscriptions are processed by Stripe Payments Europe Limited, acting as a sub-processor under GDPR. When you initiate a payment, Stripe directly collects the necessary information (card number, billing address, country); no card data is stored on our servers. Stripe is PCI DSS Level 1 certified and applies its own Data Processing Agreement (DPA), available at stripe.com/dpa. For EU users, Stripe Tax automatically applies VAT based on your country. We only retain an opaque customer identifier (stripe_customer_id) to link your account to your billing history.",
-    "privacyRightsTitle": "6. Your Rights",
-    "privacyRights": "In accordance with GDPR, you can request access, modification, or deletion of your personal data by contacting us.",
-    "privacyContactTitle": "7. Contact",
+    "privacySubprocessorsTitle": "6. Other Sub-processors",
+    "privacySubprocessors": "Besides Stripe, we rely on a small number of GDPR sub-processors to operate the service: Resend (resend.com) sends transactional and, if you opt in, occasional product emails — it receives your email address and the message content; your browser's push service (operated by Apple, Google or Mozilla depending on your device) delivers the web-push notifications you have explicitly enabled; and GoatCounter, a privacy-first, cookieless analytics tool we self-host, which receives only anonymous page-view data and never your identity. We never sell your personal data and do not use advertising or cross-site tracking.",
+    "privacyRetentionTitle": "7. Data Retention",
+    "privacyRetention": "We keep your account data for as long as your account exists. When you delete your account, your profile and game data are erased immediately. A few records are kept for a limited time for security, accounting and abuse-prevention purposes: email delivery logs for up to 12 months, administrative audit logs for up to 24 months, and webhook delivery logs for up to 30 days. Inactive web-push subscriptions are pruned after 30 days and anonymous guest sessions after 24 hours.",
+    "privacyRightsTitle": "8. Your Rights",
+    "privacyRights": "In accordance with the GDPR you have the right to access, rectify, port and erase your personal data. You can exercise most of these yourself at any time from your profile settings: edit your username and display name, download a full copy of your data as a JSON file, and permanently delete your account. For anything else, contact us and we will respond within 30 days.",
+    "privacyMinorsTitle": "9. Minors",
+    "privacyMinors": "The Box is not directed at children. You must be at least 16 years old, or the minimum age of digital consent in your country, to create an account. If you believe a minor has provided us with personal data, contact us and we will delete it.",
+    "privacyContactTitle": "10. Contact",
     "privacyContact": "For any questions regarding this policy, contact us via our contact page.",
     "contactTitle": "Contact Us",
     "contactIntro": "Have a question, suggestion, or problem? We're here to help.",
@@ -1770,7 +1825,9 @@
     "cookiesEssential": "These cookies are necessary for the website to work and cannot be disabled. They include: session tokens for login, language preferences, and game progress tracking.",
     "cookiesManageTitle": "4. Managing Cookies",
     "cookiesManage": "You can manage cookies through your browser settings. Note that disabling essential cookies may affect site functionality. We do not use advertising or tracking cookies.",
-    "cookiesChangesTitle": "5. Changes to This Policy",
+    "cookiesConsentTitle": "5. Consent",
+    "cookiesConsent": "Because we use only strictly necessary cookies, no consent banner is required for cookies themselves. We do, however, ask for your consent before loading optional services: a banner on your first visit lets you accept or decline anonymous analytics and the in-app support widget. You can change these choices at any time, and declining them never affects core gameplay.",
+    "cookiesChangesTitle": "6. Changes to This Policy",
     "cookiesChanges": "We may update this cookie policy from time to time. Changes will be posted on this page with an updated revision date.",
     "faqTitle": "Frequently Asked Questions",
     "faqIntro": "Find answers to common questions about The Box.",
@@ -1793,15 +1850,15 @@
     "rulesChallengeTitle": "2. Daily challenge",
     "rulesChallenge": "Every day at midnight UTC a new challenge unlocks with a set of screenshots from different games. Difficulty increases from one screenshot to the next. Everyone plays the same challenge, so leaderboard rankings are comparable.",
     "rulesCatchupTitle": "Catch-up mode",
-    "rulesCatchup": "Missed a day? You can replay challenges from the last 7 days. Catch-up plays do not count toward the daily or monthly leaderboard, but they still earn achievements.",
+    "rulesCatchup": "Missed a day? On the free plan only today's challenge is playable. Premium unlocks the full archive — replay any of the last 365 days. Catch-up plays never count toward the daily or monthly leaderboard, but they still earn achievements, and Premium players pay no hint penalty while catching up.",
     "rulesScoringTitle": "3. Scoring",
     "rulesScoringBase": "Each correct answer is worth 100 base points.",
     "rulesScoringSpeed": "Speed multiplier: under 3s → 2.0× (200 pts), 3–5s → 1.75× (175 pts), 5–10s → 1.5× (150 pts), 10–20s → 1.25× (125 pts), over 20s → 1.0× (100 pts).",
     "rulesScoringTries": "Unlimited tries per screenshot. Wrong guesses do not directly reduce your score, but the speed multiplier ticks down while the round timer runs.",
-    "rulesScoringHints": "Hints cost 20% of the round's score, unless you have a hint power-up in your inventory (earned through daily login rewards), in which case the hint is free.",
+    "rulesScoringHints": "Revealing letters of the title costs 15% then 20% of the round's score (-35% total for two letters). On today's ranked challenge each reveal also consumes a Letter reveal power-up (earned through daily login rewards) on top of the score cost.",
     "rulesScoringSkip": "Skipping a screenshot or running out the timer ends the round at zero points for that position.",
     "rulesHintsTitle": "4. Hints and power-ups",
-    "rulesHints": "Four hints are available per screenshot: release year, publisher, developer, and genre. You can stack them if you need to — each one applied costs another 20% penalty unless covered by an inventory power-up. Daily login streaks earn free hint power-ups that you can spend at any time.",
+    "rulesHints": "The title stays fully hidden — even its letter count — until you use a reveal. After one wrong guess you can reveal its letters one by one (-15% then -20%, two letters max); the first reveal also uncovers the word shape. On today's challenge each reveal requires a Letter reveal power-up. Daily login streaks earn free power-ups (letter reveals, streak freezes, second chances). The old metadata hints (year, publisher, developer, genre) have been retired.",
     "rulesMatchingTitle": "5. How we match your guess",
     "rulesMatchingIntro": "Typing the exact official title is never required. The Box runs your answer through a structured fuzzy matcher designed to be generous about typos and phrasing, but strict about anything that would let an unrelated guess slip through. Here is exactly what it accepts and rejects.",
     "rulesMatchingAcceptedTitle": "Accepted",
@@ -1820,9 +1877,16 @@
     "rulesMatchingReject3Why": "Expansions and DLC require the expansion name, not just the base game.",
     "rulesMatchingReject4Why": "Truncated input (a partial word at the end of your guess) is treated as incomplete and rejected.",
     "rulesMatchingReject5Why": "If your guess shares no meaningful word with the target — and nothing in our alias list — the matcher refuses to guess for you.",
-    "rulesLeaderboardTitle": "6. Leaderboard",
-    "rulesLeaderboard": "Daily and monthly leaderboards are updated in real time as players finish challenges. Only main-challenge plays count — catch-up plays do not. Tiers and Premium badges are visible next to each player's name.",
-    "rulesFairPlayTitle": "7. Fair play",
+    "rulesGeoTitle": "6. Geo mode",
+    "rulesGeoIntro": "Geo mode is a different way to play: instead of naming a game, you pin where a screenshot was taken on that game's in-world map. Pick the game, choose which of its maps the shot belongs to, then drop your pin. Free-play lets you explore any game and map, unranked, at any time; the daily Geo challenge gives everyone the same screenshot to compete on.",
+    "rulesGeoScoring": "A perfect pin scores up to 2,000 points, dropping off the further your pin lands from the real spot. Picking the wrong map floors your score to almost nothing, so choose the map carefully before placing your pin. Full Geo access is part of Premium.",
+    "rulesPremiumTitle": "7. Premium",
+    "rulesPremium": "Premium is an optional paid subscription (monthly or annual) that supports the project and unlocks extras: the full catch-up archive, unlimited hints while catching up, full Geo mode, advanced stats, cosmetics and themes, and early access to new features. The daily challenge, leaderboards, achievements and baseline hints are always free. Manage or cancel any time from the Premium page.",
+    "rulesReferralTitle": "8. Invite friends",
+    "rulesReferral": "Share your referral link from your profile. When a friend signs up with it, you both receive free power-ups, and you earn an exclusive \"Ambassador\" badge on your public profile. Rewards are granted once per friend who joins.",
+    "rulesLeaderboardTitle": "9. Leaderboard",
+    "rulesLeaderboard": "Daily and monthly leaderboards update in real time as players finish challenges. Only main-challenge plays count — catch-up plays do not. Geo mode keeps its own separate daily and monthly leaderboards. Each player's games-played count and achievement total are shown next to their name.",
+    "rulesFairPlayTitle": "10. Fair play",
     "rulesFairPlay": "Sharing answers, automating guesses, or using multiple accounts to climb the leaderboard is not allowed and will result in score resets and account suspension. If you spot a misclassified game or a wrong answer being accepted, please report it via the Contact page."
   },
   "party": {
@@ -1890,14 +1954,14 @@
   },
   "referral": {
     "title": "Invite Friends",
-    "description": "Share your personal invite link. When a friend signs up, you both get bonus hints.",
+    "description": "Share your personal invite link. When a friend signs up, you both receive bonuses (letter reveals, streak freeze, second chance).",
     "copyLink": "Copy invite link",
     "copied": "Copied!",
     "copyError": "Failed to copy to clipboard",
     "stat_one": "{{count}} friend joined",
     "stat_other": "{{count}} friends joined",
     "claimedNote": "You were referred by a friend — thanks!",
-    "rewardHint": "Reward: both of you get 3 Year hints + 2 Publisher hints."
+    "rewardHint": "Reward: your friend gets 2 letter reveals + 1 second chance, and you get 1 letter reveal + 1 streak freeze."
   },
   "security": {
     "title": "Security",
@@ -1961,6 +2025,55 @@
       "button": "Sign in with a passkey",
       "error": "Passkey sign-in failed."
     }
+  },
+  "consent": {
+    "title": "Your privacy choices",
+    "description": "We use strictly necessary cookies to run The Box. With your consent, we also load privacy-friendly analytics and an in-app support widget. You can change this anytime.",
+    "acceptAll": "Accept all",
+    "rejectNonEssential": "Reject non-essential",
+    "managePreferences": "Manage preferences",
+    "save": "Save choices",
+    "essentialLabel": "Strictly necessary",
+    "essentialDesc": "Required for login, security and core gameplay. Always on.",
+    "analyticsLabel": "Anonymous analytics",
+    "analyticsDesc": "Cookieless, self-hosted page-view stats. Never identifies you.",
+    "supportLabel": "Support widget",
+    "supportDesc": "In-app help/feedback widget. Shares your account details with our support tool.",
+    "privacyLink": "Read our Privacy Policy"
+  },
+  "accountData": {
+    "title": "Your data & account",
+    "description": "Exercise your GDPR rights: download a copy of your data or permanently delete your account.",
+    "exportTitle": "Export my data",
+    "exportDescription": "Download everything we hold about you as a JSON file.",
+    "exportButton": "Download my data",
+    "exporting": "Preparing your export…",
+    "exportError": "Couldn't export your data. Please try again.",
+    "deleteTitle": "Delete my account",
+    "deleteDescription": "Permanently erase your account and all associated data. This cannot be undone.",
+    "deleteButton": "Delete my account",
+    "deleteDialogTitle": "Delete your account?",
+    "deleteDialogWarning": "This permanently erases your profile, scores, history and all associated data. This action is irreversible.",
+    "deleteConfirmLabel": "Type your username {{username}} to confirm.",
+    "deleteConfirmPlaceholder": "Your username",
+    "deleteConfirmButton": "Permanently delete",
+    "deleting": "Deleting…",
+    "deleteError": "Couldn't delete your account. Please try again.",
+    "deleteMismatch": "The username doesn't match.",
+    "cancel": "Cancel"
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "description": "Update how your name appears and your unique username.",
+    "displayNameLabel": "Display name",
+    "usernameLabel": "Username",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Profile updated.",
+    "error": "Couldn't update your profile. Please try again.",
+    "usernameTaken": "That username is already taken.",
+    "invalidUsername": "Username must be 3–20 characters: letters, numbers and underscores only.",
+    "invalidDisplayName": "Please choose a different display name."
   },
   "emailConsent": {
     "title": "Email Preferences",
@@ -2116,9 +2229,9 @@
       "selectImage": "Choose an image",
       "upload": "Upload",
       "remove": "Remove",
-      "sizeHint": "JPEG, PNG, GIF or WebP. Max 5MB.",
+      "sizeHint": "JPEG, PNG, GIF or WebP. Max 10MB.",
       "invalidType": "Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.",
-      "fileTooLarge": "File is too large. Maximum size is 5MB.",
+      "fileTooLarge": "File is too large. Maximum size is 10MB.",
       "uploadError": "Failed to upload avatar. Please try again.",
       "deleteError": "Failed to remove avatar. Please try again."
     }
@@ -2133,13 +2246,10 @@
     "claiming": "Claiming…",
     "locked": "Locked",
     "items": {
-      "hint_year": "Year hint",
-      "hint_publisher": "Publisher hint",
-      "hint_developer": "Developer hint",
-      "hint_genre": "Genre hint",
       "second_chance": "Second chance",
       "streak_freeze": "Streak freeze",
-      "ambassador": "Ambassador badge"
+      "ambassador": "Ambassador badge",
+      "hint_letter": "Letter reveal"
     },
     "sources": {
       "reactivation": {
@@ -2168,7 +2278,7 @@
         "pending": "Preparing."
       },
       "powerup_drop": {
-        "title": "New hints",
+        "title": "New power-ups",
         "ready": "Added to your inventory.",
         "pending": "Available soon."
       },
@@ -2195,33 +2305,29 @@
     "onFire": "On fire!",
     "weeklyProgress": "Weekly progress",
     "day": "D",
-    "hintYear": "Year Hint",
-    "hintPublisher": "Publisher Hint",
-    "hintDeveloper": "Developer Hint",
-    "hintGenre": "Genre Hint",
     "streakFreeze": "Streak freeze",
     "secondChance": "Second chance",
     "points": "points",
     "rewards": {
       "day1": {
-        "name": "Year Hint",
-        "description": "Get a hint about the game's release year"
+        "name": "Letter Reveal",
+        "description": "Reveal one letter of the masked title during a game"
       },
       "day2": {
-        "name": "Publisher Hint",
-        "description": "Get a hint about the game's publisher"
+        "name": "Streak Freeze",
+        "description": "Protect your login streak when you miss a day"
       },
       "day3": {
         "name": "100 Points",
         "description": "100 bonus points added to your score"
       },
       "day4": {
-        "name": "2x Year Hint",
-        "description": "Get two hints about the release year"
+        "name": "Letter Reveal",
+        "description": "Reveal one letter of the masked title during a game"
       },
       "day5": {
-        "name": "2x Publisher Hint",
-        "description": "Get two hints about the publisher"
+        "name": "Second Chance",
+        "description": "Guarantee a minimum score on a screenshot you already tried"
       },
       "day6": {
         "name": "250 Points",
@@ -2229,9 +2335,10 @@
       },
       "day7": {
         "name": "Legendary Chest",
-        "description": "The ultimate chest: 2x each hint + 500 points!"
+        "description": "The ultimate chest: 2x letter reveal, 1x streak freeze + 500 points!"
       }
-    }
+    },
+    "hintLetter": "Letter Reveal"
   },
   "onboarding": {
     "welcomeTitle": "Welcome to The Box!",
@@ -2541,10 +2648,8 @@
     "p75": "75th percentile",
     "mean": "Mean",
     "hintUsage": "Hint usage",
-    "hintYear": "Year",
-    "hintPublisher": "Publisher",
-    "hintDeveloper": "Developer",
-    "hintGenre": "Genre",
+    "hintLetter": "Letters revealed",
+    "legacyMetadataHints": "Classic hints (retired)",
     "monthlyProgression": "6-month progression"
   },
   "themes": {

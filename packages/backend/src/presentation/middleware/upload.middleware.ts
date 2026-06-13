@@ -40,12 +40,12 @@ const imageFileFilter = (
   }
 }
 
-// Avatar upload middleware (max 5MB)
+// Avatar upload middleware (max 10MB)
 export const avatarUpload = multer({
   storage: avatarStorage,
   fileFilter: imageFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 10 * 1024 * 1024, // 10MB
   },
 })
 
