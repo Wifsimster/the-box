@@ -22,3 +22,23 @@ export const numberFormat = (n: number, lang: string) =>
 
 export const percentFormat = (n: number, lang: string) =>
   `${PERCENT_FORMATTERS[localeKey(lang)].format(n)}%`
+
+export const formatDateTime = (iso: string | null, lang: string, fallback: string) => {
+  if (!iso) return fallback
+  return new Date(iso).toLocaleString(lang, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
+export const formatRelative = (iso: string | null, lang: string, fallback: string) => {
+  if (!iso) return fallback
+  const ms = Date.now() - new Date(iso).getTime()
+  if (ms < 0) return formatDateTime(iso, lang, fallback)
+  const minutes = Math.round(ms / 60_000)
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 48) return `${hours} h`
+  const days = Math.round(hours / 24)
+  return `${days} j`
+}

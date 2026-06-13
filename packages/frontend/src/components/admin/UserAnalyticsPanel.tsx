@@ -18,7 +18,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
-import { numberFormat, percentFormat } from './user-analytics-format'
+import { numberFormat, percentFormat, formatRelative } from './user-analytics-format'
 import {
   TopPlayersList,
   RecentlyActiveTable,
