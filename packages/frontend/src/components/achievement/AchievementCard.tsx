@@ -78,7 +78,11 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         {isLocked ? t('achievements.status.hidden') : localizedDescription}
                     </div>
                     {hasProgress && !isComplete && (
-                        <Progress value={(achievement.progress / achievement.progressMax!) * 100} className="mt-1 h-1" />
+                        <Progress
+                            value={(achievement.progress / achievement.progressMax!) * 100}
+                            aria-label={`${t('achievements.status.progress')}: ${achievement.progress} / ${achievement.progressMax}`}
+                            className="mt-1 h-1"
+                        />
                     )}
                 </div>
                 <div className="flex flex-col items-end gap-1">

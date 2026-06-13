@@ -29,9 +29,14 @@ async function startPlayingWithFrozenClock(page: Page) {
 
   await expect(page.getByRole('timer')).toBeVisible({ timeout: 10000 })
 
-  // Freeze at the current instant for deterministic fast-forwarding.
+  // Freeze for deterministic fast-forwarding. pauseAt() internally
+  // fast-forwards to the given instant, which throws "Cannot fast-forward to
+  // the past" if the fake clock has already advanced past it between the
+  // evaluate() round-trip and the pauseAt() call. Pause a small step in the
+  // future so the target is always ahead of the clock; the ~0.5s costs one
+  // tick off the 45s budget, well within every assertion's tolerance.
   const pageNow = await page.evaluate(() => Date.now())
-  await page.clock.pauseAt(new Date(pageNow))
+  await page.clock.pauseAt(new Date(pageNow + 500))
 }
 
 test.describe('Daily Game - Countdown Timer', () => {
