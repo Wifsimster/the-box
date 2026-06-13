@@ -21,13 +21,13 @@ import { test as base, expect } from '@playwright/test'
 // These baselines are captured at a fixed 1280×720 desktop viewport and stored
 // per-platform as *-chromium-linux.png. They are meaningless under the Mobile
 // Chrome project (which would demand its own baselines), so skip them there.
-base.beforeEach(({}, testInfo) => {
+base.beforeEach((_args, testInfo) => {
   base.skip(
     testInfo.project.name !== 'chromium',
     'Visual baselines are desktop chromium @1280×720 only.',
   )
 })
-authTest.beforeEach(({}, testInfo) => {
+authTest.beforeEach((_args, testInfo) => {
   authTest.skip(
     testInfo.project.name !== 'chromium',
     'Visual baselines are desktop chromium @1280×720 only.',
