@@ -144,6 +144,22 @@ export const userRepository = {
     return row?.stripe_customer_id ?? null
   },
 
+  // Public-profile addressing for a user: their opt-in flag and slug. Used by
+  // the session webhook hooks to decide whether to fan out and which slug to
+  // stamp on the event — keeps that raw lookup out of the composition root.
+  async getPublicProfileRef(
+    userId: string,
+  ): Promise<{ publicSlug: string | null; publicProfileEnabled: boolean } | null> {
+    const row = await db('user')
+      .where('id', userId)
+      .first<{ public_slug: string | null; public_profile_enabled: boolean }>(
+        'public_slug',
+        'public_profile_enabled',
+      )
+    if (!row) return null
+    return { publicSlug: row.public_slug, publicProfileEnabled: row.public_profile_enabled }
+  },
+
   async setStripeCustomerId(userId: string, customerId: string): Promise<void> {
     log.info({ userId, customerId }, 'setStripeCustomerId')
     await db('user')
@@ -280,6 +296,26 @@ export const userRepository = {
       .where('id', userId)
       .first<{ current_streak: number | null }>('current_streak')
     return Number(row?.current_streak ?? 0)
+  },
+
+  // RGPD Art. 16 (rectification): update only the columns the caller
+  // supplied. `username` and `display_username` are kept in sync so the
+  // Better Auth username plugin and our public-profile lookups agree.
+  async updateProfile(
+    userId: string,
+    fields: { displayName?: string; username?: string }
+  ): Promise<User | null> {
+    log.info({ userId, fields }, 'updateProfile')
+    const update: Record<string, unknown> = { updatedAt: new Date() }
+    if (fields.displayName !== undefined) {
+      update.display_name = fields.displayName
+    }
+    if (fields.username !== undefined) {
+      update.username = fields.username
+      update.display_username = fields.username
+    }
+    await db('user').where('id', userId).update(update)
+    return this.findById(userId)
   },
 
   async updateSelectedTheme(userId: string, theme: string): Promise<User | null> {

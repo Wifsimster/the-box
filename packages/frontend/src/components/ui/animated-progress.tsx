@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface AnimatedProgressProps {
@@ -53,7 +53,7 @@ export function AnimatedProgress({
           sizeClasses[size]
         )}
       >
-        <motion.div
+        <m.div
           className={cn(
             'h-full rounded-full bg-linear-to-r',
             variantColors[variant]
@@ -74,7 +74,7 @@ export function AnimatedProgress({
         />
         {/* Animated shimmer overlay for in-progress state */}
         {animated && isInProgress && (
-          <motion.div
+          <m.div
             className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent"
             initial={{ x: '-100%' }}
             animate={{ x: '100%' }}
@@ -88,13 +88,13 @@ export function AnimatedProgress({
       </div>
       {showValue && (
         <div className="flex justify-end mt-1">
-          <motion.span
+          <m.span
             className="text-xs text-muted-foreground tabular-nums"
             initial={animated ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
           >
             {Math.round(percentage)}%
-          </motion.span>
+          </m.span>
         </div>
       )}
     </div>

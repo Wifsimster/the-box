@@ -90,11 +90,11 @@ export function ReviewWorkspace({
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                className="h-8 w-8 shrink-0 lg:hidden"
+                                className="size-8 shrink-0 lg:hidden"
                                 onClick={onCloseDetail}
                                 aria-label={t('admin.geo.nav.backToList', 'Retour à la liste')}
                             >
-                                <ArrowLeft className="h-4 w-4" />
+                                <ArrowLeft className="size-4" />
                             </Button>
                         )}
                         <CardTitle className="text-sm truncate">
@@ -277,7 +277,7 @@ function ActionBar({
                         aria-busy={saving}
                         className="w-full sm:w-auto"
                     >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        <Trash2 className="size-3.5 mr-2" />
                         {t('admin.geo.actions.removeOfficial')}
                     </Button>
                 </div>
@@ -305,7 +305,7 @@ function ActionBar({
                         aria-busy={saving}
                         className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
                     >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        <Trash2 className="size-3.5 mr-2" />
                         {t('admin.geo.actions.decline')}
                     </Button>
                     <Button
@@ -316,7 +316,7 @@ function ActionBar({
                         className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
                     >
                         {saving && (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                            <Loader2 className="size-3.5 animate-spin mr-2" />
                         )}
                         {t(
                             pin
@@ -354,13 +354,13 @@ function NavControls({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7"
+                className="size-7"
                 disabled={!prev || disabled}
                 onClick={() => prev && void onNavigate(prev.id)}
                 aria-label={t('admin.geo.nav.previous')}
                 title={t('admin.geo.nav.previous')}
             >
-                <ChevronLeft className="h-4 w-4" aria-hidden />
+                <ChevronLeft className="size-4" aria-hidden />
             </Button>
             {currentIndex >= 0 && total > 0 && (
                 <span
@@ -377,13 +377,13 @@ function NavControls({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7"
+                className="size-7"
                 disabled={!next || disabled}
                 onClick={() => next && void onNavigate(next.id)}
                 aria-label={t('admin.geo.nav.next')}
                 title={t('admin.geo.nav.next')}
             >
-                <ChevronRight className="h-4 w-4" aria-hidden />
+                <ChevronRight className="size-4" aria-hidden />
             </Button>
         </div>
     )

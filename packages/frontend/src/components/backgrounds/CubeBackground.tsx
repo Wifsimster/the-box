@@ -1,3 +1,13 @@
+/*
+ * react-three-fiber renders its scene graph through lowercase intrinsic JSX
+ * elements (`<mesh>`, `<boxGeometry>`, `<bufferAttribute>`, `<pointsMaterial>`,
+ * …) whose props (`args`, `attach`, `intensity`, `wireframe`, `sizeAttenuation`,
+ * …) are R3F-specific, not DOM attributes. react-doctor's no-unknown-property
+ * rule is DOM-only and has no R3F awareness, so it flags every one of these
+ * valid props as "unknown". Disable just that rule for this single R3F file —
+ * every other rule still applies.
+ */
+/* oxlint-disable react-doctor/no-unknown-property */
 import { useRef, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -134,10 +144,10 @@ function DigitalDust() {
 
 export function CubeBackground() {
   return (
-    <div className="fixed inset-0 z-0 bg-black">
+    <div className="fixed inset-0 z-0 bg-background">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 50 }}
-        style={{ background: 'black' }}
+        style={{ background: '#0a0a0f' }}
         dpr={[1, 1.5]}
         gl={{ antialias: false, powerPreference: 'low-power' }}
       >

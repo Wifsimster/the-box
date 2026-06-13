@@ -55,7 +55,7 @@ export function ModerationStatusRail({
     if (healthLoading && !health) {
         return (
             <div className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="size-3.5 animate-spin" />
                 {t('admin.geo.strip.loading')}
             </div>
         )
@@ -64,7 +64,7 @@ export function ModerationStatusRail({
     if (healthError || !health) {
         return (
             <div className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                <AlertTriangle className="h-3.5 w-3.5" />
+                <AlertTriangle className="size-3.5" />
                 {t('admin.geo.strip.error')}
             </div>
         )
@@ -120,7 +120,7 @@ function CounterRow({
     return (
         <div className="flex flex-wrap items-center gap-3 px-3 py-2 text-xs">
             <Counter
-                icon={<Map className="h-3.5 w-3.5" aria-hidden />}
+                icon={<Map className="size-3.5" aria-hidden />}
                 value={`${coverage.withMap} / ${coverage.curated}`}
                 label={t('admin.geo.strip.maps')}
                 tone={
@@ -133,7 +133,7 @@ function CounterRow({
             />
             <Divider />
             <Counter
-                icon={<ListChecks className="h-3.5 w-3.5" aria-hidden />}
+                icon={<ListChecks className="size-3.5" aria-hidden />}
                 value={pinsToReview}
                 label={t('admin.geo.strip.pins')}
                 tone={pinsToReview > 0 ? 'warn' : 'neutral'}
@@ -168,7 +168,7 @@ function ColdStartRow({
     const ctaHandler = stage === 'no-curated' ? onActivateGames : onGoToAcquisition
     return (
         <Section role="note" tone="accent">
-            <Compass className="h-4 w-4 text-neon-pink shrink-0 mt-0.5" aria-hidden />
+            <Compass className="size-4 text-neon-pink shrink-0 mt-0.5" aria-hidden />
             <div className="space-y-1 leading-relaxed flex-1">
                 <p className="font-semibold text-foreground">
                     {t(`admin.geo.coldStart.${stage}.title`)}
@@ -195,13 +195,12 @@ function RunStateRow({ state }: { state: GeoRunStatePayload | null }) {
     if (!state || !state.isActive) return null
     const { active, waiting, delayed, failed } = state.counts
     return (
-        <div
+        <output
             className="flex flex-wrap items-center gap-2 border-t border-neon-pink/20 bg-neon-pink/5 px-3 py-1.5 text-[11px]"
-            role="status"
             aria-live="polite"
         >
             <span className="inline-flex items-center gap-1 text-neon-pink">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                <Loader2 className="size-3 animate-spin" aria-hidden />
                 {t('admin.geo.run.banner.active', { count: active })}
             </span>
             <span className="text-muted-foreground">
@@ -212,7 +211,7 @@ function RunStateRow({ state }: { state: GeoRunStatePayload | null }) {
                     · {t('admin.geo.run.banner.failed', { count: failed })}
                 </span>
             )}
-        </div>
+        </output>
     )
 }
 
@@ -310,7 +309,7 @@ function ErrorsCounter({
                     className="inline-flex items-center gap-1.5 rounded px-1 -mx-1 hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
                 >
                     <span className={valueClass}>
-                        <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                        <AlertTriangle className="size-3.5" aria-hidden />
                     </span>
                     <span className={`font-semibold tabular-nums ${valueClass}`}>
                         {count}
@@ -336,9 +335,9 @@ function ErrorsCounter({
                     </p>
                 ) : (
                     <ul className="mt-3 space-y-1.5 max-h-60 overflow-auto pr-1">
-                        {failures.slice(0, 12).map((f, i) => (
+                        {failures.slice(0, 12).map((f) => (
                             <li
-                                key={i}
+                                key={`${f.gameId ?? '?'}:${f.source ?? '?'}:${f.attempt ?? '?'}:${f.reason ?? '?'}`}
                                 className="rounded border border-border/40 bg-muted/20 px-2 py-1.5"
                             >
                                 {t('admin.geo.health.failures.row', {

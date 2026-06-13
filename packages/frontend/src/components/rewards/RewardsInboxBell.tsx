@@ -78,7 +78,7 @@ export function RewardsInboxBell({ className }: RewardsInboxBellProps) {
             >
                 <Bell
                     className={cn(
-                        'w-4 h-4',
+                        'size-4',
                         count > 0 ? 'text-neon-purple' : 'text-muted-foreground'
                     )}
                 />

@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import {
   ResponsiveDialog,
@@ -19,17 +19,19 @@ export function EndGameButton() {
   const navigate = useNavigate()
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEnding, setIsEnding] = useState(false)
+  const [funSentence, setFunSentence] = useState('')
 
   const gamePhase = useGameStore((s) => s.gamePhase)
   const hasVisitedAllPositions = useGameStore((s) => s.hasVisitedAllPositions)
   const endGameAction = useGameStore((s) => s.endGameAction)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
-  // Pick a random fun sentence when dialog opens
-  const funSentence = useMemo(() => {
+  // Pick a fresh random fun sentence each time the confirm dialog opens.
+  const openConfirm = () => {
     const sentences = t('game.endGame.confirmDescriptions', { returnObjects: true }) as string[]
-    return sentences[Math.floor(Math.random() * sentences.length)]
-  }, [showConfirm, t]) // eslint-disable-line react-hooks/exhaustive-deps
+    setFunSentence(sentences[Math.floor(Math.random() * sentences.length)])
+    setShowConfirm(true)
+  }
 
   const canShowButton = gamePhase === 'playing' && hasVisitedAllPositions() && !isSessionCompleted
 
@@ -52,8 +54,8 @@ export function EndGameButton() {
     <>
       <AnimatePresence>
         {canShowButton && (
-          <motion.button
-            onClick={() => setShowConfirm(true)}
+          <m.button
+            onClick={openConfirm}
             initial={{ opacity: 0, scaleY: 0 }}
             animate={{ opacity: 1, scaleY: 1 }}
             exit={{ opacity: 0, scaleY: 0 }}
@@ -74,17 +76,17 @@ export function EndGameButton() {
               transition-all duration-150
               touch-manipulation"
           >
-            <CheckCircle2 className="h-3.5 w-3.5" />
+            <CheckCircle2 className="size-3.5" />
             <span>{t('game.endGame.button')}</span>
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
 
       <ResponsiveDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <ResponsiveDialogContent className="sm:max-w-md">
           <ResponsiveDialogHeader className="text-center sm:text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
-              <Trophy className="h-8 w-8 text-primary" />
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
+              <Trophy className="size-8 text-primary" />
             </div>
             <ResponsiveDialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
@@ -103,9 +105,9 @@ export function EndGameButton() {
               className="w-full"
             >
               {isEnding ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
               ) : (
-                <Trophy className="w-4 h-4 mr-2" />
+                <Trophy className="size-4 mr-2" />
               )}
               {t('game.endGame.confirm')}
             </Button>

@@ -29,30 +29,27 @@ test.describe('Geo Admin', () => {
 
         await page.goto('/en/admin?tab=geo')
 
-        // Tab itself
+        // Top-level Geo tab opened.
         await expect(
             page.getByRole('tab', { name: /geo|géo/i }).first(),
         ).toBeVisible({ timeout: 10_000 })
 
-        // Ingestion section headings (renders independent of seed data)
-        await expect(
-            page.getByText(/import fandom map|importer la carte fandom/i),
-        ).toBeVisible()
-        await expect(
-            page.getByText(/import steam screenshots|importer les captures steam/i),
-        ).toBeVisible()
+        // The moderation panel + its sub-tabs render regardless of seed data.
+        await expect(page.getByText(/geo moderation|modération géo/i)).toBeVisible()
+        await expect(page.getByRole('tab', { name: /^acquisition$/i })).toBeVisible()
+        await expect(page.getByRole('tab', { name: /review queue|file de revue/i })).toBeVisible()
     })
 
-    test('candidates list renders (possibly empty) for the collecting filter', async ({ page }) => {
+    test('review queue renders (possibly empty)', async ({ page }) => {
         if (!(await geoRoutesReachable(page))) test.skip(true, 'geo router unreachable')
 
-        await page.goto('/en/admin?tab=geo')
+        // The review queue is where crowdsourced submissions are moderated.
+        await page.goto('/en/admin?tab=geo&sub=queue')
         await page.waitForLoadState('networkidle')
 
-        // The default filter is "collecting". Either we see at least one
-        // candidate button (#<id>) or the empty-state message.
-        const candidateButton = page.locator('button:has-text("#")').first()
-        const emptyState = page.getByText(/no candidates match|aucun candidat/i)
-        await expect(candidateButton.or(emptyState).first()).toBeVisible({ timeout: 10_000 })
+        // Either at least one submission renders, or the empty-state message.
+        const submission = page.locator('button:has-text("#")').first()
+        const emptyState = page.getByText(/no submissions match|aucune soumission/i)
+        await expect(submission.or(emptyState).first()).toBeVisible({ timeout: 10_000 })
     })
 })

@@ -1,10 +1,26 @@
+import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { FileText } from 'lucide-react'
 
+const emptySubscribe = () => () => {}
+let cachedLastUpdated: string | null = null
+const getLastUpdatedSnapshot = () => {
+  if (cachedLastUpdated === null) {
+    cachedLastUpdated = new Date().toLocaleDateString()
+  }
+  return cachedLastUpdated
+}
+const getLastUpdatedServerSnapshot = (): string | null => null
+
 export default function TermsPage() {
   const { t } = useTranslation()
+  const lastUpdated = useSyncExternalStore(
+    emptySubscribe,
+    getLastUpdatedSnapshot,
+    getLastUpdatedServerSnapshot
+  )
 
   const sections = [
     { title: t('legal.termsAcceptanceTitle'), content: t('legal.termsAcceptance') },
@@ -20,21 +36,21 @@ export default function TermsPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <Card className="bg-card/50 border-border">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <FileText className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
+              <FileText className="size-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold gradient-gaming bg-clip-text text-transparent">
               {t('legal.termsTitle')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2">
-              {t('legal.termsLastUpdated')}: {new Date().toLocaleDateString()}
+              {t('legal.termsLastUpdated')}: {lastUpdated}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -43,8 +59,8 @@ export default function TermsPage() {
             </p>
 
             {sections.map((section, index) => (
-              <motion.div
-                key={index}
+              <m.div
+                key={section.title}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -56,11 +72,11 @@ export default function TermsPage() {
                 <p className="text-muted-foreground leading-relaxed">
                   {section.content}
                 </p>
-              </motion.div>
+              </m.div>
             ))}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

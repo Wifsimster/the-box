@@ -8,6 +8,7 @@ export type FunnelEventName =
   | 'guess_submitted'
   | 'session_completed'
   | 'session_abandoned'
+  | 'letter_revealed'
 
 export interface FunnelEventInput {
   eventName: FunnelEventName

@@ -49,11 +49,11 @@ export function GeoFetchControls() {
           disabled={isStarting}
           className="bg-gradient-to-r from-neon-purple to-neon-pink"
         >
-          <Play className="h-4 w-4 mr-1.5" />
+          <Play className="size-4 mr-1.5" />
           {t('admin.geoFetch.start', 'Lancer')}
         </Button>
         <Button variant="outline" onClick={() => setCancelConfirmOpen(true)}>
-          <Square className="h-4 w-4 mr-1.5" />
+          <Square className="size-4 mr-1.5" />
           {t('admin.geoFetch.cancel', 'Annuler')}
         </Button>
       </div>
@@ -62,6 +62,7 @@ export function GeoFetchControls() {
         {STAGE_FILTERS.map((f) => (
           <button
             key={f.value ?? 'all'}
+            type="button"
             onClick={() => setFilterStage(f.value)}
             className={`px-2.5 py-1 text-xs rounded-md border whitespace-nowrap ${
               filterStage === f.value
@@ -87,7 +88,7 @@ export function GeoFetchControls() {
       </div>
 
       <Button variant="ghost" size="icon" onClick={() => void hydrate()} title={t('admin.geoFetch.refresh', 'Rafraîchir')}>
-        <RefreshCcw className="h-4 w-4" />
+        <RefreshCcw className="size-4" />
       </Button>
 
       <Dialog open={startConfirmOpen} onOpenChange={setStartConfirmOpen}>

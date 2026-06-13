@@ -2,6 +2,9 @@ import { useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession, signOut as authSignOut } from '@/lib/auth-client'
+import { useGameStore } from '@/stores/gameStore'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useAchievementStore } from '@/stores/achievementStore'
 
 /**
  * Custom hook for authentication logic
@@ -27,11 +30,16 @@ export function useAuth() {
       if (result.error) {
         console.error('Sign out error:', result.error)
       }
-      // Navigate regardless of error to ensure user is redirected
-      navigate(`/${currentLang}`)
     } catch (err) {
       console.error('Sign out failed:', err)
-      // Navigate even on error to ensure user is redirected
+    } finally {
+      // Clear per-user client state so a subsequent login on the same
+      // browser doesn't briefly see the previous user's game session
+      // (persisted in localStorage), inventory, or achievement
+      // notifications.
+      useGameStore.getState().resetGame()
+      useDailyLoginStore.getState().reset()
+      useAchievementStore.getState().reset()
       navigate(`/${currentLang}`)
     }
   }, [navigate, currentLang])

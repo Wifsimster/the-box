@@ -147,7 +147,18 @@ export interface Guess {
 // Power-up Domain
 // ============================================
 
-export type PowerUpType = 'x2_timer' | 'hint' | 'hint_year' | 'hint_publisher' | 'hint_developer'
+export type PowerUpType =
+  | 'x2_timer'
+  | 'hint'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — appears on historical `guesses.power_up_used` values only, never on new guesses. */
+  | 'hint_year'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
+  | 'hint_publisher'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
+  | 'hint_developer'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
+  | 'hint_genre'
+  | 'hint_letter'
 
 export interface PowerUp {
   id: number
@@ -171,6 +182,8 @@ export interface LeaderboardEntry {
   totalScore: number
   correctAnswers?: number
   totalTimeMs?: number
+  /** Average time to find a capture (correct guesses only), in ms */
+  avgCaptureTimeMs?: number
   completedAt?: string
   sessionId?: string
 }
@@ -262,14 +275,19 @@ export interface GuessResult {
   timeTakenMs: number
   scoreEarned: number
   hintPenalty?: number
+  /** Points deducted for letters of the title revealed on this position. */
+  letterPenalty?: number
   wrongGuessPenalty?: number
   screenshot?: Screenshot
   /** All guesses the user made for this position, in chronological order. */
   attempts?: GuessAttempt[]
 }
 
-// Position tracking for navigation
-export type PositionStatus = 'not_visited' | 'in_progress' | 'skipped' | 'correct'
+// Position tracking for navigation.
+// `timed_out` is a terminal state: the player ran out of time on this
+// screenshot. Unlike `skipped` it is NOT revisitable and is revealed as an
+// unfound game at the end of the challenge.
+export type PositionStatus = 'not_visited' | 'in_progress' | 'skipped' | 'correct' | 'timed_out'
 
 export interface PositionState {
   position: number
@@ -277,16 +295,26 @@ export interface PositionState {
   isCorrect: boolean
   screenshotData?: ScreenshotResponse
   hasIncorrectGuess?: boolean
-  hintYearUsed?: boolean
-  hintPublisherUsed?: boolean
-  hintDeveloperUsed?: boolean
-  hintGenreUsed?: boolean
   /**
    * True once the user has spent a `second_chance` for this position in
    * the current tier session. Drives the modal's "show once" behaviour
    * and the disabled state of the inventory item.
    */
   secondChanceActivated?: boolean
+  /**
+   * Latest masked-title reveal state for this position, written after each
+   * successful POST /reveal-letter. Seeded from ScreenshotResponse on
+   * fetch so refresh/navigation restores the same mask.
+   */
+  letterReveal?: LetterRevealState
+  /**
+   * Total active (on-screen) milliseconds already spent guessing this
+   * position, excluding the segment currently in progress. Lets the countdown
+   * timer RESUME from the remaining budget when the player navigates back to a
+   * skipped position instead of resetting to the full limit. Persisted with
+   * `positionStates`, so a refresh can't reset it either.
+   */
+  timeSpentMs?: number
 }
 
 // ============================================
@@ -367,9 +395,53 @@ export interface ScreenshotResponse {
   position: number
   imageUrl: string
   bonusMultiplier?: number
+  /**
+   * Seconds the player has to guess this screenshot before it times out.
+   * Sourced from the tier's `time_limit_seconds` (defaults to 45). Drives
+   * the in-game countdown timer.
+   */
+  timeLimitSeconds: number
+  /**
+   * Server-authoritative masked-title state for the letter-reveal hint.
+   * Before the first paid reveal `maskedTitle` is empty — even the
+   * skeleton (word count + lengths) stays hidden; revealed letters reflect
+   * prior POST /reveal-letter calls so a page refresh restores the exact
+   * same state. The full title is NEVER sent to the client before the
+   * position is solved.
+   */
+  letterReveal?: LetterRevealState
 }
 
-// Guess API
+/**
+ * Masked-title reveal state for one (tierSession, position). All values
+ * are computed server-side from the canonical game name — the client only
+ * ever sees the masked string.
+ */
+export interface LetterRevealState {
+  /**
+   * Empty string until the first paid reveal (the word-shape skeleton is
+   * part of what a reveal buys). Afterwards e.g. "E____ R___" — structural
+   * chars (spaces, digits, punctuation) and leading articles come free.
+   */
+  maskedTitle: string
+  lettersRevealed: number
+  /** Hard cap on reveals for this title: min(2, ceil(maskable × 0.3)). */
+  maxLetters: number
+  /** Cumulative score penalty (percent of the round's earned score) accrued so far. */
+  penaltyPct: number
+  /** Penalty the NEXT reveal would add, or null once the cap is reached. */
+  nextPenaltyPct: number | null
+}
+
+// Letter-reveal API (POST /api/game/reveal-letter)
+export interface RevealLetterResponse extends LetterRevealState {
+  /** True when this reveal consumed a `hint_letter` inventory item (ranked daily is inventory-gated). */
+  fromInventory: boolean
+}
+
+// Guess API. Note: legacy clients may still send a `powerUpUsed` field
+// (metadata hints, retired 2026-06); the server accepts and ignores it —
+// it is no longer part of the contract.
 export interface GuessRequest {
   tierSessionId: string
   screenshotId: number
@@ -377,20 +449,31 @@ export interface GuessRequest {
   gameId: number | null
   guessText: string
   roundTimeTakenMs: number
-  powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
 }
 
 export interface GuessResponse {
   isCorrect: boolean
-  correctGame: Game
+  /**
+   * The answer for this position. Only present once the round is over for
+   * the player — on a correct guess or session completion. Wrong-guess
+   * responses omit it: shipping the name (plus year/publisher/developer)
+   * on every miss let one bad guess read the answer from devtools, which
+   * defeats both the hint economy and the masked-title letter reveal.
+   */
+  correctGame?: Game
   scoreEarned: number
   totalScore: number
   screenshotsFound: number
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
-  hintPenalty?: number
-  hintFromInventory?: boolean
+  /**
+   * Points deducted from this round's score because the player revealed
+   * letters of the title (cumulative percent locked in at reveal time,
+   * applied after the speed-multiplier cap). Absent when no letters were
+   * revealed for this position.
+   */
+  letterPenalty?: number
   wrongGuessPenalty?: number
   /**
    * Set on the response that follows a correct guess where a previously
@@ -401,18 +484,6 @@ export interface GuessResponse {
    * active activation.
    */
   secondChanceFloorBoost?: number
-  availableHints?: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    /**
-     * Primary genre tag for the screenshot's game, or null when the
-     * game has no genres set. Frontend renders the first tag only —
-     * genre arrays are intentionally not exposed (privacy/discriminative
-     * value: revealing all tags ≈ revealing the game).
-     */
-    genre: string | null
-  }
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
@@ -461,6 +532,9 @@ export interface MonthlyLeaderboardEntry {
   avatarUrl?: string
   totalScore: number
   gamesPlayed: number
+  correctAnswers?: number
+  /** Average time to find a capture (correct guesses only), in ms */
+  avgCaptureTimeMs?: number
 }
 
 export interface MonthlyLeaderboardResponse {
@@ -1373,12 +1447,16 @@ export interface AdvancedStats {
     mean: number
   }
 
-  // How often the user reaches for each hint type. Counts only.
+  // How often the user reaches for hints. Counts only.
   hintUsage: {
-    hint_year: number
-    hint_publisher: number
-    hint_developer: number
-    hint_genre: number
+    /** Total letters revealed via the masked-title hint (one reveal = one letter). */
+    hintLetter: number
+    /**
+     * Historical uses of the four retired metadata hints
+     * (year/publisher/developer/genre, retired 2026-06), folded into one
+     * rollup. Frozen — can only ever come from pre-retirement guess rows.
+     */
+    legacyMetadataHints: number
   }
 
   // Last-six-months progression (oldest → newest). `month` is YYYY-MM.

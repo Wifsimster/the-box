@@ -1,4 +1,4 @@
-export class ReferralApiError extends Error {
+class ReferralApiError extends Error {
   constructor(public code: string, message: string) {
     super(message)
     this.name = 'ReferralApiError'

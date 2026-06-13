@@ -25,7 +25,7 @@ Le frontend appelle l'API pour démarrer un Checkout ou ouvrir le portail client
 |------|--------------|---------------|---------|
 | `premium_monthly` | `the_box_premium_monthly` | 3,99 € | Mensuel |
 | `premium_annual` | `the_box_premium_annual` | 29,99 € | Annuel |
-| `supporter_lifetime` | (paiement unique) | À configurer | Lifetime |
+| `supporter_lifetime` | `the_box_supporter_lifetime` | 79,99 € | Paiement unique |
 
 Le script `npm run stripe:check` (depuis `packages/backend`) vérifie en CI que chaque entrée du catalogue correspond bien au prix Stripe (montant, devise, intervalle).
 

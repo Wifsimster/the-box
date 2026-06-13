@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { adminService, jobService } from '../../domain/services/index.js'
-import { billingService } from '../../domain/services/billing.service.js'
+import { billingService } from '../../domain/services/index.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import { recordAdminGeoAudit } from '../middleware/admin-audit.js'

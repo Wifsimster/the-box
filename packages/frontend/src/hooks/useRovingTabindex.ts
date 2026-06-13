@@ -44,7 +44,14 @@ export function useRovingTabindex<T extends HTMLElement>({
     )
     const focusedIndex =
         count > 0 ? Math.min(storedIndex, count - 1) : 0
-    const refsMap = useRef(new Map<number, T | null>())
+    // Lazy-init the Map once: useRef has no lazy-init form, so allocating
+    // `new Map()` directly in the call would discard a fresh Map on every
+    // render. Guard the assignment so it runs only on the first render.
+    const refsMapRef = useRef<Map<number, T | null> | null>(null)
+    if (refsMapRef.current === null) {
+        refsMapRef.current = new Map<number, T | null>()
+    }
+    const refsMap = refsMapRef as { current: Map<number, T | null> }
     // Tracks whether the user has actually moved focus via the keyboard
     // yet. We only auto-focus the new index after they've moved focus
     // once, so the hook doesn't yank focus on initial mount.
@@ -67,7 +74,7 @@ export function useRovingTabindex<T extends HTMLElement>({
     useEffect(() => {
         if (!userHasMoved.current) return
         refsMap.current.get(focusedIndex)?.focus()
-    }, [focusedIndex])
+    }, [focusedIndex, refsMap])
 
     const onKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -104,7 +111,7 @@ export function useRovingTabindex<T extends HTMLElement>({
             tabIndex: index === focusedIndex ? 0 : -1,
             onKeyDown,
         }),
-        [focusedIndex, onKeyDown],
+        [focusedIndex, onKeyDown, refsMap],
     )
 
     return {

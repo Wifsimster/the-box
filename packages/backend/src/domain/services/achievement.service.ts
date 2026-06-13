@@ -209,9 +209,18 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
     data: GameCompletionData,
     criteria: Criteria
   ): Promise<boolean> {
+    // Two hint surfaces gate this achievement:
+    //  - guesses.power_up_used — non-null only on historical rows (the
+    //    legacy metadata hints were retired 2026-06; new guesses persist
+    //    null), kept so old sessions stay correctly classified,
+    //  - position_letter_reveals — the letter-reveal hint. Without this
+    //    second check, retirement would make every game "hint-free".
     const usedHints = data.guesses.some(g => g.powerUpUsed !== null)
+    const lettersRevealed = await achievementRepository.countSessionLetterReveals(
+      data.sessionId
+    )
 
-    if (!usedHints) {
+    if (!usedHints && lettersRevealed === 0) {
       const totalHintFreeGames = await achievementRepository.countHintFreeCompletedGames(
         data.userId
       )

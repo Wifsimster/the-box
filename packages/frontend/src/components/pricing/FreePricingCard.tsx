@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +21,7 @@ export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePri
       : 'pricing.tiers.free.ctaSignUp'
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -46,11 +46,11 @@ export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePri
             onClick={onSignUp}
             variant="outline"
           >
-            {isCurrentPlan && <Check className="w-4 h-4 mr-2" aria-hidden="true" />}
+            {isCurrentPlan && <Check className="size-4 mr-2" aria-hidden="true" />}
             {t(ctaKey)}
           </Button>
         </CardFooter>
       </Card>
-    </motion.div>
+    </m.div>
   )
 }

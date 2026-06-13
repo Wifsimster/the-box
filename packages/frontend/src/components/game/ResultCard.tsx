@@ -1,13 +1,26 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useEffectEvent } from 'react'
+import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
-import { CheckCircle, XCircle, ChevronRight, Clock, Zap, Target } from 'lucide-react'
-import { cn, calculateSpeedMultiplier } from '@/lib/utils'
+import { CheckCircle, XCircle, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { ResultGameInfo } from './ResultGameInfo'
+import { ResultScoreDisplay } from './ResultScoreDisplay'
 
 const AUTO_CLOSE_SECONDS = 5
+
+// Format time display (e.g., "5s", "1:23", "10:05"). Pure helper — no component state.
+function formatTime(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`
+  }
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
 
 export function ResultCard() {
   const { t } = useTranslation()
@@ -68,6 +81,19 @@ export function ResultCard() {
     }
   }, [nextPosition, navigateToPosition, positionStates, setGamePhase, challengeId])
 
+  // Auto-navigation fires from the timer when it reaches zero. Wrapped as an
+  // Effect Event so it always reads the latest state without being a reactive
+  // dependency of the timer effect.
+  const onAutoAdvance = useEffectEvent(() => {
+    // Block auto-navigation while completion choice modal is visible
+    if (showCompletionChoice) return
+    // Only auto-navigate if there's a next position OR session is not completed
+    const shouldAutoNavigate = nextPosition !== null || !isSessionCompleted
+    if (shouldAutoNavigate) {
+      handleNext()
+    }
+  })
+
   // Auto-close timer - only runs when there's a next position OR session is not completed yet
   // Timer is paused when completion choice modal is visible
   useEffect(() => {
@@ -87,6 +113,9 @@ export function ResultCard() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
+          // Trigger navigation directly when the countdown elapses instead of
+          // routing through a "countdown === 0" effect.
+          onAutoAdvance()
           return 0
         }
         return prev - 1
@@ -96,40 +125,30 @@ export function ResultCard() {
     return () => clearInterval(timer)
   }, [lastResult, nextPosition, isSessionCompleted, showCompletionChoice])
 
-  // Separate effect to handle auto-navigation when countdown reaches 0
-  // Auto-navigation is blocked when completion choice modal is visible
-  useEffect(() => {
-    if (countdown === 0 && lastResult) {
-      // Block auto-navigation while completion choice modal is visible
-      if (showCompletionChoice) return
+  // Handle Enter key to advance. handleNext is read only inside the listener,
+  // so it's wrapped as an Effect Event and kept out of the dependency array.
+  const onEnterKey = useEffectEvent(() => {
+    handleNext()
+  })
 
-      // Only auto-navigate if there's a next position OR session is not completed
-      const shouldAutoNavigate = nextPosition !== null || !isSessionCompleted
-      if (shouldAutoNavigate) {
-        handleNext()
-      }
-    }
-  }, [countdown, lastResult, nextPosition, isSessionCompleted, handleNext, showCompletionChoice])
-
-  // Handle Enter key to close dialog
   useEffect(() => {
     if (!lastResult) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         e.preventDefault()
-        handleNext()
+        onEnterKey()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [lastResult, handleNext])
+  }, [lastResult])
 
   // Early return after all hooks
   if (!lastResult) return null
 
-  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, wrongGuessPenalty } = lastResult
+  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, letterPenalty, wrongGuessPenalty } = lastResult
   const maxScore = 200
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
@@ -139,26 +158,7 @@ export function ResultCard() {
     (state) => state.status === 'skipped'
   )
 
-  // Format time display (e.g., "5s", "1:23", "10:05")
-  const formatTime = (seconds: number): string => {
-    if (seconds < 60) {
-      return `${seconds}s`
-    }
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
   const timeDisplay = formatTime(timeTakenSeconds)
-
-  // Determine speed feedback
-  const getSpeedFeedback = () => {
-    if (!isCorrect) return null
-    if (timeTakenSeconds <= 5) return { key: 'lightning', icon: Zap, color: 'text-score-mid' }
-    if (timeTakenSeconds <= 15) return { key: 'fast', icon: Clock, color: 'text-score-high' }
-    return { key: 'good', icon: Target, color: 'text-neon-blue' }
-  }
-
-  const speedFeedback = getSpeedFeedback()
 
   // Determine button text
   const getButtonText = () => {
@@ -174,7 +174,7 @@ export function ResultCard() {
   }
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -182,16 +182,16 @@ export function ResultCard() {
     >
       {/* Success particles/glow effect */}
       {isCorrect && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           className="absolute inset-0 pointer-events-none"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-success/20 rounded-full blur-3xl" />
-        </motion.div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 bg-success/20 rounded-full blur-3xl" />
+        </m.div>
       )}
 
-      <motion.div
+      <m.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -203,19 +203,19 @@ export function ResultCard() {
           className="relative border-2 rounded-2xl p-6 shadow-2xl"
         >
         {/* Round Progress Badge */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-muted rounded-full text-xs font-medium text-muted-foreground border border-border"
         >
           {t('game.round')} {currentPosition} / {totalScreenshots}
-        </motion.div>
+        </m.div>
 
         {/* Result Status Header */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+        <m.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.15, type: 'spring', stiffness: 400 }}
           className="text-center mb-4 pt-2"
         >
@@ -229,189 +229,36 @@ export function ResultCard() {
           >
             {isCorrect ? (
               <>
-                <CheckCircle className="w-5 h-5" />
+                <CheckCircle className="size-5" />
                 {t('game.correct')}
               </>
             ) : (
               <>
-                <XCircle className="w-5 h-5" />
+                <XCircle className="size-5" />
                 {t('game.incorrect')}
               </>
             )}
           </div>
-        </motion.div>
+        </m.div>
 
-        {/* Game Cover Image */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="relative w-40 h-52 mx-auto mb-4 rounded-xl overflow-hidden shadow-xl ring-2 ring-white/10"
-        >
-          {correctGame.coverImageUrl ? (
-            <img
-              src={correctGame.coverImageUrl}
-              alt={correctGame.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-neon-purple/30 to-neon-pink/30">
-              <span className="text-4xl font-bold">{correctGame.name[0]}</span>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Game Title */}
-        <motion.h2
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="text-xl font-bold text-center mb-2 line-clamp-2"
-        >
-          {correctGame.name}
-        </motion.h2>
-
-        {/* Game Details (Release Year and Metascore) */}
-        {(correctGame.releaseYear || correctGame.metacritic != null) && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center justify-center gap-4 text-sm text-muted-foreground mb-4"
-          >
-            {correctGame.releaseYear && (
-              <span>{t('game.releaseYear')}: <span className="text-foreground font-medium">{correctGame.releaseYear}</span></span>
-            )}
-            {correctGame.metacritic != null && (
-              <span className={cn(
-                "font-medium",
-                correctGame.metacritic >= 75 ? "text-score-high" :
-                  correctGame.metacritic >= 50 ? "text-score-mid" :
-                    "text-score-low"
-              )}>
-                {t('game.metascore')}: {correctGame.metacritic}
-              </span>
-            )}
-          </motion.div>
-        )}
-
-        {/* Publisher and Developer */}
-        {(correctGame.publisher || correctGame.developer) && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="flex flex-col items-center gap-1 text-xs text-muted-foreground mb-4"
-          >
-            {correctGame.publisher && (
-              <span>{t('game.publisher')}: <span className="text-foreground font-medium">{correctGame.publisher}</span></span>
-            )}
-            {correctGame.developer && (
-              <span>{t('game.developer')}: <span className="text-foreground font-medium">{correctGame.developer}</span></span>
-            )}
-          </motion.div>
-        )}
-
-        {/* User's wrong guess */}
-        {!isCorrect && userGuess && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-center text-sm text-muted-foreground mb-4"
-          >
-            {t('game.yourGuess')}: <span className="text-error line-through">{userGuess}</span>
-          </motion.p>
-        )}
+        {/* Revealed game details */}
+        <ResultGameInfo game={correctGame} isCorrect={isCorrect} userGuess={userGuess} />
 
         {/* Score Display */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.45 }}
-          className="text-center mb-6"
-        >
-          {isCorrect && scoreEarned > 0 ? (
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center justify-center gap-2">
-                <span
-                  className={cn(
-                    "text-5xl font-black",
-                    scorePercentage >= 80
-                      ? "text-success"
-                      : scorePercentage >= 50
-                        ? "text-score-mid"
-                        : "text-score-low"
-                  )}
-                >
-                  +100
-                </span>
-                <span className="text-5xl font-black text-muted-foreground">×</span>
-                <span
-                  className={cn(
-                    "text-5xl font-black",
-                    scorePercentage >= 80
-                      ? "text-success"
-                      : scorePercentage >= 50
-                        ? "text-score-mid"
-                        : "text-score-low"
-                  )}
-                >
-                  {calculateSpeedMultiplier(timeTakenMs).toFixed(2)}
-                </span>
-              </div>
-              <span className="text-lg text-muted-foreground font-medium">pts</span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-5xl font-black text-muted-foreground">
-                +{scoreEarned}
-              </span>
-              <span className="text-lg text-muted-foreground font-medium">pts</span>
-            </div>
-          )}
-
-          {/* Hint Penalty Display */}
-          {hintPenalty && hintPenalty > 0 && isCorrect && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
-              className="mt-2 text-score-low text-sm font-medium"
-            >
-              {t('game.hints.penaltyApplied', { penalty: hintPenalty })} ({t('game.hints.percentagePenalty', '20% penalty')})
-            </motion.div>
-          )}
-
-          {/* Wrong Guess Penalty Display */}
-          {wrongGuessPenalty && wrongGuessPenalty > 0 && !isCorrect && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
-              className="mt-2 text-error text-sm font-medium"
-            >
-              {t('game.wrongGuessPenalty', { penalty: wrongGuessPenalty, defaultValue: `Wrong guess penalty: -${wrongGuessPenalty} pts` })}
-            </motion.div>
-          )}
-
-          {/* Speed feedback for correct answers */}
-          {isCorrect && speedFeedback && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6 }}
-              className={cn("flex items-center justify-center gap-1.5 mt-2 text-sm", speedFeedback.color)}
-            >
-              <speedFeedback.icon className="w-4 h-4" />
-              <span>{t(`game.speed.${speedFeedback.key}`)}</span>
-              <span className="text-muted-foreground">• {timeDisplay}</span>
-            </motion.div>
-          )}
-        </motion.div>
+        <ResultScoreDisplay
+          isCorrect={isCorrect}
+          scoreEarned={scoreEarned}
+          scorePercentage={scorePercentage}
+          timeTakenMs={timeTakenMs}
+          timeTakenSeconds={timeTakenSeconds}
+          timeDisplay={timeDisplay}
+          hintPenalty={hintPenalty}
+          letterPenalty={letterPenalty}
+          wrongGuessPenalty={wrongGuessPenalty}
+        />
 
         {/* Next Button */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
@@ -425,14 +272,14 @@ export function ResultCard() {
           >
             {/* Show countdown only when auto-closing (session not completed or has next position) */}
             {(nextPosition !== null || !isSessionCompleted) ? `${getButtonText()} (${countdown}s)` : getButtonText()}
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="size-5" />
           </Button>
           <span className="text-xs text-muted-foreground">
             {t('game.pressEnterToContinue', 'Press Enter to continue')}
           </span>
-        </motion.div>
+        </m.div>
         </Card>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   )
 }

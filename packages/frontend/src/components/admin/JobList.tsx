@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { JobCardSkeleton } from '@/components/ui/skeleton'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Dialog,
   DialogContent,
@@ -14,184 +13,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAdminStore } from '@/stores/adminStore'
-import {
-  Clock,
-  Play,
-  Loader2,
-  RefreshCw,
-  Timer,
-  Calendar,
-  ChevronDown,
-  Info,
-  Trophy,
-  Mail,
-  Database,
-  Users,
-  Trash2,
-  AlertTriangle,
-  MapPin,
-} from 'lucide-react'
+import { RefreshCw, AlertTriangle } from 'lucide-react'
+import { JobRow } from './JobRow'
 
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = date.getTime() - now.getTime()
-  const diffMinutes = Math.round(diffMs / 60000)
-
-  if (diffMinutes < 0) {
-    return 'now'
-  } else if (diffMinutes < 60) {
-    return `in ${diffMinutes}m`
-  } else {
-    const hours = Math.floor(diffMinutes / 60)
-    const mins = diffMinutes % 60
-    return `in ${hours}h ${mins}m`
-  }
-}
-
-function formatInterval(ms: number): string {
-  const hours = ms / 3600000
-  if (hours >= 1) {
-    return `${hours}h`
-  }
-  const minutes = ms / 60000
-  return `${minutes}m`
-}
-
-function formatCronPattern(pattern: string, t: (key: string) => string): string {
-  // Common cron patterns
-  if (pattern === '0 0 * * *') {
-    return t('admin.jobs.atMidnight')
-  }
-  if (pattern === '0 2 * * 0') {
-    return t('admin.jobs.weeklySunday2am')
-  }
-  return pattern
-}
-
-function getJobTranslationKey(jobName: string): string {
-  const keyMap: Record<string, string> = {
-    'create-daily-challenge': 'admin.jobs.createDailyChallenge',
-    'schedule-daily-challenge': 'admin.jobs.scheduleDailyGeoChallenge',
-    'sync-all-games': 'admin.jobs.syncAllGames',
-    'cleanup-anonymous-users': 'admin.jobs.cleanupAnonymousUsers',
-    'create-weekly-tournament': 'admin.jobs.createWeeklyTournament',
-    'end-weekly-tournament': 'admin.jobs.endWeeklyTournament',
-    'create-monthly-tournament': 'admin.jobs.createMonthlyTournament',
-    'end-monthly-tournament': 'admin.jobs.endMonthlyTournament',
-    'send-tournament-reminders': 'admin.jobs.sendTournamentReminders',
-    'recalculate-scores': 'admin.jobs.recalculateScores',
-    'clear-daily-data': 'admin.jobs.clearDailyData',
-    'streak-risk-email': 'admin.jobs.streakRiskEmail',
-    'relance-email': 'admin.jobs.relanceEmail',
-    'inactive-user-reminder': 'admin.jobs.inactiveUserReminder',
-  }
-  return keyMap[jobName] || jobName
-}
-
-function getJobRunningTranslationKey(jobName: string): string {
-  const keyMap: Record<string, string> = {
-    'create-daily-challenge': 'admin.jobs.dailyChallengeRunning',
-    'schedule-daily-challenge': 'admin.jobs.scheduleDailyGeoChallengeRunning',
-    'sync-all-games': 'admin.jobs.syncAllRunning',
-    'cleanup-anonymous-users': 'admin.jobs.cleanupAnonymousUsersRunning',
-    'create-weekly-tournament': 'admin.jobs.createWeeklyTournamentRunning',
-    'end-weekly-tournament': 'admin.jobs.endWeeklyTournamentRunning',
-    'create-monthly-tournament': 'admin.jobs.createMonthlyTournamentRunning',
-    'end-monthly-tournament': 'admin.jobs.endMonthlyTournamentRunning',
-    'send-tournament-reminders': 'admin.jobs.sendTournamentRemindersRunning',
-    'recalculate-scores': 'admin.jobs.recalculateScoresRunning',
-    'clear-daily-data': 'admin.jobs.clearDailyDataRunning',
-    'streak-risk-email': 'admin.jobs.streakRiskEmailRunning',
-    'relance-email': 'admin.jobs.relanceEmailRunning',
-    'inactive-user-reminder': 'admin.jobs.inactiveUserReminderRunning',
-  }
-  return keyMap[jobName] || jobName
-}
-
-function getJobMetadata(jobName: string, t: (key: string) => string) {
-  const metadata: Record<string, {
-    description: string
-    icon: React.ReactNode
-    category: string
-  }> = {
-    'create-daily-challenge': {
-      description: t('admin.jobs.descriptions.createDailyChallenge'),
-      icon: <Calendar className="h-4 w-4" />,
-      category: 'Challenge',
-    },
-    'schedule-daily-challenge': {
-      description: t('admin.jobs.descriptions.scheduleDailyGeoChallenge'),
-      icon: <MapPin className="h-4 w-4" />,
-      category: 'Challenge',
-    },
-    'sync-all-games': {
-      description: t('admin.jobs.descriptions.syncAllGames'),
-      icon: <Database className="h-4 w-4" />,
-      category: 'Maintenance',
-    },
-    'cleanup-anonymous-users': {
-      description: t('admin.jobs.descriptions.cleanupAnonymousUsers'),
-      icon: <Users className="h-4 w-4" />,
-      category: 'Maintenance',
-    },
-    'create-weekly-tournament': {
-      description: t('admin.jobs.descriptions.createWeeklyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
-      category: 'Tournament',
-    },
-    'end-weekly-tournament': {
-      description: t('admin.jobs.descriptions.endWeeklyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
-      category: 'Tournament',
-    },
-    'create-monthly-tournament': {
-      description: t('admin.jobs.descriptions.createMonthlyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
-      category: 'Tournament',
-    },
-    'end-monthly-tournament': {
-      description: t('admin.jobs.descriptions.endMonthlyTournament'),
-      icon: <Trophy className="h-4 w-4" />,
-      category: 'Tournament',
-    },
-    'send-tournament-reminders': {
-      description: t('admin.jobs.descriptions.sendTournamentReminders'),
-      icon: <Mail className="h-4 w-4" />,
-      category: 'Notification',
-    }, 'recalculate-scores': {
-      description: t('admin.jobs.descriptions.recalculateScores'),
-      icon: <RefreshCw className="h-4 w-4" />,
-      category: 'Maintenance',
-    },
-    'clear-daily-data': {
-      description: t('admin.jobs.descriptions.clearDailyData'),
-      icon: <Trash2 className="h-4 w-4" />,
-      category: 'Maintenance',
-    },
-    'streak-risk-email': {
-      description: t('admin.jobs.descriptions.streakRiskEmail'),
-      icon: <Mail className="h-4 w-4" />,
-      category: 'Notification',
-    },
-    'relance-email': {
-      description: t('admin.jobs.descriptions.relanceEmail'),
-      icon: <Mail className="h-4 w-4" />,
-      category: 'Notification',
-    },
-    'inactive-user-reminder': {
-      description: t('admin.jobs.descriptions.inactiveUserReminder'),
-      icon: <Mail className="h-4 w-4" />,
-      category: 'Notification',
-    },
-  }
-
-  return metadata[jobName] || {
-    description: t('admin.jobs.descriptions.default'),
-    icon: <RefreshCw className="h-4 w-4" />,
-    category: 'Other',
-  }
-}
+// Manual jobs that are not scheduled but can be triggered. Static, so it lives
+// at module scope for a single stable allocation rather than rebuilding each render.
+const MANUAL_JOBS = [
+  {
+    id: 'manual-clear-daily-data',
+    name: 'clear-daily-data',
+    pattern: null,
+    every: null,
+    nextRun: null,
+    isActive: false,
+    isManual: true,
+  },
+]
 
 export function JobList() {
   const { t } = useTranslation()
@@ -210,23 +47,10 @@ export function JobList() {
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set())
   const [showCancelSyncDialog, setShowCancelSyncDialog] = useState(false)
 
-  // Manual jobs that are not scheduled but can be triggered
-  const manualJobs = [
-    {
-      id: 'manual-clear-daily-data',
-      name: 'clear-daily-data',
-      pattern: null,
-      every: null,
-      nextRun: null,
-      isActive: false,
-      isManual: true,
-    },
-  ]
-
   // Combine recurring jobs with manual jobs
   const allJobs = [
     ...recurringJobs.map(job => ({ ...job, isManual: false })),
-    ...manualJobs,
+    ...MANUAL_JOBS,
   ]
 
   const toggleJobExpansion = (jobId: string) => {
@@ -281,7 +105,7 @@ export function JobList() {
 
   if (isLoading) {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="space-y-6"
@@ -296,12 +120,12 @@ export function JobList() {
             ))}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     )
   }
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -309,7 +133,7 @@ export function JobList() {
     >
       {/* Jobs List */}
       {allJobs.length > 0 && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -317,207 +141,30 @@ export function JobList() {
           <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
             <CardHeader className="pb-2 p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <RefreshCw className="h-4 w-4 text-neon-purple shrink-0" />
+                <RefreshCw className="size-4 text-neon-purple shrink-0" />
                 {t('admin.jobs.jobList')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <AnimatePresence initial={false}>
-                <motion.div
+                <m.div
                   className="space-y-2"
                 >
-                  {allJobs.map((job) => {
-                    const isJobLoading = recurringJobLoading === job.name
-                    const isExpanded = expandedJobs.has(job.id)
-                    const metadata = getJobMetadata(job.name, t)
-
-                    return (
-                      <Collapsible
-                        key={job.id}
-                        open={isExpanded}
-                        onOpenChange={() => toggleJobExpansion(job.id)}
-                      >
-                        <motion.div
-                          layout
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.3, layout: { duration: 0.2 } }}
-                          className="rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all duration-200"
-                        >
-                          {/* Job Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4">
-                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                              <CollapsibleTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 shrink-0"
-                                >
-                                  <ChevronDown
-                                    className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
-                                      }`}
-                                  />
-                                  <span className="sr-only">{t('common.toggleDetails')}</span>
-                                </Button>
-                              </CollapsibleTrigger>
-
-                              {job.isActive || isJobLoading ? (
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <Loader2 className="h-4 w-4 animate-spin text-neon-blue shrink-0" />
-                                  <span className="text-xs sm:text-sm font-medium text-neon-blue/80 truncate">
-                                    {t(getJobRunningTranslationKey(job.name))}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {metadata.icon && (
-                                    <div className="shrink-0 text-success">
-                                      {metadata.icon}
-                                    </div>
-                                  )}
-                                  <div className="flex flex-col min-w-0">
-                                    <span className="text-xs sm:text-sm font-medium truncate">
-                                      {t(getJobTranslationKey(job.name))}
-                                    </span>
-                                    <span className="text-[10px] sm:text-xs text-muted-foreground">
-                                      {t(`admin.jobs.categories.${metadata.category}`)}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:shrink-0">
-                              {!isExpanded && (
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
-                                  {job.isManual ? (
-                                    <span className="text-score-low/80 whitespace-nowrap">
-                                      {t('admin.jobs.manual', 'Manual')}
-                                    </span>
-                                  ) : job.nextRun && !job.isActive ? (
-                                    <span className="text-neon-purple whitespace-nowrap">
-                                      {formatRelativeTime(job.nextRun)}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleTriggerRecurringJob(job.name)}
-                                disabled={job.isActive || isJobLoading}
-                                className="border-neon-purple/30 hover:bg-neon-purple/10 w-full sm:w-auto sm:shrink-0"
-                              >
-                                {isJobLoading ? (
-                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                ) : (
-                                  <Play className="h-4 w-4 mr-1" />
-                                )}
-                                {t('admin.jobs.runNow')}
-                              </Button>
-                            </div>
-                          </div>
-
-                          {/* Collapsible Content */}
-                          <CollapsibleContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                            <div className="mt-2 pt-3 border-t border-border/50 space-y-3">
-                              {/* Description */}
-                              <div className="flex gap-2">
-                                <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                                  {metadata.description}
-                                </p>
-                              </div>
-
-                              {/* Periodicity & Schedule */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {/* Interval */}
-                                {job.every && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
-                                    <Timer className="h-3.5 w-3.5 text-neon-purple shrink-0" />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                                        {t('admin.jobs.interval')}
-                                      </span>
-                                      <span className="text-xs font-medium">
-                                        {t('admin.jobs.every')} {formatInterval(job.every)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Cron Pattern */}
-                                {job.pattern && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
-                                    <Clock className="h-3.5 w-3.5 text-neon-purple shrink-0" />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                                        {t('admin.jobs.schedule')}
-                                      </span>
-                                      <span className="text-xs font-medium">
-                                        {formatCronPattern(job.pattern, t)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Next Run */}
-                                {job.nextRun && !job.isActive && !job.isManual && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
-                                    <Calendar className="h-3.5 w-3.5 text-neon-purple shrink-0" />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                                        {t('admin.jobs.nextRun')}
-                                      </span>
-                                      <span className="text-xs font-medium text-neon-purple">
-                                        {formatRelativeTime(job.nextRun)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Manual Job Indicator */}
-                                {job.isManual && !job.isActive && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-score-low/10">
-                                    <Play className="h-3.5 w-3.5 text-score-low/80 shrink-0" />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                                        {t('admin.jobs.schedule')}
-                                      </span>
-                                      <span className="text-xs font-medium text-score-low/80">
-                                        {t('admin.jobs.manual')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Status */}
-                                {job.isActive && (
-                                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-neon-blue/10">
-                                    <Loader2 className="h-3.5 w-3.5 text-neon-blue shrink-0 animate-spin" />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                                        {t('admin.jobs.status')}
-                                      </span>
-                                      <span className="text-xs font-medium text-neon-blue/80">
-                                        {t('admin.jobs.running')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CollapsibleContent>
-                        </motion.div>
-                      </Collapsible>
-                    )
-                  })}
-                </motion.div>
+                  {allJobs.map((job) => (
+                    <JobRow
+                      key={job.id}
+                      job={job}
+                      isExpanded={expandedJobs.has(job.id)}
+                      isJobLoading={recurringJobLoading === job.name}
+                      onToggle={toggleJobExpansion}
+                      onTrigger={handleTriggerRecurringJob}
+                    />
+                  ))}
+                </m.div>
               </AnimatePresence>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       )}
 
       {/* Cancel Stuck Sync Dialog */}
@@ -525,7 +172,7 @@ export function JobList() {
         <DialogContent className="max-w-sm sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
+              <AlertTriangle className="size-5 text-warning" />
               {t('admin.jobs.syncConflict.title', 'Sync Job Already Running')}
             </DialogTitle>
             <DialogDescription>
@@ -548,6 +195,6 @@ export function JobList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </m.div>
   )
 }

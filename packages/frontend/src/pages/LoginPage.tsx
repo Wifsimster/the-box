@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Password } from '@/components/ui/password'
@@ -10,6 +10,8 @@ import { Lock, User, Loader2, Fingerprint } from 'lucide-react'
 import { CubeBackground } from '@/components/backgrounds/CubeBackground'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapLoginError } from '@/lib/auth-errors'
+
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
 export default function LoginPage() {
   const { t } = useTranslation()
@@ -24,8 +26,6 @@ export default function LoginPage() {
     identifier: '',
     password: '',
   })
-
-  const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
   const handlePasskeyLogin = async (): Promise<void> => {
     setIsLoading(true)
@@ -85,13 +85,13 @@ export default function LoginPage() {
     <>
       <CubeBackground />
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md -mt-20"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -112,7 +112,7 @@ export default function LoginPage() {
                   {t('auth.emailOrUsername')}
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
+                  <User className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
                   <Input
                     type="text"
                     placeholder={t('auth.emailOrUsernamePlaceholder')}
@@ -130,7 +130,7 @@ export default function LoginPage() {
                   {t('auth.password')}
                 </label>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors z-10" />
+                  <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors z-10" />
                   <Password
                     placeholder="••••••••"
                     value={formData.password}
@@ -150,13 +150,13 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
                 >
                   {error}
-                </motion.div>
+                </m.div>
               )}
 
               <Button
@@ -167,7 +167,7 @@ export default function LoginPage() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="size-5 animate-spin" />
                 ) : (
                   t('auth.login')
                 )}
@@ -189,7 +189,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full h-12 text-base font-medium rounded-xl border-neon-purple/30 hover:bg-neon-purple/10"
               >
-                <Fingerprint className="w-5 h-5 mr-2" />
+                <Fingerprint className="size-5 mr-2" />
                 {t('security.passkeyLogin.button')}
               </Button>
             </form>
@@ -203,8 +203,8 @@ export default function LoginPage() {
                 {t('auth.register')}
               </Link>
             </p>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </>
   )

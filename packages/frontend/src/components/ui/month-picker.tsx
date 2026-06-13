@@ -40,7 +40,7 @@ export function MonthPicker({
   disabled = false,
 }: MonthPickerProps) {
   const [open, setOpen] = useState(false)
-  const [viewYear, setViewYear] = useState(value.getFullYear())
+  const [viewYear, setViewYear] = useState(() => value.getFullYear())
 
   const handlePrevMonth = () => {
     const prev = new Date(value)
@@ -86,12 +86,12 @@ export function MonthPicker({
   }
 
   const handlePrevYear = () => {
-    setViewYear(viewYear - 1)
+    setViewYear((prev) => prev - 1)
   }
 
   const handleNextYear = () => {
     if (!maxDate || viewYear < maxDate.getFullYear()) {
-      setViewYear(viewYear + 1)
+      setViewYear((prev) => prev + 1)
     }
   }
 
@@ -102,9 +102,9 @@ export function MonthPicker({
         size="icon"
         onClick={handlePrevMonth}
         disabled={disabled || isPrevDisabled}
-        className="h-9 w-9"
+        className="size-9"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="size-4" />
         <span className="sr-only">Previous month</span>
       </Button>
 
@@ -118,7 +118,7 @@ export function MonthPicker({
               !value && "text-muted-foreground"
             )}
           >
-            <CalendarDays className="h-4 w-4 text-neon-purple" />
+            <CalendarDays className="size-4 text-neon-purple" />
             {value ? format(value, "MMMM yyyy", { locale }) : <span>Pick a month</span>}
           </Button>
         </PopoverTrigger>
@@ -130,9 +130,9 @@ export function MonthPicker({
                 variant="ghost"
                 size="icon"
                 onClick={handlePrevYear}
-                className="h-7 w-7"
+                className="size-7"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="size-4" />
               </Button>
               <span className="font-semibold">{viewYear}</span>
               <Button
@@ -140,9 +140,9 @@ export function MonthPicker({
                 size="icon"
                 onClick={handleNextYear}
                 disabled={maxDate && viewYear >= maxDate.getFullYear()}
-                className="h-7 w-7"
+                className="size-7"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="size-4" />
               </Button>
             </div>
 
@@ -179,9 +179,9 @@ export function MonthPicker({
         size="icon"
         onClick={handleNextMonth}
         disabled={disabled || isNextDisabled}
-        className="h-9 w-9"
+        className="size-9"
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="size-4" />
         <span className="sr-only">Next month</span>
       </Button>
     </div>

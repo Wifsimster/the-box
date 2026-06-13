@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { clamp01, isPlaceholderImageUrl } from '@/lib/geo-image'
 import { formatTileUrl } from '@/lib/geo-tile-url'
 import { MapErrorFallback } from './MapErrorFallback'
-import type { MapCanvasProps } from './MapCanvas'
+import type { MapCanvasProps } from './map-canvas-types'
 
 // Leaflet-based map canvas. Same public API as MapCanvas so the pages are
 // drop-in compatible. Uses CRS.Simple (no real-world projection) and an
@@ -72,11 +72,14 @@ export function MapCanvasLeaflet({
     // 404s won't surface through Leaflet's ImageOverlay, so probe with a hidden
     // <img> in addition to the proactive placeholder check. For tile maps,
     // the thumbnail probe is decorative — TileLayer handles its own errors.
-    const [errored, setErrored] = useState(() => isPlaceholderImageUrl(imageUrl))
-
-    useEffect(() => {
-        setErrored(isPlaceholderImageUrl(imageUrl))
-    }, [imageUrl])
+    //
+    // `errored` is derived during render rather than stored, so it stays in
+    // sync with `imageUrl` for free — a new URL is re-evaluated against the
+    // placeholder check with no prev-URL bookkeeping. We only persist the
+    // *probe failure*, keyed by the URL that failed, so an onError for an old
+    // URL can't shadow a freshly-swapped one.
+    const [failedUrl, setFailedUrl] = useState<string | null>(null)
+    const errored = isPlaceholderImageUrl(imageUrl) || failedUrl === imageUrl
 
     const pinLatLng = pointToLatLng(pin, widthPx, heightPx)
     const canonicalLatLng = pointToLatLng(canonical, widthPx, heightPx)
@@ -105,7 +108,7 @@ export function MapCanvasLeaflet({
                     src={imageUrl}
                     alt=""
                     className="hidden"
-                    onError={() => setErrored(true)}
+                    onError={() => setFailedUrl(imageUrl)}
                     aria-hidden
                 />
             )}
@@ -201,15 +204,22 @@ function TilePyramidLayer({
     // Depend on the *shallow scalar* tile config so a parent re-rendering
     // with a fresh `tiles` object literal (same values, new identity)
     // doesn't tear down and rebuild the entire layer — that triggers a
-    // full tile re-fetch on every parent state change. The `getTileUrl`
-    // closure still reads from the captured `tiles`, which is fine
-    // because the values it reads (scheme, urlTemplate, min/maxZoom)
-    // are exactly the deps we list.
+    // full tile re-fetch on every parent state change. We rebuild the
+    // minimal config that `formatTileUrl` reads from those same scalars
+    // (scheme, urlTemplate, min/maxZoom) so the effect captures nothing but
+    // the listed deps — no `tiles` object identity in the closure.
     const { scheme, urlTemplate, tileSize, minZoom, maxZoom } = tiles
     useEffect(() => {
+        const tileConfig = {
+            scheme,
+            urlTemplate,
+            tileSize,
+            minZoom,
+            maxZoom,
+        } as GeoMapTilesConfig
         const TemplatedTileLayer = L.TileLayer.extend({
             getTileUrl(coords: { x: number; y: number; z: number }) {
-                return formatTileUrl(tiles, coords.z, coords.x, coords.y)
+                return formatTileUrl(tileConfig, coords.z, coords.x, coords.y)
             },
         })
         const layer = new (TemplatedTileLayer as unknown as new (
@@ -242,7 +252,6 @@ function TilePyramidLayer({
         return () => {
             layer.remove()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `tiles` is read via the captured closure but is identity-equivalent to the listed scalar fields; using the object directly would tear down the layer on every parent re-render.
     }, [map, scheme, urlTemplate, tileSize, minZoom, maxZoom, widthPx, heightPx])
     return null
 }

@@ -1,6 +1,6 @@
 {
   "name": "@the-box/marketing-video",
-  "version": "2.113.0",
+  "version": "2.125.3",
   "private": true,
   "description": "Remotion compositions for The Box marketing videos",
   "scripts": {
@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
     "render": "remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
     "render:short": "remotion render src/index.ts the-box-short out/the-box-short.mp4",
+    "render:founder": "remotion render src/index.ts the-box-founder out/the-box-founder.mp4",
     "typecheck": "tsc --noEmit",
     "upgrade": "remotion upgrade"
   },

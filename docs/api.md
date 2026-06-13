@@ -72,12 +72,11 @@ Authorization: Bearer <token>
 {
   "success": true,
   "data": {
+    "screenshotId": 1,
     "position": 1,
-    "imageUrl": "/uploads/screenshots/screenshot1.jpg",
-    "haov": 180,
-    "vaov": 90,
-    "timeLimit": 30,
-    "bonusMultiplier": 1.0
+    "imageUrl": "/api/game/image/1",
+    "bonusMultiplier": 1.0,
+    "timeLimitSeconds": 45
   }
 }
 ```
@@ -272,7 +271,7 @@ Création d'un défi :
     {
       "tierNumber": 1,
       "name": "Facile",
-      "timeLimitSeconds": 30,
+      "timeLimitSeconds": 45,
       "screenshotIds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     }
   ]

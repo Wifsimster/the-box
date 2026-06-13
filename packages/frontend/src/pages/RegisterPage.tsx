@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -45,9 +45,7 @@ export default function RegisterPage() {
       .string()
       .min(3, { message: t('auth.usernameMin') })
       .max(50, { message: t('auth.usernameMax') }),
-    email: z
-      .string()
-      .email({ message: t('auth.emailInvalid') }),
+    email: z.email({ message: t('auth.emailInvalid') }),
     password: z
       .string()
       .min(8, { message: t('auth.passwordTooShort') })
@@ -145,13 +143,13 @@ export default function RegisterPage() {
     <>
       <CubeBackground />
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md -mt-20"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -178,7 +176,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <User className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="text"
                             placeholder={t('auth.usernamePlaceholder')}
@@ -203,7 +201,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <Mail className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="email"
                             placeholder="you@example.com"
@@ -228,7 +226,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="password"
                             placeholder="••••••••"
@@ -253,7 +251,7 @@ export default function RegisterPage() {
                       </FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
+                          <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
                           <Input
                             type="password"
                             placeholder="••••••••"
@@ -280,13 +278,13 @@ export default function RegisterPage() {
                 </label>
 
                 {form.formState.errors.root && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
                   >
                     {form.formState.errors.root.message}
-                  </motion.div>
+                  </m.div>
                 )}
 
                 <Button
@@ -297,7 +295,7 @@ export default function RegisterPage() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="size-5 animate-spin" />
                   ) : (
                     t('auth.register')
                   )}
@@ -314,8 +312,8 @@ export default function RegisterPage() {
                 {t('auth.login')}
               </Link>
             </p>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </>
   )

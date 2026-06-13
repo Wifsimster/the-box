@@ -3,6 +3,7 @@ import type {
   StartChallengeResponse,
   ScreenshotResponse,
   GuessResponse,
+  RevealLetterResponse,
   EndGameResponse,
   GameSearchResult,
   GameHistoryResponse,
@@ -148,6 +149,29 @@ export const gameApi = {
       body: JSON.stringify(params),
     })
     return handleResponse<{ activated: true }>(response)
+  },
+
+  /**
+   * Reveal one more letter of the masked title for a position. The server
+   * owns the mask: it applies the gate (one wrong guess first), the
+   * per-title cap, the inventory consumption on the ranked daily, and
+   * locks in the score penalty — the response carries only the new masked
+   * string. Throws GameApiError with code 'LETTER_LOCKED',
+   * 'LETTER_CAP_REACHED' (409) or 'NO_INVENTORY' (402).
+   */
+  async revealLetter(params: {
+    tierSessionId: string
+    position: number
+  }): Promise<RevealLetterResponse> {
+    const response = await fetch('/api/game/reveal-letter', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    })
+    return handleResponse<RevealLetterResponse>(response)
   },
 
   /**

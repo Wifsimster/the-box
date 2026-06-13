@@ -56,7 +56,6 @@ export const authClient = createAuthClient({
 // Export individual methods and hooks for convenience
 export const {
   signIn,
-  signUp,
   signOut,
   useSession,
 } = authClient;
@@ -64,6 +63,3 @@ export const {
 // Password reset functions
 export const requestPasswordReset = authClient.requestPasswordReset;
 export const resetPassword = authClient.resetPassword;
-
-// Re-export the client for cases where you need direct access
-export default authClient;

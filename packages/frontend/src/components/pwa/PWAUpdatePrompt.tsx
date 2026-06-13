@@ -61,23 +61,23 @@ export function PWAUpdatePrompt() {
   if (!needRefresh) return null
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-labelledby="pwa-update-panel-title"
       aria-describedby="pwa-update-panel-desc"
       aria-live="polite"
       className={cn(
         // Sit just above the mobile BottomNav; drop to the corner at md where
         // the BottomNav is hidden.
-        'fixed inset-x-3 bottom-[var(--bottom-nav-space)] z-[55] rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
+        'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-[55] m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
         'border-primary/30 p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
       )}
     >
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
         aria-hidden="true"
       >
-        <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+        <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
       </div>
       <div className="flex-1 min-w-0">
         <p
@@ -95,7 +95,7 @@ export function PWAUpdatePrompt() {
         <div className="mt-3 flex gap-2">
           <Button size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw
-              className={cn('h-4 w-4 mr-1.5', refreshing && 'animate-spin')}
+              className={cn('size-4 mr-1.5', refreshing && 'animate-spin')}
               aria-hidden="true"
             />
             {refreshing ? t('pwa.updatePanel.refreshing') : t('pwa.updatePanel.refresh')}
@@ -117,8 +117,8 @@ export function PWAUpdatePrompt() {
         aria-label={t('pwa.updatePanel.dismiss')}
         className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
-        <X className="h-4 w-4" />
+        <X className="size-4" />
       </button>
-    </div>
+    </dialog>
   )
 }

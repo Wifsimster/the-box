@@ -2,9 +2,6 @@
  * Audio utility for playing sounds in the application
  */
 
-// Cache for preloaded audio elements
-const audioCache = new Map<string, HTMLAudioElement>()
-
 // Web Audio API context (lazy initialized)
 let audioContext: AudioContext | null = null
 
@@ -25,54 +22,10 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Preload an audio file to avoid delay on first play
- */
-export function preloadAudio(src: string): void {
-  if (audioCache.has(src)) return
-
-  const audio = new Audio(src)
-  audio.preload = 'auto'
-  audioCache.set(src, audio)
-}
-
-/**
- * Play a sound effect from file
- * @param src - Path to the audio file (relative to public folder)
- * @param volume - Volume level from 0 to 1 (default: 0.5)
- */
-export function playSound(src: string, volume = 0.5): Promise<void> {
-  return new Promise((resolve) => {
-    try {
-      // Use cached audio or create new instance
-      let audio = audioCache.get(src)
-
-      if (audio) {
-        // Clone the audio to allow overlapping sounds
-        audio = audio.cloneNode() as HTMLAudioElement
-      } else {
-        audio = new Audio(src)
-      }
-
-      audio.volume = Math.max(0, Math.min(1, volume))
-      audio.onended = () => resolve()
-      audio.onerror = () => resolve()
-
-      audio.play().catch(() => {
-        // Silently fail - browser may block autoplay
-        resolve()
-      })
-    } catch {
-      // Silently fail for audio errors
-      resolve()
-    }
-  })
-}
-
-/**
  * Play a synthesized achievement unlock sound using Web Audio API
  * This provides a pleasant "ding" sound without requiring an audio file
  */
-export function playSynthesizedAchievementSound(volume = 0.5): void {
+function playSynthesizedAchievementSound(volume = 0.5): void {
   const ctx = getAudioContext()
   if (!ctx) return
 
@@ -112,7 +65,7 @@ export function playSynthesizedAchievementSound(volume = 0.5): void {
 }
 
 // Sound effect paths
-export const SOUNDS = {
+const SOUNDS = {
   ACHIEVEMENT_UNLOCK: '/sounds/achievement-unlock.mp3',
 } as const
 

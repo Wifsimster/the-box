@@ -13,7 +13,7 @@ interface BetterAuthError {
  * @param error - The error object from Better Auth
  * @returns Translation key string
  */
-export function mapAuthErrorToTranslationKey(error: unknown): string {
+function mapAuthErrorToTranslationKey(error: unknown): string {
     if (!error) {
         return 'auth.unknownError';
     }

@@ -91,8 +91,8 @@ function DefaultErrorFallback({
       <div className="max-w-md w-full text-center">
         {/* Error Icon */}
         <div className="mb-6 flex justify-center">
-          <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertTriangle className="w-10 h-10 text-destructive" />
+          <div className="size-20 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="size-10 text-destructive" />
           </div>
         </div>
 
@@ -119,7 +119,7 @@ function DefaultErrorFallback({
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={reset} variant="default" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="size-4" />
             {t('errors.boundary.tryAgain')}
           </Button>
           <Button
@@ -127,7 +127,7 @@ function DefaultErrorFallback({
             variant="outline"
             className="gap-2"
           >
-            <Home className="w-4 h-4" />
+            <Home className="size-4" />
             {t('errors.boundary.goHome')}
           </Button>
         </div>
@@ -180,8 +180,8 @@ function LazyLoadErrorFallback({ reset }: { reset: () => void }) {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-6 flex justify-center">
-          <div className="w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center">
-            <AlertTriangle className="w-10 h-10 text-warning" />
+          <div className="size-20 rounded-full bg-warning/10 flex items-center justify-center">
+            <AlertTriangle className="size-10 text-warning" />
           </div>
         </div>
 
@@ -192,7 +192,7 @@ function LazyLoadErrorFallback({ reset }: { reset: () => void }) {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={() => window.location.reload()} variant="default" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="size-4" />
             {t('errors.lazyLoad.reload')}
           </Button>
           <Button onClick={reset} variant="outline" className="gap-2">

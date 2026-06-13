@@ -3,6 +3,8 @@ import type {
   StartChallengeResponse,
   ScreenshotResponse,
   GuessResponse,
+  RevealLetterResponse,
+  LetterRevealState,
   EndGameResponse,
   Game,
   NewlyEarnedAchievement,
@@ -18,9 +20,16 @@ import type {
   GameRepository,
   FunnelEventRepository,
   PositionSecondChanceRepository,
+  PositionLetterRevealRepository,
 } from '../ports/repositories.js'
 import type { FuzzyMatchService } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
+import {
+  buildMaskedTitle,
+  effectiveMaxReveals,
+  nextPenaltyPct,
+  LETTER_PENALTY_STEPS,
+} from './letter-reveal.service.js'
 
 export class GameError extends Error {
   constructor(
@@ -48,20 +57,27 @@ const CATCH_UP_DAYS = 0
 // produces one row per day, so the upper bound on cardinality is small.
 export const PREMIUM_CATCH_UP_DAYS = 365
 
-// Hint payload shape mirrors the inline objects that previously appeared
-// at the two submitGuess return sites; helper keeps both call sites in
-// sync as we tighten the gating.
-function buildAvailableHints(
-  releaseYear: number | null | undefined,
-  fullGameData: { publisher?: string | null; developer?: string | null; genres?: string[] | null } | null
-): { year: string | null; publisher: string | null; developer: string | null; genre: string | null } {
+// Letter-reveal state payload shared by getScreenshot (restore on fetch)
+// and revealLetter (after a paid reveal). Pure recomputation from the
+// stored integer count — the masked string is never persisted. `maxLetters`
+// is the matcher-verified cap from effectiveMaxReveals, computed by the
+// caller (it needs the fuzzy service + aliases).
+//
+// Before the first paid reveal the mask ships EMPTY: even the skeleton
+// (word count + lengths) is too strong a clue to hand out for free, so it
+// only unlocks together with the first revealed letter.
+function buildLetterRevealState(
+  gameName: string,
+  maxLetters: number,
+  row: { letters_revealed: number; penalty_pct: number } | null
+): LetterRevealState {
+  const lettersRevealed = row?.letters_revealed ?? 0
   return {
-    year: releaseYear != null ? releaseYear.toString() : null,
-    publisher: fullGameData?.publisher ?? null,
-    developer: fullGameData?.developer ?? null,
-    // Primary genre only — the full tag list often tips the answer
-    // (e.g. "Action / Stealth / WW2" ≈ Wolfenstein).
-    genre: fullGameData?.genres?.[0] ?? null,
+    maskedTitle: lettersRevealed > 0 ? buildMaskedTitle(gameName, lettersRevealed) : '',
+    lettersRevealed,
+    maxLetters,
+    penaltyPct: row?.penalty_pct ?? 0,
+    nextPenaltyPct: nextPenaltyPct(maxLetters, lettersRevealed),
   }
 }
 
@@ -100,6 +116,7 @@ export interface GameServiceDeps {
   gameRepository: GameRepository
   funnelEventRepository: FunnelEventRepository
   positionSecondChanceRepository: PositionSecondChanceRepository
+  positionLetterRevealRepository: PositionLetterRevealRepository
   /**
    * Optional fire-and-forget hook called after a guess is persisted.
    * Wired by the composition root to unlock any pending rewards that
@@ -158,8 +175,6 @@ export interface GameService {
     guessText: string
     roundTimeTakenMs: number
     userId: string
-    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
-    isPremium?: boolean
   }): Promise<GuessResponse>
   endGame(sessionId: string, userId: string): Promise<EndGameResponse>
   /**
@@ -180,6 +195,28 @@ export interface GameService {
     position: number
     userId: string
   }): Promise<{ ok: true } | { ok: false; reason: 'ALREADY_ACTIVE' | 'NO_INVENTORY' | 'SESSION_NOT_FOUND' }>
+  /**
+   * Reveal one more letter of the masked title for `(tierSession, position)`.
+   * Server-authoritative: the full title never leaves this layer — the
+   * response carries only the recomputed masked string. The leak is metered
+   * three ways:
+   *   - hard cap `min(2, ceil(maskable × 0.3))` so the revealed prefix can
+   *     never satisfy the fuzzy matcher on its own (ship-gate test),
+   *   - gate behind one wrong guess on the position (honest attempt first;
+   *     the free skeleton is visible from the start via getScreenshot),
+   *   - on the ranked daily (non-catch-up) each reveal consumes one
+   *     `hint_letter` inventory item — no inventory, no letters (402).
+   * The score cost (15% then +20%, locked in at reveal time) applies even
+   * when the item came from inventory; only premium-in-catch-up reveals
+   * are free. Throws GameError: SESSION_NOT_FOUND 404, NO_INVENTORY 402,
+   * LETTER_LOCKED / LETTER_CAP_REACHED / POSITION_ALREADY_SOLVED 409.
+   */
+  revealLetter(input: {
+    tierSessionId: string
+    position: number
+    userId: string
+    isPremium?: boolean
+  }): Promise<RevealLetterResponse>
 }
 
 export function createGameService(deps: GameServiceDeps): GameService {
@@ -194,6 +231,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     gameRepository,
     funnelEventRepository,
     positionSecondChanceRepository,
+    positionLetterRevealRepository,
   } = deps
   const log = deps.logger.child({ service: 'game' })
 
@@ -207,8 +245,13 @@ export function createGameService(deps: GameServiceDeps): GameService {
     userId: string,
     user: { currentStreak: number; longestStreak?: number; lastPlayedAt?: string } | null
   ): Promise<{ currentStreak: number; longestStreak: number }> {
+    // Day boundaries are UTC: challenges are dated by the daily-challenge
+    // worker's getTodayDateUTC() and daily-login streaks compare UTC date
+    // strings. Local midnight (the old behaviour) drifted a day in any TZ
+    // ahead of UTC (e.g. Europe/Paris, the production container TZ), so a
+    // player finishing every UTC day could see daysDiff 0 or 2 instead of 1.
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    today.setUTCHours(0, 0, 0, 0)
 
     let currentStreak = user?.currentStreak || 0
     let longestStreak = user?.longestStreak || 0
@@ -220,7 +263,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       log.info({ userId, currentStreak, longestStreak }, 'First game - streak started')
     } else {
       const lastPlayed = new Date(lastPlayedAtStr)
-      lastPlayed.setHours(0, 0, 0, 0)
+      lastPlayed.setUTCHours(0, 0, 0, 0)
 
       const daysDiff = Math.floor((today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -517,11 +560,33 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // Use proxy URL to hide the actual file path (which contains game slug)
     const proxyImageUrl = `/api/game/image/${tierScreenshot.screenshot_id}`
 
+    // Masked-title state for the letter-reveal hint. Until the first paid
+    // reveal the mask ships empty (even the word count + lengths skeleton
+    // stays hidden); any letters the player already paid for in this
+    // session are restored from position_letter_reveals so
+    // refresh/navigation can't reset (or re-charge) the mask. Only the
+    // masked string ships — never the title.
+    let letterReveal: LetterRevealState | undefined
+    const screenshotWithGame = await screenshotRepository.findWithGame(
+      tierScreenshot.screenshot_id
+    )
+    if (screenshotWithGame) {
+      const revealRow = await positionLetterRevealRepository.find(latestTier.id, position)
+      const maxLetters = effectiveMaxReveals(screenshotWithGame.gameName, (input, name) =>
+        fuzzyMatchService.isMatch(input, name, screenshotWithGame.aliases)
+      )
+      letterReveal = buildLetterRevealState(screenshotWithGame.gameName, maxLetters, revealRow)
+    }
+
     return {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: proxyImageUrl,
       bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
+      // Expose the per-screenshot countdown limit so the client can run the
+      // round timer. Falls back to 45s if a legacy tier has no value.
+      timeLimitSeconds: tier.time_limit_seconds ?? 45,
+      letterReveal,
     }
   },
 
@@ -533,8 +598,6 @@ export function createGameService(deps: GameServiceDeps): GameService {
     guessText: string
     roundTimeTakenMs: number
     userId: string
-    powerUpUsed?: 'hint_year' | 'hint_publisher' | 'hint_developer' | 'hint_genre'
-    isPremium?: boolean
   }): Promise<GuessResponse> {
     // Serialise the whole submission against other concurrent calls for
     // the same tier_session. Without this, two rapid POSTs (two tabs, a
@@ -550,6 +613,23 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     if (!tierSession || tierSession.user_id !== data.userId) {
       throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
+    }
+
+    // Anti-replay: a position can only be SOLVED once. The round-timer guard
+    // below only checks `round_position === data.position`, and that field is
+    // never cleared after a correct guess — so without this check a client
+    // could re-POST the same winning answer for an already-solved slot,
+    // re-banking score and inserting a second correct row (which also
+    // inflated the completion tally). Wrong guesses may still repeat; we only
+    // block re-scoring a position that already has a correct guess. Running
+    // inside the tier-session advisory lock makes this check-then-insert
+    // race-safe against two concurrent winning submits.
+    if (await sessionRepository.hasCorrectGuessForPosition(data.tierSessionId, data.position)) {
+      throw new GameError(
+        'POSITION_ALREADY_SOLVED',
+        'This screenshot has already been solved.',
+        409
+      )
     }
 
     const screenshotData = await screenshotRepository.findWithGame(data.screenshotId)
@@ -613,51 +693,41 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // Calculate score based on speed multiplier (only for correct guesses)
     // Base score is 100 points, multiplied by speed factor
     let scoreEarned = 0
-    let hintPenalty = 0
-    let hintFromInventory = false
     if (isCorrect) {
       const speedMultiplier = calculateSpeedMultiplier(effectiveTimeTakenMs)
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
       // Cap max score per screenshot at 200 points
       scoreEarned = Math.min(scoreEarned, 200)
+    }
 
-      // Check if hint was used and handle penalty/inventory
-      if (
-        data.powerUpUsed === 'hint_year' ||
-        data.powerUpUsed === 'hint_publisher' ||
-        data.powerUpUsed === 'hint_developer' ||
-        data.powerUpUsed === 'hint_genre'
-      ) {
-        // Premium entitlement bypasses the hint cost ENTIRELY in catch-up
-        // sessions only — never on today's daily, since today is what
-        // feeds the leaderboard and ranked integrity is non-negotiable.
-        const premiumFreeHint = !!data.isPremium && !!tierSession.is_catch_up
-
-        if (premiumFreeHint) {
-          hintFromInventory = true // accounting bucket: "no penalty"
+    // Letter-reveal penalty — the cumulative percent was locked in at
+    // reveal time (POST /reveal-letter) and is deducted here exactly once,
+    // on the correct guess. Ordering contract: after the speed-multiplier
+    // cap, BEFORE the second-chance floor — a paid floor still wins over
+    // letter costs. Re-deduction on a later guess is blocked by the
+    // POSITION_ALREADY_SOLVED anti-replay guard.
+    let letterPenalty = 0
+    let pendingLetterRevealId: number | null = null
+    if (isCorrect) {
+      const letterReveal = await positionLetterRevealRepository.findPending(
+        data.tierSessionId,
+        data.position
+      )
+      if (letterReveal) {
+        pendingLetterRevealId = letterReveal.id
+        if (letterReveal.penalty_pct > 0) {
+          letterPenalty = Math.round((scoreEarned * letterReveal.penalty_pct) / 100)
+          scoreEarned -= letterPenalty
           log.info(
-            { userId: data.userId, hintType: data.powerUpUsed },
-            'hint free for premium in catch-up',
+            {
+              userId: data.userId,
+              position: data.position,
+              lettersRevealed: letterReveal.letters_revealed,
+              penaltyPct: letterReveal.penalty_pct,
+              penalty: letterPenalty,
+            },
+            'letter-reveal penalty applied'
           )
-        } else {
-          // Check if user has hint in inventory (use it for free)
-          const hasHintInInventory = await inventoryRepository.useItems(
-            data.userId,
-            'powerup',
-            data.powerUpUsed,
-            1
-          )
-
-          if (hasHintInInventory) {
-            // Hint from inventory - no penalty
-            hintFromInventory = true
-            log.info({ userId: data.userId, hintType: data.powerUpUsed }, 'hint used from inventory (no penalty)')
-          } else {
-            // No inventory - apply 20% penalty
-            hintPenalty = Math.round(scoreEarned * 0.20)
-            scoreEarned -= hintPenalty
-            log.info({ userId: data.userId, hintType: data.powerUpUsed, penalty: hintPenalty }, 'hint used with penalty (no inventory)')
-          }
         }
       }
     }
@@ -734,6 +804,11 @@ export function createGameService(deps: GameServiceDeps): GameService {
       // actually drove the score, not the client's self-report.
       sessionElapsedMs: effectiveTimeTakenMs,
       scoreEarned,
+      // Legacy metadata hints are retired — new guesses always persist
+      // null. The column (and historical non-null values) stay untouched
+      // for history-display and recalculation paths.
+      powerUpUsed: null,
+      hintFromInventory: false,
     })
 
     if (pendingSecondChanceActivationId !== null) {
@@ -745,6 +820,12 @@ export function createGameService(deps: GameServiceDeps): GameService {
         pendingSecondChanceActivationId,
         null
       )
+    }
+
+    if (pendingLetterRevealId !== null) {
+      // Same best-effort link as the second-chance row above; the real
+      // double-deduction guard is the anti-replay check on solved slots.
+      await positionLetterRevealRepository.markApplied(pendingLetterRevealId, null)
     }
 
     // Fire-and-forget reactivation chest unlock + any other post-guess
@@ -767,7 +848,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
         position: data.position,
         isCorrect,
         roundTimeTakenMs: effectiveTimeTakenMs,
-        powerUpUsed: data.powerUpUsed ?? null,
+        // Retired field, kept in the payload shape so funnel queries that
+        // segment on it keep working across the retirement boundary.
+        powerUpUsed: null,
       },
     })
 
@@ -777,9 +860,13 @@ export function createGameService(deps: GameServiceDeps): GameService {
       wrongGuesses: newWrongGuesses,
     })
 
-    // Get count of screenshots found (correct answers)
-    const screenshotsFound = await sessionRepository.getCorrectAnswersCount(data.tierSessionId)
-    const totalScreenshotsFound = screenshotsFound + (isCorrect ? 1 : 0)
+    // Count of screenshots found (distinct solved positions). This runs AFTER
+    // `saveGuess` above has already persisted the current guess (the insert
+    // autocommits on its pooled connection before this read), so the current
+    // correct guess is already included — we must NOT add it again. The old
+    // `+ (isCorrect ? 1 : 0)` double-counted it and ended the challenge after
+    // 9 of 10 screenshots.
+    const totalScreenshotsFound = await sessionRepository.getCorrectAnswersCount(data.tierSessionId)
 
     // Advance to next position only on correct guess
     const shouldAdvance = isCorrect
@@ -905,15 +992,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
         nextPosition,
         isCompleted,
         completionReason,
-        hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
-        hintFromInventory: hintFromInventory || undefined,
+        letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
-        // Hints reveal the year/publisher/developer/genre of the answer.
-        // On a wrong guess we'd otherwise hand a free harvest path to any
-        // player willing to spend one bad guess. On the completion path
-        // we deliberately reveal them — the round is over either way.
-        availableHints: isCorrect || isCompleted ? buildAvailableHints(releaseYear, fullGameData) : undefined,
         newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
     }
@@ -939,22 +1020,147 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     return {
       isCorrect,
-      correctGame,
+      // Anti-leak gate: a wrong guess must not hand back the answer
+      // (name + metadata) — that free harvest path would make the
+      // metered letter reveal meaningless.
+      correctGame: isCorrect ? correctGame : undefined,
       scoreEarned,
       totalScore: newTotalScore,
       screenshotsFound: totalScreenshotsFound,
       nextPosition,
       isCompleted,
       completionReason,
-      hintPenalty: hintPenalty > 0 ? hintPenalty : undefined,
-      hintFromInventory: hintFromInventory || undefined,
+      letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       secondChanceFloorBoost,
-      // Same gating as the completion path above — wrong guesses don't
-      // leak the answer's metadata back to the client.
-      availableHints: isCorrect ? buildAvailableHints(releaseYear, fullGameData) : undefined,
     }
     }) // end withTierSessionLock
+  },
+
+  async revealLetter(input: {
+    tierSessionId: string
+    position: number
+    userId: string
+    isPremium?: boolean
+  }): Promise<RevealLetterResponse> {
+    const { tierSessionId, position, userId, isPremium } = input
+    // The tier-session advisory lock serialises reveals against each other
+    // AND against submitGuess, so the read-compute-write of the penalty
+    // step can't interleave and a reveal can't race a winning guess.
+    return sessionRepository.withTierSessionLock(tierSessionId, async (): Promise<RevealLetterResponse> => {
+      log.info({ tierSessionId, position, userId }, 'revealLetter')
+
+      const tierSession = await sessionRepository.findTierSessionWithContext(tierSessionId)
+      if (!tierSession || tierSession.user_id !== userId) {
+        throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
+      }
+
+      // No buying letters for a slot that is already solved.
+      if (await sessionRepository.hasCorrectGuessForPosition(tierSessionId, position)) {
+        throw new GameError(
+          'POSITION_ALREADY_SOLVED',
+          'This screenshot has already been solved.',
+          409
+        )
+      }
+
+      const tiers = await challengeRepository.findTiersByChallenge(tierSession.daily_challenge_id)
+      const tier = tiers[0]
+      if (!tier) {
+        throw new GameError('CHALLENGE_NOT_FOUND', 'Challenge not found', 404)
+      }
+      const tierScreenshot = await challengeRepository.findScreenshotAtPosition(tier.id, position)
+      if (!tierScreenshot) {
+        throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
+      }
+      const screenshotWithGame = await screenshotRepository.findWithGame(
+        tierScreenshot.screenshot_id
+      )
+      if (!screenshotWithGame) {
+        throw new GameError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
+      }
+      const { gameName, aliases } = screenshotWithGame
+
+      // Matcher-verified cap: never reveal a fragment the fuzzy matcher
+      // would accept as a winning guess (the no-leak ship gate).
+      const maxLetters = effectiveMaxReveals(gameName, (input, name) =>
+        fuzzyMatchService.isMatch(input, name, aliases)
+      )
+      const existing = await positionLetterRevealRepository.find(tierSessionId, position)
+      const current = existing?.letters_revealed ?? 0
+      if (current >= maxLetters) {
+        throw new GameError(
+          'LETTER_CAP_REACHED',
+          'No more letters can be revealed for this screenshot.',
+          409
+        )
+      }
+
+      // Hybrid gate: the free skeleton is always visible, but the first
+      // PAID letter requires one honest attempt on the position.
+      if (!(await sessionRepository.hasWrongGuessForPosition(tierSessionId, position))) {
+        throw new GameError(
+          'LETTER_LOCKED',
+          'Make at least one guess on this screenshot before revealing letters.',
+          409
+        )
+      }
+
+      // Premium entitlement zeroes the score cost in catch-up sessions
+      // only — never on today's daily (ranked integrity is
+      // non-negotiable).
+      const premiumFree = !!isPremium && !!tierSession.is_catch_up
+
+      // Ranked daily is inventory-gated: every reveal burns one
+      // `hint_letter` item so letter help is bounded by what the streak
+      // economy hands out. 402 routes the frontend to the upsell, like
+      // second-chance. Catch-up sessions don't touch inventory — they
+      // never feed the leaderboard.
+      let fromInventory = false
+      if (!tierSession.is_catch_up) {
+        const hasItem = await inventoryRepository.useItems(userId, 'powerup', 'hint_letter', 1)
+        if (!hasItem) {
+          throw new GameError(
+            'NO_INVENTORY',
+            'No letter-reveal power-up in inventory.',
+            402
+          )
+        }
+        fromInventory = true
+      }
+
+      // Score cost applies even when the item came from inventory — the
+      // economy contract for letters is "always costs score" so login
+      // streaks can't trivialise the leaderboard. Premium-in-catch-up is
+      // the single free path.
+      const penaltyStep = premiumFree
+        ? 0
+        : LETTER_PENALTY_STEPS[Math.min(current, LETTER_PENALTY_STEPS.length - 1)]!
+
+      const row = await positionLetterRevealRepository.recordReveal({
+        tierSessionId,
+        position,
+        addPenaltyPct: penaltyStep,
+      })
+
+      void funnelEventRepository.record({
+        eventName: 'letter_revealed',
+        userId,
+        sessionId: tierSession.game_session_id,
+        payload: {
+          position,
+          lettersRevealed: row.letters_revealed,
+          penaltyPct: row.penalty_pct,
+          fromInventory,
+          premiumFree,
+        },
+      })
+
+      return {
+        ...buildLetterRevealState(gameName, maxLetters, row),
+        fromInventory,
+      }
+    })
   },
 
   async activateSecondChance(input: {

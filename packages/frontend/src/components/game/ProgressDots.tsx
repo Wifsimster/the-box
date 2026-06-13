@@ -1,8 +1,20 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useGameStore } from '@/stores/gameStore'
 import { cn } from '@/lib/utils'
 import type { PositionStatus } from '@/types'
+
+/** Background colour class for a position dot based on its status. */
+function getStatusColor(status: PositionStatus) {
+  switch (status) {
+    case 'correct':
+      return 'bg-success'
+    case 'timed_out':
+      return 'bg-error'
+    default:
+      return 'bg-muted'
+  }
+}
 
 /**
  * ProgressDots displays the status of all screenshots in the challenge.
@@ -20,17 +32,9 @@ export function ProgressDots() {
     navigateToPosition,
   } = useGameStore()
 
-  const getStatusColor = (status: PositionStatus) => {
-    switch (status) {
-      case 'correct':
-        return 'bg-success'
-      default:
-        return 'bg-muted'
-    }
-  }
-
   const handleDotClick = (position: number) => {
-    if (position !== currentPosition) {
+    // Timed-out positions are locked (permanent miss) — not navigable.
+    if (position !== currentPosition && positionStates[position]?.status !== 'timed_out') {
       navigateToPosition(position)
     }
   }
@@ -46,10 +50,10 @@ export function ProgressDots() {
         const state = positionStates[pos]
         const status = state?.status ?? 'not_visited'
         const isCurrent = pos === currentPosition
-        const isClickable = pos !== currentPosition
+        const isClickable = pos !== currentPosition && status !== 'timed_out'
 
         return (
-          <motion.button
+          <m.button
             key={pos}
             role="tab"
             onClick={() => handleDotClick(pos)}
@@ -71,7 +75,7 @@ export function ProgressDots() {
             <span
               className={cn(
                 "flex items-center justify-center rounded-full font-semibold text-[11px] sm:text-xs transition-all duration-300",
-                "h-7 w-7 sm:h-8 sm:w-8",
+                "size-7 sm:size-8",
                 getStatusColor(status),
                 isCurrent && "bg-primary ring-2 ring-ring",
                 isClickable && "hover:brightness-125"
@@ -80,46 +84,9 @@ export function ProgressDots() {
             >
               <span className="text-primary-foreground drop-shadow-md tabular-nums">{pos}</span>
             </span>
-          </motion.button>
+          </m.button>
         )
       })}
-    </div>
-  )
-}
-
-/**
- * Compact progress indicator showing current/total with dots
- */
-export function ProgressDotsCompact() {
-  const { t } = useTranslation()
-  const { positionStates, currentPosition, totalScreenshots } = useGameStore()
-
-  // Count by status
-  const counts = {
-    correct: 0,
-    skipped: 0,
-  }
-
-  Object.values(positionStates).forEach((state) => {
-    if (state.status === 'correct') counts.correct++
-    else if (state.status === 'skipped') counts.skipped++
-  })
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-lg font-bold tabular-nums">
-        {currentPosition}/{totalScreenshots}
-      </span>
-      {counts.correct > 0 && (
-        <span className="text-success text-sm">
-          {t('game.progressDots.summary.found', { count: counts.correct })}
-        </span>
-      )}
-      {counts.skipped > 0 && (
-        <span className="text-warning text-sm">
-          {t('game.progressDots.summary.skipped', { count: counts.skipped })}
-        </span>
-      )}
     </div>
   )
 }

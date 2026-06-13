@@ -47,7 +47,7 @@ export function GeoContributorCard() {
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-neon-pink" />
+                    <MapPin className="size-4 text-neon-pink" />
                     {t('geo.profile.title', 'Geo Crowdsourcer')}
                 </CardTitle>
             </CardHeader>
@@ -55,12 +55,12 @@ export function GeoContributorCard() {
                 <div className="flex items-center gap-3">
                     <div
                         className={cn(
-                            'h-12 w-12 rounded-full shadow-lg grid place-items-center',
+                            'size-12 rounded-full shadow-lg grid place-items-center',
                             TIER_BG[tierShown],
                         )}
                         aria-hidden
                     >
-                        <ShieldCheck className="h-6 w-6 text-white" />
+                        <ShieldCheck className="size-6 text-white" />
                     </div>
                     <div className="flex-1">
                         <p className="text-sm font-semibold">{TIER_LABEL[tierShown]}</p>
@@ -101,7 +101,7 @@ function UnlockProgress({
     return (
         <div className="rounded-lg border bg-card/40 p-3 text-xs space-y-2">
             <div className="flex items-center gap-2 text-foreground">
-                <Lock className="h-3.5 w-3.5" />
+                <Lock className="size-3.5" />
                 <span className="font-medium">
                     {t('geo.profile.unlockLabel', 'Contribute unlocks after')}{' '}
                     {unlock.daysPlayed}/{unlock.minRequired}{' '}
@@ -130,7 +130,7 @@ function NextTierHint({
     thresholds: Array<{ tier: GeoContributorTier; minAccepted: number; minAccuracy: number; displayOrder: number }>
 }) {
     const { t } = useTranslation()
-    const sorted = [...thresholds].sort((a, b) => a.displayOrder - b.displayOrder)
+    const sorted = thresholds.toSorted((a, b) => a.displayOrder - b.displayOrder)
     const currentIdx = sorted.findIndex((t) => t.tier === currentTier)
     const next = currentIdx >= 0 ? sorted[currentIdx + 1] : undefined
     if (!next) return null
@@ -141,7 +141,7 @@ function NextTierHint({
     return (
         <div className="rounded-lg border bg-card/40 p-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2 mb-1 text-foreground">
-                <Target className="h-3.5 w-3.5" />
+                <Target className="size-3.5" />
                 <span className="font-medium">
                     {t('geo.profile.nextTier', 'Next tier')}: {TIER_LABEL[next.tier]}
                 </span>
@@ -176,7 +176,7 @@ function GeoCrowdsourcerPlaceholder({
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-neon-pink" />
+                    <MapPin className="size-4 text-neon-pink" />
                     {t('geo.profile.title', 'Geo Crowdsourcer')}
                 </CardTitle>
             </CardHeader>

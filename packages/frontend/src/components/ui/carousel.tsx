@@ -1,4 +1,5 @@
 import * as React from "react"
+import { use, useMemo, useEffectEvent } from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
@@ -31,7 +32,7 @@ type CarouselContextProps = {
 const CarouselContext = React.createContext<CarouselContextProps | null>(null)
 
 function useCarousel() {
-  const context = React.useContext(CarouselContext)
+  const context = use(CarouselContext)
 
   if (!context) {
     throw new Error("useCarousel must be used within a <Carousel />")
@@ -40,22 +41,23 @@ function useCarousel() {
   return context
 }
 
-const Carousel = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & CarouselProps
->(
-  (
-    {
-      orientation = "horizontal",
-      opts,
-      setApi,
-      plugins,
-      className,
-      children,
-      ...props
-    },
-    ref
-  ) => {
+type CarouselComponentProps = React.HTMLAttributes<HTMLDivElement> &
+  CarouselProps & {
+    ref?: React.Ref<HTMLDivElement>
+  }
+
+const Carousel = (
+  {
+    orientation = "horizontal",
+    opts,
+    setApi,
+    plugins,
+    className,
+    children,
+    ref,
+    ...props
+  }: CarouselComponentProps
+) => {
     const [carouselRef, api] = useEmblaCarousel(
       {
         ...opts,
@@ -66,14 +68,14 @@ const Carousel = React.forwardRef<
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)
 
-    const onSelect = React.useCallback((api: CarouselApi) => {
+    const onSelect = useEffectEvent((api: CarouselApi) => {
       if (!api) {
         return
       }
 
       setCanScrollPrev(api.canScrollPrev())
       setCanScrollNext(api.canScrollNext())
-    }, [])
+    })
 
     const scrollPrev = React.useCallback(() => {
       api?.scrollPrev()
@@ -96,62 +98,84 @@ const Carousel = React.forwardRef<
       [scrollPrev, scrollNext]
     )
 
+    const emitApi = useEffectEvent((api: CarouselApi) => {
+      setApi?.(api)
+    })
+
+    // Expose the embla instance to the parent via the public `setApi` prop —
+    // this is shadcn/ui's documented Carousel contract, letting callers drive
+    // the carousel imperatively. The data flows from an external system (embla),
+    // not parent-owned state, so no-pass-data-to-parent is a false positive.
     React.useEffect(() => {
-      if (!api || !setApi) {
+      if (!api) {
         return
       }
 
-      setApi(api)
-    }, [api, setApi])
+      // oxlint-disable-next-line react-doctor/no-pass-data-to-parent
+      emitApi(api)
+    }, [api])
 
     React.useEffect(() => {
       if (!api) {
         return
       }
 
-      onSelect(api)
-      api.on("reInit", onSelect)
-      api.on("select", onSelect)
+      const handleSelect = () => onSelect(api)
+      handleSelect()
+      api.on("reInit", handleSelect)
+      api.on("select", handleSelect)
 
       return () => {
-        api?.off("select", onSelect)
+        api?.off("reInit", handleSelect)
+        api?.off("select", handleSelect)
       }
-    }, [api, onSelect])
+    }, [api])
+
+    const contextValue = useMemo<CarouselContextProps>(
+      () => ({
+        carouselRef,
+        api,
+        opts,
+        orientation:
+          orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+        scrollPrev,
+        scrollNext,
+        canScrollPrev,
+        canScrollNext,
+      }),
+      [
+        carouselRef,
+        api,
+        opts,
+        orientation,
+        scrollPrev,
+        scrollNext,
+        canScrollPrev,
+        canScrollNext,
+      ]
+    )
 
     return (
-      <CarouselContext.Provider
-        value={{
-          carouselRef,
-          api: api,
-          opts,
-          orientation:
-            orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
-          scrollPrev,
-          scrollNext,
-          canScrollPrev,
-          canScrollNext,
-        }}
-      >
-        <div
+      <CarouselContext.Provider value={contextValue}>
+        <section
           ref={ref}
           onKeyDownCapture={handleKeyDown}
           className={cn("relative", className)}
-          role="region"
           aria-roledescription="carousel"
           {...props}
         >
           {children}
-        </div>
+        </section>
       </CarouselContext.Provider>
     )
-  }
-)
+}
 Carousel.displayName = "Carousel"
 
-const CarouselContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
+type CarouselContentProps = React.HTMLAttributes<HTMLDivElement> & {
+  ref?: React.Ref<HTMLDivElement>
+}
+
+const CarouselContent = ({ className, ref, ...props }: CarouselContentProps) => {
   const { carouselRef, orientation } = useCarousel()
 
   return (
@@ -167,18 +191,24 @@ const CarouselContent = React.forwardRef<
       />
     </div>
   )
-})
+}
 CarouselContent.displayName = "CarouselContent"
 
-const CarouselItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
+type CarouselItemProps = React.HTMLAttributes<HTMLDivElement> & {
+  ref?: React.Ref<HTMLDivElement>
+}
+
+const CarouselItem = ({ className, ref, ...props }: CarouselItemProps) => {
   const { orientation } = useCarousel()
 
   return (
+    // `role="group"` + `aria-roledescription="slide"` is the WAI-ARIA APG
+    // carousel-slide pattern. No native HTML element conveys "carousel slide",
+    // and the rule's suggested `<address>` is semantically wrong (it's for
+    // contact information), so prefer-tag-over-role is a false positive here.
     <div
       ref={ref}
+      // oxlint-disable-next-line react-doctor/prefer-tag-over-role
       role="group"
       aria-roledescription="slide"
       className={cn(
@@ -189,13 +219,14 @@ const CarouselItem = React.forwardRef<
       {...props}
     />
   )
-})
+}
 CarouselItem.displayName = "CarouselItem"
 
-const CarouselPrevious = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<typeof Button>
->(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+type CarouselButtonProps = React.ComponentProps<typeof Button> & {
+  ref?: React.Ref<HTMLButtonElement>
+}
+
+const CarouselPrevious = ({ className, variant = "outline", size = "icon", ref, ...props }: CarouselButtonProps) => {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
   return (
@@ -204,7 +235,7 @@ const CarouselPrevious = React.forwardRef<
       variant={variant}
       size={size}
       className={cn(
-        "absolute  h-8 w-8 rounded-full",
+        "absolute  size-8 rounded-full",
         orientation === "horizontal"
           ? "-left-12 top-1/2 -translate-y-1/2"
           : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
@@ -214,17 +245,14 @@ const CarouselPrevious = React.forwardRef<
       onClick={scrollPrev}
       {...props}
     >
-      <ArrowLeft className="h-4 w-4" />
+      <ArrowLeft className="size-4" />
       <span className="sr-only">Previous slide</span>
     </Button>
   )
-})
+}
 CarouselPrevious.displayName = "CarouselPrevious"
 
-const CarouselNext = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<typeof Button>
->(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+const CarouselNext = ({ className, variant = "outline", size = "icon", ref, ...props }: CarouselButtonProps) => {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
 
   return (
@@ -233,7 +261,7 @@ const CarouselNext = React.forwardRef<
       variant={variant}
       size={size}
       className={cn(
-        "absolute h-8 w-8 rounded-full",
+        "absolute size-8 rounded-full",
         orientation === "horizontal"
           ? "-right-12 top-1/2 -translate-y-1/2"
           : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
@@ -243,11 +271,11 @@ const CarouselNext = React.forwardRef<
       onClick={scrollNext}
       {...props}
     >
-      <ArrowRight className="h-4 w-4" />
+      <ArrowRight className="size-4" />
       <span className="sr-only">Next slide</span>
     </Button>
   )
-})
+}
 CarouselNext.displayName = "CarouselNext"
 
 export {

@@ -98,7 +98,7 @@ export function ImmersiveLayout({
                         id="geo-panel-photo"
                         tag={
                             <>
-                                <ImageIcon className="h-3.5 w-3.5" aria-hidden />
+                                <ImageIcon className="size-3.5" aria-hidden />
                                 <span>
                                     {t('geo.play.tabs.screenshot', 'Photo')}
                                 </span>
@@ -113,7 +113,7 @@ export function ImmersiveLayout({
                         inert={mapInert}
                         tag={
                             <>
-                                <MapPin className="h-3.5 w-3.5" aria-hidden />
+                                <MapPin className="size-3.5" aria-hidden />
                                 <span>{t('geo.play.tabs.map', 'Map')}</span>
                             </>
                         }
@@ -149,7 +149,7 @@ export function ImmersiveLayout({
                         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                     }}
                 >
-                    <div className="px-3 py-3">{bottomDock}</div>
+                    <div className="p-3">{bottomDock}</div>
                 </div>
             )}
         </div>
@@ -173,7 +173,7 @@ function Panel({
         <div
             id={id}
             className={cn(
-                'relative h-full w-full overflow-hidden',
+                'relative size-full overflow-hidden',
                 className,
             )}
             inert={inertProp || undefined}

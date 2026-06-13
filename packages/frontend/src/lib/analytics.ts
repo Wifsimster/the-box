@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useConsentStore } from '@/stores/consentStore'
 
 interface GoatCounter {
   count: (opts?: { path?: string; title?: string; event?: boolean; referrer?: string }) => void
@@ -50,4 +51,20 @@ export function useGoatCounterPageviews(): void {
       title: document.title,
     })
   }, [location.pathname, location.search, location.hash])
+}
+
+/**
+ * Loads GoatCounter only once the user has granted analytics consent. Replaces
+ * the old unconditional `loadGoatCounter()` call at app boot. `loadGoatCounter`
+ * is idempotent (it no-ops if the beacon script is already present), so the
+ * effect re-running when consent flips is safe.
+ */
+export function useConsentedAnalytics(): void {
+  const analyticsConsent = useConsentStore((s) => s.analytics)
+
+  useEffect(() => {
+    if (analyticsConsent === true) {
+      loadGoatCounter()
+    }
+  }, [analyticsConsent])
 }

@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation, useParams, Navigate, Outlet } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
+import { LazyMotion, domAnimation } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -19,7 +20,8 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
-import { useGoatCounterPageviews } from '@/lib/analytics'
+import { useGoatCounterPageviews, useConsentedAnalytics } from '@/lib/analytics'
+import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { useApplyUserTheme } from '@/hooks/useApplyUserTheme'
 import {
   connectNotificationsSocket,
@@ -60,7 +62,7 @@ const TwoFactorChallengePage = lazy(() => import('@/pages/TwoFactorChallengePage
 function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }
@@ -176,6 +178,10 @@ function LanguageLayout() {
 
       {/* Daily Login Reward Modal */}
       <DailyRewardModal />
+
+      {/* GDPR / RGPD cookie consent banner — shown on every page until the
+          user makes a choice; gates analytics + support tracking. */}
+      <ConsentBanner />
     </div>
   )
 }
@@ -183,9 +189,11 @@ function LanguageLayout() {
 function App() {
   useReferralCapture()
   useGoatCounterPageviews()
+  useConsentedAnalytics()
 
   return (
     <ErrorBoundary>
+      <LazyMotion features={domAnimation} strict>
       <Routes>
         {/* Redirect root to browser language */}
         <Route path="/" element={<LanguageRedirect />} />
@@ -237,6 +245,7 @@ function App() {
       <PWAUpdatePrompt />
       <InstallPromptBanner />
       <IOSInstallHint />
+      </LazyMotion>
     </ErrorBoundary>
   )
 }

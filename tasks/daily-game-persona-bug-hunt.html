@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- SUMMARY:
+  Multi-persona adversarial bug hunt on the daily game. Four personas (Speedrunner,
+  Timezone Traveler, Score Cheater, Reconnector) probed submitGuess. Found two coupled
+  defects in the completion tally: (1) anyone could replay a winning answer on an
+  already-solved position to re-bank score, and (2) an off-by-one ended the challenge
+  after 9 of 10 screenshots. Both root-caused to saveGuess running before the tally.
+  Fixed: anti-replay guard + distinct-position count, dropped the double-count. Proven
+  by a new node:test unit test (3 cases red→green); full suite 204/204.
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Daily Game — Persona Bug Hunt</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #14141c;
+    --border: #262633;
+    --text: #e6e6ef;
+    --muted: #9a9ab0;
+    --purple: #a855f7;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  main { max-width: 72ch; margin: 0 auto; }
+  h1, h2, h3 { line-height: 1.25; font-weight: 650; }
+  h1 {
+    font-size: 1.9rem;
+    margin: 0 0 .25rem;
+    text-shadow: 0 0 24px rgba(168, 85, 247, .45);
+  }
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.5rem 0 .75rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .4rem;
+  }
+  h3 { font-size: 1rem; margin: 1.5rem 0 .4rem; color: var(--purple); }
+  .lede { color: var(--muted); margin: 0 0 1.5rem; }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .88em; }
+  code { background: #1c1c28; padding: .1rem .35rem; border-radius: 4px; color: #d6bcff; }
+  a { color: var(--purple); }
+  a:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+  }
+  .tag {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: .72rem;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    margin-right: .35rem;
+  }
+  .tag.crit { color: var(--red); border-color: #5b2330; }
+  .tag.confirmed { color: var(--green); border-color: #1f4d3d; }
+  .tag.fixed { color: var(--green); border-color: #1f4d3d; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .92rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  pre {
+    background: #0f0f17;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .9rem 1rem;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", monospace;
+    font-size: .82rem;
+  }
+  .del { color: var(--red); }
+  .add { color: var(--green); }
+  ol li, ul li { margin: .3rem 0; }
+  footer { color: var(--muted); font-size: .82rem; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Daily Game — Persona Bug Hunt</h1>
+  <p class="lede">An adversarial workflow ran four player personas against the daily-game
+  guess-submission path. It surfaced two coupled defects in the completion tally, both
+  now fixed and covered by a regression test.</p>
+
+  <h2>The workflow</h2>
+  <p>Four personas investigated the same code from different angles, each reporting
+  evidence-backed candidates rather than guesses. Findings were then verified against
+  source before any change.</p>
+  <table>
+    <tr><th>Persona</th><th>Obsession</th><th>Verdict</th></tr>
+    <tr><td>Speedrunner</td><td>Double-submit, replay a completed challenge, race the server</td><td>Pointed at the replay vector ✅</td></tr>
+    <tr><td>Timezone Traveler</td><td>Date boundaries, catch-up window, countdown</td><td>One latent off-by-365/366 in premium window; countdown clean</td></tr>
+    <tr><td>Score Cheater</td><td>Client-trusted scores, hint penalties, timer spoof</td><td>Scoring is server-authoritative — hardened, no exploit</td></tr>
+    <tr><td>Reconnector</td><td>Reload mid-game, stale persisted state, expiry</td><td>Confirmed no absolute session expiry (separate follow-up)</td></tr>
+  </table>
+  <p>The Score Cheater's read (server-authoritative timer via <code>Math.max(server,
+  client)</code>, inventory-atomic hints, leaderboard reads persisted scores) checked out
+  and ruled out the obvious cheats — which sharpened focus on the tally logic the
+  Speedrunner flagged.</p>
+
+  <h2>The bug <span class="tag confirmed">CONFIRMED</span> <span class="tag fixed">FIXED</span></h2>
+  <p>Two defects, one root cause. In <code>submitGuess</code>, <code>saveGuess()</code>
+  persists the current guess <em>before</em> the completion tally is read. Because writes
+  go through the global pool (the advisory lock's transaction is only used to serialise),
+  the freshly-inserted row is already visible to the next read.</p>
+
+  <h3>Defect 1 — Replay an already-solved position <span class="tag crit">scoring integrity</span></h3>
+  <p>The only gate on a guess is the round-timer guard
+  <code>round_position === data.position</code> — and <code>round_position</code> is never
+  cleared after a correct guess. Nothing checked whether the position was already solved,
+  so a client could re-POST the same winning answer for the same slot repeatedly, each
+  replay re-banking score and inserting another <code>is_correct</code> row.</p>
+
+  <h3>Defect 2 — Off-by-one early completion</h3>
+  <p><code>getCorrectAnswersCount()</code> counted <em>all</em> correct rows and the service
+  then added <code>+ (isCorrect ? 1 : 0)</code> on top. Since the current guess was already
+  saved and counted, the current correct guess was counted twice — so the challenge ended
+  after <strong>9 of 10</strong> screenshots, and a single correct guess reported
+  <code>screenshotsFound: 2</code>.</p>
+
+  <div class="panel mono">
+    Exploit sketch: solve position 1, then replay the same answer for position 1 nine
+    more times. Each replay banks ~100–200 points and (via the row-count tally) advances
+    completion — finishing a "perfect" run having ever solved a single screenshot.
+  </div>
+
+  <h2>The fix</h2>
+  <ol>
+    <li><strong>Anti-replay guard</strong> in <code>submitGuess</code>: reject with
+      <code>POSITION_ALREADY_SOLVED</code> (409) when a correct guess already exists for
+      <code>(tier_session, position)</code>. Runs inside the tier-session advisory lock, so
+      it is race-safe against two concurrent winning submits. Wrong guesses may still
+      repeat.</li>
+    <li><strong>Distinct-position count</strong>: <code>getCorrectAnswersCount</code> now
+      uses <code>countDistinct('position')</code> — screenshots-found is distinct solved
+      positions, not raw rows.</li>
+    <li><strong>Drop the double-count</strong>: the tally is the count itself; the stale
+      <code>+1</code> is removed.</li>
+  </ol>
+  <pre><span class="del">- const screenshotsFound = await ...getCorrectAnswersCount(...)</span>
+<span class="del">- const totalScreenshotsFound = screenshotsFound + (isCorrect ? 1 : 0)</span>
+<span class="add">+ const totalScreenshotsFound = await ...getCorrectAnswersCount(...) // distinct, already includes current</span></pre>
+
+  <h2>Verification</h2>
+  <ul>
+    <li>New <code>node:test</code> spec
+      (<span class="mono">game.service.submit-guess.test.ts</span>) — 3 cases: completes
+      only at 10/10, rejects replay of a solved position, still allows multiple wrong
+      attempts. <span class="add">Red against the old code, green after the fix.</span></li>
+    <li>Backend typecheck clean; full suite <strong>204/204</strong>.</li>
+  </ul>
+
+  <footer>
+    Generated for the daily-game bug-hunt workflow. Internal engineering note —
+    senior developers only.
+  </footer>
+</main>
+</body>
+</html>

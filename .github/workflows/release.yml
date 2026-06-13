@@ -44,9 +44,10 @@ jobs:
       build_date: ${{ steps.build_date.outputs.value }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Capture build timestamp
         id: build_date
@@ -56,12 +57,17 @@ jobs:
 
       - name: Determine bump type from conventional commits
         id: bump
+        # Workflow expressions are passed through env vars so bash always
+        # treats them as data, never as code to parse.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          VERSION_TYPE: ${{ inputs.version_type }}
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual dispatch: bumping ${{ inputs.version_type }}"
-            echo "bump_type=${{ inputs.version_type }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Manual dispatch: bumping $VERSION_TYPE"
+            echo "bump_type=$VERSION_TYPE" >> "$GITHUB_OUTPUT"
             echo "should_release=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -107,10 +113,17 @@ jobs:
       - name: Compute new version
         id: version
         if: steps.bump.outputs.should_release == 'true'
+        env:
+          BUMP: ${{ steps.bump.outputs.bump_type }}
         run: |
           set -euo pipefail
           CURRENT=$(node -p "require('./package.json').version")
-          BUMP="${{ steps.bump.outputs.bump_type }}"
+          # Strict semver guard: this value flows into downstream shell
+          # steps, git tags and docker tags — reject anything unexpected.
+          if ! [[ "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version in package.json: $CURRENT" >&2
+            exit 1
+          fi
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           case "$BUMP" in
             patch) PATCH=$((PATCH + 1)) ;;
@@ -137,10 +150,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: "24"
           cache: "npm"
@@ -182,20 +197,22 @@ jobs:
             cache_scope: arm64
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -210,13 +227,14 @@ jobs:
           outputs: type=image,name=${{ env.DOCKER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          touch "/tmp/digests/${DIGEST#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: digest-${{ matrix.cache_scope }}
           path: /tmp/digests/*
@@ -238,13 +256,16 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Don't persist the contents:write token in .git/config — npm
+          # lifecycle scripts run later in this job and must not see it.
+          # The push step authenticates explicitly instead.
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: "24"
           cache: "npm"
@@ -255,43 +276,56 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install dependencies
-        run: npm ci
+        # --ignore-scripts: nothing in this job needs dependency lifecycle
+        # scripts (the version bump is plain `npm version` + file edits), and
+        # skipping them keeps a compromised transitive dependency away from
+        # this job's write token.
+        run: npm ci --ignore-scripts
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: /tmp/digests
           pattern: digest-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
+        env:
+          NEW_VERSION: ${{ needs.decide.outputs.new_version }}
+          MINOR: ${{ needs.decide.outputs.minor }}
+          MAJOR: ${{ needs.decide.outputs.major }}
+          SHORT_SHA: ${{ needs.decide.outputs.short_sha }}
         run: |
           set -euo pipefail
           docker buildx imagetools create \
-            --tag "${{ env.DOCKER_IMAGE }}:latest" \
-            --tag "${{ env.DOCKER_IMAGE }}:v${{ needs.decide.outputs.new_version }}" \
-            --tag "${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.minor }}" \
-            --tag "${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.major }}" \
-            --tag "${{ env.DOCKER_IMAGE }}:sha-${{ needs.decide.outputs.short_sha }}" \
-            $(printf '${{ env.DOCKER_IMAGE }}@sha256:%s ' *)
+            --tag "${DOCKER_IMAGE}:latest" \
+            --tag "${DOCKER_IMAGE}:v${NEW_VERSION}" \
+            --tag "${DOCKER_IMAGE}:${MINOR}" \
+            --tag "${DOCKER_IMAGE}:${MAJOR}" \
+            --tag "${DOCKER_IMAGE}:sha-${SHORT_SHA}" \
+            $(printf "${DOCKER_IMAGE}@sha256:%s " *)
 
       - name: Inspect image
+        env:
+          NEW_VERSION: ${{ needs.decide.outputs.new_version }}
         run: |
-          docker buildx imagetools inspect "${{ env.DOCKER_IMAGE }}:v${{ needs.decide.outputs.new_version }}"
+          docker buildx imagetools inspect "${DOCKER_IMAGE}:v${NEW_VERSION}"
 
       - name: Bump version files
+        env:
+          BUMP_TYPE: ${{ needs.decide.outputs.bump_type }}
         run: |
-          npm run version:${{ needs.decide.outputs.bump_type }}
+          npm run "version:${BUMP_TYPE}"
           echo "Bumped to $(node -p "require('./package.json').version")"
 
       - name: Generate changelog
@@ -334,10 +368,12 @@ jobs:
           cat CHANGELOG_TEMP.md
 
       - name: Commit version bump and tag
+        env:
+          NEW_VERSION: ${{ needs.decide.outputs.new_version }}
         run: |
           git add package.json packages/*/package.json package-lock.json
-          git commit -m "chore: bump version to ${{ needs.decide.outputs.new_version }}"
-          git tag -a "v${{ needs.decide.outputs.new_version }}" -m "Release v${{ needs.decide.outputs.new_version }}"
+          git commit -m "chore: bump version to ${NEW_VERSION}"
+          git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
 
       - name: Push changes to repository
         # The `release-main` concurrency group with cancel-in-progress: false
@@ -345,13 +381,20 @@ jobs:
         # If a push ever fails, fail loudly rather than swallow it — a silent
         # exit upstream of the GitHub Release step would leave a dangling
         # Docker manifest with no matching tag or release.
+        #
+        # Checkout ran with persist-credentials: false, so the token only
+        # exists in this step's environment.
+        env:
+          NEW_VERSION: ${{ needs.decide.outputs.new_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git push origin HEAD:main
-          git push origin "v${{ needs.decide.outputs.new_version }}"
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push "$REMOTE" HEAD:main
+          git push "$REMOTE" "v${NEW_VERSION}"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           tag_name: v${{ needs.decide.outputs.new_version }}
           name: Release v${{ needs.decide.outputs.new_version }}
@@ -360,11 +403,16 @@ jobs:
           prerelease: false
 
       - name: Notify release
+        env:
+          NEW_VERSION: ${{ needs.decide.outputs.new_version }}
+          MINOR: ${{ needs.decide.outputs.minor }}
+          MAJOR: ${{ needs.decide.outputs.major }}
+          SHORT_SHA: ${{ needs.decide.outputs.short_sha }}
         run: |
-          echo "Released version ${{ needs.decide.outputs.new_version }}"
+          echo "Released version ${NEW_VERSION}"
           echo "Docker images published:"
-          echo "  - ${{ env.DOCKER_IMAGE }}:latest"
-          echo "  - ${{ env.DOCKER_IMAGE }}:v${{ needs.decide.outputs.new_version }}"
-          echo "  - ${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.minor }}"
-          echo "  - ${{ env.DOCKER_IMAGE }}:${{ needs.decide.outputs.major }}"
-          echo "  - ${{ env.DOCKER_IMAGE }}:sha-${{ needs.decide.outputs.short_sha }}"
+          echo "  - ${DOCKER_IMAGE}:latest"
+          echo "  - ${DOCKER_IMAGE}:v${NEW_VERSION}"
+          echo "  - ${DOCKER_IMAGE}:${MINOR}"
+          echo "  - ${DOCKER_IMAGE}:${MAJOR}"
+          echo "  - ${DOCKER_IMAGE}:sha-${SHORT_SHA}"

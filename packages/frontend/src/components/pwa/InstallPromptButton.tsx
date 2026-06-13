@@ -44,7 +44,7 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
 
   if (!deferredPrompt) return null
 
-  const handleClick = async () => {
+  const promptInstall = async () => {
     try {
       await deferredPrompt.prompt()
       const { outcome } = await deferredPrompt.userChoice
@@ -62,11 +62,11 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
     <Button
       variant="ghost"
       size="sm"
-      onClick={handleClick}
+      onClick={promptInstall}
       className={cn(isMobile && 'w-full justify-start')}
       aria-label={t('pwa.install')}
     >
-      <Download className={cn('h-4 w-4', isMobile ? 'mr-2' : 'mr-1')} />
+      <Download className={cn('size-4', isMobile ? 'mr-2' : 'mr-1')} />
       {t('pwa.install')}
     </Button>
   )

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { AchievementGrid } from '@/components/achievement'
 import { ReferralCard } from './ReferralCard'
 import { EmailConsentCard } from './EmailConsentCard'
+import { EditProfileCard } from './EditProfileCard'
+import { AccountDataCard } from './AccountDataCard'
 import { PushNotificationCard } from './PushNotificationCard'
 import { ProfileSection } from './ProfileSection'
 import { clearTourCompleted, markTourPending } from '@/components/onboarding/tour-storage'
@@ -56,6 +58,7 @@ interface ProfileTabsProps {
   selectedTheme: ThemeKey
   onThemeChange: (theme: ThemeKey) => void
   language: string
+  onProfileUpdated?: (user: UserType) => void
 }
 
 export function ProfileTabs({
@@ -67,6 +70,7 @@ export function ProfileTabs({
   selectedTheme,
   onThemeChange,
   language,
+  onProfileUpdated,
 }: ProfileTabsProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -121,7 +125,7 @@ export function ProfileTabs({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
+                <Trophy className="size-5" />
                 {t('profile.title')} ({totalCount})
               </CardTitle>
               <CardDescription>{t('profile.description')}</CardDescription>
@@ -152,16 +156,26 @@ export function ProfileTabs({
         {userProfile && !userProfile.isGuest && (
           <>
             <ProfileSection>
-              <ReferralCard userId={userProfile.id} language={language} />
+              <EditProfileCard
+                displayName={userProfile.displayName}
+                username={userProfile.username}
+                onUpdated={onProfileUpdated}
+              />
             </ProfileSection>
             <ProfileSection delay={0.05}>
+              <ReferralCard userId={userProfile.id} language={language} />
+            </ProfileSection>
+            <ProfileSection delay={0.1}>
               <EmailConsentCard
                 initialConsent={userProfile.emailMarketingConsent}
                 updatedAt={userProfile.emailConsentUpdatedAt}
               />
             </ProfileSection>
-            <ProfileSection delay={0.1}>
+            <ProfileSection delay={0.15}>
               <PushNotificationCard />
+            </ProfileSection>
+            <ProfileSection delay={0.2}>
+              <AccountDataCard username={userProfile.username} />
             </ProfileSection>
           </>
         )}
@@ -199,14 +213,14 @@ export function ProfileTabs({
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-neon-purple" />
+                    <Sparkles className="size-5 text-neon-purple" />
                     {t('tour.replayTitle')}
                   </CardTitle>
                   <CardDescription>{t('tour.replayDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button variant="outline" onClick={handleReplayTour}>
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className="size-4" />
                     {t('tour.replayCta')}
                   </Button>
                 </CardContent>

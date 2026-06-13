@@ -64,7 +64,7 @@ export function BottomNav() {
                         isActive ? 'opacity-100' : 'opacity-0',
                       )}
                     />
-                    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    <Icon className="size-5 shrink-0" aria-hidden="true" />
                     <span className="leading-none">{t(item.labelKey)}</span>
                   </>
                 )}

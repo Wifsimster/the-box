@@ -26,7 +26,7 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
     const canClaim = status.canClaim
     const streak = status.currentStreak
 
-    const handleClick = () => {
+    const openRewardModal = () => {
         onClick?.()
         openModal()
     }
@@ -38,14 +38,14 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleClick}
+                        onClick={openRewardModal}
                         className={cn(
                             'relative flex items-center gap-1.5 px-2 sm:px-3',
                             className
                         )}
                     >
                         <Gift className={cn(
-                            'w-4 h-4',
+                            'size-4',
                             canClaim ? 'text-primary' : 'text-muted-foreground'
                         )} />
 
@@ -61,8 +61,8 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
 
                         {/* Notification dot when can claim */}
                         {canClaim && (
-                            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                            <span className="absolute -top-0.5 -right-0.5 flex size-2">
+                                <span className="relative inline-flex rounded-full size-2 bg-primary" />
                             </span>
                         )}
                     </Button>

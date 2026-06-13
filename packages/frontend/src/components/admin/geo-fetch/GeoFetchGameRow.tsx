@@ -47,7 +47,7 @@ export const GeoFetchGameRow = memo(function GeoFetchGameRow({ row, onOpen }: Pr
         <div className="text-xs text-white/40 truncate">{row.slug ?? ''}</div>
       </div>
       <div className="flex items-center gap-1.5 text-sm">
-        <Icon className={`h-4 w-4 ${meta.color} ${isSpinner ? 'animate-spin' : ''}`} />
+        <Icon className={`size-4 ${meta.color} ${isSpinner ? 'animate-spin' : ''}`} />
         <span className="text-white/80">{t(meta.labelKey, meta.fallback)}</span>
         {row.active_source && isSpinner && (
           <span className="text-white/50">· {row.active_source}</span>
@@ -63,7 +63,7 @@ export const GeoFetchGameRow = memo(function GeoFetchGameRow({ row, onOpen }: Pr
           onClick={() => onOpen(row.game_id)}
           title={t('admin.geoFetch.row.viewMaps', 'Voir les cartes')}
         >
-          <Eye className="h-4 w-4" />
+          <Eye className="size-4" />
         </Button>
         <Button
           size="icon"
@@ -71,7 +71,7 @@ export const GeoFetchGameRow = memo(function GeoFetchGameRow({ row, onOpen }: Pr
           onClick={() => void retryGame(row.game_id)}
           title={t('admin.geoFetch.row.retry', 'Réessayer')}
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="size-4" />
         </Button>
       </div>
     </div>

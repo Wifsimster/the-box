@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Play, Calendar, AlertTriangle, Zap, Images, Gift, Info } from 'lucide-react'
@@ -24,7 +24,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
   })
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -32,13 +32,13 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
     >
       {/* Background grid effect */}
       <div className="absolute inset-0 opacity-20">
-        <div className="w-full h-full bg-grid-neon" />
+        <div className="size-full bg-grid-neon" />
       </div>
 
       {/* Main content container - Mobile-first padding */}
       <div className="relative text-center z-10 w-full px-4 sm:px-6 md:px-8 max-w-2xl mx-auto">
         {/* Daily Challenge Title - Mobile-first typography */}
-        <motion.h1
+        <m.h1
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -47,74 +47,74 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           <span className="bg-linear-to-r from-white via-neon-purple to-white bg-clip-text text-transparent">
             {t('game.dailyChallenge')}
           </span>
-        </motion.h1>
+        </m.h1>
 
         {/* Date - Mobile-first spacing */}
-        <motion.div
+        <m.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.15 }}
           className="flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground mb-4 sm:mb-6 md:mb-8"
         >
-          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Calendar className="size-4 sm:size-5" />
           <span className="text-sm sm:text-base md:text-lg">{formattedDate}</span>
-        </motion.div>
+        </m.div>
 
         {/* Game rules - Compact grid */}
-        <motion.div
+        <m.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-4 sm:mb-6 md:mb-8 grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto"
         >
           {[
-            { icon: Images, label: t('game.rules.screenshotsShort', { count: totalScreenshots }), delay: 0 },
-            { icon: Zap, label: t('game.rules.speedShort'), delay: 0.05 },
-            { icon: Gift, label: t('game.rules.hintsShort'), delay: 0.1 },
-          ].map((rule, index) => (
-            <motion.div
-              key={index}
+            { id: 'screenshots', icon: Images, label: t('game.rules.screenshotsShort', { count: totalScreenshots }), delay: 0 },
+            { id: 'speed', icon: Zap, label: t('game.rules.speedShort'), delay: 0.05 },
+            { id: 'hints', icon: Gift, label: t('game.rules.hintsShort'), delay: 0.1 },
+          ].map((rule) => (
+            <m.div
+              key={rule.id}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.2 + rule.delay }}
               className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-lg bg-card/50 border border-border/50 hover:border-neon-purple/50 transition-colors"
             >
-              <rule.icon className="w-5 h-5 sm:w-6 sm:h-6 text-neon-purple" />
+              <rule.icon className="size-5 sm:size-6 text-neon-purple" />
               <span className="text-[10px] sm:text-xs text-muted-foreground text-center leading-tight">
                 {rule.label}
               </span>
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
 
         {/* Catch-up notice - Mobile-first spacing */}
         {isCatchUp && (
-          <motion.div
+          <m.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.25 }}
             className="flex items-center justify-center gap-1.5 sm:gap-2 text-neon-blue mb-4 sm:mb-6 md:mb-8 px-4"
           >
-            <Info className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <Info className="size-4 sm:size-5 shrink-0" />
             <span className="text-xs sm:text-sm">{t('game.catchUpNotice')}</span>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Guest warning - Mobile-first spacing */}
         {!isAuthenticated && (
-          <motion.div
+          <m.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: isCatchUp ? 0.3 : 0.25 }}
             className="flex items-center justify-center gap-1.5 sm:gap-2 text-warning mb-4 sm:mb-6 md:mb-8 px-4"
           >
-            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <AlertTriangle className="size-4 sm:size-5 shrink-0" />
             <span className="text-xs sm:text-sm">{t('game.guestWarning')}</span>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Start Button - Mobile-first sizing */}
-        <motion.div
+        <m.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -127,27 +127,24 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             className="gap-2 sm:gap-3 text-base sm:text-lg md:text-xl px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 w-full sm:w-auto"
           >
             {t('game.startChallenge')}
-            <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+            <Play className="size-4 sm:size-5 md:size-6" />
           </Button>
-        </motion.div>
+        </m.div>
 
         {/* Decorative elements - Hidden on mobile, shown on larger screens */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+        <m.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="hidden md:block absolute -top-20 -left-20 w-40 h-40 bg-neon-purple/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -top-20 -left-20 size-40 bg-neon-purple/10 rounded-full blur-3xl"
         />
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+        <m.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="hidden md:block absolute -bottom-20 -right-20 w-40 h-40 bg-neon-pink/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -bottom-20 -right-20 size-40 bg-neon-pink/10 rounded-full blur-3xl"
         />
       </div>
-    </motion.div>
+    </m.div>
   )
 }
-
-// Backwards compatibility alias
-export const TierIntro = DailyIntro

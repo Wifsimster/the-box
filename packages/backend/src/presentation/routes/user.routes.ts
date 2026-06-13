@@ -1,9 +1,11 @@
 import { Router } from 'express'
 import { userService } from '../../domain/services/index.js'
-import { billingService } from '../../domain/services/billing.service.js'
+import { billingService } from '../../domain/services/index.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
+import { gdprRepository } from '../../infrastructure/repositories/gdpr.repository.js'
+import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { db } from '../../infrastructure/database/connection.js'
@@ -297,10 +299,12 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
       )
       .first()
 
-    // Hint usage: per-type counts. Filter to the four hint types we
-    // surface in the matrix; "free" entries (no power_up_used) are
-    // ignored. Same join shape as the time aggregation.
-    const hintRows = await db('guesses')
+    // Hint usage. The four legacy metadata hints were retired 2026-06
+    // (migration 20260613_retire_legacy_metadata_hints); their historical
+    // guess rows are sacred, so we keep querying them but fold the four
+    // keys into a single `legacyMetadataHints` rollup beside the live
+    // letter-reveal count. "Free" entries (no power_up_used) are ignored.
+    const legacyHintRow = await db('guesses')
       .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
       .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
       .where('game_sessions.user_id', userId)
@@ -310,21 +314,22 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
         'hint_developer',
         'hint_genre',
       ])
-      .groupBy('guesses.power_up_used')
-      .select<Array<{ power_up_used: string; count: string }>>(
-        'guesses.power_up_used',
-        db.raw('COUNT(*) as count'),
-      )
+      .count<{ count: string }>({ count: '*' })
+      .first()
+
+    // Letter reveals live in their own table (one row per slot, counter
+    // per letter) rather than on the guess row — sum the letters so the
+    // matrix shows reveal volume, comparable to per-use hint counts.
+    const letterRow = await db('position_letter_reveals')
+      .join('tier_sessions', 'position_letter_reveals.tier_session_id', 'tier_sessions.id')
+      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
+      .where('game_sessions.user_id', userId)
+      .sum<{ sum: string | null }>('position_letter_reveals.letters_revealed as sum')
+      .first()
 
     const hintUsage = {
-      hint_year: 0,
-      hint_publisher: 0,
-      hint_developer: 0,
-      hint_genre: 0,
-    }
-    for (const row of hintRows) {
-      const key = row.power_up_used as keyof typeof hintUsage
-      if (key in hintUsage) hintUsage[key] = Number(row.count)
+      hintLetter: Number(letterRow?.sum ?? 0),
+      legacyMetadataHints: Number(legacyHintRow?.count ?? 0),
     }
 
     // Last-six-months progression. Bucketing on completed_at gives the
@@ -426,6 +431,135 @@ router.put('/theme', authMiddleware, async (req, res, next) => {
     }
     logger.info({ userId: req.userId, theme }, 'theme updated')
     res.json({ success: true, data: updated })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== RGPD Art. 16: right to rectification =====
+//
+// Lets the caller correct their own display name and/or username. At least
+// one field must be present. Validation mirrors registration: display names
+// pass the safety gate, usernames are alnum/underscore 3–20 and globally
+// unique. `display_username` is kept in sync by the repository.
+router.put('/profile', authMiddleware, async (req, res, next) => {
+  try {
+    const body = (req.body ?? {}) as { displayName?: unknown; username?: unknown }
+    const fields: { displayName?: string; username?: string } = {}
+
+    if (body.displayName !== undefined) {
+      if (typeof body.displayName !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_DISPLAY_NAME', message: 'displayName must be a string' },
+        })
+      }
+      const trimmed = body.displayName.trim()
+      if (trimmed.length < 1 || trimmed.length > 32 || !isDisplayNameSafe(trimmed)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_DISPLAY_NAME', message: 'Display name is invalid' },
+        })
+      }
+      fields.displayName = trimmed
+    }
+
+    if (body.username !== undefined) {
+      if (typeof body.username !== 'string' || !/^[a-zA-Z0-9_]{3,20}$/.test(body.username)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_USERNAME', message: 'Username is invalid' },
+        })
+      }
+      // Uniqueness: a row with this username belonging to someone else blocks it.
+      const existing = await userRepository.findByUsername(body.username)
+      if (existing && existing.id !== req.userId) {
+        return res.status(409).json({
+          success: false,
+          error: { code: 'USERNAME_TAKEN', message: 'This username is already taken' },
+        })
+      }
+      fields.username = body.username
+    }
+
+    if (fields.displayName === undefined && fields.username === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'NO_FIELDS', message: 'At least one field is required' },
+      })
+    }
+
+    const updated = await userRepository.updateProfile(req.userId!, fields)
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    logger.info({ userId: req.userId, fields }, 'user profile updated')
+    res.json({ success: true, data: updated })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== RGPD Art. 15 & 20: data access / portability =====
+//
+// Streams the full export object as a downloadable JSON attachment. The
+// repository excludes all secret material (push keys, api-key/webhook
+// hashes, auth credentials). Deliberately NOT wrapped in the usual
+// {success,data} envelope — it's a file, not an API payload.
+router.get('/export', authMiddleware, async (req, res, next) => {
+  try {
+    const data = await gdprRepository.exportUserData(req.userId!)
+    const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="the-box-data-export-${date}.json"`
+    )
+    res.setHeader('Cache-Control', 'no-store')
+    logger.info({ userId: req.userId }, 'user data exported')
+    res.send(JSON.stringify(data, null, 2))
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ===== RGPD Art. 17: right to erasure (self-service) =====
+//
+// Hard-deletes the caller's account after a typed-username confirmation.
+// CASCADE foreign keys remove sessions, accounts, and all game/geo data —
+// the same mechanism the admin delete path relies on.
+router.delete('/account', authMiddleware, async (req, res, next) => {
+  try {
+    const { confirmUsername } = (req.body ?? {}) as { confirmUsername?: unknown }
+
+    const user = await userRepository.findById(req.userId!)
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+      })
+    }
+
+    if (typeof confirmUsername !== 'string' || confirmUsername !== user.username) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'CONFIRMATION_MISMATCH',
+          message: 'Username confirmation does not match',
+        },
+      })
+    }
+
+    // CASCADE removes sessions / accounts / game data, mirroring the admin
+    // delete path. The cascaded `session` rows are enough to log the user out.
+    await db('user').where('id', req.userId).del()
+
+    logger.info({ userId: req.userId }, 'user self-deleted account')
+    res.json({ success: true, data: { deleted: true } })
   } catch (error) {
     next(error)
   }

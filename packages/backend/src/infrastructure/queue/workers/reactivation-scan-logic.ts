@@ -33,7 +33,7 @@ const MIN_ACCOUNT_AGE_HOURS = 48
 const MAX_CANDIDATES_PER_RUN = 5000
 
 const REACTIVATION_ITEMS = [
-    { itemType: 'powerup', itemKey: 'hint_developer', quantity: 1 },
+    { itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 },
     { itemType: 'powerup', itemKey: 'second_chance', quantity: 1 },
     { itemType: 'powerup', itemKey: 'streak_freeze', quantity: 1 },
 ] as const

@@ -74,10 +74,3 @@ export function disconnectAdminSocket(): void {
         socket.disconnect()
     }
 }
-
-/**
- * Check if admin socket is connected
- */
-export function isAdminSocketConnected(): boolean {
-    return socket?.connected ?? false
-}

@@ -14,17 +14,18 @@ export class ReferralError extends Error {
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
 // Reward table — kept flat so the viral loop stays predictable. Both sides
-// receive hints; the referrer additionally earns an "ambassador" cosmetic
-// badge that shows up on their public profile — brag-worthy social proof
-// is a stronger loop driver than the soft hint currency alone.
+// receive power-ups; the referrer additionally earns an "ambassador"
+// cosmetic badge that shows up on their public profile — brag-worthy
+// social proof is a stronger loop driver than the soft currency alone.
+// (Legacy metadata hints retired 2026-06 — letter reveals replace them.)
 const REFEREE_REWARDS = [
-  { itemType: 'powerup', itemKey: 'hint_year', quantity: 3 },
-  { itemType: 'powerup', itemKey: 'hint_publisher', quantity: 2 },
+  { itemType: 'powerup', itemKey: 'hint_letter', quantity: 2 },
+  { itemType: 'powerup', itemKey: 'second_chance', quantity: 1 },
 ]
 
 const REFERRER_REWARDS = [
-  { itemType: 'powerup', itemKey: 'hint_year', quantity: 2 },
-  { itemType: 'powerup', itemKey: 'hint_publisher', quantity: 1 },
+  { itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 },
+  { itemType: 'powerup', itemKey: 'streak_freeze', quantity: 1 },
   { itemType: 'badge', itemKey: 'ambassador', quantity: 1 },
 ]
 

@@ -262,7 +262,7 @@ Paliers de difficulté à l'intérieur d'un défi.
 | daily_challenge_id | INTEGER | FK to daily_challenges |
 | tier_number | INTEGER | 1, 2, or 3 |
 | name | VARCHAR(50) | Tier name |
-| time_limit_seconds | INTEGER | Timer duration |
+| time_limit_seconds | INTEGER | Per-screenshot countdown duration in seconds (default 45) — exposed to the client as `ScreenshotResponse.timeLimitSeconds` |
 
 ### tier_screenshots
 

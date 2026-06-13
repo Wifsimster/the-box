@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 
 interface ProfileSectionProps {
   children: ReactNode
@@ -8,12 +8,12 @@ interface ProfileSectionProps {
 
 export function ProfileSection({ children, delay = 0 }: ProfileSectionProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }

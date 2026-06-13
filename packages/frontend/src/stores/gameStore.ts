@@ -7,7 +7,8 @@ import type {
   TierScreenshot,
   ScreenshotResponse,
   PositionStatus,
-  PositionState
+  PositionState,
+  LetterRevealState
 } from '@/types'
 import { gameApi } from '@/lib/api/game'
 
@@ -37,14 +38,6 @@ interface GameState {
   secondChancePrompt: { position: number } | null
 
   screenshotsFound: number
-
-  // Available hints data for current position
-  availableHints: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    genre: string | null
-  } | null
 
   // Round timing (for per-screenshot time tracking)
   roundStartedAt: number | null
@@ -99,22 +92,24 @@ interface GameState {
   initializePositionStates: (total: number) => void
   updatePositionState: (position: number, updates: Partial<PositionState>) => void
   skipToNextPosition: () => number | null
+  /**
+   * Time-out the current screenshot: lock it as a permanent miss
+   * (`timed_out`) and advance to the next *playable* position. Returns the
+   * next position, or `null` when nothing playable remains (caller should
+   * end the game to reveal results).
+   */
+  timeOutCurrentPosition: () => number | null
   navigateToPosition: (position: number) => void
   findNextUnfinished: (fromPosition: number) => number | null
   canNavigateTo: (position: number) => boolean
 
   // Hint actions
-  setAvailableHints: (hints: {
-    year: string | null
-    publisher: string | null
-    developer: string | null
-    genre: string | null
-  }) => void
   markIncorrectGuess: (position: number) => void
-  useHintYear: (position: number) => void
-  useHintPublisher: (position: number) => void
-  useHintDeveloper: (position: number) => void
-  useHintGenre: (position: number) => void
+  /**
+   * Persist the latest masked-title state for a position (after a
+   * successful POST /reveal-letter, or seeded from ScreenshotResponse).
+   */
+  setLetterRevealState: (position: number, state: LetterRevealState) => void
   showSecondChancePrompt: (position: number) => void
   dismissSecondChancePrompt: () => void
   markSecondChanceActivated: (position: number) => void
@@ -155,8 +150,6 @@ const initialState = {
   positionStates: {} as Record<number, PositionState>,
   secondChancePrompt: null,
   screenshotsFound: 0,
-  // Available hints
-  availableHints: null,
   // Round timing
   roundStartedAt: null,
   // Score tracking
@@ -198,10 +191,49 @@ export const useGameStore = create<GameState>()(
           totalScreenshots: total,
         }),
 
-        setScreenshotData: (data) => set({
-          currentScreenshotData: data,
-          currentPosition: data.position,
-          roundStartedAt: Date.now(),
+        setScreenshotData: (data) => set((state) => {
+          const now = Date.now()
+          const prevPos = state.currentScreenshotData?.position
+          let positionStates = state.positionStates
+
+          // Flush the segment we're leaving into the outgoing position's
+          // accumulator so the countdown RESUMES (never resets) when the player
+          // comes back. Only for a real segment on a DIFFERENT position — a
+          // same-position re-fetch must not double-count, and the timer simply
+          // continues from the live `roundStartedAt` re-stamp.
+          if (prevPos != null && prevPos !== data.position && state.roundStartedAt != null) {
+            const segment = Math.max(0, now - state.roundStartedAt)
+            const prevState = positionStates[prevPos]
+            if (prevState) {
+              positionStates = {
+                ...positionStates,
+                [prevPos]: {
+                  ...prevState,
+                  timeSpentMs: (prevState.timeSpentMs ?? 0) + segment,
+                },
+              }
+            }
+          }
+
+          // Seed the masked-title state from the server on every fetch —
+          // it already includes any letters paid for in this session, so a
+          // refresh or navigation restores the exact same mask.
+          if (data.letterReveal) {
+            positionStates = {
+              ...positionStates,
+              [data.position]: {
+                ...positionStates[data.position],
+                letterReveal: data.letterReveal,
+              },
+            }
+          }
+
+          return {
+            currentScreenshotData: data,
+            currentPosition: data.position,
+            roundStartedAt: now,
+            positionStates,
+          }
         }),
 
         setScreenshotsFound: (count) => set({ screenshotsFound: count }),
@@ -276,10 +308,13 @@ export const useGameStore = create<GameState>()(
           // Check if localStorage data is from the same challenge
           const isSameChallenge = persistedChallengeId === challengeId
 
-          // Build position states by merging backend + persisted data
+          // Build position states by merging backend + persisted data.
+          // Build the correct-position lookup once so the loop does an O(1)
+          // Set.has() instead of an O(n) Array.includes() scan per iteration.
+          const correctPositionSet = new Set(correctPositions)
           const states: Record<number, PositionState> = {}
           for (let i = 1; i <= totalScreenshots; i++) {
-            const isCorrect = correctPositions.includes(i)
+            const isCorrect = correctPositionSet.has(i)
             const existingState = existingStates[i]
 
             // Determine status with priority:
@@ -444,11 +479,75 @@ export const useGameStore = create<GameState>()(
           return null
         },
 
+        timeOutCurrentPosition: () => {
+          const { currentPosition, positionStates, totalScreenshots } = get()
+          const currentState = positionStates[currentPosition]
+
+          // Only a position the player is actively guessing can time out.
+          if (!currentState || currentState.status !== 'in_progress') {
+            return currentPosition
+          }
+
+          // Lock it as a permanent miss — unlike 'skipped' this is terminal and
+          // not revisitable; it surfaces as an unfound game at the end.
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [currentPosition]: {
+                ...state.positionStates[currentPosition],
+                status: 'timed_out',
+              },
+            },
+            lastResult: null,
+            // Dismiss any pending second-chance prompt for this position — it's
+            // moot once the clock has run out.
+            secondChancePrompt: null,
+          }))
+
+          // Next *playable* position = one the player can still act on
+          // (not_visited or skipped). Correct/timed_out positions are finalized
+          // and skipped over. Scan forward then wrap to the start.
+          const findNextPlayable = (): number | null => {
+            const states = get().positionStates
+            for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
+              const s = states[i]
+              if (!s || s.status === 'not_visited' || s.status === 'skipped') return i
+            }
+            for (let i = 1; i < currentPosition; i++) {
+              const s = states[i]
+              if (s?.status === 'not_visited' || s?.status === 'skipped') return i
+            }
+            return null
+          }
+
+          const nextPos = findNextPlayable()
+          if (nextPos !== null) {
+            set((state) => ({
+              currentPosition: nextPos,
+              positionStates: {
+                ...state.positionStates,
+                [nextPos]: {
+                  ...state.positionStates[nextPos],
+                  position: nextPos,
+                  status: 'in_progress',
+                  isCorrect: state.positionStates[nextPos]?.isCorrect ?? false,
+                },
+              },
+            }))
+            return nextPos
+          }
+
+          // Nothing playable left — caller ends the game to reveal results.
+          return null
+        },
+
         navigateToPosition: (position) => {
           const { positionStates } = get()
           const state = positionStates[position]
 
           if (!state) return
+          // Timed-out positions are terminal — never navigable back into.
+          if (state.status === 'timed_out') return
 
           // Update current position
           set({
@@ -535,8 +634,6 @@ export const useGameStore = create<GameState>()(
         },
 
         // Hint actions
-        setAvailableHints: (hints) => set({ availableHints: hints }),
-
         markIncorrectGuess: (position) => {
           set((state) => ({
             positionStates: {
@@ -549,49 +646,13 @@ export const useGameStore = create<GameState>()(
           }))
         },
 
-        useHintYear: (position) => {
+        setLetterRevealState: (position, letterReveal) => {
           set((state) => ({
             positionStates: {
               ...state.positionStates,
               [position]: {
                 ...state.positionStates[position],
-                hintYearUsed: true,
-              },
-            },
-          }))
-        },
-
-        useHintPublisher: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintPublisherUsed: true,
-              },
-            },
-          }))
-        },
-
-        useHintDeveloper: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintDeveloperUsed: true,
-              },
-            },
-          }))
-        },
-
-        useHintGenre: (position) => {
-          set((state) => ({
-            positionStates: {
-              ...state.positionStates,
-              [position]: {
-                ...state.positionStates[position],
-                hintGenreUsed: true,
+                letterReveal,
               },
             },
           }))
