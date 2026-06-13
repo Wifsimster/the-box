@@ -413,6 +413,18 @@ async function seed(): Promise<void> {
       .update({ public_profile_enabled: false, public_slug: null, updatedAt: new Date() })
     console.log('  ✓ Reset public-profile state for test users')
 
+    // Wipe the test users' game sessions. The daily challenge is once-per-day:
+    // once a session is completed (which the End Game / Results specs do), the
+    // game can no longer be started, so on a re-used database every gameplay
+    // spec (countdown, progress dots, zoom, …) would fail to reach a playing
+    // state. Deleting the sessions cascades to tier_sessions / position state,
+    // restoring a fresh, playable challenge each seed. (A fresh CI database
+    // has none, so this is a no-op there.)
+    const wiped = await db('game_sessions')
+      .whereIn('user_id', [e2eUserId, e2eAdminId])
+      .del()
+    if (wiped > 0) console.log(`  ✓ Cleared ${wiped} game session(s) for test users`)
+
     // Step 2: Create mock games and screenshots for CI
     console.log('\nCreating mock games and screenshots...')
     await createMockGamesAndScreenshots()
