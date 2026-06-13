@@ -659,7 +659,7 @@ function CoordinateInput({
                         onChange={(e) => setX(e.target.value)}
                         disabled={disabled}
                         required
-                        className="w-20 rounded border border-white/20 bg-black/40 p-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        className="w-20 rounded border border-white/20 bg-black/40 p-2 text-center text-base md:text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                     />
                 </label>
                 <label className="flex flex-col items-start gap-1 text-white/80">
@@ -674,7 +674,7 @@ function CoordinateInput({
                         onChange={(e) => setY(e.target.value)}
                         disabled={disabled}
                         required
-                        className="w-20 rounded border border-white/20 bg-black/40 p-2 text-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        className="w-20 rounded border border-white/20 bg-black/40 p-2 text-center text-base md:text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                     />
                 </label>
                 <Button
