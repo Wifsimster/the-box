@@ -46,7 +46,7 @@ import { geoWorker } from './infrastructure/queue/workers/geo.worker.js'
 import { pushWorker } from './infrastructure/queue/workers/push.worker.js'
 import { webhookWorker } from './infrastructure/queue/workers/webhook-delivery.worker.js'
 import { db } from './infrastructure/database/connection.js'
-import { pushService } from './domain/services/push.service.js'
+import { pushService } from './domain/services/index.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
 // Validate environment

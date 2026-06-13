@@ -64,6 +64,22 @@ async function createTestUser(data: {
     return existingUser.id
   }
 
+  // The merged-schema migration bootstraps a default admin (admin@thebox.local)
+  // and a later migration adds the `one_admin_role_idx` partial unique index
+  // permitting exactly one row with role='admin'. Inserting the e2e admin would
+  // therefore collide. Demote any other existing admin to 'user' first so the
+  // e2e admin can own the single admin slot. Idempotent: on re-run the e2e
+  // admin already exists and we return above before reaching here.
+  if (data.role === 'admin') {
+    const demoted = await db('user')
+      .where('role', 'admin')
+      .whereNot('email', data.email)
+      .update({ role: 'user', updatedAt: new Date() })
+    if (demoted > 0) {
+      console.log(`  ✓ Demoted ${demoted} pre-existing admin(s) to make room for ${data.email}`)
+    }
+  }
+
   const hashedPassword = await hashPassword(data.password)
   const userId = randomBytes(16).toString('hex')
 
@@ -386,6 +402,28 @@ async function seed(): Promise<void> {
       role: 'admin',
       password: E2E_ADMIN_PASSWORD,
     })
+
+    // Reset the streamer/public-profile state for the test users. The
+    // streamer-kit specs toggle public_profile_enabled and claim slugs, which
+    // persist across runs; without this reset the "create-key disabled until
+    // the toggle is on" assertion sees a profile that's already enabled from a
+    // previous run. Re-seeding restores a known-clean starting point.
+    await db('user')
+      .whereIn('email', [E2E_USER_EMAIL, E2E_ADMIN_EMAIL])
+      .update({ public_profile_enabled: false, public_slug: null, updatedAt: new Date() })
+    console.log('  ✓ Reset public-profile state for test users')
+
+    // Wipe the test users' game sessions. The daily challenge is once-per-day:
+    // once a session is completed (which the End Game / Results specs do), the
+    // game can no longer be started, so on a re-used database every gameplay
+    // spec (countdown, progress dots, zoom, …) would fail to reach a playing
+    // state. Deleting the sessions cascades to tier_sessions / position state,
+    // restoring a fresh, playable challenge each seed. (A fresh CI database
+    // has none, so this is a no-op there.)
+    const wiped = await db('game_sessions')
+      .whereIn('user_id', [e2eUserId, e2eAdminId])
+      .del()
+    if (wiped > 0) console.log(`  ✓ Cleared ${wiped} game session(s) for test users`)
 
     // Step 2: Create mock games and screenshots for CI
     console.log('\nCreating mock games and screenshots...')

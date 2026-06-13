@@ -19,8 +19,17 @@ function buildValidator(source: Source): <T>(schema: ZodType<T>) => RequestHandl
       return
     }
     // Replace the raw input with the parsed (coerced) data so downstream
-    // handlers consume the typed value.
-    ;(req as unknown as Record<Source, unknown>)[source] = result.data
+    // handlers consume the typed value. Express 5 exposes `req.query` (and on
+    // some setups `req.params`) as getter-only accessors on the prototype, so
+    // a plain assignment throws "Cannot set property query ... which has only
+    // a getter". Define an own data property instead — it shadows the getter
+    // and lets downstream `req[source]` reads see the coerced value.
+    Object.defineProperty(req, source, {
+      value: result.data,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    })
     next()
   }
 }

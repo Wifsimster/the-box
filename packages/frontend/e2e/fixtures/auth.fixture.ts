@@ -52,8 +52,9 @@ async function loginAsE2EUser(page: Page): Promise<void> {
   await passwordInput.fill(E2E_USER_PASSWORD)
   await page.waitForTimeout(100)
 
-  // Submit
-  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  // Submit. Anchor the name so it matches the "Login" submit button and not
+  // the "Sign in with a passkey" button (which also contains "sign in").
+  const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
   await page.waitForTimeout(300)
   await loginButton.click()

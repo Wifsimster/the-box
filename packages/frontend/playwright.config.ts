@@ -28,6 +28,12 @@ export default defineConfig({
         /* Base URL to use in actions like `await page.goto('/')`. */
         baseURL: 'http://localhost:5173',
 
+        /* Pre-seed the GDPR consent choice in localStorage so the consent
+         * banner never overlays the UI during tests. Without this every page
+         * load shows the banner, which intercepts clicks and makes locators
+         * ambiguous. No spec tests the banner itself. */
+        storageState: './e2e/consent-storage-state.json',
+
         /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
         trace: 'on-first-retry',
 

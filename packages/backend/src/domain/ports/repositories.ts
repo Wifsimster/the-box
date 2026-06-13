@@ -9,6 +9,8 @@
  */
 import type {
   DailyReward,
+  PublicEventType,
+  SubscriptionStatus,
   Game,
   GameSearchResult,
   ImportState,
@@ -929,4 +931,62 @@ export interface GeoContributorRepository {
   setTier(userId: string, tier: GeoContributorTier): Promise<void>
   setShadowBanned(userId: string, shadowBanned: boolean): Promise<void>
   listThresholds(): Promise<GeoContributorTierThreshold[]>
+}
+
+// ---------- Webhook (public-API outbound delivery) ----------
+
+// Domain-facing webhook records. The dispatch service only needs the row
+// id off each — the concrete infra rows (WebhookRow / WebhookDeliveryRow)
+// carry more columns and are structurally assignable to these.
+export interface WebhookSubscriptionRecord {
+  id: number
+}
+
+export interface WebhookDeliveryRecord {
+  id: number
+}
+
+export interface WebhookRepository {
+  findActiveByUserAndEvent(
+    userId: string,
+    event: PublicEventType,
+  ): Promise<WebhookSubscriptionRecord[]>
+}
+
+export interface WebhookDeliveryRepository {
+  /**
+   * Idempotent enqueue keyed on (webhookId, eventId). Returns the new row,
+   * or null when the tuple already exists (duplicate — skip silently).
+   */
+  enqueue(params: {
+    webhookId: number
+    eventId: string
+    eventType: PublicEventType
+    payload: Record<string, unknown>
+  }): Promise<WebhookDeliveryRecord | null>
+}
+
+// ---------- Billing ----------
+
+// The billing-specific slice of the user table the billing service reads.
+// Kept separate from UserRepository so the entitlement service doesn't pull
+// in the full gameplay user surface.
+export interface BillingUserRepository {
+  getSupporterLifetimeAt(userId: string): Promise<Date | null>
+  getStripeCustomerId(userId: string): Promise<string | null>
+  setStripeCustomerId(userId: string, customerId: string): Promise<void>
+  findByStripeCustomerId(customerId: string): Promise<{ id: string; email: string } | null>
+}
+
+// Domain-facing view of an active subscription row. The concrete
+// SubscriptionRow carries more columns and is structurally assignable.
+export interface BillingSubscriptionRecord {
+  stripe_price_id: string
+  status: SubscriptionStatus
+  current_period_end: Date | null
+  cancel_at_period_end: boolean
+}
+
+export interface BillingSubscriptionRepository {
+  findActiveByUserId(userId: string): Promise<BillingSubscriptionRecord | null>
 }

@@ -26,7 +26,7 @@ test.describe('Daily Login Rewards', () => {
     const passwordInput = page.locator('input[type="password"]').first()
     await passwordInput.fill(E2E_USER_PASSWORD)
 
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     // Wait for login and modal
@@ -58,7 +58,7 @@ test.describe('Daily Login Rewards', () => {
     const passwordInput = page.locator('input[type="password"]').first()
     await passwordInput.fill(E2E_USER_PASSWORD)
 
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     await page.waitForTimeout(3000)
@@ -88,7 +88,7 @@ test.describe('Daily Login Rewards', () => {
     const passwordInput = page.locator('input[type="password"]').first()
     await passwordInput.fill(E2E_USER_PASSWORD)
 
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     await page.waitForTimeout(3000)
@@ -128,7 +128,7 @@ test.describe('Daily Login Rewards', () => {
     const passwordInput = page.locator('input[type="password"]').first()
     await passwordInput.fill(E2E_USER_PASSWORD)
 
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     await page.waitForTimeout(3000)
@@ -165,7 +165,7 @@ test.describe('Daily Login Rewards', () => {
     const passwordInput = page.locator('input[type="password"]').first()
     await passwordInput.fill(E2E_USER_PASSWORD)
 
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     await page.waitForTimeout(3000)
@@ -214,7 +214,7 @@ test.describe('Daily Reward Modal - Mobile viewport (375px)', () => {
     await emailInput.fill(E2E_USER_EMAIL)
     const passwordInput = page.locator('input[type="password"]').first()
     await passwordInput.fill(E2E_USER_PASSWORD)
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     // Give the app a moment to land on the home page and (if eligible) open

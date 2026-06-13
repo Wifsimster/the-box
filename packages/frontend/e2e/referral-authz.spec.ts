@@ -74,7 +74,7 @@ test.describe('Referral claim — domain invariants', () => {
         await ctx.close()
     })
 
-    test('claiming an unknown referrer code is rejected (404 USER_NOT_FOUND)', async ({ browser }) => {
+    test('claiming an unknown referrer code is rejected (404 REFERRER_NOT_FOUND)', async ({ browser }) => {
         const ctx = await browser.newContext()
         const page = await ctx.newPage()
         await loginAsUser(page)
@@ -85,7 +85,8 @@ test.describe('Referral claim — domain invariants', () => {
         })
         expect(res.status()).toBe(404)
         const body = (await res.json()) as { success: boolean; error?: { code: string } }
-        expect(body.error?.code).toBe('USER_NOT_FOUND')
+        // The submitted code resolves to no account → REFERRER_NOT_FOUND (404).
+        expect(body.error?.code).toBe('REFERRER_NOT_FOUND')
         await ctx.close()
     })
 

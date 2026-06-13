@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
-import { billingService } from '../../domain/services/billing.service.js'
+import { billingService } from '../../domain/services/index.js'
 
 // Gate a route on the caller having an active premium entitlement. Always
 // chain after authMiddleware — it relies on req.userId being populated.

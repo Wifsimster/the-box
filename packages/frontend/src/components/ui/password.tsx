@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Eye, EyeOff } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 export interface PasswordProps
@@ -10,6 +11,7 @@ export interface PasswordProps
 
 const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps) => {
     const [showPassword, setShowPassword] = React.useState(false)
+    const { t } = useTranslation()
 
     return (
       <div className="relative">
@@ -32,6 +34,8 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
+            aria-pressed={showPassword}
             className="absolute right-3 inset-y-0 my-auto flex h-fit items-center text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
           >

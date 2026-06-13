@@ -88,18 +88,14 @@ test.describe('Daily Game - Gameplay', () => {
   })
 
   test('should display progress dots for 10 positions', async ({ page }) => {
-    // Wait for progress dots to load
-    await page.waitForTimeout(1000)
+    // Progress dots are role="tab" position markers labelled 1..10. Use
+    // expect()'s auto-retry (not a one-shot isVisible) so a slow first render
+    // under suite load doesn't flake the assertion.
+    const dot1 = page.getByRole('tab').filter({ hasText: /^1$/ }).first()
+    const dot10 = page.getByRole('tab').filter({ hasText: /^10$/ }).first()
 
-    // Check for numbered buttons 1-10 (look for buttons containing just numbers)
-    const dot1 = page.locator('button').filter({ hasText: /^1$/ }).first()
-    const dot10 = page.locator('button').filter({ hasText: /^10$/ }).first()
-
-    const hasDot1 = await dot1.isVisible().catch(() => false)
-    const hasDot10 = await dot10.isVisible().catch(() => false)
-
-    // Should have progress dots
-    expect(hasDot1 && hasDot10).toBeTruthy()
+    await expect(dot1).toBeVisible({ timeout: 10000 })
+    await expect(dot10).toBeVisible({ timeout: 10000 })
   })
 
   test('should display score at the top', async ({ page }) => {

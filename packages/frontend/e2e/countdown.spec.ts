@@ -29,9 +29,14 @@ async function startPlayingWithFrozenClock(page: Page) {
 
   await expect(page.getByRole('timer')).toBeVisible({ timeout: 10000 })
 
-  // Freeze at the current instant for deterministic fast-forwarding.
+  // Freeze for deterministic fast-forwarding. pauseAt() internally
+  // fast-forwards to the given instant, which throws "Cannot fast-forward to
+  // the past" if the fake clock has already advanced past it between the
+  // evaluate() round-trip and the pauseAt() call. Pause a small step in the
+  // future so the target is always ahead of the clock; the ~0.5s costs one
+  // tick off the 45s budget, well within every assertion's tolerance.
   const pageNow = await page.evaluate(() => Date.now())
-  await page.clock.pauseAt(new Date(pageNow))
+  await page.clock.pauseAt(new Date(pageNow + 500))
 }
 
 test.describe('Daily Game - Countdown Timer', () => {
@@ -86,14 +91,22 @@ test.describe('Daily Game - Countdown Timer', () => {
   test('navigating away and back does NOT reset the countdown (exploit closed)', async ({ page }) => {
     await startPlayingWithFrozenClock(page)
 
-    // Spend ~15s on position 1 → ~30s remaining.
+    // Baseline the timer at the moment we froze the clock. Asserting deltas
+    // from this value (instead of an assumed pristine 45s) keeps the test
+    // robust to however much real time the login/start flow burned before the
+    // freeze.
+    const p1Start = await readTimerSeconds(page)
+    expect(p1Start).toBeGreaterThan(5) // sanity: a live countdown is running
+
+    // Spend ~15s on position 1 → the budget drops by ~15s.
     await page.clock.fastForward(15_000)
     await page.waitForTimeout(150)
     const p1Before = await readTimerSeconds(page)
-    expect(p1Before).toBeGreaterThanOrEqual(28)
-    expect(p1Before).toBeLessThanOrEqual(32)
+    expect(p1Start - p1Before).toBeGreaterThanOrEqual(13)
+    expect(p1Start - p1Before).toBeLessThanOrEqual(17)
 
-    // Skip to position 2 (banks ~15s into position 1) — fresh ~45s there.
+    // Skip to position 2 (banks the elapsed time into position 1) — its own
+    // budget is fresh, so it reads clearly higher than position 1's remainder.
     await skipScreenshot(page)
     await expect.poll(async () => readTimerSeconds(page), { timeout: 10000 }).toBeGreaterThan(40)
 
@@ -101,10 +114,11 @@ test.describe('Daily Game - Countdown Timer', () => {
     await page.getByRole('tab').filter({ hasText: /^1$/ }).first().click()
     await page.waitForTimeout(300)
 
-    // Exploit check: the timer RESUMES at ~30s, it is NOT reset to 45.
+    // Exploit check: the timer RESUMES at the banked remainder — close to
+    // p1Before — and is NOT reset to the full 45s budget.
     const p1After = await readTimerSeconds(page)
-    expect(p1After).toBeGreaterThan(20)
-    expect(p1After).toBeLessThanOrEqual(31)
+    expect(Math.abs(p1After - p1Before)).toBeLessThanOrEqual(2)
+    expect(p1After).toBeLessThan(40)
 
     // …and it keeps ticking DOWN from the resumed value.
     await page.clock.fastForward(5_000)
