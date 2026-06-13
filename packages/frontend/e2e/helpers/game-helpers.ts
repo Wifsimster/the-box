@@ -17,28 +17,33 @@ export async function closeDailyRewardModal(page: Page) {
   // Wait a moment for modal to potentially appear
   await page.waitForTimeout(500)
 
-  // Check if Daily Reward modal is visible
-  const closeButton = page.locator('button').filter({ hasText: /close/i })
-  const claimButton = page.getByRole('button', { name: /claim/i })
-
-  // Try to close the modal - first try claim, then close
+  // Every interaction here is best-effort: the modal is shared mutable state
+  // across parallel workers (all using e2e_user), so the claim button can be
+  // mid-transition — claimed by another worker, animating out, or about to
+  // disable. Dismissing the modal must never fail the caller's login, so each
+  // click is guarded and `.first()` avoids strict-mode if a label repeats.
+  const claimButton = page.getByRole('button', { name: /claim/i }).first()
   if (await claimButton.isVisible().catch(() => false)) {
-    await claimButton.click()
+    await claimButton.click({ timeout: 3000 }).catch(() => {})
     await page.waitForTimeout(500)
   }
 
-  // If there's still a close button, click it
+  const closeButton = page.locator('button').filter({ hasText: /close/i }).first()
   if (await closeButton.isVisible().catch(() => false)) {
-    await closeButton.click()
+    await closeButton.click({ timeout: 3000 }).catch(() => {})
     await page.waitForTimeout(500)
   }
 
   // Also check for dialog close button (X button)
   const dialogCloseButton = page.locator('[role="dialog"] button[aria-label*="close"], [role="dialog"] button:has(svg)').first()
   if (await dialogCloseButton.isVisible().catch(() => false)) {
-    await dialogCloseButton.click()
+    await dialogCloseButton.click({ timeout: 3000 }).catch(() => {})
     await page.waitForTimeout(500)
   }
+
+  // Last resort: Escape dismisses any lingering Radix dialog without needing
+  // to resolve a specific button.
+  await page.keyboard.press('Escape').catch(() => {})
 }
 
 /**
@@ -66,7 +71,7 @@ export async function loginAsUser(page: Page) {
   await page.waitForTimeout(100)
 
   // Wait for login button to be enabled (form validation)
-  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
 
   // Wait a bit longer for React state to propagate
@@ -124,7 +129,7 @@ export async function loginAsAdmin(page: Page) {
   await page.waitForTimeout(100)
 
   // Wait for login button to be enabled (form validation)
-  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
 
   // Wait a bit longer for React state to propagate

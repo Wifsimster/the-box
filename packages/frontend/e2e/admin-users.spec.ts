@@ -75,7 +75,7 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
   await page.waitForTimeout(100)
 
   // Wait for login button to be visible
-  const loginButton = page.getByRole('button', { name: /login|sign in/i })
+  const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
 
   // Wait a bit longer for React state to propagate

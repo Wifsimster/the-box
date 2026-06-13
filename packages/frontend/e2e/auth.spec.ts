@@ -27,7 +27,7 @@ test.describe('Login Flow', () => {
     await expect(passwordInput).toBeVisible()
 
     // Verify submit button
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await expect(loginButton).toBeVisible()
   })
 
@@ -43,7 +43,7 @@ test.describe('Login Flow', () => {
     await passwordInput.fill(E2E_USER_PASSWORD)
 
     // Submit
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     // Wait for navigation
@@ -66,7 +66,7 @@ test.describe('Login Flow', () => {
     await passwordInput.fill('wrongpassword123')
 
     // Submit
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     // Wait for response
@@ -96,7 +96,7 @@ test.describe('Login Flow', () => {
     await passwordInput.fill('somepassword123')
 
     // Submit
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
     // Wait for response
@@ -125,7 +125,7 @@ test.describe('Login Flow (narrow mobile viewport)', () => {
 
     const emailInput = page.getByPlaceholder(/you@example.com|email/i)
     const passwordInput = page.locator('input[type="password"]').first()
-    const loginButton = page.getByRole('button', { name: /login|sign in/i })
+    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
 
     await expect(emailInput).toBeVisible()
     await expect(passwordInput).toBeVisible()

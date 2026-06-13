@@ -64,6 +64,22 @@ async function createTestUser(data: {
     return existingUser.id
   }
 
+  // The merged-schema migration bootstraps a default admin (admin@thebox.local)
+  // and a later migration adds the `one_admin_role_idx` partial unique index
+  // permitting exactly one row with role='admin'. Inserting the e2e admin would
+  // therefore collide. Demote any other existing admin to 'user' first so the
+  // e2e admin can own the single admin slot. Idempotent: on re-run the e2e
+  // admin already exists and we return above before reaching here.
+  if (data.role === 'admin') {
+    const demoted = await db('user')
+      .where('role', 'admin')
+      .whereNot('email', data.email)
+      .update({ role: 'user', updatedAt: new Date() })
+    if (demoted > 0) {
+      console.log(`  ✓ Demoted ${demoted} pre-existing admin(s) to make room for ${data.email}`)
+    }
+  }
+
   const hashedPassword = await hashPassword(data.password)
   const userId = randomBytes(16).toString('hex')
 
