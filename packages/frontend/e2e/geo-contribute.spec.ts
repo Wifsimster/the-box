@@ -31,11 +31,15 @@ test.describe('Geo Contribute', () => {
         const map = page.getByRole('button', { name: /pin location on the map/i })
         const noCandidate = page.getByText(/no.*screenshots available|no unlabeled/i)
         const rateLimit = page.getByText(/pin limit reached|rate limit/i)
+        // Contributing unlocks only after a few daily games; a seeded test user
+        // with no play history sees this eligibility gate rather than pin UI.
+        const locked = page.getByText(/unlocks after|tagging unlocks/i)
 
         const hasPinUi = await map.isVisible().catch(() => false)
         const emptyOrLimited =
             (await noCandidate.isVisible().catch(() => false)) ||
-            (await rateLimit.isVisible().catch(() => false))
+            (await rateLimit.isVisible().catch(() => false)) ||
+            (await locked.isVisible().catch(() => false))
 
         if (!hasPinUi) {
             expect(emptyOrLimited).toBeTruthy()

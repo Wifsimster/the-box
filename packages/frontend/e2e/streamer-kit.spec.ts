@@ -24,6 +24,13 @@ function randomSlug(): string {
   return `e2e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
 
+// These tests all drive the SAME seeded user's public-profile state (toggle,
+// slug, keys, webhooks), so they must not run concurrently with each other —
+// otherwise one test enabling the profile races the "create-key disabled until
+// the toggle is on" assertion. Serial mode keeps them ordered on one worker;
+// the seed resets the profile to a clean (disabled) starting point.
+test.describe.configure({ mode: 'serial' })
+
 test.describe('Streamer Kit — public API M1', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
     await page.goto('/en/profile?tab=creator')
@@ -269,8 +276,9 @@ test.describe('Streamer Kit — reserved slugs', () => {
     await page.getByTestId('streamer-kit-slug-save').click()
 
     // Server rejects the reserved slug — the SLUG_TAKEN / SLUG_RESERVED
-    // path surfaces the inline error.
-    await expect(page.getByText(/reserved|already taken/i)).toBeVisible({ timeout: 5_000 })
+    // path surfaces the inline error. Match "is reserved" specifically so the
+    // footer's "All rights reserved" doesn't trip strict mode.
+    await expect(page.getByText(/is reserved|already taken/i)).toBeVisible({ timeout: 5_000 })
   })
 })
 

@@ -403,6 +403,16 @@ async function seed(): Promise<void> {
       password: E2E_ADMIN_PASSWORD,
     })
 
+    // Reset the streamer/public-profile state for the test users. The
+    // streamer-kit specs toggle public_profile_enabled and claim slugs, which
+    // persist across runs; without this reset the "create-key disabled until
+    // the toggle is on" assertion sees a profile that's already enabled from a
+    // previous run. Re-seeding restores a known-clean starting point.
+    await db('user')
+      .whereIn('email', [E2E_USER_EMAIL, E2E_ADMIN_EMAIL])
+      .update({ public_profile_enabled: false, public_slug: null, updatedAt: new Date() })
+    console.log('  ✓ Reset public-profile state for test users')
+
     // Step 2: Create mock games and screenshots for CI
     console.log('\nCreating mock games and screenshots...')
     await createMockGamesAndScreenshots()

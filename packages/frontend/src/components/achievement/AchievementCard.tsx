@@ -174,7 +174,10 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                             <span>{t('achievements.status.progress')}</span>
                             <span>{achievement.progress} / {achievement.progressMax}</span>
                         </div>
-                        <Progress value={(achievement.progress / achievement.progressMax!) * 100} />
+                        <Progress
+                            value={(achievement.progress / achievement.progressMax!) * 100}
+                            aria-label={`${t('achievements.status.progress')}: ${achievement.progress} / ${achievement.progressMax}`}
+                        />
                     </div>
                 )}
             </CardContent>
