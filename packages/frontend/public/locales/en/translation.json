@@ -44,6 +44,8 @@
     "menu": "Menu",
     "toggleMenu": "Toggle menu",
     "toggleDetails": "Toggle details",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "rankBadge": {
       "first": "1st place",
       "second": "2nd place",

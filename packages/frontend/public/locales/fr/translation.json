@@ -44,6 +44,8 @@
     "menu": "Menu",
     "toggleMenu": "Ouvrir/fermer le menu",
     "toggleDetails": "Afficher/masquer les détails",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
     "rankBadge": {
       "first": "1re place",
       "second": "2e place",

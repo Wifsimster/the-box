@@ -155,12 +155,14 @@ test.describe('Admin User Management', () => {
     await page.getByRole('tab', { name: /users|utilisateurs/i }).or(page.getByRole('button', { name: /users|utilisateurs/i })).click()
     await page.waitForSelector('text=/Users|Utilisateurs/i')
 
-    // Check for table headers
-    await expect(page.getByText(/email|Email/i)).toBeVisible()
-    await expect(page.getByText(/name|Nom/i)).toBeVisible()
-    await expect(page.getByText(/role|Rôle/i)).toBeVisible()
-    await expect(page.getByText(/total score|score total/i)).toBeVisible()
-    await expect(page.getByText(/created|Créé/i)).toBeVisible()
+    // Check for table column headers. Scope to the columnheader role so the
+    // generic "email"/"name" text doesn't also match the Email Log tab or the
+    // email-reminder cards elsewhere on the admin page (strict-mode collision).
+    await expect(page.getByRole('columnheader', { name: /email/i })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: /name|nom/i }).first()).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: /role|rôle/i })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: /total score|score total/i })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: /created|créé/i })).toBeVisible()
   })
 
   test('should allow searching users by email', async ({ page }) => {
