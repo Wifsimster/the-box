@@ -949,4 +949,41 @@ export interface UserAnalytics {
     currentStreak: number
     banned: boolean
   }>
+  churn: {
+    everActive: number
+    inactive30d: number
+    inactive60d: number
+    inactive90d: number
+    churnRate30dPercent: number
+    churnRate60dPercent: number
+    churnRate90dPercent: number
+    stickinessPercent: number
+    activeDaily: number
+    activeWeekly: number
+    activeMonthly: number
+  }
+  dormancy: {
+    active: number
+    warm: number
+    atRisk: number
+    dormant: number
+    lost: number
+    neverLoggedIn: number
+  }
+  funnel: {
+    signups30d: number
+    playedAtLeastOnce: number
+    stillActiveAfter7d: number
+    activationRatePercent: number
+    week1RetentionPercent: number
+  }
+  atRiskStreaks: Array<{
+    userId: string
+    displayName: string
+    email: string
+    currentStreak: number
+    lastLoginAt: string | null
+    lastPlayedAt: string | null
+    totalScore: number
+  }>
 }

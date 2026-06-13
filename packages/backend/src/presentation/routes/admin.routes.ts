@@ -1418,6 +1418,10 @@ router.get('/user-analytics', async (_req, res, next) => {
       topPlayersBySessionsRows,
       topPlayersByScoreRows,
       recentlyActiveRows,
+      churnRow,
+      dormancyRow,
+      funnelRow,
+      atRiskStreakRows,
     ] = await Promise.all([
       // Total non-guest users + how many have ever played
       db('user')
@@ -1563,14 +1567,99 @@ router.get('/user-analytics', async (_req, res, next) => {
         .whereNotNull('lastLoginAt')
         .orderBy('lastLoginAt', 'desc')
         .limit(15),
+      // Churn windows: of all users that ever logged in, how many have
+      // gone silent past 30/60/90 days. Denominator excludes "never
+      // logged in" so the rate reflects abandonment of real users rather
+      // than the never-activated long tail.
+      db('user')
+        .select<{ ever_active: string; inactive_30d: string; inactive_60d: string; inactive_90d: string }>(
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NOT NULL) AS ever_active`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NOT NULL AND "lastLoginAt" < NOW() - INTERVAL '30 days') AS inactive_30d`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NOT NULL AND "lastLoginAt" < NOW() - INTERVAL '60 days') AS inactive_60d`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NOT NULL AND "lastLoginAt" < NOW() - INTERVAL '90 days') AS inactive_90d`),
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .first(),
+      // Dormancy distribution: bucket every non-guest user by days since
+      // last login. Drives the lifecycle bar so the admin can see at a
+      // glance how much of the base is healthy vs. at-risk vs. lost.
+      db('user')
+        .select<{ never_logged: string; active: string; warm: string; at_risk: string; dormant: string; lost: string }>(
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NULL) AS never_logged`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" > NOW() - INTERVAL '7 days') AS active`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" <= NOW() - INTERVAL '7 days'  AND "lastLoginAt" > NOW() - INTERVAL '30 days') AS warm`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" <= NOW() - INTERVAL '30 days' AND "lastLoginAt" > NOW() - INTERVAL '60 days') AS at_risk`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" <= NOW() - INTERVAL '60 days' AND "lastLoginAt" > NOW() - INTERVAL '90 days') AS dormant`),
+          db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" <= NOW() - INTERVAL '90 days') AS lost`),
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .first(),
+      // Signup → first-play funnel over the last 30 days. Surfaces how
+      // many fresh signups actually start a session, and how many are
+      // still active 7 days in. Sized to the same 30d window everything
+      // else on the page uses.
+      db('user')
+        .select<{ signed_up: string; played: string; still_active_7d: string }>(
+          db.raw('COUNT(*) AS signed_up'),
+          db.raw('COUNT(*) FILTER (WHERE last_played_at IS NOT NULL) AS played'),
+          db.raw(`COUNT(*) FILTER (WHERE last_played_at > NOW() - INTERVAL '7 days') AS still_active_7d`),
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .where('createdAt', '>', db.raw(`NOW() - INTERVAL '30 days'`))
+        .first(),
+      // Streak-at-risk: users carrying a real streak (≥3) who haven't
+      // logged in for 36h–7d. They still have a recoverable streak — an
+      // admin can nudge them before they drop off. Past 7 days the
+      // streak is almost certainly gone so we exclude that tail.
+      db('user')
+        .select<Array<{ id: string; username: string | null; name: string; email: string; current_streak: number; lastLoginAt: Date | null; last_played_at: Date | null; total_score: number }>>(
+          'id', 'username', 'name', 'email', 'current_streak', 'lastLoginAt', 'last_played_at', 'total_score',
+        )
+        .whereNot('email', 'like', GUEST_EMAIL_LIKE)
+        .where('banned', false)
+        .where('current_streak', '>=', 3)
+        .whereRaw(`"lastLoginAt" < NOW() - INTERVAL '36 hours'`)
+        .whereRaw(`"lastLoginAt" > NOW() - INTERVAL '7 days'`)
+        .orderBy([
+          { column: 'current_streak', order: 'desc' },
+          { column: 'lastLoginAt', order: 'asc' },
+        ])
+        .limit(15),
     ])
 
     const totalUsers = Number(totalsRow?.total ?? 0)
     const everPlayed = Number(totalsRow?.ever_played ?? 0)
+    const activeD1 = Number(activeUsersRow?.d1 ?? 0)
+    const activeD7 = Number(activeUsersRow?.d7 ?? 0)
     const activeD30 = Number(activeUsersRow?.d30 ?? 0)
     const sessAgg = sessionsAggRow.rows[0]
     const buckets = activityBucketsRow.rows[0]
     const sessionsTotals = sessionsRow.rows[0]
+
+    // Churn math. Denominator = users who ever logged in (real users),
+    // so the rate measures abandonment, not activation failure.
+    const everActive = Number(churnRow?.ever_active ?? 0)
+    const inactive30 = Number(churnRow?.inactive_30d ?? 0)
+    const inactive60 = Number(churnRow?.inactive_60d ?? 0)
+    const inactive90 = Number(churnRow?.inactive_90d ?? 0)
+    const churnPct = (n: number) =>
+      everActive === 0 ? 0 : Math.round((n / everActive) * 1000) / 10
+    // DAU/MAU stickiness: classic engagement quality signal. Ratio is
+    // 0-100; higher means returning users are coming back more often
+    // (e.g. 30 means the average MAU logged in ~9 days a month).
+    const stickinessPercent =
+      activeD30 === 0 ? 0 : Math.round((activeD1 / activeD30) * 1000) / 10
+
+    // Signup → first-play funnel for the last 30 days
+    const signupCount = Number(funnelRow?.signed_up ?? 0)
+    const playedCount = Number(funnelRow?.played ?? 0)
+    const stillActive7dCount = Number(funnelRow?.still_active_7d ?? 0)
+    const playRate =
+      signupCount === 0 ? 0 : Math.round((playedCount / signupCount) * 1000) / 10
+    const week1RetentionRate =
+      signupCount === 0
+        ? 0
+        : Math.round((stillActive7dCount / signupCount) * 1000) / 10
 
     res.json({
       success: true,
@@ -1644,6 +1733,43 @@ router.get('/user-analytics', async (_req, res, next) => {
           totalScore: Number(row.total_score ?? 0),
           currentStreak: Number(row.current_streak ?? 0),
           banned: Boolean(row.banned),
+        })),
+        churn: {
+          everActive,
+          inactive30d: inactive30,
+          inactive60d: inactive60,
+          inactive90d: inactive90,
+          churnRate30dPercent: churnPct(inactive30),
+          churnRate60dPercent: churnPct(inactive60),
+          churnRate90dPercent: churnPct(inactive90),
+          stickinessPercent,
+          activeDaily: activeD1,
+          activeWeekly: activeD7,
+          activeMonthly: activeD30,
+        },
+        dormancy: {
+          active: Number(dormancyRow?.active ?? 0),
+          warm: Number(dormancyRow?.warm ?? 0),
+          atRisk: Number(dormancyRow?.at_risk ?? 0),
+          dormant: Number(dormancyRow?.dormant ?? 0),
+          lost: Number(dormancyRow?.lost ?? 0),
+          neverLoggedIn: Number(dormancyRow?.never_logged ?? 0),
+        },
+        funnel: {
+          signups30d: signupCount,
+          playedAtLeastOnce: playedCount,
+          stillActiveAfter7d: stillActive7dCount,
+          activationRatePercent: playRate,
+          week1RetentionPercent: week1RetentionRate,
+        },
+        atRiskStreaks: atRiskStreakRows.map((row) => ({
+          userId: row.id,
+          displayName: row.username ?? row.name,
+          email: row.email,
+          currentStreak: Number(row.current_streak ?? 0),
+          lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
+          lastPlayedAt: row.last_played_at?.toISOString() ?? null,
+          totalScore: Number(row.total_score ?? 0),
         })),
       },
     })

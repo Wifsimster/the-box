@@ -1,27 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import type { UserAnalytics } from '@/lib/api/admin'
-import { numberFormat } from './user-analytics-format'
-
-const formatDateTime = (iso: string | null, lang: string, fallback: string) => {
-  if (!iso) return fallback
-  return new Date(iso).toLocaleString(lang, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-}
-
-const formatRelative = (iso: string | null, lang: string, fallback: string) => {
-  if (!iso) return fallback
-  const ms = Date.now() - new Date(iso).getTime()
-  if (ms < 0) return formatDateTime(iso, lang, fallback)
-  const minutes = Math.round(ms / 60_000)
-  if (minutes < 60) return `${minutes} min`
-  const hours = Math.round(minutes / 60)
-  if (hours < 48) return `${hours} h`
-  const days = Math.round(hours / 24)
-  return `${days} j`
-}
+import { numberFormat, formatDateTime, formatRelative } from './user-analytics-format'
 
 type TopPlayersVariant = 'sessions' | 'score'
 
