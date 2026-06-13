@@ -24,7 +24,10 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-9 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-2 text-sm shadow-xs transition-colors",
+        // `h-10` gives a 40px trigger (matches Input, closer to the 44px touch
+        // target) and `text-base md:text-sm` stops iOS Safari zooming when the
+        // native picker opens.
+        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-2 text-base md:text-sm shadow-xs transition-colors",
         "placeholder:text-muted-foreground",
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
         "disabled:cursor-not-allowed disabled:opacity-50",

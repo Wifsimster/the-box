@@ -175,6 +175,17 @@ body {
   /* dvh tracks the *current* viewport, so the shell doesn't overflow by the
      mobile browser toolbar height the way 100vh does. */
   min-height: 100dvh;
+  /* iOS Safari inflates font sizes when a phone rotates to landscape; pin the
+     adjustment to 100% so text stays at its intended scale. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Suppress the grey flash iOS Safari paints over tapped links/buttons — the
+   app already has its own active/focus styling, so the default highlight just
+   looks broken on the dark gaming theme. */
+html {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Keep focused / anchored elements clear of the sticky header (top) and the
