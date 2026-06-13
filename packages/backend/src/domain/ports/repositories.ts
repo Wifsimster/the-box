@@ -10,6 +10,7 @@
 import type {
   DailyReward,
   PublicEventType,
+  SubscriptionStatus,
   Game,
   GameSearchResult,
   ImportState,
@@ -963,4 +964,29 @@ export interface WebhookDeliveryRepository {
     eventType: PublicEventType
     payload: Record<string, unknown>
   }): Promise<WebhookDeliveryRecord | null>
+}
+
+// ---------- Billing ----------
+
+// The billing-specific slice of the user table the billing service reads.
+// Kept separate from UserRepository so the entitlement service doesn't pull
+// in the full gameplay user surface.
+export interface BillingUserRepository {
+  getSupporterLifetimeAt(userId: string): Promise<Date | null>
+  getStripeCustomerId(userId: string): Promise<string | null>
+  setStripeCustomerId(userId: string, customerId: string): Promise<void>
+  findByStripeCustomerId(customerId: string): Promise<{ id: string; email: string } | null>
+}
+
+// Domain-facing view of an active subscription row. The concrete
+// SubscriptionRow carries more columns and is structurally assignable.
+export interface BillingSubscriptionRecord {
+  stripe_price_id: string
+  status: SubscriptionStatus
+  current_period_end: Date | null
+  cancel_at_period_end: boolean
+}
+
+export interface BillingSubscriptionRepository {
+  findActiveByUserId(userId: string): Promise<BillingSubscriptionRecord | null>
 }

@@ -64,6 +64,18 @@ export {
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
 export {
+  createBillingService,
+  toSubscriptionStatus,
+  type BillingService,
+  type BillingServiceDeps,
+  type BillingStripeGateway,
+  type BillingCatalogResolver,
+} from './billing.service.js'
+// Pre-wired billing singleton. Constructed in a queue-free composition module
+// (see billing.composition.ts) so the unit-tested webhook route can import it
+// without pulling the Redis-backed queues this barrel constructs.
+export { billingService } from './billing.composition.js'
+export {
   createPushService,
   type PushService,
   type PushServiceDeps,

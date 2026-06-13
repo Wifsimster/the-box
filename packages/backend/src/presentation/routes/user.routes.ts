@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { userService } from '../../domain/services/index.js'
-import { billingService } from '../../domain/services/billing.service.js'
+import { billingService } from '../../domain/services/index.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
