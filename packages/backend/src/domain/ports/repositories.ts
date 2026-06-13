@@ -9,6 +9,7 @@
  */
 import type {
   DailyReward,
+  PublicEventType,
   Game,
   GameSearchResult,
   ImportState,
@@ -929,4 +930,37 @@ export interface GeoContributorRepository {
   setTier(userId: string, tier: GeoContributorTier): Promise<void>
   setShadowBanned(userId: string, shadowBanned: boolean): Promise<void>
   listThresholds(): Promise<GeoContributorTierThreshold[]>
+}
+
+// ---------- Webhook (public-API outbound delivery) ----------
+
+// Domain-facing webhook records. The dispatch service only needs the row
+// id off each — the concrete infra rows (WebhookRow / WebhookDeliveryRow)
+// carry more columns and are structurally assignable to these.
+export interface WebhookSubscriptionRecord {
+  id: number
+}
+
+export interface WebhookDeliveryRecord {
+  id: number
+}
+
+export interface WebhookRepository {
+  findActiveByUserAndEvent(
+    userId: string,
+    event: PublicEventType,
+  ): Promise<WebhookSubscriptionRecord[]>
+}
+
+export interface WebhookDeliveryRepository {
+  /**
+   * Idempotent enqueue keyed on (webhookId, eventId). Returns the new row,
+   * or null when the tuple already exists (duplicate — skip silently).
+   */
+  enqueue(params: {
+    webhookId: number
+    eventId: string
+    eventType: PublicEventType
+    payload: Record<string, unknown>
+  }): Promise<WebhookDeliveryRecord | null>
 }

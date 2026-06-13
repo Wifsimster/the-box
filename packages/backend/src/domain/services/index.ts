@@ -64,6 +64,12 @@ export {
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
 export {
+  createWebhookDispatchService,
+  type WebhookDispatchService,
+  type WebhookDispatchDeps,
+  hashPayload,
+} from './webhook-dispatch.service.js'
+export {
   wikiSubdomainCandidates,
   scoreMapTitle,
   parseSteamAppIdFromUrl,
@@ -95,8 +101,9 @@ import { createGeoConsensusService } from './geo-consensus.service.js'
 import { createGeoRewardService } from './geo-reward.service.js'
 import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
+import { createWebhookDispatchService } from './webhook-dispatch.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
-import { importQueue, geoQueue } from '../../infrastructure/queue/queues.js'
+import { importQueue, geoQueue, webhookQueue } from '../../infrastructure/queue/queues.js'
 import { emitRewardGranted } from '../../infrastructure/socket/socket.js'
 import {
   achievementRepository,
@@ -116,7 +123,22 @@ import {
   geoMapRepository,
   geoPinRepository,
   geoScreenshotRepository,
+  webhookRepository,
+  webhookDeliveryRepository,
 } from '../../infrastructure/repositories/index.js'
+
+// Public-API outbound webhook dispatch. Wired here (composition root) from the
+// concrete repositories + BullMQ webhook queue so the service file stays
+// infrastructure-free. The game-service completion hooks below dispatch
+// through this singleton.
+export const webhookDispatch = createWebhookDispatchService({
+  logger: serviceLogger,
+  webhookRepository,
+  webhookDeliveryRepository,
+  enqueueDelivery: async (deliveryId) => {
+    await webhookQueue.add('deliver', { kind: 'deliver', deliveryId })
+  },
+})
 
 export const fuzzyMatchService = createFuzzyMatchService({ logger: serviceLogger })
 
@@ -241,7 +263,6 @@ async function onAfterSessionCompleted(params: {
     rank = Number(higher?.count ?? 0) + 1
   }
 
-  const { webhookDispatch } = await import('./webhook-dispatch.service.js')
   await webhookDispatch.sessionCompleted({
     userId: params.userId,
     slug: userRow.public_slug,
@@ -289,7 +310,6 @@ async function onAfterSessionStarted(params: {
     .first()
   if (!userRow?.public_profile_enabled || !userRow.public_slug) return
 
-  const { webhookDispatch } = await import('./webhook-dispatch.service.js')
   await webhookDispatch.sessionStarted({
     userId: params.userId,
     slug: userRow.public_slug,
