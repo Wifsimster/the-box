@@ -13,9 +13,11 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useChangelogStore } from '@/stores/changelogStore'
 import {
+  CHANGELOG,
   CHANGELOG_SECTIONS,
   compareVersions,
   getLatestRelease,
+  type ChangelogRelease,
   type ChangelogSection,
 } from '@/data/changelog'
 
@@ -31,10 +33,7 @@ interface ReleaseContent {
   fixes?: string[]
 }
 
-const SECTION_ICONS: Record<
-  ChangelogSection,
-  typeof Sparkles
-> = {
+const SECTION_ICONS: Record<ChangelogSection, typeof Sparkles> = {
   features: Sparkles,
   improvements: Zap,
   fixes: Wrench,
@@ -47,10 +46,14 @@ const SECTION_ACCENT: Record<ChangelogSection, string> = {
 }
 
 /**
- * "What's New" dialog. Surfaces the newest release's notes once after the app
- * updates to that version, and on demand when opened from the footer version
- * chip. All copy is localized; the bullet content comes from the active i18n
- * bundle keyed by version, so it follows the player's language.
+ * "What's New" dialog. Auto-opens the newest release's notes once after the app
+ * updates to that version, and opens on demand from the footer version chip.
+ *
+ * It renders the *whole* announced history as a vertical timeline (newest
+ * first), so a returning player can scroll back through previous releases
+ * instead of only seeing the single build they just upgraded to. All copy is
+ * localized; bullet content comes from the active i18n bundle keyed by version,
+ * so the notes follow the player's language.
  */
 export function ChangelogDialog(): ReactElement | null {
   const { t, i18n } = useTranslation()
@@ -88,17 +91,17 @@ export function ChangelogDialog(): ReactElement | null {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Pull the localized block for this release out of the active i18n bundle.
-  const content = useMemo<ReleaseContent | null>(() => {
-    if (!release) return null
+  // The full localized `changelog.releases` map, resolved once for the active
+  // language. Individual release blocks are looked up by version below.
+  const releaseContent = useMemo<Record<string, ReleaseContent>>(() => {
     const releases = t('changelog.releases', { returnObjects: true }) as
       | Record<string, ReleaseContent>
       | string
-    if (!releases || typeof releases !== 'object') return null
-    return releases[release.version] ?? null
-    // i18n.language is a dependency so the block re-resolves on language switch.
+    if (!releases || typeof releases !== 'object') return {}
+    return releases
+    // i18n.language is a dependency so blocks re-resolve on language switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [release, t, i18n.language])
+  }, [t, i18n.language])
 
   if (!release) return null
 
@@ -106,88 +109,49 @@ export function ChangelogDialog(): ReactElement | null {
     if (!next) markSeen(APP_VERSION === 'dev' ? release.version : APP_VERSION)
   }
 
-  const formattedDate = (() => {
-    const parsed = new Date(release.date)
-    if (Number.isNaN(parsed.getTime())) return release.date
+  const formatDate = (iso: string): string => {
+    const parsed = new Date(iso)
+    if (Number.isNaN(parsed.getTime())) return iso
     return parsed.toLocaleDateString(i18n.language, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     })
-  })()
-
-  const sections = CHANGELOG_SECTIONS.map((key) => ({
-    key,
-    items: content?.[key] ?? [],
-  })).filter((section) => section.items.length > 0)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-neon-purple to-neon-pink text-white shadow-lg shadow-neon-purple/30"
               aria-hidden="true"
             >
-              <Sparkles className="size-4" />
+              <Sparkles className="size-5" />
             </span>
             <div className="flex flex-col text-left">
               <DialogTitle>{t('changelog.title')}</DialogTitle>
-              <span className="text-xs text-muted-foreground">
-                {t('changelog.versionLine', {
-                  version: release.version,
-                  date: formattedDate,
-                })}
-              </span>
+              <DialogDescription className="text-xs">
+                {t('changelog.headerSubtitle')}
+              </DialogDescription>
             </div>
           </div>
-          {content?.summary && (
-            <DialogDescription className="pt-1">
-              {content.summary}
-            </DialogDescription>
-          )}
         </DialogHeader>
 
-        {sections.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {sections.map(({ key, items }) => {
-              const Icon = SECTION_ICONS[key]
-              return (
-                <section key={key} className="flex flex-col gap-1.5">
-                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                    <Icon
-                      className={cn('size-4', SECTION_ACCENT[key])}
-                      aria-hidden="true"
-                    />
-                    {t(`changelog.sections.${key}`)}
-                  </h3>
-                  <ul className="flex flex-col gap-1 pl-1.5">
-                    {items.map((item, index) => (
-                      <li
-                        key={index}
-                        className="flex gap-2 text-sm text-muted-foreground"
-                      >
-                        <span
-                          className={cn(
-                            'mt-1.5 size-1.5 shrink-0 rounded-full bg-current',
-                            SECTION_ACCENT[key],
-                          )}
-                          aria-hidden="true"
-                        />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {t('changelog.empty')}
-          </p>
-        )}
+        <ol className="flex flex-col gap-7 pt-1">
+          {CHANGELOG.map((entry, index) => (
+            <ReleaseEntry
+              key={entry.version}
+              entry={entry}
+              content={releaseContent[entry.version] ?? null}
+              isLatest={index === 0}
+              isLast={index === CHANGELOG.length - 1}
+              formattedDate={formatDate(entry.date)}
+              t={t}
+            />
+          ))}
+        </ol>
 
         <DialogFooter>
           <Button onClick={() => handleClose(false)}>
@@ -196,6 +160,114 @@ export function ChangelogDialog(): ReactElement | null {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+interface ReleaseEntryProps {
+  entry: ChangelogRelease
+  content: ReleaseContent | null
+  isLatest: boolean
+  isLast: boolean
+  formattedDate: string
+  t: (key: string, options?: Record<string, unknown>) => string
+}
+
+/** One release rendered as a node on the changelog timeline. */
+function ReleaseEntry({
+  entry,
+  content,
+  isLatest,
+  isLast,
+  formattedDate,
+  t,
+}: ReleaseEntryProps): ReactElement {
+  const sections = CHANGELOG_SECTIONS.map((key) => ({
+    key,
+    items: content?.[key] ?? [],
+  })).filter((section) => section.items.length > 0)
+
+  return (
+    <li className="relative pl-7">
+      {/* Rail connecting this node to the next one below it. */}
+      {!isLast && (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-[-1.75rem] left-[6px] top-5 w-px bg-linear-to-b from-border to-transparent"
+        />
+      )}
+      {/* Timeline node — the newest release glows in the active accent. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          'absolute left-0 top-1 size-3 rounded-full border-2 border-card',
+          isLatest
+            ? 'bg-primary shadow-[0_0_10px_2px] shadow-primary/50'
+            : 'bg-muted-foreground/40',
+        )}
+      />
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <h3 className="text-sm font-semibold text-foreground">
+          v{entry.version}
+        </h3>
+        {isLatest && (
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            {t('changelog.badge.new')}
+          </span>
+        )}
+        <time
+          dateTime={entry.date}
+          className="ml-auto text-xs text-muted-foreground"
+        >
+          {formattedDate}
+        </time>
+      </div>
+
+      {content?.summary && (
+        <p className="mt-1 text-sm text-muted-foreground">{content.summary}</p>
+      )}
+
+      {sections.length > 0 ? (
+        <div className="mt-3 flex flex-col gap-3">
+          {sections.map(({ key, items }) => {
+            const Icon = SECTION_ICONS[key]
+            return (
+              <section key={key} className="flex flex-col gap-1.5">
+                <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-foreground">
+                  <Icon
+                    className={cn('size-3.5', SECTION_ACCENT[key])}
+                    aria-hidden="true"
+                  />
+                  <span>{t(`changelog.sections.${key}`)}</span>
+                  <span className="text-muted-foreground/60">{items.length}</span>
+                </h4>
+                <ul className="flex flex-col gap-1 pl-1">
+                  {items.map((item, itemIndex) => (
+                    <li
+                      key={itemIndex}
+                      className="flex gap-2 text-sm text-muted-foreground"
+                    >
+                      <span
+                        className={cn(
+                          'mt-1.5 size-1.5 shrink-0 rounded-full bg-current',
+                          SECTION_ACCENT[key],
+                        )}
+                        aria-hidden="true"
+                      />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t('changelog.empty')}
+        </p>
+      )}
+    </li>
   )
 }
 

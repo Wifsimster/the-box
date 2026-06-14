@@ -2750,10 +2750,14 @@
   },
   "changelog": {
     "title": "Nouveautés",
+    "headerSubtitle": "Les dernières évolutions de The Box",
     "versionLine": "Version {{version}} · {{date}}",
     "openTitle": "Voir les nouveautés de cette version",
     "gotIt": "J'ai compris",
     "empty": "Cette version apporte des améliorations et corrections internes.",
+    "badge": {
+      "new": "Nouveau"
+    },
     "sections": {
       "features": "Nouveautés",
       "improvements": "Améliorations",
