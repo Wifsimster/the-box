@@ -2750,10 +2750,14 @@
   },
   "changelog": {
     "title": "What's new",
+    "headerSubtitle": "The latest updates to The Box",
     "versionLine": "Version {{version}} · {{date}}",
     "openTitle": "See what's new in this version",
     "gotIt": "Got it",
     "empty": "This release ships under-the-hood improvements and fixes.",
+    "badge": {
+      "new": "New"
+    },
     "sections": {
       "features": "New features",
       "improvements": "Improvements",
