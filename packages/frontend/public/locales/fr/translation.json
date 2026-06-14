@@ -128,7 +128,7 @@
       },
       "high_roller": {
         "name": "Gros Joueur",
-        "description": "Obtenez plus de 1800 points dans un seul défi"
+        "description": "Obtenez au moins 1800 points dans un seul défi"
       },
       "dedicated_player": {
         "name": "Joueur Dévoué",
@@ -228,15 +228,15 @@
       },
       "game_collector_10": {
         "name": "Collectionneur",
-        "description": "Identifiez correctement 10 jeux différents"
+        "description": "Trouvez 10 bonnes réponses au total"
       },
       "game_collector_50": {
         "name": "Expert en Jeux",
-        "description": "Identifiez correctement 50 jeux différents"
+        "description": "Trouvez 50 bonnes réponses au total"
       },
       "game_collector_100": {
         "name": "Encyclopédie Vivante",
-        "description": "Identifiez correctement 100 jeux différents"
+        "description": "Trouvez 100 bonnes réponses au total"
       },
       "comeback_kid": {
         "name": "De Retour",
@@ -268,7 +268,7 @@
       },
       "acharne": {
         "name": "Acharné",
-        "description": "Tente ta chance plus de 10 fois sur une seule capture"
+        "description": "Tente ta chance 10 fois ou plus sur une seule capture"
       },
       "tete_de_mule": {
         "name": "Tête de mule",

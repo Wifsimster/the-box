@@ -128,7 +128,7 @@
       },
       "high_roller": {
         "name": "High Roller",
-        "description": "Score over 1800 points in a single challenge"
+        "description": "Score at least 1800 points in a single challenge"
       },
       "dedicated_player": {
         "name": "Dedicated Player",
@@ -228,15 +228,15 @@
       },
       "game_collector_10": {
         "name": "Collector",
-        "description": "Correctly identify 10 different games"
+        "description": "Make 10 correct guesses in total"
       },
       "game_collector_50": {
         "name": "Game Expert",
-        "description": "Correctly identify 50 different games"
+        "description": "Make 50 correct guesses in total"
       },
       "game_collector_100": {
         "name": "Walking Encyclopedia",
-        "description": "Correctly identify 100 different games"
+        "description": "Make 100 correct guesses in total"
       },
       "comeback_kid": {
         "name": "Back Again",
@@ -268,7 +268,7 @@
       },
       "acharne": {
         "name": "Relentless",
-        "description": "Make more than 10 attempts on a single screenshot"
+        "description": "Make 10 or more attempts on a single screenshot"
       },
       "tete_de_mule": {
         "name": "Stubborn",
