@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { BillingPrice, BillingTier } from '@the-box/types'
+import { PlanFeatureList } from './PlanFeatureList'
+import { PREMIUM_TIER_FEATURE_KEYS } from './planFeatures'
 
 /** Per-card status flags, grouped so the component takes a single object prop
  *  instead of a wide row of booleans. */
@@ -99,6 +101,10 @@ export function PricingCard({
           {isOneTime && (
             <p className="text-xs text-neon-pink/80 font-medium">{t('pricing.supporterNote')}</p>
           )}
+          <PlanFeatureList
+            featureKeys={PREMIUM_TIER_FEATURE_KEYS[price.tier]}
+            leadKey="pricing.features.everythingInFree"
+          />
         </CardContent>
 
         <CardFooter>

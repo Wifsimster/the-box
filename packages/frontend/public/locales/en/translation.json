@@ -1753,6 +1753,7 @@
       "title": "What's included",
       "free": "Free",
       "premium": "Premium",
+      "everythingInFree": "Everything in Free, plus:",
       "items": {
         "dailyChallenge": "Daily challenge",
         "leaderboards": "Live leaderboards",
