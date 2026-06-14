@@ -339,6 +339,12 @@
     "nextRound": "Next Round",
     "correct": "Correct!",
     "incorrect": "Incorrect",
+    "proximity": {
+      "warmer": "Warmer!",
+      "sameFranchise": "Same franchise as the answer · {{value}}",
+      "sameDeveloper": "Same studio as the answer · {{value}}",
+      "samePublisher": "Same publisher as the answer · {{value}}"
+    },
     "timeUp": "Time's up!",
     "timer": {
       "label": "Time remaining: {{seconds}} seconds"

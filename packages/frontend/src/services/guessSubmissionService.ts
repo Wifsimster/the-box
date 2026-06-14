@@ -1,4 +1,4 @@
-import type { Game, NewlyEarnedAchievement } from '@the-box/types'
+import type { Game, GuessProximityHint, NewlyEarnedAchievement } from '@the-box/types'
 import {
   fetchWithRetry,
   parseApiError,
@@ -33,6 +33,8 @@ export interface GuessSubmissionResult {
   letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
+  /** "Warmer" hint after a wrong guess that relates to the answer. */
+  proximityHint?: GuessProximityHint
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 

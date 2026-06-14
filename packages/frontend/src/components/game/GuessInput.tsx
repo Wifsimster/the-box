@@ -8,6 +8,7 @@ import { useGameStore } from '@/stores/gameStore'
 import { SkipForward, SkipBack, Loader2, Send } from 'lucide-react'
 import { createGuessSubmissionService } from '@/services'
 import { LetterRevealBar } from '@/components/game/LetterRevealBar'
+import { ProximityHintBanner } from '@/components/game/ProximityHintBanner'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { useGameGuess } from '@/hooks/useGameGuess'
 import { useOnline } from '@/hooks/useOnline'
@@ -161,6 +162,10 @@ export function GuessInput() {
   // Hide skip button on last screenshot
   const isLastPosition = currentPosition === totalScreenshots
 
+  // Smart-guess "warmer" hint for the active screenshot, set by the backend
+  // after a related wrong guess (same franchise / studio / publisher).
+  const proximityHint = positionStates[currentPosition]?.proximityHint
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -271,6 +276,10 @@ export function GuessInput() {
           </Tooltip>
         )}
       </div>
+
+      {gamePhase === 'playing' && proximityHint && (
+        <ProximityHintBanner hint={proximityHint} />
+      )}
     </div>
   )
 }

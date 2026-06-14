@@ -78,15 +78,20 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         const currentPos = store.currentPosition
 
         if (result.isCorrect) {
-          // Mark position as correct
+          // Mark position as correct and clear any lingering "warmer" hint.
           store.updatePositionState(currentPos, {
             status: 'correct',
             isCorrect: true,
+            proximityHint: undefined,
           })
         } else {
-          // Wrong guess - stay on current position and mark as having incorrect guess
+          // Wrong guess - stay on current position and mark as having incorrect
+          // guess. Surface the smart-guess "warmer" hint when the server could
+          // relate this guess to the answer; keep the previous one otherwise so
+          // an unrelated follow-up guess doesn't wipe a useful clue.
           store.updatePositionState(currentPos, {
             isCorrect: false,
+            ...(result.proximityHint ? { proximityHint: result.proximityHint } : {}),
           })
           store.markIncorrectGuess(currentPos)
 

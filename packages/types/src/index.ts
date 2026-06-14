@@ -315,6 +315,13 @@ export interface PositionState {
    * `positionStates`, so a refresh can't reset it either.
    */
   timeSpentMs?: number
+  /**
+   * Latest "warmer" hint for this position, set after a wrong guess that we
+   * could relate to the answer (same franchise / developer / publisher).
+   * Rendered under the guess input; kept across navigation so revisiting the
+   * screenshot still shows the last clue. Cleared once the position is solved.
+   */
+  proximityHint?: GuessProximityHint
 }
 
 // ============================================
@@ -451,6 +458,27 @@ export interface GuessRequest {
   roundTimeTakenMs: number
 }
 
+/**
+ * How a *wrong* guess relates to the hidden answer. Surfaced as a
+ * "warmer / colder" signal so the player learns something from a near-miss
+ * (e.g. they named a different game by the same studio) without the answer
+ * itself ever leaking. Ordered most-specific first.
+ */
+export type GuessProximityRelation =
+  | 'same_franchise'
+  | 'same_developer'
+  | 'same_publisher'
+
+export interface GuessProximityHint {
+  relation: GuessProximityRelation
+  /**
+   * The shared attribute to echo back — the franchise name, developer, or
+   * publisher. Safe to reveal because it is an attribute of the game the
+   * player *just named themselves*, so it never discloses the answer's title.
+   */
+  value: string
+}
+
 export interface GuessResponse {
   isCorrect: boolean
   /**
@@ -461,6 +489,13 @@ export interface GuessResponse {
    * defeats both the hint economy and the masked-title letter reveal.
    */
   correctGame?: Game
+  /**
+   * Present only on a *wrong* guess that we could resolve to a known game
+   * sharing a franchise / developer / publisher with the answer. Drives the
+   * in-game "warmer" banner. Absent when the guess was correct, empty, or
+   * unrecognised, or when it shares nothing with the answer.
+   */
+  proximityHint?: GuessProximityHint
   scoreEarned: number
   totalScore: number
   screenshotsFound: number

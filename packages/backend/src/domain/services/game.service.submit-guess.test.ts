@@ -132,7 +132,7 @@ function buildHarness() {
         return true
       },
     },
-    gameRepository: { getGenresById: async () => [] },
+    gameRepository: { getGenresById: async () => [], findGuessMatchCandidates: async () => [] },
     funnelEventRepository: { record: async () => {} },
     positionSecondChanceRepository: { findPending: async () => null },
     positionLetterRevealRepository: {
