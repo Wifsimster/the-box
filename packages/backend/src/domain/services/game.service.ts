@@ -589,7 +589,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       screenshotId: tierScreenshot.screenshot_id,
       position: tierScreenshot.position,
       imageUrl: proxyImageUrl,
-      bonusMultiplier: parseFloat(tierScreenshot.bonus_multiplier),
+      // `bonus_multiplier` is intentionally NOT exposed: it was never applied to
+      // the score (dead end-to-end) and shipping it implied a scoring effect
+      // that did not exist. The DB column is retained but deprecated.
       // Expose the per-screenshot countdown limit so the client can run the
       // round timer. Falls back to 45s if a legacy tier has no value.
       timeLimitSeconds: tier.time_limit_seconds ?? 45,
@@ -638,6 +640,18 @@ export function createGameService(deps: GameServiceDeps): GameService {
         409
       )
     }
+
+    // Anti-oracle gate for the proximity ("warmer") hint. Captured BEFORE this
+    // guess is saved: the hint is only emitted on the player's FIRST wrong
+    // guess for a position. Without this, the zero-cost unlimited retries +
+    // a fresh hint per miss let a bot iterate guesses to binary-search the
+    // answer's franchise / studio / publisher. One hint per position keeps the
+    // warm-feedback UX while making the oracle useless (a single bit you'd
+    // already infer from your own guess).
+    const hadPriorWrongGuess = await sessionRepository.hasWrongGuessForPosition(
+      data.tierSessionId,
+      data.position
+    )
 
     const screenshotData = await screenshotRepository.findWithGame(data.screenshotId)
     if (!screenshotData) {
@@ -1046,7 +1060,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // the answer's title (anti-leak); it only echoes an attribute of the game
     // the player named. Best-effort — a lookup failure must not fail the guess.
     let proximityHint: GuessResponse['proximityHint']
-    if (!isCorrect && trimmedGuess !== '') {
+    if (!isCorrect && trimmedGuess !== '' && !hadPriorWrongGuess) {
       try {
         const candidates = await gameRepository.findGuessMatchCandidates(trimmedGuess)
         proximityHint =
