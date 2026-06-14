@@ -146,10 +146,20 @@ export const sessionRepository = {
   // Mark the moment the server served position N for the given tier session.
   // submitGuess later derives elapsed = NOW() - round_started_at so the
   // speed multiplier no longer trusts the client-supplied timer.
+  //
+  // We only (re)stamp when this is a DIFFERENT position than the one already
+  // active (or the timer was never started). Re-serving the *current* position
+  // — a refresh, a carousel re-fetch, or a deliberate re-GET to zero the clock
+  // right before submitting — must NOT reset `round_started_at`, otherwise the
+  // server's elapsed measurement resets to ~0 and the speed multiplier becomes
+  // forgeable (look the game up at leisure, re-GET, submit in <3s for 200pts).
+  // `IS DISTINCT FROM` treats a NULL round_position (first serve) as different,
+  // so the initial stamp still happens.
   async markRoundStarted(tierSessionId: string, position: number): Promise<void> {
     log.debug({ tierSessionId, position }, 'markRoundStarted')
     await db('tier_sessions')
       .where('id', tierSessionId)
+      .whereRaw('(round_position IS DISTINCT FROM ? OR round_started_at IS NULL)', [position])
       .update({
         round_started_at: db.fn.now(),
         round_position: position,

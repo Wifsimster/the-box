@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import type { Request } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { gameService, GameError } from '../../domain/services/index.js'
@@ -13,6 +14,15 @@ import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
 // JSON endpoint that pages may call on every homepage view.
 const previewMetaLimiter = createRateLimiter({ windowMs: 60_000, max: 60 })
 const previewImageLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
+
+// Per-user throttle on guess submission. Real play submits a handful of
+// guesses per screenshot; 60/min is generous for a human yet caps the
+// abuse paths the persona review surfaced — spamming the zero-cost wrong
+// guess to brute-force the matcher or probe the proximity hint, and
+// hammering re-fetch+submit to game the timer. Keyed by user (falls back to
+// IP) so one client can't burn another's budget.
+const guessUserKey = (req: Request): string => req.userId ?? req.ip ?? 'unknown'
+const guessLimiter = createRateLimiter({ windowMs: 60_000, max: 60, key: guessUserKey })
 
 const router = Router()
 
@@ -299,7 +309,7 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
 // Note: stale clients may still send `powerUpUsed` (legacy metadata hints,
 // retired 2026-06). It is accepted and IGNORED — never 400 a guess over a
 // retired optional field.
-router.post('/guess', authMiddleware, async (req, res, next) => {
+router.post('/guess', authMiddleware, guessLimiter, async (req, res, next) => {
   try {
     const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs } = req.body
 

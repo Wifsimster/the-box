@@ -42,6 +42,9 @@ function buildHarness() {
   // Records every inventoryRepository.useItems call so the retirement
   // tests can prove a stale client's powerUpUsed never touches inventory.
   const useItemsCalls: Array<{ itemType: string; itemKey: string }> = []
+  // Records every proximity candidate lookup (guessText) so the anti-oracle
+  // gate can be asserted — see the gameRepository mock below.
+  const candidateLookups: string[] = []
   const tierSession = {
     id: 'tier-1',
     user_id: 'user-1',
@@ -140,7 +143,15 @@ function buildHarness() {
         return true
       },
     },
-    gameRepository: { getGenresById: async () => [], findGuessMatchCandidates: async () => [] },
+    gameRepository: {
+      getGenresById: async () => [],
+      // Records each call so the proximity anti-oracle gate can be asserted
+      // (the hint must be computed only on the FIRST wrong guess per position).
+      findGuessMatchCandidates: async (guessText: string) => {
+        candidateLookups.push(guessText)
+        return []
+      },
+    },
     funnelEventRepository: { record: async () => {} },
     positionSecondChanceRepository: { findPending: async () => null },
     positionLetterRevealRepository: {
@@ -172,7 +183,7 @@ function buildHarness() {
     } as Parameters<typeof service.submitGuess>[0])
   }
 
-  return { submit, guesses, tierSession, useItemsCalls }
+  return { submit, guesses, tierSession, useItemsCalls, candidateLookups }
 }
 
 describe('game.service submitGuess — completion tally', () => {
@@ -308,5 +319,39 @@ describe('game.service submitGuess — partial (franchise) scoring', () => {
     const res = await h.submit(1, 'totally wrong')
     assert.equal(res.isCorrect, false)
     assert.equal(res.matchPrecision, undefined)
+  })
+})
+
+describe('game.service submitGuess — proximity hint anti-oracle gate', () => {
+  it('computes the proximity hint only on the FIRST wrong guess for a position', async () => {
+    const h = buildHarness()
+
+    // First wrong guess on position 1 → hint is eligible, candidates looked up.
+    await h.submit(1, 'wrong one')
+    assert.deepEqual(
+      h.candidateLookups,
+      ['wrong one'],
+      'first wrong guess should trigger a candidate lookup'
+    )
+
+    // Second wrong guess on the SAME position → gate short-circuits before the
+    // catalogue lookup, so a bot cannot iterate guesses to probe the answer.
+    await h.submit(1, 'wrong two')
+    assert.deepEqual(
+      h.candidateLookups,
+      ['wrong one'],
+      'a repeat wrong guess on the same position must NOT look up candidates again'
+    )
+  })
+
+  it('a wrong guess on a different position is still its own first attempt', async () => {
+    const h = buildHarness()
+    await h.submit(1, 'wrong a')
+    await h.submit(2, 'wrong b')
+    assert.deepEqual(
+      h.candidateLookups,
+      ['wrong a', 'wrong b'],
+      'each position gets exactly one proximity lookup on its first miss'
+    )
   })
 })

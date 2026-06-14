@@ -98,7 +98,6 @@ export interface TierScreenshot {
   tierId: number
   screenshotId: number
   position: number
-  bonusMultiplier?: number
   screenshot: Screenshot
 }
 
@@ -407,7 +406,6 @@ export interface ScreenshotResponse {
   screenshotId: number
   position: number
   imageUrl: string
-  bonusMultiplier?: number
   /**
    * Seconds the player has to guess this screenshot before it times out.
    * Sourced from the tier's `time_limit_seconds` (defaults to 45). Drives

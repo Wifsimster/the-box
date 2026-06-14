@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<!-- SUMMARY:
+  12-persona review of the classic-mode guess system (scoring, fast-guess,
+  bonus, partial-match, proximity hint, timer, a11y, i18n, analytics, tests).
+  Headline discrepancies: (1) the speed timer is forgeable -> trivial perfect
+  2000-pt runs; (2) tier_screenshots.bonus_multiplier is dead end-to-end —
+  plumbed to the client, never scored; (3) the new proximity hint is a free,
+  unthrottled answer-oracle. Plus partial/second-chance floor overlap, a11y
+  announce gaps, zero analytics on the two new features, and test-seam gaps.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Guess System — 12-Persona Review</title>
+<style>
+  :root { --bg:#0a0a0f; --panel:#14141c; --ink:#e7e7ee; --muted:#a0a0b0;
+          --primary:#a855f7; --good:#34d399; --warn:#fbbf24; --bad:#f87171; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); margin:0;
+         font-family:Inter,system-ui,sans-serif; line-height:1.6; }
+  main { max-width:74ch; margin:0 auto; padding:3rem 1.25rem 6rem; }
+  h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .25rem;
+       text-shadow:0 0 24px #a855f766; }
+  h2 { font-size:1.25rem; margin:2.4rem 0 .6rem; border-bottom:1px solid #2a2a38;
+       padding-bottom:.3rem; }
+  h3 { font-size:1.02rem; margin:1.5rem 0 .3rem; color:#cfcfe0; }
+  .sub { color:var(--muted); margin:0 0 1.5rem; }
+  code,pre { font-family:"JetBrains Mono",ui-monospace,monospace; }
+  code { background:#1d1d28; padding:.08em .4em; border-radius:4px; font-size:.86em; }
+  pre { background:#1d1d28; padding:1rem; border-radius:8px; overflow:auto;
+        border:1px solid #2a2a38; font-size:.82rem; }
+  table { width:100%; border-collapse:collapse; margin:.8rem 0; font-size:.84rem; }
+  th,td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid #2a2a38;
+          vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .tag { display:inline-block; padding:.05em .55em; border-radius:999px;
+         font-size:.72rem; font-weight:700; white-space:nowrap; }
+  .p0 { background:#f8717122; color:var(--bad); }
+  .p1 { background:#fbbf2422; color:var(--warn); }
+  .p2 { background:#a855f722; color:#c79bf5; }
+  .p3 { background:#34d39922; color:var(--good); }
+  .persona { background:var(--panel); border:1px solid #2a2a38; border-radius:10px;
+             padding:.7rem 1rem; margin:.6rem 0; font-size:.9rem; }
+  .persona b { color:var(--primary); }
+  .verdict { border-left:3px solid var(--primary); padding:.4rem 0 .4rem .9rem;
+             margin:1.1rem 0; color:#dcdce8; }
+  .finding { background:var(--panel); border:1px solid #2a2a38; border-radius:10px;
+             padding:.85rem 1.05rem; margin:.8rem 0; }
+  .finding h3 { margin-top:0; }
+  .meta { color:var(--muted); font-size:.8rem; margin:.1rem 0 .5rem; }
+  ul { padding-left:1.2rem; }
+  .grid2 { display:grid; grid-template-columns:1fr; gap:0; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Guess System — 12-Persona Review</h1>
+  <p class="sub">Classic-mode scoring · fast-guess · bonus · partial-match · proximity hint · 12 subagent personas · 2026-06-14</p>
+
+  <div class="verdict">
+    <b>One-line:</b> the guess <em>features</em> are well-built in isolation, but
+    three load-bearing things are broken or missing: the <b>speed timer is
+    forgeable</b> (every leaderboard score is suspect), the configurable
+    <b>bonus multiplier is dead code</b> (the "bonus" the owner asked about does
+    nothing), and the freshly-merged <b>proximity hint is a free answer-oracle</b>
+    because <code>POST /guess</code> has no rate limit and a wrong guess costs 0.
+  </div>
+
+  <h2>Personas convened</h2>
+  <p class="meta">Each reviewed read-only against <code>game.service.ts</code>,
+  <code>fuzzy-match.service.ts</code>, <code>guess-proximity.service.ts</code>,
+  the frontend guess components, i18n, and tests.</p>
+  <div class="persona"><b>Speedrunner / min-maxer</b> · <b>Casual first-timer</b> · <b>Competitive leaderboard</b> · <b>Accessibility</b> · <b>i18n / localization</b> · <b>Backend correctness</b> · <b>Security / anti-cheat</b> · <b>Fuzzy-match quality</b> · <b>Mobile / touch</b> · <b>Scoring economist</b> · <b>Analytics / observability</b> · <b>QA / test coverage</b></div>
+
+  <h2>Convergence — issues flagged by 2+ personas independently</h2>
+  <p>The strongest signal: distinct personas walked different paths to the same defects.</p>
+  <table>
+    <tr><th>Issue</th><th>Flagged by</th><th>Sev</th></tr>
+    <tr><td>Forgeable speed timer → perfect 2000-pt runs</td><td>Speedrunner, Competitive, Backend</td><td><span class="tag p0">P0</span></td></tr>
+    <tr><td><code>bonus_multiplier</code> dead end-to-end</td><td>Scoring, Speedrunner, Competitive, QA</td><td><span class="tag p1">P1</span></td></tr>
+    <tr><td>Proximity = free oracle + no rate-limit on <code>/guess</code></td><td>Security, Backend</td><td><span class="tag p1">P1</span></td></tr>
+    <tr><td>Second-chance floor (70) erases the partial discount (≤80)</td><td>Backend, Scoring, QA</td><td><span class="tag p1">P1</span></td></tr>
+    <tr><td>Partial badge &amp; warmer hint share the same yellow + fail contrast</td><td>Casual, a11y</td><td><span class="tag p2">P2</span></td></tr>
+    <tr><td>Two new features emit zero analytics (unmeasurable)</td><td>Analytics, QA</td><td><span class="tag p1">P1</span></td></tr>
+  </table>
+
+  <h2>P0 — must fix</h2>
+
+  <div class="finding">
+    <h3>1. The speed timer is forgeable → trivial perfect runs</h3>
+    <p class="meta">Speedrunner F1 · Competitive #1 · evidence: <code>game.service.ts:564</code> (<code>markRoundStarted</code> on every non-prefetch <code>getScreenshot</code>), <code>session.repository.ts:149-157</code>, scoring <code>game.service.ts:693-695</code></p>
+    <p><code>markRoundStarted</code> re-stamps <code>round_started_at = now()</code> on
+    <em>every</em> screenshot fetch, and the server only measures the current
+    segment. <code>effectiveTimeTakenMs = Math.max(serverElapsedMs, clientMs)</code>
+    therefore collapses to <em>trust-the-client</em> after any navigation. Take
+    unlimited time to identify the game, re-fetch the screenshot, submit in
+    &lt;3 s server-elapsed → guaranteed <b>2.0× = 200 pts</b> every time. The
+    &gt;2 s divergence check only logs. The "pause/resume time budget" is
+    <em>client-side only</em>; the server has no accumulation.</p>
+    <p><b>Fix:</b> accumulate active time per position <em>server-side</em>
+    (bank <code>serverElapsedMs</code> on each fetch/submit), score off that, and
+    never re-stamp the active position (<code>UPDATE … WHERE round_position &lt;&gt; position OR round_started_at IS NULL</code>). Reject (not just log) <code>clientMs &lt; serverMs</code> beyond tolerance.</p>
+  </div>
+
+  <div class="finding">
+    <h3>2. The advisory lock doesn't make <code>submitGuess</code> transactional</h3>
+    <p class="meta">Backend P0 · evidence: <code>session.repository.ts:139-144</code></p>
+    <p><code>withTierSessionLock</code> takes <code>pg_advisory_xact_lock</code> on a
+    <code>trx</code>, but the <code>submitGuess</code> body runs every repository
+    call on the module-global <code>db</code> pool — not the locking transaction.
+    Concurrency between two callers <em>is</em> serialised (both contend on the
+    advisory key), but there is <b>no atomicity</b>: if <code>saveGuess</code>
+    commits and <code>updateTierSession</code> then throws, the guess row
+    survives with desynced counters. The comment ("releases on commit / rollback")
+    implies a transaction that isn't there.</p>
+    <p><b>Fix:</b> thread <code>trx</code> through the body (and read
+    <code>getCorrectAnswersCount</code> on the same <code>trx</code> so the
+    completion tally stays correct — see Backend P1), or drop the atomicity
+    claim and document the recovery contract.</p>
+  </div>
+
+  <div class="finding">
+    <h3>3. Timing out a screenshot reveals nothing — silent, confusing, permanent</h3>
+    <p class="meta">Casual #1 · QA #7 · evidence: <code>hooks/useRoundTimer.ts:122-130</code>, <code>stores/gameStore.ts:482-542</code></p>
+    <p>On timeout the player gets only a fleeting "Time's up!" toast, then is
+    yanked to a new screenshot — no ResultCard, no <code>correctGame</code>, no
+    "+0", and the position is a non-revisitable permanent miss that's never
+    explained. For a first-timer a screenshot just <em>vanishes</em>. No
+    onboarding mentions the 45 s clock or that running out is unrecoverable.</p>
+    <p><b>Fix:</b> show the ResultCard in a "timed-out / +0" state revealing the
+    answer (like a wrong guess) before advancing; add one onboarding line about
+    the per-screenshot clock.</p>
+  </div>
+
+  <h2>P1 — high</h2>
+
+  <div class="finding">
+    <h3>4. <code>bonus_multiplier</code> is dead code end-to-end (the "bonus" question)</h3>
+    <p class="meta">Scoring #1 · Speedrunner F2 · Competitive #2 · QA #5 · evidence: <code>game.service.ts:592</code> (read &amp; shipped) vs <code>game.service.ts:711-722</code> (scoring never references it); frontend grep = 0 hits</p>
+    <p>The column exists (<code>migrations/20260113_merged_schema.ts:254</code>,
+    DECIMAL(3,2) default 1.0), is seeded, parsed, and shipped to the client in
+    <code>ScreenshotResponse.bonusMultiplier</code> — but <code>submitGuess</code>
+    scores only <code>BASE_SCORE × speedMultiplier</code> (cap 200, then partial
+    factor). A "1.5×" screenshot scores identically to 1.0×. The frontend never
+    reads it either. <code>docs/database.md:277</code> calls it "Score multiplier";
+    <code>docs/game-flow.md</code> never multiplies it in. <b>Compounding trap:</b>
+    the fastest exact guess already saturates the 200 cap, so even if wired
+    <em>before</em> the cap a fast bonus is clamped straight back to 200 — there
+    is no headroom for a bonus to ever matter on a fast play.</p>
+    <p><b>Fix (decide intent):</b> either (a) wire it in
+    (<code>score = round(BASE × speed × bonus)</code>) <em>and</em> redefine the
+    cap as <code>200 × bonus</code> so it has headroom; or (b) remove it from the
+    response/types/DB and mark the column deprecated. Don't leave it half-plumbed.
+    Add a scoring test with a non-1.0 multiplier either way.</p>
+  </div>
+
+  <div class="finding">
+    <h3>5. Proximity hint is a free, unthrottled answer-oracle</h3>
+    <p class="meta">Security F1/F2 · Backend P2 · evidence: <code>game.routes.ts:302</code> (no rate limiter), <code>game.service.ts:49</code> (<code>WRONG_GUESS_PENALTY=0</code>), <code>:1048-1070</code> (hint on every miss), <code>guess-proximity.service.ts:110-123</code></p>
+    <p>A wrong guess costs 0 points, has no attempt cap, isn't throttled, and
+    returns a <code>proximityHint</code>. A bot turns each miss into a yes/no
+    probe — "is the answer's developer X? publisher Y? same franchise?" — and
+    binary-searches the studio, then enumerates that studio's titles (via the
+    also-unauthenticated <code>/games/search</code>) to brute the answer, all
+    before solving, at no cost. Crucially the <em>relation flag itself</em>
+    (<code>same_developer</code>) is a one-bit confirmation about the answer,
+    independent of the value the anti-leak contract reasons about.</p>
+    <p><b>Fix:</b> rate-limit <code>POST /guess</code> per user (mirror the push
+    routes); gate the hint behind the same "one honest attempt first" rule as the
+    letter reveal and cap hints per position; treat the <em>relation</em> as
+    sensitive (consider dropping <code>same_developer</code>/<code>same_publisher</code>,
+    which leak most and teach least). Also throttle/auth <code>/games/search</code>.</p>
+  </div>
+
+  <div class="finding">
+    <h3>6. Second-chance floor (70) overrides the partial discount (max 80)</h3>
+    <p class="meta">Backend P1 · Scoring #3 · QA #3 · evidence: <code>game.service.ts:719-787</code> (ordering: ×0.4 partial → letter penalty → floor 70)</p>
+    <p>A partial maxes at 80 and can fall to ~28. The second-chance floor lifts
+    any sub-70 score to 70 <em>after</em> the partial reduction — so a deliberately
+    discounted franchise-only guess ends at 70, near the 80 ceiling, and the
+    floor silently negates the 0.4× the rest of the system works to preserve. The
+    floor is precision-blind. Also untested: the harness wires both
+    <code>findPending</code> mocks to <code>null</code>, so partial×floor and
+    partial×letter-penalty never run.</p>
+    <p><b>Fix:</b> scale the floor by <code>PARTIAL_MATCH_FACTOR</code> for
+    partials (or apply the partial factor after the floor), or explicitly document
+    that second-chance erases the partial penalty by design. Add the combination tests.</p>
+  </div>
+
+  <div class="finding">
+    <h3>7. Proximity hint is persisted to <code>localStorage</code> → stale layout on revisit/refresh</h3>
+    <p class="meta">Mobile #1 · evidence: <code>useGameGuess.ts:92-95</code> (writes into <code>positionStates</code>), <code>gameStore.ts:735</code> (in <code>partialize</code>), <code>GuessInput.tsx</code> renders from <code>positionStates[pos]?.proximityHint</code></p>
+    <p>The "warmer" hint is stored per-position and only cleared on a correct
+    guess, and it's persisted. Skip away and back — or reopen the PWA — and the
+    banner reappears below the input, growing the dock and shoving the screenshot
+    up, with no active guess to justify it. It's ephemeral feedback being treated
+    as durable state.</p>
+    <p><b>Fix:</b> clear <code>proximityHint</code> on navigation/skip, or strip it
+    from <code>partialize</code>, or gate the render on "this is the active
+    in-progress position."</p>
+  </div>
+
+  <div class="finding">
+    <h3>8. Lone roman-letter titles ("Pokémon X, Y") get a bogus series number → exact false positives</h3>
+    <p class="meta">Fuzzy #1 · evidence: <code>fuzzy-match.service.ts:87</code> (roman regex includes bare <code>X/V/I</code>), <code>parseGameTitle:216</code></p>
+    <p><code>extractSeriesNumber("Pokémon X, Y")</code> matches the standalone
+    <code>X</code> → <code>seriesNumber = 10</code>. The exact/partial guard then
+    hinges on a phantom "10". <code>"pokemon 10"</code> could grade <b>exact</b>
+    for a game that has no number 10. Same hazard for Final Fantasy X / X-2,
+    Kingdom Hearts X. Because a partial/exact now <em>awards points and ends the
+    round</em> (Fuzzy #2), a grading false-positive is a scoring bug, not a
+    cosmetic one.</p>
+    <p><b>Fix:</b> in <code>extractSeriesNumber</code>, don't treat a lone
+    single-letter roman as a number when it's adjacent to a comma / another single
+    letter, or only extract romans that follow a series-name token. Add the
+    Pokémon X,Y and FF X cases to the matcher tests.</p>
+  </div>
+
+  <div class="finding">
+    <h3>9. "Live leaderboard with real-time updates" isn't wired</h3>
+    <p class="meta">Competitive #3 · evidence: <code>docs/realtime.md:73,122</code> document <code>leaderboard_update</code>; grep across the app = 0 emitters; <code>LeaderboardPage.tsx:163,202</code> fetch once, no socket <code>.on</code> / no polling</p>
+    <p>The board is a one-shot fetch despite the marketed "Socket.io real-time
+    updates." During a contested day players see a stale snapshot until manual
+    refresh.</p>
+    <p><b>Fix:</b> emit <code>leaderboard_update</code> into a
+    <code>challenge_${id}</code> room on session completion and subscribe on the
+    page — or correct the docs/marketing claim.</p>
+  </div>
+
+  <div class="finding">
+    <h3>10. Two a11y announce gaps in the core loop</h3>
+    <p class="meta">a11y #1, #2, #3 · evidence: <code>GuessInput.tsx:98-101</code>, <code>ResultCard.tsx:176-287</code>, <code>CountdownTimer.tsx:38-44</code></p>
+    <ul>
+      <li><b>Wrong-guess announcement is suppressed for reduced-motion users</b> —
+      the <code>aria-live</code> text only renders when <code>isShaking</code>,
+      which is gated behind <code>!prefersReducedMotion</code>. A screen-reader +
+      reduced-motion user gets <em>no</em> miss feedback. <b>Fix:</b> drive the
+      live region from the result, gate only the animation.</li>
+      <li><b>Result card isn't a dialog and isn't announced</b> — no
+      <code>role</code>, no focus move, outcome/score/answer never reach AT.
+      <b>Fix:</b> <code>role="dialog" aria-modal</code> + focus the Next button +
+      a <code>role="status"</code> outcome line.</li>
+      <li><b>Countdown is silent to AT</b> (<code>role="timer"</code> ⇒ live=off):
+      the permanent-miss clock is sighted-only. <b>Fix:</b> a polite region
+      announcing coarse milestones (30 s / 10 s / time-up).</li>
+    </ul>
+  </div>
+
+  <div class="finding">
+    <h3>11. The two new features emit zero analytics — impact is unmeasurable</h3>
+    <p class="meta">Analytics #1, #2, #3 · QA · evidence: <code>game.service.ts:864-876</code> (<code>guess_submitted</code> payload omits <code>matchPrecision</code> &amp; proximity), <code>ProximityHintBanner.tsx</code> / <code>ResultScoreDisplay.tsx</code> fire no GoatCounter event</p>
+    <p><code>isCorrect</code> collapses exact and partial into one boolean, and the
+    <code>guesses</code> table has no <code>match_precision</code> column, so
+    partial-rate is lost at write time. Proximity firing/relation is never
+    recorded server- or client-side. The features could be returning <code>null</code>
+    100% of the time in prod and nobody would know.</p>
+    <p><b>Fix:</b> add <code>matchPrecision</code> + <code>proximityFired</code>/<code>relation</code>
+    + <code>attemptNumber</code> to the <code>guess_submitted</code> payload (and
+    a <code>schemaVersion</code> marker for the cutover); fire a minimal,
+    consent-gated GoatCounter event on banner/badge impression.</p>
+  </div>
+
+  <div class="finding">
+    <h3>12. Guess-error toasts are hardcoded English (default locale is French)</h3>
+    <p class="meta">i18n #1 · evidence: <code>lib/errors.ts:204-230</code> returns English literals → <code>useGameGuess.ts:166</code> → <code>GuessInput.tsx:86</code> <code>toast.error</code>; also <code>'Session not initialized'</code> at <code>useGameGuess.ts:39</code></p>
+    <p>A French player hitting an auth/network/unknown error while guessing sees an
+    English toast — the most visible untranslated path, on the unhappy path
+    everyone eventually hits. <b>Fix:</b> return i18n keys from
+    <code>getUserFriendlyErrorMessage</code> and translate at the toast site.</p>
+  </div>
+
+  <div class="finding">
+    <h3>13. Integration test seams the merge introduced are uncovered</h3>
+    <p class="meta">QA #1, #2, #3 · evidence: <code>game.service.submit-guess.test.ts:143</code> mocks <code>findGuessMatchCandidates → []</code></p>
+    <p>Proximity wiring through <code>submitGuess</code> never actually fires in
+    tests (empty candidate list), <code>findGuessMatchCandidates</code>
+    tokenisation is wholly untested, partial×floor / partial×letter-penalty
+    combos are untested, and there's no e2e for the partial badge or warmer
+    banner. <b>Fix:</b> harness case returning a related candidate (assert hint +
+    anti-leak), extract &amp; unit-test the tokenizer, add the partial-combination
+    cases, add a daily-game e2e for both UI elements.</p>
+  </div>
+
+  <h2>P2 — medium (condensed)</h2>
+  <ul>
+    <li><b>Speed-multiplier cliffs</b> — 2.99 s=200 vs 3.01 s=175; 5–10 s all score 150. Network jitter + <code>Math.max</code> elapsed can push a fast player over a cliff. Consider continuous decay. <span class="meta">Scoring #2 · <code>game.service.ts:96-110</code></span></li>
+    <li><b>Partial badge &amp; warmer hint share <code>--warning</code>/<code>--score-mid</code> (#eab308)</b> — confusable with each other and near-confusable with the green success state; the amber also fails 4.5:1 on the dark bg, and the partial state reuses the green ✓ icon (color-only). <span class="meta">Casual #3 · a11y #4/#5 · <code>ResultCard.tsx:226-235</code>, <code>ProximityHintBanner.tsx:31</code>, <code>index.css:53,60</code></span></li>
+    <li><b>Dev/publisher proximity is exact-normalized only</b> — "Larian Studios" ≠ "Larian", "Square Enix" ≠ "SQUARE ENIX Co." → the headline same-studio hint silently under-fires across RAWG/Steam ingestion variants. Strip corporate suffixes. <span class="meta">Fuzzy #4 · <code>guess-proximity.service.ts:58-63</code></span></li>
+    <li><b>Proximity candidate tokenizer drops &lt;3-char &amp; numeric tokens</b> — "ff", "re", "gta v", "ff x" surface no candidates → hint never fires for exactly the abbreviations the matcher was built to expand. Lower the floor / add an acronym branch. <span class="meta">Fuzzy #3 · <code>game.repository.ts:253-260</code></span></li>
+    <li><b><code>franchiseKey</code> depends on the matching heuristic</b> — colon-less / low-word-count titles yield <code>null</code> → intermittent same-franchise false negatives. Derive the key from number-stripped leading tokens instead. <span class="meta">Fuzzy #5 · <code>guess-proximity.service.ts:78-85</code></span></li>
+    <li><b>Timer announce / AT silence already in P0-10</b>; plus <b>axe color-contrast is disabled in CI and the game screen is never axe-scanned</b> — no regression net for the contrast findings. <span class="meta">a11y #7 · <code>e2e/a11y-smoke.spec.ts:24-28</code></span></li>
+    <li><b>Mixed <i>tu</i>/<i>vous</i> register</b> within the same screens (proximity "Vous chauffez !" beside "Ta réponse"). Normalize to one. <span class="meta">i18n #2</span></li>
+    <li><b>Sub-44px tap targets on ≤360px</b> (submit 32px, reveal 32px tall, prev/skip 40px) and a height budget where banner + letter bar + keyboard can starve the screenshot. <span class="meta">Mobile #4, #2 · <code>GuessInput.tsx:247</code></span></li>
+    <li><b>Proximity perf</b> — one unindexed leading-wildcard <code>ILIKE '%…%'</code> + <code>SELECT *</code> per wrong guess; pair with the rate-limit fix and add a <code>pg_trgm</code> index / column projection. <span class="meta">Backend P2 · <code>game.repository.ts:266-273</code></span></li>
+    <li><b><code>screenshotId</code> trusted from the request body</b>, not derived from <code>(tierSession, position)</code>; no Zod on <code>/guess</code>. Grade against the server-resolved screenshot. <span class="meta">Security F7 · <code>game.routes.ts:302-314</code></span></li>
+    <li><b>Tie-breaks ignore the skill signals collected</b> — daily ties resolve on wall-clock <code>completed_at</code> then <code>user_id</code>; <code>avgCaptureTimeMs</code> &amp; <code>wrong_guesses</code> are stored/displayed but unused. <span class="meta">Competitive #4/#7 · Speedrunner F4/F5 · <code>leaderboard.repository.ts:55-59,181</code></span></li>
+  </ul>
+
+  <h2>P3 — polish (condensed)</h2>
+  <ul>
+    <li>Three divergent ad-hoc stopword sets (matcher vs repo) → locale-dependent matching inconsistency; centralize one shared set. <span class="meta">Fuzzy #6</span></li>
+    <li><code>hd</code>/<code>3d</code> stripped unconditionally → can't distinguish "Xenoblade Chronicles 3D" from the original. <span class="meta">Fuzzy #7</span></li>
+    <li><code>gamesRemaining</code> has no <code>_one</code> plural ("1 jeux restants"). <span class="meta">i18n #3</span></li>
+    <li><code>game.nextRound</code> = "Round Suivant" (half-translated; sibling uses "Manche"). <span class="meta">i18n #4</span></li>
+    <li>French uses a normal space (not NBSP) before <code>! ? :</code> — uniform but technically wrong. <span class="meta">i18n #6</span></li>
+    <li>Wrong-guess "-30" penalty surfaces on the <em>next</em> result card, not at the moment of the wrong guess (and penalty is actually 0 — dead copy path). <span class="meta">Casual #6</span></li>
+    <li>Non-null assertions on dev/publisher in proximity are safe-via-<code>sameOrg</code> but fragile. <span class="meta">Backend P3</span></li>
+    <li>Start/end elapsed mixes DB clock (<code>now()</code>) and app clock (<code>Date.now()</code>) — latent skew in split deploys. <span class="meta">Backend P3</span></li>
+    <li>Haptics fire unconditionally (ignore reduced-motion / no opt-out); heavy 3-pulse on every miss. <span class="meta">Mobile #7</span></li>
+    <li>Funnel payload is unversioned JSONB with no index for the new fields. <span class="meta">Analytics #6/#7</span></li>
+  </ul>
+
+  <h2>What's solid (verified, no action)</h2>
+  <ul>
+    <li>Partial-vs-exact <em>math</em> is sound — fastest partial 80 &lt; slowest exact 100; no inversion, no farm for cases that should be <code>none</code>. <span class="meta">Speedrunner F7 · Scoring</span></li>
+    <li><code>findGuessMatchCandidates</code> is parameterised + sanitised — <b>no SQL injection</b>. <span class="meta">Security F4</span></li>
+    <li>Letter-reveal leak gate is rigorous and not weakened by partial today (cap is 1–2 letters, far under the franchise threshold). Harden the ship-gate to assert against <code>evaluateMatch</code> partial too. <span class="meta">Security F5</span></li>
+    <li>Premium catch-up cannot leak into ranked boards (<code>is_catch_up=false</code> filter everywhere; UTC date strings avoid the TZ off-by-one). <span class="meta">Competitive #6</span></li>
+    <li>Proximity anti-leak in isolation is correct — never resolves to the answer's own row, only echoes attributes of the named game. <span class="meta">Backend P2 · Fuzzy</span></li>
+    <li>Wrong-number guards, "Warhammer 40,000" comma handling, and the partial subset guard are consistent and tested. <span class="meta">Fuzzy</span></li>
+  </ul>
+
+  <h2>Recommended fix sequence</h2>
+  <table>
+    <tr><th>Wave</th><th>Fixes</th><th>Why this order</th></tr>
+    <tr><td><b>A — integrity</b></td><td>#1 timer, #2 lock atomicity, #5 rate-limit <code>/guess</code> + gate hint</td><td>Every score and the new oracle depend on these; ship before any balance tuning.</td></tr>
+    <tr><td><b>B — scoring truth</b></td><td>#4 bonus decision, #6 floor×partial, #8 roman-letter grading</td><td>Make the points mean what the docs/UI say; correctness bugs that award/deny points.</td></tr>
+    <tr><td><b>C — UX trust</b></td><td>#3 timeout reveal, #7 banner persistence, #10 a11y announces, #12 i18n toasts, badge contrast/icon</td><td>Player-facing clarity &amp; fairness perception; cheap, high-felt.</td></tr>
+    <tr><td><b>D — instrument + cover</b></td><td>#11 analytics, #13 tests, #9 live board</td><td>So B/C are measurable and don't regress.</td></tr>
+  </table>
+
+  <p class="meta">Generated from a 12-persona read-only review. Every finding is
+  code-grounded with file:line; items marked "flag" in the persona notes were not
+  runtime-verified.</p>
+</main>
+</body>
+</html>
