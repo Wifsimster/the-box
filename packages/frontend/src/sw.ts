@@ -16,6 +16,16 @@ declare const self: ServiceWorkerGlobalScope
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
+// registerType: 'autoUpdate' — take over as soon as the new build is precached
+// (injectManifest doesn't inject this for us). The page side reloads on the
+// resulting controller change, so clients silently pick up the latest bundle
+// and the ChangelogDialog surfaces the new version on the next load. This is
+// the inline equivalent of workbox-core's skipWaiting()/clientsClaim().
+void self.skipWaiting()
+self.addEventListener('activate', () => {
+  void self.clients.claim()
+})
+
 // SPA navigation fallback — same denylist as the previous generateSW config.
 registerRoute(
   new NavigationRoute(
@@ -316,17 +326,11 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   )
 })
 
-// Allow the page to trigger an immediate activation when the user clicks the
-// PWAUpdatePrompt "refresh" toast — registerType: 'prompt' relies on this.
-// Also accept SET_LOCALE from the page so push fallback notifications match
-// the user's i18n setting; see PWAUpdatePrompt.tsx for the sender side.
+// Accept SET_LOCALE from the page so push fallback notifications match the
+// user's i18n setting; see PWALifecycle.tsx for the sender side.
 self.addEventListener('message', (event) => {
   const data = event.data as { type?: string; locale?: string } | null
   if (!data) return
-  if (data.type === 'SKIP_WAITING') {
-    void self.skipWaiting()
-    return
-  }
   if (data.type === 'SET_LOCALE' && typeof data.locale === 'string' && data.locale) {
     void writePersistedLocale(data.locale)
   }

@@ -1,4 +1,4 @@
-export { PWAUpdatePrompt } from './PWAUpdatePrompt'
+export { PWALifecycle } from './PWALifecycle'
 export { ChangelogDialog } from './ChangelogDialog'
 export { useOpenChangelog } from '@/stores/changelogStore'
 export { OfflineIndicator } from './OfflineIndicator'

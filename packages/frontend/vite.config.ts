@@ -36,7 +36,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       injectRegister: false,
       strategies: 'injectManifest',
       srcDir: 'src',

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { RouteSeo } from '@/components/RouteSeo'
 import {
-  PWAUpdatePrompt,
+  PWALifecycle,
   ChangelogDialog,
   OfflineIndicator,
   IOSInstallHint,
@@ -241,9 +241,11 @@ function App() {
       {/* Global toast notifications (sonner) */}
       <Toaster />
 
-      {/* PWA: offline banner + service-worker update toast + install prompts */}
+      {/* PWA: offline banner + silent service-worker lifecycle + install prompts.
+          New builds auto-update and reload in the background; the ChangelogDialog
+          is the single "what's new" surface once the new bundle loads. */}
       <OfflineIndicator />
-      <PWAUpdatePrompt />
+      <PWALifecycle />
       <ChangelogDialog />
       <InstallPromptBanner />
       <IOSInstallHint />
