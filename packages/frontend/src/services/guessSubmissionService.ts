@@ -33,6 +33,8 @@ export interface GuessSubmissionResult {
   letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
+  /** `partial` when only the franchise was named (reduced score); else `exact`. */
+  matchPrecision?: 'exact' | 'partial'
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 

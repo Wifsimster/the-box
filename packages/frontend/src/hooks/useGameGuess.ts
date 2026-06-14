@@ -120,6 +120,7 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
             scoreEarned: result.scoreEarned,
             letterPenalty: result.letterPenalty,
             wrongGuessPenalty: result.wrongGuessPenalty,
+            matchPrecision: result.matchPrecision,
             attempts,
           })
         }
