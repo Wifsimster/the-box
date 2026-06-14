@@ -3,6 +3,8 @@ import { m } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { PlanFeatureList } from './PlanFeatureList'
+import { FREE_FEATURE_KEYS } from './planFeatures'
 
 interface FreePricingCardProps {
   isCurrentPlan: boolean
@@ -37,6 +39,7 @@ export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePri
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-bold">{t('pricing.tiers.free.price')}</span>
           </div>
+          <PlanFeatureList featureKeys={FREE_FEATURE_KEYS} />
         </CardContent>
 
         <CardFooter>

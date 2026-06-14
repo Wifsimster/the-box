@@ -22,6 +22,11 @@ function PricingCardSkeleton() {
       </CardHeader>
       <CardContent className="flex-1 space-y-4">
         <Skeleton className="h-10 w-24" />
+        <div className="space-y-2 pt-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-4 w-44" />
+        </div>
       </CardContent>
       <CardFooter>
         <Skeleton className="h-10 w-full" />

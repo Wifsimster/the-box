@@ -1753,6 +1753,7 @@
       "title": "Ce qui est inclus",
       "free": "Gratuit",
       "premium": "Premium",
+      "everythingInFree": "Tout du Gratuit, et en plus :",
       "items": {
         "dailyChallenge": "Défi quotidien",
         "leaderboards": "Classements en temps réel",
