@@ -2748,6 +2748,16 @@
       "fixes": "Fixes"
     },
     "releases": {
+      "2.130.0": {
+        "summary": "Guessing gets smarter: proximity hints, partial credit and clearer premium plans.",
+        "features": [
+          "New \"warmer\" hints: after a wrong guess, the app tells you whether you're closing in on the right game.",
+          "Guesses from the same franchise now earn partial credit instead of zero."
+        ],
+        "improvements": [
+          "Each premium plan now spells out exactly what it includes, right on its card."
+        ]
+      },
       "2.127.0": {
         "summary": "We rebuilt how hints work and polished the app on mobile.",
         "features": [

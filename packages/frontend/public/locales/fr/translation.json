@@ -2748,6 +2748,16 @@
       "fixes": "Corrections"
     },
     "releases": {
+      "2.130.0": {
+        "summary": "Deviner devient plus malin : indices de proximité, points partiels et offres premium plus claires.",
+        "features": [
+          "Nouveaux indices « tu chauffes » : après une mauvaise réponse, l'app te dit si tu te rapproches du bon jeu.",
+          "Les réponses de la même licence rapportent désormais un score partiel au lieu de zéro."
+        ],
+        "improvements": [
+          "Chaque offre premium détaille maintenant ce qu'elle inclut, directement sur sa carte."
+        ]
+      },
       "2.127.0": {
         "summary": "Nous avons repensé le fonctionnement des indices et peaufiné l'app sur mobile.",
         "features": [

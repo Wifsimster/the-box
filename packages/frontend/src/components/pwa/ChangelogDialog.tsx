@@ -61,15 +61,18 @@ export function ChangelogDialog(): ReactElement | null {
 
   const release = getLatestRelease()
 
-  // Auto-open the changelog the first time a player runs a freshly-shipped
-  // version. Brand-new visitors (no recorded version) are marked seen silently
-  // so they aren't greeted by release notes for a build they never "upgraded"
-  // from. Runs once on mount.
+  // Auto-open the changelog the first time a player runs a build newer than the
+  // one this browser last acknowledged. Brand-new visitors (no recorded version)
+  // are marked seen silently so they aren't greeted by release notes for a build
+  // they never "upgraded" from. Runs once on mount.
+  //
+  // We intentionally do NOT require the running build to exactly match the newest
+  // changelog entry: if a release ships without a matching changelog bump, the
+  // dialog degrades gracefully to the latest notes on record instead of being
+  // silently disabled until the registry catches up.
   useEffect(() => {
     if (!release) return
     if (APP_VERSION === 'dev') return
-    // Only announce notes for the build that's actually running.
-    if (APP_VERSION !== release.version) return
     if (lastSeenVersion === APP_VERSION) return
 
     if (lastSeenVersion === null) {
