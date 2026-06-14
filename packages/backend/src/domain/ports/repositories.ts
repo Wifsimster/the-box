@@ -123,6 +123,14 @@ export interface GameRepository {
    * forfeit achievement check). Returns `[]` if no game is found.
    */
   getGenresByScreenshotIds(screenshotIds: number[]): Promise<string[]>
+  /**
+   * Catalogue games that plausibly match a free-text guess, pre-filtered by
+   * the significant word tokens in the guess (ILIKE on name). Used by the
+   * smart-guess proximity hint to resolve a wrong guess to a known game so it
+   * can be compared (franchise / developer / publisher) against the answer.
+   * Returns `[]` when the guess has no usable tokens.
+   */
+  findGuessMatchCandidates(guessText: string, limit?: number): Promise<Game[]>
 }
 
 // ---------- Session ----------

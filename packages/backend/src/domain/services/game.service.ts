@@ -30,6 +30,7 @@ import {
   nextPenaltyPct,
   LETTER_PENALTY_STEPS,
 } from './letter-reveal.service.js'
+import { computeGuessProximityHint } from './guess-proximity.service.js'
 
 export class GameError extends Error {
   constructor(
@@ -1039,6 +1040,35 @@ export function createGameService(deps: GameServiceDeps): GameService {
       correctGame.developer = fullGameData.developer ?? undefined
     }
 
+    // Smart-guess "warmer" hint. Only on a wrong, non-empty guess: resolve the
+    // guess to a known catalogue game and, if it shares a franchise / studio /
+    // publisher with the answer, surface that relation. The hint never carries
+    // the answer's title (anti-leak); it only echoes an attribute of the game
+    // the player named. Best-effort — a lookup failure must not fail the guess.
+    let proximityHint: GuessResponse['proximityHint']
+    if (!isCorrect && trimmedGuess !== '') {
+      try {
+        const candidates = await gameRepository.findGuessMatchCandidates(trimmedGuess)
+        proximityHint =
+          computeGuessProximityHint({
+            guessText: trimmedGuess,
+            answer: {
+              id: screenshot.gameId,
+              name: gameName,
+              developer: correctGame.developer,
+              publisher: correctGame.publisher,
+            },
+            candidates,
+            fuzzyMatch: fuzzyMatchService,
+          }) ?? undefined
+      } catch (error) {
+        log.warn(
+          { userId: data.userId, error: String(error) },
+          'proximity hint computation failed (non-fatal)'
+        )
+      }
+    }
+
     return {
       isCorrect,
       // Anti-leak gate: a wrong guess must not hand back the answer
@@ -1054,6 +1084,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       secondChanceFloorBoost,
+      proximityHint,
       matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
     }
     }) // end withTierSessionLock

@@ -240,6 +240,42 @@ export const gameRepository = {
     return row ? mapRowToGame(row) : null
   },
 
+  /**
+   * Candidate catalogue games for a free-text guess, used by the smart-guess
+   * proximity hint. We tokenise the guess and ILIKE on `name` for each
+   * significant token (≥3 alphanumerics, minus a few stop-words). This narrows
+   * the catalogue to a small set the domain then confirms with the fuzzy
+   * matcher — far cheaper than loading every game. Returns `[]` when the guess
+   * yields no usable tokens (e.g. "di"), which the caller treats as "no hint".
+   */
+  async findGuessMatchCandidates(guessText: string, limit = 25): Promise<Game[]> {
+    const STOP_WORDS = new Set(['the', 'and', 'for', 'les', 'des', 'una', 'los'])
+    const tokens = guessText
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter((token) => token.length >= 3 && !STOP_WORDS.has(token))
+      .slice(0, 4)
+
+    if (tokens.length === 0) {
+      log.debug({ guessText }, 'findGuessMatchCandidates: no usable tokens')
+      return []
+    }
+
+    log.debug({ tokens, limit }, 'findGuessMatchCandidates')
+    const rows = await db('games')
+      .where(function () {
+        for (const token of tokens) {
+          this.orWhereILike('name', `%${token}%`)
+        }
+      })
+      .limit(limit)
+      .select<GameRow[]>('*')
+
+    log.debug({ tokens, resultCount: rows.length }, 'findGuessMatchCandidates result')
+    return rows.map(mapRowToGame)
+  },
+
   async getGenresById(gameId: number): Promise<string[]> {
     log.debug({ gameId }, 'getGenresById')
     const row = await db('games')
