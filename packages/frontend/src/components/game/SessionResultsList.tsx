@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
-import { CheckCircle, XCircle, Clock } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Type } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
@@ -107,6 +107,14 @@ export function SessionResultsList({
                     {result.scoreEarned > 0 && multiplier > 1.0 && (
                       <> · 100 × {multiplier.toFixed(1)}x {t('game.speed.label')}</>
                     )}
+                  </span>
+                </div>
+              )}
+              {result.isCorrect && (result.letterPenalty ?? 0) > 0 && (
+                <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-score-low mt-1">
+                  <Type className="size-3 sm:size-3.5 shrink-0" aria-hidden="true" />
+                  <span className="whitespace-nowrap">
+                    {t('game.letterPenaltyShort', { penalty: result.letterPenalty })}
                   </span>
                 </div>
               )}

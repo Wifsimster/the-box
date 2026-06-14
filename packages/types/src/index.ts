@@ -632,6 +632,7 @@ export interface GameSessionDetailsResponse {
     timeTakenMs: number
     scoreEarned: number
     hintPenalty?: number
+    letterPenalty?: number
     wrongGuessPenalty?: number
     tryNumber: number
     screenshot: Screenshot

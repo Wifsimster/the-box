@@ -133,6 +133,9 @@ export function createUserService(deps: UserServiceDeps): UserService {
             timeTakenMs: correctGuess.timeTakenMs,
             scoreEarned: correctGuess.scoreEarned,
             hintPenalty,
+            // Letter-reveal cost deducted from this guess's score, when any.
+            // Persisted per-guess (game.service), so legacy rows stay 0.
+            letterPenalty: correctGuess.letterPenalty > 0 ? correctGuess.letterPenalty : undefined,
             tryNumber: correctGuess.tryNumber,
             screenshot: screenshotMap.get(position)!,
             attempts,
