@@ -94,6 +94,10 @@ export function WelcomeModal() {
                 <span className="flex items-center justify-center size-6 rounded-full bg-neon-pink/20 text-neon-pink font-bold text-xs shrink-0">3</span>
                 <span>{t('onboarding.step3')}</span>
               </li>
+              <li className="flex gap-3">
+                <span className="flex items-center justify-center size-6 rounded-full bg-warning/20 text-warning font-bold text-xs shrink-0">4</span>
+                <span>{t('onboarding.step4')}</span>
+              </li>
             </ol>
 
             <div className="flex justify-end">

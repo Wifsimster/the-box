@@ -423,7 +423,9 @@ export const useGameStore = create<GameState>()(
           const { currentPosition, positionStates } = get()
           const currentState = positionStates[currentPosition]
 
-          // Mark current as skipped (only if not already correct)
+          // Mark current as skipped (only if not already correct). Also clear
+          // the transient "warmer" hint so it doesn't linger when the player
+          // returns to this position later without an active guess.
           if (currentState && currentState.status === 'in_progress') {
             set((state) => ({
               positionStates: {
@@ -431,6 +433,7 @@ export const useGameStore = create<GameState>()(
                 [currentPosition]: {
                   ...state.positionStates[currentPosition],
                   status: 'skipped',
+                  proximityHint: undefined,
                 },
               },
             }))
@@ -542,18 +545,30 @@ export const useGameStore = create<GameState>()(
         },
 
         navigateToPosition: (position) => {
-          const { positionStates } = get()
+          const { positionStates, currentPosition: leavingPosition } = get()
           const state = positionStates[position]
 
           if (!state) return
           // Timed-out positions are terminal — never navigable back into.
           if (state.status === 'timed_out') return
 
-          // Update current position
-          set({
+          // Update current position. Clear the transient "warmer" hint on the
+          // position we're leaving so it doesn't reappear on return without an
+          // active guess.
+          set((prev) => ({
             currentPosition: position,
             lastResult: null,
-          })
+            positionStates:
+              leavingPosition !== position && prev.positionStates[leavingPosition]
+                ? {
+                    ...prev.positionStates,
+                    [leavingPosition]: {
+                      ...prev.positionStates[leavingPosition],
+                      proximityHint: undefined,
+                    },
+                  }
+                : prev.positionStates,
+          }))
 
           // Mark as in_progress only if not already correct
           // Keep correct positions as correct (don't change to in_progress)
@@ -731,8 +746,17 @@ export const useGameStore = create<GameState>()(
           challengeId: state.challengeId,
           challengeDate: state.challengeDate,
           totalScore: state.totalScore,
-          // Persist position states for navigation on refresh
-          positionStates: state.positionStates,
+          // Persist position states for navigation on refresh, but strip the
+          // ephemeral "warmer" proximity hint: it's transient feedback for an
+          // active guess, not durable state. Persisting it made the banner
+          // reappear on PWA reopen / refresh with no active guess to justify
+          // it, growing the input dock and shoving the screenshot up.
+          positionStates: Object.fromEntries(
+            Object.entries(state.positionStates).map(([key, value]) => [
+              key,
+              { ...value, proximityHint: undefined },
+            ])
+          ),
           currentPosition: state.currentPosition,
           screenshotsFound: state.screenshotsFound,
           // Persist guess results for results page display

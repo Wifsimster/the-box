@@ -5,7 +5,7 @@ import { useAchievementStore } from '@/stores/achievementStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import type { GuessSubmissionService } from '@/services/guessSubmissionService'
 import {
-  getUserFriendlyErrorMessage,
+  getErrorMessageKey,
   AuthenticationError,
   NotFoundError,
   logError,
@@ -33,7 +33,8 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           success: false,
           isCorrect: false,
           scoreEarned: 0,
-          error: 'Session not initialized',
+          // i18n key resolved at the toast site (GuessInput).
+          error: 'game.errors.sessionNotInitialized',
         }
       }
 
@@ -177,8 +178,9 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
         // Log error with context
         logError(error, 'useGameGuess')
 
-        // Get user-friendly error message
-        const userMessage = getUserFriendlyErrorMessage(error)
+        // Resolve to an i18n key (or pass-through server message); the toast
+        // site translates it so French players don't see English copy.
+        const userMessage = getErrorMessageKey(error)
 
         // Handle specific error types
         if (error instanceof AuthenticationError) {

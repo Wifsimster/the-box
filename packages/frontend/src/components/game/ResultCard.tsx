@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEffectEvent } from 'react'
 import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useGameStore } from '@/stores/gameStore'
-import { CheckCircle, XCircle, ChevronRight } from 'lucide-react'
+import { CheckCircle, XCircle, ChevronRight, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ResultGameInfo } from './ResultGameInfo'
 import { ResultScoreDisplay } from './ResultScoreDisplay'
@@ -39,6 +39,12 @@ export function ResultCard() {
 
   // Auto-close countdown state (must be before early return)
   const [countdown, setCountdown] = useState(AUTO_CLOSE_SECONDS)
+
+  // Move focus to the primary "Next" action when the result dialog opens so
+  // keyboard / screen-reader users land inside the dialog (and Enter-to-advance
+  // has a sensible focus target) instead of being stranded on the now-disabled
+  // guess input behind the overlay.
+  const nextButtonRef = useRef<HTMLButtonElement>(null)
 
   // Memoize nextPosition calculation
   const nextPosition = lastResult ? findNextUnfinished(currentPosition) : null
@@ -145,6 +151,12 @@ export function ResultCard() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [lastResult])
 
+  // Focus the primary action once the dialog has a result to show.
+  // `preventScroll` avoids yanking the screenshot on mobile.
+  useEffect(() => {
+    if (lastResult) nextButtonRef.current?.focus({ preventScroll: true })
+  }, [lastResult])
+
   // Early return after all hooks
   if (!lastResult) return null
 
@@ -192,12 +204,33 @@ export function ResultCard() {
       )}
 
       <m.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('game.resultDialogLabel', 'Round result')}
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="relative max-w-sm w-full mx-4"
       >
+        {/* Single concise outcome line for assistive tech — the visual card is
+            built from animated fragments that don't read as one coherent
+            announcement. Polite so it doesn't interrupt the miss/correct
+            announcement already fired by the guess input. */}
+        <div role="status" aria-live="polite" className="sr-only">
+          {t('game.resultAnnounce', {
+            outcome: isCorrect
+              ? matchPrecision === 'partial'
+                ? t('game.partialMatch')
+                : t('game.correct')
+              : t('game.incorrect'),
+            answer: correctGame?.name ?? '',
+            score: scoreEarned,
+            defaultValue: `${
+              isCorrect ? t('game.correct') : t('game.incorrect')
+            } ${correctGame?.name ?? ''} +${scoreEarned}`,
+          })}
+        </div>
         <Card
           variant={isCorrect ? 'success' : 'error'}
           className="relative border-2 rounded-2xl p-6 shadow-2xl"
@@ -230,10 +263,19 @@ export function ResultCard() {
             )}
           >
             {isCorrect ? (
-              <>
-                <CheckCircle className="size-5" />
-                {matchPrecision === 'partial' ? t('game.partialMatch') : t('game.correct')}
-              </>
+              matchPrecision === 'partial' ? (
+                <>
+                  {/* Distinct icon from the exact-match check so the partial
+                      state isn't differentiated by colour alone (WCAG 1.4.1). */}
+                  <Target className="size-5" />
+                  {t('game.partialMatch')}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="size-5" />
+                  {t('game.correct')}
+                </>
+              )
             ) : (
               <>
                 <XCircle className="size-5" />
@@ -268,6 +310,7 @@ export function ResultCard() {
           className="flex flex-col items-center gap-2"
         >
           <Button
+            ref={nextButtonRef}
             variant="secondary"
             size="lg"
             onClick={handleNext}

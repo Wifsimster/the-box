@@ -43,6 +43,10 @@ export function GuessInput() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  // Drives the assertive screen-reader announcement for a wrong guess.
+  // Kept SEPARATE from `isShaking` (the shake animation) so reduced-motion
+  // users — who never get `isShaking` — still hear the miss.
+  const [announceIncorrect, setAnnounceIncorrect] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Services (dependency injection via factory functions)
@@ -81,9 +85,11 @@ export function GuessInput() {
     try {
       const result = await submitGuess(null, query.trim())
 
-      // Show error toast if submission failed
+      // Show error toast if submission failed. `result.error` is an i18n key
+      // (or a server-provided message); translate it so the unhappy-path toast
+      // respects the user's locale. defaultValue keeps a non-key message as-is.
       if (!result.success && result.error) {
-        toast.error(result.error)
+        toast.error(t(result.error, { defaultValue: result.error }))
       }
 
       // Trigger animations based on result
@@ -93,6 +99,10 @@ export function GuessInput() {
           setTimeout(() => setIsSuccess(false), 800)
           vibrate(15)
         } else {
+          // Announce the miss to assistive tech regardless of motion
+          // preference (the shake below is the visual-only channel).
+          setAnnounceIncorrect(true)
+          setTimeout(() => setAnnounceIncorrect(false), 1000)
           // Skip the shake for users who prefer reduced motion; the colour
           // change on the border still signals the error.
           if (!prefersReducedMotion) {
@@ -180,7 +190,7 @@ export function GuessInput() {
         {isSuccess && t('game.guessCorrect', { defaultValue: 'Correct guess!' })}
       </div>
       <div aria-live="assertive" aria-atomic="true" className="sr-only">
-        {isShaking && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
+        {announceIncorrect && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
       </div>
 
       {/* Input with submit button. `items-end` keeps the nav buttons level
