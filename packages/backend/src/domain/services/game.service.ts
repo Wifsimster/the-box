@@ -844,6 +844,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       // for history-display and recalculation paths.
       powerUpUsed: null,
       hintFromInventory: false,
+      // Persist the letter-reveal cost (already subtracted from scoreEarned)
+      // so the history/recap surfaces can show it without re-deriving it.
+      letterPenalty,
     })
 
     if (pendingSecondChanceActivationId !== null) {

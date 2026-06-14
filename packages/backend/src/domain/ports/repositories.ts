@@ -199,6 +199,8 @@ export interface GuessWithGameRecord {
   scoreEarned: number
   powerUpUsed: string | null
   hintFromInventory: boolean
+  /** Letter-reveal cost (points) deducted from scoreEarned; 0 when none. */
+  letterPenalty: number
   correctGameId: number
   correctGameName: string
   correctGameSlug: string
@@ -256,6 +258,8 @@ export interface SessionRepository {
     scoreEarned: number
     powerUpUsed: string | null
     hintFromInventory: boolean
+    /** Letter-reveal cost (points) already deducted from scoreEarned. */
+    letterPenalty: number
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
   hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>

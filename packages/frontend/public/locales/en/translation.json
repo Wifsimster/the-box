@@ -383,6 +383,7 @@
     },
     "discoveryTime": "Found in {{time}}",
     "discoveryTimeShort": "{{time}}",
+    "letterPenaltyShort": "Letter −{{penalty}} pts",
     "powerUps": {
       "x2Timer": "Double Time",
       "hint": "Hint"
