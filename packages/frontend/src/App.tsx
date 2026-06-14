@@ -11,6 +11,7 @@ import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBou
 import { RouteSeo } from '@/components/RouteSeo'
 import {
   PWAUpdatePrompt,
+  ChangelogDialog,
   OfflineIndicator,
   IOSInstallHint,
   InstallPromptBanner,
@@ -243,6 +244,7 @@ function App() {
       {/* PWA: offline banner + service-worker update toast + install prompts */}
       <OfflineIndicator />
       <PWAUpdatePrompt />
+      <ChangelogDialog />
       <InstallPromptBanner />
       <IOSInstallHint />
       </LazyMotion>

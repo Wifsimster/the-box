@@ -1,4 +1,6 @@
 export { PWAUpdatePrompt } from './PWAUpdatePrompt'
+export { ChangelogDialog } from './ChangelogDialog'
+export { useOpenChangelog } from '@/stores/changelogStore'
 export { OfflineIndicator } from './OfflineIndicator'
 export { InstallPromptButton } from './InstallPromptButton'
 export { InstallPromptBanner } from './InstallPromptBanner'
