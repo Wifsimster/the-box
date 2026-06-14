@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { Check, Gift, Lock } from 'lucide-react'
 import type { DailyReward } from '@the-box/types'
+import { getRarityStyle, getRewardRarity } from '@/lib/rarity'
 
 interface RewardCalendarProps {
     rewards: DailyReward[]
@@ -60,23 +61,43 @@ export function RewardCalendar({
                     const isLocked = status === 'locked'
                     const isAvailable = status === 'available'
 
+                    const rarity = getRewardRarity(reward)
+                    const rarityStyle = getRarityStyle(reward)
+
                     return (
                         <div
                             key={reward.dayNumber}
+                            title={t(rarityStyle.labelKey)}
+                            style={
+                                isAvailable
+                                    ? { boxShadow: rarityStyle.glow }
+                                    : undefined
+                            }
                             className={cn(
                                 'relative flex flex-col items-center justify-center p-1 sm:p-2 rounded-lg border transition-all',
-                                isToday && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
-                                isClaimed && 'bg-success/10 border-success/30',
-                                isAvailable && 'bg-primary/10 border-primary/30 animate-pulse',
-                                isLocked && 'bg-muted/20 border-muted/30 opacity-50'
+                                // Rarity tint is always present so the colour
+                                // reads as the day's prestige, not just its state.
+                                rarityStyle.cell,
+                                isToday && cn('ring-2 ring-offset-2 ring-offset-background', rarityStyle.ring),
+                                isAvailable && 'animate-pulse',
+                                isClaimed && 'opacity-70',
+                                isLocked && 'opacity-50'
                             )}
                         >
+                            {/* Rarity indicator dot */}
+                            <span
+                                className={cn(
+                                    'absolute top-1 right-1 size-1.5 rounded-full',
+                                    rarityStyle.text,
+                                    'bg-current'
+                                )}
+                                aria-hidden
+                            />
+
                             {/* Day number */}
                             <span className={cn(
                                 'text-[10px] sm:text-xs font-medium',
-                                isClaimed && 'text-success',
-                                isAvailable && 'text-primary',
-                                isLocked && 'text-muted-foreground'
+                                rarityStyle.text
                             )}>
                                 {t('dailyLogin.day')} {reward.dayNumber}
                             </span>
@@ -87,7 +108,7 @@ export function RewardCalendar({
                                 isLocked && 'grayscale'
                             )}>
                                 {isClaimed ? (
-                                    <Check className="size-4 sm:size-6 text-success" />
+                                    <Check className={cn('size-4 sm:size-6', rarityStyle.text)} />
                                 ) : isLocked ? (
                                     <Lock className="size-4 sm:size-5 text-muted-foreground" />
                                 ) : (
@@ -98,9 +119,7 @@ export function RewardCalendar({
                             {/* Reward preview */}
                             <span className={cn(
                                 'text-[8px] sm:text-[10px] text-center leading-tight truncate max-w-full px-0.5',
-                                isClaimed && 'text-success/70',
-                                isAvailable && 'text-primary/80',
-                                isLocked && 'text-muted-foreground/50'
+                                rarity === 'legendary' ? rarityStyle.text : 'text-muted-foreground'
                             )}>
                                 {reward.rewardType === 'legendary' ? (
                                     <Gift className="size-3 inline" />

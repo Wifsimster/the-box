@@ -2382,7 +2382,14 @@
         "description": "The ultimate chest: 2x letter reveal, 1x streak freeze + 500 points!"
       }
     },
-    "hintLetter": "Letter Reveal"
+    "hintLetter": "Letter Reveal",
+    "rarity": {
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary"
+    }
   },
   "onboarding": {
     "welcomeTitle": "Welcome to The Box!",

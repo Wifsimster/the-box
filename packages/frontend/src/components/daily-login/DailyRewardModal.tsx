@@ -13,6 +13,11 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
 import { Flame, Gift, Sparkles } from 'lucide-react'
+import {
+    getRarityStyle,
+    getRewardRarity,
+    RARITY_CLAIM_ANIMATION,
+} from '@/lib/rarity'
 
 // i18n key per item_key. Unknown keys (including the metadata hints
 // retired 2026-06, which can still appear on historical claims) fall
@@ -78,6 +83,9 @@ export function DailyRewardModal() {
     const reward = justClaimed?.reward || status.todayReward
     const showClaimSuccess = !!justClaimed
 
+    const rarity = reward ? getRewardRarity(reward) : 'common'
+    const rarityStyle = reward ? getRarityStyle(reward) : null
+
     return (
         <ResponsiveDialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
             <ResponsiveDialogContent className="sm:max-w-md">
@@ -111,26 +119,58 @@ export function DailyRewardModal() {
                 </div>
 
                 {/* Reward Display */}
-                {reward && (
-                    <div className={cn(
-                        'relative flex flex-col items-center p-6 rounded-lg border border-primary/30 bg-linear-to-b from-primary/10 to-transparent',
-                        isAnimating && 'animate-pulse',
-                        showClaimSuccess && 'border-success/50 bg-linear-to-b from-success/10 to-transparent'
-                    )}>
-                        {/* Sparkle effect on claim */}
+                {reward && rarityStyle && (
+                    <div
+                        style={
+                            showClaimSuccess
+                                ? { boxShadow: rarityStyle.glow }
+                                : undefined
+                        }
+                        className={cn(
+                            'relative flex flex-col items-center p-6 rounded-lg border bg-linear-to-b',
+                            // The card is always tinted by the reward's rarity so
+                            // the colour signals prestige before the claim.
+                            rarityStyle.border,
+                            rarityStyle.gradient,
+                            isAnimating && !showClaimSuccess && 'animate-pulse',
+                            // On claim, escalate the reveal animation with rarity.
+                            showClaimSuccess && RARITY_CLAIM_ANIMATION[rarity]
+                        )}
+                    >
+                        {/* Sparkle effect on claim, tinted by rarity */}
                         {showClaimSuccess && (
                             <div className="absolute inset-0 pointer-events-none">
-                                <Sparkles className="absolute top-2 left-4 size-4 text-warning animate-pulse" />
+                                <Sparkles className={cn('absolute top-2 left-4 size-4 animate-pulse', rarityStyle.sparkle)} />
                                 <Sparkles
-                                    className="absolute top-4 right-6 size-3 text-warning animate-pulse"
+                                    className={cn('absolute top-4 right-6 size-3 animate-pulse', rarityStyle.sparkle)}
                                     style={{ animationDelay: '100ms' }}
                                 />
                                 <Sparkles
-                                    className="absolute bottom-4 left-8 size-3 text-warning animate-pulse"
+                                    className={cn('absolute bottom-4 left-8 size-3 animate-pulse', rarityStyle.sparkle)}
                                     style={{ animationDelay: '200ms' }}
                                 />
+                                {(rarity === 'epic' || rarity === 'legendary') && (
+                                    <>
+                                        <Sparkles
+                                            className={cn('absolute bottom-3 right-5 size-4 animate-pulse', rarityStyle.sparkle)}
+                                            style={{ animationDelay: '150ms' }}
+                                        />
+                                        <Sparkles
+                                            className={cn('absolute top-1/2 left-2 size-3 animate-pulse', rarityStyle.sparkle)}
+                                            style={{ animationDelay: '250ms' }}
+                                        />
+                                    </>
+                                )}
                             </div>
                         )}
+
+                        {/* Rarity label */}
+                        <Badge
+                            variant="outline"
+                            className={cn('mb-2 uppercase tracking-wide text-[10px]', rarityStyle.badge, rarityStyle.border)}
+                        >
+                            {t(rarityStyle.labelKey)}
+                        </Badge>
 
                         <span className="text-4xl mb-2">{reward.iconUrl}</span>
                         <h3 className="font-bold text-lg text-center">
