@@ -2764,6 +2764,13 @@
       "fixes": "Fixes"
     },
     "releases": {
+      "2.135.0": {
+        "summary": "Daily rewards now come in colors: each day reveals its rarity, with its own vibe and animation.",
+        "features": [
+          "Every daily reward now shows its rarity — from common to legendary — with a dedicated color.",
+          "Claiming a reward triggers an animation that escalates with its rarity, up to the legendary day-7 burst."
+        ]
+      },
       "2.130.0": {
         "summary": "Guessing gets smarter: proximity hints, partial credit and clearer premium plans.",
         "features": [
