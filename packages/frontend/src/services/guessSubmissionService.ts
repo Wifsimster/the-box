@@ -35,6 +35,8 @@ export interface GuessSubmissionResult {
   secondChanceFloorBoost?: number
   /** "Warmer" hint after a wrong guess that relates to the answer. */
   proximityHint?: GuessProximityHint
+  /** `partial` when only the franchise was named (reduced score); else `exact`. */
+  matchPrecision?: 'exact' | 'partial'
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 

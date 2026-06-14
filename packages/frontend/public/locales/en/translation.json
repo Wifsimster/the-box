@@ -338,6 +338,8 @@
     "guessPlaceholder": "Game name...",
     "nextRound": "Next Round",
     "correct": "Correct!",
+    "partialMatch": "Franchise recognised!",
+    "partialMatchHint": "You named the series but not the full title — partial points awarded.",
     "incorrect": "Incorrect",
     "proximity": {
       "warmer": "Warmer!",

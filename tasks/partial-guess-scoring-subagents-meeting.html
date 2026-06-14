@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!-- SUMMARY:
+  Graded guess scoring: a guess that identifies the franchise but omits the
+  sequel number / full subtitle now VALIDATES the screenshot at a reduced
+  score (partial tier) instead of scoring 0. A wrong number stays rejected.
+  Matcher gains evaluateMatch()->{matched,precision}; isMatch stays exact-only
+  so the letter-reveal leak gate is untouched. Partial = 40% so the fastest
+  partial (80) can never beat the slowest exact (100).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Partial Guess Scoring — Subagent Design Review</title>
+<style>
+  :root { --bg:#0a0a0f; --panel:#14141c; --ink:#e7e7ee; --muted:#a0a0b0;
+          --primary:#a855f7; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+          --line:#26263420; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); margin:0;
+         font-family:Inter,system-ui,sans-serif; line-height:1.6; }
+  main { max-width:72ch; margin:0 auto; padding:3rem 1.25rem 6rem; }
+  h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .25rem;
+       text-shadow:0 0 24px #a855f766; }
+  h2 { font-size:1.25rem; margin:2.4rem 0 .6rem; border-bottom:1px solid #2a2a38;
+       padding-bottom:.3rem; }
+  h3 { font-size:1rem; margin:1.4rem 0 .3rem; color:#cfcfe0; }
+  .sub { color:var(--muted); margin:0 0 1.5rem; }
+  code,pre { font-family:"JetBrains Mono",ui-monospace,monospace; }
+  code { background:#1d1d28; padding:.08em .4em; border-radius:4px; font-size:.88em; }
+  pre { background:#1d1d28; padding:1rem; border-radius:8px; overflow:auto;
+        border:1px solid #2a2a38; font-size:.82rem; }
+  table { width:100%; border-collapse:collapse; margin:.8rem 0; font-size:.86rem; }
+  th,td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid #2a2a38;
+          vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .tag { display:inline-block; padding:.05em .55em; border-radius:999px;
+         font-size:.74rem; font-weight:600; }
+  .exact { background:#34d39922; color:var(--good); }
+  .partial { background:#fbbf2422; color:var(--warn); }
+  .none { background:#f8717122; color:var(--bad); }
+  .persona { background:var(--panel); border:1px solid #2a2a38; border-radius:10px;
+             padding:.9rem 1.1rem; margin:.7rem 0; }
+  .persona b { color:var(--primary); }
+  .verdict { border-left:3px solid var(--primary); padding:.2rem 0 .2rem .9rem;
+             margin:1rem 0; color:#dcdce8; }
+  ul { padding-left:1.2rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Partial Guess Scoring</h1>
+  <p class="sub">Subagent design review · 4 personas + devil's advocate · 2026-06-14</p>
+
+  <h2>Problem</h2>
+  <p>A player identified the franchise from a screenshot but omitted the sequel
+  number or full subtitle, and scored <b>0</b>. From the reported session:</p>
+  <ul>
+    <li><code>metal gear solid</code> → <i>Metal Gear Solid 2: Sons of Liberty</i> — rejected.</li>
+    <li><code>final fantasy</code> → <i>Final Fantasy XII</i> — rejected.</li>
+    <li><code>pokemon</code> → <i>Pokémon X, Y</i> — rejected.</li>
+  </ul>
+  <p>Owner ask (FR): validate these at a <b>lower</b> score; award a bonus when
+  the number / full title is also right. Genuinely <i>wrong</i> guesses
+  (<code>final fantasy vii</code> for FF VIII) must stay rejected.</p>
+
+  <h2>Persona positions</h2>
+  <div class="persona"><b>Product / Game design.</b> Three tiers: exact / close /
+  franchise. Franchise-only is a real reward but unmistakably worse. Speed still
+  rewards skill. Crisp fairness line: <i>omission</i> = partial credit,
+  <i>commission</i> (wrong number) = a miss.</div>
+  <div class="persona"><b>Backend architect.</b> Add
+  <code>evaluateMatch() → { matched, precision }</code>; keep <code>isMatch</code>
+  as a thin wrapper so only the scorer consumes the grade. Map precision→score in
+  <code>game.service</code> via a constant. Apply the partial factor <i>after</i>
+  the 200 cap, before letter penalty &amp; second-chance floor. Do not loosen the
+  letter-reveal leak gate.</div>
+  <div class="persona"><b>QA.</b> Keep all ~90 boolean assertions green; add a
+  parallel graded suite. Highest-risk deltas: the
+  <code>witcher/portal/fallout</code> trio (false → partial) and the leak gate.
+  Pin "wrong number stays none" and "revealed letters can't auto-win".</div>
+  <div class="persona"><b>Devil's advocate.</b> Block as originally framed. The
+  matcher rejects franchise-only <i>on purpose</i> in 5 branches. Hard
+  constraints: partial NEVER on DLC base-name, incomplete truncation, or wrong
+  number; never trivialize the leaderboard via franchise-spam; the leak gate must
+  stay strict; one boolean tier, not a numeric gradient.</div>
+
+  <h2>Decision</h2>
+  <p>Single <span class="tag partial">partial</span> tier. The matcher gains
+  <code>evaluateMatch(input, name, aliases) → { matched, precision:
+  'exact'|'partial'|'none' }</code>. <code>isMatch</code> keeps its current
+  <b>exact-only</b> meaning — so the letter-reveal leak gate
+  (<code>effectiveMaxReveals</code>) and every other caller are byte-for-byte
+  unchanged. Only <code>submitGuess</code> reads the grade.</p>
+
+  <h3>When partial fires (narrow, by construction)</h3>
+  <p>All must hold, after the strict matcher has already said "no":</p>
+  <ul>
+    <li>target has a <b>sequel number</b> (so there is something to omit);</li>
+    <li>input matches the <b>franchise root</b> (number stripped) ≥ 0.85;</li>
+    <li>every meaningful input token is <b>covered</b> by a target token — no
+    foreign specifier (kills <code>pokemon diamond</code> → <i>Pokémon X, Y</i>);</li>
+    <li>input gives <b>no wrong number</b>;</li>
+    <li>it is <b>not</b> a DLC base-name match.</li>
+  </ul>
+
+  <h3>Scoring curve</h3>
+  <p><code>exact = round(min(100 × speed, 200))</code> (unchanged).
+  <code>partial = round(exact × 0.40)</code>. The 0.40 factor guarantees the
+  <i>fastest</i> partial (80) is always below the <i>slowest</i> exact (100), so
+  full identification is strictly the best play. Order:
+  speed → 200 cap → partial factor → letter penalty → second-chance floor.</p>
+  <pre>partial range: 40 – 80     exact range: 100 – 200   (no overlap)</pre>
+
+  <h2>Behaviour matrix</h2>
+  <table>
+    <tr><th>Guess → Target</th><th>Tier</th><th>Why</th></tr>
+    <tr><td>metal gear solid 2 → MGS 2: Sons of Liberty</td><td><span class="tag exact">exact</span></td><td>number supplied</td></tr>
+    <tr><td>metal gear solid → MGS 2: Sons of Liberty</td><td><span class="tag partial">partial</span></td><td>franchise, number omitted</td></tr>
+    <tr><td>final fantasy → Final Fantasy XII</td><td><span class="tag partial">partial</span></td><td>franchise, number omitted</td></tr>
+    <tr><td>pokemon → Pokémon X, Y</td><td><span class="tag partial">partial</span></td><td>franchise, edition omitted</td></tr>
+    <tr><td>portal / fallout / witcher → numbered entry</td><td><span class="tag partial">partial</span></td><td>franchise, number omitted</td></tr>
+    <tr><td>final fantasy vii → Final Fantasy VIII</td><td><span class="tag none">none</span></td><td>WRONG number = different game</td></tr>
+    <tr><td>witcher 2 → The Witcher 3</td><td><span class="tag none">none</span></td><td>wrong number</td></tr>
+    <tr><td>pokemon diamond → Pokémon X, Y</td><td><span class="tag none">none</span></td><td>foreign token "diamond"</td></tr>
+    <tr><td>cuphead → Cuphead: The Delicious Last Course</td><td><span class="tag none">none</span></td><td>DLC base-name</td></tr>
+    <tr><td>A Space for the Unb → …Unbound</td><td><span class="tag none">none</span></td><td>no number → no partial concept</td></tr>
+    <tr><td>paper mario → Paper Mario: TTYD</td><td><span class="tag exact">exact</span></td><td>no number to miss (already full credit)</td></tr>
+  </table>
+
+  <h2>Devil's-advocate constraints — disposition</h2>
+  <div class="verdict">
+    <b>Honored:</b> partial never touches DLC base-name, incomplete truncation, or
+    any wrong number; the leak gate keeps strict <code>isMatch</code>; single
+    boolean tier, no gradient; partial reveals the answer only because it
+    <i>solves</i> the position (a teaching moment), never on a miss.<br><br>
+    <b>Token-coverage guard</b> answers the high-cardinality-franchise abuse:
+    a franchise-only partial must be a <i>subset</i> of the target's words, so
+    naming a different entry ("pokemon diamond") stays a miss.<br><br>
+    <b>Consciously overruled:</b> the "non-ranked only" guardrail. The owner
+    explicitly wants partial credit to count; the 0.40 factor (and the no-overlap
+    property) is the mitigation. Revisit if farming shows up in the data.
+  </div>
+
+  <h2>Surface area</h2>
+  <ul>
+    <li><code>fuzzy-match.service.ts</code> — <code>evaluateMatch</code> +
+    <code>franchisePartialMatch</code>; <code>isMatch</code> unchanged (exact).</li>
+    <li><code>game.service.ts</code> — scorer reads precision;
+    <code>PARTIAL_MATCH_FACTOR</code>; <code>matchPrecision</code> on the response.</li>
+    <li><code>@the-box/types</code> — <code>GuessResponse.matchPrecision</code> (rebuild).</li>
+    <li>Frontend — partial badge on the result card; field threaded through the
+    store &amp; locales.</li>
+    <li>Tests — graded suite for the matcher; partial-score test for the scorer.</li>
+  </ul>
+</main>
+</body>
+</html>

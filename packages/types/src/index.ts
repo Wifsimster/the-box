@@ -278,6 +278,12 @@ export interface GuessResult {
   /** Points deducted for letters of the title revealed on this position. */
   letterPenalty?: number
   wrongGuessPenalty?: number
+  /**
+   * `partial` when the player named the franchise but omitted the sequel
+   * number / full subtitle — the screenshot is solved at a reduced score.
+   * `exact` (or absent) for a full-title identification.
+   */
+  matchPrecision?: 'exact' | 'partial'
   screenshot?: Screenshot
   /** All guesses the user made for this position, in chronological order. */
   attempts?: GuessAttempt[]
@@ -519,6 +525,14 @@ export interface GuessResponse {
    * active activation.
    */
   secondChanceFloorBoost?: number
+  /**
+   * Precision of a correct guess. `exact` = the full title was identified;
+   * `partial` = only the franchise was named (sequel number / full subtitle
+   * omitted), which still solves the screenshot but at a reduced score. Absent
+   * on a wrong guess. The frontend surfaces a "franchise recognised" badge for
+   * `partial` so the player understands the reduced points.
+   */
+  matchPrecision?: 'exact' | 'partial'
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 

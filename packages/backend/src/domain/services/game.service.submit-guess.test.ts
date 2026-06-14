@@ -104,6 +104,14 @@ function buildHarness() {
     fuzzyMatchService: {
       // The harness submits the literal answer 'right' for a correct guess.
       isMatch: (guess: string) => guess.trim() === 'right',
+      // Graded matcher used by submitGuess: 'right' = exact full title,
+      // 'franchise' = partial (franchise named, number omitted), else none.
+      evaluateMatch: (guess: string) => {
+        const g = guess.trim()
+        if (g === 'right') return { matched: true, precision: 'exact' as const }
+        if (g === 'franchise') return { matched: true, precision: 'partial' as const }
+        return { matched: false, precision: 'none' as const }
+      },
     },
     achievementService: {
       checkAchievementsAfterGame: async () => [],
@@ -267,5 +275,38 @@ describe('game.service submitGuess — legacy metadata hints retired', () => {
     await h.submit(1, 'right')
     assert.equal(h.guesses[0]!.powerUpUsed, null)
     assert.equal(h.guesses[0]!.hintFromInventory, false)
+  })
+})
+
+describe('game.service submitGuess — partial (franchise) scoring', () => {
+  it('awards a reduced score and solves the position for a partial match', async () => {
+    const h = buildHarness()
+    // 5s round → exact would be 150; partial = round(150 × 0.4) = 60.
+    const res = await h.submit(1, 'franchise')
+    assert.equal(res.isCorrect, true, 'a franchise-level guess solves the screenshot')
+    assert.equal(res.scoreEarned, 60, 'partial score = 40% of the exact (capped) score')
+    assert.equal(res.matchPrecision, 'partial')
+    assert.equal(res.screenshotsFound, 1, 'partial match counts as found')
+    assert.equal(res.correctGame?.name, 'Halo', 'a solved partial reveals the answer')
+  })
+
+  it('keeps an exact match at full score and labels it exact', async () => {
+    const h = buildHarness()
+    const res = await h.submit(1, 'right')
+    assert.equal(res.scoreEarned, 150)
+    assert.equal(res.matchPrecision, 'exact')
+  })
+
+  it('a partial match is always worth less than the slowest exact (100)', async () => {
+    const h = buildHarness()
+    const res = await h.submit(1, 'franchise')
+    assert.ok(res.scoreEarned < 100, 'partial must never reach the exact floor')
+  })
+
+  it('omits matchPrecision on a wrong guess', async () => {
+    const h = buildHarness()
+    const res = await h.submit(1, 'totally wrong')
+    assert.equal(res.isCorrect, false)
+    assert.equal(res.matchPrecision, undefined)
   })
 })

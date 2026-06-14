@@ -338,6 +338,8 @@
     "guessPlaceholder": "Nom du jeu...",
     "nextRound": "Round Suivant",
     "correct": "Correct !",
+    "partialMatch": "Licence reconnue !",
+    "partialMatchHint": "Tu as trouvé la série mais pas le titre complet — points partiels accordés.",
     "incorrect": "Incorrect",
     "proximity": {
       "warmer": "Vous chauffez !",

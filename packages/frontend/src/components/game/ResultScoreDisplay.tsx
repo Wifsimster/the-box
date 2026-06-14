@@ -28,6 +28,7 @@ interface ResultScoreDisplayProps {
   hintPenalty?: number
   letterPenalty?: number
   wrongGuessPenalty?: number
+  matchPrecision?: 'exact' | 'partial'
 }
 
 /**
@@ -44,9 +45,14 @@ export function ResultScoreDisplay({
   hintPenalty,
   letterPenalty,
   wrongGuessPenalty,
+  matchPrecision,
 }: ResultScoreDisplayProps) {
   const { t } = useTranslation()
   const speedFeedback = getSpeedFeedback(isCorrect, timeTakenSeconds)
+  // A partial (franchise-only) match earns a reduced, already-discounted score,
+  // so the "100 × speed" headline would overstate it — show the flat earned
+  // value instead and explain why.
+  const isPartial = matchPrecision === 'partial'
 
   const scoreColor = cn(
     "text-5xl font-black",
@@ -64,7 +70,7 @@ export function ResultScoreDisplay({
       transition={{ delay: 0.45 }}
       className="text-center mb-6"
     >
-      {isCorrect && scoreEarned > 0 ? (
+      {isCorrect && scoreEarned > 0 && !isPartial ? (
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center justify-center gap-2">
             <span className={scoreColor}>+100</span>
@@ -82,6 +88,18 @@ export function ResultScoreDisplay({
           </span>
           <span className="text-lg text-muted-foreground font-medium">pts</span>
         </div>
+      )}
+
+      {/* Partial (franchise-only) match explanation */}
+      {isPartial && isCorrect && (
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-2 text-score-mid text-sm font-medium"
+        >
+          {t('game.partialMatchHint')}
+        </m.div>
       )}
 
       {/* Hint Penalty Display */}

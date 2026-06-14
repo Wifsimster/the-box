@@ -31,6 +31,19 @@ function expectNoMatch(input: string, gameName: string, aliases: string[] = []):
   )
 }
 
+function expectPrecision(
+  input: string,
+  gameName: string,
+  precision: 'exact' | 'partial' | 'none',
+  aliases: string[] = []
+): void {
+  assert.equal(
+    service.evaluateMatch(input, gameName, aliases).precision,
+    precision,
+    `expected "${input}" → "${gameName}" to be ${precision}`
+  )
+}
+
 describe('fuzzy-match.service', () => {
   describe('screenshot cases — guesses that must NOT match', () => {
     // The user surfaced "garage band" → "Xenoblade Chronicles 3D" with an
@@ -311,6 +324,73 @@ describe('fuzzy-match.service', () => {
 
       it('rejects "vice city" — different subtitle', () => {
         expectNoMatch('vice city', target)
+      })
+    })
+  })
+
+  // Graded matching: a franchise named without the sequel number / full
+  // subtitle now resolves to `partial` (solves the screenshot at a reduced
+  // score) instead of a flat rejection. `isMatch` keeps its strict (exact-only)
+  // semantics, so every assertion above is unaffected.
+  describe('graded matching — evaluateMatch precision tiers', () => {
+    describe('exact (full title identified)', () => {
+      it('full normalised title', () => {
+        expectPrecision('metal gear solid 2', 'Metal Gear Solid 2: Sons of Liberty', 'exact')
+        expectPrecision('final fantasy xii', 'Final Fantasy XII', 'exact')
+        expectPrecision('final fantasy 12', 'Final Fantasy XII', 'exact')
+      })
+      it('base + correct number', () => {
+        expectPrecision('witcher 3', 'The Witcher 3: Wild Hunt', 'exact')
+        expectPrecision('portal 2', 'Portal 2', 'exact')
+      })
+      it('subtitle-only is a full identification, not partial', () => {
+        expectPrecision('skyrim', 'The Elder Scrolls V: Skyrim', 'exact')
+      })
+      it('base-name guess for an unnumbered main game stays exact', () => {
+        expectPrecision('paper mario', 'Paper Mario: The Thousand-Year Door', 'exact')
+      })
+    })
+
+    describe('partial (franchise named, number / subtitle omitted)', () => {
+      it('reported cases — franchise without the number', () => {
+        expectPrecision('metal gear solid', 'Metal Gear Solid 2: Sons of Liberty', 'partial')
+        expectPrecision('final fantasy', 'Final Fantasy XII', 'partial')
+        expectPrecision('pokemon', 'Pokémon X, Y', 'partial')
+      })
+      it('numbered franchises where the number is omitted', () => {
+        expectPrecision('witcher', 'The Witcher 3: Wild Hunt', 'partial')
+        expectPrecision('the witcher', 'The Witcher 3: Wild Hunt', 'partial')
+        expectPrecision('portal', 'Portal 2', 'partial')
+        expectPrecision('fallout', 'Fallout 2', 'partial')
+        expectPrecision('half-life', 'Half-Life 2: Episode Two', 'partial')
+      })
+      it('isMatch (strict) still rejects these', () => {
+        // The strict contract that drives the letter-reveal leak gate is
+        // unchanged — only evaluateMatch grades them up to partial.
+        expectNoMatch('metal gear solid', 'Metal Gear Solid 2: Sons of Liberty')
+        expectNoMatch('final fantasy', 'Final Fantasy XII')
+        expectNoMatch('witcher', 'The Witcher 3: Wild Hunt')
+      })
+    })
+
+    describe('none (must never become partial)', () => {
+      it('a WRONG number names a different game', () => {
+        expectPrecision('final fantasy vii', 'Final Fantasy VIII', 'none')
+        expectPrecision('final fantasy 10', 'Final Fantasy VIII', 'none')
+        expectPrecision('witcher 2', 'The Witcher 3: Wild Hunt', 'none')
+        expectPrecision('pokemon 2', 'Pokémon X, Y', 'none')
+      })
+      it('a foreign specifier names a different entry', () => {
+        // "diamond" / "land" are not tokens of "Pokémon X, Y".
+        expectPrecision('pokemon diamond', 'Pokémon X, Y', 'none')
+        expectPrecision('pokemon land', 'Pokémon X, Y', 'none')
+      })
+      it('DLC base-name stays rejected (unnumbered subtitled target → no partial)', () => {
+        expectPrecision('cuphead', 'Cuphead: The Delicious Last Course', 'none')
+      })
+      it('unrelated guesses stay none', () => {
+        expectPrecision('garage band', 'Xenoblade Chronicles 3D', 'none')
+        expectPrecision('baldurs gate 3', 'Divinity: Original Sin - Enhanced Edition', 'none')
       })
     })
   })

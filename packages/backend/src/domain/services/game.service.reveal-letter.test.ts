@@ -60,6 +60,10 @@ function buildHarness(opts: { letterItems?: number; isCatchUp?: boolean } = {}) 
     logger: silentLogger,
     fuzzyMatchService: {
       isMatch: (guess: string) => guess.trim() === 'right',
+      evaluateMatch: (guess: string) =>
+        guess.trim() === 'right'
+          ? { matched: true, precision: 'exact' as const }
+          : { matched: false, precision: 'none' as const },
     },
     achievementService: { checkAchievementsAfterGame: async () => [] },
     challengeRepository: {

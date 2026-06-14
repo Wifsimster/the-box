@@ -809,16 +809,153 @@ function isMatchEnhanced(
   return false
 }
 
+/**
+ * Precision of an accepted guess:
+ *  - `exact`   — the full title was identified (series + correct number +
+ *                subtitle as applicable, or any path the strict matcher
+ *                already accepts at full confidence).
+ *  - `partial` — the franchise was identified but the sequel number / full
+ *                subtitle was OMITTED (not wrong). Solves the position at a
+ *                reduced score.
+ *  - `none`    — not a match.
+ */
+export type MatchPrecision = 'exact' | 'partial' | 'none'
+
+export interface MatchResult {
+  /** Convenience: `precision !== 'none'`. */
+  matched: boolean
+  precision: MatchPrecision
+}
+
+/**
+ * Strict acceptance — the historical `isMatch` semantics. A guess is accepted
+ * only when it names the full title (series + correct number + subtitle as
+ * applicable). Kept as the single source of truth for `isMatch` (and therefore
+ * the letter-reveal leak gate), with the parenthesised-alias and
+ * expansion-suffix retries that `isMatch` has always applied.
+ */
+function strictMatch(
+  input: string,
+  gameName: string,
+  aliases: string[],
+  log: DomainLogger
+): boolean {
+  if (isMatchEnhanced(input, gameName, aliases, log)) {
+    return true
+  }
+  // Parenthesised alternate name (e.g. "Fahrenheit (Indigo Prophecy)"):
+  // retry against the base name with the parenthesised text promoted to an
+  // alias.
+  const paren = extractParenthesizedAliases(gameName)
+  if (
+    paren.aliases.length > 0 &&
+    isMatchEnhanced(input, paren.base, [...aliases, ...paren.aliases], log)
+  ) {
+    return true
+  }
+  // Retry against the base title with any " - Expansion" suffix removed.
+  const core = stripExpansionSuffix(gameName)
+  if (core !== gameName && isMatchEnhanced(input, core, aliases, log)) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Franchise-level partial match. Returns true ONLY when the strict matcher has
+ * already rejected the guess AND the input clearly identifies the franchise but
+ * merely OMITTED the sequel number (e.g. "metal gear solid" → "Metal Gear
+ * Solid 2: Sons of Liberty", "final fantasy" → "Final Fantasy XII", "pokemon"
+ * → "Pokémon X, Y").
+ *
+ * Deliberately narrow so it can never resurrect a rejection the matcher makes
+ * on purpose:
+ *   - target must carry a sequel NUMBER (so there is something to omit);
+ *     subtitled-but-unnumbered base names are already full-credit via the
+ *     strict matcher, and a DLC base-name must stay a miss;
+ *   - a WRONG number names a different entry → never partial;
+ *   - every meaningful input token must be COVERED by a target token, so a
+ *     foreign specifier ("pokemon diamond" for "Pokémon X, Y") stays a miss;
+ *   - DLC base-name matches stay rejected.
+ */
+function franchisePartialMatch(
+  input: string,
+  gameName: string,
+  log: DomainLogger
+): boolean {
+  const inputParsed = parseGameTitle(input)
+  const targetParsed = parseGameTitle(gameName)
+
+  // Nothing to be "partial" about unless the target has a sequel number the
+  // player could have left off.
+  if (targetParsed.seriesNumber === null) return false
+
+  // A wrong number is a different game, not a less-precise answer.
+  if (
+    inputParsed.seriesNumber !== null &&
+    inputParsed.seriesNumber !== targetParsed.seriesNumber
+  ) {
+    return false
+  }
+
+  // Never reopen the deliberate DLC base-name rejection.
+  if (isBaseNameOnlyMatch(input, targetParsed)) return false
+
+  // The franchise root is the target's series name with the number stripped.
+  const franchiseRoot = targetParsed.seriesName ?? targetParsed.baseName
+  if (!franchiseRoot) return false
+
+  const inputNorm = normalizeForFuzzy(stripCommonPrefixes(input))
+  const rootNorm = normalizeForFuzzy(stripCommonPrefixes(franchiseRoot))
+  if (!inputNorm || !rootNorm) return false
+
+  // The franchise must be clearly identified — plain JW for the in-order case,
+  // token-sort for natural word reorders. Either clears the bar.
+  const sim = Math.max(
+    jaroWinkler(inputNorm, rootNorm),
+    tokenSortSimilarity(inputNorm, rootNorm)
+  )
+  if (sim < SERIES_NAME_THRESHOLD) return false
+
+  // Subset guard: every meaningful input token must appear in the FULL target
+  // title. This is what separates "named the franchise" (a subset of the
+  // title's words) from "named a different entry" (adds a foreign token).
+  const targetTokens = tokenize(normalizeForFuzzy(gameName))
+  const inputTokens = tokenize(inputNorm).filter(
+    t => t.length >= MEANINGFUL_TOKEN_MIN_LENGTH && !STOP_TOKENS.has(t)
+  )
+  const allCovered = inputTokens.every(it =>
+    targetTokens.some(
+      tt =>
+        tt === it ||
+        (tt.length >= MEANINGFUL_TOKEN_MIN_LENGTH &&
+          (tt.includes(it) || it.includes(tt) || jaroWinkler(it, tt) >= 0.9))
+    )
+  )
+  if (!allCovered) return false
+
+  log.debug({ input, gameName, franchiseRoot, sim }, 'franchise partial match')
+  return true
+}
+
 export interface FuzzyMatchService {
   /**
    * Calculate similarity between two strings
    */
   calculateSimilarity(input: string, target: string): number
   /**
-   * Check if input matches the game name or any alias
-   * Uses enhanced structural matching algorithm
+   * Check if input matches the game name or any alias (STRICT / full-title
+   * semantics). Unchanged contract — used by the letter-reveal leak gate, so
+   * it must never loosen. For graded scoring use `evaluateMatch`.
    */
   isMatch(input: string, gameName: string, aliases?: string[]): boolean
+  /**
+   * Graded match: returns whether the guess is accepted and at what precision
+   * (`exact` full title vs `partial` franchise-only). A wrong number or an
+   * unrelated guess returns `none`. Consumed by the scorer to award reduced
+   * points for a franchise-level identification.
+   */
+  evaluateMatch(input: string, gameName: string, aliases?: string[]): MatchResult
   /**
    * Get the best match score for debugging/logging
    */
@@ -856,29 +993,21 @@ export function createFuzzyMatchService(deps: FuzzyMatchServiceDeps): FuzzyMatch
     },
 
     isMatch(input: string, gameName: string, aliases: string[] = []): boolean {
-      if (isMatchEnhanced(input, gameName, aliases, log)) {
-        return true
+      return strictMatch(input, gameName, aliases, log)
+    },
+
+    evaluateMatch(input: string, gameName: string, aliases: string[] = []): MatchResult {
+      // Strict / full-title acceptance wins first and is always `exact`.
+      if (strictMatch(input, gameName, aliases, log)) {
+        return { matched: true, precision: 'exact' }
       }
-      // Parenthesised alternate name (e.g. "Fahrenheit (Indigo Prophecy)"):
-      // retry against the base name with the parenthesised text promoted to
-      // an alias, so "farenheit" can clear the subtitle threshold against
-      // "Fahrenheit" instead of being judged against the full string.
-      const paren = extractParenthesizedAliases(gameName)
-      if (
-        paren.aliases.length > 0 &&
-        isMatchEnhanced(input, paren.base, [...aliases, ...paren.aliases], log)
-      ) {
-        return true
+      // Otherwise, accept a franchise-level identification (number omitted) at
+      // reduced precision. Wrong numbers and unrelated guesses fall through to
+      // `none`.
+      if (franchisePartialMatch(input, gameName, log)) {
+        return { matched: true, precision: 'partial' }
       }
-      // Retry against the base title with any " - Expansion" suffix removed,
-      // so the base game is accepted for an expansion-titled challenge
-      // (e.g. "Warhammer Dawn of War" for
-      // "Warhammer 40,000: Dawn of War - Dark Crusade").
-      const core = stripExpansionSuffix(gameName)
-      if (core !== gameName && isMatchEnhanced(input, core, aliases, log)) {
-        return true
-      }
-      return false
+      return { matched: false, precision: 'none' }
     },
 
     getBestMatchScore(
