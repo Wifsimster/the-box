@@ -148,7 +148,7 @@ export function ResultCard() {
   // Early return after all hooks
   if (!lastResult) return null
 
-  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, letterPenalty, wrongGuessPenalty } = lastResult
+  const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, letterPenalty, wrongGuessPenalty, matchPrecision } = lastResult
   const maxScore = 200
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
@@ -222,15 +222,17 @@ export function ResultCard() {
           <div
             className={cn(
               "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold",
-              isCorrect
-                ? "bg-success/20 text-success"
-                : "bg-error/20 text-error"
+              !isCorrect
+                ? "bg-error/20 text-error"
+                : matchPrecision === 'partial'
+                  ? "bg-score-mid/20 text-score-mid"
+                  : "bg-success/20 text-success"
             )}
           >
             {isCorrect ? (
               <>
                 <CheckCircle className="size-5" />
-                {t('game.correct')}
+                {matchPrecision === 'partial' ? t('game.partialMatch') : t('game.correct')}
               </>
             ) : (
               <>
@@ -255,6 +257,7 @@ export function ResultCard() {
           hintPenalty={hintPenalty}
           letterPenalty={letterPenalty}
           wrongGuessPenalty={wrongGuessPenalty}
+          matchPrecision={matchPrecision}
         />
 
         {/* Next Button */}

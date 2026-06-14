@@ -22,6 +22,7 @@ function buildService(timeLimitSeconds: number | null) {
       // Fragments never match in this harness — letter caps stay at the
       // static formula, which is all the masked-title assertions need.
       isMatch: () => false,
+      evaluateMatch: () => ({ matched: false, precision: 'none' as const }),
     },
     sessionRepository: {
       findGameSessionById: async () => ({ id: 'game-1', daily_challenge_id: 1 }),

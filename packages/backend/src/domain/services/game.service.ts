@@ -22,7 +22,7 @@ import type {
   PositionSecondChanceRepository,
   PositionLetterRevealRepository,
 } from '../ports/repositories.js'
-import type { FuzzyMatchService } from './fuzzy-match.service.js'
+import type { FuzzyMatchService, MatchPrecision } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
 import {
   buildMaskedTitle,
@@ -46,6 +46,12 @@ const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 100
 const UNFOUND_PENALTY = 0
 const WRONG_GUESS_PENALTY = 0
+// Fraction of the (speed-scaled, capped) score awarded for a `partial` match —
+// the player named the franchise but omitted the sequel number / full subtitle.
+// 0.40 is deliberately below 0.5 so the FASTEST partial (200 × 0.40 = 80) can
+// never beat the SLOWEST exact (100): full identification is always strictly
+// the better play. Applied after the 200 cap, before letter penalty / floor.
+const PARTIAL_MATCH_FACTOR = 0.4
 // Free tier no longer gets a catch-up window — only today's daily is
 // playable. Premium keeps the 365-day archive. Setting this to 0 (rather
 // than removing the constant) keeps the conditional shape downstream so
@@ -646,12 +652,21 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // text attempt; fuzzy-match wins on its own, gameId is now only a
     // tiebreaker for ambiguous text (e.g. autocomplete picks).
     const trimmedGuess = data.guessText.trim()
-    const isCorrect =
-      trimmedGuess !== '' &&
-      (
-        fuzzyMatchService.isMatch(data.guessText, gameName, aliases) ||
-        data.gameId === screenshot.gameId
-      )
+    // Graded match. `exact` = full title; `partial` = franchise named but
+    // sequel number / subtitle omitted (solves the position at a reduced
+    // score). A picked autocomplete result (gameId) is a definitive selection,
+    // so it counts as `exact`. A wrong number / unrelated guess stays `none`.
+    const matchResult =
+      trimmedGuess !== ''
+        ? fuzzyMatchService.evaluateMatch(data.guessText, gameName, aliases)
+        : { matched: false, precision: 'none' as MatchPrecision }
+    const precision: MatchPrecision =
+      matchResult.precision !== 'none'
+        ? matchResult.precision
+        : trimmedGuess !== '' && data.gameId === screenshot.gameId
+          ? 'exact'
+          : 'none'
+    const isCorrect = precision !== 'none'
 
     // Server-authoritative round timer. The client submits its own
     // `roundTimeTakenMs`; we treat it as a hint and use Math.max(server,
@@ -698,6 +713,11 @@ export function createGameService(deps: GameServiceDeps): GameService {
       scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
       // Cap max score per screenshot at 200 points
       scoreEarned = Math.min(scoreEarned, 200)
+      // Franchise-only identification earns a fraction of the full score. The
+      // factor is applied AFTER the cap so partial tops out at 80, never 200.
+      if (precision === 'partial') {
+        scoreEarned = Math.round(scoreEarned * PARTIAL_MATCH_FACTOR)
+      }
     }
 
     // Letter-reveal penalty — the cumulative percent was locked in at
@@ -995,6 +1015,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
+        matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
         newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
     }
@@ -1033,6 +1054,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       secondChanceFloorBoost,
+      matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
     }
     }) // end withTierSessionLock
   },
