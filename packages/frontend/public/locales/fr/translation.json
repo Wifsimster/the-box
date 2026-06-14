@@ -2382,7 +2382,14 @@
         "description": "Le coffre ultime : 2x révélation de lettre, 1x gel de série + 500 points !"
       }
     },
-    "hintLetter": "Révélation de lettre"
+    "hintLetter": "Révélation de lettre",
+    "rarity": {
+      "common": "Commun",
+      "uncommon": "Peu commun",
+      "rare": "Rare",
+      "epic": "Épique",
+      "legendary": "Légendaire"
+    }
   },
   "onboarding": {
     "welcomeTitle": "Bienvenue dans The Box !",

@@ -829,10 +829,25 @@ export interface EmailLogQuery {
 // Daily Login Rewards Domain
 // ============================================
 
+/**
+ * Rarity tier for a daily-login reward. Drives the colour, label and
+ * unlock animation shown in the calendar + claim modal. Ordered from
+ * least to most prestigious; see `RARITY_STYLES` on the frontend for the
+ * visual mapping. Independent from `rewardType` (which only describes the
+ * payload shape) — a `points` reward can still be `epic`.
+ */
+export type RewardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+
 export interface DailyReward {
   id: number
   dayNumber: number
   rewardType: 'powerup' | 'points' | 'legendary'
+  /**
+   * Visual rarity tier. Optional for backward compatibility with historical
+   * claims; the backend always populates it and the frontend falls back to
+   * a derived value when absent.
+   */
+  rarity?: RewardRarity
   rewardValue: {
     items: Array<{ key: string; quantity: number }>
     points: number

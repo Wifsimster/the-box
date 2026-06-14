@@ -498,3 +498,82 @@ html {
     transform-origin: center;
   }
 }
+
+/* Daily-reward rarity unlock celebrations. Intensity escalates with the
+   rarity tier (see RARITY_CLAIM_ANIMATION in src/lib/rarity.ts):
+   - soft:  a gentle scale settle for common/uncommon
+   - glow:  scale + a glow pulse for rare/epic
+   - burst: a bouncy reveal with a rotating shimmer for legendary
+   All three are gated on prefers-reduced-motion so vestibular-sensitive
+   players get the final, static state instead. The rarity glow itself is
+   applied inline (box-shadow) on the element; these keyframes pulse it. */
+@keyframes rarity-reveal-soft {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rarity-reveal-glow {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rarity-reveal-burst {
+  0% {
+    transform: scale(0.7) rotate(-3deg);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(1.14) rotate(2deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.97) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes rarity-glow-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rarity-reveal-soft {
+    animation: rarity-reveal-soft 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    transform-origin: center;
+  }
+  .rarity-reveal-glow {
+    animation: rarity-reveal-glow 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+      rarity-glow-pulse 1.6s ease-in-out 520ms infinite;
+    transform-origin: center;
+  }
+  .rarity-reveal-burst {
+    animation: rarity-reveal-burst 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+      rarity-glow-pulse 1.4s ease-in-out 620ms infinite;
+    transform-origin: center;
+  }
+}

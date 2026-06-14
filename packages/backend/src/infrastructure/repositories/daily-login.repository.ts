@@ -1,6 +1,6 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
-import type { DailyReward } from '@the-box/types'
+import type { DailyReward, RewardRarity } from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'daily-login' })
 
@@ -16,6 +16,7 @@ export interface DailyLoginRewardRow {
     id: number
     day_number: number
     reward_type: string
+    rarity: string | null
     reward_value: { items: Array<{ key: string; quantity: number }>; points: number }
     display_name: string
     description: string | null
@@ -44,11 +45,23 @@ export interface LoginRewardClaimRow {
     claimed_at: Date
 }
 
+const VALID_RARITIES: readonly RewardRarity[] = [
+    'common',
+    'uncommon',
+    'rare',
+    'epic',
+    'legendary',
+]
+
 function mapRewardRowToDailyReward(row: DailyLoginRewardRow): DailyReward {
+    const rarity = VALID_RARITIES.includes(row.rarity as RewardRarity)
+        ? (row.rarity as RewardRarity)
+        : 'common'
     return {
         id: row.id,
         dayNumber: row.day_number,
         rewardType: row.reward_type as 'powerup' | 'points' | 'legendary',
+        rarity,
         rewardValue: row.reward_value,
         displayName: row.display_name,
         description: row.description,
