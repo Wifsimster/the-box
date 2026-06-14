@@ -2764,6 +2764,13 @@
       "fixes": "Corrections"
     },
     "releases": {
+      "2.135.0": {
+        "summary": "Les récompenses quotidiennes prennent des couleurs : chaque jour révèle sa rareté, avec son ambiance et son animation.",
+        "features": [
+          "Chaque récompense quotidienne affiche désormais sa rareté — du commun au légendaire — avec une couleur dédiée.",
+          "Récupérer une récompense déclenche une animation qui s'intensifie selon sa rareté, jusqu'à l'éclat légendaire du jour 7."
+        ]
+      },
       "2.130.0": {
         "summary": "Deviner devient plus malin : indices de proximité, points partiels et offres premium plus claires.",
         "features": [
