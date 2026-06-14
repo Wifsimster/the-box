@@ -349,7 +349,9 @@
     },
     "timeUp": "Temps écoulé !",
     "timer": {
-      "label": "Temps restant : {{seconds}} secondes"
+      "label": "Temps restant : {{seconds}} secondes",
+      "announceHalfway": "Plus que 30 secondes",
+      "announceLow": "Plus que 10 secondes"
     },
     "totalScore": "Score Total",
     "correctAnswers": "Bonnes Réponses",
@@ -506,7 +508,16 @@
     "submit": "Valider la proposition",
     "guessCorrect": "Bonne réponse !",
     "guessIncorrect": "Mauvaise réponse. Réessayez.",
-    "wrongGuessPenalty": "Pénalité de mauvaise réponse : -{{penalty}} pts"
+    "wrongGuessPenalty": "Pénalité de mauvaise réponse : -{{penalty}} pts",
+    "resultDialogLabel": "Résultat du round",
+    "resultAnnounce": "{{outcome}}. La réponse était {{answer}}. Tu marques {{score}} points.",
+    "errors": {
+      "signIn": "Connecte-toi pour continuer",
+      "notFound": "Cette partie est introuvable ou a expiré",
+      "network": "Échec de la connexion réseau. Vérifie ta connexion et réessaie.",
+      "unexpected": "Une erreur est survenue. Réessaie.",
+      "sessionNotInitialized": "La partie n'est pas encore prête. Recharge la page."
+    }
   },
   "home": {
     "title": "The Box",
@@ -2382,6 +2393,7 @@
     "step1": "Regarde la capture d'écran.",
     "step2": "Devine le jeu — plus tu es rapide, plus le score grimpe.",
     "step3": "Utilise un indice si besoin, puis enchaîne la capture suivante.",
+    "step4": "Surveille le chrono — chaque capture dure 45 secondes. À zéro, c'est un échec définitif.",
     "skip": "Passer",
     "next": "Suivant",
     "start": "C'est parti !"

@@ -230,6 +230,26 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
 }
 
 /**
+ * Map an error to an i18n key (or a pass-through message) for display.
+ *
+ * The known transport/auth failures return stable `game.errors.*` keys so the
+ * toast site can translate them — fixing the previously hardcoded-English
+ * toasts on the unhappy path (default locale is French). ValidationError /
+ * ApiError carry a server-provided message (often already localized), so we
+ * return it verbatim; the toast site calls `t(key, { defaultValue: key })`, so
+ * a non-key string renders as-is rather than showing a raw key.
+ */
+export function getErrorMessageKey(error: unknown): string {
+  if (error instanceof AuthenticationError) return 'game.errors.signIn'
+  if (error instanceof NotFoundError) return 'game.errors.notFound'
+  if (error instanceof NetworkError) return 'game.errors.network'
+  if (error instanceof ValidationError) return error.message
+  if (error instanceof ApiError) return error.message
+  if (error instanceof Error && error.message) return error.message
+  return 'game.errors.unexpected'
+}
+
+/**
  * Log error for debugging
  */
 export function logError(error: unknown, context?: string): void {

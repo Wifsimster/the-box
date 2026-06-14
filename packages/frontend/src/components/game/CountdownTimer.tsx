@@ -34,7 +34,22 @@ export function CountdownTimer({ state }: { state: CountdownState }) {
   const styles = PHASE_STYLES[phase]
   const isCritical = phase === 'critical'
 
+  // `role="timer"` is an off live region — its ticking is silent to AT, so the
+  // permanent-miss clock is sighted-only. Announce coarse milestones (only at
+  // exact 30 s / 10 s thresholds) through a polite region; in-between seconds
+  // clear it so a screen reader isn't spammed every tick.
+  const milestone =
+    seconds === 30
+      ? t('game.timer.announceHalfway')
+      : seconds === 10
+        ? t('game.timer.announceLow')
+        : ''
+
   return (
+    <>
+      <div role="status" aria-live="polite" className="sr-only">
+        {milestone}
+      </div>
     <div
       role="timer"
       aria-label={t('game.timer.label', { seconds })}
@@ -74,5 +89,6 @@ export function CountdownTimer({ state }: { state: CountdownState }) {
         {formatCountdown(seconds)}
       </m.span>
     </div>
+    </>
   )
 }
