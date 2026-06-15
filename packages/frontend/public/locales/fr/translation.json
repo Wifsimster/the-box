@@ -424,7 +424,7 @@
       "speedMultiplier": "Multiplicateur de vitesse : <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Essais illimités - les mauvaises réponses n'affectent pas le score",
       "hints": "Révéler des lettres du titre coûte -15 % puis -20 % du score de la manche (bonus Révélation de lettre requis sur le défi du jour)",
-      "penalty": "-50 points par jeu non trouvé lors de l'arrêt anticipé"
+      "penalty": "Les jeux non trouvés lors de l'arrêt anticipé rapportent 0 point (aucune pénalité)"
     },
     "navigation": {
       "previous": "Précédent",

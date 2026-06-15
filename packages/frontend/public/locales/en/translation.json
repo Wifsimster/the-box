@@ -424,7 +424,7 @@
       "speedMultiplier": "Speed multiplier: <3s = 2.0x (200pts), 3-5s = 1.75x (175pts), 5-10s = 1.5x (150pts), 10-20s = 1.25x (125pts), >20s = 1.0x (100pts)",
       "unlimitedTries": "Unlimited tries - wrong guesses don't affect score",
       "hints": "Revealing letters of the title costs -15% then -20% of the round's score (requires a Letter reveal power-up on today's challenge)",
-      "penalty": "-50 points per game not found when ending early"
+      "penalty": "Games left unfound when ending early score 0 points (no penalty)"
     },
     "navigation": {
       "previous": "Previous",

@@ -37,8 +37,9 @@ export function SessionResultsList({
   return (
     <ul className={isGrid ? 'list-none grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3' : 'space-y-2 sm:space-y-3 list-none'}>
       {results.map((result, index) => {
-        const isUnguessed =
-          !result.isCorrect && result.userGuess === null && result.scoreEarned === -50
+        // Unfound games are folded in with no submitted guess; they score 0
+        // (the backend applies no unfound penalty) but still render as a miss.
+        const isUnguessed = !result.isCorrect && result.userGuess === null
         const attempts = result.attempts ?? []
         const multiplier =
           result.isCorrect && result.scoreEarned > 0
@@ -78,7 +79,7 @@ export function SessionResultsList({
                   </Badge>
                 ) : isUnguessed ? (
                   <Badge variant="destructive" className="text-xs sm:text-sm font-bold shrink-0">
-                    {result.scoreEarned}
+                    +{result.scoreEarned}
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-xs sm:text-sm shrink-0">
