@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Trophy, Sparkles } from 'lucide-react'
+import { Trophy, Sparkles, Shield } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,10 +30,34 @@ const AdvancedStatsPanel = lazy(() =>
 const ThemeSwitcher = lazy(() =>
   import('./ThemeSwitcher').then((m) => ({ default: m.ThemeSwitcher })),
 )
+const SecurityPanel = lazy(() =>
+  import('./SecurityPanel').then((m) => ({ default: m.SecurityPanel })),
+)
+const ActivityPanel = lazy(() =>
+  import('./ActivityPanel').then((m) => ({ default: m.ActivityPanel })),
+)
+const SubscriptionPanel = lazy(() =>
+  import('./SubscriptionPanel').then((m) => ({ default: m.SubscriptionPanel })),
+)
 
-type ProfileTab = 'overview' | 'account' | 'creator' | 'customize'
+type ProfileTab =
+  | 'overview'
+  | 'account'
+  | 'security'
+  | 'activity'
+  | 'subscription'
+  | 'creator'
+  | 'customize'
 
-const VALID_TABS: ReadonlyArray<ProfileTab> = ['overview', 'account', 'creator', 'customize']
+const VALID_TABS: ReadonlyArray<ProfileTab> = [
+  'overview',
+  'account',
+  'security',
+  'activity',
+  'subscription',
+  'creator',
+  'customize',
+]
 
 function parseTab(value: string | null): ProfileTab {
   return (VALID_TABS as ReadonlyArray<string>).includes(value ?? '')
@@ -105,17 +129,28 @@ export function ProfileTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="w-full max-w-md mx-auto grid grid-cols-4 h-auto">
-        <TabsTrigger value="overview" data-testid="profile-tab-overview">
+      {/* Horizontally scrollable on small screens so the seven account
+          sections stay on one row without forcing document-level overflow. */}
+      <TabsList className="w-full max-w-3xl mx-auto flex h-auto justify-start overflow-x-auto sm:justify-center">
+        <TabsTrigger value="overview" className="shrink-0" data-testid="profile-tab-overview">
           {t('profile.tabs.overview')}
         </TabsTrigger>
-        <TabsTrigger value="account" data-testid="profile-tab-account" disabled={isGuest}>
+        <TabsTrigger value="account" className="shrink-0" data-testid="profile-tab-account" disabled={isGuest}>
           {t('profile.tabs.account')}
         </TabsTrigger>
-        <TabsTrigger value="creator" data-testid="profile-tab-creator" disabled={isGuest}>
+        <TabsTrigger value="security" className="shrink-0" data-testid="profile-tab-security" disabled={isGuest}>
+          {t('profile.tabs.security')}
+        </TabsTrigger>
+        <TabsTrigger value="activity" className="shrink-0" data-testid="profile-tab-activity">
+          {t('profile.tabs.activity')}
+        </TabsTrigger>
+        <TabsTrigger value="subscription" className="shrink-0" data-testid="profile-tab-subscription" disabled={isGuest}>
+          {t('profile.tabs.subscription')}
+        </TabsTrigger>
+        <TabsTrigger value="creator" className="shrink-0" data-testid="profile-tab-creator" disabled={isGuest}>
           {t('profile.tabs.creator')}
         </TabsTrigger>
-        <TabsTrigger value="customize" data-testid="profile-tab-customize" disabled={isGuest}>
+        <TabsTrigger value="customize" className="shrink-0" data-testid="profile-tab-customize" disabled={isGuest}>
           {t('profile.tabs.customize')}
         </TabsTrigger>
       </TabsList>
@@ -178,6 +213,38 @@ export function ProfileTabs({
               <AccountDataCard username={userProfile.username} />
             </ProfileSection>
           </>
+        )}
+      </TabsContent>
+
+      <TabsContent value="security" className="space-y-6 mt-6">
+        {userProfile && !userProfile.isGuest && (
+          <ProfileSection>
+            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
+              <Shield className="size-5 text-neon-purple" />
+              {t('security.title')}
+            </h2>
+            <Suspense fallback={<LazyPanelFallback />}>
+              <SecurityPanel />
+            </Suspense>
+          </ProfileSection>
+        )}
+      </TabsContent>
+
+      <TabsContent value="activity" className="space-y-6 mt-6">
+        <ProfileSection>
+          <Suspense fallback={<LazyPanelFallback />}>
+            <ActivityPanel />
+          </Suspense>
+        </ProfileSection>
+      </TabsContent>
+
+      <TabsContent value="subscription" className="space-y-6 mt-6">
+        {userProfile && !userProfile.isGuest && (
+          <ProfileSection>
+            <Suspense fallback={<LazyPanelFallback />}>
+              <SubscriptionPanel />
+            </Suspense>
+          </ProfileSection>
         )}
       </TabsContent>
 

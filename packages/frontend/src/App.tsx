@@ -24,6 +24,7 @@ import { useReferralCapture } from '@/hooks/useReferralCapture'
 import { useGoatCounterPageviews, useConsentedAnalytics } from '@/lib/analytics'
 import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { useApplyUserTheme } from '@/hooks/useApplyUserTheme'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import {
   connectNotificationsSocket,
   disconnectNotificationsSocket,
@@ -50,14 +51,12 @@ const FaqPage = lazy(() => import('@/pages/FaqPage'))
 const RulesPage = lazy(() => import('@/pages/RulesPage'))
 const ContactPage = lazy(() => import('@/pages/ContactPage'))
 const AdminPage = lazy(() => import('@/pages/AdminPage'))
-const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const GameHistoryDetailsPage = lazy(() => import('@/pages/GameHistoryDetailsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
 const GeoPlayPage = lazy(() => import('@/pages/GeoPlayPage'))
 const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
 const PricingPage = lazy(() => import('@/pages/PricingPage'))
-const SecuritySettingsPage = lazy(() => import('@/pages/SecuritySettingsPage'))
 const TwoFactorChallengePage = lazy(() => import('@/pages/TwoFactorChallengePage'))
 
 function LoadingSpinner() {
@@ -71,6 +70,17 @@ function LoadingSpinner() {
 function LanguageRedirect() {
   const browserLang = getBrowserLanguage()
   return <Navigate to={`/${browserLang}`} replace />
+}
+
+/**
+ * Redirects a former standalone account route (e.g. `/history`,
+ * `/settings/security`) to its tab inside the consolidated profile hub, so old
+ * links, the mobile bottom-nav and in-app navigation keep working after the
+ * account pages were merged into one place.
+ */
+function ProfileTabRedirect({ tab }: { tab: string }) {
+  const { localizedPath } = useLocalizedPath()
+  return <Navigate to={localizedPath(`/profile?tab=${tab}`)} replace />
 }
 
 function LanguageLayout() {
@@ -217,9 +227,13 @@ function App() {
           <Route path="contact" element={<ContactPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="history/:sessionId" element={<GameHistoryDetailsPage />} />
-          <Route path="history" element={<HistoryPage />} />
+          {/* The game-history list now lives in the profile hub's Activity tab.
+              Keep the route as a redirect so deep links and in-app navigation
+              still resolve. The per-session detail route above is unaffected. */}
+          <Route path="history" element={<ProfileTabRedirect tab="activity" />} />
           <Route path="profile" element={<ProfilePage />} />
-          <Route path="settings/security" element={<SecuritySettingsPage />} />
+          {/* Security settings moved into the profile hub's Security tab. */}
+          <Route path="settings/security" element={<ProfileTabRedirect tab="security" />} />
           <Route path="two-factor" element={<TwoFactorChallengePage />} />
           <Route path="u/:username" element={<PublicProfilePage />} />
 

@@ -33,6 +33,7 @@
     "create": "Créer",
     "history": "Historique",
     "profile": "Profil",
+    "account": "Mon compte",
     "support": "Bug & suggestions",
     "unknown": "Inconnu",
     "backTo": "Retour à",
@@ -2262,8 +2263,19 @@
       "achievements": "Succès",
       "stats": "Statistiques",
       "account": "Compte",
+      "security": "Sécurité",
+      "activity": "Activité",
+      "subscription": "Abonnement",
       "creator": "Créateur",
       "customize": "Personnaliser"
+    },
+    "subscription": {
+      "title": "Abonnement",
+      "premiumBadge": "Premium",
+      "premiumDescription": "Vous profitez de toutes les fonctionnalités Premium.",
+      "freeBadge": "Gratuit",
+      "freeDescription": "Vous utilisez la version gratuite. Passez Premium pour débloquer les thèmes, les statistiques avancées et plus encore.",
+      "upgradeCta": "Passer Premium"
     },
     "avatar": {
       "title": "Changer l'avatar",

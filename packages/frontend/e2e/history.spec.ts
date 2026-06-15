@@ -33,14 +33,14 @@ test.describe('History - Authentication Required', () => {
 })
 
 test.describe('History - Authenticated User', () => {
-  authTest('history page at /en/history loads for authenticated user', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/history')
+  authTest('history loads in the profile Activity tab for authenticated user', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/en/profile?tab=activity')
     await authenticatedPage.waitForTimeout(1000)
 
     const currentUrl = authenticatedPage.url()
 
-    // Should stay on history page
-    expect(currentUrl).toContain('/history')
+    // History now lives in the profile hub's Activity tab.
+    expect(currentUrl).toContain('/profile')
 
     // Page should have content
     const pageContent = authenticatedPage.locator('main, [role="main"], h1, h2').first()
@@ -48,7 +48,7 @@ test.describe('History - Authenticated User', () => {
   })
 
   authTest('displays list of past games with dates', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/history')
+    await authenticatedPage.goto('/en/profile?tab=activity')
     await authenticatedPage.waitForTimeout(1000)
 
     // Look for date patterns
@@ -71,7 +71,7 @@ test.describe('History - Authenticated User', () => {
   })
 
   authTest('each history entry shows score achieved', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/history')
+    await authenticatedPage.goto('/en/profile?tab=activity')
     await authenticatedPage.waitForTimeout(1000)
 
     // Look for Trophy icon which indicates score area
@@ -101,7 +101,7 @@ test.describe('History - Authenticated User', () => {
   })
 
   authTest('clicking on a history entry navigates to detail page', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/en/history')
+    await authenticatedPage.goto('/en/profile?tab=activity')
     await authenticatedPage.waitForTimeout(1000)
 
     // Look for clickable history entries
@@ -140,7 +140,7 @@ test.describe('History - Authenticated User', () => {
   authTest('shows appropriate empty state when user has no history', async ({ authenticatedPage }) => {
     // This test verifies the empty state UI exists
     // For e2e_user who might have no games, this should show empty state
-    await authenticatedPage.goto('/en/history')
+    await authenticatedPage.goto('/en/profile?tab=activity')
     await authenticatedPage.waitForTimeout(1500)
 
     // Look for empty state message - broader patterns

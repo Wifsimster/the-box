@@ -33,6 +33,7 @@
     "create": "Create",
     "history": "History",
     "profile": "Profile",
+    "account": "My account",
     "support": "Bug & feedback",
     "unknown": "Unknown",
     "backTo": "Back to",
@@ -2262,8 +2263,19 @@
       "achievements": "Achievements",
       "stats": "Stats",
       "account": "Account",
+      "security": "Security",
+      "activity": "Activity",
+      "subscription": "Subscription",
       "creator": "Creator",
       "customize": "Customize"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "premiumBadge": "Premium",
+      "premiumDescription": "You're enjoying all Premium features.",
+      "freeBadge": "Free",
+      "freeDescription": "You're on the free plan. Go Premium to unlock themes, advanced stats and more.",
+      "upgradeCta": "Go Premium"
     },
     "avatar": {
       "title": "Change Avatar",
