@@ -19,6 +19,7 @@ const EXPECTED: Record<string, { from: string; to: string }> = {
     cyber_blue: { from: '#3b82f6', to: '#06b6d4' },
     emerald_matrix: { from: '#22c55e', to: '#06b6d4' },
     sunset_blaze: { from: '#eab308', to: '#ef4444' },
+    retro_80s: { from: '#ff2e88', to: '#2de2e6' },
 }
 
 // Browsers normalize hex colors in computed `background-image` to `rgb()`,

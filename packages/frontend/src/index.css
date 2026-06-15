@@ -91,6 +91,8 @@
   --theme-swatch-emerald-matrix-to: #06b6d4;
   --theme-swatch-sunset-blaze-from: #eab308;
   --theme-swatch-sunset-blaze-to: #ef4444;
+  --theme-swatch-retro-80s-from: #ff2e88;
+  --theme-swatch-retro-80s-to: #2de2e6;
 }
 
 @theme inline {
@@ -404,6 +406,58 @@ html {
   --neon-purple: #fb923c;
   --neon-pink: #ef4444;
   --border-interactive: oklch(0.74 0.18 40 / 0.55);
+}
+
+/* Retro 80s — full synthwave/outrun re-skin.
+   Unlike the accent-only themes above, this one repaints the core
+   surfaces (background, cards, popovers, borders) and the hero glow so
+   the whole app reads as a neon 1980s arcade. Surfaces stay dark enough
+   that the unchanged light `--foreground` keeps WCAG AA contrast; the
+   magenta/cyan accents are bright (high L in oklch) for the same reason.
+   The static horizon-grid backdrop lives on `[data-theme] body` below
+   (no animation, so nothing to disable under prefers-reduced-motion). */
+[data-theme="retro_80s"] {
+  --background: oklch(0.13 0.07 305);
+  --card: oklch(0.2 0.08 308);
+  --card-foreground: oklch(0.985 0.01 320);
+  --popover: oklch(0.18 0.08 308);
+  --popover-foreground: oklch(0.985 0.01 320);
+  --secondary: oklch(0.26 0.08 320);
+  --muted: oklch(0.26 0.07 308);
+  --muted-foreground: oklch(0.82 0.07 320);
+  --accent: oklch(0.3 0.12 200);
+  --primary: oklch(0.72 0.26 350);
+  --ring: oklch(0.8 0.18 200);
+  --border: oklch(0.75 0.2 340 / 22%);
+  --input: oklch(0.75 0.2 340 / 28%);
+  --neon-purple: #ff2e88;
+  --neon-pink: #2de2e6;
+  --neon-blue: #5b6bff;
+  --neon-cyan: #2de2e6;
+  --border-interactive: oklch(0.72 0.26 350 / 0.6);
+  --glow-sm: 0 0 10px oklch(0.7 0.26 350 / 0.4);
+  --glow-md: 0 0 22px oklch(0.7 0.26 350 / 0.5);
+  --glow-lg: 0 0 34px oklch(0.7 0.26 350 / 0.6);
+  --text-shadow-neon:
+    0 0 10px oklch(0.7 0.26 350 / 0.85),
+    0 0 22px oklch(0.72 0.2 200 / 0.6),
+    0 0 34px oklch(0.7 0.26 350 / 0.45),
+    0 0 46px oklch(0.72 0.2 200 / 0.25);
+}
+
+/* Neon horizon backdrop: a magenta/cyan perspective grid fading up into a
+   cyan "sun" glow on the horizon, painted behind the app shell. Fixed so
+   it doesn't scroll, low-alpha so card text contrast is unaffected. */
+[data-theme="retro_80s"] body {
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(120% 80% at 50% 116%, oklch(0.72 0.2 200 / 0.28) 0%, transparent 55%),
+    radial-gradient(90% 60% at 50% 0%, oklch(0.6 0.24 330 / 0.22) 0%, transparent 60%),
+    linear-gradient(oklch(0.7 0.26 350 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.72 0.2 200 / 0.07) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+  background-position: center, center, center bottom, center bottom;
+  background-attachment: fixed;
 }
 
 /* =====================================================================
