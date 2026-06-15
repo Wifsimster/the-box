@@ -172,17 +172,17 @@ export function testEarlyEndGame(): {
     {
       screenshotsFound: 5,
       sessionScore: 500,
-      expectedFinalScore: 500 - (5 * UNFOUND_PENALTY), // 500 - 250 = 250
+      expectedFinalScore: 500 - (5 * UNFOUND_PENALTY), // 500 - 0 = 500
     },
     {
       screenshotsFound: 0,
       sessionScore: 0,
-      expectedFinalScore: 0 - (10 * UNFOUND_PENALTY), // 0 - 500 = -500
+      expectedFinalScore: 0 - (10 * UNFOUND_PENALTY), // 0 - 0 = 0
     },
     {
       screenshotsFound: 8,
       sessionScore: 1200,
-      expectedFinalScore: 1200 - (2 * UNFOUND_PENALTY), // 1200 - 100 = 1100
+      expectedFinalScore: 1200 - (2 * UNFOUND_PENALTY), // 1200 - 0 = 1200
     },
   ]
 

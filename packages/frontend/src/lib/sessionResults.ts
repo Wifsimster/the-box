@@ -3,8 +3,10 @@ import type { GameSessionDetailsResponse, GuessResult, GuessAttempt } from '@/ty
 /**
  * Flatten a {@link GameSessionDetailsResponse} into a single, position-sorted
  * `GuessResult[]`. Unfound games (skipped / timed-out) are folded in as
- * incorrect entries with the `-50` miss penalty so they render alongside real
- * guesses.
+ * incorrect entries worth `0` points so they render alongside real guesses.
+ * They are still flagged as misses via `isCorrect: false` + `userGuess: null`;
+ * the score is `0` because the backend applies no unfound penalty
+ * (`UNFOUND_PENALTY = 0`).
  *
  * This is the one place the guesses + unfoundGames merge lives — ResultsPage,
  * GameHistoryDetailsPage and the leaderboard PlayerAnswersDialog all share it
@@ -30,7 +32,7 @@ export function mergeSessionResults(session: GameSessionDetailsResponse): GuessR
       correctGame: u.game,
       userGuess: null,
       timeTakenMs: 0,
-      scoreEarned: -50,
+      scoreEarned: 0,
       screenshot: u.screenshot,
       attempts: [] as GuessAttempt[],
     })),

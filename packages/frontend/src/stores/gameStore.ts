@@ -720,7 +720,7 @@ export const useGameStore = create<GameState>()(
                   correctGame: unfound.game,
                   userGuess: lastWrong,
                   timeTakenMs: 0,
-                  scoreEarned: -50, // Show -50 penalty
+                  scoreEarned: 0, // Unfound games score 0 — backend applies no penalty
                   screenshot: unfound.screenshot,
                   attempts,
                 }
