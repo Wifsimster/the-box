@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, User, ChevronDown, History, LogOut, Settings, Sparkles, LifeBuoy, Compass, Shield } from 'lucide-react'
+import { Menu, User, ChevronDown, LogOut, Settings, Sparkles, LifeBuoy, Compass } from 'lucide-react'
 import { PRIMARY_NAV, type NavLinkItem } from '@/components/layout/nav-items'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
@@ -144,17 +144,24 @@ function AccountMenu({
   const { localizedPath } = useLocalizedPath()
 
   const entries: AccountEntry[] = [
-    { type: 'link', key: 'profile', icon: User, label: t('common.profile'), to: localizedPath('/profile') },
-    { type: 'link', key: 'security', icon: Shield, label: t('security.title'), to: localizedPath('/settings/security') },
-    { type: 'link', key: 'history', icon: History, label: t('common.history'), to: localizedPath('/history') },
-    {
-      type: 'link',
-      key: 'premium',
-      icon: Sparkles,
-      iconClassName: 'text-neon-pink',
-      label: isPremium ? t('common.manageSubscription') : t('common.subscribeToPremium'),
-      to: localizedPath('/premium'),
-    },
+    // The former Profil / Sécurité / Historique / Gérer mon abonnement entries
+    // are consolidated into the tabbed profile hub, reachable from this single
+    // "Mon compte" link.
+    { type: 'link', key: 'account', icon: User, label: t('common.account'), to: localizedPath('/profile') },
+    // Premium stays an explicit upsell for free users; paying users manage their
+    // plan inside the hub's Subscription tab, so it isn't repeated here.
+    ...(!isPremium
+      ? [
+          {
+            type: 'link',
+            key: 'premium',
+            icon: Sparkles,
+            iconClassName: 'text-neon-pink',
+            label: t('common.subscribeToPremium'),
+            to: localizedPath('/premium'),
+          } as AccountEntry,
+        ]
+      : []),
     ...(isKoeConfigured
       ? [{ type: 'action', key: 'support', icon: LifeBuoy, label: t('common.support'), onSelect: openKoeSupport } as AccountEntry]
       : []),
