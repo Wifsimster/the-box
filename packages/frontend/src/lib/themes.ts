@@ -12,6 +12,7 @@ export type ThemeKey =
   | 'cyber_blue'
   | 'emerald_matrix'
   | 'sunset_blaze'
+  | 'retro_80s'
 
 export interface ThemeMeta {
   key: ThemeKey
@@ -76,6 +77,18 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
     swatch: {
       from: 'var(--theme-swatch-sunset-blaze-from)',
       to: 'var(--theme-swatch-sunset-blaze-to)',
+    },
+  },
+  {
+    // Synthwave / outrun re-skin: the most dramatic premium theme — it
+    // repaints the whole shell (background, cards, neon accents, hero
+    // glow + grid backdrop), not just the accent like the others.
+    key: 'retro_80s',
+    i18nKey: 'retro80s',
+    premium: true,
+    swatch: {
+      from: 'var(--theme-swatch-retro-80s-from)',
+      to: 'var(--theme-swatch-retro-80s-to)',
     },
   },
 ]

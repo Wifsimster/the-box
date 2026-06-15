@@ -15,6 +15,7 @@ export const PREMIUM_THEME_KEYS = [
   'cyber_blue',
   'emerald_matrix',
   'sunset_blaze',
+  'retro_80s',
 ] as const
 
 export type PremiumThemeKey = (typeof PREMIUM_THEME_KEYS)[number]
