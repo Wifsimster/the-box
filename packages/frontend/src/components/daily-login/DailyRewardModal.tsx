@@ -60,11 +60,10 @@ export function DailyRewardModal() {
     const handleClaim = async () => {
         setIsAnimating(true)
         await claimReward()
-        // Brief delay to show success feedback, then auto-close
-        setTimeout(() => {
-            setIsAnimating(false)
-            handleClose()
-        }, 800)
+        // Keep the modal open after claiming so the player can read what they
+        // won. The success state renders a "Fermer" button for manual dismissal
+        // instead of auto-closing out from under them.
+        setIsAnimating(false)
     }
 
     // Closing the modal while a reward is still claimable would otherwise
