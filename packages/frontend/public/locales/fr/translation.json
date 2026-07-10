@@ -52,7 +52,9 @@
       "second": "2e place",
       "third": "3e place"
     },
-    "menuDescription": "Navigation du site et liens du compte"
+    "menuDescription": "Navigation du site et liens du compte",
+    "geogamers": "GeoGamers",
+    "new": "Nouveau"
   },
   "nav": {
     "primary": "Navigation principale",
@@ -635,7 +637,19 @@
     "clickToView": "Cliquez pour voir les réponses de ce joueur",
     "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs.",
     "capturesFound": "Captures découvertes",
-    "avgCaptureTime": "Temps moyen par capture"
+    "avgCaptureTime": "Temps moyen par capture",
+    "geogamers": {
+      "tab": "GeoGamers",
+      "title": "Saison {{month}}",
+      "players": "{{count}} joueur",
+      "players_other": "{{count}} joueurs",
+      "empty": "Aucun classement pour cette saison — sois le premier à jouer !",
+      "provisional": "Provisoire",
+      "daysPlayed": "{{count}} jour joué",
+      "daysPlayed_other": "{{count}} jours joués",
+      "dropped": "3 pires jours retirés",
+      "unavailable": "Le classement GeoGamers n'est pas disponible."
+    }
   },
   "history": {
     "title": "Historique des Parties",
@@ -2893,5 +2907,67 @@
       "title": "Contribuer au mode Geo — The Box",
       "description": "Aidez à curer et vérifier les défis du mode Geo."
     }
+  },
+  "geogamers": {
+    "error": "Une erreur est survenue.",
+    "retry": "Réessayer",
+    "identify": {
+      "screenshotAlt": "Capture d'écran du jeu à deviner",
+      "prompt": "Quel jeu reconnais-tu ?",
+      "placeholder": "Nom du jeu…",
+      "submit": "Valider",
+      "attemptsLeft": "{{count}} essai restant",
+      "attemptsLeft_other": "{{count}} essais restants",
+      "proximity": {
+        "far": "Loin du compte.",
+        "close": "Tu chauffes…",
+        "very_close": "Tout proche !"
+      }
+    },
+    "joker": {
+      "cta": "Changer de panorama (joker)",
+      "guestHint": "Crée un compte pour utiliser le joker."
+    },
+    "locate": {
+      "banner": "Place ton marqueur sur la carte de",
+      "confirm": "Confirmer l'emplacement"
+    },
+    "result": {
+      "breakdown": "{{game}} (jeu) + {{location}} (précision)",
+      "rank": "Tu es {{rank}}e aujourd'hui.",
+      "ghostRank": "Tu serais {{rank}}e aujourd'hui — enregistre ce score dans la saison.",
+      "claimCta": "Créer un compte et enregistrer",
+      "claimed": "Score enregistré dans ta saison !",
+      "comeBack": "Reviens demain pour un nouveau panorama.",
+      "unranked": "Score non classé — connecte-toi pour participer à la saison.",
+      "done": "Terminé"
+    },
+    "season": {
+      "link": "Saison",
+      "provisional": "Provisoire",
+      "daysPlayed": "Jours joués",
+      "droppedDays": "3 pires jours retirés"
+    }
+  },
+  "geogamersParty": {
+    "title": "GeoGamers — Partie à plusieurs",
+    "create": "Créer une partie",
+    "createCta": "Créer",
+    "rounds": "Nombre de manches",
+    "join": "Rejoindre",
+    "joinCta": "Rejoindre",
+    "codePlaceholder": "CODE",
+    "inviteCode": "Code d'invitation :",
+    "playerCount": "{{count}}/{{max}} joueurs",
+    "start": "Lancer la partie",
+    "waitingHost": "En attente de l'hôte…",
+    "leave": "Quitter",
+    "round": "Manche {{n}} / {{total}}",
+    "waitingOthers": "En attente des autres joueurs…",
+    "wrongGuess": "Raté — {{left}} essai(s) restant(s)",
+    "answer": "Réponse :",
+    "finished": "Partie terminée !",
+    "nextRound": "Manche suivante",
+    "seeResults": "Voir les résultats"
   }
 }

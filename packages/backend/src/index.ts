@@ -23,6 +23,7 @@ import rewardsRoutes from './presentation/routes/rewards.routes.js'
 import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
+import geoGamersRoutes from './presentation/routes/geogamers.routes.js'
 import screenshotReportRoutes from './presentation/routes/screenshot-report.routes.js'
 import pushRoutes from './presentation/routes/push.routes.js'
 import billingRoutes from './presentation/routes/billing.routes.js'
@@ -240,6 +241,11 @@ app.use('/api/rewards', rewardsRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
 app.use('/api/geo', geoRoutes)
+// GeoGamers mode — mounted only when enabled so the API surface stays dark
+// until there's enough consensus-confirmed content to schedule challenges.
+if (env.GEOGAMERS_ENABLED === 'true') {
+  app.use('/api/geogamers', geoGamersRoutes)
+}
 app.use('/api/screenshot-reports', screenshotReportRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/billing', billingRoutes)
@@ -425,6 +431,41 @@ async function start(): Promise<void> {
       logger.info('scheduled recurring create-daily-challenge job (daily at midnight UTC)')
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to schedule recurring daily challenge job')
+    }
+
+    // Schedule recurring GeoGamers challenge creation (00:05 UTC, just after
+    // the classic daily job to spread load). Only when the feature is enabled.
+    if (env.GEOGAMERS_ENABLED === 'true') {
+      try {
+        await importQueue.add(
+          'create-geogamers-challenge',
+          {},
+          {
+            repeat: { pattern: '5 0 * * *', tz: 'UTC' }, // Cron: 00:05 UTC daily
+            jobId: 'create-geogamers-challenge-recurring',
+          }
+        )
+        logger.info('scheduled recurring create-geogamers-challenge job (daily at 00:05 UTC)')
+      } catch (error) {
+        logger.warn({ error: String(error) }, 'failed to schedule recurring geogamers challenge job')
+      }
+
+      // Close the prior season on the 1st at 00:35 UTC (after the classic
+      // leaderboard payout at 00:30) and grant season frames to eligible
+      // top finishers. Idempotent via reward_grants.
+      try {
+        await importQueue.add(
+          'geogamers-season-payout',
+          {},
+          {
+            repeat: { pattern: '35 0 1 * *', tz: 'UTC' },
+            jobId: 'geogamers-season-payout-recurring',
+          }
+        )
+        logger.info('scheduled recurring geogamers-season-payout job (1st @ 00:35 UTC)')
+      } catch (error) {
+        logger.warn({ error: String(error) }, 'failed to schedule recurring geogamers season payout job')
+      }
     }
 
     // Schedule recurring sync-all-games job (weekly on Sundays at 2 AM UTC)

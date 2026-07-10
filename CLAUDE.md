@@ -138,6 +138,10 @@ the-box/
 - **Geo Contribute** – eligible players (min days played) place/confirm pins; consensus service resolves ground truth
 - **Ingestion pipeline** – BullMQ workers import maps & screenshots from many sources (RAWG, Steam, Fandom, Fextralife, StrategyWiki, MapGenie/Wand, Wikidata, registry); admin Geo-Fetch panel drives it. See `docs/geo-mode.md`
 
+**GeoGamers Mode** (behind `GEOGAMERS_ENABLED`)
+- **Daily two-phase run** – identify the hidden game (fuzzy match, 3 attempts, 100/66/33/0, hint-free) then pin its location (0–100), 200/day. Once-per-season joker; guests play unranked with claim-on-signup. See `docs/geogamers.md`
+- **Monthly season** – separate ranking, season score = sum minus 3 worst days (≥10 days played); month-close payout worker grants a season frame
+
 **Account & monetization**
 - **Premium / Lifetime Supporter** – Stripe Checkout + Billing Portal, premium-only features. See `docs/billing-stripe.md`
 - **Referrals** – invite codes, capture on signup, reward announcements
@@ -327,6 +331,7 @@ Detailed docs live in `docs/`:
 - `authentication.md`, `better-auth-setup.md` – Auth flow (incl. 2FA / passkeys)
 - `game-flow.md` – Scoring, tiers, challenge mechanics
 - `geo-mode.md` – Geo mode mechanics + ingestion pipeline
+- `geogamers.md` – GeoGamers mode (guess-the-game + geolocate, season ranking)
 - `billing-stripe.md` – Premium subscription + lifetime supporter
 - `push.md` – Web Push lifecycle (VAPID, fan-out, service worker)
 - `public-api.md` (+ `public-api.openapi.yaml`), `streamer-kit.html` – Public API / streamer kit

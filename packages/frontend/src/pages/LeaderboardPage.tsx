@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trophy, Crown, Calendar, CalendarDays } from 'lucide-react'
+import { Trophy, Crown, Calendar, CalendarDays, Crosshair } from 'lucide-react'
+import { GeoGamersSeasonPanel } from '@/components/leaderboard/GeoGamersSeasonPanel'
 import { PageHero } from '@/components/layout/PageHero'
 import {
   DailyLeaderboardPanel,
@@ -259,7 +260,7 @@ export default function LeaderboardPage() {
     <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6 h-auto sm:h-10 p-1 gap-1">
+          <TabsList className="grid w-full grid-cols-4 mb-6 h-auto sm:h-10 p-1 gap-1">
             <TabsTrigger
               value="daily"
               className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
@@ -280,6 +281,13 @@ export default function LeaderboardPage() {
             >
               <Crown className="size-4 sm:mr-2 shrink-0" />
               <span className="truncate max-w-full">{t('leaderboard.achievementPoints')}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="geogamers"
+              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
+            >
+              <Crosshair className="size-4 sm:mr-2 shrink-0" />
+              <span className="truncate max-w-full">{t('leaderboard.geogamers.tab')}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -321,6 +329,11 @@ export default function LeaderboardPage() {
               entries={achievementLeaderboard}
               loading={achievementLoading}
             />
+          </TabsContent>
+
+          {/* GeoGamers Season */}
+          <TabsContent value="geogamers">
+            <GeoGamersSeasonPanel />
           </TabsContent>
         </Tabs>
 

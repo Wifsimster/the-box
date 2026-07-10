@@ -5,9 +5,11 @@ import { env } from '../../config/env.js'
 import { logger } from '../logger/logger.js'
 import { auth } from '../auth/auth.js'
 import { importQueueEvents } from '../queue/queues.js'
+import { ensureGeoGamersPartyNamespace } from './geogamers-party.socket.js'
 import type {
     AchievementUnlockedEvent,
     GeoRewardedEvent,
+    GeoGamersSeasonUpdatedEvent,
     GeoTierUpEvent,
     NewlyEarnedAchievement,
     RewardGrantedEvent,
@@ -18,7 +20,7 @@ let io: SocketIOServer | null = null
 
 // Resolve the Better Auth session from a socket handshake. Returns null on
 // missing / invalid session; the caller decides how to react.
-async function getSocketSession(socket: Socket) {
+export async function getSocketSession(socket: Socket) {
     try {
         return await auth.api.getSession({
             headers: socket.handshake.headers as Record<string, string>,
@@ -93,6 +95,7 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
 
     ensureGeoNamespace()
     ensureUserNotificationsNamespace()
+    ensureGeoGamersPartyNamespace(io)
 
     logger.info('Socket.IO server initialized')
     return io
@@ -300,6 +303,14 @@ export function emitGeoTierUp(event: GeoTierUpEvent): void {
     const ns = geoNamespace()
     if (!ns) return
     ns.to(`user:${event.userId}`).emit('geo:contributor:tier_up', event)
+}
+
+// Broadcast finalized/updated GeoGamers season standings to everyone on the
+// geo namespace so an open leaderboard refreshes. Not user-targeted.
+export function emitGeoGamersSeasonUpdated(event: GeoGamersSeasonUpdatedEvent): void {
+    const ns = geoNamespace()
+    if (!ns) return
+    ns.emit('geogamers:season:updated', event)
 }
 
 // ---------- User-targeted notifications ----------

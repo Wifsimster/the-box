@@ -40,6 +40,16 @@ export const env = {
   // Public-facing frontend URL (used in marketing email CTAs)
   FRONTEND_URL: process.env['FRONTEND_URL'] || 'https://the-box.battistella.ovh',
 
+  // GeoGamers mode (guess-the-game + geolocate). Off by default: the routes
+  // 404 and the daily-challenge scheduler doesn't register until enabled, so
+  // the feature can ship dark and be turned on once enough consensus-confirmed
+  // content exists. MIN_ELIGIBLE_GAMES gates challenge creation (the "guess
+  // the game" step is meaningless with too few distinct games); a featured
+  // game is then on cooldown for COOLDOWN_DAYS before it can be reused.
+  GEOGAMERS_ENABLED: process.env['GEOGAMERS_ENABLED'] || 'false',
+  GEOGAMERS_MIN_ELIGIBLE_GAMES: process.env['GEOGAMERS_MIN_ELIGIBLE_GAMES'] || '10',
+  GEOGAMERS_GAME_COOLDOWN_DAYS: process.env['GEOGAMERS_GAME_COOLDOWN_DAYS'] || '14',
+
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
 

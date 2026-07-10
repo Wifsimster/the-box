@@ -10,6 +10,7 @@ import { GameList } from '@/components/admin/GameList'
 import { UserList } from '@/components/admin/UserList'
 import { EmailSettings } from '@/components/admin/EmailSettings'
 import { GrowthStats } from '@/components/admin/GrowthStats'
+import { GeoGamersHealthCard } from '@/components/admin/GeoGamersHealthCard'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
@@ -179,7 +180,12 @@ export default function AdminPage() {
               {activeTab === 'email' && <EmailSettings />}
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}
-              {activeTab === 'geo' && <GeoReviewPanel />}
+              {activeTab === 'geo' && (
+                <>
+                  <GeoGamersHealthCard />
+                  <GeoReviewPanel />
+                </>
+              )}
             </m.div>
           </AnimatePresence>
         </div>

@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { adminService, jobService } from '../../domain/services/index.js'
 import { billingService } from '../../domain/services/index.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
+import { geoGamersChallengeRepository } from '../../infrastructure/repositories/geogamers-challenge.repository.js'
+import { geoGamersSeasonRepository } from '../../infrastructure/repositories/geogamers-season.repository.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
 import {
@@ -3590,6 +3592,50 @@ router.post('/scraping/reset', async (req, res, next) => {
       'admin reset scraping state from zero',
     )
     res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// GET /api/admin/geogamers/health — content-readiness dashboard for the
+// GeoGamers daily scheduler. Surfaces the same eligibility the worker gates on
+// so an admin can see "starved" before a day silently skips, plus today's
+// challenge and the current season's player count.
+router.get('/geogamers/health', async (_req, res, next) => {
+  try {
+    const enabled = env.GEOGAMERS_ENABLED === 'true'
+    const minRequired = Number(env.GEOGAMERS_MIN_ELIGIBLE_GAMES) || 10
+    const cooldownDays = Number(env.GEOGAMERS_GAME_COOLDOWN_DAYS) || 14
+
+    const today = new Date().toISOString().slice(0, 10)
+    const [todayChallenge, current, cooldownGameIds] = await Promise.all([
+      geoGamersChallengeRepository.findByDate(today),
+      geoGamersChallengeRepository.findCurrent(),
+      geoGamersChallengeRepository.gameIdsUsedSince(cooldownDays),
+    ])
+
+    const eligible = await geoGamersChallengeRepository.listEligibleMetas({ cooldownGameIds })
+    const eligibleGames = new Set(eligible.map((e) => e.gameId)).size
+    const eligibleScreenshots = eligible.length
+
+    const month = geoGamersSeasonRepository.currentSeasonMonth()
+    const seasonPlayers = await geoGamersSeasonRepository.playerCount(month)
+
+    res.json({
+      success: true,
+      data: {
+        enabled,
+        minRequired,
+        cooldownDays,
+        eligibleGames,
+        eligibleScreenshots,
+        gamesOnCooldown: cooldownGameIds.length,
+        starved: eligibleGames < minRequired,
+        todayChallengeExists: !!todayChallenge,
+        currentChallengeDate: current?.challengeDate ?? null,
+        season: { month, players: seasonPlayers },
+      },
+    })
   } catch (err) {
     next(err)
   }

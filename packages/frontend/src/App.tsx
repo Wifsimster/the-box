@@ -55,6 +55,8 @@ const GameHistoryDetailsPage = lazy(() => import('@/pages/GameHistoryDetailsPage
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const PublicProfilePage = lazy(() => import('@/pages/PublicProfilePage'))
 const GeoPlayPage = lazy(() => import('@/pages/GeoPlayPage'))
+const GeoGamersPlayPage = lazy(() => import('@/pages/GeoGamersPlayPage'))
+const GeoGamersPartyPage = lazy(() => import('@/pages/GeoGamersPartyPage'))
 const GeoContributePage = lazy(() => import('@/pages/GeoContributePage'))
 const PricingPage = lazy(() => import('@/pages/PricingPage'))
 const TwoFactorChallengePage = lazy(() => import('@/pages/TwoFactorChallengePage'))
@@ -239,6 +241,8 @@ function App() {
 
           <Route path="geo" element={<GeoPlayPage />} />
           <Route path="geo/play" element={<GeoPlayPage />} />
+          <Route path="geogamers" element={<GeoGamersPlayPage />} />
+          <Route path="geogamers/party" element={<GeoGamersPartyPage />} />
           <Route path="geo/contribute" element={<GeoContributePage />} />
 
           <Route path="premium" element={<PricingPage />} />

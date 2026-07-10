@@ -1755,3 +1755,223 @@ export interface RankChangedEvent {
 // but `id:` / `event:` / `data:` are emitted directly (not wrapped) so
 // `EventSource.addEventListener('session.completed', …)` works out of the box.
 export type SseEventName = PublicEventType | 'heartbeat' | 'connected'
+
+// ============================================
+// GeoGamers Mode (guess-the-game + geolocate)
+// ============================================
+//
+// Additive daily mode that fuses classic (identify the game from a
+// screenshot) with geo (pin the spot on its map). Reuses `GeoPoint` /
+// `GeoMapOption` / `GeoMapKind` from the Geo section above. The game
+// identity is withheld from every payload until phase 1 resolves — see the
+// anti-leak notes on `GeoGamersRunView`.
+
+// A run walks through two phases then terminates:
+//   identify -> the player names the hidden game (up to 3 attempts)
+//   locate   -> the game+map are revealed; the player drops a pin
+//   done     -> both phases scored; result revealed
+export type GeoGamersRunPhase = 'identify' | 'locate' | 'done'
+
+export interface GeoGamersChallenge {
+  id: number
+  challengeDate: string // YYYY-MM-DD (UTC)
+  // geo_screenshot_meta id is NEVER exposed pre-solve; clients hold an
+  // opaque runToken and fetch the image through a proxy route.
+}
+
+// One phase-1 attempt. `normalized` is the fuzzy-matched form, retained for
+// audit / payout-time anomaly screening (first-attempt-correct rates).
+export interface GeoGamersGameAttempt {
+  guess: string
+  normalized: string
+  correct: boolean
+  at: string // ISO timestamp
+}
+
+// What the client sees. Fields below the divider are populated ONLY once
+// phase === 'locate' (game solved or all 3 attempts spent). Constructed from
+// an explicit whitelist server-side — never by spreading the run row — so a
+// pre-solve view can carry no game/map identity.
+export interface GeoGamersRunView {
+  runToken: string
+  challengeDate: string
+  phase: GeoGamersRunPhase
+  screenshotUrl: string // opaque proxy URL, carries no game slug
+  attemptsUsed: number // 0..3
+  attemptsMax: number // 3
+  timeLimitSeconds: number // per-phase active-time budget
+  timeSpentMs: number
+  jokerAvailable: boolean // account-only, once/season, phase 'identify' + 0 attempts
+  // --- revealed at phase 'locate' onward ---
+  game?: { id: number; name: string }
+  maps?: GeoMapOption[]
+  gamePoints?: number // 100 / 66 / 33 / 0, locked at reveal
+}
+
+export interface GeoGamersGuessGameResult {
+  correct: boolean
+  attemptsUsed: number
+  attemptsRemaining: number
+  gamePoints?: number // present once phase 1 resolves
+  // Near-miss feedback on the player's OWN guess (never metadata), same UX
+  // discipline as classic mode's proximity hinting.
+  proximity?: 'far' | 'close' | 'very_close'
+  run: GeoGamersRunView // refreshed view (includes game+maps on resolve)
+}
+
+export interface GeoGamersGuessLocationResult {
+  guess: GeoPoint
+  canonical: GeoPoint
+  distance: number // normalized [0..1]
+  locationPoints: number // 0..100
+  gamePoints: number
+  totalPoints: number // 0..200
+  scoreVersion: number
+  ghostRank?: number // anonymous only: "you'd be #N today"
+  rank?: number // authenticated: live daily rank
+}
+
+// Guests play unranked; signing up in the same browser session claims that
+// one day's score into the season. See the anonymous-play decision on the
+// tracking issue.
+export interface GeoGamersClaimResult {
+  claimed: boolean
+  challengeDate: string
+  totalPoints: number
+}
+
+// Season = calendar month. `seasonScore` drops each player's 3 worst days,
+// but ONLY once `daysPlayed >= 10` (until then `provisional` is true and the
+// raw total stands).
+export interface GeoGamersSeasonStanding {
+  userId: string
+  username: string
+  daysPlayed: number
+  jokerUsed: boolean
+  rawTotal: number
+  seasonScore: number
+  droppedDays: number // 0 or 3
+  provisional: boolean // daysPlayed < 10
+  rank: number
+}
+
+export interface GeoGamersSeasonMe extends GeoGamersSeasonStanding {
+  dailyBreakdown: Array<{
+    date: string
+    gamePoints: number
+    locationPoints: number
+    total: number
+    dropped: boolean
+    jokerUsed: boolean
+  }>
+}
+
+// Realtime payloads (see docs/realtime.md). Season updates are throttled
+// server-side like the classic leaderboard broadcasts.
+export interface GeoGamersRunCompletedEvent {
+  userId: string
+  challengeDate: string
+  totalPoints: number
+}
+
+export interface GeoGamersSeasonUpdatedEvent {
+  month: string // YYYY-MM
+  topN: GeoGamersSeasonStanding[]
+}
+
+// ---------------- GeoGamers Party (1–4 player lobby) ----------------
+//
+// A casual, unranked variant: 1–4 players in a private lobby play the SAME
+// server-seeded round sequence, each on their own screen, with a synchronized
+// reveal between rounds. Drawn from the retired/free-play pool (never today's
+// ranked screenshot), so it never touches the season and can't be used to
+// scout the daily. State is ephemeral (Redis, ~2h TTL).
+
+export type GeoGamersPartyStatus = 'lobby' | 'in_round' | 'reveal' | 'finished'
+
+export interface GeoGamersPartyPlayer {
+  id: string // user id or guest session id
+  name: string
+  isHost: boolean
+  connected: boolean
+}
+
+export interface GeoGamersPartyConfig {
+  rounds: number // 3 | 5 | 10
+  timerSeconds: number // per-phase budget
+}
+
+// Per-player result within one round. `done` is set on completion OR timeout.
+export interface GeoGamersPartyRoundResult {
+  playerId: string
+  attemptsUsed: number
+  gamePoints: number | null
+  solvedGame: boolean
+  guess: GeoPoint | null // pin coordinates, for the reveal
+  locationPoints: number | null
+  totalPoints: number | null
+  done: boolean
+}
+
+// One round. Answer fields (canonical, gameId, mapId) are server-only until the
+// round is revealed — the spectator-safe view omits them while in progress.
+export interface GeoGamersPartyRound {
+  index: number
+  geoScreenshotMetaId: number
+  gameId: number
+  gameName: string
+  geoMapId: number
+  canonical: GeoPoint
+  results: Record<string, GeoGamersPartyRoundResult>
+  revealed: boolean
+}
+
+export interface GeoGamersParty {
+  code: string
+  status: GeoGamersPartyStatus
+  config: GeoGamersPartyConfig
+  hostId: string
+  players: GeoGamersPartyPlayer[]
+  currentRound: number // index into rounds; -1 in lobby
+  rounds: GeoGamersPartyRound[]
+  createdAtMs: number
+}
+
+// Spectator-safe projection sent to clients. While a round is in progress the
+// answer (game identity, canonical pin) is withheld; per-player progress shows
+// only phase/points, never the guess text.
+export interface GeoGamersPartyView {
+  code: string
+  status: GeoGamersPartyStatus
+  config: GeoGamersPartyConfig
+  hostId: string
+  players: GeoGamersPartyPlayer[]
+  currentRound: number
+  totalRounds: number
+  // The active round's playable payload (screenshot only) — present when
+  // status === 'in_round'. Answer withheld.
+  round?: {
+    index: number
+    screenshotUrl: string
+    // Revealed maps for the locate phase, once THIS player has solved/exhausted.
+    maps?: GeoMapOption[]
+    gameName?: string // only after this player resolves phase 1
+  }
+  // The requesting player's OWN round state (safe — it's their own data). Lets
+  // the client distinguish identify / locate / waiting-for-others.
+  you?: { attemptsUsed: number; resolvedPhase1: boolean; done: boolean }
+  // Scoreboard (cumulative totals) — always safe to show.
+  scoreboard: Array<{ playerId: string; name: string; total: number }>
+  // Full reveal payload — present only when status === 'reveal' or 'finished'.
+  reveal?: {
+    index: number
+    gameName: string
+    canonical: GeoPoint
+    pins: Array<{ playerId: string; name: string; guess: GeoPoint | null; points: number }>
+  }
+}
+
+export interface GeoGamersPartyCreatedEvent {
+  code: string
+}
+

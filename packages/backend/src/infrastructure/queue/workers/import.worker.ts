@@ -6,6 +6,9 @@ import { fetchGamesFromRAWG, saveData, downloadAllScreenshots } from './import-l
 import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
+import { createGeoGamersChallenge } from './geogamers-challenge-logic.js'
+import { grantGeoGamersSeasonPayout } from './geogamers-season-payout-logic.js'
+import { sendGeoGamersDailyPush } from './geogamers-daily-push-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
@@ -152,6 +155,37 @@ export const importWorker = new Worker<JobData, JobResult>(
 
         log.info({ jobId: id, result: jobResult }, 'create-daily-challenge job completed')
         return jobResult
+      }
+
+      if (name === 'geogamers-season-payout') {
+        const result = await grantGeoGamersSeasonPayout((current, total) => {
+          job.updateProgress(Math.round((current / Math.max(1, total)) * 100))
+        })
+        log.info({ jobId: id, result }, 'geogamers-season-payout job completed')
+        return { message: result.message }
+      }
+
+      if (name === 'create-geogamers-challenge') {
+        // Same repeat-id -> scheduled-fire-time decoding as the classic daily
+        // challenge, so a near-midnight restart computes the right date.
+        let referenceMs = Date.now()
+        if (typeof id === 'string' && id.startsWith('repeat:')) {
+          const parsed = Number(id.split(':').pop())
+          if (Number.isFinite(parsed)) referenceMs = parsed
+        }
+        const result = await createGeoGamersChallenge({ referenceMs })
+        // Notify subscribers only on the day's first successful creation, so a
+        // restart re-running the (idempotent) challenge job won't re-notify.
+        if (result.created) {
+          try {
+            const push = await sendGeoGamersDailyPush()
+            log.info({ push }, 'geogamers daily push fan-out complete')
+          } catch (err) {
+            log.warn({ err: String(err) }, 'geogamers daily push fan-out failed')
+          }
+        }
+        log.info({ jobId: id, result }, 'create-geogamers-challenge job completed')
+        return { message: result.message }
       }
 
       if (name === 'sync-all-games') {
