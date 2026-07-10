@@ -10,7 +10,7 @@
 // Wire into Claude Code (see README.md) with an `mcpServers` entry pointing at
 // this file and the two env vars.
 
-import { handleRpc, type JsonRpcMessage } from './server.js'
+import { handleRpc, type ApiRequest, type JsonRpcMessage } from './server.js'
 
 const API_URL = (process.env['THE_BOX_API_URL'] ?? 'http://localhost:3000').replace(/\/+$/, '')
 const AGENT_KEY = process.env['THE_BOX_AGENT_KEY'] ?? ''
@@ -23,10 +23,17 @@ if (!AGENT_KEY) {
   log('WARNING: THE_BOX_AGENT_KEY is not set — every tool call will fail with 401.')
 }
 
-async function callApi(path: string): Promise<unknown> {
-  const res = await fetch(`${API_URL}${path}`, {
+async function callApi(reqSpec: ApiRequest): Promise<unknown> {
+  const method = reqSpec.method ?? 'GET'
+  const init: RequestInit = {
+    method,
     headers: { Authorization: `Bearer ${AGENT_KEY}`, Accept: 'application/json' },
-  })
+  }
+  if (method === 'POST') {
+    ;(init.headers as Record<string, string>)['Content-Type'] = 'application/json'
+    init.body = JSON.stringify(reqSpec.body ?? {})
+  }
+  const res = await fetch(`${API_URL}${reqSpec.path}`, init)
   const json = (await res.json().catch(() => ({}))) as {
     success?: boolean
     data?: unknown

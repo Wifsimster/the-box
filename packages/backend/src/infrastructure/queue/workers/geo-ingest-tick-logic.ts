@@ -347,6 +347,17 @@ export type RunnableTier =
   | 'wand'
   | 'wikidata'
 
+// Runtime list of the single-tier map imports an operator (or an agent, #331
+// phase 3) can trigger. Kept in sync with RunnableTier via `satisfies`.
+export const RUNNABLE_TIERS = [
+  'registry',
+  'fandom',
+  'strategywiki',
+  'fextralife',
+  'wand',
+  'wikidata',
+] as const satisfies readonly RunnableTier[]
+
 export type SingleTierFailure =
   | 'GAME_NOT_FOUND'
   | 'NOT_CURATED'

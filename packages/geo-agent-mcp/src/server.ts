@@ -52,6 +52,27 @@ export const TOOLS: ToolDef[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'geo_ingest_game',
+    description:
+      'Trigger the map-ingestion pipeline for a game (needs a geo-agent:ingest key). Optionally restrict to specific tiers; defaults to all. Subject to a per-key daily budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        sources: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['registry', 'fandom', 'strategywiki', 'fextralife', 'wand', 'wikidata'],
+          },
+          description: 'Optional tier allowlist; omit for all',
+        },
+      },
+      required: ['gameId'],
+      additionalProperties: false,
+    },
+  },
 ]
 
 function asPositiveInt(value: unknown): number | null {
@@ -59,11 +80,17 @@ function asPositiveInt(value: unknown): number | null {
   return Number.isInteger(n) && n > 0 ? n : null
 }
 
-/** Resolve a tool call to the agent-API path, or an error message. */
+export interface ApiRequest {
+  path: string
+  method?: 'GET' | 'POST'
+  body?: unknown
+}
+
+/** Resolve a tool call to an agent-API request, or an error message. */
 export function resolveToolPath(
   name: string,
   args: Record<string, unknown> | undefined,
-): { path: string } | { error: string } {
+): ApiRequest | { error: string } {
   const a = args ?? {}
   const limit = a['limit'] !== undefined ? asPositiveInt(a['limit']) : undefined
   if (a['limit'] !== undefined && limit === null) return { error: 'limit must be a positive integer' }
@@ -79,6 +106,16 @@ export function resolveToolPath(
       if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
       return { path: `/api/agent/v1/geo/games/${gameId}/candidates${qs}` }
     }
+    case 'geo_ingest_game': {
+      const gameId = asPositiveInt(a['gameId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      const body: Record<string, unknown> = {}
+      if (a['sources'] !== undefined) {
+        if (!Array.isArray(a['sources'])) return { error: 'sources must be an array' }
+        body['sources'] = a['sources']
+      }
+      return { path: `/api/agent/v1/geo/games/${gameId}/ingest`, method: 'POST', body }
+    }
     default:
       return { error: `unknown tool: ${name}` }
   }
@@ -92,8 +129,9 @@ export interface JsonRpcMessage {
 }
 
 export interface RpcDeps {
-  // Perform an authenticated GET against the agent API, returning parsed JSON.
-  callApi: (path: string) => Promise<unknown>
+  // Perform an authenticated request against the agent API, returning parsed
+  // JSON. Defaults to GET; the ingest tool issues a POST with a JSON body.
+  callApi: (req: ApiRequest) => Promise<unknown>
   protocolVersion?: string
 }
 
@@ -139,7 +177,7 @@ export async function handleRpc(
       const resolved = resolveToolPath(name, args)
       if ('error' in resolved) return result(msg.id, toolText(resolved.error, true))
       try {
-        const data = await deps.callApi(resolved.path)
+        const data = await deps.callApi(resolved)
         return result(msg.id, toolText(JSON.stringify(data, null, 2)))
       } catch (err) {
         return result(msg.id, toolText(`request failed: ${String(err)}`, true))

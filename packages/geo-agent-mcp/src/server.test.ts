@@ -29,6 +29,23 @@ describe('resolveToolPath', () => {
     })
   })
 
+  it('maps geo_ingest_game to a POST with a sources body', () => {
+    assert.deepEqual(
+      resolveToolPath('geo_ingest_game', { gameId: 7, sources: ['fandom', 'wand'] }),
+      { path: '/api/agent/v1/geo/games/7/ingest', method: 'POST', body: { sources: ['fandom', 'wand'] } },
+    )
+    // Sources omitted → POST with an empty body (server defaults to all tiers).
+    assert.deepEqual(resolveToolPath('geo_ingest_game', { gameId: 7 }), {
+      path: '/api/agent/v1/geo/games/7/ingest',
+      method: 'POST',
+      body: {},
+    })
+  })
+
+  it('rejects geo_ingest_game without a gameId', () => {
+    assert.ok('error' in resolveToolPath('geo_ingest_game', { sources: ['fandom'] }))
+  })
+
   it('errors on an unknown tool', () => {
     assert.ok('error' in resolveToolPath('nope', {}))
   })
@@ -65,8 +82,8 @@ describe('handleRpc', () => {
     const res = (await handleRpc(
       { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'geo_health', arguments: {} } },
       {
-        callApi: async (path) => {
-          called = path
+        callApi: async (req) => {
+          called = req.path
           return { starved: true, eligibleGames: 9 }
         },
       },

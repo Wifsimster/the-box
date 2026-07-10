@@ -56,6 +56,11 @@ export const env = {
   // redeploying (the second kill switch, alongside per-key revocation). Keys
   // for it are admin-minted; scopes are enforced per route.
   GEO_AGENT_API_ENABLED: process.env['GEO_AGENT_API_ENABLED'] || 'false',
+  // Per-key daily budget for agent-triggered ingestion (phase 3). A hard
+  // ceiling on how many times one key can kick the ingestion pipeline per UTC
+  // day, tracked in Redis so it survives deploys. Independent of the 60/min
+  // rate limit — this bounds cost/abuse over a day, not burst rate.
+  GEO_AGENT_MAX_INGESTS_PER_DAY: process.env['GEO_AGENT_MAX_INGESTS_PER_DAY'] || '20',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

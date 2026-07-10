@@ -12,11 +12,12 @@ the key can't, and the key is read-only in this phase.
 
 ## Tools
 
-| Tool | Maps to | Args |
-|------|---------|------|
-| `geo_health` | `GET /health` | — |
-| `geo_games_needing_content` | `GET /games-needing-content` | `limit?` |
-| `geo_list_candidates` | `GET /games/:gameId/candidates` | `gameId`, `limit?` |
+| Tool | Maps to | Args | Scope |
+|------|---------|------|-------|
+| `geo_health` | `GET /health` | — | `geo-agent:read` |
+| `geo_games_needing_content` | `GET /games-needing-content` | `limit?` | `geo-agent:read` |
+| `geo_list_candidates` | `GET /games/:gameId/candidates` | `gameId`, `limit?` | `geo-agent:read` |
+| `geo_ingest_game` | `POST /games/:gameId/ingest` | `gameId`, `sources?` | `geo-agent:ingest` |
 
 ## Setup
 
@@ -58,5 +59,6 @@ Add to your MCP config (e.g. `.mcp.json` or the Claude Code settings):
 
 - stdout is the JSON-RPC channel; all diagnostics go to stderr.
 - The server echoes the client's requested MCP `protocolVersion`.
-- Ingest (`geo-agent:ingest`) and pin-proposal (`geo-agent:propose`) tools land
-  in phases 3–4; this build is read-only.
+- `geo_ingest_game` needs a key with the `geo-agent:ingest` scope and is bounded
+  by a per-key daily budget. Pin-proposal (`geo-agent:propose`) tools land in
+  phase 4.

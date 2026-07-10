@@ -41,17 +41,22 @@ via `DELETE /api/admin/agent-keys/:id` (any admin, instant).
 | Scope | Grants | Phase |
 |-------|--------|-------|
 | `geo-agent:read` | `/health`, `/games-needing-content`, `/games/:id/candidates` | 2 |
-| `geo-agent:ingest` | trigger the existing ingestion pipeline | 3 |
+| `geo-agent:ingest` | `POST /games/:id/ingest` — trigger the ingestion pipeline | 3 |
 | `geo-agent:propose` | submit downweighted, flagged consensus pins | 4 |
 
 A freshly minted key defaults to `geo-agent:read`. Ingest/propose are granted
 per key as later phases ship.
 
-## Rate limit
+## Rate limit & budgets
 
 Fixed-window, **60 requests / minute per key** (in-memory). On exhaustion:
-`429 RATE_LIMITED` with `Retry-After`. Write budgets (daily ingests, hourly pin
-proposals) arrive as Redis counters with phases 3–4.
+`429 RATE_LIMITED` with `Retry-After`.
+
+Write endpoints additionally carry a **per-key daily budget** in Redis (survives
+deploys). Ingest: `GEO_AGENT_MAX_INGESTS_PER_DAY` (default 20) `POST /ingest`
+calls per UTC day. On exhaustion: `429 BUDGET_EXHAUSTED` with `Retry-After`
+(seconds to UTC midnight). Budgets fail **closed** — if Redis is unreachable the
+call is rejected, never silently unlimited.
 
 ## Endpoints
 
@@ -131,6 +136,45 @@ captures are omitted (they already have ground truth). `limit` 1–100
 Candidate payloads carry pin **counts**, never pin owners — no user identity or
 PII crosses this surface.
 
+### `POST /games/:gameId/ingest`
+
+Scope: `geo-agent:ingest`. Triggers the existing map-ingestion pipeline for a
+game — a pure enqueue that reuses the same workers, tombstones/circuit-breakers,
+dedup, and license/attribution capture as the admin "Run now" button. The agent
+**proposes sourcing work; it cannot alter ground truth.**
+
+```json
+{ "sources": ["fandom", "wand"] }
+```
+
+`sources` is optional (omit for all tiers) and restricted to the allowlist
+`registry | fandom | strategywiki | fextralife | wand | wikidata` — anything
+else is a `VALIDATION_ERROR`. A tier whose `geo_source_config` row is disabled
+is skipped (`SOURCE_DISABLED`); tiers without a config row are always runnable.
+
+```json
+{
+  "success": true,
+  "data": {
+    "gameId": 512,
+    "results": [
+      { "source": "fandom", "enqueued": true, "jobId": "manual-fandom-512" },
+      { "source": "wand", "enqueued": false, "reason": "SOURCE_DISABLED" }
+    ],
+    "budget": { "used": 3, "limit": 20, "remaining": 17 }
+  }
+}
+```
+
+Per-source `reason` values mirror the admin path (`GAME_NOT_FOUND`,
+`NOT_CURATED`, `METADATA_UNRESOLVED`, `NO_REGISTRY_ENTRY`,
+`MISSING_FANDOM_METADATA`, `MISSING_WIKIDATA_QID`, `SOURCE_DISABLED`). A
+non-enqueued source is not an error — the call still returns `200` with the
+per-source breakdown. Poll `/games/:id/candidates` to see resulting captures.
+
+Every ingest is written to `admin_audit_log` as `geo-agent.ingest`, keyed
+`apikey:<id>`.
+
 ## Error codes
 
 | Code | HTTP | Meaning |
@@ -139,7 +183,8 @@ PII crosses this surface.
 | `UNAUTHORIZED` | 401 | Missing / malformed / invalid key |
 | `INSUFFICIENT_SCOPE` | 403 | Key lacks the required geo-agent scope (or carries a non-agent scope) |
 | `RATE_LIMITED` | 429 | Per-minute limit hit; see `Retry-After` |
-| `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` |
+| `BUDGET_EXHAUSTED` | 429 | Daily write budget hit; `Retry-After` = seconds to UTC midnight |
+| `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` / `sources` |
 | `INTERNAL_ERROR` | 500 | Server error |
 
 ## Audit
