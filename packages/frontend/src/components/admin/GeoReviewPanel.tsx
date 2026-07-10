@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -33,6 +33,14 @@ export function GeoReviewPanel() {
     // segment is read once for backward compatibility (cold-start CTAs)
     // but no longer written.
     const [searchParams, setSearchParams] = useSearchParams()
+    // Deep-link seed from the "À un pin de l'éligibilité" card: `qGameId` /
+    // `qGameName` pre-select the queue tab filtered to one game. Read once for
+    // the initial state below, then stripped from the URL by the effect so the
+    // filter is dismissable and doesn't re-seed on the next render.
+    const seedGameIdRaw = searchParams.get('qGameId')
+    const seedGameId =
+        seedGameIdRaw && Number.isFinite(Number(seedGameIdRaw)) ? Number(seedGameIdRaw) : null
+    const seedGameName = searchParams.get('qGameName')
     const subFromUrl = searchParams.get('sub')
     const subInUrl: GeoSubTab | null =
         subFromUrl && (SUB_TABS as string[]).includes(subFromUrl)
@@ -76,12 +84,29 @@ export function GeoReviewPanel() {
     // other statuses are still reachable via the chip row, but the page
     // should not open on `collecting` (no decision possible) or `all` (mixes
     // already-handled rows into the queue).
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+        seedGameId != null ? 'all' : 'pending',
+    )
     // Per-game filter for the Pins tab. Set when the operator clicks "Voir
     // les captures" on a Maps row so the candidate list narrows to that game.
     // Cleared via the badge in the Pins header. Lifted here (rather than inside
     // GeoReviewQueue) because the catalog tab and the status rail also drive it.
-    const [gameFilter, setGameFilter] = useState<GameFilter | null>(null)
+    const [gameFilter, setGameFilter] = useState<GameFilter | null>(
+        seedGameId != null
+            ? { gameId: seedGameId, gameName: seedGameName ?? `#${seedGameId}` }
+            : null,
+    )
+    // Strip the one-shot deep-link seed params after the initial state has
+    // captured them, so the game filter can be cleared and a refresh doesn't
+    // re-apply it. Runs once on mount.
+    useEffect(() => {
+        if (!searchParams.has('qGameId') && !searchParams.has('qGameName')) return
+        const params = new URLSearchParams(searchParams)
+        params.delete('qGameId')
+        params.delete('qGameName')
+        setSearchParams(params, { replace: true })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
     // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
     // polling and the live banner stays visible when the operator switches
     // between Pins / Maps / Games tabs.
@@ -106,7 +131,9 @@ export function GeoReviewPanel() {
         if (health.coverage.withMap === 0) return 'acquisition'
         return 'queue'
     })()
-    const activeTab: GeoSubTab = subInUrl ?? resolvedDefault ?? 'queue'
+    // A game-seeded deep link always wants the queue, even before the health
+    // snapshot that drives resolvedDefault has loaded.
+    const activeTab: GeoSubTab = subInUrl ?? (seedGameId != null ? 'queue' : resolvedDefault) ?? 'queue'
     // When the cold-start state-machine routes to `catalog`, pre-select the
     // Candidats filter so the CTA the moderator sees in the empty state is
     // the curation funnel (the actual first action they need to take).

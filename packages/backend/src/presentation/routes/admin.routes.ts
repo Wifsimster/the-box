@@ -47,7 +47,10 @@ import {
   emailLogRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
-import { evaluateConsensus } from '../../domain/services/geo-consensus.service.js'
+import {
+  evaluateConsensus,
+  pinsToNextConsensusThreshold,
+} from '../../domain/services/geo-consensus.service.js'
 import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service.js'
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
@@ -1802,6 +1805,27 @@ router.get('/geo/candidates/by-game', async (req, res, next) => {
       limit,
     })
     res.json({ success: true, data: summaries })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// GET /api/admin/geo/games-needing-content — the "one pin away" diagnostic.
+// Games with an active map and captures collecting pins but no canonical pin
+// yet: promoting one of their candidates makes the game eligible for GeoGamers.
+// Sorted so the games closest to the next consensus recompute come first, which
+// is where pinning effort moves the eligible-count needle. Complements the
+// GeoGamers health card (which shows the aggregate count but not *which* games).
+router.get('/geo/games-needing-content', async (req, res, next) => {
+  try {
+    const rawLimit = Number(req.query.limit)
+    const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.trunc(rawLimit))) : 25
+    const rows = await geoScreenshotRepository.listGamesNeedingContent(limit)
+    const data = rows.map((r) => ({
+      ...r,
+      pinsToNextThreshold: pinsToNextConsensusThreshold(r.topPinCount),
+    }))
+    res.json({ success: true, data })
   } catch (err) {
     next(err)
   }

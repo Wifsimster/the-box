@@ -397,6 +397,86 @@ export const geoScreenshotRepository = {
     return summaries
   },
 
+  /**
+   * The "one pin away" diagnostic. Games that have an active map and captures
+   * still collecting pins (pending/collecting, active) but NO canonical pin yet
+   * — i.e. promoting one of their candidates would grow the GeoGamers-eligible
+   * pool by one (assuming the game has never been a challenge). Games that
+   * already have a promoted meta are excluded: their content exists, so they
+   * don't need pinning effort.
+   *
+   * Per game we surface the candidate count and the single best candidate (most
+   * pins, ties broken by id), so the admin card can deep-link straight to the
+   * capture closest to promotion. Ordered by top pin count desc so the games
+   * nearest the next consensus recompute float to the top.
+   */
+  async listGamesNeedingContent(limit = 25): Promise<
+    Array<{
+      gameId: number
+      gameName: string | null
+      candidateCount: number
+      topPinCount: number
+      bestCandidateId: number | null
+    }>
+  > {
+    const result = await db.raw<{
+      rows: Array<{
+        game_id: number
+        game_name: string | null
+        candidate_count: string
+        top_pin_count: string
+        best_candidate_id: number | null
+      }>
+    }>(
+      `
+      SELECT
+        g.id AS game_id,
+        g.name AS game_name,
+        stats.candidate_count,
+        stats.top_pin_count,
+        best.id AS best_candidate_id
+      FROM games g
+      JOIN LATERAL (
+        SELECT
+          COUNT(*) AS candidate_count,
+          COALESCE(MAX(c.pin_count), 0) AS top_pin_count
+        FROM geo_screenshot_candidate c
+        WHERE c.game_id = g.id
+          AND c.is_active = true
+          AND c.status IN ('pending', 'collecting')
+      ) stats ON stats.candidate_count > 0
+      LEFT JOIN LATERAL (
+        SELECT c.id
+        FROM geo_screenshot_candidate c
+        WHERE c.game_id = g.id
+          AND c.is_active = true
+          AND c.status IN ('pending', 'collecting')
+        ORDER BY c.pin_count DESC, c.id ASC
+        LIMIT 1
+      ) best ON true
+      WHERE EXISTS (
+        SELECT 1 FROM geo_map m WHERE m.game_id = g.id AND m.is_active = true
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM geo_screenshot_meta sm
+        JOIN geo_screenshot_candidate cc ON cc.id = sm.geo_screenshot_candidate_id
+        WHERE cc.game_id = g.id AND cc.is_active = true
+      )
+      ORDER BY stats.top_pin_count DESC, stats.candidate_count DESC, g.id ASC
+      LIMIT ?
+      `,
+      [limit],
+    )
+    return result.rows.map((r) => ({
+      gameId: r.game_id,
+      gameName: r.game_name,
+      candidateCount: Number(r.candidate_count ?? 0),
+      topPinCount: Number(r.top_pin_count ?? 0),
+      bestCandidateId: r.best_candidate_id ?? null,
+    }))
+  },
+
   async listCandidatesForReview(args: {
     status?: GeoScreenshotCandidateRow['status']
     gameId?: number

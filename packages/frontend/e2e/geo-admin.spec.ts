@@ -40,6 +40,25 @@ test.describe('Geo Admin', () => {
         await expect(page.getByRole('tab', { name: /review queue|file de revue/i })).toBeVisible()
     })
 
+    test('renders the "one pin away" content-gap card', async ({ page }) => {
+        if (!(await geoRoutesReachable(page))) test.skip(true, 'geo router unreachable')
+
+        // The diagnostic endpoint must be reachable (any status < 500 means the
+        // route is mounted; empty content is a valid 200).
+        const res = await page.request.get(
+            '/api/admin/geo/games-needing-content?limit=10',
+            { failOnStatusCode: false },
+        )
+        expect(res.status()).toBeLessThan(500)
+
+        await page.goto('/en/admin?tab=geo')
+        // The card renders regardless of seed data: either a game list or the
+        // "no game waiting for a canonical pin" empty state.
+        await expect(
+            page.getByText(/à un pin de l.éligibilité/i),
+        ).toBeVisible({ timeout: 10_000 })
+    })
+
     test('review queue renders (possibly empty)', async ({ page }) => {
         if (!(await geoRoutesReachable(page))) test.skip(true, 'geo router unreachable')
 

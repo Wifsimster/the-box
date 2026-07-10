@@ -1222,6 +1222,22 @@ export interface GeoCandidateGameSummary {
   oldestPendingAt: string | null
 }
 
+// Diagnostic surfaced by the admin "content readiness" card: games that have
+// an active map and captures collecting pins but no canonical (promoted) pin
+// yet — the "one pin away" list that gates GeoGamers eligibility. Promoting one
+// candidate for such a game (that has never been a challenge) grows the eligible
+// pool by one. `topPinCount` is the raw submission count on the best candidate;
+// `pinsToNextThreshold` is how many more pins until the next consensus recompute
+// could promote it (0 once past the top threshold).
+export interface GeoGameNeedingContent {
+  gameId: number
+  gameName: string | null
+  candidateCount: number
+  topPinCount: number
+  pinsToNextThreshold: number
+  bestCandidateId: number | null
+}
+
 export interface GeoChallenge {
   id: number
   challengeDate: string

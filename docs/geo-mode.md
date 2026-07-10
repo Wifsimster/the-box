@@ -153,6 +153,14 @@ Chaque source a un disjoncteur Redis. En cas de pannes répétées (rate-limit, 
 | POST | `/api/geo/free-play/random` | Tirer une capture aléatoire pour free play |
 | POST | `/api/geo/free-play/guess` | Soumettre un pin et recevoir le score |
 
+## Diagnostic « à un pin de l'éligibilité »
+
+> **Détail technique.** Route `GET /api/admin/geo/games-needing-content` (réservé admin) et carte admin `GeoNeedingContentCard` dans l'onglet Géo.
+
+La carte de santé GeoGamers (`GET /api/admin/geogamers/health`) donne le **nombre** de jeux éligibles ; ce diagnostic complémentaire dit **quels** jeux en sont le plus proches. Il liste les jeux qui ont une carte active et des captures en cours de collecte de pins (`pending`/`collecting`, actives) mais **aucune position canonique** (`geo_screenshot_meta`) — c.-à-d. les jeux où promouvoir une capture ferait passer le compteur de jeux éligibles à `+1` (si le jeu n'a jamais servi de défi).
+
+Par jeu on renvoie : `candidateCount`, la meilleure capture (`bestCandidateId`, plus grand `pin_count`), `topPinCount`, et `pinsToNextThreshold` — le nombre de pins avant le prochain recalcul de consensus (`GEO_CONSENSUS_THRESHOLDS = [5, 10, 20, 50]`, `0` une fois le dernier seuil dépassé). Tri par `topPinCount` décroissant : les jeux les plus proches d'une promotion remontent en tête. Le compte est celui des **soumissions brutes** (pas des pins acceptés), donc c'est une borne supérieure indicative. Chaque ligne renvoie vers la file de revue filtrée sur le jeu (`?sub=queue&qGameId=…`), où l'override admin existant promeut une capture.
+
 ## API admin (`/api/admin/geo-fetch`)
 
 | Méthode | Endpoint | Description |

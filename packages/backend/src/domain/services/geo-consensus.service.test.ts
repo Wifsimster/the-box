@@ -4,8 +4,10 @@ import type { GeoPinConfidence } from '@the-box/types'
 import {
   evaluateConsensus,
   grantsForAcceptedPin,
+  pinsToNextConsensusThreshold,
   GEO_CONSENSUS_CONFIDENCE_WEIGHTS,
   GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
+  GEO_CONSENSUS_THRESHOLDS,
   GEO_CONSENSUS_VERSION,
   type GeoPinLike,
 } from './geo-consensus.service.js'
@@ -275,5 +277,28 @@ describe('grantsForAcceptedPin', () => {
     // behavior on a fresh user.
     const keys = out.map((g) => g.itemKey)
     assert.ok(!keys.includes('streak_freeze'))
+  })
+})
+
+describe('pinsToNextConsensusThreshold', () => {
+  it('targets the first threshold (5) below it', () => {
+    // "One pin away": a candidate with 4 pins needs 1 more to hit the first
+    // recompute at 5, the same count that can promote.
+    assert.equal(pinsToNextConsensusThreshold(4), 1)
+    assert.equal(pinsToNextConsensusThreshold(0), GEO_CONSENSUS_THRESHOLDS[0])
+  })
+
+  it('returns the gap to the NEXT threshold, not the current one', () => {
+    // Exactly on a threshold → the recompute for that count already fired, so
+    // the meaningful next target is the following threshold.
+    assert.equal(pinsToNextConsensusThreshold(5), 5) // → 10
+    assert.equal(pinsToNextConsensusThreshold(7), 3) // → 10
+    assert.equal(pinsToNextConsensusThreshold(10), 10) // → 20
+  })
+
+  it('returns 0 once past the top threshold (no further recompute)', () => {
+    const top = GEO_CONSENSUS_THRESHOLDS[GEO_CONSENSUS_THRESHOLDS.length - 1]!
+    assert.equal(pinsToNextConsensusThreshold(top), 0)
+    assert.equal(pinsToNextConsensusThreshold(top + 25), 0)
   })
 })

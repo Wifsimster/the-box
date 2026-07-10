@@ -33,6 +33,19 @@ function weightFor(confidence: GeoPinConfidence | undefined): number {
   return GEO_CONSENSUS_CONFIDENCE_WEIGHTS[confidence]
 }
 
+/**
+ * How many more pins a candidate needs before the consensus worker's next
+ * recompute could promote it. Recompute only fires at GEO_CONSENSUS_THRESHOLDS
+ * ([5, 10, 20, 50]); once a candidate is past the top threshold, further pins
+ * won't trigger a new recompute, so this returns 0. A negative or zero input
+ * targets the first threshold. Powers the admin "one pin away" diagnostic; note
+ * it counts raw submissions, not accepted pins, so it's an upper-bound signal.
+ */
+export function pinsToNextConsensusThreshold(pinCount: number): number {
+  const next = GEO_CONSENSUS_THRESHOLDS.find((t) => t > pinCount)
+  return next === undefined ? 0 : next - pinCount
+}
+
 export interface GeoPinLike {
   id: number
   pin: GeoPoint
