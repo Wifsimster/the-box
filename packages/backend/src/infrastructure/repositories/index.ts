@@ -26,6 +26,9 @@ export { geoScreenshotRepository } from './geo-screenshot.repository.js'
 export { geoChallengeRepository } from './geo-challenge.repository.js'
 export { geoPinRepository } from './geo-pin.repository.js'
 export { geoContributorRepository } from './geo-contributor.repository.js'
+export { geoGamersChallengeRepository } from './geogamers-challenge.repository.js'
+export { geoGamersRunRepository } from './geogamers-run.repository.js'
+export { geoGamersJokerRepository } from './geogamers-joker.repository.js'
 export {
   screenshotReportRepository,
   REPORT_DEACTIVATION_THRESHOLD,
