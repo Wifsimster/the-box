@@ -120,8 +120,10 @@ challenge before. The daily scheduler (`geogamers-challenge-logic`, 00:05 UTC):
 
 Implemented: Phase 0 (types + schema), Phase 1 (backend core — scoring,
 orchestration, repos, worker, routes), Phase 2 (frontend play flow), Phase 3
-core (season ranking + standings API + payout worker + socket broadcast).
+(season ranking + standings API + payout worker + socket broadcast +
+leaderboard season tab + recognition-only achievements — `geogamers_first_run`,
+`geogamers_perfect_day`, awarded on ranked completion).
 
-Follow-ups (tracked on #325): GeoGamers achievements, web-push fan-out, public
-API / SSE / webhooks, admin health & anomaly-review panels, leaderboard-page
-season tab, party mode (Phase 4), immersive panoramas (Phase 5).
+Follow-ups (tracked on #325): web-push fan-out, public API / SSE / webhooks,
+admin health & anomaly-review panels, more cross-mode achievements (season
+top-10, dual-podium), party mode (Phase 4), immersive panoramas (Phase 5).
