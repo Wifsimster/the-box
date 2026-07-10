@@ -53,6 +53,15 @@ export async function up(knex: Knex): Promise<void> {
     // Nullable: guests play unranked. Ranked runs set user_id.
     table.text('user_id').nullable().references('id').inTable('user').onDelete('CASCADE')
     table.text('anonymous_session_id').nullable().comment('Set for guest runs; null once claimed into an account')
+    // Overrides the challenge's screenshot when the joker re-rolled THIS run.
+    // Null = play the shared daily meta; set = this player's re-rolled meta.
+    // The joker is per-player, so it cannot live on the shared challenge row.
+    table
+      .integer('geo_screenshot_meta_id')
+      .nullable()
+      .references('id')
+      .inTable('geo_screenshot_meta')
+      .onDelete('RESTRICT')
     table.uuid('run_token').notNullable().unique().comment('Single-use, server-issued; addresses a run without leaking meta id')
     table.jsonb('game_attempts').notNullable().defaultTo('[]').comment('GeoGamersGameAttempt[]')
     table.integer('game_points').nullable().comment('100 / 66 / 33 / 0, locked at phase-1 resolve')
