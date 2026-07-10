@@ -52,7 +52,9 @@
       "second": "2nd place",
       "third": "3rd place"
     },
-    "menuDescription": "Site navigation and account links"
+    "menuDescription": "Site navigation and account links",
+    "geogamers": "GeoGamers",
+    "new": "New"
   },
   "nav": {
     "primary": "Primary navigation",
@@ -2892,6 +2894,47 @@
     "geoContribute": {
       "title": "Contribute to Geo Mode — The Box",
       "description": "Help curate and verify Geo Mode challenges."
+    }
+  },
+  "geogamers": {
+    "error": "Something went wrong.",
+    "retry": "Try again",
+    "identify": {
+      "screenshotAlt": "Screenshot of the game to guess",
+      "prompt": "Which game do you recognize?",
+      "placeholder": "Game name…",
+      "submit": "Submit",
+      "attemptsLeft": "{{count}} attempt left",
+      "attemptsLeft_other": "{{count}} attempts left",
+      "proximity": {
+        "far": "Not close.",
+        "close": "Getting warmer…",
+        "very_close": "So close!"
+      }
+    },
+    "joker": {
+      "cta": "Swap panorama (joker)",
+      "guestHint": "Sign up to use the joker."
+    },
+    "locate": {
+      "banner": "Drop your marker on the map of",
+      "confirm": "Confirm location"
+    },
+    "result": {
+      "breakdown": "{{game}} (game) + {{location}} (precision)",
+      "rank": "You're #{{rank}} today.",
+      "ghostRank": "You'd be #{{rank}} today — save this score to the season.",
+      "claimCta": "Sign up and save",
+      "claimed": "Score saved to your season!",
+      "comeBack": "Come back tomorrow for a new panorama.",
+      "unranked": "Unranked score — sign in to join the season.",
+      "done": "Done"
+    },
+    "season": {
+      "link": "Season",
+      "provisional": "Provisional",
+      "daysPlayed": "Days played",
+      "droppedDays": "3 worst days dropped"
     }
   }
 }

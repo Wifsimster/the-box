@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Home, Play, Trophy, MapPin, User } from 'lucide-react'
+import { Home, Play, Trophy, MapPin, Crosshair, User } from 'lucide-react'
 
 /**
  * A destination link in the app's navigation. `path` is unlocalized — callers
@@ -45,6 +45,13 @@ export const PRIMARY_NAV: NavLinkItem[] = [
     icon: MapPin,
     path: '/geo',
     badgeKey: 'common.alpha',
+  },
+  {
+    key: 'geogamers',
+    labelKey: 'common.geogamers',
+    icon: Crosshair,
+    path: '/geogamers',
+    badgeKey: 'common.new',
   },
 ]
 
