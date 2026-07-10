@@ -312,6 +312,17 @@ app.get('/share/daily', (req, res, next) => {
   }
 })
 
+// Unmatched API routes must return JSON, not the SPA shell. Otherwise a request
+// to a route that isn't mounted (e.g. `/api/geogamers/*` when the feature flag
+// is off) would fall through to the HTML fallback below, and clients calling
+// `res.json()` on it crash with "Unexpected token '<', "<!doctype "...".
+app.use('/api', (_req, res) => {
+  res.status(404).json({
+    success: false,
+    error: { code: 'NOT_FOUND', message: 'API endpoint not found' },
+  })
+})
+
 // SPA fallback - serve index.html for all other routes (must be after API routes and static files)
 app.use((_req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'))

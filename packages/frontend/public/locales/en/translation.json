@@ -2652,6 +2652,7 @@
   },
   "apiErrors": {
     "default": "Something went wrong. Please try again.",
+    "GEOGAMERS_UNAVAILABLE": "GeoGamers isn't available right now.",
     "NETWORK_ERROR": "Network error. Please check your connection.",
     "VALIDATION_ERROR": "The information you entered is invalid.",
     "UNAUTHORIZED": "Please sign in to continue.",
