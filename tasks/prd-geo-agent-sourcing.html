@@ -1,0 +1,679 @@
+<!-- SUMMARY:
+Detailed implementation plan for issue #331 (agent-assisted geo content sourcing).
+Corrects four code-level assumptions in the original proposal, fixes a consensus
+auto-promote hole (agent pins alone could reach MIN_PINS_TO_PROMOTE), specs the
+pin-provenance migration, the /api/agent/v1/geo surface, budgets, and a 7-phase
+delivery plan with file-level tasks. Recommends dropping the promote_pin tool.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Geo Agent Sourcing — Implementation Plan (#331)</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #12121a;
+    --panel-2: #17171f;
+    --border: #26263a;
+    --text: #d6d6e0;
+    --muted: #8b8b9e;
+    --primary: #a855f7;
+    --primary-dim: #7c3aed;
+    --pink: #ec4899;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 2.5rem 1.25rem 6rem;
+  }
+  main { max-width: 72ch; margin: 0 auto; }
+  h1, h2, h3 { line-height: 1.25; color: #fff; }
+  h1 { font-size: 1.7rem; margin: 0 0 .25rem; }
+  h1 .accent {
+    background: linear-gradient(90deg, var(--primary), var(--pink));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h2 {
+    font-size: 1.25rem; margin: 3rem 0 .75rem;
+    padding-top: 1.5rem; border-top: 1px solid var(--border);
+  }
+  h2 .num { color: var(--primary); font-family: var(--mono); font-size: 1rem; margin-right: .5rem; }
+  h3 { font-size: 1.02rem; margin: 1.75rem 0 .5rem; }
+  p { margin: .7rem 0; }
+  a { color: var(--primary); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  code, pre {
+    font-family: var(--mono); font-size: .84em;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px;
+  }
+  code { padding: .1em .35em; }
+  pre {
+    padding: .9rem 1rem; overflow-x: auto; line-height: 1.55;
+    margin: .9rem 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0;
+    font-size: .88rem; display: block; overflow-x: auto;
+  }
+  th, td {
+    text-align: left; padding: .5rem .65rem; border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: var(--panel); color: #fff; white-space: nowrap; }
+  td code { white-space: nowrap; }
+  .meta {
+    color: var(--muted); font-size: .85rem; margin-bottom: 2rem;
+    font-family: var(--mono);
+  }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: .72rem;
+    padding: .1rem .5rem; border-radius: 999px; border: 1px solid var(--border);
+    vertical-align: middle; margin-left: .35rem;
+  }
+  .badge.ship { color: var(--ok); border-color: var(--ok); }
+  .badge.risk { color: var(--bad); border-color: var(--bad); }
+  .badge.gate { color: var(--warn); border-color: var(--warn); }
+  .callout {
+    border-left: 3px solid var(--primary); background: var(--panel);
+    padding: .75rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0;
+  }
+  .callout.danger { border-left-color: var(--bad); }
+  .callout.ok { border-left-color: var(--ok); }
+  .callout strong:first-child { color: #fff; }
+  .tldr {
+    background: var(--panel); border: 1px solid var(--primary-dim);
+    border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0;
+    box-shadow: 0 0 24px rgba(168, 85, 247, .12);
+  }
+  .tldr h2 { border: none; margin: 0 0 .5rem; padding: 0; font-size: 1.05rem; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: .3rem 0; }
+  li::marker { color: var(--primary); }
+  .phase {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1.25rem 0;
+  }
+  .phase h3 { margin-top: 0; }
+  .files { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-top: .6rem; }
+  .files b { color: var(--text); font-weight: 500; }
+  figure { margin: 1.5rem 0; }
+  figcaption { color: var(--muted); font-size: .82rem; text-align: center; margin-top: .4rem; }
+  svg text { font-family: var(--mono); }
+  .small { font-size: .85rem; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<main>
+<h1>Geo Agent Sourcing — <span class="accent">Implementation Plan</span></h1>
+<p class="meta">issue #331 · rev 1 · 2026-07-10 · grounded in code as of <code>e9968db</code> (v2.139.0)</p>
+
+<div class="tldr">
+<h2>TL;DR</h2>
+<p>Issue #331's direction is right: the pin is the bottleneck, the agent proposes,
+consensus disposes. This plan grounds it in the actual code and changes five things:</p>
+<ol>
+  <li><strong>Fixes an auto-promote hole</strong> — under today's consensus rules,
+      5 tightly-clustered agent pins would satisfy <code>MIN_PINS_TO_PROMOTE</code>
+      and silently become ground truth with zero humans. Agent pins must never
+      count toward the promote gate.</li>
+  <li><strong>Corrects the structured-coordinates assumption</strong> — MapGenie/Wand
+      adapters only fetch a flat <code>og:image</code> today; no adapter extracts
+      marker coordinates. Phase 4 is real new work, and the hard part is
+      screenshot↔landmark <em>association</em>, not scraping.</li>
+  <li><strong>Drops <code>geo.promote_pin</code> from the agent surface</strong> —
+      promotion already exists as the admin override route; a promote tool (even
+      "admin-gated") violates propose/dispose for zero gain.</li>
+  <li><strong>Specs the missing provenance model</strong> — <code>geo_pin_submission</code>
+      has no <code>source</code> column and requires a non-null <code>user_id</code>;
+      agent pins need a migration, not just a flag.</li>
+  <li><strong>Separates key minting from streamer self-service</strong> — scopes exist
+      but are unenforced and not settable at mint; geo-agent keys must be
+      admin-minted only.</li>
+</ol>
+<p><strong>Ship order:</strong> Phase 1 (diagnostic endpoint + admin card) is standalone
+and unblocks manual pinning toward the 10-game GeoGamers gate today.</p>
+</div>
+
+<h2><span class="num">1</span>Reality check — issue assumptions vs. the code</h2>
+
+<p>Everything below was verified against the backend at <code>e9968db</code>.
+Each row changes the plan's shape.</p>
+
+<table>
+<thead><tr><th>#331 says / implies</th><th>What the code says</th><th>Impact on plan</th></tr></thead>
+<tbody>
+<tr>
+  <td>Machine pins are "downweighted + flagged <code>source='agent'</code>"</td>
+  <td>No provenance column exists. <code>geo_pin_submission</code> =
+      <code>user_id (NOT NULL, FK)</code>, <code>x</code>, <code>y</code>, <code>status</code>,
+      <code>confidence (1..3)</code>, <code>is_anonymous</code>,
+      <code>distance_from_centroid</code> — plus unique <code>(user_id, candidate_id)</code>
+      (<code>migrations/20260419_add_geolocation_mode.ts:121</code>)</td>
+  <td>New migration (§4). Must also decide the <em>identity</em> of an agent pin —
+      it has no user. We use nullable <code>user_id</code> + <code>agent_key_id</code>
+      with a CHECK, not a synthetic user (§3.1).</td>
+</tr>
+<tr>
+  <td>"Downweighted" voter in consensus</td>
+  <td>Weighting is <em>only</em> self-reported confidence:
+      <code>GEO_CONSENSUS_CONFIDENCE_WEIGHTS = {1: 1.0, 2: 0.66, 3: 0.33}</code>.
+      Contributor trust/tier is <b>not</b> a weight input. Promote gate:
+      <code>acceptedCount ≥ 5 &amp;&amp; confidence ≥ 0.5</code>
+      (<code>geo-consensus.service.ts:75</code>)</td>
+  <td class="callout danger" style="display:table-cell">
+      <strong>Safety hole:</strong> downweighting alone is insufficient — weight
+      affects the centroid, not the count. 5 agent pins in a tight cluster would
+      auto-promote. Fix: agent pins are excluded from the promote count entirely (§3.2).</td>
+</tr>
+<tr>
+  <td>"The pipeline already has Wand/MapGenie adapters to build on" (for structured
+      coordinates)</td>
+  <td>True for <em>maps</em> only. <code>maps-fetch-mapgenie.ts</code> /
+      <code>geo-wand-import-logic.ts</code> fetch <code>og:image</code>, probe
+      dimensions, insert a <code>geo_map</code> row. Marker crawling is an explicit
+      "phase-2 crawler" placeholder (<code>maps-fetch-mapgenie.ts:11-15</code>).
+      No adapter anywhere produces coordinates.</td>
+  <td>Phase 4 re-scoped (§6): marker crawler + coordinate-space normalization +
+      the genuinely hard problem — associating a <em>screenshot</em> with a
+      <em>landmark</em>. Honest sizing: L, not S.</td>
+</tr>
+<tr>
+  <td>"Reuse the existing API-key infra with a new <code>geo-agent</code> role/scope"</td>
+  <td>Right infra, two caveats: <code>scopes text[]</code> exists but enforcement is
+      "Reserved for M2" (one <code>hasScope</code> call at <code>public.routes.ts:527</code>);
+      and scopes are <b>not settable at mint</b> — <code>POST /api/streamer-keys</code>
+      always writes <code>DEFAULT_SCOPES</code>, and any user can mint.</td>
+  <td>Geo-agent keys are admin-minted only (new admin route + panel section),
+      never via streamer self-service. Real scope enforcement middleware ships in
+      Phase 2 (§5).</td>
+</tr>
+<tr>
+  <td>Per-tool rate limits + global daily budget</td>
+  <td>Public-API limiter is an in-memory per-process <code>Map</code>
+      (<code>public-api.middleware.ts:155</code>) — resets on deploy, wrong for
+      daily budgets. A Redis limiter already exists at
+      <code>infrastructure/redis/rate-limiter.ts</code>.</td>
+  <td>Per-minute limits reuse the in-memory pattern; <em>daily/hourly write
+      budgets</em> use Redis counters (§5.3).</td>
+</tr>
+<tr>
+  <td>Audit via <code>admin_audit</code></td>
+  <td>Exists and fits: <code>admin_audit_log.admin_id</code> is
+      <code>varchar(64)</code>, helper <code>adminAuditRepository.record()</code> is
+      best-effort/non-blocking (<code>admin-audit.repository.ts</code>).</td>
+  <td>Reuse as-is with <code>adminId = "apikey:&lt;id&gt;"</code>; add
+      <code>rationale</code> into the <code>after</code> jsonb. No new table.</td>
+</tr>
+<tr>
+  <td><code>geo.health</code> reuses <code>/api/admin/geogamers/health</code></td>
+  <td>Confirmed: route at <code>admin.routes.ts:3605</code> returns
+      <code>{eligibleGames, eligibleScreenshots, starved, minRequired, …}</code>;
+      eligibility = distinct games with ≥1 promoted meta on an active map, never
+      used as a challenge, not on cooldown
+      (<code>geogamers-challenge.repository.ts:105</code>).</td>
+  <td>Extract the aggregation into a service both routes call (§6 Phase 2), don't
+      duplicate the query.</td>
+</tr>
+</tbody>
+</table>
+
+<h2><span class="num">2</span>Target architecture</h2>
+
+<figure>
+<svg viewBox="0 0 680 400" role="img" aria-label="Trust flow: agent proposes through a scoped HTTP API into the existing consensus gate; only humans and consensus promote to canonical ground truth" style="width:100%;height:auto">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8b8b9e"/>
+    </marker>
+  </defs>
+  <!-- Agent box -->
+  <rect x="20" y="20" width="300" height="70" rx="8" fill="#12121a" stroke="#a855f7"/>
+  <text x="170" y="48" fill="#fff" font-size="13" text-anchor="middle">Agent (Claude Code / MCP client)</text>
+  <text x="170" y="70" fill="#8b8b9e" font-size="11" text-anchor="middle">admin-minted key · geo-agent:* scopes</text>
+  <!-- API surface -->
+  <rect x="20" y="130" width="300" height="86" rx="8" fill="#12121a" stroke="#26263a"/>
+  <text x="170" y="155" fill="#fff" font-size="13" text-anchor="middle">/api/agent/v1/geo (HTTP)</text>
+  <text x="170" y="175" fill="#8b8b9e" font-size="11" text-anchor="middle">scope check · Redis budgets · audit log</text>
+  <text x="170" y="195" fill="#fbbf24" font-size="11" text-anchor="middle">kill switch: GEO_AGENT_API_ENABLED</text>
+  <!-- Ingest -->
+  <rect x="20" y="256" width="140" height="64" rx="8" fill="#12121a" stroke="#26263a"/>
+  <text x="90" y="282" fill="#fff" font-size="12" text-anchor="middle">geoQueue</text>
+  <text x="90" y="300" fill="#8b8b9e" font-size="10" text-anchor="middle">existing ingest jobs</text>
+  <!-- Pins -->
+  <rect x="180" y="256" width="140" height="64" rx="8" fill="#12121a" stroke="#26263a"/>
+  <text x="250" y="276" fill="#fff" font-size="12" text-anchor="middle">geo_pin_submission</text>
+  <text x="250" y="293" fill="#ec4899" font-size="10" text-anchor="middle">source = agent_*</text>
+  <text x="250" y="308" fill="#8b8b9e" font-size="10" text-anchor="middle">weight ×0.6 / ×0.25</text>
+  <!-- Consensus gate -->
+  <rect x="380" y="130" width="280" height="110" rx="8" fill="#17171f" stroke="#fbbf24"/>
+  <text x="520" y="155" fill="#fbbf24" font-size="13" text-anchor="middle">THE GATE (unchanged path)</text>
+  <text x="520" y="178" fill="#d6d6e0" font-size="11" text-anchor="middle">geo-consensus.service · v3</text>
+  <text x="520" y="196" fill="#d6d6e0" font-size="11" text-anchor="middle">promote needs ≥5 accepted HUMAN pins</text>
+  <text x="520" y="214" fill="#d6d6e0" font-size="11" text-anchor="middle">or admin override (Geo Review panel)</text>
+  <!-- Ground truth -->
+  <rect x="380" y="290" width="280" height="64" rx="8" fill="#12121a" stroke="#34d399"/>
+  <text x="520" y="316" fill="#34d399" font-size="13" text-anchor="middle">geo_screenshot_meta</text>
+  <text x="520" y="336" fill="#8b8b9e" font-size="11" text-anchor="middle">canonical pin → eligible game → GeoGamers</text>
+  <!-- Arrows -->
+  <line x1="170" y1="90" x2="170" y2="130" stroke="#8b8b9e" marker-end="url(#arr)"/>
+  <line x1="90" y1="216" x2="90" y2="256" stroke="#8b8b9e" marker-end="url(#arr)"/>
+  <line x1="250" y1="216" x2="250" y2="256" stroke="#8b8b9e" marker-end="url(#arr)"/>
+  <line x1="320" y1="288" x2="380" y2="200" stroke="#8b8b9e" marker-end="url(#arr)"/>
+  <line x1="520" y1="240" x2="520" y2="290" stroke="#8b8b9e" marker-end="url(#arr)"/>
+  <text x="345" y="235" fill="#8b8b9e" font-size="10">votes</text>
+  <text x="527" y="268" fill="#8b8b9e" font-size="10">promote</text>
+</svg>
+<figcaption>Agent writes land as downweighted votes or queued ingest jobs.
+Nothing the agent does crosses the gate without ≥5 accepted human pins or an
+explicit admin action in the existing Geo Review panel.</figcaption>
+</figure>
+
+<p>Two deliberate simplifications vs. the issue:</p>
+<ul>
+  <li><strong>HTTP first, MCP as a thin wrapper.</strong> The capability surface is a
+      plain key-authenticated HTTP API (testable with curl, e2e-testable with
+      Playwright's request fixture). The MCP server is a ~200-line stdio wrapper
+      that maps tools 1:1 to endpoints — it holds no logic and no privileges of
+      its own, so a compromised/hallucinating MCP layer can't do anything the key
+      can't.</li>
+  <li><strong>No <code>geo.promote_pin</code> tool.</strong> Admin promotion already
+      exists (<code>POST /api/admin/geo/candidates/:id/override</code>, session-authed,
+      audited, with a purpose-built review UI). Re-exposing it behind an API key —
+      a bearer credential that can leak — only widens the blast radius.</li>
+</ul>
+
+<h2><span class="num">3</span>Design decisions</h2>
+
+<h3>3.1 Identity of an agent pin</h3>
+<p><code>geo_pin_submission.user_id</code> is NOT NULL with an FK to
+<code>user</code>, and uniqueness is <code>(user_id, candidate_id)</code>. Options:</p>
+<table>
+<thead><tr><th>Option</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>Synthetic "system user" per agent key</td>
+    <td>Rejected — pollutes user-facing joins (leaderboards, contributor stats,
+        Better Auth), and <code>geo_contributor_stats</code> / shadow-ban logic would
+        need agent carve-outs everywhere.</td></tr>
+<tr><td><b>Nullable <code>user_id</code> + <code>agent_key_id</code> FK + CHECK
+        (exactly one owner)</b></td>
+    <td><b>Chosen.</b> One migration; human paths unchanged (their
+        <code>user_id</code> stays NOT NULL in practice); agent pins are trivially
+        filterable; revoking the key orphans nothing.</td></tr>
+</tbody>
+</table>
+<p class="small">Contributor stats, tier promotion, token rewards, and shadow-ban
+(<code>geo-reward.service.ts</code>) apply only to pins with a <code>user_id</code> —
+agent pins earn nothing and can't be shadow-banned (they're governed by budgets +
+kill switch instead). <code>applyConsensus</code>'s <code>pinOwners</code> map simply
+skips ownerless pins, which it already tolerates.</p>
+
+<h3>3.2 Consensus: weights sharpen, humans promote</h3>
+<p>Extend the pure service (<code>geo-consensus.service.ts</code>) — no infra change:</p>
+<pre><code>export type GeoPinSource = 'human' | 'agent_structured' | 'agent_vision'
+
+export const GEO_CONSENSUS_SOURCE_WEIGHTS: Record&lt;GeoPinSource, number&gt; = {
+  human: 1.0,
+  agent_structured: 0.6,   // scraped marker coords, provenance attached
+  agent_vision: 0.25,      // LLM localization, experimental
+}
+
+// effective weight = confidenceWeight * sourceWeight
+// GeoPinLike gains: source?: GeoPinSource   (default 'human')
+
+// Promote gate (v3):
+//   humanAcceptedCount >= GEO_CONSENSUS_MIN_PINS_TO_PROMOTE (still 5)
+//   && confidence >= 0.5
+// Agent pins: contribute to centroid + sigma + confidence, NEVER to the count.
+
+export const GEO_CONSENSUS_VERSION = 3  // bump (was 2)</code></pre>
+<div class="callout ok">
+<strong>Why this rule:</strong> it preserves the exact property the issue asks for
+("machine writes can never directly mutate ground truth") as an <em>invariant of
+the math</em>, not a policy hope. Even 1,000 colluding agent pins cannot promote a
+candidate; they can only make the eventual human-driven consensus more precise —
+or get rejected as outliers by the existing 2σ filter. A property test asserts
+<code>promote === false</code> for any all-agent pin set (§8).</div>
+<p class="small">Note <code>consensus_version</code> is already persisted on
+<code>geo_screenshot_meta</code>, so v2/v3 metas stay distinguishable. Rejected-agent-pin
+ratios per key become a health metric (§9).</p>
+
+<h3>3.3 Key scopes &amp; minting</h3>
+<pre><code>// packages/types/src/index.ts — extend the union
+export type ApiKeyScope =
+  | 'read:public' | 'read:self' | 'stream:self' | 'webhooks:self'
+  | 'geo-agent:read'      // health, needing-content, candidates
+  | 'geo-agent:ingest'    // trigger existing ingest jobs
+  | 'geo-agent:propose'   // submit downweighted pins</code></pre>
+<ul>
+  <li>Minted <b>only</b> via a new admin route (<code>POST /api/admin/agent-keys</code>,
+      <code>adminMiddleware</code>, audited) — never via <code>streamer-keys.routes.ts</code>.
+      <code>apiKeyRepository.create()</code> already accepts a <code>scopes</code>
+      override, so the repo needs no change.</li>
+  <li>Geo-agent scopes and streamer scopes are mutually exclusive on one key
+      (validated at mint). A geo-agent key on the public streamer API gets
+      <code>INSUFFICIENT_SCOPE</code>, and vice versa.</li>
+  <li>Revocation = existing soft-revoke (<code>is_active=false</code>) — instant,
+      since <code>findByHash</code> filters on <code>is_active</code>.</li>
+  <li>Progressive trust: Phase 2 keys get <code>read</code> only; <code>ingest</code>
+      and <code>propose</code> are granted per key as later phases ship.</li>
+</ul>
+
+<h3>3.4 Budgets, limits, kill switch</h3>
+<table>
+<thead><tr><th>Control</th><th>Mechanism</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td>Global kill switch</td><td><code>env.GEO_AGENT_API_ENABLED</code> — checked per request; router also not mounted when false at boot</td><td><code>false</code></td></tr>
+<tr><td>Per-minute rate limit</td><td>reuse <code>createRateLimiter</code> pattern, keyed by key id</td><td>60/min</td></tr>
+<tr><td>Ingest budget</td><td>Redis counter <code>geo-agent:budget:ingest:&lt;keyId&gt;:&lt;utcDay&gt;</code> (reuse <code>infrastructure/redis/rate-limiter.ts</code>)</td><td><code>GEO_AGENT_MAX_INGESTS_PER_DAY=20</code></td></tr>
+<tr><td>Pin budget</td><td>Redis counter <code>geo-agent:budget:pins:&lt;keyId&gt;:&lt;utcHour&gt;</code></td><td><code>GEO_AGENT_MAX_PINS_PER_HOUR=60</code></td></tr>
+<tr><td>Vision passes per candidate</td><td><code>vision_pass</code> column cap (service-enforced)</td><td>3</td></tr>
+<tr><td>Per-source pause</td><td>existing <code>geo_source_config.is_enabled</code> + circuit breakers — unchanged</td><td>—</td></tr>
+</tbody>
+</table>
+<p class="small">Budgets live in Redis (not the in-memory Map) because they must
+survive deploys — a redeploy resetting the daily ingest budget would let a looping
+agent 10× its quota. 429 responses carry <code>Retry-After</code> like the public API.</p>
+
+<h2><span class="num">4</span>Schema — one migration (Phase 4)</h2>
+<pre><code>// packages/backend/migrations/2026MMDD_geo_agent_pins.ts
+alter table geo_pin_submission
+  alter column user_id drop not null,
+  add column source varchar(20) not null default 'human',
+      -- 'human' | 'agent_structured' | 'agent_vision'
+  add column agent_key_id integer null references api_keys(id),
+  add column agent_rationale varchar(500) null,
+  add column agent_model varchar(100) null,   -- e.g. model id for vision pins
+  add column vision_pass smallint not null default 0,
+  add constraint geo_pin_owner_check check (
+    (user_id is not null and agent_key_id is null and source = 'human') or
+    (user_id is null and agent_key_id is not null and source &lt;&gt; 'human')
+  );
+
+-- human uniqueness unchanged: (user_id, candidate_id)
+create unique index geo_pin_agent_uniq
+  on geo_pin_submission (agent_key_id, geo_screenshot_candidate_id, vision_pass)
+  where agent_key_id is not null;
+create index geo_pin_source_idx on geo_pin_submission (source)
+  where source &lt;&gt; 'human';</code></pre>
+<ul>
+  <li><code>geo_screenshot_meta.promoted_via</code> stays <code>consensus | admin</code> —
+      there is intentionally no <code>'agent'</code> value.</li>
+  <li>Down migration deletes agent pins, then restores NOT NULL — stated explicitly
+      in the file so a rollback is data-destructive by design, not by surprise.</li>
+  <li><code>GeoPinSubmissionRow</code> (<code>geo-pin.repository.ts:12</code>) and
+      <code>geoPinRepository.submit()</code> gain the new fields;
+      <code>listPendingByCandidate</code> starts selecting <code>source</code> so the
+      worker can feed it to <code>evaluateConsensus</code>.</li>
+</ul>
+
+<h2><span class="num">5</span>The agent API surface</h2>
+<p>New mount <code>/api/agent/v1/geo</code> (<code>agent-geo.routes.ts</code>) behind:
+<code>requireApiKey()</code> (reused) → <code>requireScope(…)</code> (new, wraps the
+existing <code>hasScope</code> helper) → budget middleware → Zod validation → audit.
+Envelope and error codes follow the public API (<code>UNAUTHORIZED</code>,
+<code>INSUFFICIENT_SCOPE</code>, <code>RATE_LIMITED</code>, <code>VALIDATION_ERROR</code> +
+new <code>BUDGET_EXHAUSTED</code>, <code>AGENT_API_DISABLED</code>).</p>
+
+<table>
+<thead><tr><th>Endpoint</th><th>Scope</th><th>Maps to (existing code)</th></tr></thead>
+<tbody>
+<tr><td><code>GET /health</code></td><td><code>geo-agent:read</code></td>
+    <td>shared service extracted from <code>admin.routes.ts:3605</code> (geogamers
+        health) + pipeline counts from <code>GET /api/admin/geo/health</code></td></tr>
+<tr><td><code>GET /games-needing-content</code></td><td><code>geo-agent:read</code></td>
+    <td>new query (§6 Phase 1) — same service the admin card uses</td></tr>
+<tr><td><code>GET /games/:gameId/candidates</code></td><td><code>geo-agent:read</code></td>
+    <td><code>geoScreenshotRepository.listCandidatesForReview</code> +
+        <code>geo-map.repository</code> (map image/dims so a proposer can localize)</td></tr>
+<tr><td><code>POST /games/:gameId/ingest</code><br>
+        <span class="small"><code>{ sources?: RunnableTier[] }</code></span></td>
+    <td><code>geo-agent:ingest</code></td>
+    <td><code>enqueueSingleTierImport(gameId, source)</code> /
+        <code>runGeoIngestTick(…, gameId)</code> from
+        <code>geo-ingest-tick-logic.ts</code> — queue-only, 202 + attempt ids</td></tr>
+<tr><td><code>POST /candidates/:id/pins</code><br>
+        <span class="small"><code>{ x, y, source, rationale, confidence?, model?, visionPass? }</code></span></td>
+    <td><code>geo-agent:propose</code></td>
+    <td><code>geoPinRepository.submit</code> → <code>incrementPinCount</code> →
+        <code>geoQueue.add('evaluate-consensus', …)</code> — the <em>identical</em>
+        path as <code>POST /api/geo/contribute/pin</code>
+        (<code>geo.routes.ts:132</code>), minus rewards/first-pin bonus</td></tr>
+</tbody>
+</table>
+<p class="small">Deliberately absent: promote/override, candidate reject/demote, map
+selection, user or PII reads, raw SQL, file access. Responses never include other
+users' identities — candidate payloads carry pin <em>counts</em>, not pin owners.</p>
+
+<h3>Every call audited</h3>
+<pre><code>adminAuditRepository.record({
+  adminId: `apikey:${req.apiKey.id}`,          // varchar(64) — fits
+  action:  'geo-agent.propose_pin',            // or .ingest / .read is NOT logged
+  targetKind: 'geo_screenshot_candidate',
+  targetId: String(candidateId),
+  after: { x, y, source, rationale, model },
+  requestId, ip,
+})</code></pre>
+<p class="small">Reads are rate-limited but not audit-logged (volume). Writes always
+are. <code>listRecent({ adminId: 'apikey:…' })</code> makes the existing admin audit
+view filterable per key with zero UI work.</p>
+
+<h2><span class="num">6</span>Phased delivery</h2>
+
+<div class="phase">
+<h3>Phase 1 — "one pin away" diagnostic <span class="badge ship">ship now · S</span></h3>
+<p>No agent, no keys — immediately unblocks manual pinning toward the 10-game gate
+(prod is at 9/10).</p>
+<ul>
+  <li><code>GET /api/admin/geo/games-needing-content</code> — games with an active map
+      and ≥1 non-promoted candidate, no eligible meta; per game:
+      <code>{ gameId, name, candidateCount, topPinCount, pinsToNextThreshold,
+      bestCandidateId }</code>, sorted by <code>topPinCount</code> desc (closest to
+      the next <code>GEO_CONSENSUS_THRESHOLDS</code> recompute first).
+      <code>pinsToNextThreshold = nextThreshold(topPinCount) − topPinCount</code>.</li>
+  <li>Admin card next to <code>GeoGamersHealthCard</code> in the Géo tab: top-10 list,
+      deep-links into <code>GeoReviewQueue</code> (admin can promote via the existing
+      override) and to <code>/geo/contribute</code>.</li>
+  <li>Also surface <code>gamesOnCooldown</code> context: a game can be "eligible-blocked"
+      purely by challenge cooldown — distinguish that from "needs pins".</li>
+</ul>
+<p class="files"><b>Files:</b> admin.routes.ts (route + query via
+geo-screenshot.repository summarize/new method) · components/admin/GeoNeedingContentCard.tsx ·
+hooks/useGeoHealth.ts (extend) · e2e/geo-admin.spec.ts · docs/geo-mode.md</p>
+</div>
+
+<div class="phase">
+<h3>Phase 2 — key scopes + read-only surface <span class="badge ship">M</span></h3>
+<ul>
+  <li>Extend <code>ApiKeyScope</code> (types package — rebuild), add
+      <code>requireScope()</code> middleware, enforce on new routes.</li>
+  <li>Admin mint/revoke: <code>POST/GET/DELETE /api/admin/agent-keys</code> + a small
+      panel section (label, scopes checkboxes, plaintext shown once — same UX as
+      streamer keys). Mutual-exclusion validation with streamer scopes.</li>
+  <li>Mount <code>/api/agent/v1/geo</code> with the three <b>read</b> endpoints;
+      <code>GEO_AGENT_API_ENABLED</code> flag (default false) in <code>env.ts</code>.</li>
+  <li>Extract shared geogamers-health service so admin + agent routes share one query.</li>
+  <li>MCP wrapper: <code>packages/geo-agent-mcp</code> — stdio server, tools
+      <code>geo_health</code> / <code>geo_games_needing_content</code> /
+      <code>geo_list_candidates</code>, key via <code>THE_BOX_AGENT_KEY</code> env.
+      README with a Claude Code <code>mcpServers</code> snippet.</li>
+</ul>
+<p class="files"><b>Files:</b> types/src/index.ts · presentation/middleware/agent-api.middleware.ts ·
+presentation/routes/agent-geo.routes.ts · admin.routes.ts · config/env.ts ·
+packages/geo-agent-mcp/* · docs/geo-agent-api.md (new)</p>
+</div>
+
+<div class="phase">
+<h3>Phase 3 — ingest trigger <span class="badge ship">S</span></h3>
+<ul>
+  <li><code>POST /games/:gameId/ingest</code> behind <code>geo-agent:ingest</code> +
+      Redis daily budget. Pure enqueue — reuses tick logic, circuit breakers,
+      <code>geo_source_config</code>, dedup, and license/attribution capture untouched.</li>
+  <li>Source allowlist = <code>RunnableTier</code> ∩ <code>geo_source_config.is_enabled</code>;
+      anything else → <code>VALIDATION_ERROR</code>. The agent cannot add sources.</li>
+  <li>Response includes <code>geo_ingest_attempt</code> correlation ids so the agent can
+      poll outcomes via the read surface (add attempts to the candidates/health reads).</li>
+</ul>
+<p class="files"><b>Files:</b> agent-geo.routes.ts · geo-ingest-tick-logic.ts (export reuse only) ·
+infrastructure/redis budget helper · MCP tool geo_ingest_game</p>
+</div>
+
+<div class="phase">
+<h3>Phase 4 — pin proposals, structured tier <span class="badge gate">L · design-gated</span></h3>
+<ul>
+  <li>Migration §4 + consensus v3 (§3.2) + repo/worker plumbing
+      (<code>submit</code>, <code>listPendingByCandidate</code> → pass <code>source</code>).</li>
+  <li><code>POST /candidates/:id/pins</code> behind <code>geo-agent:propose</code> +
+      hourly budget. <code>rationale</code> required (≤500 chars) — it is the review
+      artifact.</li>
+  <li>Geo Review UI: source filter on <code>GeoReviewQueue</code>; agent pins rendered
+      in a distinct color on the <code>GeoReviewPanel</code> map with
+      rationale/model tooltip; count badge "N agent pins" on candidate rows.</li>
+  <li><b>Structured-coordinate extraction is scoped as its own worker</b>
+      (<code>maps-fetch-mapgenie</code> phase-2 crawler slot): crawl marker JSON,
+      normalize provider coords → the map's [0,1] space (per-map affine calibration,
+      stored alongside the map row), and — the hard part — match screenshots to
+      landmarks. First target: sources where the <em>screenshot itself</em> carries
+      location context (wiki location-page images), not generic landmark lists.
+      If association confidence is low, the agent should <em>not</em> pin — precision
+      over recall; a wrong structured pin at weight 0.6 poisons a centroid.</li>
+</ul>
+<p class="files"><b>Files:</b> migrations/2026MMDD_geo_agent_pins.ts · geo-consensus.service.ts (+tests) ·
+geo-pin.repository.ts · geo-consensus-logic.ts · geo-reward.service.ts (skip ownerless) ·
+agent-geo.routes.ts · GeoReviewQueue.tsx / GeoReviewPanel.tsx · docs/geo-mode.md</p>
+</div>
+
+<div class="phase">
+<h3>Phase 5 — vision proposer <span class="badge risk">M · accuracy-gated</span></h3>
+<ul>
+  <li><b>Study before write access:</b> offline harness
+      <code>packages/backend/scripts/geo-vision-eval.ts</code> — sample K≥50 promoted
+      metas (known ground truth), run vision localization (screenshot + map image),
+      report median normalized distance, % within <code>consensus_radius</code>
+      (default 0.03), and % within 0.1. <b>Enable bar:</b> ≥40% within radius and
+      median &lt; 0.1; below that, vision pins add noise even at weight 0.25 —
+      skip the tier, keep structured-only.</li>
+  <li>If passed: <code>source='agent_vision'</code>, up to 3 independent passes per
+      candidate (<code>vision_pass</code> 0..2, different prompt seeds), each a
+      separate 0.25-weight voter so the 2σ filter can discard disagreeing passes.</li>
+  <li>Track per-key rejected-ratio; auto-pause proposals from a key whose 7-day
+      rejection ratio exceeds the human shadow-ban bar (0.6) — same philosophy,
+      budget-level enforcement.</li>
+</ul>
+<p class="files"><b>Files:</b> scripts/geo-vision-eval.ts · agent-geo.routes.ts (allow source=vision) ·
+budget/pause helper · docs/geo-agent-api.md (published accuracy numbers)</p>
+</div>
+
+<div class="phase">
+<h3>Phase 6 — backfill discovery worker <span class="badge ship">M</span></h3>
+<ul>
+  <li>New <code>GeoJobData</code> kind <code>backfill-tick</code>: rank games by
+      "distance to eligibility" (has map? has candidates? top pin count?) using the
+      Phase-1 query, then enqueue ingest for the top N <em>sub-threshold</em> games —
+      inverting today's tick, which tops up already-resolved games to 30 candidates.</li>
+  <li>Steady-state automation of what the external agent does exploratively; no LLM
+      in-process — it reuses the same ranked query + ingest path. Cron-registered
+      like other geo jobs, off by default (<code>GEO_BACKFILL_ENABLED</code>).</li>
+</ul>
+<p class="files"><b>Files:</b> queues.ts (kind) · workers/geo-backfill-logic.ts ·
+geo.worker.ts router · env.ts</p>
+</div>
+
+<h2><span class="num">7</span>Security &amp; governance checklist (from #331, made concrete)</h2>
+<table>
+<thead><tr><th>#331 item</th><th>Concrete mechanism</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td>geo-agent scope, revocable, never superuser</td>
+    <td>3 granular scopes (§3.3); admin-only mint; mutual exclusion with streamer
+        scopes; soft-revoke is instant</td><td>2</td></tr>
+<tr><td>Per-tool rate limits + global budget</td>
+    <td>60/min per key (in-memory) + Redis daily/hourly write budgets (§3.4)</td><td>2–4</td></tr>
+<tr><td>All calls in admin audit with key id + rationale</td>
+    <td><code>adminId='apikey:&lt;id&gt;'</code>, rationale in <code>after</code> jsonb;
+        writes always logged</td><td>2</td></tr>
+<tr><td>Machine pins flagged + downweighted, visible in review</td>
+    <td><code>source</code> column, ×0.6/×0.25 weights, <b>excluded from promote
+        count</b> (stronger than downweighting), review-UI filter + map color</td><td>4</td></tr>
+<tr><td>No raw SQL / fs / secrets / PII</td>
+    <td>Five endpoints total, all repo-backed; candidate payloads carry counts not
+        owners; keys hashed at rest (existing)</td><td>2</td></tr>
+<tr><td>Kill switch</td>
+    <td><code>GEO_AGENT_API_ENABLED</code> checked per request + key revocation +
+        existing <code>geo_source_config</code> per-source disable</td><td>2</td></tr>
+<tr><td>Licensing / source allowlist</td>
+    <td>Ingest restricted to <code>RunnableTier</code> ∩ enabled sources; license /
+        attribution capture unchanged on <code>geo_map</code>; agent cannot register
+        new sources</td><td>3</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">8</span>Test plan</h2>
+<ul>
+  <li><b>Unit (node test runner):</b> consensus v3 — property test: any pin set with
+      &lt;5 accepted human pins ⇒ <code>promote=false</code> regardless of agent pins;
+      weight composition (confidence × source); 2σ rejection of a deliberately wrong
+      agent pin; version bump. Budget counter math (UTC day/hour rollover). Scope
+      middleware matrix (each endpoint × each scope × disabled flag).</li>
+  <li><b>Route tests:</b> mint/revoke agent keys admin-only; streamer key rejected on
+      agent routes with <code>INSUFFICIENT_SCOPE</code>; propose-pin path increments
+      <code>pin_count</code> and enqueues <code>evaluate-consensus</code> only at
+      thresholds; no rewards/contributor mutation for agent pins.</li>
+  <li><b>E2E (Playwright):</b> Phase 1 card renders + deep-links (extend
+      <code>geo-admin.spec.ts</code>); Geo Review shows/filters agent pins;
+      admin key panel mint flow (plaintext shown once).</li>
+  <li><b>Offline:</b> vision eval harness output committed to the PR that proposes
+      enabling Phase 5 — the numbers are the review artifact.</li>
+</ul>
+
+<h2><span class="num">9</span>Metrics &amp; rollout</h2>
+<ul>
+  <li><b>North star:</b> <code>eligibleGames</code> (already on the health endpoint) —
+      the 10-game gate is the whole point.</li>
+  <li>Per key: proposals, accepted/rejected ratio, promoted-with-agent-participation
+      count (join meta → candidate → agent pins), budget exhaustions — derivable from
+      audit log + pin table; add to the admin health card in Phase 4.</li>
+  <li>Rollout: each phase ships dark behind its flag; Phase 4+ enables on one
+      hand-picked game first; revert path = kill switch + (worst case)
+      <code>DELETE FROM geo_pin_submission WHERE source &lt;&gt; 'human'</code> —
+      ground truth is untouchable by construction, so recovery never involves
+      <code>geo_screenshot_meta</code>.</li>
+</ul>
+
+<h2><span class="num">10</span>Open questions from #331 — resolved</h2>
+<table>
+<thead><tr><th>Question</th><th>Resolution</th></tr></thead>
+<tbody>
+<tr><td>Where does the agent run?</td>
+    <td>Both, sequenced: external (Claude Code + MCP key) for exploration in Phases
+        2–5; the in-app Phase-6 worker takes over steady-state backfill with no LLM
+        in-process. The HTTP surface is identical for both, so nothing is rebuilt.</td></tr>
+<tr><td>Is vision good enough even as a downweighted voter?</td>
+    <td>Empirical gate with published numbers (§ Phase 5): ≥40% within consensus
+        radius and median &lt; 0.1 on ≥50 known metas, else the tier stays off.
+        Not a judgment call.</td></tr>
+<tr><td>Ever auto-promote high-confidence structured pins?</td>
+    <td><b>No — removed from the design.</b> Promotion is human-count-gated in the
+        math (§3.2) or explicit admin action. If structured pins prove extremely
+        accurate, the cheap lever is raising their weight (sharper centroids →
+        faster human-driven promotion), never bypassing the gate.</td></tr>
+</tbody>
+</table>
+
+<p class="small" style="margin-top:3rem">Sources: <code>geo-consensus.service.ts</code>,
+<code>geo-reward.service.ts</code>, <code>geo-pin.repository.ts</code>,
+<code>geo-screenshot.repository.ts</code>, <code>geogamers-challenge.repository.ts</code>,
+<code>geo-ingest-tick-logic.ts</code>, <code>maps-fetch-mapgenie.ts</code>,
+<code>geo-wand-import-logic.ts</code>, <code>api-key.repository.ts</code>,
+<code>public-api.middleware.ts</code>, <code>admin-audit.repository.ts</code>,
+<code>admin.routes.ts</code>, migrations <code>20260419/20260503/20260504/20260508/20260518/20260522</code>,
+<code>docs/geo-mode.md</code>, <code>docs/geogamers.md</code>, <code>docs/public-api.md</code>.</p>
+</main>

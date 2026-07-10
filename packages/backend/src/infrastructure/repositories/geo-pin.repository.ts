@@ -2,6 +2,7 @@ import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
 import type {
   GeoPinConfidence,
+  GeoPinSource,
   GeoPinStatus,
   GeoPinSubmission,
   GeoPoint,
@@ -11,13 +12,19 @@ const log = repoLogger.child({ repository: 'geo-pin' })
 
 export interface GeoPinSubmissionRow {
   id: number
-  user_id: string
+  // Null for agent-proposed pins (see the 20260710_geo_agent_pins migration).
+  user_id: string | null
   geo_screenshot_candidate_id: number
   x: number
   y: number
   status: GeoPinStatus
   confidence: number | null
   is_anonymous: boolean
+  source: GeoPinSource
+  agent_key_id: number | null
+  agent_rationale: string | null
+  agent_model: string | null
+  vision_pass: number
   distance_from_centroid: number | null
   reviewed_at: Date | null
   created_at: Date
@@ -38,6 +45,10 @@ function mapPin(row: GeoPinSubmissionRow): GeoPinSubmission {
     status: row.status,
     confidence,
     isAnonymous: row.is_anonymous === true,
+    source: row.source ?? 'human',
+    agentRationale: row.agent_rationale ?? undefined,
+    agentModel: row.agent_model ?? undefined,
+    visionPass: row.vision_pass ?? undefined,
     distanceFromCentroid: row.distance_from_centroid ?? undefined,
     reviewedAt: row.reviewed_at?.toISOString(),
     createdAt: row.created_at.toISOString(),
@@ -77,6 +88,56 @@ export const geoPinRepository = {
       .returning<GeoPinSubmissionRow[]>('*')
 
     return row ? mapPin(row) : null
+  },
+
+  /**
+   * Submit an AGENT-proposed pin (issue #331). No user — owned by a geo-agent
+   * API key, flagged by `source`, and downweighted in consensus. The unique
+   * partial index (agent_key_id, candidate, vision_pass) means a duplicate
+   * proposal is a benign no-op (returns null) rather than an error, mirroring
+   * the human path's ON CONFLICT DO NOTHING.
+   */
+  async submitAgent(data: {
+    agentKeyId: number
+    geoScreenshotCandidateId: number
+    pin: GeoPoint
+    source: Exclude<GeoPinSource, 'human'>
+    rationale: string
+    model?: string
+    confidence?: GeoPinConfidence
+    visionPass?: number
+  }): Promise<GeoPinSubmission | null> {
+    log.info(
+      {
+        agentKeyId: data.agentKeyId,
+        candidateId: data.geoScreenshotCandidateId,
+        source: data.source,
+      },
+      'submit agent pin',
+    )
+    try {
+      const [row] = await db('geo_pin_submission')
+        .insert({
+          user_id: null,
+          agent_key_id: data.agentKeyId,
+          geo_screenshot_candidate_id: data.geoScreenshotCandidateId,
+          x: data.pin.x,
+          y: data.pin.y,
+          confidence: data.confidence ?? null,
+          is_anonymous: false,
+          source: data.source,
+          agent_rationale: data.rationale,
+          agent_model: data.model ?? null,
+          vision_pass: data.visionPass ?? 0,
+        })
+        .returning<GeoPinSubmissionRow[]>('*')
+      return row ? mapPin(row) : null
+    } catch (err) {
+      // 23505 = unique_violation on the partial agent index → duplicate
+      // proposal for this (key, candidate, pass). Treat as a benign no-op.
+      if ((err as { code?: string }).code === '23505') return null
+      throw err
+    }
   },
 
   async listByCandidate(candidateId: number): Promise<GeoPinSubmission[]> {

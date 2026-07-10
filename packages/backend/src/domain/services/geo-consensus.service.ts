@@ -1,10 +1,11 @@
 import type { DomainLogger } from '../ports/logger.js'
-import type { GeoPinConfidence, GeoPoint, GeoPinStatus } from '@the-box/types'
+import type { GeoPinConfidence, GeoPinSource, GeoPoint, GeoPinStatus } from '@the-box/types'
 
 // Pin count thresholds at which the consensus worker should recompute.
 export const GEO_CONSENSUS_THRESHOLDS = [5, 10, 20, 50] as const
 
-// Minimum pins required before we can promote a candidate to canonical.
+// Minimum accepted HUMAN pins required before we can promote a candidate to
+// canonical. Agent pins never count toward this — see GEO_CONSENSUS_VERSION 3.
 export const GEO_CONSENSUS_MIN_PINS_TO_PROMOTE = 5
 
 // Pins farther than this many standard deviations from the centroid are
@@ -12,9 +13,31 @@ export const GEO_CONSENSUS_MIN_PINS_TO_PROMOTE = 5
 export const GEO_CONSENSUS_SIGMA_MULTIPLIER = 2
 
 // Current consensus algorithm version; bumped alongside formula changes so a
-// retroactive re-run can distinguish old vs new decisions. v2 introduces
-// confidence-weighted centroid + variance.
-export const GEO_CONSENSUS_VERSION = 2
+// retroactive re-run can distinguish old vs new decisions. v2 introduced
+// confidence-weighted centroid + variance. v3 (issue #331) adds source-weighted
+// contributions AND makes the promote gate count only accepted HUMAN pins, so
+// machine-proposed pins can sharpen the centroid but can never promote ground
+// truth on their own.
+export const GEO_CONSENSUS_VERSION = 3
+
+// Multiplicative weight by pin provenance, composed with the confidence weight.
+// Human pins count fully; scraped structured-coordinate pins are downweighted;
+// experimental vision pins count least. Missing source is treated as 'human'
+// (legacy rows / the crowd path), preserving pre-v3 behaviour on human data.
+export const GEO_CONSENSUS_SOURCE_WEIGHTS: Record<GeoPinSource, number> = {
+  human: 1.0,
+  agent_structured: 0.6,
+  agent_vision: 0.25,
+}
+
+function sourceWeight(source: GeoPinSource | undefined): number {
+  if (source == null) return 1.0
+  return GEO_CONSENSUS_SOURCE_WEIGHTS[source]
+}
+
+function isHuman(source: GeoPinSource | undefined): boolean {
+  return source == null || source === 'human'
+}
 
 // Self-reported confidence buckets translate to multiplicative weights on
 // the pin's contribution to centroid + variance. "Sure" pins count
@@ -28,15 +51,41 @@ export const GEO_CONSENSUS_CONFIDENCE_WEIGHTS: Record<GeoPinConfidence, number> 
   3: 0.33,
 }
 
-function weightFor(confidence: GeoPinConfidence | undefined): number {
+function confidenceWeight(confidence: GeoPinConfidence | undefined): number {
   if (confidence == null) return 1.0
   return GEO_CONSENSUS_CONFIDENCE_WEIGHTS[confidence]
+}
+
+// Effective contribution weight = confidence weight × source weight. A pin's
+// pull on the centroid/variance scales with both how sure the author claimed to
+// be and how much we trust that class of author.
+function weightFor(
+  confidence: GeoPinConfidence | undefined,
+  source: GeoPinSource | undefined,
+): number {
+  return confidenceWeight(confidence) * sourceWeight(source)
+}
+
+/**
+ * How many more pins a candidate needs before the consensus worker's next
+ * recompute could promote it. Recompute only fires at GEO_CONSENSUS_THRESHOLDS
+ * ([5, 10, 20, 50]); once a candidate is past the top threshold, further pins
+ * won't trigger a new recompute, so this returns 0. A negative or zero input
+ * targets the first threshold. Powers the admin "one pin away" diagnostic; note
+ * it counts raw submissions, not accepted pins, so it's an upper-bound signal.
+ */
+export function pinsToNextConsensusThreshold(pinCount: number): number {
+  const next = GEO_CONSENSUS_THRESHOLDS.find((t) => t > pinCount)
+  return next === undefined ? 0 : next - pinCount
 }
 
 export interface GeoPinLike {
   id: number
   pin: GeoPoint
   confidence?: GeoPinConfidence
+  // Provenance; defaults to 'human' when omitted. Agent sources are
+  // downweighted and excluded from the promote count.
+  source?: GeoPinSource
 }
 
 export interface GeoConsensusDecision {
@@ -50,6 +99,9 @@ export interface GeoConsensusResult {
   sigmaX: number
   sigmaY: number
   acceptedCount: number
+  // Accepted pins whose source is human. This — not acceptedCount — gates
+  // promotion, so agent pins can never carry a candidate over the line.
+  humanAcceptedCount: number
   rejectedCount: number
   decisions: GeoConsensusDecision[]
   promote: boolean
@@ -60,13 +112,14 @@ export interface GeoConsensusResult {
 /**
  * Compute weighted mean/σ on each axis and mark pins outside σ-multiplier
  * * σ OR outside the map's consensus radius as rejected. Promotion to
- * canonical requires ≥ min-pins AND a tight enough cluster (confidence
- * > 0.5).
+ * canonical requires ≥ min-pins accepted HUMAN pins AND a tight enough
+ * cluster (confidence > 0.5) — agent pins never count toward that gate.
  *
- * Each pin contributes proportionally to its self-reported confidence:
- * "sure" (1.0), "approx" (0.66), "guess" (0.33). Pins without a
- * recorded confidence count fully — preserving v1 behaviour for the
- * historical dataset and for contributors who skip the chip.
+ * Each pin contributes proportionally to its self-reported confidence
+ * ("sure" 1.0, "approx" 0.66, "guess" 0.33) times its source weight
+ * (human 1.0, agent_structured 0.6, agent_vision 0.25). Pins without a
+ * recorded confidence/source count as sure/human — preserving pre-v3
+ * behaviour for the historical dataset and the crowd path.
  *
  * Cluster confidence is a bounded, interpretable signal: 1 when all
  * pins sit on top of each other, 0 when the spread equals the map's
@@ -83,6 +136,7 @@ export function evaluateConsensus(
       sigmaX: 0,
       sigmaY: 0,
       acceptedCount: 0,
+      humanAcceptedCount: 0,
       rejectedCount: 0,
       decisions: [],
       promote: false,
@@ -91,14 +145,13 @@ export function evaluateConsensus(
     }
   }
 
-  // Weighted centroid. Total weight is also the divisor for variance,
-  // so a "guess"-only cluster has the same shape as the equivalent
-  // "sure" cluster — the weights only matter when confidences are mixed.
+  // Weighted centroid. Weight = confidence × source, so agent pins pull the
+  // centroid less than human pins (and low-confidence pins less than sure ones).
   let sumW = 0
   let sumWX = 0
   let sumWY = 0
-  for (const { pin, confidence } of pins) {
-    const w = weightFor(confidence)
+  for (const { pin, confidence, source } of pins) {
+    const w = weightFor(confidence, source)
     sumW += w
     sumWX += w * pin.x
     sumWY += w * pin.y
@@ -112,8 +165,8 @@ export function evaluateConsensus(
 
   let sqX = 0
   let sqY = 0
-  for (const { pin, confidence } of pins) {
-    const w = weightFor(confidence)
+  for (const { pin, confidence, source } of pins) {
+    const w = weightFor(confidence, source)
     const dx = pin.x - meanX
     const dy = pin.y - meanY
     sqX += w * dx * dx
@@ -127,9 +180,10 @@ export function evaluateConsensus(
 
   const decisions: GeoConsensusDecision[] = []
   let accepted = 0
+  let humanAccepted = 0
   let rejected = 0
 
-  for (const { id, pin } of pins) {
+  for (const { id, pin, source } of pins) {
     const dx = pin.x - meanX
     const dy = pin.y - meanY
     const distance = Math.sqrt(dx * dx + dy * dy)
@@ -140,21 +194,29 @@ export function evaluateConsensus(
     const outsideRadius = distance > mapConsensusRadius
 
     const status: GeoPinStatus = outsideSigma || outsideRadius ? 'rejected' : 'accepted'
-    if (status === 'accepted') accepted++
-    else rejected++
+    if (status === 'accepted') {
+      accepted++
+      if (isHuman(source)) humanAccepted++
+    } else {
+      rejected++
+    }
 
     decisions.push({ pinId: id, status, distanceFromCentroid: distance })
   }
 
   const spread = Math.max(sigmaX, sigmaY)
   const confidence = Math.max(0, 1 - spread / Math.max(mapConsensusRadius, 1e-6))
-  const promote = accepted >= GEO_CONSENSUS_MIN_PINS_TO_PROMOTE && confidence >= 0.5
+  // Promote gate counts HUMAN accepted pins only. This is the #331 invariant:
+  // however many agent pins pile up, a candidate can never promote without the
+  // crowd (or an admin override) — machine writes sharpen, never decide.
+  const promote = humanAccepted >= GEO_CONSENSUS_MIN_PINS_TO_PROMOTE && confidence >= 0.5
 
   return {
     centroid: { x: meanX, y: meanY },
     sigmaX,
     sigmaY,
     acceptedCount: accepted,
+    humanAcceptedCount: humanAccepted,
     rejectedCount: rejected,
     decisions,
     promote,

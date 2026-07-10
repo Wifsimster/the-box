@@ -3,9 +3,8 @@ import { z } from 'zod'
 import { adminService, jobService } from '../../domain/services/index.js'
 import { billingService } from '../../domain/services/index.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
-import { geoGamersChallengeRepository } from '../../infrastructure/repositories/geogamers-challenge.repository.js'
-import { geoGamersSeasonRepository } from '../../infrastructure/repositories/geogamers-season.repository.js'
 import { createGeoGamersChallenge } from '../../infrastructure/queue/workers/geogamers-challenge-logic.js'
+import { getGeoGamersHealthSnapshot } from '../../infrastructure/geogamers-health.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
 import {
@@ -47,7 +46,10 @@ import {
   emailLogRepository,
 } from '../../infrastructure/repositories/index.js'
 import { GEO_CONSENSUS_VERSION } from '../../domain/services/index.js'
-import { evaluateConsensus } from '../../domain/services/geo-consensus.service.js'
+import {
+  evaluateConsensus,
+  pinsToNextConsensusThreshold,
+} from '../../domain/services/geo-consensus.service.js'
 import { isMapEligibleByGenre } from '../../domain/services/geo-metadata.service.js'
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { findRegistryEntryBySlug } from '../../infrastructure/queue/workers/geo-registry-import-logic.js'
@@ -1807,6 +1809,27 @@ router.get('/geo/candidates/by-game', async (req, res, next) => {
   }
 })
 
+// GET /api/admin/geo/games-needing-content — the "one pin away" diagnostic.
+// Games with an active map and captures collecting pins but no canonical pin
+// yet: promoting one of their candidates makes the game eligible for GeoGamers.
+// Sorted so the games closest to the next consensus recompute come first, which
+// is where pinning effort moves the eligible-count needle. Complements the
+// GeoGamers health card (which shows the aggregate count but not *which* games).
+router.get('/geo/games-needing-content', async (req, res, next) => {
+  try {
+    const rawLimit = Number(req.query.limit)
+    const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.trunc(rawLimit))) : 25
+    const rows = await geoScreenshotRepository.listGamesNeedingContent(limit)
+    const data = rows.map((r) => ({
+      ...r,
+      pinsToNextThreshold: pinsToNextConsensusThreshold(r.topPinCount),
+    }))
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/geo/candidates', async (req, res, next) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status : undefined
@@ -1930,7 +1953,7 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
         return
       }
       const consensus = evaluateConsensus(
-        pins.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence })),
+        pins.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence, source: p.source })),
         map.consensusRadius,
       )
       canonicalX = consensus.centroid.x
@@ -3604,39 +3627,10 @@ router.post('/scraping/reset', async (req, res, next) => {
 // challenge and the current season's player count.
 router.get('/geogamers/health', async (_req, res, next) => {
   try {
-    const enabled = env.GEOGAMERS_ENABLED === 'true'
-    const minRequired = Number(env.GEOGAMERS_MIN_ELIGIBLE_GAMES) || 10
-    const cooldownDays = Number(env.GEOGAMERS_GAME_COOLDOWN_DAYS) || 14
-
-    const today = new Date().toISOString().slice(0, 10)
-    const [todayChallenge, current, cooldownGameIds] = await Promise.all([
-      geoGamersChallengeRepository.findByDate(today),
-      geoGamersChallengeRepository.findCurrent(),
-      geoGamersChallengeRepository.gameIdsUsedSince(cooldownDays),
-    ])
-
-    const eligible = await geoGamersChallengeRepository.listEligibleMetas({ cooldownGameIds })
-    const eligibleGames = new Set(eligible.map((e) => e.gameId)).size
-    const eligibleScreenshots = eligible.length
-
-    const month = geoGamersSeasonRepository.currentSeasonMonth()
-    const seasonPlayers = await geoGamersSeasonRepository.playerCount(month)
-
-    res.json({
-      success: true,
-      data: {
-        enabled,
-        minRequired,
-        cooldownDays,
-        eligibleGames,
-        eligibleScreenshots,
-        gamesOnCooldown: cooldownGameIds.length,
-        starved: eligibleGames < minRequired,
-        todayChallengeExists: !!todayChallenge,
-        currentChallengeDate: current?.challengeDate ?? null,
-        season: { month, players: seasonPlayers },
-      },
-    })
+    // Shared with the agent read surface (/api/agent/v1/geo/health) so the
+    // eligibility query lives in one place.
+    const data = await getGeoGamersHealthSnapshot()
+    res.json({ success: true, data })
   } catch (err) {
     next(err)
   }

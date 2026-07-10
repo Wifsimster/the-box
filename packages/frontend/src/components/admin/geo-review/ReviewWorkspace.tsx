@@ -123,6 +123,7 @@ export function ReviewWorkspace({
                 className="flex-1 space-y-3 p-4 sm:p-6 pt-0 sm:pt-0"
                 aria-busy={saving}
             >
+                {detail && <AgentPinsNotice pins={detail.pins} />}
                 <CompareBody
                     detail={detail}
                     pin={pin}
@@ -140,6 +141,39 @@ export function ReviewWorkspace({
                 />
             )}
         </Card>
+    )
+}
+
+// Surfaces machine-proposed pins (issue #331) to the moderator: which pins came
+// from an agent, their source tier, and the required rationale. Agent pins are
+// downweighted in consensus and never promote on their own, so this is context
+// for the human decision, not an action. Renders nothing when there are none.
+function AgentPinsNotice({ pins }: { pins: GeoPinSubmission[] }) {
+    const agentPins = pins.filter((p) => p.source && p.source !== 'human')
+    if (agentPins.length === 0) return null
+    return (
+        <div className="rounded-lg border border-neon-pink/40 bg-neon-pink/5 p-3 text-xs space-y-1.5">
+            <div className="font-semibold text-neon-pink">
+                {agentPins.length} pin{agentPins.length > 1 ? 's' : ''} proposé
+                {agentPins.length > 1 ? 's' : ''} par un agent (pondération réduite, jamais
+                promu automatiquement)
+            </div>
+            <ul className="space-y-1">
+                {agentPins.map((p) => (
+                    <li key={p.id} className="text-muted-foreground">
+                        <span className="font-mono">
+                            {p.source === 'agent_vision' ? 'vision' : 'structured'}
+                            {p.agentModel ? ` · ${p.agentModel}` : ''}
+                        </span>
+                        {p.agentRationale ? ` — ${p.agentRationale}` : ''}{' '}
+                        <span className="opacity-60">
+                            ({p.pin.x.toFixed(3)}, {p.pin.y.toFixed(3)}
+                            {p.status !== 'pending' ? ` · ${p.status}` : ''})
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </div>
     )
 }
 

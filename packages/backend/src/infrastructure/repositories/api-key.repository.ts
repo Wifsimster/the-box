@@ -1,6 +1,11 @@
 import crypto from 'node:crypto'
 import { db } from '../database/connection.js'
-import type { ApiKeyMode, ApiKeyScope, ApiKeySummary } from '@the-box/types'
+import { GEO_AGENT_SCOPES, type ApiKeyMode, type ApiKeyScope, type ApiKeySummary } from '@the-box/types'
+
+// Postgres text[] literal of the geo-agent scopes, e.g. `{geo-agent:read,…}`.
+// Used with the array-overlap operator (`&&`) to find/act on agent keys
+// regardless of which admin minted them.
+const GEO_AGENT_SCOPES_PG_ARRAY = `{${GEO_AGENT_SCOPES.join(',')}}`
 
 // Single source of truth for the plaintext format. Keys look like
 //   tb_pk_live_<43-char-base64url>
@@ -107,6 +112,32 @@ export const apiKeyRepository = {
       .andWhere('user_id', userId)
       .first<ApiKeyRow>()
     return row ?? null
+  },
+
+  /**
+   * All keys carrying any geo-agent:* scope, regardless of the minting admin —
+   * the governance view for the admin agent-key panel. One query via the
+   * Postgres array-overlap operator covers all three scopes.
+   */
+  async listGeoAgentKeys(): Promise<ApiKeyRow[]> {
+    return await db('api_keys')
+      .whereRaw('scopes && ?::text[]', [GEO_AGENT_SCOPES_PG_ARRAY])
+      .orderBy('created_at', 'desc')
+      .select<ApiKeyRow[]>('*')
+  },
+
+  /**
+   * Revoke an agent key by id alone (no owner scoping), so any admin can
+   * revoke any agent key. Guarded to keys that actually carry a geo-agent
+   * scope so this admin path can never soft-delete a streamer's personal key.
+   */
+  async revokeGeoAgentKey(id: number): Promise<boolean> {
+    const updated = await db('api_keys')
+      .where('id', id)
+      .andWhere('is_active', true)
+      .andWhereRaw('scopes && ?::text[]', [GEO_AGENT_SCOPES_PG_ARRAY])
+      .update({ is_active: false, revoked_at: db.fn.now() })
+    return updated > 0
   },
 
   /**

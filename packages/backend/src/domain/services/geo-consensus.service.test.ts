@@ -1,14 +1,22 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { GeoPinConfidence } from '@the-box/types'
+import type { GeoPinSource } from '@the-box/types'
 import {
   evaluateConsensus,
   grantsForAcceptedPin,
+  pinsToNextConsensusThreshold,
   GEO_CONSENSUS_CONFIDENCE_WEIGHTS,
   GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
+  GEO_CONSENSUS_SOURCE_WEIGHTS,
+  GEO_CONSENSUS_THRESHOLDS,
   GEO_CONSENSUS_VERSION,
   type GeoPinLike,
 } from './geo-consensus.service.js'
+
+function agentPin(id: number, x: number, y: number, source: GeoPinSource): GeoPinLike {
+  return { id, pin: { x, y }, source }
+}
 
 const RADIUS = 0.05
 
@@ -275,5 +283,115 @@ describe('grantsForAcceptedPin', () => {
     // behavior on a fresh user.
     const keys = out.map((g) => g.itemKey)
     assert.ok(!keys.includes('streak_freeze'))
+  })
+})
+
+describe('pinsToNextConsensusThreshold', () => {
+  it('targets the first threshold (5) below it', () => {
+    // "One pin away": a candidate with 4 pins needs 1 more to hit the first
+    // recompute at 5, the same count that can promote.
+    assert.equal(pinsToNextConsensusThreshold(4), 1)
+    assert.equal(pinsToNextConsensusThreshold(0), GEO_CONSENSUS_THRESHOLDS[0])
+  })
+
+  it('returns the gap to the NEXT threshold, not the current one', () => {
+    // Exactly on a threshold → the recompute for that count already fired, so
+    // the meaningful next target is the following threshold.
+    assert.equal(pinsToNextConsensusThreshold(5), 5) // → 10
+    assert.equal(pinsToNextConsensusThreshold(7), 3) // → 10
+    assert.equal(pinsToNextConsensusThreshold(10), 10) // → 20
+  })
+
+  it('returns 0 once past the top threshold (no further recompute)', () => {
+    const top = GEO_CONSENSUS_THRESHOLDS[GEO_CONSENSUS_THRESHOLDS.length - 1]!
+    assert.equal(pinsToNextConsensusThreshold(top), 0)
+    assert.equal(pinsToNextConsensusThreshold(top + 25), 0)
+  })
+})
+
+describe('consensus v3 — agent pins never promote (the #331 invariant)', () => {
+  it('is version 3', () => {
+    assert.equal(GEO_CONSENSUS_VERSION, 3)
+  })
+
+  it('a tight cluster of 8 agent pins does NOT promote (0 human accepted)', () => {
+    // Enough pins, tight enough cluster to clear confidence — but all machine.
+    // Promotion must stay false regardless.
+    const pins = Array.from({ length: 8 }, (_, i) =>
+      agentPin(i + 1, 0.5 + (i % 2) * 0.0005, 0.5, 'agent_structured'),
+    )
+    const out = evaluateConsensus(pins, RADIUS)
+    assert.ok(out.acceptedCount >= GEO_CONSENSUS_MIN_PINS_TO_PROMOTE)
+    assert.equal(out.humanAcceptedCount, 0)
+    assert.equal(out.promote, false)
+  })
+
+  it('even 1000 colluding agent pins cannot promote', () => {
+    const pins = Array.from({ length: 1000 }, (_, i) =>
+      agentPin(i + 1, 0.5, 0.5, 'agent_vision'),
+    )
+    const out = evaluateConsensus(pins, RADIUS)
+    assert.equal(out.promote, false)
+  })
+
+  it('promotes on 5 accepted HUMAN pins even with agent pins mixed in', () => {
+    const humans: GeoPinLike[] = [
+      pin(1, 0.5, 0.5),
+      pin(2, 0.5005, 0.5005),
+      pin(3, 0.499, 0.5),
+      pin(4, 0.5, 0.499),
+      pin(5, 0.5005, 0.499),
+    ]
+    const agents = [
+      agentPin(6, 0.5002, 0.5002, 'agent_structured'),
+      agentPin(7, 0.4998, 0.5001, 'agent_vision'),
+    ]
+    const out = evaluateConsensus([...humans, ...agents], RADIUS)
+    assert.equal(out.humanAcceptedCount, 5)
+    assert.equal(out.promote, true)
+  })
+
+  it('4 human + many agent pins still does NOT promote (short one human)', () => {
+    const humans: GeoPinLike[] = [
+      pin(1, 0.5, 0.5),
+      pin(2, 0.5005, 0.5005),
+      pin(3, 0.499, 0.5),
+      pin(4, 0.5, 0.499),
+    ]
+    const agents = Array.from({ length: 20 }, (_, i) =>
+      agentPin(100 + i, 0.5, 0.5, 'agent_structured'),
+    )
+    const out = evaluateConsensus([...humans, ...agents], RADIUS)
+    // At most 4 human pins are accepted (a tight agent cluster may even reject
+    // a slightly-off human via the σ gate) — either way, below the gate.
+    assert.ok(out.humanAcceptedCount < GEO_CONSENSUS_MIN_PINS_TO_PROMOTE)
+    assert.equal(out.promote, false)
+  })
+
+  it('exposes the source weight table (human 1.0 / structured 0.6 / vision 0.25)', () => {
+    assert.equal(GEO_CONSENSUS_SOURCE_WEIGHTS.human, 1.0)
+    assert.equal(GEO_CONSENSUS_SOURCE_WEIGHTS.agent_structured, 0.6)
+    assert.equal(GEO_CONSENSUS_SOURCE_WEIGHTS.agent_vision, 0.25)
+  })
+
+  it('an agent pin pulls the centroid less than a human pin at the same spot', () => {
+    // 4 humans clustered at 0.5 + one outlier at 0.7. When the outlier is a
+    // (downweighted) vision agent pin it shifts the mean less than when it is
+    // a full-weight human pin.
+    const cluster: GeoPinLike[] = [
+      pin(1, 0.5, 0.5),
+      pin(2, 0.501, 0.5),
+      pin(3, 0.499, 0.5),
+      pin(4, 0.5, 0.501),
+    ]
+    const humanOutlier = evaluateConsensus([...cluster, pin(5, 0.7, 0.5)], RADIUS)
+    const agentOutlier = evaluateConsensus(
+      [...cluster, agentPin(5, 0.7, 0.5, 'agent_vision')],
+      RADIUS,
+    )
+    assert.ok(
+      agentOutlier.centroid.x < humanOutlier.centroid.x,
+      `agent outlier should pull less: human ${humanOutlier.centroid.x}, agent ${agentOutlier.centroid.x}`,
+    )
   })
 })

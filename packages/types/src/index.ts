@@ -1222,6 +1222,40 @@ export interface GeoCandidateGameSummary {
   oldestPendingAt: string | null
 }
 
+// Diagnostic surfaced by the admin "content readiness" card: games that have
+// an active map and captures collecting pins but no canonical (promoted) pin
+// yet — the "one pin away" list that gates GeoGamers eligibility. Promoting one
+// candidate for such a game (that has never been a challenge) grows the eligible
+// pool by one. `topPinCount` is the raw submission count on the best candidate;
+// `pinsToNextThreshold` is how many more pins until the next consensus recompute
+// could promote it (0 once past the top threshold).
+export interface GeoGameNeedingContent {
+  gameId: number
+  gameName: string | null
+  candidateCount: number
+  topPinCount: number
+  pinsToNextThreshold: number
+  bestCandidateId: number | null
+}
+
+// Content-readiness snapshot for the GeoGamers daily scheduler. Returned by
+// GET /api/admin/geogamers/health and, for content-sourcing agents, by
+// GET /api/agent/v1/geo/health. `starved` is the gate the daily worker itself
+// checks: fewer than `minRequired` distinct eligible games means a day can
+// silently skip.
+export interface GeoGamersHealthSnapshot {
+  enabled: boolean
+  minRequired: number
+  cooldownDays: number
+  eligibleGames: number
+  eligibleScreenshots: number
+  gamesOnCooldown: number
+  starved: boolean
+  todayChallengeExists: boolean
+  currentChallengeDate: string | null
+  season: { month: string; players: number }
+}
+
 export interface GeoChallenge {
   id: number
   challengeDate: string
@@ -1354,9 +1388,15 @@ export type GeoPinConfidence = 1 | 2 | 3
 
 export type GeoPinStatus = 'pending' | 'accepted' | 'rejected'
 
+// Provenance of a pin. `human` is a crowd/contributor pin; the `agent_*` values
+// are machine-proposed pins (issue #331) that are downweighted in consensus and
+// — critically — never counted toward the human-gated promote threshold.
+export type GeoPinSource = 'human' | 'agent_structured' | 'agent_vision'
+
 export interface GeoPinSubmission {
   id: number
-  userId: string
+  // Null for agent-proposed pins (they belong to an API key, not a user).
+  userId: string | null
   geoScreenshotCandidateId: number
   pin: GeoPoint
   status: GeoPinStatus
@@ -1366,6 +1406,12 @@ export interface GeoPinSubmission {
   // admin moderation can downweight or filter without re-deriving
   // provenance after the fact.
   isAnonymous: boolean
+  // Pin provenance. Defaults to 'human'; agent pins carry an agent source plus
+  // the fields below for review.
+  source: GeoPinSource
+  agentRationale?: string
+  agentModel?: string
+  visionPass?: number
   distanceFromCentroid?: number
   reviewedAt?: string
   createdAt: string
@@ -1589,10 +1635,33 @@ export interface PushSubscriptionSummary {
 // Public API / Streamer Kit (M1)
 // ============================================
 
-// One of four scopes a key can carry. M1 only branches on read:public vs the
-// owner-only scopes; the latter three are stored against the key for forward
-// compatibility with M2 (SSE + webhooks) so we don't need a second migration.
-export type ApiKeyScope = 'read:public' | 'read:self' | 'stream:self' | 'webhooks:self'
+// Scopes a key can carry. The streamer-kit scopes (`read:public` … `webhooks:self`)
+// gate the public streamer API; the `geo-agent:*` scopes gate the separate
+// agent content-sourcing surface (`/api/agent/v1/geo`, issue #331). The two
+// families are mutually exclusive on a single key — a geo-agent key is minted by
+// an admin and can only reach the agent surface, never a streamer's data, and a
+// streamer key is rejected on the agent surface. Enforced at mint time and by
+// `requireScope` per route.
+export type ApiKeyScope =
+  | 'read:public'
+  | 'read:self'
+  | 'stream:self'
+  | 'webhooks:self'
+  | 'geo-agent:read' // health, games-needing-content, candidate listing
+  | 'geo-agent:ingest' // trigger the existing geo ingestion pipeline (phase 3)
+  | 'geo-agent:propose' // submit downweighted, flagged consensus pins (phase 4)
+
+// The three geo-agent scopes, in privilege order. A read-only key carries only
+// the first; ingest/propose are granted per key as later phases ship.
+export const GEO_AGENT_SCOPES = [
+  'geo-agent:read',
+  'geo-agent:ingest',
+  'geo-agent:propose',
+] as const satisfies readonly ApiKeyScope[]
+
+export function isGeoAgentScope(scope: ApiKeyScope): boolean {
+  return scope.startsWith('geo-agent:')
+}
 
 export type ApiKeyMode = 'live' | 'test'
 

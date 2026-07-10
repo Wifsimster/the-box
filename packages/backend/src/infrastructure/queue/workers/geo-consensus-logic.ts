@@ -117,11 +117,14 @@ export async function evaluateConsensusForCandidate(
     }
   }
 
+  // Agent pins have no user_id — skip them here so they earn no rewards and
+  // can't be shadow-banned. They still feed the consensus math below (as
+  // downweighted voters) but never the promote count (see consensus v3).
   const pinOwners = new Map<number, string>()
-  for (const p of pending) pinOwners.set(p.id, p.userId)
+  for (const p of pending) if (p.userId) pinOwners.set(p.id, p.userId)
 
   const result = geoConsensusService.evaluate(
-    pending.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence })),
+    pending.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence, source: p.source })),
     map.consensusRadius,
   )
 
