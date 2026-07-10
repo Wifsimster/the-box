@@ -65,6 +65,11 @@ export const env = {
   // Agent pins are downweighted and can never promote on their own, but the
   // budget still bounds how fast one key can flood the review queue.
   GEO_AGENT_MAX_PINS_PER_HOUR: process.env['GEO_AGENT_MAX_PINS_PER_HOUR'] || '60',
+  // Gate for LLM-vision pin proposals (phase 5). Off until the offline accuracy
+  // study (`npm run eval:geo-vision`) clears the enable bar — until then
+  // `source=agent_vision` proposals are rejected with VISION_DISABLED, so
+  // unmeasured vision pins never enter consensus even as downweighted voters.
+  GEO_AGENT_VISION_ENABLED: process.env['GEO_AGENT_VISION_ENABLED'] || 'false',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

@@ -23,9 +23,11 @@
     "e2e:seed": "tsx scripts/e2e-seed.ts",
     "stripe:check": "tsx scripts/stripe-check.ts",
     "vapid:generate": "tsx scripts/generate-vapid.ts",
+    "eval:geo-vision": "tsx scripts/geo-vision-eval.ts",
     "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@better-auth/passkey": "~1.4.10",
     "@resvg/resvg-js": "^2.6.2",
     "@the-box/types": "*",

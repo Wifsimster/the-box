@@ -16,6 +16,7 @@ import {
 import { geoSourceConfigRepository } from '../../infrastructure/repositories/geo-source-config.repository.js'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
 import { pinsToNextConsensusThreshold } from '../../domain/services/geo-consensus.service.js'
+import { shouldPauseAgentKey } from '../../domain/services/geo-agent-guard.service.js'
 import { getGeoGamersHealthSnapshot } from '../../infrastructure/geogamers-health.js'
 import {
   enqueueSingleTierImport,
@@ -249,6 +250,36 @@ router.post(
         res.status(409).json({
           success: false,
           error: { code: 'ALREADY_PROMOTED', message: 'candidate already has a canonical pin' },
+        })
+        return
+      }
+
+      // Vision proposals are gated behind the accuracy study (phase 5). Until
+      // GEO_AGENT_VISION_ENABLED is flipped (after eval:geo-vision passes the
+      // enable bar), reject agent_vision so unmeasured vision pins can't add
+      // noise to consensus. Structured pins are unaffected.
+      if (body.source === 'agent_vision' && env.GEO_AGENT_VISION_ENABLED !== 'true') {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'VISION_DISABLED',
+            message: 'Vision proposals are disabled pending accuracy validation',
+          },
+        })
+        return
+      }
+
+      // Per-key auto-pause: a key whose recent proposals are mostly rejected by
+      // consensus is paused (same bar as the human shadow-ban). Checked before
+      // the budget so a paused key doesn't burn its quota probing.
+      const rejectionRatio = await geoPinRepository.agentKeyRejectionRatio7d(keyId)
+      if (shouldPauseAgentKey(rejectionRatio)) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'KEY_PAUSED',
+            message: 'Key paused: too many recent proposals were rejected by consensus',
+          },
         })
         return
       }
