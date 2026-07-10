@@ -6,6 +6,7 @@ import { validateBody, validateParams } from '../middleware/validation.middlewar
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { achievementRepository } from '../../infrastructure/repositories/index.js'
+import { geoGamersPartyStore, resolvePartyRoundImage } from '../../infrastructure/repositories/geogamers-party.store.js'
 import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
 import type { NewlyEarnedAchievement } from '@the-box/types'
 
@@ -291,5 +292,47 @@ router.get(
     }
   },
 )
+
+// Party image proxy. Streams a party round's screenshot server-side so the
+// client never sees the asset path (same anti-leak posture as the daily
+// proxy). Guests allowed. Only the current or a revealed round is fetchable.
+router.get('/party/:code/round/:index/image', optionalAuthMiddleware, async (req, res, next) => {
+  try {
+    const { code } = req.params as { code: string; index: string }
+    const index = Number(req.params['index'])
+    const party = await geoGamersPartyStore.get(code)
+    if (!party || !Number.isInteger(index)) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'party round not found' } })
+      return
+    }
+    const round = party.rounds[index]
+    // Only expose the active round (or an already-revealed one) — never a
+    // future round's screenshot.
+    const exposable = round && (index === party.currentRound || round.revealed)
+    if (!round || !exposable) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'round not available' } })
+      return
+    }
+    const imageUrl = await resolvePartyRoundImage(round.geoScreenshotMetaId)
+    if (!imageUrl) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'image missing' } })
+      return
+    }
+    if (/^https?:\/\//i.test(imageUrl)) {
+      const upstream = await fetch(imageUrl)
+      if (!upstream.ok || !upstream.body) {
+        res.status(502).json({ success: false, error: { code: 'UPSTREAM', message: 'image fetch failed' } })
+        return
+      }
+      res.setHeader('Content-Type', upstream.headers.get('content-type') ?? 'image/jpeg')
+      res.setHeader('Cache-Control', 'private, max-age=300')
+      res.end(Buffer.from(await upstream.arrayBuffer()))
+      return
+    }
+    res.redirect(imageUrl)
+  } catch (err) {
+    handleError(err, res, next)
+  }
+})
 
 export default router

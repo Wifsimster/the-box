@@ -59,6 +59,7 @@ function emptyResult(playerId: string): GeoGamersPartyRoundResult {
     attemptsUsed: 0,
     gamePoints: null,
     solvedGame: false,
+    guess: null,
     locationPoints: null,
     totalPoints: null,
     done: false,
@@ -228,6 +229,7 @@ export function submitGameGuess(
 export function submitLocation(
   party: GeoGamersParty,
   playerId: string,
+  guess: GeoPoint,
   distance: number,
   wrongMap: boolean,
 ): GeoGamersParty {
@@ -242,6 +244,7 @@ export function submitLocation(
   const gamePoints = result.gamePoints ?? 0
   const updated: GeoGamersPartyRoundResult = {
     ...result,
+    guess,
     locationPoints,
     gamePoints,
     totalPoints: gamePoints + locationPoints,

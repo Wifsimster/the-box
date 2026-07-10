@@ -1907,6 +1907,7 @@ export interface GeoGamersPartyRoundResult {
   attemptsUsed: number
   gamePoints: number | null
   solvedGame: boolean
+  guess: GeoPoint | null // pin coordinates, for the reveal
   locationPoints: number | null
   totalPoints: number | null
   done: boolean
