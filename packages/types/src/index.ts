@@ -1878,3 +1878,96 @@ export interface GeoGamersSeasonUpdatedEvent {
   month: string // YYYY-MM
   topN: GeoGamersSeasonStanding[]
 }
+
+// ---------------- GeoGamers Party (1–4 player lobby) ----------------
+//
+// A casual, unranked variant: 1–4 players in a private lobby play the SAME
+// server-seeded round sequence, each on their own screen, with a synchronized
+// reveal between rounds. Drawn from the retired/free-play pool (never today's
+// ranked screenshot), so it never touches the season and can't be used to
+// scout the daily. State is ephemeral (Redis, ~2h TTL).
+
+export type GeoGamersPartyStatus = 'lobby' | 'in_round' | 'reveal' | 'finished'
+
+export interface GeoGamersPartyPlayer {
+  id: string // user id or guest session id
+  name: string
+  isHost: boolean
+  connected: boolean
+}
+
+export interface GeoGamersPartyConfig {
+  rounds: number // 3 | 5 | 10
+  timerSeconds: number // per-phase budget
+}
+
+// Per-player result within one round. `done` is set on completion OR timeout.
+export interface GeoGamersPartyRoundResult {
+  playerId: string
+  attemptsUsed: number
+  gamePoints: number | null
+  solvedGame: boolean
+  locationPoints: number | null
+  totalPoints: number | null
+  done: boolean
+}
+
+// One round. Answer fields (canonical, gameId, mapId) are server-only until the
+// round is revealed — the spectator-safe view omits them while in progress.
+export interface GeoGamersPartyRound {
+  index: number
+  geoScreenshotMetaId: number
+  gameId: number
+  gameName: string
+  geoMapId: number
+  canonical: GeoPoint
+  results: Record<string, GeoGamersPartyRoundResult>
+  revealed: boolean
+}
+
+export interface GeoGamersParty {
+  code: string
+  status: GeoGamersPartyStatus
+  config: GeoGamersPartyConfig
+  hostId: string
+  players: GeoGamersPartyPlayer[]
+  currentRound: number // index into rounds; -1 in lobby
+  rounds: GeoGamersPartyRound[]
+  createdAtMs: number
+}
+
+// Spectator-safe projection sent to clients. While a round is in progress the
+// answer (game identity, canonical pin) is withheld; per-player progress shows
+// only phase/points, never the guess text.
+export interface GeoGamersPartyView {
+  code: string
+  status: GeoGamersPartyStatus
+  config: GeoGamersPartyConfig
+  hostId: string
+  players: GeoGamersPartyPlayer[]
+  currentRound: number
+  totalRounds: number
+  // The active round's playable payload (screenshot only) — present when
+  // status === 'in_round'. Answer withheld.
+  round?: {
+    index: number
+    screenshotUrl: string
+    // Revealed maps for the locate phase, once THIS player has solved/exhausted.
+    maps?: GeoMapOption[]
+    gameName?: string // only after this player resolves phase 1
+  }
+  // Scoreboard (cumulative totals) — always safe to show.
+  scoreboard: Array<{ playerId: string; name: string; total: number }>
+  // Full reveal payload — present only when status === 'reveal' or 'finished'.
+  reveal?: {
+    index: number
+    gameName: string
+    canonical: GeoPoint
+    pins: Array<{ playerId: string; name: string; guess: GeoPoint | null; points: number }>
+  }
+}
+
+export interface GeoGamersPartyCreatedEvent {
+  code: string
+}
+
