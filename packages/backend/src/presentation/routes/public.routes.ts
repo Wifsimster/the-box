@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { db } from '../../infrastructure/database/connection.js'
 import { challengeRepository } from '../../infrastructure/repositories/challenge.repository.js'
 import { leaderboardRepository } from '../../infrastructure/repositories/leaderboard.repository.js'
+import { geoGamersSeasonRepository } from '../../infrastructure/repositories/geogamers-season.repository.js'
+import { createGeoGamersSeasonService } from '../../domain/services/geogamers-season.service.js'
+import { serviceLogger } from '../../infrastructure/logger/logger.js'
 import {
   webhookRepository,
 } from '../../infrastructure/repositories/webhook.repository.js'
@@ -44,6 +47,15 @@ import type {
 //   2. Cross-account reads return the same data as anonymous reads — keys
 //      identify YOU, never elevate access to someone else's data.
 //   3. No screenshot bytes, no answers, no current-screenshot id leak.
+
+// Constructed locally (not from the services barrel) so this route module —
+// and public-api-spec.test.ts which introspects it — never transitively
+// imports queues.ts (whose eager QueueEvents would open a Redis connection and
+// hang the test process). The season service only needs its repository.
+const geoGamersSeasonService = createGeoGamersSeasonService({
+  logger: serviceLogger,
+  ranking: geoGamersSeasonRepository,
+})
 
 const router = Router()
 
@@ -420,6 +432,56 @@ router.get('/leaderboard/monthly', validateQuery(monthlyQuerySchema), async (req
     next(err)
   }
 })
+
+// GET /api/public/v1/geogamers/season — read-only GeoGamers season standings
+// for overlays/bots. Returns an empty list when the feature is disabled so
+// integrators can poll unconditionally. Public-safe: exposes rank, display
+// name, and public slug (only for opted-in public profiles), never user ids.
+const geogamersSeasonQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+})
+
+router.get(
+  '/geogamers/season',
+  validateQuery(geogamersSeasonQuerySchema),
+  async (req, res, next) => {
+    try {
+      if (env.GEOGAMERS_ENABLED !== 'true') {
+        res.json({ success: true, data: { month: null, standings: [] } })
+        return
+      }
+      const { limit } = req.query as unknown as z.infer<typeof geogamersSeasonQuerySchema>
+      const month = geoGamersSeasonService.currentMonth()
+      const standings = await geoGamersSeasonService.standings(month, limit)
+
+      const userIds = standings.map((s) => s.userId)
+      const slugRows = userIds.length
+        ? await db('user')
+            .whereIn('id', userIds)
+            .andWhere('public_profile_enabled', true)
+            .select<Array<{ id: string; public_slug: string | null }>>('id', 'public_slug')
+        : []
+      const slugById = new Map(slugRows.map((r) => [r.id, r.public_slug]))
+
+      res.json({
+        success: true,
+        data: {
+          month,
+          standings: standings.map((s) => ({
+            rank: s.rank,
+            slug: slugById.get(s.userId) ?? null,
+            displayName: s.username,
+            seasonScore: s.seasonScore,
+            daysPlayed: s.daysPlayed,
+            provisional: s.provisional,
+          })),
+        },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 // ─────────────────────────────────────────────────────────────────────
 // M2 — SSE live channel

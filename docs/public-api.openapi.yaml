@@ -170,6 +170,46 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
+  /geogamers/season:
+    get:
+      tags: [leaderboard]
+      summary: GeoGamers season standings (current month)
+      description: >
+        Read-only GeoGamers season leaderboard. Returns an empty list when the
+        feature is disabled. Season score drops each player's 3 worst days once
+        they have played at least 10 (provisional until then).
+      operationId: getGeoGamersSeason
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Season standings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      month: { type: string, nullable: true }
+                      standings:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rank: { type: integer }
+                            slug: { type: string, nullable: true }
+                            displayName: { type: string }
+                            seasonScore: { type: integer }
+                            daysPlayed: { type: integer }
+                            provisional: { type: boolean }
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /webhooks:
     get:
       tags: [webhooks]

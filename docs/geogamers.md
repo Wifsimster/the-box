@@ -108,6 +108,20 @@ challenge before. The daily scheduler (`geogamers-challenge-logic`, 00:05 UTC):
 `geogamers:season:updated` broadcasts finalized/updated top standings on the
 `/geo` namespace (see `docs/realtime.md`).
 
+## Public API
+
+`GET /api/public/v1/geogamers/season?limit=N` (key-authenticated, same tree as
+the streamer kit) returns current-month standings for overlays/bots:
+`{ month, standings: [{ rank, slug, displayName, seasonScore, daysPlayed,
+provisional }] }`. Public-safe (no user ids; slug only for opted-in public
+profiles). Returns an empty list when the feature is disabled so integrators
+can poll unconditionally. Documented in `docs/public-api.openapi.yaml`.
+
+## Web push
+
+A "today's panorama is live" notification (`type: geogamers_daily`) fans out to
+active, non-anonymous subscribers on the day's first challenge creation.
+
 ## Config
 
 | Var | Default | Purpose |
@@ -124,6 +138,9 @@ orchestration, repos, worker, routes), Phase 2 (frontend play flow), Phase 3
 leaderboard season tab + recognition-only achievements — `geogamers_first_run`,
 `geogamers_perfect_day`, awarded on ranked completion).
 
-Follow-ups (tracked on #325): web-push fan-out, public API / SSE / webhooks,
-admin health & anomaly-review panels, more cross-mode achievements (season
-top-10, dual-podium), party mode (Phase 4), immersive panoramas (Phase 5).
+Plus: daily web-push fan-out and a read-only public-API season endpoint.
+
+Follow-ups (tracked on #325): public-API SSE / outbound webhooks for GeoGamers
+events, admin health & anomaly-review panels, more cross-mode achievements
+(season top-10, dual-podium), party mode (Phase 4), immersive panoramas
+(Phase 5).
