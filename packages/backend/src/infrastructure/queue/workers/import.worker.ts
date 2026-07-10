@@ -8,6 +8,7 @@ import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.
 import { createDailyChallenge } from './daily-challenge-logic.js'
 import { createGeoGamersChallenge } from './geogamers-challenge-logic.js'
 import { grantGeoGamersSeasonPayout } from './geogamers-season-payout-logic.js'
+import { sendGeoGamersDailyPush } from './geogamers-daily-push-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
@@ -173,6 +174,16 @@ export const importWorker = new Worker<JobData, JobResult>(
           if (Number.isFinite(parsed)) referenceMs = parsed
         }
         const result = await createGeoGamersChallenge({ referenceMs })
+        // Notify subscribers only on the day's first successful creation, so a
+        // restart re-running the (idempotent) challenge job won't re-notify.
+        if (result.created) {
+          try {
+            const push = await sendGeoGamersDailyPush()
+            log.info({ push }, 'geogamers daily push fan-out complete')
+          } catch (err) {
+            log.warn({ err: String(err) }, 'geogamers daily push fan-out failed')
+          }
+        }
         log.info({ jobId: id, result }, 'create-geogamers-challenge job completed')
         return { message: result.message }
       }
