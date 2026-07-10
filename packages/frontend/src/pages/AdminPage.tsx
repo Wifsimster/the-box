@@ -12,6 +12,7 @@ import { EmailSettings } from '@/components/admin/EmailSettings'
 import { GrowthStats } from '@/components/admin/GrowthStats'
 import { GeoGamersHealthCard } from '@/components/admin/GeoGamersHealthCard'
 import { GeoNeedingContentCard } from '@/components/admin/GeoNeedingContentCard'
+import { AgentKeysCard } from '@/components/admin/AgentKeysCard'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
@@ -185,6 +186,7 @@ export default function AdminPage() {
                 <>
                   <GeoGamersHealthCard />
                   <GeoNeedingContentCard />
+                  <AgentKeysCard />
                   <GeoReviewPanel />
                 </>
               )}

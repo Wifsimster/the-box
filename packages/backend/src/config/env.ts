@@ -50,6 +50,13 @@ export const env = {
   GEOGAMERS_MIN_ELIGIBLE_GAMES: process.env['GEOGAMERS_MIN_ELIGIBLE_GAMES'] || '10',
   GEOGAMERS_GAME_COOLDOWN_DAYS: process.env['GEOGAMERS_GAME_COOLDOWN_DAYS'] || '14',
 
+  // Agent content-sourcing surface (issue #331, /api/agent/v1/geo). Off by
+  // default: the read-only routes return 503 AGENT_API_DISABLED until turned
+  // on, so the whole surface can be killed instantly by flipping this and
+  // redeploying (the second kill switch, alongside per-key revocation). Keys
+  // for it are admin-minted; scopes are enforced per route.
+  GEO_AGENT_API_ENABLED: process.env['GEO_AGENT_API_ENABLED'] || 'false',
+
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
 

@@ -31,6 +31,8 @@ import billingWebhookRoutes from './presentation/routes/billing-webhook.routes.j
 import koeRoutes from './presentation/routes/koe.routes.js'
 import publicV1Routes from './presentation/routes/public.routes.js'
 import streamerKeysRoutes from './presentation/routes/streamer-keys.routes.js'
+import agentGeoRoutes from './presentation/routes/agent-geo.routes.js'
+import adminAgentKeysRoutes from './presentation/routes/admin-agent-keys.routes.js'
 import { testRedisConnection, tryAcquireBootLock } from './infrastructure/queue/connection.js'
 import {
   importQueue,
@@ -232,6 +234,7 @@ app.get('/healthz', async (_req, res) => {
 app.use('/api/game', gameRoutes)
 app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/admin/geo-fetch', geoFetchRoutes)
+app.use('/api/admin/agent-keys', adminAgentKeysRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/achievements', achievementRoutes)
@@ -259,6 +262,11 @@ app.use('/api/public/v1', publicV1Routes)
 // settings page. Owners flip the public-profile toggle, claim a slug,
 // and manage their keys here.
 app.use('/api/streamer-keys', streamerKeysRoutes)
+// Agent content-sourcing surface (issue #331). Key-authenticated with
+// admin-minted geo-agent keys. Always mounted; the whole surface is gated
+// per-request by GEO_AGENT_API_ENABLED (returns 503 AGENT_API_DISABLED when
+// off) so it can be killed by env flip + redeploy without a code change.
+app.use('/api/agent/v1/geo', agentGeoRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
