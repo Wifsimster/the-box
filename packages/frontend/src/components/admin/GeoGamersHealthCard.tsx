@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { fetchAdminJson } from '@/lib/api/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,19 +33,25 @@ export function GeoGamersHealthCard() {
     const [error, setError] = useState<string | null>(null)
     const [creating, setCreating] = useState(false)
     const [notice, setNotice] = useState<string | null>(null)
+    // Guards against setState after unmount (the fetches outlive a quick tab switch).
+    const mounted = useRef(true)
 
     async function load() {
         try {
-            setHealth(await fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health'))
+            const d = await fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health')
+            if (mounted.current) setHealth(d)
         } catch (e) {
-            setError(String(e))
+            if (mounted.current) setError(String(e))
         } finally {
-            setLoading(false)
+            if (mounted.current) setLoading(false)
         }
     }
 
     useEffect(() => {
         void load()
+        return () => {
+            mounted.current = false
+        }
     }, [])
 
     async function createChallenge() {
@@ -56,12 +62,12 @@ export function GeoGamersHealthCard() {
                 '/api/admin/geogamers/create-challenge',
                 { method: 'POST' },
             )
-            setNotice(res.message)
+            if (mounted.current) setNotice(res.message)
             await load()
         } catch (e) {
-            setNotice(String(e))
+            if (mounted.current) setNotice(String(e))
         } finally {
-            setCreating(false)
+            if (mounted.current) setCreating(false)
         }
     }
 
