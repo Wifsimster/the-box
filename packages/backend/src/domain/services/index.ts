@@ -77,6 +77,11 @@ export {
   GEOGAMERS_PHASE_TIME_LIMIT_SECONDS,
 } from './geogamers.service.js'
 export {
+  createGeoGamersSeasonService,
+  type GeoGamersSeasonService,
+  type SeasonRanking,
+} from './geogamers-season.service.js'
+export {
   createBillingService,
   toSubscriptionStatus,
   type BillingService,
@@ -135,6 +140,7 @@ import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
 import { createGeoGamersScoringService } from './geogamers-scoring.service.js'
 import { createGeoGamersService } from './geogamers.service.js'
+import { createGeoGamersSeasonService } from './geogamers-season.service.js'
 import { createWebhookDispatchService } from './webhook-dispatch.service.js'
 import { createPushService } from './push.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
@@ -162,6 +168,7 @@ import {
   geoGamersChallengeRepository,
   geoGamersRunRepository,
   geoGamersJokerRepository,
+  geoGamersSeasonRepository,
   webhookRepository,
   webhookDeliveryRepository,
 } from '../../infrastructure/repositories/index.js'
@@ -416,4 +423,9 @@ export const geoGamersService = createGeoGamersService({
   fuzzyMatch: fuzzyMatchService,
   scoring: geoGamersScoringService,
   screenshotUrlFor: (runToken) => `/api/geogamers/image/${runToken}`,
+})
+
+export const geoGamersSeasonService = createGeoGamersSeasonService({
+  logger: serviceLogger,
+  ranking: geoGamersSeasonRepository,
 })

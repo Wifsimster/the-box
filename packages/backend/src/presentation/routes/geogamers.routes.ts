@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { geoGamersService, GeoGamersError } from '../../domain/services/index.js'
+import { geoGamersService, geoGamersSeasonService, GeoGamersError } from '../../domain/services/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
@@ -183,6 +183,32 @@ router.post(
     }
   },
 )
+
+// ---------- Season standings ----------
+
+// Public season leaderboard (top N + player count).
+router.get('/season', optionalAuthMiddleware, async (_req, res, next) => {
+  try {
+    const month = geoGamersSeasonService.currentMonth()
+    const [standings, players] = await Promise.all([
+      geoGamersSeasonService.standings(month, 100),
+      geoGamersSeasonService.playerCount(month),
+    ])
+    res.json({ success: true, data: { month, players, standings } })
+  } catch (err) {
+    handleError(err, res, next)
+  }
+})
+
+// The signed-in user's own standing + per-day breakdown (dropped-days flagged).
+router.get('/season/me', authMiddleware, async (req, res, next) => {
+  try {
+    const me = await geoGamersSeasonService.myStanding(req.userId!)
+    res.json({ success: true, data: me })
+  } catch (err) {
+    handleError(err, res, next)
+  }
+})
 
 // Opaque screenshot proxy. The client only ever sees /api/geogamers/image/:token,
 // never the underlying asset URL (which can carry a game slug). We fetch the

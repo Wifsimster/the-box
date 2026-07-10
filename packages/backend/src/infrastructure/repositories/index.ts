@@ -29,6 +29,7 @@ export { geoContributorRepository } from './geo-contributor.repository.js'
 export { geoGamersChallengeRepository } from './geogamers-challenge.repository.js'
 export { geoGamersRunRepository } from './geogamers-run.repository.js'
 export { geoGamersJokerRepository } from './geogamers-joker.repository.js'
+export { geoGamersSeasonRepository } from './geogamers-season.repository.js'
 export {
   screenshotReportRepository,
   REPORT_DEACTIVATION_THRESHOLD,
