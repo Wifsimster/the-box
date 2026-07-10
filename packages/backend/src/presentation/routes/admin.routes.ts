@@ -5,6 +5,7 @@ import { billingService } from '../../domain/services/index.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { geoGamersChallengeRepository } from '../../infrastructure/repositories/geogamers-challenge.repository.js'
 import { geoGamersSeasonRepository } from '../../infrastructure/repositories/geogamers-season.repository.js'
+import { createGeoGamersChallenge } from '../../infrastructure/queue/workers/geogamers-challenge-logic.js'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
 import {
@@ -3636,6 +3637,25 @@ router.get('/geogamers/health', async (_req, res, next) => {
         season: { month, players: seasonPlayers },
       },
     })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// POST /api/admin/geogamers/create-challenge — create TODAY's GeoGamers
+// challenge on demand (idempotent), instead of waiting for the 00:05 UTC cron.
+// The enablement path: set GEOGAMERS_ENABLED=true, redeploy, then hit this so
+// there's a playable challenge immediately. Returns the same gate feedback the
+// worker logs (created / ALREADY_EXISTS / INSUFFICIENT_CONTENT).
+router.post('/geogamers/create-challenge', async (req, res, next) => {
+  try {
+    const result = await createGeoGamersChallenge()
+    await recordAdminGeoAudit(req, {
+      action: 'geogamers.create_challenge',
+      target: { kind: 'geogamers_challenge', id: String(result.challengeId ?? result.challengeDate) },
+      after: { created: result.created, skipped: result.skipped ?? null },
+    })
+    res.json({ success: true, data: result })
   } catch (err) {
     next(err)
   }

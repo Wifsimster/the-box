@@ -146,6 +146,26 @@ the round reveals. Screenshots stream through a party image proxy. Frontend:
 | `GEOGAMERS_MIN_ELIGIBLE_GAMES` | `10` | content gate for challenge creation |
 | `GEOGAMERS_GAME_COOLDOWN_DAYS` | `14` | per-game reuse cooldown |
 
+## Enabling in production
+
+The mode ships dark. To turn it on:
+
+1. **Check content readiness** first — Admin → Géo → the *GeoGamers — état du
+   contenu* card (`GET /api/admin/geogamers/health`). You need
+   `eligibleGames ≥ GEOGAMERS_MIN_ELIGIBLE_GAMES` (default 10) — i.e. that many
+   distinct games with a consensus/admin geo canonical pin that have never been
+   a challenge. If starved, add geo content (Geo Contribute / admin Geo-Fetch)
+   or **lower `GEOGAMERS_MIN_ELIGIBLE_GAMES`** for a smaller launch/testing.
+2. **Set `GEOGAMERS_ENABLED=true`** on the backend env and **redeploy**. This
+   mounts `/api/geogamers/*` and registers the 00:05 UTC scheduler. (The
+   frontend already handles the disabled state gracefully — a 404 maps to
+   `GEOGAMERS_UNAVAILABLE` — so a mismatched frontend never shows a raw error.)
+3. **Create today's challenge now** instead of waiting for the cron: the health
+   card's *Créer le défi du jour* button → `POST /api/admin/geogamers/create-challenge`
+   (idempotent; returns `created` / `ALREADY_EXISTS` / `INSUFFICIENT_CONTENT`).
+4. **Launch at a month boundary** if you want a clean first season — season
+   scoring is month-shaped, so mid-month is effectively a short "pré-saison".
+
 ## Status
 
 Implemented: Phase 0 (types + schema), Phase 1 (backend core — scoring,
