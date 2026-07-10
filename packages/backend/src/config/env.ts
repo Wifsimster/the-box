@@ -65,6 +65,13 @@ export const env = {
   // Agent pins are downweighted and can never promote on their own, but the
   // budget still bounds how fast one key can flood the review queue.
   GEO_AGENT_MAX_PINS_PER_HOUR: process.env['GEO_AGENT_MAX_PINS_PER_HOUR'] || '60',
+  // Backfill discovery worker (issue #331, phase 6). Off by default. When on, a
+  // recurring job ranks curated+resolved games that are NOT yet eligible by
+  // distance-to-eligibility and drives ingestion at the ones closest to a
+  // canonical pin — the in-app, steady-state complement to the external agent.
+  GEO_BACKFILL_ENABLED: process.env['GEO_BACKFILL_ENABLED'] || 'false',
+  // How many top-ranked sub-threshold games each backfill tick drives.
+  GEO_BACKFILL_BATCH: process.env['GEO_BACKFILL_BATCH'] || '10',
   // Gate for LLM-vision pin proposals (phase 5). Off until the offline accuracy
   // study (`npm run eval:geo-vision`) clears the enable bar — until then
   // `source=agent_vision` proposals are rejected with VISION_DISABLED, so

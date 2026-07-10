@@ -128,6 +128,10 @@ graph LR
 
 Le worker `geo-ingest-tick-logic.ts` parcourt les jeux résolus, repère ceux qui n'ont pas atteint le quota de candidatures et enqueue le travail correspondant pour chaque tier éligible. Le résolveur de métadonnées (`geo-metadata-resolve-logic.ts`) renseigne au préalable `wiki_subdomain`, `wikidata_qid`, `steam_app_id`, etc.
 
+### Backfill discovery (issue #331, phase 6)
+
+Le tick d'ingestion normal complète **tous** les jeux résolus (y compris ceux déjà éligibles) vers le quota de candidatures. Le worker de **backfill** (`geo-backfill-logic.ts`, `backfill-tick`) inverse cette logique : il classe les jeux curés+résolus **non encore éligibles** par distance à l'éligibilité (`geo-backfill.service.ts` : carte active ? captures qui collectent des pins ? nombre de pins max ?) et relance l'ingestion pour les `GEO_BACKFILL_BATCH` (défaut 10) jeux les plus proches d'un premier pin canonique — l'effort de sourcing va donc là où il fait bouger le compteur de jeux éligibles. Sans LLM in-process : il réutilise la même requête classée + le même chemin d'ingestion qu'un agent externe piloterait à la main. Récurrent toutes les 30 min, **désactivé par défaut** (`GEO_BACKFILL_ENABLED`).
+
 ### État du pipeline
 
 Tables associées :

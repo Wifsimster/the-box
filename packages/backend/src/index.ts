@@ -759,7 +759,8 @@ async function start(): Promise<void> {
         if (
           job.name === 'schedule-daily-challenge' ||
           job.name === 'resolve-metadata' ||
-          job.name === 'ingest-tick'
+          job.name === 'ingest-tick' ||
+          job.name === 'backfill-tick'
         ) {
           await geoQueue.removeRepeatableByKey(job.key)
         }
@@ -788,6 +789,27 @@ async function start(): Promise<void> {
         }
       )
       logger.info('scheduled recurring ingest-tick geo job (every 15 min)')
+
+      // Backfill discovery every 30 min (issue #331, phase 6). Off by default —
+      // the stale-sweep above still removes it if it was previously registered
+      // and the flag was since turned off. Unlike ingest-tick (which tops up
+      // every resolved game), this concentrates on sub-threshold games ranked
+      // by distance-to-eligibility so effort moves the eligible-count needle.
+      if (env.GEO_BACKFILL_ENABLED === 'true') {
+        const backfillBatch = Number(env.GEO_BACKFILL_BATCH) || 10
+        await geoQueue.add(
+          'backfill-tick',
+          { kind: 'backfill-tick', batchSize: backfillBatch },
+          {
+            repeat: { every: 30 * 60 * 1000 },
+            jobId: 'geo-backfill-tick-recurring',
+          }
+        )
+        logger.info(
+          { batchSize: backfillBatch },
+          'scheduled recurring backfill-tick geo job (every 30 min)',
+        )
+      }
     } catch (error) {
       logger.warn({ error: String(error) }, 'failed to register recurring geo jobs')
     }

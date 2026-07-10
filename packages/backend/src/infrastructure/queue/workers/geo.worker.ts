@@ -13,6 +13,7 @@ import { importSteamScreenshots } from './geo-steam-import-logic.js'
 import { importRawgScreenshots } from './geo-rawg-import-logic.js'
 import { resolveGeoMetadataBatch } from './geo-metadata-resolve-logic.js'
 import { runGeoIngestTick } from './geo-ingest-tick-logic.js'
+import { runGeoBackfillTick } from './geo-backfill-logic.js'
 import { advancePipeline, runMapsPipeline } from './maps-pipeline-logic.js'
 import {
   shouldAdvanceAfterFailure,
@@ -126,6 +127,10 @@ export const geoWorker = new Worker<GeoJobData>(
 
     if (data.kind === 'ingest-tick') {
       return await runGeoIngestTick(data.batchSize, data.gameId)
+    }
+
+    if (data.kind === 'backfill-tick') {
+      return await runGeoBackfillTick(data.batchSize)
     }
 
     if (data.kind === 'maps:pipeline') {
