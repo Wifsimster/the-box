@@ -35,6 +35,7 @@ export interface ChangelogRelease {
  * manually from the footer.
  */
 export const CHANGELOG: ChangelogRelease[] = [
+  { version: '2.142.0', date: '2026-07-10' },
   { version: '2.135.0', date: '2026-06-14' },
   { version: '2.130.0', date: '2026-06-14' },
   { version: '2.127.0', date: '2026-06-13' },

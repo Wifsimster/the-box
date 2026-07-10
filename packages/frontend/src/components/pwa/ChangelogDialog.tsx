@@ -4,10 +4,12 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
   type ReactElement,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sparkles, Wrench, Zap } from 'lucide-react'
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
+import { ChevronLeft, ChevronRight, Sparkles, Wrench, Zap } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -56,11 +58,12 @@ const SECTION_ACCENT: Record<ChangelogSection, string> = {
  * "What's New" dialog. Auto-opens the newest release's notes once after the app
  * updates to that version, and opens on demand from the footer version chip.
  *
- * It renders the *whole* announced history as a vertical timeline (newest
- * first), so a returning player can scroll back through previous releases
- * instead of only seeing the single build they just upgraded to. All copy is
- * localized; bullet content comes from the active i18n bundle keyed by version,
- * so the notes follow the player's language.
+ * Releases are laid out on a *horizontal timeline* (newest first, left to
+ * right): each version is a tappable stop, and the body shows one release at a
+ * time. Players page between versions with the timeline itself, the footer
+ * chevrons, or the keyboard (arrow keys on the timeline). All copy is
+ * localized; bullet content comes from the active i18n bundle keyed by
+ * version, so the notes follow the player's language.
  */
 export function ChangelogDialog(): ReactElement | null {
   const { t, i18n } = useTranslation()
@@ -68,11 +71,35 @@ export function ChangelogDialog(): ReactElement | null {
   const lastSeenVersion = useChangelogStore((s) => s.lastSeenVersion)
   const openChangelog = useChangelogStore((s) => s.openChangelog)
   const markSeen = useChangelogStore((s) => s.markSeen)
+  const reducedMotion = useReducedMotion()
 
   const release = getLatestRelease()
 
-  // Edge-fade affordance: the middle release band is the only scroller, so we
-  // surface token-only top/bottom fades when its content overflows to signal
+  // Which release is on screen (0 = newest) and which way the last page turn
+  // went (1 = towards older, -1 = towards newer) so the panel slides that way.
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [direction, setDirection] = useState(0)
+
+  const goTo = useCallback(
+    (index: number) => {
+      const clamped = Math.max(0, Math.min(CHANGELOG.length - 1, index))
+      if (clamped === activeIndex) return
+      setDirection(clamped > activeIndex ? 1 : -1)
+      setActiveIndex(clamped)
+    },
+    [activeIndex],
+  )
+
+  // Always land on the newest release when the dialog (re)opens.
+  useEffect(() => {
+    if (open) {
+      setActiveIndex(0)
+      setDirection(0)
+    }
+  }, [open])
+
+  // Edge-fade affordance: the release panel is the only vertical scroller, so
+  // we surface token-only top/bottom fades when its content overflows to signal
   // there's more to read above/below the fold.
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showTopFade, setShowTopFade] = useState(false)
@@ -88,10 +115,12 @@ export function ChangelogDialog(): ReactElement | null {
 
   useEffect(() => {
     if (!open) return
+    const el = scrollRef.current
+    if (el) el.scrollTop = 0
     updateFades()
     window.addEventListener('resize', updateFades)
     return () => window.removeEventListener('resize', updateFades)
-  }, [open, updateFades, i18n.language])
+  }, [open, activeIndex, updateFades, i18n.language])
 
   // Auto-open the changelog the first time a player runs a build newer than the
   // one this browser last acknowledged. Brand-new visitors (no recorded version)
@@ -134,6 +163,8 @@ export function ChangelogDialog(): ReactElement | null {
 
   if (!release) return null
 
+  const activeEntry = CHANGELOG[activeIndex] ?? release
+
   const handleClose = (next: boolean): void => {
     if (!next) markSeen(APP_VERSION === 'dev' ? release.version : APP_VERSION)
   }
@@ -146,6 +177,24 @@ export function ChangelogDialog(): ReactElement | null {
       month: 'long',
       day: 'numeric',
     })
+  }
+
+  const formatShortDate = (iso: string): string => {
+    const parsed = new Date(iso)
+    if (Number.isNaN(parsed.getTime())) return iso
+    return parsed.toLocaleDateString(i18n.language, {
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  // Slide the panel towards older releases (right) or newer ones (left);
+  // reduced-motion players get a plain cross-fade.
+  const slide = reducedMotion ? 0 : 24
+  const panelVariants = {
+    enter: (dir: number) => ({ opacity: 0, x: dir * slide }),
+    center: { opacity: 1, x: 0 },
+    exit: (dir: number) => ({ opacity: 0, x: dir * -slide }),
   }
 
   return (
@@ -168,28 +217,42 @@ export function ChangelogDialog(): ReactElement | null {
           </div>
         </DialogHeader>
 
+        <VersionTimeline
+          activeIndex={activeIndex}
+          onSelect={goTo}
+          formatShortDate={formatShortDate}
+          t={t}
+        />
+
         <div className="relative min-h-0 flex-1">
           <div
             ref={scrollRef}
             onScroll={updateFades}
             tabIndex={0}
-            role="region"
-            aria-label={t('changelog.title')}
-            className="h-full overflow-y-auto px-4 py-4 sm:px-6 motion-safe:scroll-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            role="tabpanel"
+            id="changelog-release-panel"
+            aria-labelledby={`changelog-tab-${activeEntry.version}`}
+            className="h-full overflow-y-auto px-4 py-4 sm:px-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           >
-            <ol className="flex flex-col gap-6">
-              {CHANGELOG.map((entry, index) => (
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <m.div
+                key={activeEntry.version}
+                custom={direction}
+                variants={panelVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: reducedMotion ? 0 : 0.18 }}
+              >
                 <ReleaseEntry
-                  key={entry.version}
-                  entry={entry}
-                  content={releaseContent[entry.version] ?? null}
-                  isLatest={index === 0}
-                  isLast={index === CHANGELOG.length - 1}
-                  formattedDate={formatDate(entry.date)}
+                  entry={activeEntry}
+                  content={releaseContent[activeEntry.version] ?? null}
+                  isLatest={activeIndex === 0}
+                  formattedDate={formatDate(activeEntry.date)}
                   t={t}
                 />
-              ))}
-            </ol>
+              </m.div>
+            </AnimatePresence>
           </div>
           <span
             aria-hidden="true"
@@ -207,8 +270,44 @@ export function ChangelogDialog(): ReactElement | null {
           />
         </div>
 
-        <DialogFooter className="shrink-0 border-t border-border px-4 py-3 sm:px-6">
-          <Button className="w-full sm:w-auto" onClick={() => handleClose(false)}>
+        <DialogFooter className="shrink-0 flex-row items-center gap-3 border-t border-border px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8 rounded-full"
+              onClick={() => goTo(activeIndex - 1)}
+              disabled={activeIndex === 0}
+              aria-label={t('changelog.pagination.previous')}
+            >
+              <ChevronLeft className="size-4" aria-hidden="true" />
+            </Button>
+            <span
+              className="min-w-[3.5rem] text-center text-xs tabular-nums text-muted-foreground"
+              aria-live="polite"
+            >
+              <span aria-hidden="true">
+                {activeIndex + 1} / {CHANGELOG.length}
+              </span>
+              <span className="sr-only">
+                {t('changelog.pagination.status', {
+                  current: activeIndex + 1,
+                  total: CHANGELOG.length,
+                })}
+              </span>
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8 rounded-full"
+              onClick={() => goTo(activeIndex + 1)}
+              disabled={activeIndex === CHANGELOG.length - 1}
+              aria-label={t('changelog.pagination.next')}
+            >
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+          <Button className="ml-auto" onClick={() => handleClose(false)}>
             {t('changelog.gotIt')}
           </Button>
         </DialogFooter>
@@ -217,21 +316,133 @@ export function ChangelogDialog(): ReactElement | null {
   )
 }
 
+interface VersionTimelineProps {
+  activeIndex: number
+  onSelect: (index: number) => void
+  formatShortDate: (iso: string) => string
+  t: (key: string, options?: Record<string, unknown>) => string
+}
+
+/**
+ * Horizontal timeline strip — one stop per announced release, newest on the
+ * left. Implements the ARIA tabs pattern: the strip is a `tablist`, stops are
+ * `tab`s with a roving tabindex, and Left/Right/Home/End move + activate.
+ */
+function VersionTimeline({
+  activeIndex,
+  onSelect,
+  formatShortDate,
+  t,
+}: VersionTimelineProps): ReactElement {
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // Keep the active stop visible as the player pages through releases.
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const node = list.querySelector<HTMLElement>('[aria-selected="true"]')
+    node?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [activeIndex])
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    let next: number | null = null
+    if (event.key === 'ArrowRight') next = activeIndex + 1
+    else if (event.key === 'ArrowLeft') next = activeIndex - 1
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = CHANGELOG.length - 1
+    if (next === null) return
+    event.preventDefault()
+    const clamped = Math.max(0, Math.min(CHANGELOG.length - 1, next))
+    onSelect(clamped)
+    const tabs = listRef.current?.querySelectorAll<HTMLElement>('[role="tab"]')
+    tabs?.[clamped]?.focus()
+  }
+
+  return (
+    <div className="relative shrink-0 border-b border-border bg-muted/30">
+      <div
+        ref={listRef}
+        role="tablist"
+        aria-label={t('changelog.timeline.label')}
+        onKeyDown={handleKeyDown}
+        className="flex overflow-x-auto px-2 py-2.5 sm:px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {CHANGELOG.map((entry, index) => {
+          const isActive = index === activeIndex
+          const isLatest = index === 0
+          return (
+            <button
+              key={entry.version}
+              type="button"
+              role="tab"
+              id={`changelog-tab-${entry.version}`}
+              aria-controls="changelog-release-panel"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => onSelect(index)}
+              className="group flex min-w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-2 pb-1.5 pt-1 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {/* Stop marker sitting on the connecting rail. */}
+              <span className="relative flex h-4 w-full items-center justify-center">
+                {index > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-[-0.5rem] right-1/2 top-1/2 h-px -translate-y-1/2 bg-border"
+                  />
+                )}
+                {index < CHANGELOG.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-1/2 right-[-0.5rem] top-1/2 h-px -translate-y-1/2 bg-border"
+                  />
+                )}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'relative z-10 rounded-full border-2 border-card transition-all',
+                    isActive
+                      ? 'size-3.5 bg-primary shadow-[var(--glow-sm)]'
+                      : cn(
+                          'size-2.5 bg-muted-foreground/40 group-hover:bg-muted-foreground/70',
+                          isLatest && 'bg-primary/60',
+                        ),
+                  )}
+                />
+              </span>
+              <span
+                className={cn(
+                  'text-xs font-semibold leading-none transition-colors',
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground group-hover:text-foreground',
+                )}
+              >
+                v{entry.version}
+              </span>
+              <span className="text-[10px] leading-none text-muted-foreground">
+                {formatShortDate(entry.date)}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 interface ReleaseEntryProps {
   entry: ChangelogRelease
   content: ReleaseContent | null
   isLatest: boolean
-  isLast: boolean
   formattedDate: string
   t: (key: string, options?: Record<string, unknown>) => string
 }
 
-/** One release rendered as a node on the changelog timeline. */
+/** One release's notes — the tab panel body for the selected timeline stop. */
 function ReleaseEntry({
   entry,
   content,
   isLatest,
-  isLast,
   formattedDate,
   t,
 }: ReleaseEntryProps): ReactElement {
@@ -241,25 +452,7 @@ function ReleaseEntry({
   })).filter((section) => section.items.length > 0)
 
   return (
-    <li className="relative pl-7">
-      {/* Rail connecting this node to the next one below it. */}
-      {!isLast && (
-        <span
-          aria-hidden="true"
-          className="absolute bottom-[-1.5rem] left-[6px] top-5 w-px bg-linear-to-b from-border to-transparent"
-        />
-      )}
-      {/* Timeline node — the newest release glows in the active accent. */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          'absolute left-0 rounded-full border-2 border-card',
-          isLatest
-            ? 'top-0.5 size-3.5 bg-primary shadow-[var(--glow-sm)]'
-            : 'top-1 size-3 bg-muted-foreground/40',
-        )}
-      />
-
+    <article>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <h3
           className={cn(
@@ -335,7 +528,7 @@ function ReleaseEntry({
           <span>{t('changelog.empty')}</span>
         </p>
       )}
-    </li>
+    </article>
   )
 }
 

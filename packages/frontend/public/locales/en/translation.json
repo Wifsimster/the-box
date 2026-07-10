@@ -2793,7 +2793,25 @@
       "improvements": "Improvements",
       "fixes": "Fixes"
     },
+    "timeline": {
+      "label": "Version history"
+    },
+    "pagination": {
+      "previous": "Newer version",
+      "next": "Older version",
+      "status": "Version {{current}} of {{total}}"
+    },
     "releases": {
+      "2.142.0": {
+        "summary": "The release notes get a facelift: a horizontal timeline to travel from version to version.",
+        "features": [
+          "Releases now sit on a horizontal timeline — tap any stop to revisit its notes.",
+          "Modern pagination (arrows and keyboard) lets you flip between versions in one gesture."
+        ],
+        "improvements": [
+          "Geo mode keeps growing: an agent-assisted pipeline scouts new maps and locations to guess."
+        ]
+      },
       "2.135.0": {
         "summary": "Daily rewards now come in colors: each day reveals its rarity, with its own vibe and animation.",
         "features": [
