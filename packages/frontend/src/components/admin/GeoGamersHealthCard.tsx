@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { fetchAdminJson } from '@/lib/api/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface GeoGamersHealth {
@@ -30,17 +31,45 @@ export function GeoGamersHealthCard() {
     const [health, setHealth] = useState<GeoGamersHealth | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [creating, setCreating] = useState(false)
+    const [notice, setNotice] = useState<string | null>(null)
+    // Guards against setState after unmount (the fetches outlive a quick tab switch).
+    const mounted = useRef(true)
+
+    async function load() {
+        try {
+            const d = await fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health')
+            if (mounted.current) setHealth(d)
+        } catch (e) {
+            if (mounted.current) setError(String(e))
+        } finally {
+            if (mounted.current) setLoading(false)
+        }
+    }
 
     useEffect(() => {
-        let cancelled = false
-        fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health')
-            .then((d) => !cancelled && setHealth(d))
-            .catch((e) => !cancelled && setError(String(e)))
-            .finally(() => !cancelled && setLoading(false))
+        void load()
         return () => {
-            cancelled = true
+            mounted.current = false
         }
     }, [])
+
+    async function createChallenge() {
+        setCreating(true)
+        setNotice(null)
+        try {
+            const res = await fetchAdminJson<{ message: string }>(
+                '/api/admin/geogamers/create-challenge',
+                { method: 'POST' },
+            )
+            if (mounted.current) setNotice(res.message)
+            await load()
+        } catch (e) {
+            if (mounted.current) setNotice(String(e))
+        } finally {
+            if (mounted.current) setCreating(false)
+        }
+    }
 
     if (loading) {
         return (
@@ -102,6 +131,21 @@ export function GeoGamersHealthCard() {
                     {health.todayChallengeExists ? 'créé' : 'pas encore'} · Défi courant :{' '}
                     {health.currentChallengeDate ?? '—'} · Cooldown : {health.cooldownDays} j ·
                     Saison : {health.season.month}
+                </div>
+
+                {/* Manual first-challenge creation — avoids waiting for the
+                    00:05 UTC cron right after enabling the feature. */}
+                <div className="flex items-center gap-3">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={creating || health.todayChallengeExists}
+                        onClick={() => void createChallenge()}
+                    >
+                        {creating && <Loader2 className="mr-1 size-4 animate-spin" />}
+                        {health.todayChallengeExists ? 'Défi du jour déjà créé' : 'Créer le défi du jour'}
+                    </Button>
+                    {notice && <span className="text-xs text-muted-foreground">{notice}</span>}
                 </div>
             </CardContent>
         </Card>
