@@ -2948,5 +2948,26 @@
       "daysPlayed": "Jours joués",
       "droppedDays": "3 pires jours retirés"
     }
+  },
+  "geogamersParty": {
+    "title": "GeoGamers — Partie à plusieurs",
+    "create": "Créer une partie",
+    "createCta": "Créer",
+    "rounds": "Nombre de manches",
+    "join": "Rejoindre",
+    "joinCta": "Rejoindre",
+    "codePlaceholder": "CODE",
+    "inviteCode": "Code d'invitation :",
+    "playerCount": "{{count}}/{{max}} joueurs",
+    "start": "Lancer la partie",
+    "waitingHost": "En attente de l'hôte…",
+    "leave": "Quitter",
+    "round": "Manche {{n}} / {{total}}",
+    "waitingOthers": "En attente des autres joueurs…",
+    "wrongGuess": "Raté — {{left}} essai(s) restant(s)",
+    "answer": "Réponse :",
+    "finished": "Partie terminée !",
+    "nextRound": "Manche suivante",
+    "seeResults": "Voir les résultats"
   }
 }

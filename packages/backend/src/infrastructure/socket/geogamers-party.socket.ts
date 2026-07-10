@@ -64,6 +64,11 @@ async function buildView(party: GeoGamersParty, playerId: string): Promise<GeoGa
     if (round) {
       const result = round.results[playerId]
       const resolved = !!result && (result.solvedGame || result.attemptsUsed >= 3)
+      view.you = {
+        attemptsUsed: result?.attemptsUsed ?? 0,
+        resolvedPhase1: resolved,
+        done: result?.done ?? false,
+      }
       view.round = {
         index: round.index,
         screenshotUrl: `/api/geogamers/party/${party.code}/round/${round.index}/image`,

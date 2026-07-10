@@ -2948,5 +2948,26 @@
       "daysPlayed": "Days played",
       "droppedDays": "3 worst days dropped"
     }
+  },
+  "geogamersParty": {
+    "title": "GeoGamers — Party",
+    "create": "Create a party",
+    "createCta": "Create",
+    "rounds": "Rounds",
+    "join": "Join",
+    "joinCta": "Join",
+    "codePlaceholder": "CODE",
+    "inviteCode": "Invite code:",
+    "playerCount": "{{count}}/{{max}} players",
+    "start": "Start game",
+    "waitingHost": "Waiting for the host…",
+    "leave": "Leave",
+    "round": "Round {{n}} / {{total}}",
+    "waitingOthers": "Waiting for other players…",
+    "wrongGuess": "Missed — {{left}} attempt(s) left",
+    "answer": "Answer:",
+    "finished": "Game over!",
+    "nextRound": "Next round",
+    "seeResults": "See results"
   }
 }

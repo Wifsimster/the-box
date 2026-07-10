@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Loader2, MapPin, Sparkles, Trophy } from 'lucide-react'
+import { Loader2, MapPin, Sparkles, Trophy, Users } from 'lucide-react'
 import { useGeoGamersStore } from '@/stores/geoGamersStore'
 import { useAuth } from '@/hooks/useAuth'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
@@ -82,12 +82,20 @@ export default function GeoGamersPlayPage() {
                     <MapPin className="h-6 w-6 text-neon-purple" />
                     GeoGamers
                 </h1>
-                <Link
-                    to="../leaderboard"
-                    className="flex items-center gap-1 text-sm text-neon-purple hover:text-primary"
-                >
-                    <Trophy className="h-4 w-4" /> {t('geogamers.season.link')}
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="party"
+                        className="flex items-center gap-1 text-sm text-neon-purple hover:text-primary"
+                    >
+                        <Users className="h-4 w-4" /> {t('geogamersParty.title')}
+                    </Link>
+                    <Link
+                        to="../leaderboard"
+                        className="flex items-center gap-1 text-sm text-neon-purple hover:text-primary"
+                    >
+                        <Trophy className="h-4 w-4" /> {t('geogamers.season.link')}
+                    </Link>
+                </div>
             </header>
 
             {/* ---------------- IDENTIFY ---------------- */}

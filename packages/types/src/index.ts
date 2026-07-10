@@ -1957,6 +1957,9 @@ export interface GeoGamersPartyView {
     maps?: GeoMapOption[]
     gameName?: string // only after this player resolves phase 1
   }
+  // The requesting player's OWN round state (safe — it's their own data). Lets
+  // the client distinguish identify / locate / waiting-for-others.
+  you?: { attemptsUsed: number; resolvedPhase1: boolean; done: boolean }
   // Scoreboard (cumulative totals) — always safe to show.
   scoreboard: Array<{ playerId: string; name: string; total: number }>
   // Full reveal payload — present only when status === 'reveal' or 'finished'.

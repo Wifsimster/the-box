@@ -122,6 +122,22 @@ can poll unconditionally. Documented in `docs/public-api.openapi.yaml`.
 A "today's panorama is live" notification (`type: geogamers_daily`) fans out to
 active, non-anonymous subscribers on the day's first challenge creation.
 
+## Party mode (1–4 players)
+
+A casual, **unranked** variant: 1–4 players in a private lobby play the same
+server-seeded round sequence (3/5/10 rounds), each on their own screen, with a
+synchronized reveal between rounds and a live scoreboard. Draws from the same
+eligible pool as the daily (which excludes every screenshot ever used as a
+challenge), so it never touches the season and can't scout the ranked daily.
+Guests may join.
+
+State is ephemeral (Redis, 2h TTL). Play runs over the Socket.io
+`/geogamers-party` namespace; the pure state machine (`geogamers-party.service`)
+is the source of truth and is fully unit-tested. Views are spectator-safe — the
+game identity and canonical pin are withheld until a player resolves phase 1 or
+the round reveals. Screenshots stream through a party image proxy. Frontend:
+`GeoGamersPartyPage` (route `/:lang/geogamers/party`).
+
 ## Config
 
 | Var | Default | Purpose |
@@ -142,7 +158,10 @@ Plus: daily web-push fan-out, a read-only public-API season endpoint, and an
 admin content-health panel (`GET /api/admin/geogamers/health` + a Géo-tab card
 that flags content starvation before a day silently skips).
 
+Plus Phase 4 party mode (1–4 player lobbies).
+
 Follow-ups (tracked on #325): public-API SSE / outbound webhooks for GeoGamers
 events, admin anomaly-review (first-attempt-correct screening at payout), more
-cross-mode achievements (season top-10, dual-podium), party mode (Phase 4),
-immersive panoramas (Phase 5).
+cross-mode achievements (season top-10, dual-podium), immersive panoramas
+(Phase 5). Party mode's live multiplayer path (Redis + Socket.io + multiple
+clients) still needs end-to-end verification in a real environment.
