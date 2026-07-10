@@ -5,6 +5,9 @@ import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middl
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
+import { achievementRepository } from '../../infrastructure/repositories/index.js'
+import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
+import type { NewlyEarnedAchievement } from '@the-box/types'
 
 const log = routeLogger.child({ route: 'geogamers' })
 
@@ -88,6 +91,40 @@ function handleError(err: unknown, res: import('express').Response, next: import
 
 const writeLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
 
+// Award recognition-only GeoGamers achievements on a completed RANKED run.
+// Idempotent: guarded by hasAchievement + the user_achievements unique, so a
+// re-award is a no-op. Best-effort — never blocks the guess response.
+async function awardCompletionAchievements(
+  userId: string,
+  totalPoints: number,
+): Promise<NewlyEarnedAchievement[]> {
+  const candidates: string[] = ['geogamers_first_run']
+  if (totalPoints >= 200) candidates.push('geogamers_perfect_day')
+
+  const earned: NewlyEarnedAchievement[] = []
+  for (const key of candidates) {
+    try {
+      if (await achievementRepository.hasAchievement(userId, key)) continue
+      const ach = await achievementRepository.findByKey(key)
+      if (!ach) continue
+      await achievementRepository.awardAchievement(userId, key)
+      earned.push({
+        key: ach.key,
+        name: ach.name,
+        description: ach.description ?? '',
+        category: ach.category,
+        iconUrl: ach.icon_url ?? null,
+        points: ach.points,
+        tier: ach.tier,
+      })
+    } catch (err) {
+      // Unique race (already earned) or missing row — non-fatal.
+      log.debug({ err, userId, key }, 'geogamers achievement award skipped')
+    }
+  }
+  return earned
+}
+
 // ---------- Routes ----------
 
 // Start or resume today's run.
@@ -143,6 +180,13 @@ router.post(
     try {
       const body = req.body as z.infer<typeof guessLocationBody>
       const result = await geoGamersService.guessLocation(body)
+      // Ranked completion (result.rank set for account runs) → evaluate the
+      // recognition-only achievements and push a toast. Guests (ghostRank)
+      // earn nothing until they claim.
+      if (req.userId && !req.isGuest && result.rank != null) {
+        const earned = await awardCompletionAchievements(req.userId, result.totalPoints)
+        if (earned.length > 0) emitAchievementUnlocked(req.userId, earned)
+      }
       res.json({ success: true, data: result })
     } catch (err) {
       handleError(err, res, next)
