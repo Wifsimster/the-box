@@ -206,6 +206,18 @@ weight further. `visionPass` (0–2) lets one key submit multiple independent
 confident** — a wrong structured pin at weight 0.6 poisons the centroid; prefer
 precision over recall.
 
+**Vision gate (phase 5).** `source: "agent_vision"` is rejected with
+`403 VISION_DISABLED` until `GEO_AGENT_VISION_ENABLED=true`. The flag is only
+flipped after the offline study `npm run eval:geo-vision` clears the enable bar
+(≥40% of predictions within the map's consensus radius, median normalized error
+< 0.1, on ≥50 known-truth metas). `agent_structured` is unaffected. See
+`packages/backend/scripts/geo-vision-eval.ts`.
+
+**Per-key auto-pause (phase 5).** A key whose 7-day proposals are >60% rejected
+by consensus (≥10 submissions) is paused with `403 KEY_PAUSED` — the same bar as
+the human contributor shadow-ban, applied at the key level so a miscalibrated
+proposer can't keep flooding the review queue.
+
 ```json
 { "success": true, "data": { "pinId": 90142, "received": true, "pinCount": 7, "budget": { "used": 3, "limit": 60, "remaining": 57 } } }
 ```
@@ -225,6 +237,8 @@ proposal (same key + candidate + `visionPass`) is an idempotent no-op:
 | `BUDGET_EXHAUSTED` | 429 | Write budget hit; `Retry-After` = seconds to window reset |
 | `CANDIDATE_NOT_FOUND` | 404 | No such capture candidate (propose) |
 | `ALREADY_PROMOTED` | 409 | Candidate already has a canonical pin (propose) |
+| `VISION_DISABLED` | 403 | `agent_vision` proposals disabled pending the accuracy study |
+| `KEY_PAUSED` | 403 | Key auto-paused: >60% of its recent proposals were rejected |
 | `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` / `sources` / pin body |
 | `INTERNAL_ERROR` | 500 | Server error |
 

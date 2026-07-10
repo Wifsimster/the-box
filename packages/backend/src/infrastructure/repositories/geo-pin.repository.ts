@@ -202,6 +202,36 @@ export const geoPinRepository = {
     return Number(result?.count ?? 0)
   },
 
+  // Same shape as userRejectionRatio7d but keyed by the agent API key, for the
+  // per-key auto-pause (issue #331, phase 5). Counts this key's agent pins in
+  // the last 7 days and how many consensus rejected.
+  async agentKeyRejectionRatio7d(
+    agentKeyId: number,
+  ): Promise<{ submitted: number; rejected: number }> {
+    const sevenDaysSeconds = 7 * 24 * 60 * 60
+    const rows = await db('geo_pin_submission')
+      .where({ agent_key_id: agentKeyId })
+      .where(
+        'created_at',
+        '>=',
+        db.raw(`NOW() - make_interval(secs => ?)`, [sevenDaysSeconds]),
+      )
+      .select<Array<{ status: GeoPinStatus; count: string }>>(
+        'status',
+        db.raw('COUNT(*) as count'),
+      )
+      .groupBy('status')
+
+    let submitted = 0
+    let rejected = 0
+    for (const r of rows) {
+      const c = Number(r.count)
+      submitted += c
+      if (r.status === 'rejected') rejected += c
+    }
+    return { submitted, rejected }
+  },
+
   async userRejectionRatio7d(userId: string): Promise<{ submitted: number; rejected: number }> {
     // 7 days = 604800 seconds, expressed as a bound parameter for the same
     // reason as countByUserInWindow.
