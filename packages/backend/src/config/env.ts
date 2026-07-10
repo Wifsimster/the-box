@@ -61,6 +61,10 @@ export const env = {
   // day, tracked in Redis so it survives deploys. Independent of the 60/min
   // rate limit — this bounds cost/abuse over a day, not burst rate.
   GEO_AGENT_MAX_INGESTS_PER_DAY: process.env['GEO_AGENT_MAX_INGESTS_PER_DAY'] || '20',
+  // Per-key hourly budget for agent pin proposals (phase 4), tracked in Redis.
+  // Agent pins are downweighted and can never promote on their own, but the
+  // budget still bounds how fast one key can flood the review queue.
+  GEO_AGENT_MAX_PINS_PER_HOUR: process.env['GEO_AGENT_MAX_PINS_PER_HOUR'] || '60',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

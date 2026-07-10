@@ -18,6 +18,7 @@ the key can't, and the key is read-only in this phase.
 | `geo_games_needing_content` | `GET /games-needing-content` | `limit?` | `geo-agent:read` |
 | `geo_list_candidates` | `GET /games/:gameId/candidates` | `gameId`, `limit?` | `geo-agent:read` |
 | `geo_ingest_game` | `POST /games/:gameId/ingest` | `gameId`, `sources?` | `geo-agent:ingest` |
+| `geo_propose_pin` | `POST /candidates/:id/pins` | `candidateId`, `x`, `y`, `source`, `rationale`, … | `geo-agent:propose` |
 
 ## Setup
 
@@ -59,6 +60,7 @@ Add to your MCP config (e.g. `.mcp.json` or the Claude Code settings):
 
 - stdout is the JSON-RPC channel; all diagnostics go to stderr.
 - The server echoes the client's requested MCP `protocolVersion`.
-- `geo_ingest_game` needs a key with the `geo-agent:ingest` scope and is bounded
-  by a per-key daily budget. Pin-proposal (`geo-agent:propose`) tools land in
-  phase 4.
+- `geo_ingest_game` needs `geo-agent:ingest` (per-key daily budget);
+  `geo_propose_pin` needs `geo-agent:propose` (per-key hourly budget). Proposed
+  pins are downweighted and can never promote ground truth on their own — they
+  join consensus as one flagged, human-reviewed voter.

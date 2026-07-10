@@ -42,7 +42,7 @@ via `DELETE /api/admin/agent-keys/:id` (any admin, instant).
 |-------|--------|-------|
 | `geo-agent:read` | `/health`, `/games-needing-content`, `/games/:id/candidates` | 2 |
 | `geo-agent:ingest` | `POST /games/:id/ingest` — trigger the ingestion pipeline | 3 |
-| `geo-agent:propose` | submit downweighted, flagged consensus pins | 4 |
+| `geo-agent:propose` | `POST /candidates/:id/pins` — propose a downweighted consensus pin | 4 |
 
 A freshly minted key defaults to `geo-agent:read`. Ingest/propose are granted
 per key as later phases ship.
@@ -52,11 +52,12 @@ per key as later phases ship.
 Fixed-window, **60 requests / minute per key** (in-memory). On exhaustion:
 `429 RATE_LIMITED` with `Retry-After`.
 
-Write endpoints additionally carry a **per-key daily budget** in Redis (survives
-deploys). Ingest: `GEO_AGENT_MAX_INGESTS_PER_DAY` (default 20) `POST /ingest`
-calls per UTC day. On exhaustion: `429 BUDGET_EXHAUSTED` with `Retry-After`
-(seconds to UTC midnight). Budgets fail **closed** — if Redis is unreachable the
-call is rejected, never silently unlimited.
+Write endpoints additionally carry a **per-key budget** in Redis (survives
+deploys). Ingest: `GEO_AGENT_MAX_INGESTS_PER_DAY` (default 20) per UTC day. Pin
+proposals: `GEO_AGENT_MAX_PINS_PER_HOUR` (default 60) per UTC hour. On
+exhaustion: `429 BUDGET_EXHAUSTED` with `Retry-After` (seconds to the window
+reset). Budgets fail **closed** — if Redis is unreachable the call is rejected,
+never silently unlimited.
 
 ## Endpoints
 
@@ -175,6 +176,44 @@ per-source breakdown. Poll `/games/:id/candidates` to see resulting captures.
 Every ingest is written to `admin_audit_log` as `geo-agent.ingest`, keyed
 `apikey:<id>`.
 
+### `POST /candidates/:id/pins`
+
+Scope: `geo-agent:propose`. Propose a location pin for a capture. **This is the
+one write that touches consensus — and it is safe by construction.** The pin is
+persisted flagged (`source = agent_structured | agent_vision`), **downweighted**
+in the centroid (×0.6 / ×0.25 vs a human pin), and — critically — **excluded
+from the promote count**: a candidate promotes only on ≥5 accepted *human* pins
+(or an admin override), so no number of agent pins can create ground truth. Pins
+land in the same review queue as crowd pins and are shown to moderators with
+their rationale.
+
+```json
+{
+  "x": 0.42,
+  "y": 0.31,
+  "source": "agent_structured",
+  "rationale": "MapGenie 'Site of Grace: First Step' marker matches the capture's stairway",
+  "confidence": 1,
+  "model": "optional-model-id",
+  "visionPass": 0
+}
+```
+
+`x`/`y` are normalized to `[0,1]`. `rationale` is **required** (≤500 chars) — it
+is the review artifact. `confidence` (1 sure … 3 guess) optionally scales the
+weight further. `visionPass` (0–2) lets one key submit multiple independent
+`agent_vision` passes per candidate as separate voters. **Propose only when
+confident** — a wrong structured pin at weight 0.6 poisons the centroid; prefer
+precision over recall.
+
+```json
+{ "success": true, "data": { "pinId": 90142, "received": true, "pinCount": 7, "budget": { "used": 3, "limit": 60, "remaining": 57 } } }
+```
+
+`409 ALREADY_PROMOTED` if the candidate already has a canonical pin. A duplicate
+proposal (same key + candidate + `visionPass`) is an idempotent no-op:
+`{ "received": true, "duplicate": true }`. Audited as `geo-agent.propose_pin`.
+
 ## Error codes
 
 | Code | HTTP | Meaning |
@@ -183,8 +222,10 @@ Every ingest is written to `admin_audit_log` as `geo-agent.ingest`, keyed
 | `UNAUTHORIZED` | 401 | Missing / malformed / invalid key |
 | `INSUFFICIENT_SCOPE` | 403 | Key lacks the required geo-agent scope (or carries a non-agent scope) |
 | `RATE_LIMITED` | 429 | Per-minute limit hit; see `Retry-After` |
-| `BUDGET_EXHAUSTED` | 429 | Daily write budget hit; `Retry-After` = seconds to UTC midnight |
-| `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` / `sources` |
+| `BUDGET_EXHAUSTED` | 429 | Write budget hit; `Retry-After` = seconds to window reset |
+| `CANDIDATE_NOT_FOUND` | 404 | No such capture candidate (propose) |
+| `ALREADY_PROMOTED` | 409 | Candidate already has a canonical pin (propose) |
+| `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` / `sources` / pin body |
 | `INTERNAL_ERROR` | 500 | Server error |
 
 ## Audit

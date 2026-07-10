@@ -11,6 +11,7 @@ import { validateBody, validateParams, validateQuery } from '../middleware/valid
 import {
   geoScreenshotRepository,
   geoMapRepository,
+  geoPinRepository,
 } from '../../infrastructure/repositories/index.js'
 import { geoSourceConfigRepository } from '../../infrastructure/repositories/geo-source-config.repository.js'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
@@ -21,8 +22,12 @@ import {
   RUNNABLE_TIERS,
   type RunnableTier,
 } from '../../infrastructure/queue/workers/geo-ingest-tick-logic.js'
-import { consumeIngestBudget } from '../../infrastructure/redis/agent-budget.js'
+import { geoQueue } from '../../infrastructure/queue/queues.js'
+import { consumeIngestBudget, consumePinBudget } from '../../infrastructure/redis/agent-budget.js'
 import { env } from '../../config/env.js'
+import { routeLogger } from '../../infrastructure/logger/logger.js'
+
+const log = routeLogger.child({ router: 'agent-geo' })
 
 // Agent content-sourcing surface (issue #331, phase 2 — read-only).
 //
@@ -196,6 +201,123 @@ router.post(
           results,
           budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
         },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /candidates/:id/pins — propose a downweighted, flagged pin (phase 4).
+// The write path that lets a machine participate in consensus WITHOUT being
+// able to promote ground truth: agent pins feed the same consensus queue as
+// crowd pins but are excluded from the human-gated promote count (consensus
+// v3) and downweighted in the centroid. `rationale` is required — it is the
+// artifact a human reviewer reads. Bounded by a per-key hourly budget.
+const pinBodySchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  source: z.enum(['agent_structured', 'agent_vision']),
+  rationale: z.string().trim().min(1).max(500),
+  confidence: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  model: z.string().trim().max(100).optional(),
+  // Only meaningful for agent_vision: multiple independent passes vote against
+  // each other. 0-2 → up to 3 passes per candidate per key.
+  visionPass: z.number().int().min(0).max(2).optional(),
+})
+
+router.post(
+  '/candidates/:id/pins',
+  requireScope('geo-agent:propose'),
+  validateParams(z.object({ id: z.coerce.number().int().positive() })),
+  validateBody(pinBodySchema),
+  async (req, res, next) => {
+    try {
+      const { id: candidateId } = req.params as unknown as { id: number }
+      const body = req.body as z.infer<typeof pinBodySchema>
+      const keyId = req.apiKey!.id
+
+      const candidate = await geoScreenshotRepository.findCandidateById(candidateId)
+      if (!candidate) {
+        res.status(404).json({ success: false, error: { code: 'CANDIDATE_NOT_FOUND' } })
+        return
+      }
+      // Never let a machine pin touch a candidate that already has ground
+      // truth — proposals only make sense while a candidate is collecting.
+      const existingMeta = await geoScreenshotRepository.findMetaByCandidateId(candidateId)
+      if (existingMeta) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'ALREADY_PROMOTED', message: 'candidate already has a canonical pin' },
+        })
+        return
+      }
+
+      const maxPerHour = Number(env.GEO_AGENT_MAX_PINS_PER_HOUR) || 60
+      const budget = await consumePinBudget(keyId, maxPerHour)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Hourly pin budget of ${budget.limit} reached`,
+          },
+        })
+        return
+      }
+
+      const submission = await geoPinRepository.submitAgent({
+        agentKeyId: keyId,
+        geoScreenshotCandidateId: candidateId,
+        pin: { x: body.x, y: body.y },
+        source: body.source,
+        rationale: body.rationale,
+        model: body.model,
+        confidence: body.confidence,
+        visionPass: body.visionPass,
+      })
+
+      const budgetInfo = { used: budget.used, limit: budget.limit, remaining: budget.remaining }
+
+      // Duplicate proposal (same key+candidate+pass) — idempotent no-op.
+      if (!submission) {
+        res.json({ success: true, data: { received: true, duplicate: true, budget: budgetInfo } })
+        return
+      }
+
+      const newPinCount = await geoScreenshotRepository.incrementPinCount(candidateId)
+      // Enqueue consensus evaluation on the same threshold-gated path as the
+      // crowd. Agent pins can trigger a recompute but never a promotion.
+      try {
+        await geoQueue.add('evaluate-consensus', {
+          kind: 'evaluate-consensus',
+          geoScreenshotCandidateId: candidateId,
+          pinCountAtEnqueue: newPinCount,
+        })
+      } catch (e) {
+        log.warn({ err: String(e), candidateId }, 'failed to enqueue geo consensus job')
+      }
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.propose_pin',
+        targetKind: 'geo_screenshot_candidate',
+        targetId: String(candidateId),
+        after: {
+          x: body.x,
+          y: body.y,
+          source: body.source,
+          rationale: body.rationale,
+          model: body.model ?? null,
+          visionPass: body.visionPass ?? 0,
+        },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: { pinId: submission.id, received: true, pinCount: newPinCount, budget: budgetInfo },
       })
     } catch (err) {
       next(err)

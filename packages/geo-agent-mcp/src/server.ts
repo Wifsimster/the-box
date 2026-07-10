@@ -73,6 +73,30 @@ export const TOOLS: ToolDef[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'geo_propose_pin',
+    description:
+      "Propose a location pin for a capture (needs a geo-agent:propose key). The pin is DOWNWEIGHTED and can never promote ground truth on its own — it joins consensus as one flagged voter, reviewed by humans. `rationale` is required. Propose only when confident; a wrong pin poisons the centroid.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        candidateId: { type: 'number', description: 'geo_screenshot_candidate id (required)' },
+        x: { type: 'number', description: 'Normalized x in [0,1] (required)' },
+        y: { type: 'number', description: 'Normalized y in [0,1] (required)' },
+        source: {
+          type: 'string',
+          enum: ['agent_structured', 'agent_vision'],
+          description: 'agent_structured (scraped coords) or agent_vision (LLM localization)',
+        },
+        rationale: { type: 'string', description: 'Why this location — the review artifact (required, <=500 chars)' },
+        confidence: { type: 'number', enum: [1, 2, 3], description: 'Optional self-reported confidence (1 sure … 3 guess)' },
+        model: { type: 'string', description: 'Optional model id for a vision pin' },
+        visionPass: { type: 'number', description: 'Optional independent vision pass index 0-2' },
+      },
+      required: ['candidateId', 'x', 'y', 'source', 'rationale'],
+      additionalProperties: false,
+    },
+  },
 ]
 
 function asPositiveInt(value: unknown): number | null {
@@ -115,6 +139,29 @@ export function resolveToolPath(
         body['sources'] = a['sources']
       }
       return { path: `/api/agent/v1/geo/games/${gameId}/ingest`, method: 'POST', body }
+    }
+    case 'geo_propose_pin': {
+      const candidateId = asPositiveInt(a['candidateId'])
+      if (candidateId === null) return { error: 'candidateId is required and must be a positive integer' }
+      if (typeof a['x'] !== 'number' || typeof a['y'] !== 'number') {
+        return { error: 'x and y are required numbers in [0,1]' }
+      }
+      if (a['source'] !== 'agent_structured' && a['source'] !== 'agent_vision') {
+        return { error: 'source must be agent_structured or agent_vision' }
+      }
+      if (typeof a['rationale'] !== 'string' || a['rationale'].trim() === '') {
+        return { error: 'rationale is required' }
+      }
+      const body: Record<string, unknown> = {
+        x: a['x'],
+        y: a['y'],
+        source: a['source'],
+        rationale: a['rationale'],
+      }
+      for (const k of ['confidence', 'model', 'visionPass'] as const) {
+        if (a[k] !== undefined) body[k] = a[k]
+      }
+      return { path: `/api/agent/v1/geo/candidates/${candidateId}/pins`, method: 'POST', body }
     }
     default:
       return { error: `unknown tool: ${name}` }

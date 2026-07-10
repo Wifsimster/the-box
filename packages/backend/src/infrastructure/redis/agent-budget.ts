@@ -24,28 +24,41 @@ export function secondsToUtcMidnight(now: Date): number {
   return Math.max(1, Math.ceil((midnight.getTime() - now.getTime()) / 1000))
 }
 
+/** Seconds from `now` until the top of the next UTC hour. Pure. */
+export function secondsToNextUtcHour(now: Date): number {
+  const nextHour = new Date(now)
+  nextHour.setUTCMinutes(60, 0, 0)
+  return Math.max(1, Math.ceil((nextHour.getTime() - now.getTime()) / 1000))
+}
+
 /** Redis key for a key's ingest budget on a given UTC day. Pure. */
 export function ingestBudgetKey(apiKeyId: number, now: Date): string {
   return `geo-agent:budget:ingest:${apiKeyId}:${now.toISOString().slice(0, 10)}`
 }
 
+/** Redis key for a key's pin budget in a given UTC hour. Pure. */
+export function pinBudgetKey(apiKeyId: number, now: Date): string {
+  // slice(0, 13) → "YYYY-MM-DDTHH" (hour granularity).
+  return `geo-agent:budget:pins:${apiKeyId}:${now.toISOString().slice(0, 13)}`
+}
+
 /**
- * Atomically consume one unit of a key's daily ingest budget. Returns
- * `ok: false` (without consuming) once `limit` is reached. The counter expires
- * at the next UTC midnight so a fresh budget rolls over automatically.
- *
- * On any Redis error the call FAILS CLOSED (`ok: false`): a budget we can't
- * verify must not silently become unlimited.
+ * Atomically consume one unit of a windowed budget keyed in Redis. Returns
+ * `ok: false` (without consuming) once `limit` is reached; the counter expires
+ * at the end of the window so it rolls over automatically. FAILS CLOSED on any
+ * Redis error — a budget we can't verify must not silently become unlimited.
  */
-export async function consumeIngestBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
-  const now = new Date()
-  const key = ingestBudgetKey(apiKeyId, now)
-  const resetSeconds = secondsToUtcMidnight(now)
+async function consumeWindowBudget(
+  key: string,
+  limit: number,
+  resetSeconds: number,
+  label: string,
+): Promise<BudgetResult> {
   try {
     const redis = getRedis()
     const used = await redis.incr(key)
     if (used === 1) {
-      // First hit today — bound the key's lifetime to the current UTC day.
+      // First hit in this window — bound the key's lifetime to the window.
       await redis.expire(key, resetSeconds + 60)
     }
     if (used > limit) {
@@ -56,7 +69,19 @@ export async function consumeIngestBudget(apiKeyId: number, limit: number): Prom
     }
     return { ok: true, used, limit, remaining: Math.max(0, limit - used), resetSeconds }
   } catch (err) {
-    log.error({ err: String(err), apiKeyId }, 'ingest budget check failed — failing closed')
+    log.error({ err: String(err), key, label }, `${label} budget check failed — failing closed`)
     return { ok: false, used: limit, limit, remaining: 0, resetSeconds }
   }
+}
+
+/** Consume one unit of a key's DAILY ingest budget (phase 3). */
+export async function consumeIngestBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(ingestBudgetKey(apiKeyId, now), limit, secondsToUtcMidnight(now), 'ingest')
+}
+
+/** Consume one unit of a key's HOURLY pin-proposal budget (phase 4). */
+export async function consumePinBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(pinBudgetKey(apiKeyId, now), limit, secondsToNextUtcHour(now), 'pin')
 }

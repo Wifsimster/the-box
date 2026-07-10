@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { ingestBudgetKey, secondsToUtcMidnight } from './agent-budget.js'
+import {
+  ingestBudgetKey,
+  pinBudgetKey,
+  secondsToNextUtcHour,
+  secondsToUtcMidnight,
+} from './agent-budget.js'
 
 describe('secondsToUtcMidnight', () => {
   it('counts seconds to the next UTC midnight', () => {
@@ -27,6 +32,32 @@ describe('ingestBudgetKey', () => {
   it('rolls to a new key at the UTC day boundary', () => {
     const before = ingestBudgetKey(1, new Date('2026-07-10T23:59:59.000Z'))
     const after = ingestBudgetKey(1, new Date('2026-07-11T00:00:01.000Z'))
+    assert.notEqual(before, after)
+  })
+})
+
+describe('secondsToNextUtcHour', () => {
+  it('counts seconds to the top of the next UTC hour', () => {
+    assert.equal(secondsToNextUtcHour(new Date('2026-07-10T15:00:00.000Z')), 3600)
+    assert.equal(secondsToNextUtcHour(new Date('2026-07-10T15:59:00.000Z')), 60)
+  })
+
+  it('never returns less than 1', () => {
+    assert.ok(secondsToNextUtcHour(new Date('2026-07-10T15:59:59.500Z')) >= 1)
+  })
+})
+
+describe('pinBudgetKey', () => {
+  it('scopes the key by api key id and UTC hour', () => {
+    assert.equal(
+      pinBudgetKey(7, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:pins:7:2026-07-10T15',
+    )
+  })
+
+  it('rolls to a new key at the hour boundary', () => {
+    const before = pinBudgetKey(1, new Date('2026-07-10T15:59:59.000Z'))
+    const after = pinBudgetKey(1, new Date('2026-07-10T16:00:01.000Z'))
     assert.notEqual(before, after)
   })
 })

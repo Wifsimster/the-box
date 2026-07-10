@@ -75,6 +75,8 @@ Quand une capture n'a pas (encore) de position canonique, on demande aux joueurs
 
 L'algorithme calcule le centroïde des pins et leur écart-type sur chaque axe. Les pins trop éloignés sont rejetés. La promotion canonique nécessite assez de pins **et** un cluster suffisamment serré (`confidence > 0.5`).
 
+> **Consensus v3 (issue #331).** Les pins peuvent porter une provenance (`source`) : `human`, `agent_structured` (×0,6) ou `agent_vision` (×0,25). Les pins d'agent sont **sous-pondérés** dans le centroïde et — surtout — **exclus du compteur de promotion** : la promotion exige `GEO_CONSENSUS_MIN_PINS_TO_PROMOTE` pins **humains** acceptés (ou un override admin). Un pin machine peut donc affiner la position mais **jamais** créer une vérité terrain à lui seul. Voir `docs/geo-agent-api.md`.
+
 ### Récompense
 
 Le joueur qui pose **le tout premier pin** sur une capture reçoit un bonus (`hint_year`) — petite récompense pour encourager la découverte sans dépasser les bonus de précision attribués ensuite.

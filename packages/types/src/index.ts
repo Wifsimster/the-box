@@ -1388,9 +1388,15 @@ export type GeoPinConfidence = 1 | 2 | 3
 
 export type GeoPinStatus = 'pending' | 'accepted' | 'rejected'
 
+// Provenance of a pin. `human` is a crowd/contributor pin; the `agent_*` values
+// are machine-proposed pins (issue #331) that are downweighted in consensus and
+// — critically — never counted toward the human-gated promote threshold.
+export type GeoPinSource = 'human' | 'agent_structured' | 'agent_vision'
+
 export interface GeoPinSubmission {
   id: number
-  userId: string
+  // Null for agent-proposed pins (they belong to an API key, not a user).
+  userId: string | null
   geoScreenshotCandidateId: number
   pin: GeoPoint
   status: GeoPinStatus
@@ -1400,6 +1406,12 @@ export interface GeoPinSubmission {
   // admin moderation can downweight or filter without re-deriving
   // provenance after the fact.
   isAnonymous: boolean
+  // Pin provenance. Defaults to 'human'; agent pins carry an agent source plus
+  // the fields below for review.
+  source: GeoPinSource
+  agentRationale?: string
+  agentModel?: string
+  visionPass?: number
   distanceFromCentroid?: number
   reviewedAt?: string
   createdAt: string

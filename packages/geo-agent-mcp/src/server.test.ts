@@ -46,6 +46,29 @@ describe('resolveToolPath', () => {
     assert.ok('error' in resolveToolPath('geo_ingest_game', { sources: ['fandom'] }))
   })
 
+  it('maps geo_propose_pin to a POST with the pin body', () => {
+    assert.deepEqual(
+      resolveToolPath('geo_propose_pin', {
+        candidateId: 88,
+        x: 0.4,
+        y: 0.6,
+        source: 'agent_structured',
+        rationale: 'landmark match',
+        model: 'm',
+      }),
+      {
+        path: '/api/agent/v1/geo/candidates/88/pins',
+        method: 'POST',
+        body: { x: 0.4, y: 0.6, source: 'agent_structured', rationale: 'landmark match', model: 'm' },
+      },
+    )
+  })
+
+  it('rejects geo_propose_pin missing required fields', () => {
+    assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, source: 'agent_vision' })) // no rationale
+    assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, rationale: 'x', source: 'human' })) // bad source
+  })
+
   it('errors on an unknown tool', () => {
     assert.ok('error' in resolveToolPath('nope', {}))
   })
