@@ -138,9 +138,11 @@ orchestration, repos, worker, routes), Phase 2 (frontend play flow), Phase 3
 leaderboard season tab + recognition-only achievements — `geogamers_first_run`,
 `geogamers_perfect_day`, awarded on ranked completion).
 
-Plus: daily web-push fan-out and a read-only public-API season endpoint.
+Plus: daily web-push fan-out, a read-only public-API season endpoint, and an
+admin content-health panel (`GET /api/admin/geogamers/health` + a Géo-tab card
+that flags content starvation before a day silently skips).
 
 Follow-ups (tracked on #325): public-API SSE / outbound webhooks for GeoGamers
-events, admin health & anomaly-review panels, more cross-mode achievements
-(season top-10, dual-podium), party mode (Phase 4), immersive panoramas
-(Phase 5).
+events, admin anomaly-review (first-attempt-correct screening at payout), more
+cross-mode achievements (season top-10, dual-podium), party mode (Phase 4),
+immersive panoramas (Phase 5).
