@@ -449,6 +449,23 @@ async function start(): Promise<void> {
       } catch (error) {
         logger.warn({ error: String(error) }, 'failed to schedule recurring geogamers challenge job')
       }
+
+      // Close the prior season on the 1st at 00:35 UTC (after the classic
+      // leaderboard payout at 00:30) and grant season frames to eligible
+      // top finishers. Idempotent via reward_grants.
+      try {
+        await importQueue.add(
+          'geogamers-season-payout',
+          {},
+          {
+            repeat: { pattern: '35 0 1 * *', tz: 'UTC' },
+            jobId: 'geogamers-season-payout-recurring',
+          }
+        )
+        logger.info('scheduled recurring geogamers-season-payout job (1st @ 00:35 UTC)')
+      } catch (error) {
+        logger.warn({ error: String(error) }, 'failed to schedule recurring geogamers season payout job')
+      }
     }
 
     // Schedule recurring sync-all-games job (weekly on Sundays at 2 AM UTC)

@@ -7,6 +7,7 @@ import { processBatch, scheduleNextBatch } from './batch-import-logic.js'
 import { processSyncAllBatch, scheduleSyncAllNextBatch } from './sync-all-logic.js'
 import { createDailyChallenge } from './daily-challenge-logic.js'
 import { createGeoGamersChallenge } from './geogamers-challenge-logic.js'
+import { grantGeoGamersSeasonPayout } from './geogamers-season-payout-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
@@ -153,6 +154,14 @@ export const importWorker = new Worker<JobData, JobResult>(
 
         log.info({ jobId: id, result: jobResult }, 'create-daily-challenge job completed')
         return jobResult
+      }
+
+      if (name === 'geogamers-season-payout') {
+        const result = await grantGeoGamersSeasonPayout((current, total) => {
+          job.updateProgress(Math.round((current / Math.max(1, total)) * 100))
+        })
+        log.info({ jobId: id, result }, 'geogamers-season-payout job completed')
+        return { message: result.message }
       }
 
       if (name === 'create-geogamers-challenge') {

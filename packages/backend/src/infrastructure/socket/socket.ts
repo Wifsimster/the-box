@@ -8,6 +8,7 @@ import { importQueueEvents } from '../queue/queues.js'
 import type {
     AchievementUnlockedEvent,
     GeoRewardedEvent,
+    GeoGamersSeasonUpdatedEvent,
     GeoTierUpEvent,
     NewlyEarnedAchievement,
     RewardGrantedEvent,
@@ -300,6 +301,14 @@ export function emitGeoTierUp(event: GeoTierUpEvent): void {
     const ns = geoNamespace()
     if (!ns) return
     ns.to(`user:${event.userId}`).emit('geo:contributor:tier_up', event)
+}
+
+// Broadcast finalized/updated GeoGamers season standings to everyone on the
+// geo namespace so an open leaderboard refreshes. Not user-targeted.
+export function emitGeoGamersSeasonUpdated(event: GeoGamersSeasonUpdatedEvent): void {
+    const ns = geoNamespace()
+    if (!ns) return
+    ns.emit('geogamers:season:updated', event)
 }
 
 // ---------- User-targeted notifications ----------

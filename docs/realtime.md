@@ -113,6 +113,16 @@ socket.on('job_completed', (data) => console.log('OK', data.result))
 socket.on('job_failed', (data) => console.error('KO', data.error))
 ```
 
+## Événements GeoGamers (namespace `/geo`)
+
+| Événement | Description | Charge utile |
+|-----------|-------------|--------------|
+| `geogamers:season:updated` | Diffusion des classements de saison finalisés / mis à jour (top 10) | `{ month: 'YYYY-MM', topN: GeoGamersSeasonStanding[] }` |
+
+Émis par le worker de clôture de saison (`geogamers-season-payout`). Non ciblé
+par utilisateur — tout client sur le namespace `/geo` le reçoit et peut
+rafraîchir un classement ouvert.
+
 ## Gestion des salles
 
 > **Détail technique.** Les joueurs sont placés dans une salle nommée `challenge_<id>`. Les admins dans la salle `admin`.

@@ -139,6 +139,10 @@ the-box/
 - **Geo Contribute**: Eligible players place/confirm pins; consensus service resolves ground truth
 - **Ingestion pipeline**: BullMQ workers import maps & screenshots from many sources (RAWG, Steam, Fandom, Fextralife, StrategyWiki, MapGenie/Wand, Wikidata, registry); admin Geo-Fetch panel drives it (`docs/geo-mode.md`)
 
+**GeoGamers Mode** (behind `GEOGAMERS_ENABLED`)
+- **Daily two-phase run**: identify the hidden game (fuzzy match, 3 attempts, 100/66/33/0, hint-free) then pin its location (0–100), 200/day; once-per-season joker; guests play unranked with claim-on-signup (`docs/geogamers.md`)
+- **Monthly season**: separate ranking, season = sum minus 3 worst days (≥10 days played); month-close payout worker grants a season frame
+
 **Account & monetization**
 - **Premium / Lifetime Supporter**: Stripe Checkout + Billing Portal, premium-only features (`docs/billing-stripe.md`)
 - **Referrals**: Invite codes, capture on signup, reward announcements
