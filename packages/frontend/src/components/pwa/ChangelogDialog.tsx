@@ -1,4 +1,11 @@
-import { useEffect, useMemo, type ReactElement } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Wrench, Zap } from 'lucide-react'
 import {
@@ -64,6 +71,28 @@ export function ChangelogDialog(): ReactElement | null {
 
   const release = getLatestRelease()
 
+  // Edge-fade affordance: the middle release band is the only scroller, so we
+  // surface token-only top/bottom fades when its content overflows to signal
+  // there's more to read above/below the fold.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [showTopFade, setShowTopFade] = useState(false)
+  const [showBottomFade, setShowBottomFade] = useState(false)
+
+  const updateFades = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const { scrollTop, scrollHeight, clientHeight } = el
+    setShowTopFade(scrollTop > 4)
+    setShowBottomFade(scrollTop + clientHeight < scrollHeight - 4)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    updateFades()
+    window.addEventListener('resize', updateFades)
+    return () => window.removeEventListener('resize', updateFades)
+  }, [open, updateFades, i18n.language])
+
   // Auto-open the changelog the first time a player runs a build newer than the
   // one this browser last acknowledged. Brand-new visitors (no recorded version)
   // are marked seen silently so they aren't greeted by release notes for a build
@@ -121,11 +150,11 @@ export function ChangelogDialog(): ReactElement | null {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:gap-0 sm:p-0">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 sm:px-6 sm:pr-14">
           <div className="flex items-center gap-3">
             <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-neon-purple to-neon-pink text-white shadow-lg shadow-neon-purple/30"
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-neon-purple to-neon-pink text-white"
               aria-hidden="true"
             >
               <Sparkles className="size-5" />
@@ -139,22 +168,47 @@ export function ChangelogDialog(): ReactElement | null {
           </div>
         </DialogHeader>
 
-        <ol className="flex flex-col gap-7 pt-1">
-          {CHANGELOG.map((entry, index) => (
-            <ReleaseEntry
-              key={entry.version}
-              entry={entry}
-              content={releaseContent[entry.version] ?? null}
-              isLatest={index === 0}
-              isLast={index === CHANGELOG.length - 1}
-              formattedDate={formatDate(entry.date)}
-              t={t}
-            />
-          ))}
-        </ol>
+        <div className="relative min-h-0 flex-1">
+          <div
+            ref={scrollRef}
+            onScroll={updateFades}
+            tabIndex={0}
+            role="region"
+            aria-label={t('changelog.title')}
+            className="h-full overflow-y-auto px-4 py-4 sm:px-6 motion-safe:scroll-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            <ol className="flex flex-col gap-6">
+              {CHANGELOG.map((entry, index) => (
+                <ReleaseEntry
+                  key={entry.version}
+                  entry={entry}
+                  content={releaseContent[entry.version] ?? null}
+                  isLatest={index === 0}
+                  isLast={index === CHANGELOG.length - 1}
+                  formattedDate={formatDate(entry.date)}
+                  t={t}
+                />
+              ))}
+            </ol>
+          </div>
+          <span
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-linear-to-b from-card to-transparent transition-opacity',
+              showTopFade ? 'opacity-100' : 'opacity-0',
+            )}
+          />
+          <span
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-linear-to-t from-card to-transparent transition-opacity',
+              showBottomFade ? 'opacity-100' : 'opacity-0',
+            )}
+          />
+        </div>
 
-        <DialogFooter>
-          <Button onClick={() => handleClose(false)}>
+        <DialogFooter className="shrink-0 border-t border-border px-4 py-3 sm:px-6">
+          <Button className="w-full sm:w-auto" onClick={() => handleClose(false)}>
             {t('changelog.gotIt')}
           </Button>
         </DialogFooter>
@@ -192,26 +246,31 @@ function ReleaseEntry({
       {!isLast && (
         <span
           aria-hidden="true"
-          className="absolute bottom-[-1.75rem] left-[6px] top-5 w-px bg-linear-to-b from-border to-transparent"
+          className="absolute bottom-[-1.5rem] left-[6px] top-5 w-px bg-linear-to-b from-border to-transparent"
         />
       )}
       {/* Timeline node — the newest release glows in the active accent. */}
       <span
         aria-hidden="true"
         className={cn(
-          'absolute left-0 top-1 size-3 rounded-full border-2 border-card',
+          'absolute left-0 rounded-full border-2 border-card',
           isLatest
-            ? 'bg-primary shadow-[0_0_10px_2px] shadow-primary/50'
-            : 'bg-muted-foreground/40',
+            ? 'top-0.5 size-3.5 bg-primary shadow-[var(--glow-sm)]'
+            : 'top-1 size-3 bg-muted-foreground/40',
         )}
       />
 
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <h3 className="text-sm font-semibold text-foreground">
+        <h3
+          className={cn(
+            'text-sm font-semibold',
+            isLatest ? 'text-primary' : 'text-foreground',
+          )}
+        >
           v{entry.version}
         </h3>
         {isLatest && (
-          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary ring-1 ring-primary/30">
             {t('changelog.badge.new')}
           </span>
         )}
@@ -239,7 +298,15 @@ function ReleaseEntry({
                     aria-hidden="true"
                   />
                   <span>{t(`changelog.sections.${key}`)}</span>
-                  <span className="text-muted-foreground/60">{items.length}</span>
+                  <span
+                    aria-hidden="true"
+                    className="ml-0.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1.5 py-px text-[10px] font-medium tabular-nums text-foreground"
+                  >
+                    {items.length}
+                  </span>
+                  <span className="sr-only">
+                    {t('changelog.itemCount', { count: items.length })}
+                  </span>
                 </h4>
                 <ul className="flex flex-col gap-1 pl-1">
                   {items.map((item, itemIndex) => (
@@ -263,8 +330,9 @@ function ReleaseEntry({
           })}
         </div>
       ) : (
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('changelog.empty')}
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+          <Wrench className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{t('changelog.empty')}</span>
         </p>
       )}
     </li>

@@ -2783,6 +2783,8 @@
     "openTitle": "See what's new in this version",
     "gotIt": "Got it",
     "empty": "This release ships under-the-hood improvements and fixes.",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
     "badge": {
       "new": "New"
     },
