@@ -64,6 +64,19 @@ export {
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from './geo-game.service.js'
 export {
+  createGeoGamersScoringService,
+  type GeoGamersScoringService,
+  GEOGAMERS_SCORE_VERSION,
+  GEOGAMERS_ATTEMPTS_MAX,
+} from './geogamers-scoring.service.js'
+export {
+  createGeoGamersService,
+  type GeoGamersService,
+  GeoGamersError,
+  GEOGAMERS_MIN_RUN_SECONDS,
+  GEOGAMERS_PHASE_TIME_LIMIT_SECONDS,
+} from './geogamers.service.js'
+export {
   createBillingService,
   toSubscriptionStatus,
   type BillingService,
@@ -120,6 +133,8 @@ import { createGeoConsensusService } from './geo-consensus.service.js'
 import { createGeoRewardService } from './geo-reward.service.js'
 import { createGeoContributorService } from './geo-contributor.service.js'
 import { createGeoGameService } from './geo-game.service.js'
+import { createGeoGamersScoringService } from './geogamers-scoring.service.js'
+import { createGeoGamersService } from './geogamers.service.js'
 import { createWebhookDispatchService } from './webhook-dispatch.service.js'
 import { createPushService } from './push.service.js'
 import { serviceLogger } from '../../infrastructure/logger/logger.js'
@@ -144,6 +159,9 @@ import {
   geoMapRepository,
   geoPinRepository,
   geoScreenshotRepository,
+  geoGamersChallengeRepository,
+  geoGamersRunRepository,
+  geoGamersJokerRepository,
   webhookRepository,
   webhookDeliveryRepository,
 } from '../../infrastructure/repositories/index.js'
@@ -375,4 +393,27 @@ export const geoGameService = createGeoGameService({
   geoPinRepository,
   geoMapRepository,
   sessionRepository,
+})
+
+// GeoGamers mode. Scoring is pure; the orchestration service is wired here
+// from the concrete repos, the fuzzy matcher, and a repo-backed alternate
+// picker for joker re-rolls. `screenshotUrlFor` builds the opaque proxy URL so
+// the domain never emits a raw asset path (anti-leak).
+export const geoGamersScoringService = createGeoGamersScoringService({ logger: serviceLogger })
+
+export const geoGamersService = createGeoGamersService({
+  logger: serviceLogger,
+  challengeRepo: geoGamersChallengeRepository,
+  runRepo: geoGamersRunRepository,
+  jokerRepo: geoGamersJokerRepository,
+  alternatePicker: {
+    pickAlternate: ({ excludeMetaId }) =>
+      geoGamersChallengeRepository.pickAlternateMeta(excludeMetaId),
+  },
+  screenshotRepo: geoScreenshotRepository,
+  mapRepo: geoMapRepository,
+  gameRepo: gameRepository,
+  fuzzyMatch: fuzzyMatchService,
+  scoring: geoGamersScoringService,
+  screenshotUrlFor: (runToken) => `/api/geogamers/image/${runToken}`,
 })
