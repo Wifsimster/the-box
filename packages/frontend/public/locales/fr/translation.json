@@ -637,7 +637,19 @@
     "clickToView": "Cliquez pour voir les réponses de ce joueur",
     "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs.",
     "capturesFound": "Captures découvertes",
-    "avgCaptureTime": "Temps moyen par capture"
+    "avgCaptureTime": "Temps moyen par capture",
+    "geogamers": {
+      "tab": "GeoGamers",
+      "title": "Saison {{month}}",
+      "players": "{{count}} joueur",
+      "players_other": "{{count}} joueurs",
+      "empty": "Aucun classement pour cette saison — sois le premier à jouer !",
+      "provisional": "Provisoire",
+      "daysPlayed": "{{count}} jour joué",
+      "daysPlayed_other": "{{count}} jours joués",
+      "dropped": "3 pires jours retirés",
+      "unavailable": "Le classement GeoGamers n'est pas disponible."
+    }
   },
   "history": {
     "title": "Historique des Parties",

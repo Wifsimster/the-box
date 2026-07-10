@@ -637,7 +637,19 @@
     "clickToView": "Click to view this player's answers",
     "todayLocked": "Complete today's challenge to view other players' answers.",
     "capturesFound": "Captures found",
-    "avgCaptureTime": "Average time per capture"
+    "avgCaptureTime": "Average time per capture",
+    "geogamers": {
+      "tab": "GeoGamers",
+      "title": "Season {{month}}",
+      "players": "{{count}} player",
+      "players_other": "{{count}} players",
+      "empty": "No standings yet this season — be the first to play!",
+      "provisional": "Provisional",
+      "daysPlayed": "{{count}} day played",
+      "daysPlayed_other": "{{count}} days played",
+      "dropped": "3 worst days dropped",
+      "unavailable": "The GeoGamers leaderboard is unavailable."
+    }
   },
   "history": {
     "title": "Game History",

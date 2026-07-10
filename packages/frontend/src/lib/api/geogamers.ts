@@ -25,6 +25,12 @@ interface ApiEnvelope<T> {
     error?: { code: string; message?: string }
 }
 
+export interface GeoGamersSeasonResponse {
+    month: string
+    players: number
+    standings: GeoGamersSeasonStanding[]
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(path, {
         credentials: 'include',
@@ -91,8 +97,8 @@ export const geoGamersApi = {
         })
     },
 
-    getSeason(): Promise<GeoGamersSeasonStanding[]> {
-        return request<GeoGamersSeasonStanding[]>('/api/geogamers/season')
+    getSeason(): Promise<GeoGamersSeasonResponse> {
+        return request<GeoGamersSeasonResponse>('/api/geogamers/season')
     },
 
     getSeasonMe(): Promise<GeoGamersSeasonMe | null> {
