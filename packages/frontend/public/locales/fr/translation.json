@@ -2793,7 +2793,25 @@
       "improvements": "Améliorations",
       "fixes": "Corrections"
     },
+    "timeline": {
+      "label": "Historique des versions"
+    },
+    "pagination": {
+      "previous": "Version plus récente",
+      "next": "Version plus ancienne",
+      "status": "Version {{current}} sur {{total}}"
+    },
     "releases": {
+      "2.142.0": {
+        "summary": "Le journal des nouveautés fait peau neuve : une frise horizontale pour voyager de version en version.",
+        "features": [
+          "Les versions s'affichent désormais sur une frise chronologique horizontale — touche une étape pour revoir ses nouveautés.",
+          "Une pagination moderne (flèches et clavier) permet de passer d'une version à l'autre d'un geste."
+        ],
+        "improvements": [
+          "Le mode Géo s'enrichit en continu : un pipeline assisté par agent déniche de nouvelles cartes et de nouveaux lieux à deviner."
+        ]
+      },
       "2.135.0": {
         "summary": "Les récompenses quotidiennes prennent des couleurs : chaque jour révèle sa rareté, avec son ambiance et son animation.",
         "features": [
