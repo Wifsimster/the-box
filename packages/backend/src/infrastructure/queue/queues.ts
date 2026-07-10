@@ -85,6 +85,9 @@ export type GeoJobData =
     }
   | { kind: 'resolve-metadata'; batchSize?: number; gameId?: number }
   | { kind: 'ingest-tick'; batchSize?: number; gameId?: number }
+  // Backfill discovery (issue #331, phase 6): rank sub-threshold games by
+  // distance-to-eligibility and drive ingestion at the closest ones.
+  | { kind: 'backfill-tick'; batchSize?: number }
   // ===== Multi-source map fetch pipeline (replaces topup-screenshots) =====
   // Parent orchestrator job. Re-enqueued by each child on completion until
   // the pipeline reaches awaiting_curation, ready, or blocked.

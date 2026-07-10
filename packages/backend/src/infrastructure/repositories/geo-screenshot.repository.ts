@@ -477,6 +477,70 @@ export const geoScreenshotRepository = {
     }))
   },
 
+  /**
+   * Candidates for the backfill discovery worker (issue #331, phase 6):
+   * curated + metadata-resolved games (so the ingest pipeline can act on them)
+   * that are NOT yet eligible — i.e. have no promoted meta on any active
+   * candidate. Returns the raw signals the ranking needs (active map? captures
+   * collecting pins? top pin count?); the pure `rankBackfillTargets` decides
+   * ordering. Coarsely pre-sorted + capped so a huge catalog doesn't fetch the
+   * whole table.
+   */
+  async listBackfillCandidates(limit = 500): Promise<
+    Array<{
+      gameId: number
+      hasActiveMap: boolean
+      candidateCount: number
+      topPinCount: number
+    }>
+  > {
+    const result = await db.raw<{
+      rows: Array<{
+        game_id: number
+        has_active_map: boolean
+        candidate_count: string
+        top_pin_count: string
+      }>
+    }>(
+      `
+      SELECT
+        g.id AS game_id,
+        EXISTS (
+          SELECT 1 FROM geo_map m WHERE m.game_id = g.id AND m.is_active = true
+        ) AS has_active_map,
+        COALESCE(stats.candidate_count, 0) AS candidate_count,
+        COALESCE(stats.top_pin_count, 0) AS top_pin_count
+      FROM games g
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) AS candidate_count,
+          COALESCE(MAX(c.pin_count), 0) AS top_pin_count
+        FROM geo_screenshot_candidate c
+        WHERE c.game_id = g.id
+          AND c.is_active = true
+          AND c.status IN ('pending', 'collecting')
+      ) stats ON true
+      WHERE g.geo_curated = true
+        AND g.geo_metadata_status = 'resolved'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM geo_screenshot_meta sm
+          JOIN geo_screenshot_candidate cc ON cc.id = sm.geo_screenshot_candidate_id
+          WHERE cc.game_id = g.id AND cc.is_active = true
+        )
+      ORDER BY top_pin_count DESC, has_active_map DESC, g.id ASC
+      LIMIT ?
+      `,
+      [limit],
+    )
+    return result.rows.map((r) => ({
+      gameId: r.game_id,
+      hasActiveMap: r.has_active_map === true,
+      candidateCount: Number(r.candidate_count ?? 0),
+      topPinCount: Number(r.top_pin_count ?? 0),
+    }))
+  },
+
   async listCandidatesForReview(args: {
     status?: GeoScreenshotCandidateRow['status']
     gameId?: number
