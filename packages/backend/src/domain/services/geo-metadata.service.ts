@@ -84,6 +84,75 @@ export function scoreMapTitle(
   return score
 }
 
+// ---------------------------------------------------------------------------
+// Franchise-wiki disambiguation — prevents wrong-game map assignment.
+//
+// A Fandom subdomain is either game-specific (`bloodborne`, `eldenring` — every
+// Map: page belongs to that one game) or franchise-scoped (`uncharted`, `zelda`
+// — the Map: namespace mixes maps from many installments). On a game-specific
+// wiki a generically-titled map ("World Map") is safe to accept. On a franchise
+// wiki it is NOT: a game with no map of its own would otherwise be assigned a
+// sibling installment's map — the observed bug where "Uncharted 2: Among
+// Thieves" got Lost Legacy's "Western Ghats" and "Ocarina of Time" got the 1986
+// "Level 1" dungeon map.
+// ---------------------------------------------------------------------------
+
+// Subdomain tokens that carry no game identity (platform/lang/site suffixes).
+const WIKI_STOPWORDS = new Set([
+  'gamepedia', 'fandom', 'wiki', 'wikia', 'en', 'community', 'the',
+])
+
+/**
+ * Reduce a Fandom subdomain to its identity tokens, dropping platform/lang
+ * suffixes: `zelda_gamepedia_en` → `['zelda']`, `uncharted` → `['uncharted']`,
+ * `eldenring` → `['eldenring']`. Pure helper for franchise detection.
+ */
+export function fandomWikiBaseTokens(subdomain: string): string[] {
+  return subdomain
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((tok) => tok.length > 0 && !WIKI_STOPWORDS.has(tok))
+}
+
+/**
+ * True when the wiki spans more than one game (franchise wiki), inferred from
+ * the subdomain being materially shorter than the game's collapsed slug. On a
+ * game-specific wiki the collapsed slug equals the base (`bloodborne` ==
+ * `bloodborne`, `eldenring` == `eldenring`); on a franchise wiki the slug
+ * carries installment tokens the subdomain omits (`uncharted` vs
+ * `uncharted2amongthieves`, `zelda` vs `thelegendofzeldaocarinaoftime`).
+ */
+export function isFranchiseWiki(subdomain: string, slug: string): boolean {
+  const collapsed = slug.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const base = fandomWikiBaseTokens(subdomain).join('')
+  if (!base || !collapsed) return false
+  if (collapsed === base) return false
+  // Slug materially longer than the wiki base → the wiki name omits the
+  // installment-identifying tokens, i.e. it covers the whole franchise.
+  return collapsed.length > base.length + 3
+}
+
+/**
+ * Decide whether a Map: title may be auto-assigned to a game. On a
+ * game-specific wiki there is nothing to disambiguate (always true). On a
+ * franchise wiki, only accept a title that unambiguously names THIS game — the
+ * full normalized game name must appear in the title. Deliberately strict: a
+ * false negative (no map) is recoverable via other import tiers or manual
+ * assignment, whereas a false positive feeds another game's map into the
+ * consensus pipeline.
+ */
+export function fandomMapTitleAcceptable(
+  mapTitle: string,
+  gameName: string,
+  subdomain: string,
+  slug: string,
+): boolean {
+  if (!isFranchiseWiki(subdomain, slug)) return true
+  const title = normalizeGameTitle(mapTitle.replace(/_/g, ' '))
+  const name = normalizeGameTitle(gameName)
+  return name.length > 0 && title.includes(name)
+}
+
 /**
  * Parse the Steam appid from a store URL, e.g.
  *   https://store.steampowered.com/app/1245620/ELDEN_RING/

@@ -5,6 +5,7 @@ import { geoIngestFailureRepository } from '../../repositories/index.js'
 import {
   FANDOM_MAP_NAMESPACE,
   extractVersionTokens,
+  fandomMapTitleAcceptable,
   isMapEligibleByGenre,
   normalizeGameTitle,
   scoreMapTitle,
@@ -264,9 +265,26 @@ async function resolveFandomInteractiveMap(
     const pages = body.query?.allpages ?? []
     if (!pages.length) continue
 
-    const ranked = pages
+    const titles = pages
       .map((p) => stripMapPrefix(p.title))
       .filter((t): t is string => Boolean(t))
+
+    // On a franchise wiki (uncharted, zelda, …) the Map: namespace mixes maps
+    // from many installments; only keep titles that unambiguously name THIS
+    // game so we never assign a sibling's map. Game-specific wikis pass through
+    // unchanged. Rejected titles are logged so the drop is visible.
+    const acceptable = titles.filter((title) =>
+      fandomMapTitleAcceptable(title, gameName, sub, slug),
+    )
+    const rejected = titles.length - acceptable.length
+    if (rejected > 0) {
+      log.info(
+        { sub, gameName, rejected, kept: acceptable.length },
+        'skipped franchise-wiki maps that did not name the game',
+      )
+    }
+
+    const ranked = acceptable
       .map((title) => ({ title, score: scoreMapTitle(title, gameName, slug) }))
       .sort((a, b) => b.score - a.score)
 
@@ -278,6 +296,9 @@ async function resolveFandomInteractiveMap(
       )
       return { subdomain: sub, mapName: best.title }
     }
+    // No game-specific map on this wiki — fall through to the next subdomain
+    // candidate, then return null so other tiers / manual assignment can supply
+    // a map rather than mis-assigning one here.
   }
   return null
 }
