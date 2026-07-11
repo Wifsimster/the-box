@@ -5,6 +5,7 @@ import type { ApiKeyScope } from '@the-box/types'
 import { env } from '../../config/env.js'
 import {
   requireAgentApiEnabled,
+  requireAgentCurateEnabled,
   requireScope,
 } from './agent-api.middleware.js'
 
@@ -123,5 +124,51 @@ describe('requireAgentApiEnabled', () => {
     assert.equal(nexted, false)
     assert.equal(state.status, 503)
     assert.equal(errorCode(state.body), 'AGENT_API_DISABLED')
+  })
+})
+
+describe('requireAgentCurateEnabled', () => {
+  const original = env.GEO_AGENT_CURATE_ENABLED
+  beforeEach(() => {
+    env.GEO_AGENT_CURATE_ENABLED = original
+  })
+  afterEach(() => {
+    env.GEO_AGENT_CURATE_ENABLED = original
+  })
+
+  it('passes through when enabled', () => {
+    env.GEO_AGENT_CURATE_ENABLED = 'true'
+    const { res, state } = mockRes()
+    let nexted = false
+    requireAgentCurateEnabled({} as Request, res, () => {
+      nexted = true
+    })
+    assert.equal(nexted, true)
+    assert.equal(state.status, 200)
+  })
+
+  it('returns 503 AGENT_CURATE_DISABLED when off (default)', () => {
+    env.GEO_AGENT_CURATE_ENABLED = 'false'
+    const { res, state } = mockRes()
+    let nexted = false
+    requireAgentCurateEnabled({} as Request, res, () => {
+      nexted = true
+    })
+    assert.equal(nexted, false)
+    assert.equal(state.status, 503)
+    assert.equal(errorCode(state.body), 'AGENT_CURATE_DISABLED')
+  })
+
+  it('is independent of GEO_AGENT_API_ENABLED', () => {
+    env.GEO_AGENT_CURATE_ENABLED = 'true'
+    env.GEO_AGENT_API_ENABLED = 'false'
+    const { res, state } = mockRes()
+    let nexted = false
+    requireAgentCurateEnabled({} as Request, res, () => {
+      nexted = true
+    })
+    assert.equal(nexted, true)
+    assert.equal(state.status, 200)
+    env.GEO_AGENT_API_ENABLED = 'true'
   })
 })

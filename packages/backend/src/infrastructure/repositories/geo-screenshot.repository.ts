@@ -1,8 +1,10 @@
 import type { Knex } from 'knex'
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
+import { CAPTURE_TARGET_CANDIDATES } from '../../domain/services/geo-metadata.service.js'
 import type {
   GeoCandidateGameSummary,
+  GeoCatalogGame,
   GeoScreenshotCandidate,
   GeoScreenshotMeta,
 } from '@the-box/types'
@@ -209,6 +211,61 @@ export const geoScreenshotRepository = {
         .update({ status: 'promoted' })
 
       return mapMeta(rows[0]!)
+    })
+  },
+
+  /**
+   * Whole-pool catalog for the agent content-creation surface (issue #331,
+   * phase 5) — every geo-curated game with capture/map/canonical-pin counts
+   * and two derived flags: `eligible` mirrors the GeoGamers eligibility gate
+   * (an active map + at least one canonical pin); `starved` flags a game
+   * whose active capture count hasn't reached the ingest pipeline's per-game
+   * target, i.e. where `geo_import_captures` would help. Restricted to
+   * `geo_curated = true` — an agent shouldn't see the entire games table,
+   * only the geo-mode pool it can act on.
+   */
+  async listGeoCatalog(limit = 200): Promise<GeoCatalogGame[]> {
+    const rows = await db('games as g')
+      .where('g.geo_curated', true)
+      .leftJoin('geo_screenshot_candidate as gsc', function () {
+        this.on('gsc.game_id', '=', 'g.id').andOn('gsc.is_active', '=', db.raw('true'))
+      })
+      .leftJoin('geo_map as gm', function () {
+        this.on('gm.game_id', '=', 'g.id').andOn('gm.is_active', '=', db.raw('true'))
+      })
+      .leftJoin('geo_screenshot_meta as gsm', 'gsm.geo_screenshot_candidate_id', 'gsc.id')
+      .groupBy('g.id', 'g.name')
+      .orderBy('g.name', 'asc')
+      .limit(limit)
+      .select<
+        Array<{
+          id: number
+          name: string | null
+          capture_count: string
+          map_count: string
+          canonical_pin_count: string
+        }>
+      >(
+        'g.id',
+        'g.name',
+        db.raw('COUNT(DISTINCT gsc.id) as capture_count'),
+        db.raw('COUNT(DISTINCT gm.id) as map_count'),
+        db.raw('COUNT(DISTINCT gsm.id) as canonical_pin_count'),
+      )
+
+    return rows.map((r) => {
+      const captureCount = Number(r.capture_count ?? 0)
+      const mapCount = Number(r.map_count ?? 0)
+      const canonicalPinCount = Number(r.canonical_pin_count ?? 0)
+      return {
+        gameId: r.id,
+        gameName: r.name,
+        captureCount,
+        mapCount,
+        canonicalPinCount,
+        eligible: mapCount > 0 && canonicalPinCount > 0,
+        starved: captureCount < CAPTURE_TARGET_CANDIDATES,
+      }
     })
   },
 

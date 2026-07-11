@@ -42,6 +42,21 @@ export function pinBudgetKey(apiKeyId: number, now: Date): string {
   return `geo-agent:budget:pins:${apiKeyId}:${now.toISOString().slice(0, 13)}`
 }
 
+/** Redis key for a key's daily enroll budget (phase 5, curate scope). Pure. */
+export function enrollBudgetKey(apiKeyId: number, now: Date): string {
+  return `geo-agent:budget:enroll:${apiKeyId}:${now.toISOString().slice(0, 10)}`
+}
+
+/** Redis key for a key's daily capture-import budget (phase 5). Pure. */
+export function captureImportBudgetKey(apiKeyId: number, now: Date): string {
+  return `geo-agent:budget:capture-import:${apiKeyId}:${now.toISOString().slice(0, 10)}`
+}
+
+/** Redis key for a key's daily map-curation-action budget (phase 5). Pure. */
+export function mapActionBudgetKey(apiKeyId: number, now: Date): string {
+  return `geo-agent:budget:map-action:${apiKeyId}:${now.toISOString().slice(0, 10)}`
+}
+
 /**
  * Atomically consume one unit of a windowed budget keyed in Redis. Returns
  * `ok: false` (without consuming) once `limit` is reached; the counter expires
@@ -84,4 +99,35 @@ export async function consumeIngestBudget(apiKeyId: number, limit: number): Prom
 export async function consumePinBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
   const now = new Date()
   return consumeWindowBudget(pinBudgetKey(apiKeyId, now), limit, secondsToNextUtcHour(now), 'pin')
+}
+
+/** Consume one unit of a key's DAILY game-enrollment budget (phase 5). */
+export async function consumeEnrollBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(enrollBudgetKey(apiKeyId, now), limit, secondsToUtcMidnight(now), 'enroll')
+}
+
+/** Consume one unit of a key's DAILY capture-import budget (phase 5). */
+export async function consumeCaptureImportBudget(
+  apiKeyId: number,
+  limit: number,
+): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(
+    captureImportBudgetKey(apiKeyId, now),
+    limit,
+    secondsToUtcMidnight(now),
+    'capture-import',
+  )
+}
+
+/** Consume one unit of a key's DAILY map-curation-action budget (phase 5). */
+export async function consumeMapActionBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(
+    mapActionBudgetKey(apiKeyId, now),
+    limit,
+    secondsToUtcMidnight(now),
+    'map-action',
+  )
 }

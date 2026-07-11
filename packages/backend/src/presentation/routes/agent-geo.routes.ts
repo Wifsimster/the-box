@@ -1,10 +1,11 @@
-import { Router } from 'express'
+import { Router, type Request, type Response } from 'express'
 import { z } from 'zod'
 import type { GeoGameNeedingContent } from '@the-box/types'
 import { requireApiKey } from '../middleware/public-api.middleware.js'
 import {
   agentApiRateLimit,
   requireAgentApiEnabled,
+  requireAgentCurateEnabled,
   requireScope,
 } from '../middleware/agent-api.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
@@ -14,33 +15,50 @@ import {
   geoPinRepository,
 } from '../../infrastructure/repositories/index.js'
 import { geoSourceConfigRepository } from '../../infrastructure/repositories/geo-source-config.repository.js'
+import { geoIngestFailureRepository } from '../../infrastructure/repositories/geo-ingest-failure.repository.js'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
+import { gameRepository } from '../../infrastructure/repositories/game.repository.js'
 import { pinsToNextConsensusThreshold } from '../../domain/services/geo-consensus.service.js'
 import { shouldPauseAgentKey } from '../../domain/services/geo-agent-guard.service.js'
+import { CAPTURE_TARGET_CANDIDATES } from '../../domain/services/geo-metadata.service.js'
 import { getGeoGamersHealthSnapshot } from '../../infrastructure/geogamers-health.js'
 import {
   enqueueSingleTierImport,
   RUNNABLE_TIERS,
   type RunnableTier,
 } from '../../infrastructure/queue/workers/geo-ingest-tick-logic.js'
+import { importRawgScreenshots } from '../../infrastructure/queue/workers/geo-rawg-import-logic.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
-import { consumeIngestBudget, consumePinBudget } from '../../infrastructure/redis/agent-budget.js'
+import { db } from '../../infrastructure/database/connection.js'
+import {
+  consumeCaptureImportBudget,
+  consumeEnrollBudget,
+  consumeIngestBudget,
+  consumeMapActionBudget,
+  consumePinBudget,
+} from '../../infrastructure/redis/agent-budget.js'
 import { env } from '../../config/env.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 
 const log = routeLogger.child({ router: 'agent-geo' })
 
-// Agent content-sourcing surface (issue #331, phase 2 — read-only).
+// Agent content-sourcing surface (issue #331). Started read-only (phase 2),
+// then grew a write surface in stages: ingest triggers (phase 3), downweighted
+// pin proposals (phase 4), and content creation & curation (phase 5 — enroll
+// games, top up captures, select/reject candidate maps).
 //
 // Mounted at /api/agent/v1/geo. Key-authenticated with admin-minted geo-agent
 // keys, NOT session-authed and NOT the streamer public API. Every route sits
-// behind: kill switch → key auth → per-key rate limit → scope check. This
-// phase exposes only reads — it proves the auth/audit/rate-limit surface with
-// zero write risk before ingest (phase 3) and pin proposals (phase 4) land.
+// behind: kill switch → key auth → per-key rate limit → scope check. Curate
+// routes (phase 5) sit behind a SECOND independent kill switch
+// (requireAgentCurateEnabled) so an operator can run read/ingest/propose in
+// production while curation stays dark.
 //
-// A key never elevates access: these endpoints return catalog/diagnostic data,
-// never user identities or PII (candidate payloads carry pin counts, not pin
-// owners).
+// A key never elevates access beyond what the admin UI already lets an
+// operator do: curate writes only reach geo_curated flip, screenshot-candidate
+// insert, and map select/disable — the same primitives the admin Games and
+// geo-fetch panels use. No user identities or PII cross this surface
+// (candidate payloads carry pin counts, not pin owners).
 
 const router = Router()
 
@@ -92,6 +110,153 @@ router.get(
   },
 )
 
+// GET /games — the whole geo-curated catalog (issue #331, phase 5), not just
+// the "one pin away" work queue. Read-only: lets an agent see what's already
+// enrolled before deciding whether to enroll/top-up/curate a game.
+router.get(
+  '/games',
+  requireScope('geo-agent:read'),
+  validateQuery(limitQuery),
+  async (req, res, next) => {
+    try {
+      const { limit } = req.query as unknown as z.infer<typeof limitQuery>
+      const data = await geoScreenshotRepository.listGeoCatalog(limit ?? 200)
+      res.json({ success: true, data })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /games — enroll a game into the geo pipeline (issue #331, phase 5).
+// Reuses the SAME curation switch the admin "Games" tab flips
+// (`games.geo_curated = true` + `geo_metadata_status = 'pending'`) rather
+// than duplicating the RAWG import / metadata-resolve / map-ingest pipeline —
+// that one write is all it takes for the existing resolver + ingest tick to
+// pick the game up on their next pass and fetch its map + captures. By
+// `gameId` the game must already exist (created via the RAWG screenshot
+// importer or another mode); by `rawgId` a new minimal game row is created
+// first if none exists yet with that rawg_id. Idempotent: enrolling an
+// already-curated game just re-arms metadata resolution. Bounded by a
+// per-key daily budget — enrollment is the most expensive curate action.
+const enrollBodySchema = z
+  .object({
+    gameId: z.coerce.number().int().positive().optional(),
+    rawgId: z.coerce.number().int().positive().optional(),
+  })
+  .refine((d) => d.gameId !== undefined || d.rawgId !== undefined, {
+    message: 'gameId or rawgId is required',
+  })
+
+interface RawgGameDetail {
+  id: number
+  slug: string
+  name: string
+  released: string | null
+  background_image: string | null
+  metacritic: number | null
+  developers?: Array<{ name: string }>
+  publishers?: Array<{ name: string }>
+  genres?: Array<{ name: string }>
+  platforms?: Array<{ platform: { name: string } }>
+}
+
+async function fetchRawgGameDetail(rawgId: number): Promise<RawgGameDetail | null> {
+  if (!env.RAWG_API_KEY) return null
+  const res = await fetch(`https://api.rawg.io/api/games/${rawgId}?key=${env.RAWG_API_KEY}`, {
+    headers: { 'User-Agent': 'the-box-geo-agent-enroll/1.0' },
+  })
+  if (!res.ok) return null
+  return (await res.json()) as RawgGameDetail
+}
+
+router.post(
+  '/games',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateBody(enrollBodySchema),
+  async (req, res, next) => {
+    try {
+      const { gameId: bodyGameId, rawgId } = req.body as z.infer<typeof enrollBodySchema>
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_ENROLLS_PER_DAY) || 5
+      const budget = await consumeEnrollBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily enroll budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      let game = bodyGameId
+        ? await gameRepository.findById(bodyGameId)
+        : await gameRepository.findByRawgId(rawgId!)
+      let created = false
+
+      if (!game && bodyGameId) {
+        res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+        return
+      }
+
+      if (!game && rawgId) {
+        const detail = await fetchRawgGameDetail(rawgId)
+        if (!detail) {
+          res.status(400).json({
+            success: false,
+            error: { code: 'RAWG_LOOKUP_FAILED', message: 'could not resolve rawgId via RAWG' },
+          })
+          return
+        }
+        game = await gameRepository.create({
+          name: detail.name,
+          slug: detail.slug,
+          releaseYear: detail.released ? parseInt(detail.released.slice(0, 4), 10) : undefined,
+          developer: detail.developers?.[0]?.name,
+          publisher: detail.publishers?.[0]?.name,
+          genres: detail.genres?.map((g) => g.name),
+          platforms: detail.platforms?.map((p) => p.platform.name),
+          coverImageUrl: detail.background_image ?? undefined,
+          metacritic: detail.metacritic ?? undefined,
+          rawgId: detail.id,
+        })
+        created = true
+      }
+
+      const update: Record<string, unknown> = { geo_curated: true, geo_metadata_status: 'pending' }
+      await db('games').where({ id: game!.id }).update(update)
+      await geoIngestFailureRepository.clear(game!.id, 'metadata')
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.enroll_game',
+        targetKind: 'game',
+        targetId: String(game!.id),
+        after: { gameId: game!.id, rawgId: rawgId ?? game!.rawgId ?? null, created },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: {
+          gameId: game!.id,
+          name: game!.name,
+          created,
+          curated: true,
+          budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
+        },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
 // GET /games/:gameId/candidates — unpinned/collecting captures for a game plus
 // its active maps (image url + dimensions), so a proposer has everything it
 // needs to localize a screenshot. Promoted captures are omitted (they already
@@ -114,6 +279,252 @@ router.get(
       // rows; filter out promoted here.
       const actionable = candidates.filter((c) => c.status !== 'promoted')
       res.json({ success: true, data: { maps, candidates: actionable } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /games/:gameId/captures — top up an enrolled game's candidates
+// (issue #331, phase 5). Reuses the existing RAWG importer (the same
+// function the ingest tick calls) rather than duplicating its dedup/tombstone
+// logic; also accepts an explicit `imageUrls` list for manual/gameplay
+// captures (problem #4 in the issue — RAWG's promo shots are often not
+// geolocatable). Requires the game to already have an enabled map to attach
+// captures to. Bounded by a per-key daily budget.
+const importCapturesBodySchema = z
+  .object({
+    targetCount: z.coerce.number().int().positive().max(CAPTURE_TARGET_CANDIDATES).optional(),
+    imageUrls: z.array(z.string().url()).max(50).optional(),
+  })
+  .refine((d) => d.imageUrls === undefined || d.imageUrls.length > 0, {
+    message: 'imageUrls must be non-empty when provided',
+  })
+
+router.post(
+  '/games/:gameId/captures',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(gameIdParams),
+  validateBody(importCapturesBodySchema),
+  async (req, res, next) => {
+    try {
+      const { gameId } = req.params as unknown as z.infer<typeof gameIdParams>
+      const { targetCount, imageUrls } = req.body as z.infer<typeof importCapturesBodySchema>
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY) || 10
+      const budget = await consumeCaptureImportBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily capture-import budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      const map =
+        (await geoMapRepository.findCaptureDefaultByGameId(gameId)) ??
+        (await geoMapRepository.findFirstEnabledByGameId(gameId))
+      if (!map) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'NO_ACTIVE_MAP', message: 'game has no enabled map to attach captures to' },
+        })
+        return
+      }
+
+      let result: { fetched: number; inserted: number; skipped: number }
+      if (imageUrls && imageUrls.length > 0) {
+        // createCandidate's (source, external_id) unique constraint already
+        // dedupes at the DB level; check first so the response can report an
+        // honest inserted/skipped split instead of always reporting insert.
+        let inserted = 0
+        let skipped = 0
+        for (const imageUrl of imageUrls) {
+          const externalId = `manual:${gameId}:${imageUrl}`
+          const existing = await db('geo_screenshot_candidate')
+            .where({ source: 'manual', external_id: externalId })
+            .first<{ id: number }>()
+          if (existing) {
+            skipped++
+            continue
+          }
+          await geoScreenshotRepository.createCandidate({
+            gameId,
+            geoMapId: map.id,
+            imageUrl,
+            source: 'manual',
+            externalId,
+          })
+          inserted++
+        }
+        result = { fetched: imageUrls.length, inserted, skipped }
+      } else {
+        const game = await gameRepository.findById(gameId)
+        if (!game?.rawgId) {
+          res.status(409).json({
+            success: false,
+            error: {
+              code: 'NO_RAWG_ID',
+              message: 'game has no rawgId to import from; pass imageUrls instead',
+            },
+          })
+          return
+        }
+        result = await importRawgScreenshots({
+          gameId,
+          geoMapId: map.id,
+          rawgId: game.rawgId,
+          maxItems: targetCount ?? CAPTURE_TARGET_CANDIDATES,
+        })
+      }
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.import_captures',
+        targetKind: 'game',
+        targetId: String(gameId),
+        after: { ...result, mapId: map.id, manual: !!imageUrls },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: { gameId, mapId: map.id, ...result, budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining } },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// GET /games/:gameId/maps — every candidate map fetched for a game, active or
+// not (issue #331, phase 5), so an agent can pick the canonical one and
+// reject wrong-game/prop maps. Mirrors the admin geo-fetch curation panel.
+router.get(
+  '/games/:gameId/maps',
+  requireScope('geo-agent:read'),
+  validateParams(gameIdParams),
+  async (req, res, next) => {
+    try {
+      const { gameId } = req.params as unknown as z.infer<typeof gameIdParams>
+      const maps = await geoMapRepository.listCandidatesByGameId(gameId)
+      res.json({ success: true, data: { maps } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+const mapIdParams = z.object({
+  gameId: z.coerce.number().int().positive(),
+  mapId: z.coerce.number().int().positive(),
+})
+
+async function consumeMapActionOrReject(
+  req: Request,
+  res: Response,
+): Promise<{ ok: true; budget: { used: number; limit: number; remaining: number } } | { ok: false }> {
+  const keyId = req.apiKey!.id
+  const maxPerDay = Number(env.GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY) || 30
+  const budget = await consumeMapActionBudget(keyId, maxPerDay)
+  if (!budget.ok) {
+    res.setHeader('Retry-After', String(budget.resetSeconds))
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'BUDGET_EXHAUSTED',
+        message: `Daily map-action budget of ${budget.limit} reached; resets at UTC midnight`,
+      },
+    })
+    return { ok: false }
+  }
+  return { ok: true, budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining } }
+}
+
+// POST /games/:gameId/maps/:mapId/select — promote a candidate map to
+// canonical (issue #331, phase 5). This is the operator fix for wrong-game
+// maps today: an agent can inspect `geo_list_maps` and pick the correct one.
+// Mirrors the admin geo-fetch `/maps/:mapId/select` handler exactly (enable
+// then select), attributing `selectedBy` to the agent key.
+router.post(
+  '/games/:gameId/maps/:mapId/select',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(mapIdParams),
+  async (req, res, next) => {
+    try {
+      const { gameId, mapId } = req.params as unknown as z.infer<typeof mapIdParams>
+      const budgetResult = await consumeMapActionOrReject(req, res)
+      if (!budgetResult.ok) return
+
+      const target = await geoMapRepository.findById(mapId)
+      if (!target || target.gameId !== gameId) {
+        res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND' } })
+        return
+      }
+      if (!target.isSelected) {
+        await geoMapRepository.enableForGame(gameId, mapId)
+      }
+      const updated = await geoMapRepository.selectMap(gameId, mapId, `apikey:${req.apiKey!.id}`)
+      if (!updated) {
+        res.status(409).json({ success: false, error: { code: 'SELECT_FAILED' } })
+        return
+      }
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${req.apiKey!.id}`,
+        action: 'geo-agent.select_map',
+        targetKind: 'geo_map',
+        targetId: String(mapId),
+        after: { gameId, mapId },
+        ip: req.ip ?? null,
+      })
+
+      res.json({ success: true, data: { map: updated, budget: budgetResult.budget } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /games/:gameId/maps/:mapId/reject — disable a wrong-game/prop map
+// (issue #331, phase 5). Reuses `disableForGame`, which refuses to leave a
+// game with zero enabled maps — an agent must select a replacement canonical
+// map (or a good map already exists) before rejecting the last bad one.
+router.post(
+  '/games/:gameId/maps/:mapId/reject',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(mapIdParams),
+  async (req, res, next) => {
+    try {
+      const { gameId, mapId } = req.params as unknown as z.infer<typeof mapIdParams>
+      const budgetResult = await consumeMapActionOrReject(req, res)
+      if (!budgetResult.ok) return
+
+      const result = await geoMapRepository.disableForGame(gameId, mapId)
+      if (!result.ok) {
+        const status = result.reason === 'NOT_FOUND' ? 404 : 409
+        res.status(status).json({ success: false, error: { code: result.reason } })
+        return
+      }
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${req.apiKey!.id}`,
+        action: 'geo-agent.reject_map',
+        targetKind: 'geo_map',
+        targetId: String(mapId),
+        after: { gameId, mapId },
+        ip: req.ip ?? null,
+      })
+
+      res.json({ success: true, data: { map: result.map, budget: budgetResult.budget } })
     } catch (err) {
       next(err)
     }

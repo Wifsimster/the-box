@@ -77,6 +77,19 @@ export const env = {
   // `source=agent_vision` proposals are rejected with VISION_DISABLED, so
   // unmeasured vision pins never enter consensus even as downweighted voters.
   GEO_AGENT_VISION_ENABLED: process.env['GEO_AGENT_VISION_ENABLED'] || 'false',
+  // Content-creation & curation surface (issue #331, phase 5) — the write-heavy
+  // endpoints that enroll new games, top up captures, and manage candidate
+  // maps (geo-agent:curate scope). Gated separately from GEO_AGENT_API_ENABLED
+  // so read/ingest/propose can stay on while curation stays dark until an
+  // operator explicitly opts in.
+  GEO_AGENT_CURATE_ENABLED: process.env['GEO_AGENT_CURATE_ENABLED'] || 'false',
+  // Per-key daily budget for game enrollment — the most expensive/impactful
+  // curate action (creates a game row and kicks off the full ingest pipeline).
+  GEO_AGENT_MAX_ENROLLS_PER_DAY: process.env['GEO_AGENT_MAX_ENROLLS_PER_DAY'] || '5',
+  // Per-key daily budget for capture top-ups (RAWG import or manual URLs).
+  GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY: process.env['GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY'] || '10',
+  // Per-key daily budget for map curation actions (select canonical / reject).
+  GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY: process.env['GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY'] || '30',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

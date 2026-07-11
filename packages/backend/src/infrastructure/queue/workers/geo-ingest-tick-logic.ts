@@ -4,14 +4,14 @@ import { queueLogger } from '../../logger/logger.js'
 import { geoQueue } from '../queues.js'
 import { geoMapRepository } from '../../repositories/index.js'
 import { findRegistryEntryBySlug } from './geo-registry-import-logic.js'
+// Combined per-game capture-provider cap. Shared with the agent curate
+// surface (geo_list_games "starved" flag, geo_import_captures default
+// target) via the domain service so neither side drifts.
+import { CAPTURE_TARGET_CANDIDATES } from '../../../domain/services/geo-metadata.service.js'
 
 const log = queueLogger.child({ worker: 'geo-ingest-tick' })
 
 const DEFAULT_BATCH = 25
-// Combined cap across every capture provider (Steam + RAWG). Once a game
-// has this many active candidates we stop enqueuing more — admins can
-// reject duds and the next tick will top up.
-const CAPTURE_TARGET_CANDIDATES = 30
 
 interface TickRow {
   id: number

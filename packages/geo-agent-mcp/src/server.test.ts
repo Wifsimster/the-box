@@ -72,6 +72,75 @@ describe('resolveToolPath', () => {
   it('errors on an unknown tool', () => {
     assert.ok('error' in resolveToolPath('nope', {}))
   })
+
+  it('maps geo_list_games with a validated limit', () => {
+    assert.deepEqual(resolveToolPath('geo_list_games', {}), { path: '/api/agent/v1/geo/games' })
+    assert.deepEqual(resolveToolPath('geo_list_games', { limit: 50 }), {
+      path: '/api/agent/v1/geo/games?limit=50',
+    })
+  })
+
+  it('maps geo_enroll_game to a POST with gameId or rawgId', () => {
+    assert.deepEqual(resolveToolPath('geo_enroll_game', { gameId: 5 }), {
+      path: '/api/agent/v1/geo/games',
+      method: 'POST',
+      body: { gameId: 5 },
+    })
+    assert.deepEqual(resolveToolPath('geo_enroll_game', { rawgId: 3498 }), {
+      path: '/api/agent/v1/geo/games',
+      method: 'POST',
+      body: { rawgId: 3498 },
+    })
+  })
+
+  it('rejects geo_enroll_game without gameId or rawgId', () => {
+    assert.ok('error' in resolveToolPath('geo_enroll_game', {}))
+  })
+
+  it('maps geo_import_captures to a POST, supporting targetCount and imageUrls', () => {
+    assert.deepEqual(resolveToolPath('geo_import_captures', { gameId: 7, targetCount: 10 }), {
+      path: '/api/agent/v1/geo/games/7/captures',
+      method: 'POST',
+      body: { targetCount: 10 },
+    })
+    assert.deepEqual(
+      resolveToolPath('geo_import_captures', { gameId: 7, imageUrls: ['https://x/1.jpg'] }),
+      {
+        path: '/api/agent/v1/geo/games/7/captures',
+        method: 'POST',
+        body: { imageUrls: ['https://x/1.jpg'] },
+      },
+    )
+  })
+
+  it('rejects geo_import_captures without a gameId', () => {
+    assert.ok('error' in resolveToolPath('geo_import_captures', { targetCount: 5 }))
+  })
+
+  it('maps geo_list_maps to the game maps path', () => {
+    assert.deepEqual(resolveToolPath('geo_list_maps', { gameId: 42 }), {
+      path: '/api/agent/v1/geo/games/42/maps',
+    })
+    assert.ok('error' in resolveToolPath('geo_list_maps', {}))
+  })
+
+  it('maps geo_set_canonical_map to a POST select path', () => {
+    assert.deepEqual(resolveToolPath('geo_set_canonical_map', { gameId: 42, mapId: 9 }), {
+      path: '/api/agent/v1/geo/games/42/maps/9/select',
+      method: 'POST',
+      body: {},
+    })
+    assert.ok('error' in resolveToolPath('geo_set_canonical_map', { gameId: 42 }))
+  })
+
+  it('maps geo_reject_map to a POST reject path', () => {
+    assert.deepEqual(resolveToolPath('geo_reject_map', { gameId: 42, mapId: 9 }), {
+      path: '/api/agent/v1/geo/games/42/maps/9/reject',
+      method: 'POST',
+      body: {},
+    })
+    assert.ok('error' in resolveToolPath('geo_reject_map', { mapId: 9 }))
+  })
 })
 
 describe('handleRpc', () => {

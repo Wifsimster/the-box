@@ -7,6 +7,13 @@
 // pages in this namespace via `?action=query&list=allpages&apnamespace=2900`.
 export const FANDOM_MAP_NAMESPACE = 2900
 
+// Combined cap across every capture provider (Steam + RAWG) for one game's
+// active candidate pool. Once a game has this many active candidates the
+// ingest tick stops enqueuing more; the agent curate surface uses the same
+// number to flag a game "starved" and as `geo_import_captures`'s default
+// target count.
+export const CAPTURE_TARGET_CANDIDATES = 30
+
 /**
  * Derive Fandom subdomain candidates from a game slug. Most Fandom wikis
  * follow `<slug>.fandom.com`, but slugs use kebab-case while wikis are
@@ -32,9 +39,28 @@ export function wikiSubdomainCandidates(slug: string): string[] {
 }
 
 /**
+ * True iff a `Map:` page title carries at least one piece of evidence that
+ * it's actually about THIS game — the full game name, or one of its
+ * distinguishing slug tokens. This is a hard gate, not a scoring bonus: on a
+ * franchise-wide Fandom wiki (one subdomain hosting every entry — e.g.
+ * `unchartedgame.fandom.com` covers Uncharted 2 AND The Lost Legacy,
+ * `legendofzelda.fandom.com` covers Ocarina of Time AND the 1986 original) a
+ * title with zero specific signal must never be treated as a candidate, no
+ * matter how well it scores on generic "world/overworld/main" keywords.
+ */
+function hasSpecificGameSignal(t: string, name: string, slugTokens: readonly string[]): boolean {
+  if (name && t.includes(name)) return true
+  return slugTokens.some((tok) => t.includes(tok))
+}
+
+/**
  * Score a `Map:` page title against the curated game's name + slug to pick
  * the most likely "main" map when a wiki publishes several. Higher is
- * better. The scoring rewards titles that:
+ * better. Returns `Number.NEGATIVE_INFINITY` for a title with no specific
+ * signal for this game at all (see `hasSpecificGameSignal`) — callers must
+ * treat that as "not a match", never pick it as a fallback.
+ *
+ * For titles that pass the gate, the scoring rewards titles that:
  *   - mention the full game name (strongest signal of the canonical map),
  *   - mention slug tokens (game-specific sub-maps still beat generic ones),
  *   - mention top-level keywords (`world`, `overworld`, `atlas`, `main`,
@@ -61,6 +87,8 @@ export function scoreMapTitle(
     .split(/[^a-z0-9]+/)
     .filter((tok) => tok.length >= 3)
 
+  if (!hasSpecificGameSignal(t, name, slugTokens)) return Number.NEGATIVE_INFINITY
+
   let score = 0
   if (name && t.includes(name)) score += 50
   // Extra boost when the title *equals* the game name (e.g. "Elden Ring"
@@ -82,6 +110,25 @@ export function scoreMapTitle(
   if (tokens.length <= 1) score -= 15
   if (t === 'map' || t === 'maps') score -= 30
   return score
+}
+
+/**
+ * Pick the best-matching `Map:` page title for a game out of every title
+ * returned by one Fandom subdomain's namespace listing, or `null` if none of
+ * them carry any game-specific evidence (`scoreMapTitle` gate). Extracted as
+ * a pure function so the franchise-disambiguation fix (issue #331) has a
+ * regression test that doesn't need to mock the MediaWiki API.
+ */
+export function pickBestMapTitle(
+  titles: readonly string[],
+  gameName: string,
+  slug: string,
+): string | null {
+  const ranked = titles
+    .map((title) => ({ title, score: scoreMapTitle(title, gameName, slug) }))
+    .filter((r) => Number.isFinite(r.score))
+    .sort((a, b) => b.score - a.score)
+  return ranked[0]?.title ?? null
 }
 
 /**

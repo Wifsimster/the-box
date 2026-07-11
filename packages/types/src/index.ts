@@ -1238,6 +1238,22 @@ export interface GeoGameNeedingContent {
   bestCandidateId: number | null
 }
 
+// Catalog row for the agent content-creation surface (issue #331, phase 5) —
+// the whole geo-curated pool, not just the "one pin away" work queue.
+// `eligible` mirrors the GeoGamers eligibility gate (an active map + at least
+// one canonical/promoted pin); `starved` flags a game whose active capture
+// count hasn't reached the ingest pipeline's per-game target yet, so an agent
+// knows where `geo_import_captures` would actually help.
+export interface GeoCatalogGame {
+  gameId: number
+  gameName: string | null
+  captureCount: number
+  mapCount: number
+  canonicalPinCount: number
+  eligible: boolean
+  starved: boolean
+}
+
 // Content-readiness snapshot for the GeoGamers daily scheduler. Returned by
 // GET /api/admin/geogamers/health and, for content-sourcing agents, by
 // GET /api/agent/v1/geo/health. `starved` is the gate the daily worker itself
@@ -1650,13 +1666,15 @@ export type ApiKeyScope =
   | 'geo-agent:read' // health, games-needing-content, candidate listing
   | 'geo-agent:ingest' // trigger the existing geo ingestion pipeline (phase 3)
   | 'geo-agent:propose' // submit downweighted, flagged consensus pins (phase 4)
+  | 'geo-agent:curate' // enroll games, top up captures, manage candidate maps (phase 5)
 
-// The three geo-agent scopes, in privilege order. A read-only key carries only
-// the first; ingest/propose are granted per key as later phases ship.
+// The four geo-agent scopes, in privilege order. A read-only key carries only
+// the first; ingest/propose/curate are granted per key as later phases ship.
 export const GEO_AGENT_SCOPES = [
   'geo-agent:read',
   'geo-agent:ingest',
   'geo-agent:propose',
+  'geo-agent:curate',
 ] as const satisfies readonly ApiKeyScope[]
 
 export function isGeoAgentScope(scope: ApiKeyScope): boolean {
