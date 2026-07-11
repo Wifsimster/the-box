@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { pickBestMapTitle, scoreMapTitle } from './geo-metadata.service.js'
+import {
+  fandomMapTitleAcceptable,
+  fandomWikiBaseTokens,
+  isFranchiseWiki,
+  pickBestMapTitle,
+  scoreMapTitle,
+} from './geo-metadata.service.js'
 
 describe('scoreMapTitle', () => {
   it('scores a title mentioning the full game name highly', () => {
@@ -72,5 +78,68 @@ describe('pickBestMapTitle', () => {
       'the-legend-of-zelda-ocarina-of-time',
     )
     assert.equal(best, null)
+  })
+})
+
+describe('fandomWikiBaseTokens', () => {
+  it('drops platform/lang/site suffix tokens', () => {
+    assert.deepEqual(fandomWikiBaseTokens('zelda_gamepedia_en'), ['zelda'])
+    assert.deepEqual(fandomWikiBaseTokens('uncharted'), ['uncharted'])
+    assert.deepEqual(fandomWikiBaseTokens('eldenring'), ['eldenring'])
+  })
+})
+
+describe('isFranchiseWiki', () => {
+  it('treats game-specific wikis as single-game', () => {
+    assert.equal(isFranchiseWiki('bloodborne', 'bloodborne'), false)
+    assert.equal(isFranchiseWiki('eldenring', 'elden-ring'), false)
+  })
+
+  it('detects franchise wikis where the slug carries installment tokens', () => {
+    assert.equal(isFranchiseWiki('uncharted', 'uncharted-2-among-thieves'), true)
+    assert.equal(
+      isFranchiseWiki('zelda_gamepedia_en', 'the-legend-of-zelda-ocarina-of-time'),
+      true,
+    )
+  })
+
+  it('is safe on empty inputs', () => {
+    assert.equal(isFranchiseWiki('', 'bloodborne'), false)
+    assert.equal(isFranchiseWiki('bloodborne', ''), false)
+  })
+})
+
+describe('fandomMapTitleAcceptable', () => {
+  it('accepts any map on a game-specific wiki (nothing to disambiguate)', () => {
+    assert.equal(
+      fandomMapTitleAcceptable('World Map', 'Bloodborne', 'bloodborne', 'bloodborne'),
+      true,
+    )
+  })
+
+  it('REJECTS a sibling map that shares only franchise tokens (OoT regression)', () => {
+    // The gap #338's scoreMapTitle misses: this scores 16 (shares legend/zelda)
+    // and would otherwise be picked as Ocarina of Time's map.
+    assert.equal(
+      fandomMapTitleAcceptable(
+        'Level 1 (First Quest) (The Legend of Zelda)',
+        'The Legend of Zelda: Ocarina of Time',
+        'zelda_gamepedia_en',
+        'the-legend-of-zelda-ocarina-of-time',
+      ),
+      false,
+    )
+  })
+
+  it('accepts a franchise-wiki map that names the game in full', () => {
+    assert.equal(
+      fandomMapTitleAcceptable(
+        'The Legend of Zelda: Ocarina of Time World Map',
+        'The Legend of Zelda: Ocarina of Time',
+        'zelda_gamepedia_en',
+        'the-legend-of-zelda-ocarina-of-time',
+      ),
+      true,
+    )
   })
 })
