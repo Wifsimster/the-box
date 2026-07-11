@@ -14,9 +14,11 @@ export interface ManualCaptureCandidate {
   externalId: string
 }
 
-// Accept common raster image extensions, tolerating a query string or fragment
-// after the path (CDN URLs frequently append `?cb=...`).
-const IMAGE_PATH = /\.(png|jpe?g|webp|gif|bmp)$/i
+// Accept common raster image extensions. The extension may sit at the end of
+// the path OR be followed by a further path segment — Fandom/Wikia CDN URLs
+// look like `…/Central_Yharnam.jpg/revision/latest`. Query strings/fragments
+// (`?cb=…`) live outside the pathname and don't affect the match.
+const IMAGE_PATH = /\.(png|jpe?g|webp|gif|bmp)(\/|$)/i
 
 /**
  * A curated capture URL is valid iff it is an absolute http(s) URL whose path

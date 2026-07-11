@@ -14,6 +14,13 @@ describe('isValidCaptureUrl', () => {
       isValidCaptureUrl('https://static.wikia.nocookie.net/x/Yharnam.png?cb=123'),
       true,
     )
+    // Fandom/Wikia CDN pattern: extension followed by /revision/latest.
+    assert.equal(
+      isValidCaptureUrl(
+        'https://static.wikia.nocookie.net/bloodborne/images/0/03/Central_Yharnam_concept_art_1.jpg/revision/latest?cb=20180727134944',
+      ),
+      true,
+    )
   })
 
   it('rejects non-image, non-http, and malformed URLs', () => {
