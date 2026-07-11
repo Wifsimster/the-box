@@ -6,6 +6,7 @@ import {
   ingestBudgetKey,
   mapActionBudgetKey,
   pinBudgetKey,
+  promoteBudgetKey,
   secondsToNextUtcHour,
   secondsToUtcMidnight,
 } from './agent-budget.js'
@@ -95,5 +96,20 @@ describe('mapActionBudgetKey', () => {
       mapActionBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
       'geo-agent:budget:map-action:42:2026-07-10',
     )
+  })
+})
+
+describe('promoteBudgetKey', () => {
+  it('scopes the key by api key id and UTC day', () => {
+    assert.equal(
+      promoteBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:promote:42:2026-07-10',
+    )
+  })
+
+  it('rolls to a new key at the UTC day boundary', () => {
+    const before = promoteBudgetKey(1, new Date('2026-07-10T23:59:59.000Z'))
+    const after = promoteBudgetKey(1, new Date('2026-07-11T00:00:01.000Z'))
+    assert.notEqual(before, after)
   })
 })

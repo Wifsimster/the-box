@@ -6,6 +6,7 @@ import {
   agentApiRateLimit,
   requireAgentApiEnabled,
   requireAgentCurateEnabled,
+  requireAgentPromoteEnabled,
   requireScope,
 } from '../middleware/agent-api.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
@@ -18,7 +19,12 @@ import { geoSourceConfigRepository } from '../../infrastructure/repositories/geo
 import { geoIngestFailureRepository } from '../../infrastructure/repositories/geo-ingest-failure.repository.js'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
 import { gameRepository } from '../../infrastructure/repositories/game.repository.js'
-import { pinsToNextConsensusThreshold } from '../../domain/services/geo-consensus.service.js'
+import {
+  evaluateConsensus,
+  pinsToNextConsensusThreshold,
+  GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
+  GEO_CONSENSUS_VERSION,
+} from '../../domain/services/geo-consensus.service.js'
 import { shouldPauseAgentKey } from '../../domain/services/geo-agent-guard.service.js'
 import { CAPTURE_TARGET_CANDIDATES } from '../../domain/services/geo-metadata.service.js'
 import { getGeoGamersHealthSnapshot } from '../../infrastructure/geogamers-health.js'
@@ -36,6 +42,7 @@ import {
   consumeIngestBudget,
   consumeMapActionBudget,
   consumePinBudget,
+  consumePromoteBudget,
 } from '../../infrastructure/redis/agent-budget.js'
 import { env } from '../../config/env.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
@@ -760,6 +767,139 @@ router.post(
       res.json({
         success: true,
         data: { pinId: submission.id, received: true, pinCount: newPinCount, budget: budgetInfo },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /candidates/:id/promote — confirm & promote a capture's consensus pin to
+// canonical ground truth (issue #331, phase 7). This is the ONE agent write
+// that creates ground truth, and it is safe by construction: the agent supplies
+// NO coordinates and can promote only where the crowd already earned it. The
+// route re-runs consensus over the candidate's pins and refuses unless it
+// QUALIFIES (`evaluateConsensus(...).promote === true` — ≥5 accepted HUMAN pins
+// and a tight enough cluster, exactly the auto-promote gate). Agent pins are
+// downweighted voters and excluded from the human promote count (consensus v3),
+// so no pile of machine pins can manufacture a qualifying candidate — the agent
+// merely pulls the trigger on a promotion the humans already earned but that a
+// threshold recompute may not have fired for. Mirrors the admin override's
+// consensus-centroid path (`promotedVia = 'consensus'`), attributing
+// `promotedBy` to the agent key. Gated behind a THIRD independent kill switch
+// (requireAgentPromoteEnabled) and bounded by a per-key daily budget.
+router.post(
+  '/candidates/:id/promote',
+  requireScope('geo-agent:promote'),
+  requireAgentPromoteEnabled,
+  validateParams(z.object({ id: z.coerce.number().int().positive() })),
+  async (req, res, next) => {
+    try {
+      const { id: candidateId } = req.params as unknown as { id: number }
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_PROMOTES_PER_DAY) || 20
+      const budget = await consumePromoteBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily promote budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      const candidate = await geoScreenshotRepository.findCandidateById(candidateId)
+      if (!candidate) {
+        res.status(404).json({ success: false, error: { code: 'CANDIDATE_NOT_FOUND' } })
+        return
+      }
+
+      // Never promote a candidate that already has ground truth — an admin must
+      // delete the meta first rather than have coordinates shift under players.
+      const existingMeta = await geoScreenshotRepository.findMetaByCandidateId(candidateId)
+      if (existingMeta) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'ALREADY_PROMOTED', message: 'candidate already has a canonical pin' },
+        })
+        return
+      }
+
+      const pins = await geoPinRepository.listByCandidate(candidateId)
+      if (pins.length === 0) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'NO_PINS', message: 'no pins to compute consensus from' },
+        })
+        return
+      }
+
+      const map = await geoMapRepository.findById(candidate.geoMapId)
+      if (!map) {
+        res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND' } })
+        return
+      }
+
+      const consensus = evaluateConsensus(
+        pins.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence, source: p.source })),
+        map.consensusRadius,
+      )
+
+      // The invariant: the agent can only CONFIRM a promotion the crowd earned.
+      // If consensus doesn't qualify (too few accepted human pins, or the
+      // cluster is too loose), refuse — the agent cannot force ground truth.
+      if (!consensus.promote) {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'CONSENSUS_NOT_READY',
+            message: `consensus not ready to promote (need ≥${GEO_CONSENSUS_MIN_PINS_TO_PROMOTE} accepted human pins and a tight cluster)`,
+          },
+          data: {
+            humanAcceptedCount: consensus.humanAcceptedCount,
+            requiredHumanPins: GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
+            confidence: consensus.confidence,
+          },
+        })
+        return
+      }
+
+      const meta = await geoScreenshotRepository.promoteCandidateToMeta({
+        candidateId,
+        geoMapId: candidate.geoMapId,
+        canonicalX: consensus.centroid.x,
+        canonicalY: consensus.centroid.y,
+        confidence: consensus.confidence,
+        consensusVersion: GEO_CONSENSUS_VERSION,
+        promotedVia: 'consensus',
+        promotedBy: `apikey:${keyId}`,
+      })
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.promote_candidate',
+        targetKind: 'geo_screenshot_candidate',
+        targetId: String(candidateId),
+        after: {
+          metaId: meta.id,
+          canonicalX: consensus.centroid.x,
+          canonicalY: consensus.centroid.y,
+          confidence: consensus.confidence,
+          humanAcceptedCount: consensus.humanAcceptedCount,
+        },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: {
+          meta,
+          budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
+        },
       })
     } catch (err) {
       next(err)

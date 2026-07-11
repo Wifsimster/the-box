@@ -69,6 +69,18 @@ describe('resolveToolPath', () => {
     assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, rationale: 'x', source: 'human' })) // bad source
   })
 
+  it('maps geo_promote_candidate to a POST promote path', () => {
+    assert.deepEqual(resolveToolPath('geo_promote_candidate', { candidateId: 88 }), {
+      path: '/api/agent/v1/geo/candidates/88/promote',
+      method: 'POST',
+      body: {},
+    })
+  })
+
+  it('rejects geo_promote_candidate without a candidateId', () => {
+    assert.ok('error' in resolveToolPath('geo_promote_candidate', {}))
+  })
+
   it('errors on an unknown tool', () => {
     assert.ok('error' in resolveToolPath('nope', {}))
   })

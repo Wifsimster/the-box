@@ -182,6 +182,19 @@ export const TOOLS: ToolDef[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'geo_promote_candidate',
+    description:
+      "Confirm & promote a capture's consensus pin to canonical ground truth (needs a geo-agent:promote key). Safe by construction: you supply NO coordinates — the server re-runs consensus and promotes only if it already QUALIFIES (≥5 accepted human pins + a tight cluster). Agent pins never count toward that gate, so this can only pull the trigger on a promotion the crowd already earned. Rejected with CONSENSUS_NOT_READY otherwise.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        candidateId: { type: 'number', description: 'geo_screenshot_candidate id (required)' },
+      },
+      required: ['candidateId'],
+      additionalProperties: false,
+    },
+  },
 ]
 
 function asPositiveInt(value: unknown): number | null {
@@ -300,6 +313,11 @@ export function resolveToolPath(
         if (a[k] !== undefined) body[k] = a[k]
       }
       return { path: `/api/agent/v1/geo/candidates/${candidateId}/pins`, method: 'POST', body }
+    }
+    case 'geo_promote_candidate': {
+      const candidateId = asPositiveInt(a['candidateId'])
+      if (candidateId === null) return { error: 'candidateId is required and must be a positive integer' }
+      return { path: `/api/agent/v1/geo/candidates/${candidateId}/promote`, method: 'POST', body: {} }
     }
     default:
       return { error: `unknown tool: ${name}` }

@@ -48,6 +48,26 @@ export function requireAgentCurateEnabled(_req: Request, res: Response, next: Ne
 }
 
 /**
+ * Third kill switch for the confirm/promote route (issue #331, phase 7) — the
+ * one agent write that creates ground truth (only where consensus already
+ * qualifies). Independent of GEO_AGENT_API_ENABLED and GEO_AGENT_CURATE_ENABLED
+ * so an operator can run read/ingest/propose/curate in production while promote
+ * stays dark, and can flip it off alone. Checked after the main kill switch and
+ * key auth, before the scope check, so a disabled-promote 503 never leaks which
+ * keys hold the promote scope.
+ */
+export function requireAgentPromoteEnabled(_req: Request, res: Response, next: NextFunction): void {
+  if (env.GEO_AGENT_PROMOTE_ENABLED !== 'true') {
+    res.status(503).json({
+      success: false,
+      error: { code: 'AGENT_PROMOTE_DISABLED', message: 'The agent promote surface is disabled' },
+    })
+    return
+  }
+  next()
+}
+
+/**
  * Require a specific scope on the authenticated key. Also rejects any key that
  * carries a non-geo-agent scope reaching this surface — a streamer key can
  * never call the agent API even if it somehow held a geo-agent scope, and the

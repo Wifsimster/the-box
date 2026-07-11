@@ -1667,14 +1667,16 @@ export type ApiKeyScope =
   | 'geo-agent:ingest' // trigger the existing geo ingestion pipeline (phase 3)
   | 'geo-agent:propose' // submit downweighted, flagged consensus pins (phase 4)
   | 'geo-agent:curate' // enroll games, top up captures, manage candidate maps (phase 5)
+  | 'geo-agent:promote' // confirm & promote a capture's qualifying consensus pin (phase 7)
 
-// The four geo-agent scopes, in privilege order. A read-only key carries only
-// the first; ingest/propose/curate are granted per key as later phases ship.
+// The geo-agent scopes, in privilege order. A read-only key carries only the
+// first; ingest/propose/curate/promote are granted per key as later phases ship.
 export const GEO_AGENT_SCOPES = [
   'geo-agent:read',
   'geo-agent:ingest',
   'geo-agent:propose',
   'geo-agent:curate',
+  'geo-agent:promote',
 ] as const satisfies readonly ApiKeyScope[]
 
 export function isGeoAgentScope(scope: ApiKeyScope): boolean {

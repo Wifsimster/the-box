@@ -57,6 +57,11 @@ export function mapActionBudgetKey(apiKeyId: number, now: Date): string {
   return `geo-agent:budget:map-action:${apiKeyId}:${now.toISOString().slice(0, 10)}`
 }
 
+/** Redis key for a key's daily confirm/promote budget (phase 7). Pure. */
+export function promoteBudgetKey(apiKeyId: number, now: Date): string {
+  return `geo-agent:budget:promote:${apiKeyId}:${now.toISOString().slice(0, 10)}`
+}
+
 /**
  * Atomically consume one unit of a windowed budget keyed in Redis. Returns
  * `ok: false` (without consuming) once `limit` is reached; the counter expires
@@ -129,5 +134,16 @@ export async function consumeMapActionBudget(apiKeyId: number, limit: number): P
     limit,
     secondsToUtcMidnight(now),
     'map-action',
+  )
+}
+
+/** Consume one unit of a key's DAILY confirm/promote budget (phase 7). */
+export async function consumePromoteBudget(apiKeyId: number, limit: number): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(
+    promoteBudgetKey(apiKeyId, now),
+    limit,
+    secondsToUtcMidnight(now),
+    'promote',
   )
 }

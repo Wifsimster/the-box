@@ -15,6 +15,8 @@ const SCOPE_OPTIONS: Array<{ scope: ApiKeyScope; label: string; hint: string }> 
     { scope: 'geo-agent:read', label: 'read', hint: 'santé, jeux à compléter, captures' },
     { scope: 'geo-agent:ingest', label: 'ingest', hint: 'déclencher le pipeline (phase 3)' },
     { scope: 'geo-agent:propose', label: 'propose', hint: 'proposer des pins (phase 4)' },
+    { scope: 'geo-agent:curate', label: 'curate', hint: 'inscrire des jeux, cartes candidates (phase 5)' },
+    { scope: 'geo-agent:promote', label: 'promote', hint: 'confirmer/promouvoir un pin de consensus (phase 7)' },
 ]
 
 export function AgentKeysCard() {

@@ -3,10 +3,12 @@
 Key-authenticated HTTP surface that lets an AI agent (Claude Code / an MCP
 client) safely *drive* geo content sourcing against prod. It started as a
 read-only proof of the auth / audit / rate-limit surface (phase 2) and grew a
-write surface in three stages: ingest triggers (phase 3), downweighted pin
-proposals (phase 4), and — this phase (5) — **content creation & curation**:
-enrolling new games, topping up screenshot candidates, and picking/rejecting
-candidate maps. See the [agent-assisted geo sourcing plan](../tasks/prd-geo-agent-sourcing.html).
+write surface in stages: ingest triggers (phase 3), downweighted pin proposals
+(phase 4), **content creation & curation** (phase 5) — enrolling new games,
+topping up screenshot candidates, and picking/rejecting candidate maps — and
+**confirm/promote** (phase 7): letting the agent pull the trigger on a
+promotion the crowd has already earned. See the
+[agent-assisted geo sourcing plan](../tasks/prd-geo-agent-sourcing.html).
 
 > Design principle: the agent *proposes*, consensus + admins *dispose*. Even
 > the curate endpoints only reach content the admin UI already lets an
@@ -48,9 +50,10 @@ via `DELETE /api/admin/agent-keys/:id` (any admin, instant).
 | `geo-agent:ingest` | `POST /games/:id/ingest` — trigger the ingestion pipeline | 3 |
 | `geo-agent:propose` | `POST /candidates/:id/pins` — propose a downweighted consensus pin | 4 |
 | `geo-agent:curate` | `POST /games`, `POST /games/:id/captures`, `POST /games/:id/maps/:mapId/select`, `POST /games/:id/maps/:mapId/reject` — content creation & curation | 5 |
+| `geo-agent:promote` | `POST /candidates/:id/promote` — confirm & promote a capture's qualifying consensus pin to canonical | 7 |
 
-A freshly minted key defaults to `geo-agent:read`. Ingest/propose/curate are
-granted per key as later phases ship.
+A freshly minted key defaults to `geo-agent:read`. Ingest/propose/curate/promote
+are granted per key as later phases ship.
 
 ## Curate kill switch (phase 5)
 
@@ -60,6 +63,15 @@ off they return `503 AGENT_CURATE_DISABLED` even for a key that holds the
 scope — an operator can run read/ingest/propose in production while curation
 stays dark, and can flip curation off alone without touching the rest of the
 surface.
+
+## Promote kill switch (phase 7)
+
+The single `geo-agent:promote` write endpoint sits behind a **third**,
+independent kill switch: `GEO_AGENT_PROMOTE_ENABLED` (default `false`). While
+off it returns `503 AGENT_PROMOTE_DISABLED` even for a key that holds the
+scope — promotion is the one agent write that creates ground truth, so it can
+stay dark while read/ingest/propose/curate run in production, and can be flipped
+off alone.
 
 ## Rate limit & budgets
 
@@ -72,7 +84,8 @@ proposals: `GEO_AGENT_MAX_PINS_PER_HOUR` (default 60) per UTC hour. Curate
 (phase 5), each its own daily counter: enroll —
 `GEO_AGENT_MAX_ENROLLS_PER_DAY` (default 5); capture import —
 `GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY` (default 10); map select/reject —
-`GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY` (default 30, shared by both actions). On
+`GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY` (default 30, shared by both actions).
+Promote (phase 7): `GEO_AGENT_MAX_PROMOTES_PER_DAY` (default 20) per UTC day. On
 exhaustion: `429 BUDGET_EXHAUSTED` with `Retry-After` (seconds to the window
 reset). Budgets fail **closed** — if Redis is unreachable the call is rejected,
 never silently unlimited.
@@ -376,18 +389,62 @@ proposer can't keep flooding the review queue.
 proposal (same key + candidate + `visionPass`) is an idempotent no-op:
 `{ "received": true, "duplicate": true }`. Audited as `geo-agent.propose_pin`.
 
+### `POST /candidates/:id/promote`
+
+Scope: `geo-agent:promote`. **Confirm and promote** a capture's consensus pin to
+canonical ground truth. This is the one agent write that *creates* ground truth,
+and it is safe by construction: the agent supplies **no coordinates** and can
+promote only where the crowd already earned it. The server re-runs consensus
+over the candidate's pins and refuses unless it **qualifies** — the same
+auto-promote gate the consensus worker uses: ≥5 accepted **human** pins
+(`GEO_CONSENSUS_MIN_PINS_TO_PROMOTE`) and a tight enough cluster
+(`confidence ≥ 0.5`). Agent pins are downweighted voters and excluded from that
+human count (consensus v3), so no pile of machine pins can manufacture a
+qualifying candidate — the agent merely pulls the trigger on a promotion the
+crowd earned but that a threshold recompute (`[5, 10, 20, 50]`) may not have
+fired for. Promotes via the consensus centroid (`promoted_via = 'consensus'`),
+attributing `promoted_by` to `apikey:<id>` — the same primitive the admin
+override uses.
+
+The request takes **no body**.
+
+```json
+{
+  "success": true,
+  "data": {
+    "meta": {
+      "id": 4521,
+      "canonicalX": 0.42,
+      "canonicalY": 0.31,
+      "confidence": 0.87,
+      "promotedVia": "consensus"
+    },
+    "budget": { "used": 1, "limit": 20, "remaining": 19 }
+  }
+}
+```
+
+`404 CANDIDATE_NOT_FOUND` if no such capture. `409 ALREADY_PROMOTED` if it
+already has a canonical pin. `409 NO_PINS` if the candidate has no pins yet.
+`409 CONSENSUS_NOT_READY` if consensus doesn't qualify — the error `data` carries
+`humanAcceptedCount`, `requiredHumanPins`, and `confidence` so an agent can see
+how far off it is. Audited as `geo-agent.promote_candidate`.
+
 ## Error codes
 
 | Code | HTTP | Meaning |
 |------|------|---------|
 | `AGENT_API_DISABLED` | 503 | `GEO_AGENT_API_ENABLED` is off |
 | `AGENT_CURATE_DISABLED` | 503 | `GEO_AGENT_CURATE_ENABLED` is off (curate endpoints only) |
+| `AGENT_PROMOTE_DISABLED` | 503 | `GEO_AGENT_PROMOTE_ENABLED` is off (promote endpoint only) |
 | `UNAUTHORIZED` | 401 | Missing / malformed / invalid key |
 | `INSUFFICIENT_SCOPE` | 403 | Key lacks the required geo-agent scope (or carries a non-agent scope) |
 | `RATE_LIMITED` | 429 | Per-minute limit hit; see `Retry-After` |
 | `BUDGET_EXHAUSTED` | 429 | Write budget hit; `Retry-After` = seconds to window reset |
-| `CANDIDATE_NOT_FOUND` | 404 | No such capture candidate (propose) |
-| `ALREADY_PROMOTED` | 409 | Candidate already has a canonical pin (propose) |
+| `CANDIDATE_NOT_FOUND` | 404 | No such capture candidate (propose / promote) |
+| `ALREADY_PROMOTED` | 409 | Candidate already has a canonical pin (propose / promote) |
+| `NO_PINS` | 409 | Candidate has no pins to compute consensus from (promote) |
+| `CONSENSUS_NOT_READY` | 409 | Consensus doesn't yet qualify to promote (promote) |
 | `VISION_DISABLED` | 403 | `agent_vision` proposals disabled pending the accuracy study |
 | `KEY_PAUSED` | 403 | Key auto-paused: >60% of its recent proposals were rejected |
 | `GAME_NOT_FOUND` | 404 | No such game (`gameId` on enroll) |
@@ -405,7 +462,8 @@ Admin key mints/revokes are written to `admin_audit_log`
 (`agent_key.mint` / `agent_key.revoke`) with the acting admin, label, scopes.
 Every write endpoint audits its action keyed by `apikey:<id>`:
 `geo-agent.ingest`, `geo-agent.propose_pin`, `geo-agent.enroll_game`,
-`geo-agent.import_captures`, `geo-agent.select_map`, `geo-agent.reject_map`.
+`geo-agent.import_captures`, `geo-agent.select_map`, `geo-agent.reject_map`,
+`geo-agent.promote_candidate`.
 
 ## MCP wrapper
 
