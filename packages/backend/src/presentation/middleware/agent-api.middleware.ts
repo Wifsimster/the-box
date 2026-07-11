@@ -28,6 +28,26 @@ export function requireAgentApiEnabled(_req: Request, res: Response, next: NextF
 }
 
 /**
+ * Second kill switch for the write-heavy content-creation & curation routes
+ * (issue #331, phase 5: enroll/import-captures/map-select/map-reject).
+ * Independent of GEO_AGENT_API_ENABLED so an operator can run read/ingest/
+ * propose in production while curation stays dark, and can flip it off alone
+ * without touching the rest of the surface. Checked after the main kill
+ * switch and key auth, before the scope check, so a disabled-curate 503
+ * never leaks which keys hold the curate scope.
+ */
+export function requireAgentCurateEnabled(_req: Request, res: Response, next: NextFunction): void {
+  if (env.GEO_AGENT_CURATE_ENABLED !== 'true') {
+    res.status(503).json({
+      success: false,
+      error: { code: 'AGENT_CURATE_DISABLED', message: 'The agent curate surface is disabled' },
+    })
+    return
+  }
+  next()
+}
+
+/**
  * Require a specific scope on the authenticated key. Also rejects any key that
  * carries a non-geo-agent scope reaching this surface — a streamer key can
  * never call the agent API even if it somehow held a geo-agent scope, and the

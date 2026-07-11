@@ -1,14 +1,18 @@
 # Geo Agent API — content sourcing (issue #331)
 
-Key-authenticated, read-only HTTP surface that lets an AI agent (Claude Code /
-an MCP client) safely *drive* geo content sourcing against prod. This is the
-phase-2 deliverable of the [agent-assisted geo sourcing plan](../tasks/prd-geo-agent-sourcing.html):
-it proves the auth / audit / rate-limit surface with **zero write risk** before
-ingest (phase 3) and pin proposals (phase 4) land.
+Key-authenticated HTTP surface that lets an AI agent (Claude Code / an MCP
+client) safely *drive* geo content sourcing against prod. It started as a
+read-only proof of the auth / audit / rate-limit surface (phase 2) and grew a
+write surface in three stages: ingest triggers (phase 3), downweighted pin
+proposals (phase 4), and — this phase (5) — **content creation & curation**:
+enrolling new games, topping up screenshot candidates, and picking/rejecting
+candidate maps. See the [agent-assisted geo sourcing plan](../tasks/prd-geo-agent-sourcing.html).
 
-> Design principle: the agent *proposes*, consensus + admins *dispose*. This
-> read surface exposes only diagnostics and catalog data — no writes, no user
-> PII, no raw SQL. See `docs/geo-mode.md` for the consensus gate it feeds.
+> Design principle: the agent *proposes*, consensus + admins *dispose*. Even
+> the curate endpoints only reach content the admin UI already lets an
+> operator create — no raw SQL, no user PII, and every write is scoped,
+> budgeted, and audited. See `docs/geo-mode.md` for the consensus gate the
+> pin-proposal surface feeds.
 
 Base URL: `https://the-box.battistella.ovh/api/agent/v1/geo` (prod) ·
 `http://localhost:3000/api/agent/v1/geo` (dev).
@@ -40,12 +44,22 @@ via `DELETE /api/admin/agent-keys/:id` (any admin, instant).
 
 | Scope | Grants | Phase |
 |-------|--------|-------|
-| `geo-agent:read` | `/health`, `/games-needing-content`, `/games/:id/candidates` | 2 |
+| `geo-agent:read` | `/health`, `/games-needing-content`, `/games`, `/games/:id/candidates`, `/games/:id/maps` | 2, 5 |
 | `geo-agent:ingest` | `POST /games/:id/ingest` — trigger the ingestion pipeline | 3 |
 | `geo-agent:propose` | `POST /candidates/:id/pins` — propose a downweighted consensus pin | 4 |
+| `geo-agent:curate` | `POST /games`, `POST /games/:id/captures`, `POST /games/:id/maps/:mapId/select`, `POST /games/:id/maps/:mapId/reject` — content creation & curation | 5 |
 
-A freshly minted key defaults to `geo-agent:read`. Ingest/propose are granted
-per key as later phases ship.
+A freshly minted key defaults to `geo-agent:read`. Ingest/propose/curate are
+granted per key as later phases ship.
+
+## Curate kill switch (phase 5)
+
+The four `geo-agent:curate` write endpoints sit behind a **second**,
+independent kill switch: `GEO_AGENT_CURATE_ENABLED` (default `false`). While
+off they return `503 AGENT_CURATE_DISABLED` even for a key that holds the
+scope — an operator can run read/ingest/propose in production while curation
+stays dark, and can flip curation off alone without touching the rest of the
+surface.
 
 ## Rate limit & budgets
 
@@ -54,7 +68,11 @@ Fixed-window, **60 requests / minute per key** (in-memory). On exhaustion:
 
 Write endpoints additionally carry a **per-key budget** in Redis (survives
 deploys). Ingest: `GEO_AGENT_MAX_INGESTS_PER_DAY` (default 20) per UTC day. Pin
-proposals: `GEO_AGENT_MAX_PINS_PER_HOUR` (default 60) per UTC hour. On
+proposals: `GEO_AGENT_MAX_PINS_PER_HOUR` (default 60) per UTC hour. Curate
+(phase 5), each its own daily counter: enroll —
+`GEO_AGENT_MAX_ENROLLS_PER_DAY` (default 5); capture import —
+`GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY` (default 10); map select/reject —
+`GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY` (default 30, shared by both actions). On
 exhaustion: `429 BUDGET_EXHAUSTED` with `Retry-After` (seconds to the window
 reset). Budgets fail **closed** — if Redis is unreachable the call is rejected,
 never silently unlimited.
@@ -112,6 +130,138 @@ consensus recompute.
 `topPinCount` counts raw submissions (an upper bound — promotion needs 5
 *accepted* pins). `pinsToNextThreshold` is pins until the next consensus
 recompute (`[5, 10, 20, 50]`; `0` past the top threshold).
+
+### `GET /games?limit=`
+
+The whole geo-curated catalog (issue #331, phase 5) — every game with
+`geo_curated = true`, not just the "one pin away" work queue. `limit` 1–500
+(default 200).
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "gameId": 512,
+      "gameName": "Hollow Knight",
+      "captureCount": 22,
+      "mapCount": 1,
+      "canonicalPinCount": 3,
+      "eligible": true,
+      "starved": false
+    }
+  ]
+}
+```
+
+`eligible` mirrors the GeoGamers eligibility gate (an active map + at least
+one canonical pin). `starved` flags a game whose active capture count hasn't
+reached the ingest pipeline's per-game target (30) — where
+`POST /games/:id/captures` would help.
+
+### `POST /games`
+
+Scope: `geo-agent:curate`. Enroll a game into the geo pipeline. Pass either
+`gameId` (an existing game row) or `rawgId` (looked up by `rawg_id`, or
+created from RAWG if no game has that id yet). Reuses the **same** switch the
+admin "Games" tab flips (`games.geo_curated = true` +
+`geo_metadata_status = 'pending'`) rather than duplicating the RAWG import /
+metadata-resolve / map-ingest pipeline — that one write is all it takes for
+the existing resolver + ingest tick to pick the game up on their next pass.
+Idempotent: enrolling an already-curated game just re-arms metadata
+resolution.
+
+```json
+{ "rawgId": 3498 }
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "gameId": 512,
+    "name": "Hollow Knight",
+    "created": false,
+    "curated": true,
+    "budget": { "used": 1, "limit": 5, "remaining": 4 }
+  }
+}
+```
+
+`404 GAME_NOT_FOUND` if `gameId` doesn't exist. `400 RAWG_LOOKUP_FAILED` if
+`rawgId` doesn't resolve via RAWG (or `RAWG_API_KEY` isn't configured).
+Audited as `geo-agent.enroll_game`.
+
+### `POST /games/:gameId/captures`
+
+Scope: `geo-agent:curate`. Top up an enrolled game's screenshot candidates.
+Reuses the existing RAWG importer (the same function the ingest tick calls) —
+pass `targetCount` to pull more from RAWG, or `imageUrls` to insert an
+explicit list of manual/gameplay captures instead (RAWG's promotional shots
+are often combat beauty-shots, not geolocatable stills). Requires the game to
+already have an enabled map (`409 NO_ACTIVE_MAP` otherwise).
+
+```json
+{ "targetCount": 20 }
+```
+
+```json
+{ "imageUrls": ["https://example.com/gameplay-1.jpg", "https://example.com/gameplay-2.jpg"] }
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "gameId": 512,
+    "mapId": 77,
+    "fetched": 20,
+    "inserted": 14,
+    "skipped": 6,
+    "budget": { "used": 1, "limit": 10, "remaining": 9 }
+  }
+}
+```
+
+`skipped` counts URLs/RAWG screenshots that already exist as a candidate
+(dedup on `(source, external_id)`). `409 NO_RAWG_ID` if the game has no
+`rawgId` and `imageUrls` wasn't provided. Audited as
+`geo-agent.import_captures`.
+
+### `GET /games/:gameId/maps`
+
+Every candidate map fetched for a game, active or not — so an agent can
+inspect what the ingestion pipeline found and pick the canonical one. Mirrors
+the admin geo-fetch curation panel.
+
+```json
+{
+  "success": true,
+  "data": {
+    "maps": [
+      { "id": 77, "gameId": 512, "source": "fandom", "imageUrl": "https://…", "isSelected": true },
+      { "id": 81, "gameId": 512, "source": "wand", "imageUrl": "https://…", "isSelected": false }
+    ]
+  }
+}
+```
+
+### `POST /games/:gameId/maps/:mapId/select`
+
+Scope: `geo-agent:curate`. Promote a candidate map to canonical for a game —
+the fix for a wrong-game map (e.g. Uncharted 2 with a Lost Legacy map, or
+Ocarina of Time with the 1986 original's map) once `GET /games/:id/maps`
+shows the correct one. Enables the map first if it isn't already enabled, then
+selects it; `selectedBy` is recorded as `apikey:<id>`. `404 MAP_NOT_FOUND` if
+`mapId` doesn't belong to `gameId`. Audited as `geo-agent.select_map`.
+
+### `POST /games/:gameId/maps/:mapId/reject`
+
+Scope: `geo-agent:curate`. Disable a wrong-game or prop map. Reuses the same
+`disableForGame` the admin panel uses — it **refuses to leave a game with zero
+enabled maps** (`409 LAST_ENABLED`): select a replacement canonical map first
+if this is the last enabled one. `404 NOT_FOUND` if `mapId` doesn't exist.
+Audited as `geo-agent.reject_map`.
 
 ### `GET /games/:gameId/candidates?limit=`
 
@@ -231,6 +381,7 @@ proposal (same key + candidate + `visionPass`) is an idempotent no-op:
 | Code | HTTP | Meaning |
 |------|------|---------|
 | `AGENT_API_DISABLED` | 503 | `GEO_AGENT_API_ENABLED` is off |
+| `AGENT_CURATE_DISABLED` | 503 | `GEO_AGENT_CURATE_ENABLED` is off (curate endpoints only) |
 | `UNAUTHORIZED` | 401 | Missing / malformed / invalid key |
 | `INSUFFICIENT_SCOPE` | 403 | Key lacks the required geo-agent scope (or carries a non-agent scope) |
 | `RATE_LIMITED` | 429 | Per-minute limit hit; see `Retry-After` |
@@ -239,17 +390,25 @@ proposal (same key + candidate + `visionPass`) is an idempotent no-op:
 | `ALREADY_PROMOTED` | 409 | Candidate already has a canonical pin (propose) |
 | `VISION_DISABLED` | 403 | `agent_vision` proposals disabled pending the accuracy study |
 | `KEY_PAUSED` | 403 | Key auto-paused: >60% of its recent proposals were rejected |
-| `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` / `sources` / pin body |
+| `GAME_NOT_FOUND` | 404 | No such game (`gameId` on enroll) |
+| `RAWG_LOOKUP_FAILED` | 400 | `rawgId` didn't resolve via RAWG, or `RAWG_API_KEY` isn't set |
+| `NO_ACTIVE_MAP` | 409 | Game has no enabled map to attach captures to |
+| `NO_RAWG_ID` | 409 | Game has no `rawgId` and `imageUrls` wasn't provided |
+| `MAP_NOT_FOUND` | 404 | No such map for the game (select) |
+| `NOT_FOUND` / `LAST_ENABLED` | 404 / 409 | Map reject target missing / would leave zero enabled maps |
+| `VALIDATION_ERROR` | 400 | Bad `gameId` / `limit` / `sources` / pin / enroll / capture body |
 | `INTERNAL_ERROR` | 500 | Server error |
 
 ## Audit
 
 Admin key mints/revokes are written to `admin_audit_log`
 (`agent_key.mint` / `agent_key.revoke`) with the acting admin, label, scopes.
-Write endpoints (phases 3–4) will additionally audit each agent action keyed by
-`apikey:<id>`.
+Every write endpoint audits its action keyed by `apikey:<id>`:
+`geo-agent.ingest`, `geo-agent.propose_pin`, `geo-agent.enroll_game`,
+`geo-agent.import_captures`, `geo-agent.select_map`, `geo-agent.reject_map`.
 
 ## MCP wrapper
 
-`@the-box/geo-agent-mcp` (in `packages/geo-agent-mcp/`) exposes these three
-reads as MCP tools for Claude Code. See its README for the `mcpServers` config.
+`@the-box/geo-agent-mcp` (in `packages/geo-agent-mcp/`) exposes every one of
+these endpoints as an MCP tool for Claude Code. See its README for the tool
+table and `mcpServers` config.

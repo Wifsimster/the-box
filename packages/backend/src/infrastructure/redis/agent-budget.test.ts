@@ -1,7 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  captureImportBudgetKey,
+  enrollBudgetKey,
   ingestBudgetKey,
+  mapActionBudgetKey,
   pinBudgetKey,
   secondsToNextUtcHour,
   secondsToUtcMidnight,
@@ -59,5 +62,38 @@ describe('pinBudgetKey', () => {
     const before = pinBudgetKey(1, new Date('2026-07-10T15:59:59.000Z'))
     const after = pinBudgetKey(1, new Date('2026-07-10T16:00:01.000Z'))
     assert.notEqual(before, after)
+  })
+})
+
+describe('enrollBudgetKey', () => {
+  it('scopes the key by api key id and UTC day', () => {
+    assert.equal(
+      enrollBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:enroll:42:2026-07-10',
+    )
+  })
+
+  it('rolls to a new key at the UTC day boundary', () => {
+    const before = enrollBudgetKey(1, new Date('2026-07-10T23:59:59.000Z'))
+    const after = enrollBudgetKey(1, new Date('2026-07-11T00:00:01.000Z'))
+    assert.notEqual(before, after)
+  })
+})
+
+describe('captureImportBudgetKey', () => {
+  it('scopes the key by api key id and UTC day', () => {
+    assert.equal(
+      captureImportBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:capture-import:42:2026-07-10',
+    )
+  })
+})
+
+describe('mapActionBudgetKey', () => {
+  it('scopes the key by api key id and UTC day', () => {
+    assert.equal(
+      mapActionBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:map-action:42:2026-07-10',
+    )
   })
 })

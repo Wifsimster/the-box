@@ -7,7 +7,7 @@ import {
   extractVersionTokens,
   isMapEligibleByGenre,
   normalizeGameTitle,
-  scoreMapTitle,
+  pickBestMapTitle,
   versionTokensMatch,
   wikiSubdomainCandidates,
 } from '../../../domain/services/geo-metadata.service.js'
@@ -264,20 +264,16 @@ async function resolveFandomInteractiveMap(
     const pages = body.query?.allpages ?? []
     if (!pages.length) continue
 
-    const ranked = pages
-      .map((p) => stripMapPrefix(p.title))
-      .filter((t): t is string => Boolean(t))
-      .map((title) => ({ title, score: scoreMapTitle(title, gameName, slug) }))
-      .sort((a, b) => b.score - a.score)
-
-    const best = ranked[0]
+    const titles = pages.map((p) => stripMapPrefix(p.title)).filter((t): t is string => Boolean(t))
+    const best = pickBestMapTitle(titles, gameName, slug)
     if (best) {
-      log.info(
-        { sub, choice: best, candidates: ranked.length },
-        'fandom map discovered',
-      )
-      return { subdomain: sub, mapName: best.title }
+      log.info({ sub, choice: best, candidates: titles.length }, 'fandom map discovered')
+      return { subdomain: sub, mapName: best }
     }
+    // Every title on this subdomain failed the game-specific-evidence gate
+    // (e.g. a franchise-wide wiki whose only pages belong to other
+    // installments) — try the next subdomain candidate rather than falling
+    // back to an unrelated page.
   }
   return null
 }

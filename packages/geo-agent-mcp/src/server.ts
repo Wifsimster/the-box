@@ -74,6 +74,91 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: 'geo_list_games',
+    description:
+      'The whole geo-curated catalog, not just the "one pin away" work queue: every enrolled game with capture/map/canonical-pin counts and eligible/starved flags.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max games (1-500, default 200)' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_enroll_game',
+    description:
+      'Enroll a game into the geo pipeline (needs a geo-agent:curate key). Pass either gameId (an existing game) or rawgId (looked up, or created if no game has that rawg_id yet). Flips geo_curated on so the existing metadata resolver + ingest pipeline picks it up. Subject to a per-key daily budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Existing internal game id' },
+        rawgId: { type: 'number', description: 'RAWG game id (looked up or created)' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_import_captures',
+    description:
+      'Top up an enrolled game\'s screenshot candidates (needs a geo-agent:curate key). Either pulls more from RAWG (targetCount) or inserts an explicit imageUrls list for manual/gameplay captures. Requires the game to already have an enabled map. Subject to a per-key daily budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        targetCount: { type: 'number', description: 'Max RAWG screenshots to fetch (ignored if imageUrls is set)' },
+        imageUrls: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Explicit capture image URLs (manual/gameplay stills) instead of pulling from RAWG',
+        },
+      },
+      required: ['gameId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_list_maps',
+    description:
+      "Every candidate map fetched for a game, active or not, so an agent can pick the canonical one and reject wrong-game/prop maps.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+      },
+      required: ['gameId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_set_canonical_map',
+    description:
+      'Promote a candidate map to canonical for a game (needs a geo-agent:curate key). Use this to fix a wrong-game map once geo_list_maps shows the correct one. Subject to a per-key daily budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        mapId: { type: 'number', description: 'geo_map id to select (required)' },
+      },
+      required: ['gameId', 'mapId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_reject_map',
+    description:
+      'Disable a wrong-game or prop map (needs a geo-agent:curate key). Refuses to leave a game with zero enabled maps — select a replacement canonical map first if this is the last one. Subject to a per-key daily budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        mapId: { type: 'number', description: 'geo_map id to reject (required)' },
+      },
+      required: ['gameId', 'mapId'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'geo_propose_pin',
     description:
       "Propose a location pin for a capture (needs a geo-agent:propose key). The pin is DOWNWEIGHTED and can never promote ground truth on its own — it joins consensus as one flagged voter, reviewed by humans. `rationale` is required. Propose only when confident; a wrong pin poisons the centroid.",
@@ -139,6 +224,59 @@ export function resolveToolPath(
         body['sources'] = a['sources']
       }
       return { path: `/api/agent/v1/geo/games/${gameId}/ingest`, method: 'POST', body }
+    }
+    case 'geo_list_games':
+      return { path: `/api/agent/v1/geo/games${qs}` }
+    case 'geo_enroll_game': {
+      const body: Record<string, unknown> = {}
+      if (a['gameId'] !== undefined) {
+        const gameId = asPositiveInt(a['gameId'])
+        if (gameId === null) return { error: 'gameId must be a positive integer' }
+        body['gameId'] = gameId
+      }
+      if (a['rawgId'] !== undefined) {
+        const rawgId = asPositiveInt(a['rawgId'])
+        if (rawgId === null) return { error: 'rawgId must be a positive integer' }
+        body['rawgId'] = rawgId
+      }
+      if (body['gameId'] === undefined && body['rawgId'] === undefined) {
+        return { error: 'gameId or rawgId is required' }
+      }
+      return { path: '/api/agent/v1/geo/games', method: 'POST', body }
+    }
+    case 'geo_import_captures': {
+      const gameId = asPositiveInt(a['gameId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      const body: Record<string, unknown> = {}
+      if (a['targetCount'] !== undefined) {
+        const targetCount = asPositiveInt(a['targetCount'])
+        if (targetCount === null) return { error: 'targetCount must be a positive integer' }
+        body['targetCount'] = targetCount
+      }
+      if (a['imageUrls'] !== undefined) {
+        if (!Array.isArray(a['imageUrls'])) return { error: 'imageUrls must be an array' }
+        body['imageUrls'] = a['imageUrls']
+      }
+      return { path: `/api/agent/v1/geo/games/${gameId}/captures`, method: 'POST', body }
+    }
+    case 'geo_list_maps': {
+      const gameId = asPositiveInt(a['gameId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      return { path: `/api/agent/v1/geo/games/${gameId}/maps` }
+    }
+    case 'geo_set_canonical_map': {
+      const gameId = asPositiveInt(a['gameId'])
+      const mapId = asPositiveInt(a['mapId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      if (mapId === null) return { error: 'mapId is required and must be a positive integer' }
+      return { path: `/api/agent/v1/geo/games/${gameId}/maps/${mapId}/select`, method: 'POST', body: {} }
+    }
+    case 'geo_reject_map': {
+      const gameId = asPositiveInt(a['gameId'])
+      const mapId = asPositiveInt(a['mapId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      if (mapId === null) return { error: 'mapId is required and must be a positive integer' }
+      return { path: `/api/agent/v1/geo/games/${gameId}/maps/${mapId}/reject`, method: 'POST', body: {} }
     }
     case 'geo_propose_pin': {
       const candidateId = asPositiveInt(a['candidateId'])
