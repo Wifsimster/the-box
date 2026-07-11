@@ -90,6 +90,20 @@ export const env = {
   GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY: process.env['GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY'] || '10',
   // Per-key daily budget for map curation actions (select canonical / reject).
   GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY: process.env['GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY'] || '30',
+  // Per-key daily budget for manual map uploads (register a map by URL +
+  // declared dimensions). Bounded tighter than select/reject since each upload
+  // creates a new asset row.
+  GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY: process.env['GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY'] || '10',
+  // Confirm/promote surface (issue #331, phase 7) — the one write that creates
+  // ground truth, but only where the crowd already earned it: promotion is
+  // gated on qualifying consensus (≥5 accepted HUMAN pins + confidence ≥ 0.5)
+  // and the agent supplies no coordinates. Third, independent kill switch so an
+  // operator can run read/ingest/propose/curate while promote stays dark. While
+  // false the endpoint returns 503 AGENT_PROMOTE_DISABLED even for a key that
+  // holds geo-agent:promote.
+  GEO_AGENT_PROMOTE_ENABLED: process.env['GEO_AGENT_PROMOTE_ENABLED'] || 'false',
+  // Per-key daily budget for agent-confirmed promotions, tracked in Redis.
+  GEO_AGENT_MAX_PROMOTES_PER_DAY: process.env['GEO_AGENT_MAX_PROMOTES_PER_DAY'] || '20',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

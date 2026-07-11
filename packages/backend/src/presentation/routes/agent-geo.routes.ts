@@ -6,6 +6,7 @@ import {
   agentApiRateLimit,
   requireAgentApiEnabled,
   requireAgentCurateEnabled,
+  requireAgentPromoteEnabled,
   requireScope,
 } from '../middleware/agent-api.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
@@ -18,7 +19,12 @@ import { geoSourceConfigRepository } from '../../infrastructure/repositories/geo
 import { geoIngestFailureRepository } from '../../infrastructure/repositories/geo-ingest-failure.repository.js'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
 import { gameRepository } from '../../infrastructure/repositories/game.repository.js'
-import { pinsToNextConsensusThreshold } from '../../domain/services/geo-consensus.service.js'
+import {
+  evaluateConsensus,
+  pinsToNextConsensusThreshold,
+  GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
+  GEO_CONSENSUS_VERSION,
+} from '../../domain/services/geo-consensus.service.js'
 import { shouldPauseAgentKey } from '../../domain/services/geo-agent-guard.service.js'
 import { CAPTURE_TARGET_CANDIDATES } from '../../domain/services/geo-metadata.service.js'
 import { getGeoGamersHealthSnapshot } from '../../infrastructure/geogamers-health.js'
@@ -35,7 +41,9 @@ import {
   consumeEnrollBudget,
   consumeIngestBudget,
   consumeMapActionBudget,
+  consumeMapUploadBudget,
   consumePinBudget,
+  consumePromoteBudget,
 } from '../../infrastructure/redis/agent-budget.js'
 import { env } from '../../config/env.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
@@ -421,6 +429,132 @@ router.get(
   },
 )
 
+// POST /games/:gameId/maps — manual map upload (issue #331, phase 5). The
+// last-resort content path when the ingestion tiers didn't produce a usable
+// map: the agent supplies a map image URL it has verified and hosts itself,
+// declares its pixel dimensions and license/attribution, and we record a
+// `source = 'manual'` geo_map row. Mirrors the admin "Tier 3 manual map upload"
+// (`POST /api/admin/geo/maps/manual`) exactly — no server-side image
+// processing, the agent is responsible for hosting the asset somewhere stable
+// and for the license claim. Lands DISABLED by default (an admin or the agent
+// enables/selects it via the existing select endpoint); pass `enable: true` to
+// enable it immediately. Bounded by its own per-key daily budget.
+const uploadMapBodySchema = z.object({
+  imageUrl: z.string().url().max(1000),
+  widthPx: z.coerce.number().int().positive().max(32_768),
+  heightPx: z.coerce.number().int().positive().max(32_768),
+  license: z.string().trim().min(1).max(100),
+  attribution: z.string().trim().max(500).optional(),
+  sourceUrl: z.string().url().max(1000).optional(),
+  consensusRadius: z.coerce.number().min(0.001).max(1).optional(),
+  region: z.string().trim().min(1).max(100).optional(),
+  // Enable (and select, via enableForGame) the map immediately instead of
+  // leaving it disabled for later curation. Defaults to false.
+  enable: z.boolean().optional(),
+})
+
+router.post(
+  '/games/:gameId/maps',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(gameIdParams),
+  validateBody(uploadMapBodySchema),
+  async (req, res, next) => {
+    try {
+      const { gameId } = req.params as unknown as z.infer<typeof gameIdParams>
+      const body = req.body as z.infer<typeof uploadMapBodySchema>
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY) || 10
+      const budget = await consumeMapUploadBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily map-upload budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      const game = await gameRepository.findById(gameId)
+      if (!game) {
+        res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+        return
+      }
+
+      let map
+      try {
+        map = await geoMapRepository.create({
+          gameId,
+          source: 'manual',
+          sourceUrl: body.sourceUrl,
+          imageUrl: body.imageUrl,
+          widthPx: body.widthPx,
+          heightPx: body.heightPx,
+          license: body.license,
+          attribution: body.attribution,
+          consensusRadius: body.consensusRadius,
+          region: body.region,
+          isActive: !!body.enable,
+        })
+      } catch (err) {
+        // (game_id, image_url) is unique — a repeat upload of the same URL is a
+        // clean 409, not a 500. Any other DB error propagates.
+        if (err && typeof err === 'object' && (err as { code?: string }).code === '23505') {
+          res.status(409).json({
+            success: false,
+            error: { code: 'DUPLICATE_MAP', message: 'a map with this image URL already exists for the game' },
+          })
+          return
+        }
+        throw err
+      }
+
+      if (body.enable) {
+        await geoMapRepository.enableForGame(gameId, map.id)
+      }
+
+      // A usable map now exists — clear the map-tier ingest tombstones so a
+      // future ingest tick isn't short-circuited by a stale circuit-breaker.
+      // Mirrors the admin manual-upload path (clears the fetch tiers, not the
+      // metadata tombstone).
+      await db('geo_ingest_failure')
+        .where({ game_id: gameId })
+        .whereIn('source', [...RUNNABLE_TIERS])
+        .del()
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.upload_map',
+        targetKind: 'geo_map',
+        targetId: String(map.id),
+        after: {
+          gameId,
+          source: 'manual',
+          imageUrl: body.imageUrl,
+          sourceUrl: body.sourceUrl ?? null,
+          license: body.license,
+          enabled: !!body.enable,
+        },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: {
+          map,
+          budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
+        },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
 const mapIdParams = z.object({
   gameId: z.coerce.number().int().positive(),
   mapId: z.coerce.number().int().positive(),
@@ -760,6 +894,139 @@ router.post(
       res.json({
         success: true,
         data: { pinId: submission.id, received: true, pinCount: newPinCount, budget: budgetInfo },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /candidates/:id/promote — confirm & promote a capture's consensus pin to
+// canonical ground truth (issue #331, phase 7). This is the ONE agent write
+// that creates ground truth, and it is safe by construction: the agent supplies
+// NO coordinates and can promote only where the crowd already earned it. The
+// route re-runs consensus over the candidate's pins and refuses unless it
+// QUALIFIES (`evaluateConsensus(...).promote === true` — ≥5 accepted HUMAN pins
+// and a tight enough cluster, exactly the auto-promote gate). Agent pins are
+// downweighted voters and excluded from the human promote count (consensus v3),
+// so no pile of machine pins can manufacture a qualifying candidate — the agent
+// merely pulls the trigger on a promotion the humans already earned but that a
+// threshold recompute may not have fired for. Mirrors the admin override's
+// consensus-centroid path (`promotedVia = 'consensus'`), attributing
+// `promotedBy` to the agent key. Gated behind a THIRD independent kill switch
+// (requireAgentPromoteEnabled) and bounded by a per-key daily budget.
+router.post(
+  '/candidates/:id/promote',
+  requireScope('geo-agent:promote'),
+  requireAgentPromoteEnabled,
+  validateParams(z.object({ id: z.coerce.number().int().positive() })),
+  async (req, res, next) => {
+    try {
+      const { id: candidateId } = req.params as unknown as { id: number }
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_PROMOTES_PER_DAY) || 20
+      const budget = await consumePromoteBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily promote budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      const candidate = await geoScreenshotRepository.findCandidateById(candidateId)
+      if (!candidate) {
+        res.status(404).json({ success: false, error: { code: 'CANDIDATE_NOT_FOUND' } })
+        return
+      }
+
+      // Never promote a candidate that already has ground truth — an admin must
+      // delete the meta first rather than have coordinates shift under players.
+      const existingMeta = await geoScreenshotRepository.findMetaByCandidateId(candidateId)
+      if (existingMeta) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'ALREADY_PROMOTED', message: 'candidate already has a canonical pin' },
+        })
+        return
+      }
+
+      const pins = await geoPinRepository.listByCandidate(candidateId)
+      if (pins.length === 0) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'NO_PINS', message: 'no pins to compute consensus from' },
+        })
+        return
+      }
+
+      const map = await geoMapRepository.findById(candidate.geoMapId)
+      if (!map) {
+        res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND' } })
+        return
+      }
+
+      const consensus = evaluateConsensus(
+        pins.map((p) => ({ id: p.id, pin: p.pin, confidence: p.confidence, source: p.source })),
+        map.consensusRadius,
+      )
+
+      // The invariant: the agent can only CONFIRM a promotion the crowd earned.
+      // If consensus doesn't qualify (too few accepted human pins, or the
+      // cluster is too loose), refuse — the agent cannot force ground truth.
+      if (!consensus.promote) {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'CONSENSUS_NOT_READY',
+            message: `consensus not ready to promote (need ≥${GEO_CONSENSUS_MIN_PINS_TO_PROMOTE} accepted human pins and a tight cluster)`,
+          },
+          data: {
+            humanAcceptedCount: consensus.humanAcceptedCount,
+            requiredHumanPins: GEO_CONSENSUS_MIN_PINS_TO_PROMOTE,
+            confidence: consensus.confidence,
+          },
+        })
+        return
+      }
+
+      const meta = await geoScreenshotRepository.promoteCandidateToMeta({
+        candidateId,
+        geoMapId: candidate.geoMapId,
+        canonicalX: consensus.centroid.x,
+        canonicalY: consensus.centroid.y,
+        confidence: consensus.confidence,
+        consensusVersion: GEO_CONSENSUS_VERSION,
+        promotedVia: 'consensus',
+        promotedBy: `apikey:${keyId}`,
+      })
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.promote_candidate',
+        targetKind: 'geo_screenshot_candidate',
+        targetId: String(candidateId),
+        after: {
+          metaId: meta.id,
+          canonicalX: consensus.centroid.x,
+          canonicalY: consensus.centroid.y,
+          confidence: consensus.confidence,
+          humanAcceptedCount: consensus.humanAcceptedCount,
+        },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: {
+          meta,
+          budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
+        },
       })
     } catch (err) {
       next(err)

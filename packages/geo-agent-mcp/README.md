@@ -25,6 +25,8 @@ the key can't, and the key is read-only in this phase.
 | `geo_import_captures` | `POST /games/:gameId/captures` | `gameId`, `targetCount?`, `imageUrls?` | `geo-agent:curate` |
 | `geo_set_canonical_map` | `POST /games/:gameId/maps/:mapId/select` | `gameId`, `mapId` | `geo-agent:curate` |
 | `geo_reject_map` | `POST /games/:gameId/maps/:mapId/reject` | `gameId`, `mapId` | `geo-agent:curate` |
+| `geo_upload_map` | `POST /games/:gameId/maps` | `gameId`, `imageUrl`, `widthPx`, `heightPx`, `license`, … | `geo-agent:curate` |
+| `geo_promote_candidate` | `POST /candidates/:id/promote` | `candidateId` | `geo-agent:promote` |
 
 ## Setup
 
@@ -75,5 +77,21 @@ Add to your MCP config (e.g. `.mcp.json` or the Claude Code settings):
   budget) and are additionally gated by `GEO_AGENT_CURATE_ENABLED` on the
   backend — while off they return `AGENT_CURATE_DISABLED` even for a key that
   holds the scope. This is the content-creation surface: it enrolls new games,
-  tops up screenshot candidates, and lets an operator pick the canonical map
-  for a game or reject a wrong-game/prop map.
+  tops up screenshot candidates, lets an operator pick the canonical map for a
+  game or reject a wrong-game/prop map, and — via `geo_upload_map` — registers
+  a manual map image (by URL + declared dimensions + license) as the last-resort
+  content path when the ingestion tiers found no usable map. Uploaded maps are
+  recorded `source = manual` and land **disabled** by default (enable/select
+  afterwards) unless `enable: true`; nothing is processed server-side, so the
+  agent hosts the asset and owns the license claim.
+- `geo_promote_candidate` needs `geo-agent:promote` (per-key daily budget) and
+  is gated by a third, independent kill switch `GEO_AGENT_PROMOTE_ENABLED` —
+  while off it returns `AGENT_PROMOTE_DISABLED` even for a key that holds the
+  scope. It **confirms and promotes** a capture's consensus pin to canonical
+  ground truth, but only where the crowd already earned it: the agent supplies
+  **no coordinates**, and the server promotes only if consensus already
+  qualifies (≥5 accepted human pins + a tight cluster — the same auto-promote
+  gate). Agent pins are excluded from that human count, so this can never
+  fabricate ground truth; it just pulls the trigger on a promotion the crowd
+  earned. Returns `CONSENSUS_NOT_READY` (with the current human-pin count and
+  confidence) when consensus doesn't yet qualify.

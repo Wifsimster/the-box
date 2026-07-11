@@ -159,6 +159,28 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: 'geo_upload_map',
+    description:
+      "Register a map image for a game (needs a geo-agent:curate key) — the last-resort content path when the ingestion tiers found no usable map. You host the image yourself and pass its URL plus its pixel dimensions and license; nothing is processed server-side. Recorded as a `manual` map, DISABLED by default (enable/select it afterwards) unless `enable: true`. Subject to a per-key daily budget.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        imageUrl: { type: 'string', description: 'Publicly reachable map image URL you host (required)' },
+        widthPx: { type: 'number', description: 'Map image width in pixels (required)' },
+        heightPx: { type: 'number', description: 'Map image height in pixels (required)' },
+        license: { type: 'string', description: 'License of the asset, e.g. "CC-BY-4.0" (required, ≤100 chars)' },
+        attribution: { type: 'string', description: 'Optional attribution string (≤500 chars)' },
+        sourceUrl: { type: 'string', description: 'Optional source/provenance page URL' },
+        consensusRadius: { type: 'number', description: 'Optional consensus radius in [0.001,1] (default 0.03)' },
+        region: { type: 'string', description: 'Optional region/zone label for multi-map games' },
+        enable: { type: 'boolean', description: 'Enable (and select) the map immediately; default false' },
+      },
+      required: ['gameId', 'imageUrl', 'widthPx', 'heightPx', 'license'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'geo_propose_pin',
     description:
       "Propose a location pin for a capture (needs a geo-agent:propose key). The pin is DOWNWEIGHTED and can never promote ground truth on its own — it joins consensus as one flagged voter, reviewed by humans. `rationale` is required. Propose only when confident; a wrong pin poisons the centroid.",
@@ -179,6 +201,19 @@ export const TOOLS: ToolDef[] = [
         visionPass: { type: 'number', description: 'Optional independent vision pass index 0-2' },
       },
       required: ['candidateId', 'x', 'y', 'source', 'rationale'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_promote_candidate',
+    description:
+      "Confirm & promote a capture's consensus pin to canonical ground truth (needs a geo-agent:promote key). Safe by construction: you supply NO coordinates — the server re-runs consensus and promotes only if it already QUALIFIES (≥5 accepted human pins + a tight cluster). Agent pins never count toward that gate, so this can only pull the trigger on a promotion the crowd already earned. Rejected with CONSENSUS_NOT_READY otherwise.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        candidateId: { type: 'number', description: 'geo_screenshot_candidate id (required)' },
+      },
+      required: ['candidateId'],
       additionalProperties: false,
     },
   },
@@ -278,6 +313,31 @@ export function resolveToolPath(
       if (mapId === null) return { error: 'mapId is required and must be a positive integer' }
       return { path: `/api/agent/v1/geo/games/${gameId}/maps/${mapId}/reject`, method: 'POST', body: {} }
     }
+    case 'geo_upload_map': {
+      const gameId = asPositiveInt(a['gameId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      if (typeof a['imageUrl'] !== 'string' || a['imageUrl'].trim() === '') {
+        return { error: 'imageUrl is required' }
+      }
+      const widthPx = asPositiveInt(a['widthPx'])
+      const heightPx = asPositiveInt(a['heightPx'])
+      if (widthPx === null || heightPx === null) {
+        return { error: 'widthPx and heightPx are required positive integers' }
+      }
+      if (typeof a['license'] !== 'string' || a['license'].trim() === '') {
+        return { error: 'license is required' }
+      }
+      const body: Record<string, unknown> = {
+        imageUrl: a['imageUrl'],
+        widthPx,
+        heightPx,
+        license: a['license'],
+      }
+      for (const k of ['attribution', 'sourceUrl', 'consensusRadius', 'region', 'enable'] as const) {
+        if (a[k] !== undefined) body[k] = a[k]
+      }
+      return { path: `/api/agent/v1/geo/games/${gameId}/maps`, method: 'POST', body }
+    }
     case 'geo_propose_pin': {
       const candidateId = asPositiveInt(a['candidateId'])
       if (candidateId === null) return { error: 'candidateId is required and must be a positive integer' }
@@ -300,6 +360,11 @@ export function resolveToolPath(
         if (a[k] !== undefined) body[k] = a[k]
       }
       return { path: `/api/agent/v1/geo/candidates/${candidateId}/pins`, method: 'POST', body }
+    }
+    case 'geo_promote_candidate': {
+      const candidateId = asPositiveInt(a['candidateId'])
+      if (candidateId === null) return { error: 'candidateId is required and must be a positive integer' }
+      return { path: `/api/agent/v1/geo/candidates/${candidateId}/promote`, method: 'POST', body: {} }
     }
     default:
       return { error: `unknown tool: ${name}` }
