@@ -129,6 +129,11 @@ export function isFranchiseWiki(subdomain: string, slug: string): boolean {
   if (collapsed === base) return false
   // Slug materially longer than the wiki base → the wiki name omits the
   // installment-identifying tokens, i.e. it covers the whole franchise.
+  //
+  // Limitation: the fixed +3 margin misses franchises whose slug barely exceeds
+  // the base (e.g. `baldursgateiii` vs a `baldursgate` wiki). Those fall back to
+  // single-game handling — a conservative miss (may still accept a sibling map),
+  // never a false franchise flag. Widen deliberately if such a case surfaces.
   return collapsed.length > base.length + 3
 }
 

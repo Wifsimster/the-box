@@ -22,8 +22,10 @@ const IMAGE_PATH = /\.(png|jpe?g|webp|gif|bmp)(\/|$)/i
 
 /**
  * A curated capture URL is valid iff it is an absolute http(s) URL whose path
- * ends in a known raster image extension. Deliberately strict — a bad URL
- * should be dropped at seed time, not surface as a broken candidate later.
+ * carries a known raster image extension — either at the end (`/a.jpg`) or
+ * followed by a further segment as Fandom/Wikia CDN URLs do
+ * (`/a.jpg/revision/latest`). Deliberately strict — a bad URL should be dropped
+ * at seed time, not surface as a broken candidate later.
  */
 export function isValidCaptureUrl(url: string): boolean {
   let parsed: URL
