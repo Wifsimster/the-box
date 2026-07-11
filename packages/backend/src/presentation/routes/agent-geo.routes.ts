@@ -531,6 +531,94 @@ router.post(
   },
 )
 
+// POST /games/:gameId/maps — create a basemap from a hosted image URL and (by
+// default) promote it to canonical (phase 5b). The agent-facing analogue of
+// the admin "manual map upload": it reaches the SAME geoMapRepository.create
+// primitive an operator uses, gated by curate scope + the curate kill switch +
+// the shared per-key map-action budget. Use when a game has no usable map, or
+// only a wrong/prop/cropped candidate the ingest tiers produced — an agent can
+// host a full-world image at a reachable URL and register it in one call.
+// `makeCanonical` (default true) enables + selects the new row so it becomes
+// the capture-default, demoting whatever crop/prop was selected before.
+const createMapBodySchema = z.object({
+  imageUrl: z.string().url().max(1000),
+  widthPx: z.number().int().positive().max(32_768),
+  heightPx: z.number().int().positive().max(32_768),
+  license: z.string().min(1).max(100),
+  attribution: z.string().max(500).optional(),
+  sourceUrl: z.string().url().max(1000).optional(),
+  consensusRadius: z.number().min(0.001).max(1).optional(),
+  region: z.string().trim().min(1).max(100).optional(),
+  makeCanonical: z.boolean().optional(),
+})
+
+router.post(
+  '/games/:gameId/maps',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(gameIdParams),
+  validateBody(createMapBodySchema),
+  async (req, res, next) => {
+    try {
+      const { gameId } = req.params as unknown as z.infer<typeof gameIdParams>
+      const body = req.body as z.infer<typeof createMapBodySchema>
+      const budgetResult = await consumeMapActionOrReject(req, res)
+      if (!budgetResult.ok) return
+
+      const game = await db('games').where({ id: gameId }).first<{ id: number }>()
+      if (!game) {
+        res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+        return
+      }
+
+      const makeCanonical = body.makeCanonical ?? true
+      const map = await geoMapRepository.create({
+        gameId,
+        source: 'manual',
+        sourceUrl: body.sourceUrl,
+        imageUrl: body.imageUrl,
+        widthPx: body.widthPx,
+        heightPx: body.heightPx,
+        license: body.license,
+        attribution: body.attribution,
+        consensusRadius: body.consensusRadius,
+        region: body.region,
+        isActive: makeCanonical,
+      })
+
+      let finalMap = map
+      if (makeCanonical) {
+        await geoMapRepository.enableForGame(gameId, map.id)
+        const selected = await geoMapRepository.selectMap(
+          gameId,
+          map.id,
+          `apikey:${req.apiKey!.id}`,
+        )
+        if (selected) finalMap = selected
+        // A good basemap clears stale ingest-failure tombstones so the admin
+        // panels stop flagging the game as unmapped (mirrors admin upload).
+        await db('geo_ingest_failure')
+          .where({ game_id: gameId })
+          .whereIn('source', ['registry', 'fandom', 'strategywiki', 'fextralife', 'wand', 'wikidata'])
+          .del()
+      }
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${req.apiKey!.id}`,
+        action: 'geo-agent.create_map',
+        targetKind: 'geo_map',
+        targetId: String(map.id),
+        after: { gameId, imageUrl: body.imageUrl, source: 'manual', makeCanonical },
+        ip: req.ip ?? null,
+      })
+
+      res.status(201).json({ success: true, data: { map: finalMap, budget: budgetResult.budget } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
 // POST /games/:gameId/ingest — trigger the existing map-ingestion pipeline for
 // one game (phase 3). Pure enqueue: reuses `enqueueSingleTierImport`, so
 // tombstones/circuit-breakers, dedup, and license/attribution capture are

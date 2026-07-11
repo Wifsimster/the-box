@@ -73,6 +73,44 @@ describe('resolveToolPath', () => {
     assert.ok('error' in resolveToolPath('nope', {}))
   })
 
+  it('maps geo_create_map to a POST with the map body', () => {
+    assert.deepEqual(
+      resolveToolPath('geo_create_map', {
+        gameId: 38,
+        imageUrl: 'https://example.com/map.jpg',
+        widthPx: 1920,
+        heightPx: 1920,
+        license: 'CC-BY-SA-3.0',
+        attribution: 'Someone',
+        makeCanonical: true,
+      }),
+      {
+        path: '/api/agent/v1/geo/games/38/maps',
+        method: 'POST',
+        body: {
+          imageUrl: 'https://example.com/map.jpg',
+          widthPx: 1920,
+          heightPx: 1920,
+          license: 'CC-BY-SA-3.0',
+          attribution: 'Someone',
+          makeCanonical: true,
+        },
+      },
+    )
+  })
+
+  it('rejects geo_create_map missing required fields', () => {
+    assert.ok('error' in resolveToolPath('geo_create_map', { gameId: 1, widthPx: 10, heightPx: 10, license: 'x' })) // no imageUrl
+    assert.ok(
+      'error' in
+        resolveToolPath('geo_create_map', { gameId: 1, imageUrl: 'https://e.com/m.png', heightPx: 10, license: 'x' }),
+    ) // no widthPx
+    assert.ok(
+      'error' in
+        resolveToolPath('geo_create_map', { gameId: 1, imageUrl: 'https://e.com/m.png', widthPx: 10, heightPx: 10 }),
+    ) // no license
+  })
+
   it('maps geo_list_games with a validated limit', () => {
     assert.deepEqual(resolveToolPath('geo_list_games', {}), { path: '/api/agent/v1/geo/games' })
     assert.deepEqual(resolveToolPath('geo_list_games', { limit: 50 }), {

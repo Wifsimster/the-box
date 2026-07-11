@@ -159,6 +159,31 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: 'geo_create_map',
+    description:
+      'Create a basemap for a game from a hosted image URL and (by default) promote it to canonical (needs a geo-agent:curate key). Use when a game has no usable map or only a wrong/prop/cropped candidate — first host a full-world image at a publicly reachable, hotlink-friendly URL (external CDNs that block cross-origin referers will not render). Subject to the per-key daily map-action budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        imageUrl: { type: 'string', description: 'Publicly reachable map image URL (required)' },
+        widthPx: { type: 'number', description: 'Image width in px (required)' },
+        heightPx: { type: 'number', description: 'Image height in px (required)' },
+        license: { type: 'string', description: 'License string (required, e.g. "CC-BY-SA-3.0")' },
+        attribution: { type: 'string', description: 'Attribution text' },
+        sourceUrl: { type: 'string', description: 'Source page URL' },
+        consensusRadius: { type: 'number', description: 'Optional consensus radius override (0.001–1)' },
+        region: { type: 'string', description: 'Optional region label for multi-map games' },
+        makeCanonical: {
+          type: 'boolean',
+          description: 'Enable + select the new map as capture-default, demoting the old one (default true)',
+        },
+      },
+      required: ['gameId', 'imageUrl', 'widthPx', 'heightPx', 'license'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'geo_propose_pin',
     description:
       "Propose a location pin for a capture (needs a geo-agent:propose key). The pin is DOWNWEIGHTED and can never promote ground truth on its own — it joins consensus as one flagged voter, reviewed by humans. `rationale` is required. Propose only when confident; a wrong pin poisons the centroid.",
@@ -277,6 +302,31 @@ export function resolveToolPath(
       if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
       if (mapId === null) return { error: 'mapId is required and must be a positive integer' }
       return { path: `/api/agent/v1/geo/games/${gameId}/maps/${mapId}/reject`, method: 'POST', body: {} }
+    }
+    case 'geo_create_map': {
+      const gameId = asPositiveInt(a['gameId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      const widthPx = asPositiveInt(a['widthPx'])
+      const heightPx = asPositiveInt(a['heightPx'])
+      if (widthPx === null || heightPx === null) {
+        return { error: 'widthPx and heightPx are required positive integers' }
+      }
+      if (typeof a['imageUrl'] !== 'string' || a['imageUrl'].trim() === '') {
+        return { error: 'imageUrl is required' }
+      }
+      if (typeof a['license'] !== 'string' || a['license'].trim() === '') {
+        return { error: 'license is required' }
+      }
+      const body: Record<string, unknown> = {
+        imageUrl: a['imageUrl'],
+        widthPx,
+        heightPx,
+        license: a['license'],
+      }
+      for (const k of ['attribution', 'sourceUrl', 'consensusRadius', 'region', 'makeCanonical'] as const) {
+        if (a[k] !== undefined) body[k] = a[k]
+      }
+      return { path: `/api/agent/v1/geo/games/${gameId}/maps`, method: 'POST', body }
     }
     case 'geo_propose_pin': {
       const candidateId = asPositiveInt(a['candidateId'])
