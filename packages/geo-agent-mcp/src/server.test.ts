@@ -69,6 +69,36 @@ describe('resolveToolPath', () => {
     assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, rationale: 'x', source: 'human' })) // bad source
   })
 
+  it('maps geo_upload_map to a POST maps path with the map body', () => {
+    assert.deepEqual(
+      resolveToolPath('geo_upload_map', {
+        gameId: 42,
+        imageUrl: 'https://cdn.example.com/eldenring-map.jpg',
+        widthPx: 4096,
+        heightPx: 4096,
+        license: 'CC-BY-4.0',
+        enable: true,
+      }),
+      {
+        path: '/api/agent/v1/geo/games/42/maps',
+        method: 'POST',
+        body: {
+          imageUrl: 'https://cdn.example.com/eldenring-map.jpg',
+          widthPx: 4096,
+          heightPx: 4096,
+          license: 'CC-BY-4.0',
+          enable: true,
+        },
+      },
+    )
+  })
+
+  it('rejects geo_upload_map missing required fields', () => {
+    assert.ok('error' in resolveToolPath('geo_upload_map', { gameId: 1, imageUrl: 'https://x/1.png', widthPx: 10, heightPx: 10 })) // no license
+    assert.ok('error' in resolveToolPath('geo_upload_map', { gameId: 1, imageUrl: 'https://x/1.png', license: 'CC0', heightPx: 10 })) // no widthPx
+    assert.ok('error' in resolveToolPath('geo_upload_map', { imageUrl: 'https://x/1.png', widthPx: 10, heightPx: 10, license: 'CC0' })) // no gameId
+  })
+
   it('maps geo_promote_candidate to a POST promote path', () => {
     assert.deepEqual(resolveToolPath('geo_promote_candidate', { candidateId: 88 }), {
       path: '/api/agent/v1/geo/candidates/88/promote',

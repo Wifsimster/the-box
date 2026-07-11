@@ -5,7 +5,8 @@ client) safely *drive* geo content sourcing against prod. It started as a
 read-only proof of the auth / audit / rate-limit surface (phase 2) and grew a
 write surface in stages: ingest triggers (phase 3), downweighted pin proposals
 (phase 4), **content creation & curation** (phase 5) — enrolling new games,
-topping up screenshot candidates, and picking/rejecting candidate maps — and
+topping up screenshot candidates, uploading a manual map, and picking/rejecting
+candidate maps — and
 **confirm/promote** (phase 7): letting the agent pull the trigger on a
 promotion the crowd has already earned. See the
 [agent-assisted geo sourcing plan](../tasks/prd-geo-agent-sourcing.html).
@@ -49,7 +50,7 @@ via `DELETE /api/admin/agent-keys/:id` (any admin, instant).
 | `geo-agent:read` | `/health`, `/games-needing-content`, `/games`, `/games/:id/candidates`, `/games/:id/maps` | 2, 5 |
 | `geo-agent:ingest` | `POST /games/:id/ingest` — trigger the ingestion pipeline | 3 |
 | `geo-agent:propose` | `POST /candidates/:id/pins` — propose a downweighted consensus pin | 4 |
-| `geo-agent:curate` | `POST /games`, `POST /games/:id/captures`, `POST /games/:id/maps/:mapId/select`, `POST /games/:id/maps/:mapId/reject` — content creation & curation | 5 |
+| `geo-agent:curate` | `POST /games`, `POST /games/:id/captures`, `POST /games/:id/maps`, `POST /games/:id/maps/:mapId/select`, `POST /games/:id/maps/:mapId/reject` — content creation & curation | 5 |
 | `geo-agent:promote` | `POST /candidates/:id/promote` — confirm & promote a capture's qualifying consensus pin to canonical | 7 |
 
 A freshly minted key defaults to `geo-agent:read`. Ingest/propose/curate/promote
@@ -84,7 +85,8 @@ proposals: `GEO_AGENT_MAX_PINS_PER_HOUR` (default 60) per UTC hour. Curate
 (phase 5), each its own daily counter: enroll —
 `GEO_AGENT_MAX_ENROLLS_PER_DAY` (default 5); capture import —
 `GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY` (default 10); map select/reject —
-`GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY` (default 30, shared by both actions).
+`GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY` (default 30, shared by both actions); map
+upload — `GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY` (default 10).
 Promote (phase 7): `GEO_AGENT_MAX_PROMOTES_PER_DAY` (default 20) per UTC day. On
 exhaustion: `429 BUDGET_EXHAUSTED` with `Retry-After` (seconds to the window
 reset). Budgets fail **closed** — if Redis is unreachable the call is rejected,
@@ -258,6 +260,49 @@ the admin geo-fetch curation panel.
   }
 }
 ```
+
+### `POST /games/:gameId/maps`
+
+Scope: `geo-agent:curate`. **Manual map upload** — the last-resort content path
+when the ingestion tiers found no usable map. The agent supplies a map image URL
+it hosts itself and has verified, declares its pixel dimensions and
+license/attribution, and the server records a `source = "manual"` map row.
+Mirrors the admin "Tier 3 manual map upload" exactly: **no image bytes are sent
+and nothing is processed server-side** — the agent owns hosting and the license
+claim. The map lands **disabled** by default (enable/select it afterwards with
+`.../select`); pass `"enable": true` to enable (and select) it immediately.
+
+```json
+{
+  "imageUrl": "https://cdn.example.com/eldenring-lands-between.jpg",
+  "widthPx": 4096,
+  "heightPx": 4096,
+  "license": "CC-BY-4.0",
+  "attribution": "Elden Ring Wiki",
+  "sourceUrl": "https://eldenring.wiki.fextralife.com/Map",
+  "consensusRadius": 0.03,
+  "region": "Limgrave",
+  "enable": false
+}
+```
+
+`imageUrl`/`sourceUrl` must be valid URLs (≤1000 chars); `widthPx`/`heightPx`
+are positive integers (≤32768); `license` is required (≤100 chars). Returns the
+created map and the budget.
+
+```json
+{
+  "success": true,
+  "data": {
+    "map": { "id": 91, "gameId": 512, "source": "manual", "imageUrl": "https://…", "isSelected": false },
+    "budget": { "used": 1, "limit": 10, "remaining": 9 }
+  }
+}
+```
+
+`404 GAME_NOT_FOUND` if the game doesn't exist. `409 DUPLICATE_MAP` if a map
+with the same `imageUrl` already exists for the game (the `(game_id, image_url)`
+unique constraint). Audited as `geo-agent.upload_map`.
 
 ### `POST /games/:gameId/maps/:mapId/select`
 
@@ -447,7 +492,8 @@ how far off it is. Audited as `geo-agent.promote_candidate`.
 | `CONSENSUS_NOT_READY` | 409 | Consensus doesn't yet qualify to promote (promote) |
 | `VISION_DISABLED` | 403 | `agent_vision` proposals disabled pending the accuracy study |
 | `KEY_PAUSED` | 403 | Key auto-paused: >60% of its recent proposals were rejected |
-| `GAME_NOT_FOUND` | 404 | No such game (`gameId` on enroll) |
+| `GAME_NOT_FOUND` | 404 | No such game (`gameId` on enroll / map upload) |
+| `DUPLICATE_MAP` | 409 | A map with this `imageUrl` already exists for the game (upload) |
 | `RAWG_LOOKUP_FAILED` | 400 | `rawgId` didn't resolve via RAWG, or `RAWG_API_KEY` isn't set |
 | `NO_ACTIVE_MAP` | 409 | Game has no enabled map to attach captures to |
 | `NO_RAWG_ID` | 409 | Game has no `rawgId` and `imageUrls` wasn't provided |
@@ -462,8 +508,8 @@ Admin key mints/revokes are written to `admin_audit_log`
 (`agent_key.mint` / `agent_key.revoke`) with the acting admin, label, scopes.
 Every write endpoint audits its action keyed by `apikey:<id>`:
 `geo-agent.ingest`, `geo-agent.propose_pin`, `geo-agent.enroll_game`,
-`geo-agent.import_captures`, `geo-agent.select_map`, `geo-agent.reject_map`,
-`geo-agent.promote_candidate`.
+`geo-agent.import_captures`, `geo-agent.upload_map`, `geo-agent.select_map`,
+`geo-agent.reject_map`, `geo-agent.promote_candidate`.
 
 ## MCP wrapper
 

@@ -5,6 +5,7 @@ import {
   enrollBudgetKey,
   ingestBudgetKey,
   mapActionBudgetKey,
+  mapUploadBudgetKey,
   pinBudgetKey,
   promoteBudgetKey,
   secondsToNextUtcHour,
@@ -95,6 +96,15 @@ describe('mapActionBudgetKey', () => {
     assert.equal(
       mapActionBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
       'geo-agent:budget:map-action:42:2026-07-10',
+    )
+  })
+})
+
+describe('mapUploadBudgetKey', () => {
+  it('scopes the key by api key id and UTC day', () => {
+    assert.equal(
+      mapUploadBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:map-upload:42:2026-07-10',
     )
   })
 })

@@ -41,6 +41,7 @@ import {
   consumeEnrollBudget,
   consumeIngestBudget,
   consumeMapActionBudget,
+  consumeMapUploadBudget,
   consumePinBudget,
   consumePromoteBudget,
 } from '../../infrastructure/redis/agent-budget.js'
@@ -422,6 +423,132 @@ router.get(
       const { gameId } = req.params as unknown as z.infer<typeof gameIdParams>
       const maps = await geoMapRepository.listCandidatesByGameId(gameId)
       res.json({ success: true, data: { maps } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /games/:gameId/maps — manual map upload (issue #331, phase 5). The
+// last-resort content path when the ingestion tiers didn't produce a usable
+// map: the agent supplies a map image URL it has verified and hosts itself,
+// declares its pixel dimensions and license/attribution, and we record a
+// `source = 'manual'` geo_map row. Mirrors the admin "Tier 3 manual map upload"
+// (`POST /api/admin/geo/maps/manual`) exactly — no server-side image
+// processing, the agent is responsible for hosting the asset somewhere stable
+// and for the license claim. Lands DISABLED by default (an admin or the agent
+// enables/selects it via the existing select endpoint); pass `enable: true` to
+// enable it immediately. Bounded by its own per-key daily budget.
+const uploadMapBodySchema = z.object({
+  imageUrl: z.string().url().max(1000),
+  widthPx: z.coerce.number().int().positive().max(32_768),
+  heightPx: z.coerce.number().int().positive().max(32_768),
+  license: z.string().trim().min(1).max(100),
+  attribution: z.string().trim().max(500).optional(),
+  sourceUrl: z.string().url().max(1000).optional(),
+  consensusRadius: z.coerce.number().min(0.001).max(1).optional(),
+  region: z.string().trim().min(1).max(100).optional(),
+  // Enable (and select, via enableForGame) the map immediately instead of
+  // leaving it disabled for later curation. Defaults to false.
+  enable: z.boolean().optional(),
+})
+
+router.post(
+  '/games/:gameId/maps',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(gameIdParams),
+  validateBody(uploadMapBodySchema),
+  async (req, res, next) => {
+    try {
+      const { gameId } = req.params as unknown as z.infer<typeof gameIdParams>
+      const body = req.body as z.infer<typeof uploadMapBodySchema>
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY) || 10
+      const budget = await consumeMapUploadBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily map-upload budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      const game = await gameRepository.findById(gameId)
+      if (!game) {
+        res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
+        return
+      }
+
+      let map
+      try {
+        map = await geoMapRepository.create({
+          gameId,
+          source: 'manual',
+          sourceUrl: body.sourceUrl,
+          imageUrl: body.imageUrl,
+          widthPx: body.widthPx,
+          heightPx: body.heightPx,
+          license: body.license,
+          attribution: body.attribution,
+          consensusRadius: body.consensusRadius,
+          region: body.region,
+          isActive: !!body.enable,
+        })
+      } catch (err) {
+        // (game_id, image_url) is unique — a repeat upload of the same URL is a
+        // clean 409, not a 500. Any other DB error propagates.
+        if (err && typeof err === 'object' && (err as { code?: string }).code === '23505') {
+          res.status(409).json({
+            success: false,
+            error: { code: 'DUPLICATE_MAP', message: 'a map with this image URL already exists for the game' },
+          })
+          return
+        }
+        throw err
+      }
+
+      if (body.enable) {
+        await geoMapRepository.enableForGame(gameId, map.id)
+      }
+
+      // A usable map now exists — clear the map-tier ingest tombstones so a
+      // future ingest tick isn't short-circuited by a stale circuit-breaker.
+      // Mirrors the admin manual-upload path (clears the fetch tiers, not the
+      // metadata tombstone).
+      await db('geo_ingest_failure')
+        .where({ game_id: gameId })
+        .whereIn('source', [...RUNNABLE_TIERS])
+        .del()
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.upload_map',
+        targetKind: 'geo_map',
+        targetId: String(map.id),
+        after: {
+          gameId,
+          source: 'manual',
+          imageUrl: body.imageUrl,
+          sourceUrl: body.sourceUrl ?? null,
+          license: body.license,
+          enabled: !!body.enable,
+        },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: {
+          map,
+          budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
+        },
+      })
     } catch (err) {
       next(err)
     }
