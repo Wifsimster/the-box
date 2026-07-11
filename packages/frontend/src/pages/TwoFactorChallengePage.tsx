@@ -79,12 +79,17 @@ export default function TwoFactorChallengePage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="text-sm font-medium text-foreground/80">
+                <label
+                  htmlFor="two-factor-code"
+                  className="text-sm font-medium text-foreground/80"
+                >
                   {mode === 'totp'
                     ? t('security.challenge.codeLabel')
                     : t('security.challenge.backupCodeLabel')}
                 </label>
                 <Input
+                  id="two-factor-code"
+                  name={mode === 'totp' ? 'totp' : 'backup-code'}
                   type="text"
                   inputMode={mode === 'totp' ? 'numeric' : 'text'}
                   autoComplete="one-time-code"
