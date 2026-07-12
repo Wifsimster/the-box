@@ -1,6 +1,6 @@
 {
   "name": "@the-box/geo-agent-mcp",
-  "version": "2.147.0",
+  "version": "2.148.0",
   "private": true,
   "description": "MCP stdio server exposing The Box geo content-sourcing read tools (issue #331)",
   "type": "module",
