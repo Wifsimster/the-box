@@ -13,6 +13,7 @@ import {
     ScreenshotPanel,
     MapChunkLoader,
     MapPlaceholder,
+    PinHintChip,
     ResultOverlay,
     ContextHeader,
     Dock,
@@ -95,6 +96,7 @@ export function GeoPlayDeck({
         round,
         playedByGame,
         ignoredGameIds,
+        hasEverPlacedPin,
         history: roundHistory,
         historyIndex,
         selectGame,
@@ -179,26 +181,34 @@ export function GeoPlayDeck({
     const mapSlot: ReactNode = useMemo(
         () =>
             selectedMap ? (
-                <Suspense fallback={<MapChunkLoader />}>
-                    <GeoMapCanvas
-                        imageUrl={selectedMap.imageUrl}
-                        widthPx={selectedMap.widthPx}
-                        heightPx={selectedMap.heightPx}
-                        tiles={selectedMap.tiles}
-                        pin={pendingGuess ?? result?.guess ?? null}
-                        canonical={
-                            phase === 'revealed' && correctMap && selectedMap.id === correctMap.id
-                                ? result?.canonical ?? null
-                                : null
-                        }
-                        disabled={phase !== 'ready'}
-                        onPin={onMapPin}
-                        showGuessLine={
-                            phase === 'revealed' && !!correctMap && selectedMap.id === correctMap.id
-                        }
-                        className="!rounded-none h-full"
-                    />
-                </Suspense>
+                <>
+                    <Suspense fallback={<MapChunkLoader />}>
+                        <GeoMapCanvas
+                            imageUrl={selectedMap.imageUrl}
+                            widthPx={selectedMap.widthPx}
+                            heightPx={selectedMap.heightPx}
+                            tiles={selectedMap.tiles}
+                            pin={pendingGuess ?? result?.guess ?? null}
+                            canonical={
+                                phase === 'revealed' && correctMap && selectedMap.id === correctMap.id
+                                    ? result?.canonical ?? null
+                                    : null
+                            }
+                            disabled={phase !== 'ready'}
+                            onPin={onMapPin}
+                            showGuessLine={
+                                phase === 'revealed' && !!correctMap && selectedMap.id === correctMap.id
+                            }
+                            className="!rounded-none h-full"
+                        />
+                    </Suspense>
+                    {/* First-run onboarding: the tap-the-map gesture has no
+                        visible affordance of its own, so point at it until
+                        the player's first-ever draft pin. */}
+                    {phase === 'ready' && !pendingGuess && !hasEverPlacedPin && (
+                        <PinHintChip />
+                    )}
+                </>
             ) : (
                 <MapPlaceholder
                     hasGame={currentGameId != null}
@@ -216,6 +226,7 @@ export function GeoPlayDeck({
             currentGameId,
             isMultiMap,
             setMapPickerOpen,
+            hasEverPlacedPin,
         ],
     )
 
@@ -230,6 +241,7 @@ export function GeoPlayDeck({
                 onSubmit={onSubmit}
                 onNextRound={() => void nextRound()}
                 onSkip={() => void rerollScreenshot()}
+                onClearPin={() => onMapPin(null)}
                 onPlaceByCoords={onMapPin}
                 canSubmit={canSubmit}
                 phase={phase}

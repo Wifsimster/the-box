@@ -2532,8 +2532,10 @@
       "changeMap": "Choose map",
       "submit": "Drop pin",
       "confirm": "Confirm pin",
+      "clearPin": "Remove pin",
       "pinPlacedAria": "Pin placed at {{x}}%, {{y}}%",
       "skip": "I don't know — skip this one",
+      "skipShort": "Skip",
       "coords": {
         "toggle": "Place pin by coordinates",
         "formLabel": "Place a pin using x/y coordinates",
@@ -2541,6 +2543,9 @@
         "y": "Y (%)",
         "place": "Place pin",
         "hint": "0% is the top-left corner of the map, 100% is the bottom-right."
+      },
+      "hint": {
+        "tapMap": "Tap the map to place your pin"
       },
       "next": "Next round",
       "reroll": "New screenshot",
