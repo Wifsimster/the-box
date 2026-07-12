@@ -8,7 +8,11 @@ write surface in stages: ingest triggers (phase 3), downweighted pin proposals
 topping up screenshot candidates, uploading a manual map, and picking/rejecting
 candidate maps — and
 **confirm/promote** (phase 7): letting the agent pull the trigger on a
-promotion the crowd has already earned. See the
+promotion the crowd has already earned; and **override-promote + capture
+re-point** (phase 8, issue #345): letting a curate/override key take a starved
+pool all the way to `enabled: true` unattended — asserting a canonical pin
+directly on a well-localized capture, and healing captures stranded on an old
+map after a swap. See the
 [agent-assisted geo sourcing plan](../tasks/prd-geo-agent-sourcing.html).
 
 > Design principle: the agent *proposes*, consensus + admins *dispose*. Even
@@ -50,15 +54,18 @@ via `DELETE /api/admin/agent-keys/:id` (any admin, instant).
 | `geo-agent:read` | `/health`, `/games-needing-content`, `/games`, `/games/:id/candidates`, `/games/:id/maps` | 2, 5 |
 | `geo-agent:ingest` | `POST /games/:id/ingest` — trigger the ingestion pipeline | 3 |
 | `geo-agent:propose` | `POST /candidates/:id/pins` — propose a downweighted consensus pin | 4 |
-| `geo-agent:curate` | `POST /games`, `POST /games/:id/captures`, `POST /games/:id/maps`, `POST /games/:id/maps/:mapId/select`, `POST /games/:id/maps/:mapId/reject` — content creation & curation | 5 |
+| `geo-agent:curate` | `POST /games`, `POST /games/:id/captures`, `POST /games/:id/maps`, `POST /games/:id/maps/:mapId/select`, `POST /games/:id/maps/:mapId/reject`, `POST /games/:id/maps/:mapId/repoint-captures` — content creation & curation | 5, 8 |
 | `geo-agent:promote` | `POST /candidates/:id/promote` — confirm & promote a capture's qualifying consensus pin to canonical | 7 |
+| `geo-agent:promote-override` | `POST /candidates/:id/promote-override` — promote a capture at agent-supplied coords, bypassing consensus | 8 |
 
-A freshly minted key defaults to `geo-agent:read`. Ingest/propose/curate/promote
-are granted per key as later phases ship.
+A freshly minted key defaults to `geo-agent:read`. The other scopes are granted
+per key as later phases ship. `geo-agent:promote-override` is the most
+privileged (it bypasses the anti-poisoning consensus gate) and is **never**
+folded into `curate` or `promote` — a key must carry it explicitly.
 
 ## Curate kill switch (phase 5)
 
-The four `geo-agent:curate` write endpoints sit behind a **second**,
+The `geo-agent:curate` write endpoints sit behind a **second**,
 independent kill switch: `GEO_AGENT_CURATE_ENABLED` (default `false`). While
 off they return `503 AGENT_CURATE_DISABLED` even for a key that holds the
 scope — an operator can run read/ingest/propose in production while curation
@@ -73,6 +80,18 @@ off it returns `503 AGENT_PROMOTE_DISABLED` even for a key that holds the
 scope — promotion is the one agent write that creates ground truth, so it can
 stay dark while read/ingest/propose/curate run in production, and can be flipped
 off alone.
+
+## Override-promote kill switch (phase 8)
+
+`POST /candidates/:id/promote-override` sits behind a **fourth**, independent
+kill switch: `GEO_AGENT_PROMOTE_OVERRIDE_ENABLED` (default `false`). While off
+it returns `503 AGENT_PROMOTE_OVERRIDE_DISABLED` even for a key that holds
+`geo-agent:promote-override`. Unlike `/promote` (which only confirms a
+promotion the crowd already earned), the override **bypasses the consensus
+gate** — the agent asserts a canonical location directly — so it is guarded the
+hardest: dedicated scope, its own kill switch, a tight daily budget (default
+5/key/day), full audit, and metas tagged `promoted_via = 'agent_override'` so
+they are distinguishable, filterable, and reversible.
 
 ## Rate limit & budgets
 
@@ -313,6 +332,12 @@ shows the correct one. Enables the map first if it isn't already enabled, then
 selects it; `selectedBy` is recorded as `apikey:<id>`. `404 MAP_NOT_FOUND` if
 `mapId` doesn't belong to `gameId`. Audited as `geo-agent.select_map`.
 
+Selecting a new single-zone map makes it the game's **capture-default**, so the
+handler also re-points the game's still-open (active, un-promoted) candidates
+onto it — see *re-point captures* below — and reports `repointedCandidates` in
+the response. (Zoned selections don't change the capture-default and don't
+re-point.)
+
 ### `POST /games/:gameId/maps/:mapId/reject`
 
 Scope: `geo-agent:curate`. Disable a wrong-game or prop map. Reuses the same
@@ -320,6 +345,23 @@ Scope: `geo-agent:curate`. Disable a wrong-game or prop map. Reuses the same
 enabled maps** (`409 LAST_ENABLED`): select a replacement canonical map first
 if this is the last enabled one. `404 NOT_FOUND` if `mapId` doesn't exist.
 Audited as `geo-agent.reject_map`.
+
+### `POST /games/:gameId/maps/:mapId/repoint-captures`
+
+Scope: `geo-agent:curate`. Move the game's still-open (active, un-promoted)
+capture candidates onto `mapId` (issue #345). When a map swap changes the
+capture-default, existing candidates keep their **old** `geo_map_id`;
+`createCandidate` dedups on `(source, external_id)` so a re-import can't repair
+them, and promoting a stranded capture builds a broken challenge (its meta
+references a disabled map, and its pin lives in a different map's pixel space).
+`select`/`upload` already re-point automatically for swaps done through this
+API — this endpoint is the **explicit** fix for captures already stranded
+before that (e.g. GTA:SA #38 → map 30, GTA:VC #69 → 29, Ocarina #200 → 18).
+
+`mapId` must be an **enabled** map for the game (`404 MAP_NOT_FOUND` otherwise —
+enable/select it first). Already-**promoted** metas and **rejected** candidates
+are left untouched. Returns `{ gameId, mapId, repointedCandidates, budget }`;
+shares the map-action daily budget. Audited as `geo-agent.repoint_captures`.
 
 ### `GET /games/:gameId/candidates?limit=`
 
@@ -475,6 +517,39 @@ already has a canonical pin. `409 NO_PINS` if the candidate has no pins yet.
 `humanAcceptedCount`, `requiredHumanPins`, and `confidence` so an agent can see
 how far off it is. Audited as `geo-agent.promote_candidate`.
 
+### `POST /candidates/:id/promote-override`
+
+Scope: `geo-agent:promote-override`. **Override-promote** a well-localized
+capture at coordinates the agent supplies — the agent equivalent of the admin
+`/geo/candidates/:id/override`. Unlike `/promote`, this **bypasses the
+consensus gate**: the agent asserts a canonical location directly, so no crowd
+has to have earned it. That closes the last gap that kept a starved pool from
+flipping to `enabled: true` through the MCP alone. Because it manufactures
+ground truth, it is the most tightly guarded write — dedicated scope, its own
+kill switch (`GEO_AGENT_PROMOTE_OVERRIDE_ENABLED`), a tight daily budget
+(`GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY`, default 5), and every write audited.
+
+Body: `{ "canonicalX": 0.85, "canonicalY": 0.55 }` — both required, in `[0,1]`.
+The capture's map must be **enabled** (`409 MAP_NOT_ACTIVE` otherwise —
+select/repoint the capture onto an active map first, so the resulting meta is
+actually eligible). The meta is written with `confidence: 1.0` and
+`promoted_via = 'agent_override'`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "meta": { "id": 4530, "canonicalX": 0.85, "canonicalY": 0.55, "confidence": 1, "promotedVia": "agent_override" },
+    "budget": { "used": 1, "limit": 5, "remaining": 4 }
+  }
+}
+```
+
+`404 CANDIDATE_NOT_FOUND` if no such capture. `409 ALREADY_PROMOTED` if it
+already has a canonical pin (an admin must delete the meta first). `409
+MAP_NOT_ACTIVE` if the candidate's map is disabled. Audited as
+`geo-agent.promote_override`.
+
 ## Error codes
 
 | Code | HTTP | Meaning |
@@ -482,6 +557,7 @@ how far off it is. Audited as `geo-agent.promote_candidate`.
 | `AGENT_API_DISABLED` | 503 | `GEO_AGENT_API_ENABLED` is off |
 | `AGENT_CURATE_DISABLED` | 503 | `GEO_AGENT_CURATE_ENABLED` is off (curate endpoints only) |
 | `AGENT_PROMOTE_DISABLED` | 503 | `GEO_AGENT_PROMOTE_ENABLED` is off (promote endpoint only) |
+| `AGENT_PROMOTE_OVERRIDE_DISABLED` | 503 | `GEO_AGENT_PROMOTE_OVERRIDE_ENABLED` is off (override-promote only) |
 | `UNAUTHORIZED` | 401 | Missing / malformed / invalid key |
 | `INSUFFICIENT_SCOPE` | 403 | Key lacks the required geo-agent scope (or carries a non-agent scope) |
 | `RATE_LIMITED` | 429 | Per-minute limit hit; see `Retry-After` |
@@ -490,6 +566,8 @@ how far off it is. Audited as `geo-agent.promote_candidate`.
 | `ALREADY_PROMOTED` | 409 | Candidate already has a canonical pin (propose / promote) |
 | `NO_PINS` | 409 | Candidate has no pins to compute consensus from (promote) |
 | `CONSENSUS_NOT_READY` | 409 | Consensus doesn't yet qualify to promote (promote) |
+| `MAP_NOT_ACTIVE` | 409 | Candidate's map is disabled — enable/repoint before override-promote |
+| `MAP_NOT_FOUND` | 404 | No such enabled map for the game (map select / reject / repoint-captures) |
 | `VISION_DISABLED` | 403 | `agent_vision` proposals disabled pending the accuracy study |
 | `KEY_PAUSED` | 403 | Key auto-paused: >60% of its recent proposals were rejected |
 | `GAME_NOT_FOUND` | 404 | No such game (`gameId` on enroll / map upload) |
@@ -509,7 +587,8 @@ Admin key mints/revokes are written to `admin_audit_log`
 Every write endpoint audits its action keyed by `apikey:<id>`:
 `geo-agent.ingest`, `geo-agent.propose_pin`, `geo-agent.enroll_game`,
 `geo-agent.import_captures`, `geo-agent.upload_map`, `geo-agent.select_map`,
-`geo-agent.reject_map`, `geo-agent.promote_candidate`.
+`geo-agent.reject_map`, `geo-agent.repoint_captures`,
+`geo-agent.promote_candidate`, `geo-agent.promote_override`.
 
 ## MCP wrapper
 

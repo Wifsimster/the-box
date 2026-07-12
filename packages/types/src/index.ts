@@ -1204,7 +1204,7 @@ export interface GeoScreenshotMeta {
   canonical: GeoPoint
   confidence: number
   consensusVersion: number
-  promotedVia: 'consensus' | 'admin'
+  promotedVia: 'consensus' | 'admin' | 'agent_override'
 }
 
 // Per-game summary surfaced by the admin moderation list. Counts come from a
@@ -1668,15 +1668,19 @@ export type ApiKeyScope =
   | 'geo-agent:propose' // submit downweighted, flagged consensus pins (phase 4)
   | 'geo-agent:curate' // enroll games, top up captures, manage candidate maps (phase 5)
   | 'geo-agent:promote' // confirm & promote a capture's qualifying consensus pin (phase 7)
+  | 'geo-agent:promote-override' // override-promote a capture at agent-supplied coords, bypassing consensus (phase 8)
 
 // The geo-agent scopes, in privilege order. A read-only key carries only the
-// first; ingest/propose/curate/promote are granted per key as later phases ship.
+// first; ingest/propose/curate/promote/promote-override are granted per key as
+// later phases ship. `promote-override` is the most privileged — it bypasses
+// the anti-poisoning consensus gate — and is never folded into another scope.
 export const GEO_AGENT_SCOPES = [
   'geo-agent:read',
   'geo-agent:ingest',
   'geo-agent:propose',
   'geo-agent:curate',
   'geo-agent:promote',
+  'geo-agent:promote-override',
 ] as const satisfies readonly ApiKeyScope[]
 
 export function isGeoAgentScope(scope: ApiKeyScope): boolean {

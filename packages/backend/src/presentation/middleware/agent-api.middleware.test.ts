@@ -6,6 +6,7 @@ import { env } from '../../config/env.js'
 import {
   requireAgentApiEnabled,
   requireAgentCurateEnabled,
+  requireAgentPromoteOverrideEnabled,
   requireScope,
 } from './agent-api.middleware.js'
 
@@ -91,6 +92,66 @@ describe('requireScope', () => {
     })
     assert.equal(nexted, false)
     assert.equal(state.status, 403)
+  })
+
+  it('passes a key holding geo-agent:promote-override on that route', () => {
+    const { res, state } = mockRes()
+    let nexted = false
+    requireScope('geo-agent:promote-override')(
+      reqWithScopes(['geo-agent:promote-override']),
+      res,
+      () => {
+        nexted = true
+      },
+    )
+    assert.equal(nexted, true)
+    assert.equal(state.status, 200)
+  })
+
+  it('rejects a consensus-promote key on the override route (distinct scope)', () => {
+    // The override scope is never implied by geo-agent:promote — a key must
+    // carry it explicitly.
+    const { res, state } = mockRes()
+    let nexted = false
+    requireScope('geo-agent:promote-override')(reqWithScopes(['geo-agent:promote']), res, () => {
+      nexted = true
+    })
+    assert.equal(nexted, false)
+    assert.equal(state.status, 403)
+    assert.equal(errorCode(state.body), 'INSUFFICIENT_SCOPE')
+  })
+})
+
+describe('requireAgentPromoteOverrideEnabled', () => {
+  const original = env.GEO_AGENT_PROMOTE_OVERRIDE_ENABLED
+  beforeEach(() => {
+    env.GEO_AGENT_PROMOTE_OVERRIDE_ENABLED = original
+  })
+  afterEach(() => {
+    env.GEO_AGENT_PROMOTE_OVERRIDE_ENABLED = original
+  })
+
+  it('passes through when enabled', () => {
+    env.GEO_AGENT_PROMOTE_OVERRIDE_ENABLED = 'true'
+    const { res, state } = mockRes()
+    let nexted = false
+    requireAgentPromoteOverrideEnabled({} as Request, res, () => {
+      nexted = true
+    })
+    assert.equal(nexted, true)
+    assert.equal(state.status, 200)
+  })
+
+  it('returns 503 AGENT_PROMOTE_OVERRIDE_DISABLED when off (default)', () => {
+    env.GEO_AGENT_PROMOTE_OVERRIDE_ENABLED = 'false'
+    const { res, state } = mockRes()
+    let nexted = false
+    requireAgentPromoteOverrideEnabled({} as Request, res, () => {
+      nexted = true
+    })
+    assert.equal(nexted, false)
+    assert.equal(state.status, 503)
+    assert.equal(errorCode(state.body), 'AGENT_PROMOTE_OVERRIDE_DISABLED')
   })
 })
 

@@ -67,6 +67,11 @@ export function promoteBudgetKey(apiKeyId: number, now: Date): string {
   return `geo-agent:budget:promote:${apiKeyId}:${now.toISOString().slice(0, 10)}`
 }
 
+/** Redis key for a key's daily override-promote budget (phase 8). Pure. */
+export function promoteOverrideBudgetKey(apiKeyId: number, now: Date): string {
+  return `geo-agent:budget:promote-override:${apiKeyId}:${now.toISOString().slice(0, 10)}`
+}
+
 /**
  * Atomically consume one unit of a windowed budget keyed in Redis. Returns
  * `ok: false` (without consuming) once `limit` is reached; the counter expires
@@ -161,5 +166,19 @@ export async function consumePromoteBudget(apiKeyId: number, limit: number): Pro
     limit,
     secondsToUtcMidnight(now),
     'promote',
+  )
+}
+
+/** Consume one unit of a key's DAILY override-promote budget (phase 8). */
+export async function consumePromoteOverrideBudget(
+  apiKeyId: number,
+  limit: number,
+): Promise<BudgetResult> {
+  const now = new Date()
+  return consumeWindowBudget(
+    promoteOverrideBudgetKey(apiKeyId, now),
+    limit,
+    secondsToUtcMidnight(now),
+    'promote-override',
   )
 }

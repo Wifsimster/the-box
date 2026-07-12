@@ -26,7 +26,9 @@ the key can't, and the key is read-only in this phase.
 | `geo_set_canonical_map` | `POST /games/:gameId/maps/:mapId/select` | `gameId`, `mapId` | `geo-agent:curate` |
 | `geo_reject_map` | `POST /games/:gameId/maps/:mapId/reject` | `gameId`, `mapId` | `geo-agent:curate` |
 | `geo_upload_map` | `POST /games/:gameId/maps` | `gameId`, `imageUrl`, `widthPx`, `heightPx`, `license`, … | `geo-agent:curate` |
+| `geo_repoint_captures` | `POST /games/:gameId/maps/:mapId/repoint-captures` | `gameId`, `mapId` | `geo-agent:curate` |
 | `geo_promote_candidate` | `POST /candidates/:id/promote` | `candidateId` | `geo-agent:promote` |
+| `geo_promote_override` | `POST /candidates/:id/promote-override` | `candidateId`, `canonicalX`, `canonicalY` | `geo-agent:promote-override` |
 
 ## Setup
 
@@ -72,9 +74,10 @@ Add to your MCP config (e.g. `.mcp.json` or the Claude Code settings):
   `geo_propose_pin` needs `geo-agent:propose` (per-key hourly budget). Proposed
   pins are downweighted and can never promote ground truth on their own — they
   join consensus as one flagged, human-reviewed voter.
-- `geo_enroll_game`, `geo_import_captures`, `geo_set_canonical_map`, and
-  `geo_reject_map` need `geo-agent:curate` (each has its own per-key daily
-  budget) and are additionally gated by `GEO_AGENT_CURATE_ENABLED` on the
+- `geo_enroll_game`, `geo_import_captures`, `geo_set_canonical_map`,
+  `geo_reject_map`, and `geo_repoint_captures` need `geo-agent:curate` (each has
+  its own per-key daily budget) and are additionally gated by
+  `GEO_AGENT_CURATE_ENABLED` on the
   backend — while off they return `AGENT_CURATE_DISABLED` even for a key that
   holds the scope. This is the content-creation surface: it enrolls new games,
   tops up screenshot candidates, lets an operator pick the canonical map for a
@@ -83,7 +86,12 @@ Add to your MCP config (e.g. `.mcp.json` or the Claude Code settings):
   content path when the ingestion tiers found no usable map. Uploaded maps are
   recorded `source = manual` and land **disabled** by default (enable/select
   afterwards) unless `enable: true`; nothing is processed server-side, so the
-  agent hosts the asset and owns the license claim.
+  agent hosts the asset and owns the license claim. `geo_repoint_captures` moves
+  a game's still-open (un-promoted) candidates onto an enabled map — the fix for
+  captures stranded on an old/rejected map after a swap (promoting one otherwise
+  builds a broken challenge). `geo_set_canonical_map`/`geo_upload_map` already
+  re-point automatically when they change the capture-default; this is the
+  explicit fix for pre-existing strandings.
 - `geo_promote_candidate` needs `geo-agent:promote` (per-key daily budget) and
   is gated by a third, independent kill switch `GEO_AGENT_PROMOTE_ENABLED` —
   while off it returns `AGENT_PROMOTE_DISABLED` even for a key that holds the
@@ -95,3 +103,13 @@ Add to your MCP config (e.g. `.mcp.json` or the Claude Code settings):
   fabricate ground truth; it just pulls the trigger on a promotion the crowd
   earned. Returns `CONSENSUS_NOT_READY` (with the current human-pin count and
   confidence) when consensus doesn't yet qualify.
+- `geo_promote_override` needs the dedicated `geo-agent:promote-override` scope
+  (never folded into `curate` or `promote`) and is gated by a fourth,
+  independent kill switch `GEO_AGENT_PROMOTE_OVERRIDE_ENABLED` — while off it
+  returns `AGENT_PROMOTE_OVERRIDE_DISABLED` even for a key that holds the scope.
+  Unlike `geo_promote_candidate`, it **bypasses the consensus gate**: the agent
+  supplies `canonicalX`/`canonicalY` and asserts the pin directly, so use it
+  only when confident of the location. The capture's map must be enabled
+  (`MAP_NOT_ACTIVE` otherwise). Metas are tagged `promoted_via = 'agent_override'`
+  so overrides stay distinguishable and reversible. Tightest daily budget of any
+  write (default 5/key/day).
