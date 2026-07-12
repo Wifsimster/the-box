@@ -2555,6 +2555,21 @@
         "correctMap": "La bonne carte était : {{map}}"
       },
       "progressAria": "{{played}} captures jouées sur {{total}}",
+      "run": {
+        "start": "Lancer un run",
+        "chip": "Run {{current}}/{{total}}",
+        "abandon": "Abandonner le run",
+        "total": "Total du run : {{score}}",
+        "recapCta": "Voir le récap",
+        "recapTitle": "Run terminé !",
+        "recapAria": "Score total {{score}} sur {{max}}",
+        "roundAria": "Manche {{round}} : {{score}} points",
+        "share": "Partager",
+        "shareText": "J'ai marqué {{score}}/{{max}} sur un run Géo de {{rounds}} manches sur The Box ! {{url}}",
+        "copied": "Copié !",
+        "again": "Nouveau run",
+        "close": "Continuer en mode libre"
+      },
       "next": "Suivant",
       "reroll": "Nouvelle capture",
       "shuffleAllGames": "Jeu aléatoire",

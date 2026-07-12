@@ -297,7 +297,17 @@ function RevealFocus({
             animate,
         })
         return () => {
-            map.fitBounds(worldBounds, { animate: false })
+            // Only restore the view when the map outlives the reveal
+            // (same game, next round). When the reveal ends because the
+            // whole MapContainer is unmounting (game/map switch), Leaflet
+            // is mid-teardown and fitBounds throws on removed panes.
+            const container = map.getContainer?.()
+            if (!container || !container.isConnected) return
+            try {
+                map.fitBounds(worldBounds, { animate: false })
+            } catch {
+                /* map mid-teardown — nothing left to restore */
+            }
         }
         // worldBounds is stable per map (memoized on widthPx/heightPx
         // upstream); listing scalars keeps the zoom from re-firing on

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     TransformComponent,
@@ -23,11 +23,13 @@ import {
     Sparkles,
     Trophy,
     X,
+    Zap,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { StatePanel } from '@/components/geo/StatePanel'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
+import { useCountUp } from '@/hooks/useCountUp'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { geoScoreTier } from '@/lib/geo-score-tiers'
 import { cn } from '@/lib/utils'
@@ -363,34 +365,6 @@ export function MapPlaceholder({
     )
 }
 
-// Count-up for the reveal score. Ease-out cubic over `durationMs`
-// (--duration-slow). Under prefers-reduced-motion the final value
-// renders immediately — no intermediate frames.
-function useCountUp(target: number, durationMs: number): number {
-    const prefersReduced =
-        typeof window !== 'undefined' &&
-        !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const [value, setValue] = useState(() => (prefersReduced ? target : 0))
-    useEffect(() => {
-        let raf = 0
-        const start = performance.now()
-        const tick = (now: number) => {
-            // Reduced motion: jump straight to the final value (still via
-            // rAF so the state write never happens synchronously in the
-            // effect body).
-            const t = prefersReduced
-                ? 1
-                : Math.min(1, (now - start) / durationMs)
-            const eased = 1 - Math.pow(1 - t, 3)
-            setValue(Math.round(target * eased))
-            if (t < 1) raf = requestAnimationFrame(tick)
-        }
-        raf = requestAnimationFrame(tick)
-        return () => cancelAnimationFrame(raf)
-    }, [target, durationMs, prefersReduced])
-    return value
-}
-
 const TIER_TEXT_CLASS = {
     high: 'text-score-high',
     mid: 'text-score-mid',
@@ -413,6 +387,7 @@ export function ResultSheet({
     language,
     correctMapLabel,
     previousBest,
+    runTotal,
 }: {
     score: number
     distance: number
@@ -421,6 +396,10 @@ export function ResultSheet({
     language: string
     correctMapLabel: string | null
     previousBest: number | null
+    // Cumulative run score including this round, or null in free browse.
+    // Takes the personal-best line's slot — during a run the session
+    // total is the context that matters.
+    runTotal: number | null
 }) {
     const { t } = useTranslation()
     const tier = geoScoreTier(score)
@@ -488,7 +467,14 @@ export function ResultSheet({
                         <MapPin className="size-3 text-neon-pink" />
                         {t('geo.daily.pinCount', { count: pinCount })}
                     </span>
-                    {isNewBest ? (
+                    {runTotal != null ? (
+                        <span className="font-medium text-neon-cyan">
+                            {t('geo.play.run.total', {
+                                defaultValue: 'Run total: {{score}}',
+                                score: runTotal.toLocaleString(language),
+                            })}
+                        </span>
+                    ) : isNewBest ? (
                         <span className="font-medium text-score-high">
                             {t('geo.play.result.newBest', 'New personal best!')}
                         </span>
@@ -586,8 +572,10 @@ export function ContextHeader({
     playedCount,
     totalCount,
     language,
+    run,
     onChangeGame,
     onChangeMap,
+    onEndRun,
 }: {
     gameLabel: string | null
     mapLabel: string | null
@@ -595,8 +583,12 @@ export function ContextHeader({
     playedCount: number | null
     totalCount: number | null
     language: string
+    // Active run progress (1-based round). Replaces the per-game ring —
+    // the game changes every round, so per-game progress is noise here.
+    run: { current: number; total: number } | null
     onChangeGame: () => void
     onChangeMap: () => void
+    onEndRun: () => void
 }) {
     const { t } = useTranslation()
     return (
@@ -623,12 +615,36 @@ export function ContextHeader({
                     </span>
                 </button>
             )}
-            {playedCount != null && totalCount != null && totalCount > 0 && (
-                <ProgressRing
-                    played={playedCount}
-                    total={totalCount}
-                    language={language}
-                />
+            {run ? (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-neon-cyan/40 bg-black/40 pl-3 pr-1 text-neon-cyan">
+                    <Zap className="size-3.5" aria-hidden />
+                    <span className="ml-1 tabular-nums">
+                        {t('geo.play.run.chip', {
+                            defaultValue: 'Run {{current}}/{{total}}',
+                            current: run.current,
+                            total: run.total,
+                        })}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={onEndRun}
+                        aria-label={t('geo.play.run.abandon', 'Abandon the run')}
+                        title={t('geo.play.run.abandon', 'Abandon the run')}
+                        className="inline-flex size-9 items-center justify-center rounded-full text-neon-cyan/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                    >
+                        <X className="size-3.5" aria-hidden />
+                    </button>
+                </span>
+            ) : (
+                playedCount != null &&
+                totalCount != null &&
+                totalCount > 0 && (
+                    <ProgressRing
+                        played={playedCount}
+                        total={totalCount}
+                        language={language}
+                    />
+                )
             )}
         </div>
     )
@@ -644,8 +660,11 @@ export function Dock({
     onNextRound,
     onSkip,
     onClearPin,
+    onStartRun,
     onPlaceByCoords,
     canSubmit,
+    runActive,
+    runComplete,
     phase,
 }: {
     onShuffleAllGames: () => void
@@ -657,8 +676,14 @@ export function Dock({
     onNextRound: () => void
     onSkip: () => void
     onClearPin: () => void
+    onStartRun: () => void
     onPlaceByCoords: (point: GeoPoint) => void
     canSubmit: boolean
+    // A scored run is in progress: history nav / shuffle / start-run
+    // leave the browse row (only skip remains — the run picks the games).
+    runActive: boolean
+    // Every run round is scored: the reveal CTA opens the recap.
+    runComplete: boolean
     phase: ReturnType<typeof useGeoFreePlayStore.getState>['phase']
 }) {
     const { t } = useTranslation()
@@ -673,13 +698,16 @@ export function Dock({
     return (
         <div className="flex flex-col gap-2">
             {revealed ? (
-                /* Revealed — one job: move on. */
+                /* Revealed — one job: move on (or open the run recap when
+                   the last run round just got scored). */
                 <Button
                     type="button"
                     onClick={onNextRound}
                     className="gradient-gaming hover:opacity-90 min-h-12 w-full"
                 >
-                    {t('geo.play.next', 'Next round')}
+                    {runComplete
+                        ? t('geo.play.run.recapCta', 'See the recap')
+                        : t('geo.play.next', 'Next round')}
                     <ArrowRight className="size-4 ml-2" aria-hidden />
                 </Button>
             ) : hasDraft ? (
@@ -714,39 +742,45 @@ export function Dock({
                     </Button>
                 </div>
             ) : (
-                /* Browsing — history nav, shuffle and the skip escape
-                   hatch. Skip is a real button (not a text link): a
-                   player who'd otherwise drop a random guess pollutes
+                /* Browsing — history nav, shuffle, run start and the skip
+                   escape hatch. Skip is a real button (not a text link):
+                   a player who'd otherwise drop a random guess pollutes
                    the contribution dataset more than a skip costs. The
                    old always-visible disabled "Drop pin" CTA is gone —
-                   its job (pointing at the map) moved to PinHintChip. */
+                   its job (pointing at the map) moved to PinHintChip.
+                   During a run only skip survives: the run owns game
+                   selection, and history nav would break its integrity. */
                 <div className="flex items-center justify-center gap-1.5">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={onPrevious}
-                        className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
-                        disabled={!canGoPrevious || loading}
-                        aria-label={t('geo.play.previous', 'Previous screenshot')}
-                        title={t('geo.play.previous', 'Previous screenshot')}
-                    >
-                        <ChevronLeft className="size-5" aria-hidden />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={onShuffleAllGames}
-                        className="min-h-12 text-white/80 hover:text-white"
-                        disabled={loading}
-                        aria-label={t('geo.play.shuffleAllGames', 'Random game')}
-                        title={t('geo.play.shuffleAllGames', 'Random game')}
-                    >
-                        <Shuffle className="size-4 sm:mr-1.5" aria-hidden />
-                        <span className="hidden sm:inline">
-                            {t('geo.play.shuffleAllGames', 'Random game')}
-                        </span>
-                    </Button>
+                    {!runActive && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onPrevious}
+                            className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                            disabled={!canGoPrevious || loading}
+                            aria-label={t('geo.play.previous', 'Previous screenshot')}
+                            title={t('geo.play.previous', 'Previous screenshot')}
+                        >
+                            <ChevronLeft className="size-5" aria-hidden />
+                        </Button>
+                    )}
+                    {!runActive && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onShuffleAllGames}
+                            className="min-h-12 text-white/80 hover:text-white"
+                            disabled={loading}
+                            aria-label={t('geo.play.shuffleAllGames', 'Random game')}
+                            title={t('geo.play.shuffleAllGames', 'Random game')}
+                        >
+                            <Shuffle className="size-4 sm:mr-1.5" aria-hidden />
+                            <span className="hidden sm:inline">
+                                {t('geo.play.shuffleAllGames', 'Random game')}
+                            </span>
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         variant="ghost"
@@ -761,18 +795,36 @@ export function Dock({
                             {t('geo.play.skipShort', 'Skip')}
                         </span>
                     </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={onNext}
-                        className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
-                        disabled={!canGoNext || loading}
-                        aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
-                        title={t('geo.play.nextScreenshot', 'Next screenshot')}
-                    >
-                        <ChevronRight className="size-5" aria-hidden />
-                    </Button>
+                    {!runActive && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onStartRun}
+                            className="min-h-12 text-neon-cyan hover:text-white"
+                            disabled={loading}
+                            aria-label={t('geo.play.run.start', 'Start a run')}
+                            title={t('geo.play.run.start', 'Start a run')}
+                        >
+                            <Zap className="size-4 sm:mr-1.5" aria-hidden />
+                            <span className="hidden sm:inline">
+                                {t('geo.play.run.start', 'Start a run')}
+                            </span>
+                        </Button>
+                    )}
+                    {!runActive && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onNext}
+                            className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                            disabled={!canGoNext || loading}
+                            aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
+                            title={t('geo.play.nextScreenshot', 'Next screenshot')}
+                        >
+                            <ChevronRight className="size-5" aria-hidden />
+                        </Button>
+                    )}
                 </div>
             )}
 
