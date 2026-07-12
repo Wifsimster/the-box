@@ -7,6 +7,7 @@ import {
 } from 'react-zoom-pan-pinch'
 import type { GeoPoint } from '@the-box/types'
 import {
+    AlertTriangle,
     ArrowRight,
     Check,
     ChevronLeft,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { StatePanel } from '@/components/geo/StatePanel'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
 import { geoScoreTier } from '@/lib/geo-score-tiers'
@@ -70,140 +72,123 @@ export function ScreenshotPanel({
 
     if (exhausted && allCompleted) {
         return (
-            <output
-                className="flex size-full flex-col items-center justify-center px-6 text-center gap-4"
-            >
-                <div className="rounded-full bg-neon-pink/10 p-4">
-                    <Sparkles className="size-8 text-neon-pink" aria-hidden />
-                </div>
-                <div className="space-y-1 max-w-sm">
-                    <h2 className="text-lg font-semibold">
-                        {t('geo.play.allDone.title', "You've completed The Box!")}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t(
-                            'geo.play.allDone.body',
-                            "Bravo! You've guessed every screenshot in every game in your catalog. We'll ping you when new ones are added.",
-                        )}
-                    </p>
-                </div>
-                <Button onClick={onCheckForNew} variant="outline">
-                    <RefreshCw className="size-4 mr-2" aria-hidden />
-                    {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
-                </Button>
-            </output>
+            <StatePanel
+                icon={<Sparkles className="size-8 text-neon-pink" aria-hidden />}
+                title={t('geo.play.allDone.title', "You've completed The Box!")}
+                body={t(
+                    'geo.play.allDone.body',
+                    "Bravo! You've guessed every screenshot in every game in your catalog. We'll ping you when new ones are added.",
+                )}
+                actions={
+                    <Button onClick={onCheckForNew} variant="outline">
+                        <RefreshCw className="size-4 mr-2" aria-hidden />
+                        {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
+                    </Button>
+                }
+            />
         )
     }
 
     if (exhausted) {
         return (
-            <output
-                className="flex size-full flex-col items-center justify-center px-6 text-center gap-4"
-            >
-                <div className="rounded-full bg-neon-pink/10 p-4">
-                    <Trophy className="size-8 text-neon-pink" aria-hidden />
-                </div>
-                <div className="space-y-1 max-w-xs">
-                    <h2 className="text-lg font-semibold">
-                        {t('geo.play.exhausted.title', "You've seen every screenshot")}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t(
-                            'geo.play.exhausted.body',
-                            "Nice run! You've guessed every available screenshot for this game. We'll let you know when new ones are added.",
-                        )}
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                    <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90">
-                        <Gamepad2 className="size-4 mr-2" aria-hidden />
-                        {t('geo.play.exhausted.pickAnother', 'Pick another game')}
-                    </Button>
-                    <Button onClick={onCheckForNew} variant="outline">
-                        <RefreshCw className="size-4 mr-2" aria-hidden />
-                        {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
-                    </Button>
-                </div>
-                {canIgnoreCurrent && (
-                    <button
-                        type="button"
-                        onClick={onIgnoreCurrent}
-                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-                    >
-                        <EyeOff className="size-3.5" aria-hidden />
-                        {t(
-                            'geo.play.exhausted.markIgnored',
-                            "I don't want to see this game again",
-                        )}
-                    </button>
+            <StatePanel
+                icon={<Trophy className="size-8 text-neon-pink" aria-hidden />}
+                title={t('geo.play.exhausted.title', "You've seen every screenshot")}
+                body={t(
+                    'geo.play.exhausted.body',
+                    "Nice run! You've guessed every available screenshot for this game. We'll let you know when new ones are added.",
                 )}
-            </output>
+                bodyMaxWidthClass="max-w-xs"
+                actions={
+                    <>
+                        <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90">
+                            <Gamepad2 className="size-4 mr-2" aria-hidden />
+                            {t('geo.play.exhausted.pickAnother', 'Pick another game')}
+                        </Button>
+                        <Button onClick={onCheckForNew} variant="outline">
+                            <RefreshCw className="size-4 mr-2" aria-hidden />
+                            {t('geo.play.exhausted.checkForNew', 'Check for new screenshots')}
+                        </Button>
+                    </>
+                }
+                footnote={
+                    canIgnoreCurrent ? (
+                        <button
+                            type="button"
+                            onClick={onIgnoreCurrent}
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                        >
+                            <EyeOff className="size-3.5" aria-hidden />
+                            {t(
+                                'geo.play.exhausted.markIgnored',
+                                "I don't want to see this game again",
+                            )}
+                        </button>
+                    ) : undefined
+                }
+            />
         )
     }
 
     if (authRequired) {
         return (
-            <output
-                className="flex size-full flex-col items-center justify-center px-6 text-center gap-4"
-            >
-                <div className="rounded-full bg-neon-pink/10 p-4">
-                    <MapPin className="size-8 text-neon-pink" aria-hidden />
-                </div>
-                <div className="space-y-1 max-w-sm">
-                    <h2 className="text-lg font-semibold">
-                        {t('geo.play.auth.title', 'Sign in to drop pins')}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t(
-                            'geo.play.auth.body',
-                            'Help us map the world of video games — drop a pin where each scene takes place.',
-                        )}
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                    <Button asChild className="gradient-gaming hover:opacity-90 min-h-12">
-                        <Link to={loginHref}>
-                            {t('geo.play.auth.login', 'Sign in')}
-                        </Link>
-                    </Button>
-                    <Button asChild variant="outline" className="min-h-12">
-                        <Link to={registerHref}>
-                            {t('geo.play.auth.register', 'Create account')}
-                        </Link>
-                    </Button>
-                </div>
-            </output>
+            <StatePanel
+                icon={<MapPin className="size-8 text-neon-pink" aria-hidden />}
+                title={t('geo.play.auth.title', 'Sign in to drop pins')}
+                body={t(
+                    'geo.play.auth.body',
+                    'Help us map the world of video games — drop a pin where each scene takes place.',
+                )}
+                // When a round was already on screen (e.g. the session
+                // expired mid-play), keep its screenshot visible behind a
+                // blur — the game itself is the strongest signup nudge.
+                backdropUrl={safeUrl}
+                actions={
+                    <>
+                        <Button asChild className="gradient-gaming hover:opacity-90 min-h-12">
+                            <Link to={loginHref}>
+                                {t('geo.play.auth.login', 'Sign in')}
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline" className="min-h-12">
+                            <Link to={registerHref}>
+                                {t('geo.play.auth.register', 'Create account')}
+                            </Link>
+                        </Button>
+                    </>
+                }
+            />
         )
     }
 
     if (errorMessage) {
         return (
-            <div
-                className="flex size-full items-center justify-center px-6 text-center"
+            <StatePanel
                 role="alert"
-            >
-                <p className="text-sm text-destructive">{errorMessage}</p>
-            </div>
+                icon={<AlertTriangle className="size-8 text-destructive" aria-hidden />}
+                title={t('common.error', 'Error')}
+                body={errorMessage}
+            />
         )
     }
 
     if (empty) {
         return (
-            <div className="flex size-full flex-col items-center justify-center px-6 text-center gap-4">
-                <div className="rounded-full bg-neon-pink/10 p-4">
-                    <MapPin className="size-8 text-neon-pink" aria-hidden />
-                </div>
-                <div className="space-y-2 max-w-md">
-                    <h2 className="text-lg font-semibold">
-                        {t('geo.play.empty.title', 'Help us map the world of video games')}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t(
-                            'geo.play.empty.body',
-                            'Look at a screenshot, then drop a pin where the scene takes place on the game world map. Every pin grows a shared atlas that powers future location-guessing modes.',
-                        )}
-                    </p>
-                </div>
+            <StatePanel
+                icon={<MapPin className="size-8 text-neon-pink" aria-hidden />}
+                title={t('geo.play.empty.title', 'Help us map the world of video games')}
+                body={t(
+                    'geo.play.empty.body',
+                    'Look at a screenshot, then drop a pin where the scene takes place on the game world map. Every pin grows a shared atlas that powers future location-guessing modes.',
+                )}
+                bodyMaxWidthClass="max-w-md space-y-2"
+                actions={
+                    <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90 min-h-12">
+                        <Gamepad2 className="size-4 mr-2" aria-hidden />
+                        {t('geo.play.empty.cta', 'Pick a game')}
+                    </Button>
+                }
+            >
                 {/* Cold-start social proof: only render once we have a
                     real number from the server, and only when there's
                     actually been activity today (>0). A "0 pins today"
@@ -235,11 +220,7 @@ export function ScreenshotPanel({
                         <span>{t('geo.play.empty.steps.three', 'Confirm — your pin joins the dataset.')}</span>
                     </li>
                 </ol>
-                <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90 min-h-12">
-                    <Gamepad2 className="size-4 mr-2" aria-hidden />
-                    {t('geo.play.empty.cta', 'Pick a game')}
-                </Button>
-            </div>
+            </StatePanel>
         )
     }
 
@@ -539,16 +520,81 @@ export function ResultSheet({
     )
 }
 
+/**
+ * Per-game completion ring for the context header. Turns the invisible
+ * march toward the "exhausted" state into a visible collection
+ * mechanic — the data (playedByGame × screenshotCount) already existed
+ * in the store. Counters use neon-cyan per the token contract.
+ */
+function ProgressRing({
+    played,
+    total,
+    language,
+}: {
+    played: number
+    total: number
+    language: string
+}) {
+    const { t } = useTranslation()
+    const fraction = Math.min(1, played / total)
+    const r = 7
+    const circumference = 2 * Math.PI * r
+    return (
+        <span
+            role="img"
+            aria-label={t('geo.play.progressAria', {
+                defaultValue: '{{played}} of {{total}} screenshots played',
+                played,
+                total,
+            })}
+            className="inline-flex shrink-0 items-center gap-1.5 text-neon-cyan"
+        >
+            <svg viewBox="0 0 20 20" className="size-4 -rotate-90" aria-hidden>
+                <circle
+                    cx="10"
+                    cy="10"
+                    r={r}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeOpacity="0.25"
+                    strokeWidth="2.5"
+                />
+                {fraction > 0 && (
+                    <circle
+                        cx="10"
+                        cy="10"
+                        r={r}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeDasharray={`${fraction * circumference} ${circumference}`}
+                    />
+                )}
+            </svg>
+            <span className="tabular-nums" aria-hidden>
+                {played.toLocaleString(language)}/{total.toLocaleString(language)}
+            </span>
+        </span>
+    )
+}
+
 export function ContextHeader({
     gameLabel,
     mapLabel,
     showMapButton,
+    playedCount,
+    totalCount,
+    language,
     onChangeGame,
     onChangeMap,
 }: {
     gameLabel: string | null
     mapLabel: string | null
     showMapButton: boolean
+    playedCount: number | null
+    totalCount: number | null
+    language: string
     onChangeGame: () => void
     onChangeMap: () => void
 }) {
@@ -576,6 +622,13 @@ export function ContextHeader({
                         {mapLabel ?? t('geo.play.changeMap', 'Choose map')}
                     </span>
                 </button>
+            )}
+            {playedCount != null && totalCount != null && totalCount > 0 && (
+                <ProgressRing
+                    played={playedCount}
+                    total={totalCount}
+                    language={language}
+                />
             )}
         </div>
     )

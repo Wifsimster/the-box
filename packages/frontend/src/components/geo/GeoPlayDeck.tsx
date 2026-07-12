@@ -305,6 +305,13 @@ export function GeoPlayDeck({
                         gameLabel={currentGame?.name ?? null}
                         mapLabel={selectedMap?.region ?? null}
                         showMapButton={isMultiMap || currentGameId == null}
+                        playedCount={
+                            currentGameId != null
+                                ? playedByGame[currentGameId]?.length ?? 0
+                                : null
+                        }
+                        totalCount={currentGame?.screenshotCount ?? null}
+                        language={language}
                         onChangeGame={() => setGamePickerOpen(true)}
                         onChangeMap={() => setMapPickerOpen(true)}
                     />

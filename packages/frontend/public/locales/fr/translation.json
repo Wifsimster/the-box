@@ -2554,6 +2554,7 @@
         "best": "Record perso : {{score}}",
         "correctMap": "La bonne carte était : {{map}}"
       },
+      "progressAria": "{{played}} captures jouées sur {{total}}",
       "next": "Suivant",
       "reroll": "Nouvelle capture",
       "shuffleAllGames": "Jeu aléatoire",

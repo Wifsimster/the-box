@@ -180,6 +180,7 @@ export function GamePicker({
                                             {...getItemProps(index)}
                                             game={g}
                                             selected={selectedGameId === g.id}
+                                            played={played}
                                             newCount={hasNew ? newCount : 0}
                                             completed={completed}
                                             ignored={ignored}
@@ -207,6 +208,9 @@ export function GamePicker({
 interface GameCardProps {
     game: GeoPlayableGame
     selected: boolean
+    // Screenshots the player has already guessed in this game — drives
+    // the completion bar under the count badges.
+    played: number
     newCount: number
     completed: boolean
     ignored: boolean
@@ -220,6 +224,7 @@ interface GameCardProps {
 function GameCard({
     game,
     selected,
+    played,
     newCount,
     completed,
     ignored,
@@ -312,6 +317,30 @@ function GameCard({
                             })}
                         </span>
                     </div>
+                    {/* Completion bar — only once the player has started
+                        the game, so untouched catalog entries stay clean.
+                        Full bar flips to the success color. */}
+                    {game.screenshotCount > 0 && played > 0 && (
+                        <div
+                            role="img"
+                            aria-label={t('geo.play.progressAria', {
+                                defaultValue: '{{played}} of {{total}} screenshots played',
+                                played: Math.min(played, game.screenshotCount),
+                                total: game.screenshotCount,
+                            })}
+                            className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted/40"
+                        >
+                            <div
+                                className={cn(
+                                    'h-full rounded-full',
+                                    completed ? 'bg-success' : 'bg-neon-cyan',
+                                )}
+                                style={{
+                                    width: `${Math.min(100, (played / game.screenshotCount) * 100)}%`,
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </button>
             {onToggleIgnore && (
