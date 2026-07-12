@@ -190,6 +190,101 @@ function parseLang(input: unknown): 'fr' | 'en' {
   return typeof input === 'string' && input === 'en' ? 'en' : 'fr'
 }
 
+// ---------------------------------------------------------------------------
+// Geo free-play run recap card
+// ---------------------------------------------------------------------------
+
+// Per-round maximum from the geo scoring curve (docs/geo-mode.md).
+const GEO_RUN_ROUND_MAX = 2000
+// Hard cap on shared rounds — the client plays 5, but keep a margin so a
+// longer future run length doesn't 400 old links.
+const GEO_RUN_MAX_ROUNDS = 10
+
+// Tier colors mirror the frontend --score-high/mid/low tokens and its
+// band thresholds (frontend lib/geo-score-tiers.ts).
+function geoRunTierColor(score: number): string {
+  if (score >= 1500) return '#34d399'
+  if (score >= 500) return '#fbbf24'
+  return '#f97316'
+}
+
+/**
+ * Parse the `scores` query ("840,392,1361") into per-round integers.
+ * Returns null on anything malformed so the route can 400 instead of
+ * rendering a card for garbage. Values are clamped to the scoring
+ * range rather than rejected — a stale client with a different max
+ * should degrade, not break.
+ */
+export function parseGeoRunScores(input: unknown): number[] | null {
+  if (typeof input !== 'string' || input.length === 0) return null
+  const parts = input.split(',')
+  if (parts.length === 0 || parts.length > GEO_RUN_MAX_ROUNDS) return null
+  const scores: number[] = []
+  for (const part of parts) {
+    if (!/^\d{1,4}$/.test(part)) return null
+    scores.push(Math.min(GEO_RUN_ROUND_MAX, Number.parseInt(part, 10)))
+  }
+  return scores
+}
+
+function buildGeoRunSvg(scores: number[], lang: 'fr' | 'en'): string {
+  const locale = lang === 'en' ? 'en-US' : 'fr-FR'
+  const total = scores.reduce((sum, s) => sum + s, 0)
+  const max = scores.length * GEO_RUN_ROUND_MAX
+  const brand = escapeXml('THE BOX')
+  const title = escapeXml(lang === 'fr' ? 'Run Géo terminé !' : 'Geo run complete!')
+  const cta = escapeXml(lang === 'fr' ? 'Fais mieux !' : 'Beat my run!')
+  const totalText = escapeXml(
+    `${total.toLocaleString(locale)} / ${max.toLocaleString(locale)}`
+  )
+  const totalColor = geoRunTierColor(total / scores.length)
+
+  // One dot per round, tier-colored, with the round score underneath.
+  const dotGap = 110
+  const dotsStart = 80
+  const dots = scores
+    .map((score, i) => {
+      const cx = dotsStart + i * dotGap + 14
+      return `
+  <circle cx="${cx}" cy="430" r="14" fill="${geoRunTierColor(score)}"/>
+  <text x="${cx}" y="478" font-family="sans-serif" font-size="24" font-weight="400"
+        fill="#94a3b8" text-anchor="middle">${escapeXml(score.toLocaleString(locale))}</text>`
+    })
+    .join('')
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0a0f" />
+      <stop offset="100%" stop-color="#0b2530" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="50%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#bg)"/>
+  <circle cx="1020" cy="120" r="200" fill="#06b6d4" opacity="0.12"/>
+  <circle cx="180" cy="560" r="180" fill="#a855f7" opacity="0.12"/>
+  <text x="80" y="120" font-family="sans-serif"
+        font-size="40" font-weight="700" fill="url(#accent)" letter-spacing="4">${brand}</text>
+  <text x="80" y="230" font-family="sans-serif"
+        font-size="64" font-weight="800" fill="#ffffff">${title}</text>
+  <text x="80" y="350" font-family="sans-serif"
+        font-size="88" font-weight="800" fill="${totalColor}">${totalText}</text>
+  ${dots}
+  <rect x="80" y="520" width="320" height="72" rx="36" fill="url(#accent)"/>
+  <text x="240" y="567" font-family="sans-serif"
+        font-size="28" font-weight="700" fill="#0a0a0f" text-anchor="middle">${cta}</text>
+  <text x="1120" y="560" font-family="sans-serif"
+        font-size="26" font-weight="400" fill="#94a3b8" text-anchor="end">${escapeXml(
+          lang === 'fr' ? 'Mode Géo — run libre' : 'Geo mode — free run'
+        )}</text>
+</svg>`
+}
+
 /**
  * SVG variant — kept for Discord/Slack which render SVG previews fine.
  * Twitter, WhatsApp, iMessage and LinkedIn reject SVG og:images, so the
@@ -235,6 +330,58 @@ router.get('/daily.png', async (req: Request, res: Response) => {
     res.send(png)
   } catch (error) {
     logger.error({ error: String(error), date, lang }, 'og png render failed')
+    // Fall back to SVG so the share preview is still something, not 500.
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
+    res.setHeader('Cache-Control', 'public, max-age=300')
+    res.send(svg)
+  }
+})
+
+/**
+ * Geo run recap card. Query: `scores` (comma-separated per-round ints,
+ * clamped to 0..2000, at most 10) + `lang`. Everything is derived from
+ * the query, so the response is immutable per URL — long cache is safe.
+ * SVG variant for Discord/Slack, PNG for the platforms that reject SVG.
+ */
+router.get('/geo-run.svg', (req: Request, res: Response) => {
+  const scores = parseGeoRunScores(req.query.scores)
+  if (!scores) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_SCORES', message: 'scores must be 1-10 comma-separated integers' },
+    })
+    return
+  }
+  const svg = buildGeoRunSvg(scores, parseLang(req.query.lang))
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
+  res.setHeader('Cache-Control', 'public, max-age=86400, immutable')
+  res.send(svg)
+})
+
+router.get('/geo-run.png', (req: Request, res: Response) => {
+  const scores = parseGeoRunScores(req.query.scores)
+  if (!scores) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_SCORES', message: 'scores must be 1-10 comma-separated integers' },
+    })
+    return
+  }
+  const lang = parseLang(req.query.lang)
+  const svg = buildGeoRunSvg(scores, lang)
+  try {
+    const png = new Resvg(svg, {
+      fitTo: { mode: 'width', value: WIDTH },
+      font: {
+        loadSystemFonts: true,
+        defaultFontFamily: 'DejaVu Sans',
+      },
+    }).render().asPng()
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable')
+    res.send(png)
+  } catch (error) {
+    logger.error({ error: String(error), lang }, 'og geo-run png render failed')
     // Fall back to SVG so the share preview is still something, not 500.
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
     res.setHeader('Cache-Control', 'public, max-age=300')

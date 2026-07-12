@@ -21,7 +21,7 @@ import achievementRoutes from './presentation/routes/achievement.routes.js'
 import dailyLoginRoutes from './presentation/routes/daily-login.routes.js'
 import rewardsRoutes from './presentation/routes/rewards.routes.js'
 import referralRoutes from './presentation/routes/referral.routes.js'
-import ogRoutes from './presentation/routes/og.routes.js'
+import ogRoutes, { parseGeoRunScores } from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
 import geoGamersRoutes from './presentation/routes/geogamers.routes.js'
 import screenshotReportRoutes from './presentation/routes/screenshot-report.routes.js'
@@ -299,9 +299,14 @@ function escapeHtmlAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-app.get('/share/daily', (req, res, next) => {
+// Serve the SPA shell with the given OG/Twitter meta patched in — link
+// preview bots don't run JS, so the tags must be in the raw HTML.
+function serveShareShell(
+  res: express.Response,
+  next: express.NextFunction,
+  meta: { title: string; description: string; imageUrl: string; pageUrl: string },
+): void {
   try {
-    const meta = buildShareMeta(req)
     const html = fs.readFileSync(path.join(frontendPath, 'index.html'), 'utf-8')
     const patched = html
       .replace(/(<meta property="og:title"[^>]*content=")[^"]*(")/, `$1${escapeHtmlAttr(meta.title)}$2`)
@@ -318,6 +323,39 @@ app.get('/share/daily', (req, res, next) => {
     logger.warn({ error: String(error) }, 'share meta injection failed, falling back to SPA')
     next()
   }
+}
+
+app.get('/share/daily', (req, res, next) => {
+  serveShareShell(res, next, buildShareMeta(req))
+})
+
+// Geo free-play run recap share. Scores travel in the URL (runs are
+// client-side only — nothing is stored server-side), the OG image is
+// derived from the same query by /api/og/geo-run.png.
+app.get('/share/geo-run', (req, res, next) => {
+  const scores = parseGeoRunScores(req.query.scores)
+  if (!scores) {
+    // Malformed link: fall through to the SPA shell with default meta
+    // rather than 400ing a human click.
+    next()
+    return
+  }
+  const lang = req.query.lang === 'en' ? 'en' : 'fr'
+  const total = scores.reduce((sum, s) => sum + s, 0)
+  const max = scores.length * 2000
+  const locale = lang === 'en' ? 'en-US' : 'fr-FR'
+  const totalText = `${total.toLocaleString(locale)} / ${max.toLocaleString(locale)}`
+  const base = env.API_URL.replace(/\/$/, '')
+  const query = `scores=${encodeURIComponent(scores.join(','))}&lang=${lang}`
+  serveShareShell(res, next, {
+    title: lang === 'en' ? `The Box — Geo run: ${totalText}` : `The Box — Run Géo : ${totalText}`,
+    description:
+      lang === 'en'
+        ? `Can you beat my ${scores.length}-round screenshot-location run?`
+        : `Peux-tu battre mon run de ${scores.length} captures à localiser ?`,
+    imageUrl: `${base}/api/og/geo-run.png?${query}`,
+    pageUrl: `${base}/share/geo-run?${query}`,
+  })
 })
 
 // Unmatched API routes must return JSON, not the SPA shell. Otherwise a request

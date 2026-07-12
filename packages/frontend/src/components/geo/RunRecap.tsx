@@ -61,13 +61,19 @@ export function RunRecap({
     }, [onClose])
 
     const share = async () => {
+        // The share link carries the per-round scores — runs are
+        // client-side only, so the URL is the storage. The backend's
+        // /share/geo-run serves the SPA shell with OG meta pointing at
+        // the matching /api/og/geo-run.png card.
+        const lang = language.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+        const shareUrl = `${window.location.origin}/share/geo-run?scores=${scores.join(',')}&lang=${lang}`
         const text = t('geo.play.run.shareText', {
             defaultValue:
                 'I scored {{score}}/{{max}} in a {{rounds}}-round Geo run on The Box! {{url}}',
             score: total.toLocaleString(language),
             max: max.toLocaleString(language),
             rounds: scores.length,
-            url: window.location.origin,
+            url: shareUrl,
         })
         try {
             if (navigator.share) {
