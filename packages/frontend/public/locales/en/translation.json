@@ -2547,6 +2547,13 @@
       "hint": {
         "tapMap": "Tap the map to place your pin"
       },
+      "result": {
+        "announce": "Score {{score}} — {{percent}}% from the target",
+        "fromTarget": "{{percent}}% from the target",
+        "newBest": "New personal best!",
+        "best": "Personal best: {{score}}",
+        "correctMap": "The correct map was: {{map}}"
+      },
       "next": "Next round",
       "reroll": "New screenshot",
       "shuffleAllGames": "Random game",

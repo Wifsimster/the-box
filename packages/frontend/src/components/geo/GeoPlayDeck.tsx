@@ -14,7 +14,7 @@ import {
     MapChunkLoader,
     MapPlaceholder,
     PinHintChip,
-    ResultOverlay,
+    ResultSheet,
     ContextHeader,
     Dock,
 } from '@/components/geo/GeoPlaySlots'
@@ -97,6 +97,7 @@ export function GeoPlayDeck({
         playedByGame,
         ignoredGameIds,
         hasEverPlacedPin,
+        previousBestScore,
         history: roundHistory,
         historyIndex,
         selectGame,
@@ -288,12 +289,14 @@ export function GeoPlayDeck({
                 map={mapSlot}
                 resultOverlay={
                     phase === 'revealed' && result ? (
-                        <ResultOverlay
+                        <ResultSheet
                             score={result.score}
                             distance={result.distance}
                             wrongMap={!!result.wrongMap}
                             pinCount={result.pinCount}
                             language={language}
+                            correctMapLabel={correctMap?.region ?? null}
+                            previousBest={previousBestScore}
                         />
                     ) : null
                 }
