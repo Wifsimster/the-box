@@ -18,8 +18,10 @@ import {
     MapPin,
     RefreshCw,
     Shuffle,
+    SkipForward,
     Sparkles,
     Trophy,
+    X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -480,6 +482,7 @@ export function Dock({
     onSubmit,
     onNextRound,
     onSkip,
+    onClearPin,
     onPlaceByCoords,
     canSubmit,
     phase,
@@ -492,6 +495,7 @@ export function Dock({
     onSubmit: () => void
     onNextRound: () => void
     onSkip: () => void
+    onClearPin: () => void
     onPlaceByCoords: (point: GeoPoint) => void
     canSubmit: boolean
     phase: ReturnType<typeof useGeoFreePlayStore.getState>['phase']
@@ -500,55 +504,15 @@ export function Dock({
     const submitting = phase === 'submitting'
     const revealed = phase === 'revealed'
     const loading = phase === 'loading'
+    // A draft pin exists (or is being submitted). The dock renders only
+    // the controls valid for the current phase, in a single constant-
+    // height row, so the map above never shifts.
+    const hasDraft = canSubmit || submitting
+
     return (
         <div className="flex flex-col gap-2">
-            {/* Secondary row — navigation through history + shuffle. Compact
-                so the primary CTA below it gets full visual weight. */}
-            <div className="flex items-center justify-center gap-1.5">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={onPrevious}
-                    className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
-                    disabled={!canGoPrevious || submitting || loading}
-                    aria-label={t('geo.play.previous', 'Previous screenshot')}
-                    title={t('geo.play.previous', 'Previous screenshot')}
-                >
-                    <ChevronLeft className="size-5" aria-hidden />
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={onShuffleAllGames}
-                    className="min-h-12 text-white/80 hover:text-white"
-                    disabled={submitting || loading}
-                    aria-label={t('geo.play.shuffleAllGames', 'Random game')}
-                    title={t('geo.play.shuffleAllGames', 'Random game')}
-                >
-                    <Shuffle className="size-4 sm:mr-1.5" aria-hidden />
-                    <span className="hidden sm:inline">
-                        {t('geo.play.shuffleAllGames', 'Random game')}
-                    </span>
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={onNext}
-                    className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
-                    disabled={!canGoNext || submitting || loading}
-                    aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
-                    title={t('geo.play.nextScreenshot', 'Next screenshot')}
-                >
-                    <ChevronRight className="size-5" aria-hidden />
-                </Button>
-            </div>
-
-            {/* Primary row — single full-width CTA. Fills the thumb-zone on
-                mobile and matches Fitts: bigger target, no neighbours
-                competing for taps. */}
             {revealed ? (
+                /* Revealed — one job: move on. */
                 <Button
                     type="button"
                     onClick={onNextRound}
@@ -557,57 +521,136 @@ export function Dock({
                     {t('geo.play.next', 'Next round')}
                     <ArrowRight className="size-4 ml-2" aria-hidden />
                 </Button>
+            ) : hasDraft ? (
+                /* Draft pin placed — confirm is the only primary action;
+                   the ✕ clears the draft and returns to the browse row. */
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClearPin}
+                        disabled={submitting}
+                        className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                        aria-label={t('geo.play.clearPin', 'Remove pin')}
+                        title={t('geo.play.clearPin', 'Remove pin')}
+                    >
+                        <X className="size-5" aria-hidden />
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={onSubmit}
+                        disabled={submitting}
+                        className="gradient-gaming hover:opacity-90 min-h-12 flex-1"
+                        aria-live="polite"
+                    >
+                        {submitting ? (
+                            <Loader2 className="size-4 mr-2 animate-spin" aria-hidden />
+                        ) : (
+                            <Check className="size-4 mr-2" aria-hidden />
+                        )}
+                        {t('geo.play.confirm', 'Confirm pin')}
+                    </Button>
+                </div>
             ) : (
-                <Button
-                    type="button"
-                    onClick={onSubmit}
-                    disabled={!canSubmit || submitting}
-                    className="gradient-gaming hover:opacity-90 min-h-12 w-full"
-                    aria-live="polite"
-                >
-                    {submitting ? (
-                        <Loader2 className="size-4 mr-2 animate-spin" aria-hidden />
-                    ) : canSubmit ? (
-                        <Check className="size-4 mr-2" aria-hidden />
-                    ) : (
-                        <MapPin className="size-4 mr-2" aria-hidden />
-                    )}
-                    {canSubmit
-                        ? t('geo.play.confirm', 'Confirm pin')
-                        : t('geo.play.submit', 'Drop pin')}
-                </Button>
-            )}
-
-            {/* Skip affordance — shown only while waiting for a pin (no
-                draft, not yet revealed). A discoverable "I don't know"
-                escape hatch protects dataset quality: a player who'd
-                otherwise drop a random guess can roll forward instead.
-                Hidden once a pin is placed so it doesn't fight the
-                primary "Confirm pin" CTA for attention. */}
-            {!revealed && !canSubmit && (
-                <button
-                    type="button"
-                    onClick={onSkip}
-                    disabled={submitting || loading}
-                    className="self-center text-xs text-white/80 underline-offset-4 hover:text-white hover:underline disabled:opacity-40 min-h-11 px-2"
-                >
-                    {t('geo.play.skip', "I don't know — skip this one")}
-                </button>
+                /* Browsing — history nav, shuffle and the skip escape
+                   hatch. Skip is a real button (not a text link): a
+                   player who'd otherwise drop a random guess pollutes
+                   the contribution dataset more than a skip costs. The
+                   old always-visible disabled "Drop pin" CTA is gone —
+                   its job (pointing at the map) moved to PinHintChip. */
+                <div className="flex items-center justify-center gap-1.5">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onPrevious}
+                        className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                        disabled={!canGoPrevious || loading}
+                        aria-label={t('geo.play.previous', 'Previous screenshot')}
+                        title={t('geo.play.previous', 'Previous screenshot')}
+                    >
+                        <ChevronLeft className="size-5" aria-hidden />
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onShuffleAllGames}
+                        className="min-h-12 text-white/80 hover:text-white"
+                        disabled={loading}
+                        aria-label={t('geo.play.shuffleAllGames', 'Random game')}
+                        title={t('geo.play.shuffleAllGames', 'Random game')}
+                    >
+                        <Shuffle className="size-4 sm:mr-1.5" aria-hidden />
+                        <span className="hidden sm:inline">
+                            {t('geo.play.shuffleAllGames', 'Random game')}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onSkip}
+                        className="min-h-12 text-white/80 hover:text-white"
+                        disabled={loading}
+                        aria-label={t('geo.play.skip', "I don't know — skip this one")}
+                        title={t('geo.play.skip', "I don't know — skip this one")}
+                    >
+                        <SkipForward className="size-4 sm:mr-1.5" aria-hidden />
+                        <span className="hidden sm:inline">
+                            {t('geo.play.skipShort', 'Skip')}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onNext}
+                        className="size-12 min-h-12 min-w-12 text-white/80 hover:text-white"
+                        disabled={!canGoNext || loading}
+                        aria-label={t('geo.play.nextScreenshot', 'Next screenshot')}
+                        title={t('geo.play.nextScreenshot', 'Next screenshot')}
+                    >
+                        <ChevronRight className="size-5" aria-hidden />
+                    </Button>
+                </div>
             )}
 
             {/* Non-tap pin-placement alternative for keyboard, switch
                 control and screen-reader users — Leaflet's keyboard
                 pan doesn't synthesize a click on Enter, so without
                 this they can't drop a pin at all. Native <details>
-                gives full keyboard support out of the box and stays
-                collapsed for sighted/touch users so it doesn't add
-                visual noise. WCAG 2.1.1 (Keyboard). */}
-            {!revealed && !canSubmit && (
+                gives full keyboard support out of the box. Visually
+                hidden until keyboard focus reaches it (skip-link
+                pattern) so touch users don't pay a dock row for an
+                affordance they never use. WCAG 2.1.1 (Keyboard). */}
+            {!revealed && !hasDraft && (
                 <CoordinateInput
                     onPlace={onPlaceByCoords}
-                    disabled={submitting || loading}
+                    disabled={loading}
                 />
             )}
+        </div>
+    )
+}
+
+/**
+ * Onboarding hint anchored to the map panel: tells first-time players
+ * the core gesture is tapping the map. Rendered only until the player's
+ * first-ever draft pin (persisted flag in the free-play store), and
+ * purely decorative for AT — the dock CTA and the pin live region
+ * already carry the state for screen readers.
+ */
+export function PinHintChip() {
+    const { t } = useTranslation()
+    return (
+        <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex justify-center"
+        >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-center text-xs font-medium text-white shadow-lg backdrop-blur">
+                <MapPin className="size-3.5 shrink-0 text-neon-pink" aria-hidden />
+                {t('geo.play.hint.tapMap', 'Tap the map to place your pin')}
+            </span>
         </div>
     )
 }
@@ -635,7 +678,10 @@ function CoordinateInput({
     }
 
     return (
-        <details className="self-center text-xs text-white/80">
+        // Skip-link pattern: sr-only until the summary receives keyboard
+        // focus or the details is open, then it pops into the layout.
+        // Keeps the control in DOM/tab order right after the dock row.
+        <details className="self-center text-xs text-white/80 [&:not([open]):not(:focus-within)]:sr-only">
             <summary className="cursor-pointer underline-offset-4 hover:text-white hover:underline min-h-11 inline-flex items-center px-2">
                 {t('geo.play.coords.toggle', 'Place pin by coordinates')}
             </summary>

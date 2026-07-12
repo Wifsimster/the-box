@@ -2532,8 +2532,10 @@
       "changeMap": "Changer de carte",
       "submit": "Placer l'épingle",
       "confirm": "Confirmer la position",
+      "clearPin": "Retirer l'épingle",
       "pinPlacedAria": "Épingle posée à {{x}} %, {{y}} %",
       "skip": "Je ne sais pas — passer celle-ci",
+      "skipShort": "Passer",
       "coords": {
         "toggle": "Placer l'épingle par coordonnées",
         "formLabel": "Placer une épingle avec des coordonnées x/y",
@@ -2541,6 +2543,9 @@
         "y": "Y (%)",
         "place": "Placer l'épingle",
         "hint": "0 % correspond au coin haut-gauche de la carte, 100 % au coin bas-droit."
+      },
+      "hint": {
+        "tapMap": "Touchez la carte pour placer l'épingle"
       },
       "next": "Suivant",
       "reroll": "Nouvelle capture",

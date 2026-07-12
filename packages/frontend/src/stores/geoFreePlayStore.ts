@@ -121,6 +121,10 @@ interface GeoFreePlayState {
     // They're hidden from completion math so the all-time "done" message
     // can fire even if the catalog has games the player will never touch.
     ignoredGameIds: number[]
+    // True once the player has ever dropped a draft pin (any session).
+    // Gates the "tap the map" onboarding hint chip so it only ever shows
+    // to players who haven't discovered the core gesture yet.
+    hasEverPlacedPin: boolean
     // In-memory navigation history (current session only). Each entry is
     // a fully-restorable round so prev/next can step through screenshots
     // the player has already seen — including across game switches.
@@ -167,6 +171,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             round: 0,
             playedByGame: {},
             ignoredGameIds: [],
+            hasEverPlacedPin: false,
             history: [],
             historyIndex: -1,
 
@@ -388,7 +393,11 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 // one to trigger a re-render of the map canvas.
                 if (prev && p && prev.x === p.x && prev.y === p.y) return
                 if (!prev && !p) return
-                set({ pendingGuess: p })
+                set(
+                    p
+                        ? { pendingGuess: p, hasEverPlacedPin: true }
+                        : { pendingGuess: p },
+                )
             },
 
             async submitGuess() {
@@ -486,6 +495,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 currentMapId: state.currentMapId,
                 playedByGame: state.playedByGame,
                 ignoredGameIds: state.ignoredGameIds,
+                hasEverPlacedPin: state.hasEverPlacedPin,
             }),
             version: 3,
         },
