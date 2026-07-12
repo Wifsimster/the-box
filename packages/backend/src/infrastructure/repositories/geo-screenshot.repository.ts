@@ -34,7 +34,7 @@ export interface GeoScreenshotMetaRow {
   canonical_y: number
   confidence: number
   consensus_version: number
-  promoted_via: 'consensus' | 'admin'
+  promoted_via: 'consensus' | 'admin' | 'agent_override'
   promoted_by: string | null
   promoted_at: Date
 }
@@ -187,7 +187,7 @@ export const geoScreenshotRepository = {
     canonicalY: number
     confidence: number
     consensusVersion: number
-    promotedVia: 'consensus' | 'admin'
+    promotedVia: 'consensus' | 'admin' | 'agent_override'
     promotedBy?: string
   }): Promise<GeoScreenshotMeta> {
     log.info({ candidateId: data.candidateId, via: data.promotedVia }, 'promoteCandidateToMeta')
@@ -212,6 +212,36 @@ export const geoScreenshotRepository = {
 
       return mapMeta(rows[0]!)
     })
+  },
+
+  /**
+   * Re-point a game's still-open capture candidates onto a new map. When the
+   * capture-default map changes (a map swap via select, or an enable that
+   * becomes the new default) the game's existing candidates keep their OLD
+   * `geo_map_id`; `createCandidate` dedups on `(source, external_id)` so a
+   * re-import can't repair them, and `promoteCandidateToMeta` copies
+   * `candidate.geoMapId` — so promoting a stranded capture builds a broken
+   * challenge (its meta references a disabled map, and its pin coordinates live
+   * in a different map's pixel space). This moves every active, un-promoted
+   * candidate onto `newMapId`.
+   *
+   * Left untouched by design:
+   * - PROMOTED candidates (`status = 'promoted'`) — their meta already froze
+   *   ground truth against the old map, and moving them would shift canonical
+   *   coordinates under players.
+   * - REJECTED candidates (`is_active = false`) — no longer in play.
+   * - candidates already on `newMapId` — nothing to move.
+   *
+   * Returns the number of candidates re-pointed.
+   */
+  async repointPendingCandidates(gameId: number, newMapId: number): Promise<number> {
+    log.info({ gameId, newMapId }, 'repointPendingCandidates')
+    const updated = await db('geo_screenshot_candidate')
+      .where({ game_id: gameId, is_active: true })
+      .whereNot({ status: 'promoted' })
+      .whereNot({ geo_map_id: newMapId })
+      .update({ geo_map_id: newMapId })
+    return updated
   },
 
   /**

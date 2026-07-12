@@ -7,6 +7,7 @@ import {
   requireAgentApiEnabled,
   requireAgentCurateEnabled,
   requireAgentPromoteEnabled,
+  requireAgentPromoteOverrideEnabled,
   requireScope,
 } from '../middleware/agent-api.middleware.js'
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.middleware.js'
@@ -44,6 +45,7 @@ import {
   consumeMapUploadBudget,
   consumePinBudget,
   consumePromoteBudget,
+  consumePromoteOverrideBudget,
 } from '../../infrastructure/redis/agent-budget.js'
 import { env } from '../../config/env.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
@@ -513,8 +515,16 @@ router.post(
         throw err
       }
 
+      let repointed = 0
       if (body.enable) {
-        await geoMapRepository.enableForGame(gameId, map.id)
+        const enabled = await geoMapRepository.enableForGame(gameId, map.id)
+        // enableForGame promotes the row to selected only when no other map
+        // holds the zone — i.e. this upload just became the capture-default. In
+        // that case move the game's still-open candidates onto it so a later
+        // promote doesn't strand them on an old map (issue #345, feature 2).
+        if (enabled?.isSelected && enabled.zoneSlug == null) {
+          repointed = await geoScreenshotRepository.repointPendingCandidates(gameId, map.id)
+        }
       }
 
       // A usable map now exists — clear the map-tier ingest tombstones so a
@@ -538,6 +548,7 @@ router.post(
           sourceUrl: body.sourceUrl ?? null,
           license: body.license,
           enabled: !!body.enable,
+          repointedCandidates: repointed,
         },
         ip: req.ip ?? null,
       })
@@ -546,6 +557,7 @@ router.post(
         success: true,
         data: {
           map,
+          repointedCandidates: repointed,
           budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
         },
       })
@@ -611,16 +623,29 @@ router.post(
         return
       }
 
+      // Selecting a new single-zone map makes it the game's capture-default, so
+      // move the game's still-open candidates onto it — otherwise they stay
+      // stranded on the old (now-disabled) map and promoting one would build a
+      // broken challenge (issue #345, feature 2). Zoned selections don't change
+      // the capture-default, so they don't re-point.
+      const repointed =
+        updated.zoneSlug == null
+          ? await geoScreenshotRepository.repointPendingCandidates(gameId, mapId)
+          : 0
+
       await adminAuditRepository.record({
         adminId: `apikey:${req.apiKey!.id}`,
         action: 'geo-agent.select_map',
         targetKind: 'geo_map',
         targetId: String(mapId),
-        after: { gameId, mapId },
+        after: { gameId, mapId, repointedCandidates: repointed },
         ip: req.ip ?? null,
       })
 
-      res.json({ success: true, data: { map: updated, budget: budgetResult.budget } })
+      res.json({
+        success: true,
+        data: { map: updated, repointedCandidates: repointed, budget: budgetResult.budget },
+      })
     } catch (err) {
       next(err)
     }
@@ -659,6 +684,58 @@ router.post(
       })
 
       res.json({ success: true, data: { map: result.map, budget: budgetResult.budget } })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /games/:gameId/maps/:mapId/repoint-captures — move the game's still-open
+// (active, un-promoted) capture candidates onto `mapId` (issue #345, feature
+// 2). The auto-repoint baked into `select`/`upload` only fixes swaps made
+// THROUGH the agent surface from now on; this is the explicit fix for captures
+// that were already stranded on a rejected map (e.g. GTA:SA #38, GTA:VC #69,
+// Ocarina #200 still pointing at maps 30 / 29 / 18). `mapId` must be an ENABLED
+// map for the game — re-pointing captures onto a disabled map would just strand
+// them again. Promoted metas are left untouched. Reuses the map-action budget.
+router.post(
+  '/games/:gameId/maps/:mapId/repoint-captures',
+  requireScope('geo-agent:curate'),
+  requireAgentCurateEnabled,
+  validateParams(mapIdParams),
+  async (req, res, next) => {
+    try {
+      const { gameId, mapId } = req.params as unknown as z.infer<typeof mapIdParams>
+      const budgetResult = await consumeMapActionOrReject(req, res)
+      if (!budgetResult.ok) return
+
+      const target = await geoMapRepository.findEnabledById(gameId, mapId)
+      if (!target) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'MAP_NOT_FOUND',
+            message: 'no such enabled map for this game (enable/select it first)',
+          },
+        })
+        return
+      }
+
+      const repointed = await geoScreenshotRepository.repointPendingCandidates(gameId, mapId)
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${req.apiKey!.id}`,
+        action: 'geo-agent.repoint_captures',
+        targetKind: 'game',
+        targetId: String(gameId),
+        after: { gameId, mapId, repointedCandidates: repointed },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: { gameId, mapId, repointedCandidates: repointed, budget: budgetResult.budget },
+      })
     } catch (err) {
       next(err)
     }
@@ -1017,6 +1094,124 @@ router.post(
           canonicalY: consensus.centroid.y,
           confidence: consensus.confidence,
           humanAcceptedCount: consensus.humanAcceptedCount,
+        },
+        ip: req.ip ?? null,
+      })
+
+      res.json({
+        success: true,
+        data: {
+          meta,
+          budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining },
+        },
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+// POST /candidates/:id/promote-override — override-promote a well-localized
+// capture at agent-supplied coordinates (issue #345, feature 1). The agent
+// equivalent of the admin `/geo/candidates/:id/override` with explicit coords:
+// unlike /promote (which only confirms a promotion the crowd already earned),
+// this BYPASSES the anti-poisoning consensus gate — the agent asserts a
+// canonical location directly. That makes it the most privileged agent write,
+// so it is guarded the hardest:
+//   - a DEDICATED scope (geo-agent:promote-override), never folded into curate
+//     or the consensus-promote scope;
+//   - its OWN, off-by-default kill switch (requireAgentPromoteOverrideEnabled);
+//   - a tight per-key daily budget;
+//   - full audit (geo-agent.promote_override);
+//   - the meta is tagged promoted_via = 'agent_override' so overrides are
+//     distinguishable, filterable, and reversible.
+// The candidate's map must be ACTIVE — promoting onto a disabled map builds a
+// broken challenge (feature 2); the agent should repoint/select first.
+const promoteOverrideBodySchema = z.object({
+  canonicalX: z.number().min(0).max(1),
+  canonicalY: z.number().min(0).max(1),
+})
+
+router.post(
+  '/candidates/:id/promote-override',
+  requireScope('geo-agent:promote-override'),
+  requireAgentPromoteOverrideEnabled,
+  validateParams(z.object({ id: z.coerce.number().int().positive() })),
+  validateBody(promoteOverrideBodySchema),
+  async (req, res, next) => {
+    try {
+      const { id: candidateId } = req.params as unknown as { id: number }
+      const { canonicalX, canonicalY } = req.body as z.infer<typeof promoteOverrideBodySchema>
+      const keyId = req.apiKey!.id
+
+      const maxPerDay = Number(env.GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY) || 5
+      const budget = await consumePromoteOverrideBudget(keyId, maxPerDay)
+      if (!budget.ok) {
+        res.setHeader('Retry-After', String(budget.resetSeconds))
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'BUDGET_EXHAUSTED',
+            message: `Daily override-promote budget of ${budget.limit} reached; resets at UTC midnight`,
+          },
+        })
+        return
+      }
+
+      const candidate = await geoScreenshotRepository.findCandidateById(candidateId)
+      if (!candidate) {
+        res.status(404).json({ success: false, error: { code: 'CANDIDATE_NOT_FOUND' } })
+        return
+      }
+
+      // Never overwrite existing ground truth — an admin must delete the meta
+      // first rather than have canonical coordinates shift under players.
+      const existingMeta = await geoScreenshotRepository.findMetaByCandidateId(candidateId)
+      if (existingMeta) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'ALREADY_PROMOTED', message: 'candidate already has a canonical pin' },
+        })
+        return
+      }
+
+      // The map the capture is pinned against must be enabled, or the resulting
+      // meta references a disabled map and the challenge never surfaces — and
+      // eligibleGames wouldn't move. Guide the agent to repoint/select first.
+      const map = await geoMapRepository.findEnabledById(candidate.gameId, candidate.geoMapId)
+      if (!map) {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'MAP_NOT_ACTIVE',
+            message:
+              "candidate's map is not enabled; select/repoint the capture onto an active map before override-promoting",
+          },
+        })
+        return
+      }
+
+      const meta = await geoScreenshotRepository.promoteCandidateToMeta({
+        candidateId,
+        geoMapId: candidate.geoMapId,
+        canonicalX,
+        canonicalY,
+        confidence: 1.0,
+        consensusVersion: GEO_CONSENSUS_VERSION,
+        promotedVia: 'agent_override',
+        promotedBy: `apikey:${keyId}`,
+      })
+
+      await adminAuditRepository.record({
+        adminId: `apikey:${keyId}`,
+        action: 'geo-agent.promote_override',
+        targetKind: 'geo_screenshot_candidate',
+        targetId: String(candidateId),
+        after: {
+          metaId: meta.id,
+          canonicalX,
+          canonicalY,
+          geoMapId: candidate.geoMapId,
         },
         ip: req.ip ?? null,
       })

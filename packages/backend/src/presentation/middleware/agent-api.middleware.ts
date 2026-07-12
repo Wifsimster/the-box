@@ -68,6 +68,33 @@ export function requireAgentPromoteEnabled(_req: Request, res: Response, next: N
 }
 
 /**
+ * Fourth kill switch for the override-promote route (issue #345, phase 8) — the
+ * agent equivalent of the admin override, which promotes a capture at
+ * agent-supplied coordinates and BYPASSES the anti-poisoning consensus gate.
+ * It is the most privileged agent write (no crowd earned the pin), so it sits
+ * behind its own switch, independent of the other three, off by default.
+ * Checked after the main kill switch and key auth, before the scope check, so a
+ * disabled-override 503 never leaks which keys hold the override scope.
+ */
+export function requireAgentPromoteOverrideEnabled(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (env.GEO_AGENT_PROMOTE_OVERRIDE_ENABLED !== 'true') {
+    res.status(503).json({
+      success: false,
+      error: {
+        code: 'AGENT_PROMOTE_OVERRIDE_DISABLED',
+        message: 'The agent override-promote surface is disabled',
+      },
+    })
+    return
+  }
+  next()
+}
+
+/**
  * Require a specific scope on the authenticated key. Also rejects any key that
  * carries a non-geo-agent scope reaching this surface — a streamer key can
  * never call the agent API even if it somehow held a geo-agent scope, and the

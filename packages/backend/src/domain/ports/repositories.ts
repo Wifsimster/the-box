@@ -842,7 +842,7 @@ export interface GeoScreenshotRepository {
     canonicalY: number
     confidence: number
     consensusVersion: number
-    promotedVia: 'consensus' | 'admin'
+    promotedVia: 'consensus' | 'admin' | 'agent_override'
     promotedBy?: string
   }): Promise<GeoScreenshotMeta>
   countPromotedForGame(gameId: number): Promise<number>

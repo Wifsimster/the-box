@@ -104,6 +104,20 @@ export const env = {
   GEO_AGENT_PROMOTE_ENABLED: process.env['GEO_AGENT_PROMOTE_ENABLED'] || 'false',
   // Per-key daily budget for agent-confirmed promotions, tracked in Redis.
   GEO_AGENT_MAX_PROMOTES_PER_DAY: process.env['GEO_AGENT_MAX_PROMOTES_PER_DAY'] || '20',
+  // Override-promote surface (issue #345, phase 8) — the agent equivalent of the
+  // admin `/geo/candidates/:id/override`: promote a well-localized capture at
+  // agent-supplied coordinates, BYPASSING the anti-poisoning consensus gate. It
+  // is the most privileged agent write (no crowd earned the pin), so it sits
+  // behind its OWN kill switch, off by default, independent of the other three.
+  // While false the endpoint returns 503 AGENT_PROMOTE_OVERRIDE_DISABLED even
+  // for a key that holds geo-agent:promote-override.
+  GEO_AGENT_PROMOTE_OVERRIDE_ENABLED:
+    process.env['GEO_AGENT_PROMOTE_OVERRIDE_ENABLED'] || 'false',
+  // Per-key daily budget for override-promotions, tracked in Redis. Bounded
+  // tighter than consensus promotes since each one manufactures ground truth
+  // without a crowd behind it.
+  GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY:
+    process.env['GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY'] || '5',
 
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',

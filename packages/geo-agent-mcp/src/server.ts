@@ -217,6 +217,35 @@ export const TOOLS: ToolDef[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'geo_promote_override',
+    description:
+      "Override-promote a well-localized capture at coordinates YOU supply (needs a geo-agent:promote-override key). Unlike geo_promote_candidate, this BYPASSES the consensus gate — you assert the canonical location directly, so use it only when you are confident of the pin (e.g. a landmark you can place exactly). The meta is tagged promoted_via='agent_override' (distinguishable and reversible). The capture's map must be enabled first, or you get MAP_NOT_ACTIVE. Behind its own kill switch and a tight daily budget.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        candidateId: { type: 'number', description: 'geo_screenshot_candidate id (required)' },
+        canonicalX: { type: 'number', description: 'Normalized canonical x in [0,1] (required)' },
+        canonicalY: { type: 'number', description: 'Normalized canonical y in [0,1] (required)' },
+      },
+      required: ['candidateId', 'canonicalX', 'canonicalY'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'geo_repoint_captures',
+    description:
+      "Move a game's still-open (un-promoted) capture candidates onto an enabled map (needs a geo-agent:curate key). Use this to fix captures stranded on an old/rejected map after a map swap — otherwise promoting one builds a broken challenge. select/upload already re-point automatically for swaps done through this API; this is the explicit fix for pre-existing strandings. mapId must be an enabled map for the game. Promoted metas are left untouched.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gameId: { type: 'number', description: 'Game id (required)' },
+        mapId: { type: 'number', description: 'Enabled geo_map id to re-point captures onto (required)' },
+      },
+      required: ['gameId', 'mapId'],
+      additionalProperties: false,
+    },
+  },
 ]
 
 function asPositiveInt(value: unknown): number | null {
@@ -365,6 +394,29 @@ export function resolveToolPath(
       const candidateId = asPositiveInt(a['candidateId'])
       if (candidateId === null) return { error: 'candidateId is required and must be a positive integer' }
       return { path: `/api/agent/v1/geo/candidates/${candidateId}/promote`, method: 'POST', body: {} }
+    }
+    case 'geo_promote_override': {
+      const candidateId = asPositiveInt(a['candidateId'])
+      if (candidateId === null) return { error: 'candidateId is required and must be a positive integer' }
+      if (typeof a['canonicalX'] !== 'number' || typeof a['canonicalY'] !== 'number') {
+        return { error: 'canonicalX and canonicalY are required numbers in [0,1]' }
+      }
+      return {
+        path: `/api/agent/v1/geo/candidates/${candidateId}/promote-override`,
+        method: 'POST',
+        body: { canonicalX: a['canonicalX'], canonicalY: a['canonicalY'] },
+      }
+    }
+    case 'geo_repoint_captures': {
+      const gameId = asPositiveInt(a['gameId'])
+      const mapId = asPositiveInt(a['mapId'])
+      if (gameId === null) return { error: 'gameId is required and must be a positive integer' }
+      if (mapId === null) return { error: 'mapId is required and must be a positive integer' }
+      return {
+        path: `/api/agent/v1/geo/games/${gameId}/maps/${mapId}/repoint-captures`,
+        method: 'POST',
+        body: {},
+      }
     }
     default:
       return { error: `unknown tool: ${name}` }

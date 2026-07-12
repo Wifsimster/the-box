@@ -8,6 +8,7 @@ import {
   mapUploadBudgetKey,
   pinBudgetKey,
   promoteBudgetKey,
+  promoteOverrideBudgetKey,
   secondsToNextUtcHour,
   secondsToUtcMidnight,
 } from './agent-budget.js'
@@ -121,5 +122,19 @@ describe('promoteBudgetKey', () => {
     const before = promoteBudgetKey(1, new Date('2026-07-10T23:59:59.000Z'))
     const after = promoteBudgetKey(1, new Date('2026-07-11T00:00:01.000Z'))
     assert.notEqual(before, after)
+  })
+})
+
+describe('promoteOverrideBudgetKey', () => {
+  it('scopes the key by api key id and UTC day', () => {
+    assert.equal(
+      promoteOverrideBudgetKey(42, new Date('2026-07-10T15:30:00.000Z')),
+      'geo-agent:budget:promote-override:42:2026-07-10',
+    )
+  })
+
+  it('is a distinct namespace from the consensus-promote budget', () => {
+    const now = new Date('2026-07-10T15:30:00.000Z')
+    assert.notEqual(promoteOverrideBudgetKey(1, now), promoteBudgetKey(1, now))
   })
 })

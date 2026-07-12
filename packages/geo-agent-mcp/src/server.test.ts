@@ -111,6 +111,32 @@ describe('resolveToolPath', () => {
     assert.ok('error' in resolveToolPath('geo_promote_candidate', {}))
   })
 
+  it('maps geo_promote_override to a POST with the coordinates body', () => {
+    assert.deepEqual(
+      resolveToolPath('geo_promote_override', { candidateId: 1312, canonicalX: 0.85, canonicalY: 0.55 }),
+      {
+        path: '/api/agent/v1/geo/candidates/1312/promote-override',
+        method: 'POST',
+        body: { canonicalX: 0.85, canonicalY: 0.55 },
+      },
+    )
+  })
+
+  it('rejects geo_promote_override missing coordinates or candidateId', () => {
+    assert.ok('error' in resolveToolPath('geo_promote_override', { candidateId: 1, canonicalX: 0.5 })) // no y
+    assert.ok('error' in resolveToolPath('geo_promote_override', { canonicalX: 0.5, canonicalY: 0.5 })) // no candidateId
+  })
+
+  it('maps geo_repoint_captures to a POST repoint path', () => {
+    assert.deepEqual(resolveToolPath('geo_repoint_captures', { gameId: 38, mapId: 30 }), {
+      path: '/api/agent/v1/geo/games/38/maps/30/repoint-captures',
+      method: 'POST',
+      body: {},
+    })
+    assert.ok('error' in resolveToolPath('geo_repoint_captures', { gameId: 38 }))
+    assert.ok('error' in resolveToolPath('geo_repoint_captures', { mapId: 30 }))
+  })
+
   it('errors on an unknown tool', () => {
     assert.ok('error' in resolveToolPath('nope', {}))
   })
