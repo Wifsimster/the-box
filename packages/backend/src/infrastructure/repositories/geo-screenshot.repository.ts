@@ -188,7 +188,7 @@ export const geoScreenshotRepository = {
     confidence: number
     consensusVersion: number
     promotedVia: 'consensus' | 'admin' | 'agent_override'
-    promotedBy?: string
+    promotedBy?: string | null
   }): Promise<GeoScreenshotMeta> {
     log.info({ candidateId: data.candidateId, via: data.promotedVia }, 'promoteCandidateToMeta')
 

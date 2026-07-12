@@ -1080,7 +1080,10 @@ router.post(
         confidence: consensus.confidence,
         consensusVersion: GEO_CONSENSUS_VERSION,
         promotedVia: 'consensus',
-        promotedBy: `apikey:${keyId}`,
+        // promoted_by is a FK to user.id; agent promotions have no user, so
+        // NULL it and rely on the admin_audit row (adminId = apikey:<id>) for
+        // provenance. Passing "apikey:<id>" here violated the FK (INTERNAL_ERROR).
+        promotedBy: null,
       })
 
       await adminAuditRepository.record({
@@ -1199,7 +1202,10 @@ router.post(
         confidence: 1.0,
         consensusVersion: GEO_CONSENSUS_VERSION,
         promotedVia: 'agent_override',
-        promotedBy: `apikey:${keyId}`,
+        // promoted_by is a FK to user.id; agent promotions have no user, so
+        // NULL it and rely on the admin_audit row (adminId = apikey:<id>) for
+        // provenance. Passing "apikey:<id>" here violated the FK (INTERNAL_ERROR).
+        promotedBy: null,
       })
 
       await adminAuditRepository.record({
