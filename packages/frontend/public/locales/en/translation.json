@@ -2554,6 +2554,7 @@
         "best": "Personal best: {{score}}",
         "correctMap": "The correct map was: {{map}}"
       },
+      "progressAria": "{{played}} of {{total}} screenshots played",
       "next": "Next round",
       "reroll": "New screenshot",
       "shuffleAllGames": "Random game",
