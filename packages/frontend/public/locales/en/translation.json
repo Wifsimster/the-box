@@ -2555,6 +2555,21 @@
         "correctMap": "The correct map was: {{map}}"
       },
       "progressAria": "{{played}} of {{total}} screenshots played",
+      "run": {
+        "start": "Start a run",
+        "chip": "Run {{current}}/{{total}}",
+        "abandon": "Abandon the run",
+        "total": "Run total: {{score}}",
+        "recapCta": "See the recap",
+        "recapTitle": "Run complete!",
+        "recapAria": "Total score {{score}} out of {{max}}",
+        "roundAria": "Round {{round}}: {{score}} points",
+        "share": "Share",
+        "shareText": "I scored {{score}}/{{max}} in a {{rounds}}-round Geo run on The Box! {{url}}",
+        "copied": "Copied!",
+        "again": "New run",
+        "close": "Back to free play"
+      },
       "next": "Next round",
       "reroll": "New screenshot",
       "shuffleAllGames": "Random game",

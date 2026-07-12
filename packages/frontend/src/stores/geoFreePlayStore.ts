@@ -74,6 +74,23 @@ function isAuthError(err: unknown): boolean {
     return err.code === 'UNAUTHORIZED' || err.code === 'AUTH_ERROR'
 }
 
+// A "run" is a short scored session: RUN_LENGTH rounds picked randomly
+// across the catalog, cumulative score out of RUN_LENGTH × 2000. Purely
+// a client-side aggregation over normal free-play submits — no API
+// surface, no leaderboard writes, and intentionally not persisted (a
+// reload abandons the run; the round views can't be resurrected anyway).
+export const RUN_LENGTH = 5
+
+interface RunState {
+    // 0-based index of the round being played (== scores.length while a
+    // round is in progress).
+    roundIndex: number
+    // Confirmed score per completed round, in order.
+    scores: number[]
+    // True once all rounds are scored and the recap is showing.
+    finished: boolean
+}
+
 const GAMES_TTL_MS = 5 * 60 * 1000
 // WHERE NOT IN payload cap on the backend. Older plays simply roll off
 // the front of the array once we hit it — re-seeing the very oldest
@@ -133,6 +150,9 @@ interface GeoFreePlayState {
     // submit time so the reveal can show "new best" / the delta even
     // though bestScoreByGame has already been updated.
     previousBestScore: number | null
+    // Active scored run, or null in free browse. Transient (see
+    // RUN_LENGTH above for the lifecycle rationale).
+    run: RunState | null
     // In-memory navigation history (current session only). Each entry is
     // a fully-restorable round so prev/next can step through screenshots
     // the player has already seen — including across game switches.
@@ -158,6 +178,15 @@ interface GeoFreePlayState {
     // newly-promoted screenshots without a full page reload.
     checkForNewScreenshots(): Promise<void>
     toggleIgnoreGame(gameId: number): void
+    // Start a RUN_LENGTH-round scored session (first round rolls
+    // immediately, random across the catalog).
+    startRun(): Promise<void>
+    // Advance a run after a reveal: next random round, or mark the run
+    // finished (opens the recap) once every round is scored.
+    advanceRun(): Promise<void>
+    // Leave the run (abandon mid-way or close the recap) and return to
+    // free browse. Never touches played/best history.
+    endRun(): void
     reset(): void
 }
 
@@ -182,6 +211,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             hasEverPlacedPin: false,
             bestScoreByGame: {},
             previousBestScore: null,
+            run: null,
             history: [],
             historyIndex: -1,
 
@@ -456,7 +486,22 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                             bestScoreByGame,
                         })
                     }
-                    set({ result, correctMap, previousBestScore, phase: 'revealed' })
+                    // Fold the confirmed score into the active run. Guarded
+                    // on !finished so a stray submit after the recap opened
+                    // (shouldn't happen — the map is disabled) can't grow
+                    // the scores array past RUN_LENGTH.
+                    const { run } = get()
+                    const nextRun =
+                        run && !run.finished
+                            ? { ...run, scores: [...run.scores, result.score] }
+                            : run
+                    set({
+                        result,
+                        correctMap,
+                        previousBestScore,
+                        run: nextRun,
+                        phase: 'revealed',
+                    })
                     return result
                 } catch (err) {
                     set({
@@ -469,7 +514,35 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             },
 
             async nextRound() {
+                // Inside a run, "next" advances the run instead of
+                // re-rolling within the current game.
+                if (get().run) {
+                    await get().advanceRun()
+                    return
+                }
                 await get().rerollScreenshot()
+            },
+
+            async startRun() {
+                set({ run: { roundIndex: 0, scores: [], finished: false } })
+                await get().pickRandomAcrossGames()
+            },
+
+            async advanceRun() {
+                const { run } = get()
+                if (!run) return
+                if (run.scores.length >= RUN_LENGTH) {
+                    // All rounds scored — open the recap. The round state
+                    // is left as-is (map disabled by phase 'revealed').
+                    set({ run: { ...run, finished: true } })
+                    return
+                }
+                set({ run: { ...run, roundIndex: run.scores.length } })
+                await get().pickRandomAcrossGames()
+            },
+
+            endRun() {
+                set({ run: null })
             },
 
             async checkForNewScreenshots() {
@@ -501,6 +574,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     phase: 'idle',
                     errorMessage: null,
                     errorCode: null,
+                    run: null,
                     history: [],
                     historyIndex: -1,
                 })

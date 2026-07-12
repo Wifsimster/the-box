@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { Home } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { GeoPoint } from '@the-box/types'
-import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
+import { RUN_LENGTH, useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { ImmersiveLayout } from '@/components/geo/ImmersiveLayout'
 import { FullscreenToggle } from '@/components/geo/FullscreenToggle'
 import { GamePicker } from '@/components/geo/GamePicker'
 import { MapPicker } from '@/components/geo/MapPicker'
+import { RunRecap } from '@/components/geo/RunRecap'
 import {
     ScreenshotPanel,
     MapChunkLoader,
@@ -98,6 +99,7 @@ export function GeoPlayDeck({
         ignoredGameIds,
         hasEverPlacedPin,
         previousBestScore,
+        run,
         history: roundHistory,
         historyIndex,
         selectGame,
@@ -107,6 +109,8 @@ export function GeoPlayDeck({
         goPrevious,
         goNext,
         nextRound,
+        startRun,
+        endRun,
         checkForNewScreenshots,
         toggleIgnoreGame,
     } = store
@@ -231,6 +235,9 @@ export function GeoPlayDeck({
         ],
     )
 
+    const runActive = run != null
+    const runComplete = run != null && run.scores.length >= RUN_LENGTH
+
     const bottomDockSlot: ReactNode = useMemo(
         () => (
             <Dock
@@ -241,10 +248,18 @@ export function GeoPlayDeck({
                 canGoNext={historyIndex < roundHistory.length - 1 || currentGameId != null}
                 onSubmit={onSubmit}
                 onNextRound={() => void nextRound()}
-                onSkip={() => void rerollScreenshot()}
+                // During a run, skip re-rolls across the whole catalog —
+                // the run owns game selection, so a same-game re-roll
+                // would fight it.
+                onSkip={() =>
+                    void (runActive ? pickRandomAcrossGames() : rerollScreenshot())
+                }
                 onClearPin={() => onMapPin(null)}
+                onStartRun={() => void startRun()}
                 onPlaceByCoords={onMapPin}
                 canSubmit={canSubmit}
+                runActive={runActive}
+                runComplete={runComplete}
                 phase={phase}
             />
         ),
@@ -259,7 +274,10 @@ export function GeoPlayDeck({
             nextRound,
             rerollScreenshot,
             onMapPin,
+            startRun,
             canSubmit,
+            runActive,
+            runComplete,
             phase,
         ],
     )
@@ -297,6 +315,11 @@ export function GeoPlayDeck({
                             language={language}
                             correctMapLabel={correctMap?.region ?? null}
                             previousBest={previousBestScore}
+                            runTotal={
+                                run
+                                    ? run.scores.reduce((sum, s) => sum + s, 0)
+                                    : null
+                            }
                         />
                     ) : null
                 }
@@ -312,12 +335,33 @@ export function GeoPlayDeck({
                         }
                         totalCount={currentGame?.screenshotCount ?? null}
                         language={language}
+                        run={
+                            run
+                                ? {
+                                      current: Math.min(
+                                          run.roundIndex + 1,
+                                          RUN_LENGTH,
+                                      ),
+                                      total: RUN_LENGTH,
+                                  }
+                                : null
+                        }
                         onChangeGame={() => setGamePickerOpen(true)}
                         onChangeMap={() => setMapPickerOpen(true)}
+                        onEndRun={endRun}
                     />
                 }
                 bottomDock={bottomDockSlot}
             />
+
+            {run?.finished && (
+                <RunRecap
+                    scores={run.scores}
+                    language={language}
+                    onNewRun={() => void startRun()}
+                    onClose={endRun}
+                />
+            )}
 
             <GamePicker
                 open={gamePickerOpen}
