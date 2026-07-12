@@ -125,6 +125,14 @@ interface GeoFreePlayState {
     // Gates the "tap the map" onboarding hint chip so it only ever shows
     // to players who haven't discovered the core gesture yet.
     hasEverPlacedPin: boolean
+    // Highest confirmed score per game (persisted). Feeds the reveal
+    // sheet's personal-best line.
+    bestScoreByGame: Record<number, number>
+    // The personal best as it stood BEFORE the round currently revealed
+    // (null = first scored round on this game). Transient — captured at
+    // submit time so the reveal can show "new best" / the delta even
+    // though bestScoreByGame has already been updated.
+    previousBestScore: number | null
     // In-memory navigation history (current session only). Each entry is
     // a fully-restorable round so prev/next can step through screenshots
     // the player has already seen — including across game switches.
@@ -172,6 +180,8 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
             playedByGame: {},
             ignoredGameIds: [],
             hasEverPlacedPin: false,
+            bestScoreByGame: {},
+            previousBestScore: null,
             history: [],
             historyIndex: -1,
 
@@ -420,19 +430,33 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                     // Record this metaId as played so the next reroll
                     // (and every future session — see persist config)
                     // excludes it from the random pool.
+                    let previousBestScore: number | null = null
                     if (currentGameId != null) {
                         const prev = get().playedByGame[currentGameId] ?? []
                         const next = prev.includes(view.meta.id)
                             ? prev
                             : [...prev, view.meta.id].slice(-MAX_PLAYED_PER_GAME)
+                        // Capture the pre-round personal best for the reveal
+                        // sheet, then fold this round's score into the
+                        // persisted best when it improves on it.
+                        previousBestScore =
+                            get().bestScoreByGame[currentGameId] ?? null
+                        const bestScoreByGame =
+                            previousBestScore == null || result.score > previousBestScore
+                                ? {
+                                      ...get().bestScoreByGame,
+                                      [currentGameId]: result.score,
+                                  }
+                                : get().bestScoreByGame
                         set({
                             playedByGame: {
                                 ...get().playedByGame,
                                 [currentGameId]: next,
                             },
+                            bestScoreByGame,
                         })
                     }
-                    set({ result, correctMap, phase: 'revealed' })
+                    set({ result, correctMap, previousBestScore, phase: 'revealed' })
                     return result
                 } catch (err) {
                     set({
@@ -496,6 +520,7 @@ export const useGeoFreePlayStore = create<GeoFreePlayState>()(
                 playedByGame: state.playedByGame,
                 ignoredGameIds: state.ignoredGameIds,
                 hasEverPlacedPin: state.hasEverPlacedPin,
+                bestScoreByGame: state.bestScoreByGame,
             }),
             version: 3,
         },

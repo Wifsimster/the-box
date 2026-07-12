@@ -177,10 +177,17 @@ export function MapCanvasLeaflet({
                     <Marker position={canonicalLatLng} icon={EMERALD_DIVICON} />
                 )}
                 {showGuessLine && pinLatLng && canonicalLatLng && (
-                    <Polyline
-                        positions={[pinLatLng, canonicalLatLng]}
-                        pathOptions={{ color: 'var(--foreground)', weight: 2, dashArray: '6 4', opacity: 0.9 }}
-                    />
+                    <>
+                        <Polyline
+                            positions={[pinLatLng, canonicalLatLng]}
+                            pathOptions={{ color: 'var(--foreground)', weight: 2, dashArray: '6 4', opacity: 0.9 }}
+                        />
+                        <RevealFocus
+                            guess={pinLatLng}
+                            canonical={canonicalLatLng}
+                            worldBounds={bounds}
+                        />
+                    </>
                 )}
             </MapContainer>
         </div>
@@ -253,6 +260,49 @@ function TilePyramidLayer({
             layer.remove()
         }
     }, [map, scheme, urlTemplate, tileSize, minZoom, maxZoom, widthPx, heightPx])
+    return null
+}
+
+/**
+ * On reveal, glide the viewport to frame the guess→answer segment so the
+ * payoff (how far off was I?) is visible without hunting for the line.
+ * On unmount (next round / result dismissed) the full map view is
+ * restored so a fresh round never starts zoomed into last round's
+ * corner. Both moves respect prefers-reduced-motion by snapping
+ * instead of animating.
+ */
+function RevealFocus({
+    guess,
+    canonical,
+    worldBounds,
+}: {
+    guess: LatLngExpression
+    canonical: LatLngExpression
+    worldBounds: LatLngBoundsExpression
+}) {
+    const map = useMap()
+    // Depend on the scalar coordinates, not the array identities — the
+    // parent rebuilds those tuples every render and the effect must fire
+    // exactly once per (guess, canonical) pair.
+    const [gLat, gLng] = guess as [number, number]
+    const [cLat, cLng] = canonical as [number, number]
+    useEffect(() => {
+        const animate = !window.matchMedia?.('(prefers-reduced-motion: reduce)')
+            .matches
+        map.fitBounds(L.latLngBounds([gLat, gLng], [cLat, cLng]), {
+            padding: [48, 48],
+            // Near-perfect guesses collapse the bounds to a point;
+            // without a cap fitBounds would zoom in absurdly far.
+            maxZoom: map.getZoom() + 3,
+            animate,
+        })
+        return () => {
+            map.fitBounds(worldBounds, { animate: false })
+        }
+        // worldBounds is stable per map (memoized on widthPx/heightPx
+        // upstream); listing scalars keeps the zoom from re-firing on
+        // unrelated parent renders.
+    }, [map, gLat, gLng, cLat, cLng, worldBounds])
     return null
 }
 

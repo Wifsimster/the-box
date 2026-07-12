@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     TransformComponent,
@@ -27,6 +27,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
+import { geoScoreTier } from '@/lib/geo-score-tiers'
 import { cn } from '@/lib/utils'
 
 export function ScreenshotPanel({
@@ -381,52 +382,159 @@ export function MapPlaceholder({
     )
 }
 
-export function ResultOverlay({
+// Count-up for the reveal score. Ease-out cubic over `durationMs`
+// (--duration-slow). Under prefers-reduced-motion the final value
+// renders immediately — no intermediate frames.
+function useCountUp(target: number, durationMs: number): number {
+    const prefersReduced =
+        typeof window !== 'undefined' &&
+        !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const [value, setValue] = useState(() => (prefersReduced ? target : 0))
+    useEffect(() => {
+        let raf = 0
+        const start = performance.now()
+        const tick = (now: number) => {
+            // Reduced motion: jump straight to the final value (still via
+            // rAF so the state write never happens synchronously in the
+            // effect body).
+            const t = prefersReduced
+                ? 1
+                : Math.min(1, (now - start) / durationMs)
+            const eased = 1 - Math.pow(1 - t, 3)
+            setValue(Math.round(target * eased))
+            if (t < 1) raf = requestAnimationFrame(tick)
+        }
+        raf = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf)
+    }, [target, durationMs, prefersReduced])
+    return value
+}
+
+const TIER_TEXT_CLASS = {
+    high: 'text-score-high',
+    mid: 'text-score-mid',
+    low: 'text-score-low',
+} as const
+
+/**
+ * Round-end reveal sheet. The score counts up in its tier color
+ * (bands in lib/geo-score-tiers.ts), distance reads as "x% from the
+ * target", and a personal-best line gives the round context beyond a
+ * bare number. Screen readers get one static sentence via the sr-only
+ * span — the animated markup is aria-hidden so the count-up can't spam
+ * the live region.
+ */
+export function ResultSheet({
     score,
     distance,
     wrongMap,
     pinCount,
     language,
+    correctMapLabel,
+    previousBest,
 }: {
     score: number
     distance: number
     wrongMap: boolean
     pinCount: number
     language: string
+    correctMapLabel: string | null
+    previousBest: number | null
 }) {
     const { t } = useTranslation()
+    const tier = geoScoreTier(score)
+    const animated = useCountUp(score, 500)
+    const distancePct = (distance * 100).toLocaleString(language, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    })
+    // A floored wrong-map score is a fail state, not an achievement —
+    // never celebrate it as a personal best (the store still records it).
+    const isNewBest = !wrongMap && (previousBest == null || score > previousBest)
     return (
         <output
             aria-live="polite"
             aria-atomic="true"
             className={cn(
-                'block mx-auto max-w-md rounded-2xl border bg-black/70 px-4 py-3 backdrop-blur',
-                wrongMap ? 'border-destructive/50' : 'border-neon-pink/50',
+                'block mx-auto max-w-md rounded-2xl border bg-black/80 px-4 py-3.5 backdrop-blur',
+                'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-300',
+                wrongMap
+                    ? 'border-destructive/60'
+                    : tier === 'high'
+                      ? 'border-success/50'
+                      : 'border-white/15',
             )}
+            style={
+                !wrongMap && tier === 'high'
+                    ? { boxShadow: 'var(--glow-success)' }
+                    : undefined
+            }
         >
-            <div className="flex items-center justify-between gap-3 text-white">
-                <div className="flex items-center gap-2">
-                    <Trophy className="size-4 text-neon-pink" aria-hidden />
-                    <span className="font-semibold text-lg">
-                        {score.toLocaleString(language)}
-                    </span>
+            <span className="sr-only">
+                {t('geo.play.result.announce', {
+                    defaultValue: 'Score {{score}} — {{percent}}% from the target',
+                    score: score.toLocaleString(language),
+                    percent: distancePct,
+                })}
+            </span>
+            <div aria-hidden className="text-white">
+                <div className="flex items-end justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <Trophy
+                            className={cn('size-5', TIER_TEXT_CLASS[tier])}
+                        />
+                        <span
+                            className={cn(
+                                'text-3xl font-bold tabular-nums leading-none',
+                                TIER_TEXT_CLASS[tier],
+                            )}
+                        >
+                            {animated.toLocaleString(language)}
+                        </span>
+                        <span className="text-xs text-white/70">
+                            {t('geo.daily.score', 'Score')}
+                        </span>
+                    </div>
                     <span className="text-xs text-white/70">
-                        {t('geo.daily.score', 'Score')}
+                        {t('geo.play.result.fromTarget', {
+                            defaultValue: '{{percent}}% from the target',
+                            percent: distancePct,
+                        })}
                     </span>
                 </div>
-                <span className="text-xs text-white/70">
-                    {t('geo.daily.distance', 'Distance')}: {(distance * 100).toFixed(1)}%
-                </span>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-white/70">
+                    <span className="inline-flex items-center gap-1">
+                        <MapPin className="size-3 text-neon-pink" />
+                        {t('geo.daily.pinCount', { count: pinCount })}
+                    </span>
+                    {isNewBest ? (
+                        <span className="font-medium text-score-high">
+                            {t('geo.play.result.newBest', 'New personal best!')}
+                        </span>
+                    ) : previousBest != null ? (
+                        <span>
+                            {t('geo.play.result.best', {
+                                defaultValue: 'Personal best: {{score}}',
+                                score: previousBest.toLocaleString(language),
+                            })}
+                        </span>
+                    ) : null}
+                </div>
+                {wrongMap && (
+                    <p className="mt-2 text-xs text-destructive">
+                        {t('geo.daily.wrongMap.banner', 'Wrong map — score floored.')}
+                        {correctMapLabel && (
+                            <>
+                                {' '}
+                                {t('geo.play.result.correctMap', {
+                                    defaultValue: 'The correct map was: {{map}}',
+                                    map: correctMapLabel,
+                                })}
+                            </>
+                        )}
+                    </p>
+                )}
             </div>
-            <div className="mt-1 flex items-center gap-1 text-xs text-white/70">
-                <MapPin className="size-3 text-neon-pink" aria-hidden />
-                <span>{t('geo.daily.pinCount', { count: pinCount })}</span>
-            </div>
-            {wrongMap && (
-                <p className="mt-1 text-xs text-destructive">
-                    {t('geo.daily.wrongMap.banner', 'Wrong map — score floored.')}
-                </p>
-            )}
         </output>
     )
 }

@@ -2547,6 +2547,13 @@
       "hint": {
         "tapMap": "Touchez la carte pour placer l'épingle"
       },
+      "result": {
+        "announce": "Score {{score}} — à {{percent}} % de la cible",
+        "fromTarget": "à {{percent}} % de la cible",
+        "newBest": "Nouveau record perso !",
+        "best": "Record perso : {{score}}",
+        "correctMap": "La bonne carte était : {{map}}"
+      },
       "next": "Suivant",
       "reroll": "Nouvelle capture",
       "shuffleAllGames": "Jeu aléatoire",
