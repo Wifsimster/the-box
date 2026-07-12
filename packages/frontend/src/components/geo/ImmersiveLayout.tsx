@@ -1,6 +1,6 @@
-import { type ReactNode } from 'react'
+import { useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Image as ImageIcon, MapPin } from 'lucide-react'
+import { Image as ImageIcon, MapPin, Maximize2, Minimize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ImmersiveLayoutProps {
@@ -49,6 +49,19 @@ export function ImmersiveLayout({
 }: ImmersiveLayoutProps) {
     const { t } = useTranslation()
 
+    // Desktop focus-expand: the split is photo-dominant (60/40) while
+    // studying the screenshot and flips map-dominant when the pointer or
+    // keyboard focus is on the map — the active surface gets the space.
+    // The pin toggle locks the expansion for players who want the map
+    // large full-time. Hover state is pointer-only by construction
+    // (mouseenter never fires on touch), so mobile is untouched.
+    const [mapHovered, setMapHovered] = useState(false)
+    const [mapPinned, setMapPinned] = useState(false)
+    const mapExpanded = mapPinned || mapHovered
+    const deckStyle = {
+        '--geo-desktop-cols': mapExpanded ? '35fr 65fr' : '60fr 40fr',
+    } as CSSProperties
+
     return (
         <div
             className={cn(
@@ -85,12 +98,18 @@ export function ImmersiveLayout({
 
             {/* Deck — both panels are always visible. On mobile the map gets
                 visual priority (the user's active surface) with the photo
-                kept reference-sized above; on tablet/desktop they go
-                side-by-side at equal width. Row split favors the map hard:
-                the dock is now a single row, and the reclaimed space
-                belongs to the surface the player acts on. */}
+                kept reference-sized above; the dock is a single row, so the
+                reclaimed space belongs to the surface the player acts on.
+                On desktop the split is photo-dominant and expands toward
+                the map on hover / pin (see mapExpanded above); the
+                grid-template-columns transition interpolates in Chromium /
+                Firefox and snaps elsewhere, which is an acceptable
+                fallback. */}
             <div className="flex-1 relative overflow-hidden">
-                <div className="absolute inset-0 grid grid-rows-[minmax(30%,1fr)_minmax(52%,1.6fr)] md:grid-rows-1 md:grid-cols-2">
+                <div
+                    className="absolute inset-0 grid grid-rows-[minmax(30%,1fr)_minmax(52%,1.6fr)] md:grid-rows-1 md:[grid-template-columns:var(--geo-desktop-cols)] md:transition-[grid-template-columns] md:duration-300 motion-reduce:md:transition-none"
+                    style={deckStyle}
+                >
                     <Panel
                         id="geo-panel-photo"
                         tag={
@@ -113,6 +132,42 @@ export function ImmersiveLayout({
                                 <MapPin className="size-3.5" aria-hidden />
                                 <span>{t('geo.play.tabs.map', 'Map')}</span>
                             </>
+                        }
+                        onMouseEnter={() => setMapHovered(true)}
+                        onMouseLeave={() => setMapHovered(false)}
+                        onFocusCapture={() => setMapHovered(true)}
+                        onBlurCapture={(e) => {
+                            // Only collapse when focus actually left the
+                            // panel (blur fires on every inner move too).
+                            if (
+                                !e.currentTarget.contains(
+                                    e.relatedTarget as Node | null,
+                                )
+                            ) {
+                                setMapHovered(false)
+                            }
+                        }}
+                        cornerAction={
+                            <button
+                                type="button"
+                                onClick={() => setMapPinned((p) => !p)}
+                                aria-pressed={mapPinned}
+                                aria-label={t(
+                                    'geo.play.expandMap',
+                                    'Keep the map enlarged',
+                                )}
+                                title={t(
+                                    'geo.play.expandMap',
+                                    'Keep the map enlarged',
+                                )}
+                                className="pointer-events-auto absolute right-3 top-3 z-20 hidden size-9 items-center justify-center rounded-full bg-black/55 text-white shadow backdrop-blur hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink md:inline-flex"
+                            >
+                                {mapPinned ? (
+                                    <Minimize2 className="size-4" aria-hidden />
+                                ) : (
+                                    <Maximize2 className="size-4" aria-hidden />
+                                )}
+                            </button>
                         }
                     >
                         {map}
@@ -158,12 +213,21 @@ function Panel({
     className,
     children,
     inert: inertProp,
+    cornerAction,
+    ...handlers
 }: {
     id: string
     tag: ReactNode
     className?: string
     children: ReactNode
     inert?: boolean
+    // Optional interactive control anchored in the panel's top-right
+    // corner (e.g. the desktop map-expand pin toggle).
+    cornerAction?: ReactNode
+    onMouseEnter?: () => void
+    onMouseLeave?: () => void
+    onFocusCapture?: () => void
+    onBlurCapture?: (e: FocusEvent<HTMLDivElement>) => void
 }) {
     return (
         <div
@@ -173,6 +237,7 @@ function Panel({
                 className,
             )}
             inert={inertProp || undefined}
+            {...handlers}
         >
             {children}
             {/* Type-tag badge — desktop only. On mobile the panels are
@@ -181,6 +246,7 @@ function Panel({
             <div className="pointer-events-none absolute left-3 top-3 z-20 hidden items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white shadow backdrop-blur md:inline-flex">
                 {tag}
             </div>
+            {cornerAction}
         </div>
     )
 }

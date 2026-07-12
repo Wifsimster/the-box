@@ -133,6 +133,7 @@ export function MapCanvasLeaflet({
                 style={{ height: '100%', width: '100%', background: 'var(--background)' }}
             >
                 <ZoomControl position="bottomright" />
+                <AutoInvalidateSize />
                 {tiles ? (
                     <TilePyramidLayer
                         tiles={tiles}
@@ -260,6 +261,26 @@ function TilePyramidLayer({
             layer.remove()
         }
     }, [map, scheme, urlTemplate, tileSize, minZoom, maxZoom, widthPx, heightPx])
+    return null
+}
+
+/**
+ * Leaflet only re-measures itself on window resize — a container-level
+ * resize (the desktop focus-expand split, the fullscreen toggle) leaves
+ * its hit-testing and tile math sized for the old box. Watch the
+ * container with a ResizeObserver and invalidate on change.
+ */
+function AutoInvalidateSize() {
+    const map = useMap()
+    useEffect(() => {
+        const container = map.getContainer()
+        const observer = new ResizeObserver(() => {
+            // pan:false — re-measure without nudging the current view.
+            map.invalidateSize({ pan: false })
+        })
+        observer.observe(container)
+        return () => observer.disconnect()
+    }, [map])
     return null
 }
 
