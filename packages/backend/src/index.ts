@@ -23,6 +23,7 @@ import rewardsRoutes from './presentation/routes/rewards.routes.js'
 import referralRoutes from './presentation/routes/referral.routes.js'
 import ogRoutes, { parseGeoRunScores } from './presentation/routes/og.routes.js'
 import geoRoutes from './presentation/routes/geo.routes.js'
+import featuresRoutes from './presentation/routes/features.routes.js'
 import geoGamersRoutes from './presentation/routes/geogamers.routes.js'
 import screenshotReportRoutes from './presentation/routes/screenshot-report.routes.js'
 import pushRoutes from './presentation/routes/push.routes.js'
@@ -243,7 +244,14 @@ app.use('/api/inventory', dailyLoginRoutes)
 app.use('/api/rewards', rewardsRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
-app.use('/api/geo', geoRoutes)
+app.use('/api/features', featuresRoutes)
+// Community geo surface (free play + contribution) — mounted only while the
+// community dataset-building loop is active. Unmounting sunsets the player
+// routes without touching the geo data layer: ingestion, the agent sourcing
+// API and GeoGamers don't go through /api/geo.
+if (env.GEO_COMMUNITY_ENABLED === 'true') {
+  app.use('/api/geo', geoRoutes)
+}
 // GeoGamers mode — mounted only when enabled so the API surface stays dark
 // until there's enough consensus-confirmed content to schedule challenges.
 if (env.GEOGAMERS_ENABLED === 'true') {

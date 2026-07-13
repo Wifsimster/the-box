@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
+import { useFeatures, type RuntimeFeatures } from '@/hooks/useFeatures'
 
 interface ModeCard {
   key: string
@@ -19,6 +20,8 @@ interface ModeCard {
   descriptionKey: string
   /** i18n key for the small status badge (alpha / new). */
   badgeKey: string
+  /** Runtime feature flag gating this card. Cards without one always show. */
+  feature?: keyof RuntimeFeatures
 }
 
 const MODES: ModeCard[] = [
@@ -29,6 +32,7 @@ const MODES: ModeCard[] = [
     titleKey: 'common.geo',
     descriptionKey: 'home.modes.geo.description',
     badgeKey: 'common.alpha',
+    feature: 'geoCommunity',
   },
   {
     key: 'geogamers',
@@ -50,8 +54,12 @@ export function HomeModesShowcase() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const reducedMotion = useReducedMotionSafe()
+  const features = useFeatures()
   const motionProps = (props: MotionProps): MotionProps =>
     reducedMotion ? {} : props
+
+  const modes = MODES.filter((mode) => !mode.feature || features[mode.feature])
+  if (modes.length === 0) return null
 
   return (
     <m.section
@@ -83,7 +91,7 @@ export function HomeModesShowcase() {
       </div>
 
       <div className="grid gap-4 sm:gap-5 sm:grid-cols-2">
-        {MODES.map((mode) => {
+        {modes.map((mode) => {
           const Icon = mode.icon
           return (
             <Link

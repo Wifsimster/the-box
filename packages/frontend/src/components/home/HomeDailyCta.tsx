@@ -5,6 +5,7 @@ import { Play, Trophy, History, Clock, CalendarDays, MapPin } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useFeatures } from '@/hooks/useFeatures'
 
 interface YesterdayChallenge {
   challengeId: number
@@ -53,6 +54,7 @@ export function HomeDailyCta({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
+  const { geoCommunity } = useFeatures()
   const { isLoading, isTodayCompleted, isOnline, hasSession, previewAvailable } = status
 
   return (
@@ -140,22 +142,24 @@ export function HomeDailyCta({
               </Button>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(localizedPath('/geo'))}
-            data-tour="geo-cta"
-            className="gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-neon-pink"
-          >
-            <MapPin className="size-4" />
-            {t('home.geoCta')}
-            <Badge
-              variant="outline"
-              className="ml-1 h-4 px-1 text-[9px] font-semibold uppercase tracking-wide border-neon-pink/40 text-neon-pink"
+          {geoCommunity && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(localizedPath('/geo'))}
+              data-tour="geo-cta"
+              className="gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-neon-pink"
             >
-              {t('common.alpha')}
-            </Badge>
-          </Button>
+              <MapPin className="size-4" />
+              {t('home.geoCta')}
+              <Badge
+                variant="outline"
+                className="ml-1 h-4 px-1 text-[9px] font-semibold uppercase tracking-wide border-neon-pink/40 text-neon-pink"
+              >
+                {t('common.alpha')}
+              </Badge>
+            </Button>
+          )}
           {!isTodayCompleted && !hasSession && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {t('home.guestHint')}

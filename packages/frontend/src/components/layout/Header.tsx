@@ -23,6 +23,7 @@ import { Menu, User, ChevronDown, LogOut, Settings, Sparkles, LifeBuoy, Compass 
 import { PRIMARY_NAV, type NavLinkItem } from '@/components/layout/nav-items'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
+import { useFeatures } from '@/hooks/useFeatures'
 import { DailyRewardBadge } from '@/components/daily-login'
 import { RewardsInboxBell } from '@/components/rewards'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
@@ -272,6 +273,12 @@ export function Header() {
   const { localizedPath } = useLocalizedPath()
   const navigate = useNavigate()
   const { session, isPending, signOut } = useAuth()
+  const features = useFeatures()
+  // Drop nav entries whose runtime feature flag is off (e.g. the Geo entry on
+  // a deployment that sunset the community geo surface).
+  const primaryNav = PRIMARY_NAV.filter(
+    (item) => !item.feature || features[item.feature],
+  )
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isScrolled = useSyncExternalStore(
     subscribeScrolled,
@@ -347,7 +354,7 @@ export function Header() {
               </SheetHeader>
 
               <nav aria-label={t('nav.mobile')} className="mt-6 flex flex-col gap-1">
-                {PRIMARY_NAV.map((item) => (
+                {primaryNav.map((item) => (
                   <NavItemLink
                     key={item.key}
                     item={item}
@@ -402,7 +409,7 @@ export function Header() {
 
         {/* Desktop primary navigation — shown at md and up */}
         <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 md:flex lg:gap-2">
-          {PRIMARY_NAV.map((item) => (
+          {primaryNav.map((item) => (
             <NavItemLink key={item.key} item={item} variant="desktop" />
           ))}
           {showPremiumUpsell && <NavItemLink item={PREMIUM_NAV_ITEM} variant="desktop" accent />}

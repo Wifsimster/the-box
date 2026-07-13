@@ -22,6 +22,10 @@ Trois activités cohabitent :
 - **Contribution** — le joueur place un pin sur une capture sans coordonnées canoniques. Le système agrège les pins (consensus) et promeut une position canonique au-delà d'un seuil de fiabilité.
 - **Pipeline d'ingestion** — un orchestrateur admin fait tourner plusieurs workers d'import pour rapatrier des cartes de jeu et des captures depuis des sources externes.
 
+### Kill switch de la surface communautaire
+
+Les deux premières activités (free play + contribution, servies par `/api/geo`) sont gouvernées par `GEO_COMMUNITY_ENABLED` (défaut `true`). À `false`, les routes joueur sont démontées (404) et le frontend masque l'entrée de navigation Géo et les cartes d'accueil (via `GET /api/features`) — le mode peut donc être mis en sommeil si la constitution du dataset passe au sourcing agent (voir `docs/geo-agent-api.md`) plutôt qu'au crowdsourcing. La **couche de données géo n'est pas touchée** : pipeline d'ingestion, API agent, panel admin Geo-Fetch et GeoGamers continuent de fonctionner (ils ne passent pas par `/api/geo`), et le worker de consensus reste actif car les propositions de pins agent l'alimentent toujours.
+
 ## Mécanique de jeu (free play)
 
 ### Scoring
