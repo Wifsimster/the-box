@@ -10,10 +10,25 @@
 // Wire into Claude Code (see README.md) with an `mcpServers` entry pointing at
 // this file and the two env vars.
 
-import { handleRpc, type ApiRequest, type JsonRpcMessage } from './server.js'
+import { readFileSync } from 'node:fs'
+import { handleRpc, SERVER_INFO, type ApiRequest, type JsonRpcMessage } from './server.js'
 
 const API_URL = (process.env['THE_BOX_API_URL'] ?? 'http://localhost:3000').replace(/\/+$/, '')
 const AGENT_KEY = process.env['THE_BOX_AGENT_KEY'] ?? ''
+
+// Advertise the package.json version so it tracks the release workflow's
+// version bumps instead of a hand-synced constant that silently drifts.
+const SERVER_VERSION = ((): string => {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as { version?: string }
+    return pkg.version ?? SERVER_INFO.version
+  } catch {
+    return SERVER_INFO.version
+  }
+})()
+const serverInfo = { name: SERVER_INFO.name, version: SERVER_VERSION }
 
 function log(msg: string): void {
   process.stderr.write(`[geo-agent-mcp] ${msg}\n`)
@@ -67,7 +82,7 @@ async function main(): Promise<void> {
         log(`skipping unparseable line: ${line.slice(0, 120)}`)
         continue
       }
-      void handleRpc(msg, { callApi })
+      void handleRpc(msg, { callApi, serverInfo })
         .then((response) => {
           if (response) write(response)
         })

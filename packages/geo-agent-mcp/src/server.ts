@@ -3,7 +3,10 @@
 // is fully unit-testable. `index.ts` wires this to a newline-delimited stdio
 // transport and a real HTTP client.
 
-export const SERVER_INFO = { name: 'the-box-geo-agent', version: '2.139.0' } as const
+// Server identity. `version` here is only a fallback: the stdio entrypoint
+// (index.ts) injects the real version read from package.json at startup, so the
+// advertised version tracks the release-bumped package.json instead of drifting.
+export const SERVER_INFO = { name: 'the-box-geo-agent', version: '0.0.0-dev' } as const
 export const DEFAULT_PROTOCOL_VERSION = '2024-11-05'
 
 export interface ToolDef {
@@ -435,6 +438,9 @@ export interface RpcDeps {
   // JSON. Defaults to GET; the ingest tool issues a POST with a JSON body.
   callApi: (req: ApiRequest) => Promise<unknown>
   protocolVersion?: string
+  // Overrides SERVER_INFO for the initialize reply (index.ts passes the
+  // package.json version). Falls back to SERVER_INFO when omitted (tests).
+  serverInfo?: { name: string; version: string }
 }
 
 function result(id: JsonRpcMessage['id'], value: unknown) {
@@ -466,7 +472,7 @@ export async function handleRpc(
           deps.protocolVersion ??
           DEFAULT_PROTOCOL_VERSION,
         capabilities: { tools: {} },
-        serverInfo: SERVER_INFO,
+        serverInfo: deps.serverInfo ?? SERVER_INFO,
       })
     case 'ping':
       return result(msg.id, {})
