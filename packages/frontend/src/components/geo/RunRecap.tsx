@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Share2, X, Zap } from 'lucide-react'
+import { Check, Share2, Star, X, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCountUp } from '@/hooks/useCountUp'
-import { geoScoreTier } from '@/lib/geo-score-tiers'
+import { GEO_ROUND_MAX, geoScoreTier } from '@/lib/geo-score-tiers'
 import { RUN_LENGTH } from '@/stores/geoFreePlayStore'
 import { cn } from '@/lib/utils'
 
@@ -18,9 +18,6 @@ const TIER_BG_CLASS = {
     mid: 'bg-score-mid',
     low: 'bg-score-low',
 } as const
-
-// Per-round max from the scoring curve (docs/geo-mode.md).
-const ROUND_MAX = 2000
 
 /**
  * End-of-run recap: total count-up colored by the run's average tier,
@@ -41,8 +38,12 @@ export function RunRecap({
 }) {
     const { t } = useTranslation()
     const total = scores.reduce((sum, s) => sum + s, 0)
-    const max = RUN_LENGTH * ROUND_MAX
+    const max = RUN_LENGTH * GEO_ROUND_MAX
     const tier = geoScoreTier(total / Math.max(1, scores.length))
+    // Index of the best round — starred in the bar chart. Only
+    // meaningful when at least one round actually scored points.
+    const bestScore = Math.max(...scores)
+    const bestIndex = bestScore > 0 ? scores.indexOf(bestScore) : -1
     const animatedTotal = useCountUp(total, 700)
     const [copied, setCopied] = useState(false)
 
@@ -126,33 +127,52 @@ export function RunRecap({
                     </span>
                 </p>
 
-                {/* One dot per round, colored by that round's tier. */}
-                <ul className="mt-4 flex items-center justify-center gap-3">
-                    {scores.map((score, i) => (
-                        <li
-                            key={i}
-                            className="flex flex-col items-center gap-1"
-                            aria-label={t('geo.play.run.roundAria', {
-                                defaultValue: 'Round {{round}}: {{score}} points',
-                                round: i + 1,
-                                score: score.toLocaleString(language),
-                            })}
-                        >
-                            <span
-                                className={cn(
-                                    'size-3 rounded-full',
-                                    TIER_BG_CLASS[geoScoreTier(score)],
-                                )}
-                                aria-hidden
-                            />
-                            <span
-                                className="text-[10px] tabular-nums text-muted-foreground"
-                                aria-hidden
+                {/* One bar per round — height scales with the score,
+                    color follows the round's tier, and the best round
+                    gets a star. Reads round-by-round at a glance where
+                    the old 3px dots only encoded the tier. */}
+                <ul className="mt-5 flex items-end justify-center gap-2.5">
+                    {scores.map((score, i) => {
+                        const isBest = i === bestIndex
+                        return (
+                            <li
+                                key={i}
+                                className="flex w-10 flex-col items-center gap-1"
+                                aria-label={t('geo.play.run.roundAria', {
+                                    defaultValue: 'Round {{round}}: {{score}} points',
+                                    round: i + 1,
+                                    score: score.toLocaleString(language),
+                                })}
                             >
-                                {score.toLocaleString(language)}
-                            </span>
-                        </li>
-                    ))}
+                                {isBest && (
+                                    <Star
+                                        className="size-3 fill-score-high text-score-high"
+                                        aria-hidden
+                                    />
+                                )}
+                                <span
+                                    aria-hidden
+                                    className="flex h-16 w-3 items-end overflow-hidden rounded-full bg-muted/40"
+                                >
+                                    <span
+                                        className={cn(
+                                            'block w-full rounded-full',
+                                            TIER_BG_CLASS[geoScoreTier(score)],
+                                        )}
+                                        style={{
+                                            height: `${Math.max(6, Math.min(100, (score / GEO_ROUND_MAX) * 100))}%`,
+                                        }}
+                                    />
+                                </span>
+                                <span
+                                    className="text-[10px] tabular-nums text-muted-foreground"
+                                    aria-hidden
+                                >
+                                    {score.toLocaleString(language)}
+                                </span>
+                            </li>
+                        )
+                    })}
                 </ul>
 
                 <div className="mt-6 flex flex-col gap-2">

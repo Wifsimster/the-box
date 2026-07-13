@@ -157,6 +157,8 @@ export function GeoPlayDeck({
                 }
                 errorMessage={phase === 'error' ? errorMessage : null}
                 onPickGame={() => setGamePickerOpen(true)}
+                onQuickPlay={() => void pickRandomAcrossGames()}
+                onStartRun={() => void startRun()}
                 onCheckForNew={() => void checkForNewScreenshots()}
                 onIgnoreCurrent={() => {
                     if (currentGameId != null) {
@@ -178,6 +180,8 @@ export function GeoPlayDeck({
             ignoredSet,
             errorMessage,
             setGamePickerOpen,
+            pickRandomAcrossGames,
+            startRun,
             checkForNewScreenshots,
             toggleIgnoreGame,
         ],
@@ -237,6 +241,14 @@ export function GeoPlayDeck({
 
     const runActive = run != null
     const runComplete = run != null && run.scores.length >= RUN_LENGTH
+
+    // Full-deck takeover: with no game selected the split layout has
+    // nothing to split (the map panel would only say "pick a game
+    // first"), and the auth wall deserves the whole stage rather than
+    // the top third. In both cases the screenshot slot already renders
+    // the right state screen — hand it to the layout's hero slot and
+    // drop the dock (the state screens carry their own CTAs).
+    const showHero = currentGameId == null || phase === 'authRequired'
 
     const bottomDockSlot: ReactNode = useMemo(
         () => (
@@ -303,6 +315,7 @@ export function GeoPlayDeck({
                 mapInert={gamePickerOpen || mapPickerOpen}
                 roundKey={`${currentGameId ?? 'none'}-${round}`}
                 topRight={topRightSlot}
+                hero={showHero ? screenshotSlot : undefined}
                 screenshot={screenshotSlot}
                 map={mapSlot}
                 resultOverlay={
@@ -324,6 +337,9 @@ export function GeoPlayDeck({
                     ) : null
                 }
                 topBar={
+                    // The welcome/auth hero carries its own entry points —
+                    // context chips on top of it would just duplicate them.
+                    showHero ? null : (
                     <ContextHeader
                         gameLabel={currentGame?.name ?? null}
                         mapLabel={selectedMap?.region ?? null}
@@ -350,8 +366,9 @@ export function GeoPlayDeck({
                         onChangeMap={() => setMapPickerOpen(true)}
                         onEndRun={endRun}
                     />
+                    )
                 }
-                bottomDock={bottomDockSlot}
+                bottomDock={showHero ? null : bottomDockSlot}
             />
 
             {run?.finished && (

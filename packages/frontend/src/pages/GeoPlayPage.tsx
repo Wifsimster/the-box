@@ -107,23 +107,9 @@ export default function GeoPlayPage() {
           })
         : ''
 
-    // Open the game picker for a fresh visitor with no selection — gives
-    // them an obvious "what do I do here" cue instead of a blank canvas.
-    // Guarded by a ref so a later catalog refresh can't yank the picker
-    // back open over the player.
-    const hasAutoOpenedPickerRef = useRef(false)
-    useEffect(() => {
-        if (
-            !hasAutoOpenedPickerRef.current &&
-            currentGameId == null &&
-            games.length > 0
-        ) {
-            hasAutoOpenedPickerRef.current = true
-            // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot opener that keys off games-list arrival; the ref ensures it fires at most once per session.
-            setGamePickerOpen(true)
-        }
-    }, [games.length, currentGameId])
-
+    // Fresh visitors with no selection land on the full-deck welcome
+    // hero (see GeoWelcome), which carries the pitch and the entry
+    // points — no picker sheet is auto-opened over them anymore.
     const isMultiMap = maps.length > 1
     const selectedMap = useMemo(
         () => maps.find((m) => m.id === currentMapId) ?? null,

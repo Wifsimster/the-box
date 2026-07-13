@@ -27,11 +27,12 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { GeoWelcome } from '@/components/geo/GeoWelcome'
 import { StatePanel } from '@/components/geo/StatePanel'
-import { useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
+import { RUN_LENGTH, useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
 import { useCountUp } from '@/hooks/useCountUp'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
-import { geoScoreTier } from '@/lib/geo-score-tiers'
+import { GEO_ROUND_MAX, geoScoreTier } from '@/lib/geo-score-tiers'
 import { cn } from '@/lib/utils'
 
 export function ScreenshotPanel({
@@ -49,6 +50,8 @@ export function ScreenshotPanel({
     canIgnoreCurrent,
     errorMessage,
     onPickGame,
+    onQuickPlay,
+    onStartRun,
     onCheckForNew,
     onIgnoreCurrent,
 }: {
@@ -66,6 +69,8 @@ export function ScreenshotPanel({
     canIgnoreCurrent: boolean
     errorMessage: string | null
     onPickGame: () => void
+    onQuickPlay: () => void
+    onStartRun: () => void
     onCheckForNew: () => void
     onIgnoreCurrent: () => void
 }) {
@@ -175,54 +180,18 @@ export function ScreenshotPanel({
     }
 
     if (empty) {
+        // Cold-start welcome — rendered full-deck via the layout's hero
+        // slot (see GeoPlayDeck), so it owns the pitch, social proof and
+        // all three entry points instead of auto-opening the picker.
         return (
-            <StatePanel
-                icon={<MapPin className="size-8 text-neon-pink" aria-hidden />}
-                title={t('geo.play.empty.title', 'Help us map the world of video games')}
-                body={t(
-                    'geo.play.empty.body',
-                    'Look at a screenshot, then drop a pin where the scene takes place on the game world map. Every pin grows a shared atlas that powers future location-guessing modes.',
-                )}
-                bodyMaxWidthClass="max-w-md space-y-2"
-                actions={
-                    <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90 min-h-12">
-                        <Gamepad2 className="size-4 mr-2" aria-hidden />
-                        {t('geo.play.empty.cta', 'Pick a game')}
-                    </Button>
-                }
-            >
-                {/* Cold-start social proof: only render once we have a
-                    real number from the server, and only when there's
-                    actually been activity today (>0). A "0 pins today"
-                    chip would do the opposite of social proof. */}
-                {pinsToday != null && pinsToday > 0 && (
-                    <p
-                        className="inline-flex items-center gap-1.5 rounded-full bg-neon-pink/10 px-3 py-1 text-xs text-white/90"
-                        aria-live="polite"
-                    >
-                        <Sparkles className="size-3 text-neon-pink" aria-hidden />
-                        {t('geo.play.empty.pinsToday', {
-                            defaultValue: '{{count}} pins dropped today by the community',
-                            count: pinsToday,
-                            formatted: pinsToday.toLocaleString(language),
-                        })}
-                    </p>
-                )}
-                <ol className="text-left text-xs text-muted-foreground/90 space-y-1.5 max-w-xs">
-                    <li className="flex gap-2">
-                        <span className="font-semibold text-neon-pink">1.</span>
-                        <span>{t('geo.play.empty.steps.one', 'Pick a game from your catalog.')}</span>
-                    </li>
-                    <li className="flex gap-2">
-                        <span className="font-semibold text-neon-pink">2.</span>
-                        <span>{t('geo.play.empty.steps.two', 'Tap the map where you think the screenshot was taken.')}</span>
-                    </li>
-                    <li className="flex gap-2">
-                        <span className="font-semibold text-neon-pink">3.</span>
-                        <span>{t('geo.play.empty.steps.three', 'Confirm — your pin joins the dataset.')}</span>
-                    </li>
-                </ol>
-            </StatePanel>
+            <GeoWelcome
+                pinsToday={pinsToday}
+                language={language}
+                runLength={RUN_LENGTH}
+                onQuickPlay={onQuickPlay}
+                onPickGame={onPickGame}
+                onStartRun={onStartRun}
+            />
         )
     }
 
@@ -371,6 +340,20 @@ const TIER_TEXT_CLASS = {
     low: 'text-score-low',
 } as const
 
+const TIER_BG_CLASS = {
+    high: 'bg-score-high',
+    mid: 'bg-score-mid',
+    low: 'bg-score-low',
+} as const
+
+// Qualitative verdict per tier — gives the reveal a human read of the
+// bare number ("Excellent!" vs "Way off…") before the meter quantifies it.
+const TIER_LABEL_KEY = {
+    high: ['geo.play.result.tierLabel.high', 'Excellent!'],
+    mid: ['geo.play.result.tierLabel.mid', 'Nice one!'],
+    low: ['geo.play.result.tierLabel.low', 'Way off…'],
+} as const
+
 /**
  * Round-end reveal sheet. The score counts up in its tier color
  * (bands in lib/geo-score-tiers.ts), distance reads as "x% from the
@@ -451,8 +434,15 @@ export function ResultSheet({
                         >
                             {animated.toLocaleString(language)}
                         </span>
-                        <span className="text-xs text-white/70">
-                            {t('geo.daily.score', 'Score')}
+                        <span
+                            className={cn(
+                                'text-xs font-semibold',
+                                wrongMap ? 'text-white/70' : TIER_TEXT_CLASS[tier],
+                            )}
+                        >
+                            {wrongMap
+                                ? t('geo.daily.score', 'Score')
+                                : t(TIER_LABEL_KEY[tier][0], TIER_LABEL_KEY[tier][1])}
                         </span>
                     </div>
                     <span className="text-xs text-white/70">
@@ -461,6 +451,20 @@ export function ResultSheet({
                             percent: distancePct,
                         })}
                     </span>
+                </div>
+                {/* Score meter toward the 2000-point ceiling — quantifies
+                    the tier verdict at a glance. Purely decorative: the
+                    sr-only sentence above already carries the numbers. */}
+                <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                        className={cn(
+                            'h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500',
+                            TIER_BG_CLASS[tier],
+                        )}
+                        style={{
+                            width: `${Math.min(100, (score / GEO_ROUND_MAX) * 100)}%`,
+                        }}
+                    />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-white/70">
                     <span className="inline-flex items-center gap-1">
@@ -790,22 +794,23 @@ export function Dock({
                         aria-label={t('geo.play.skip', "I don't know — skip this one")}
                         title={t('geo.play.skip', "I don't know — skip this one")}
                     >
-                        <SkipForward className="size-4 sm:mr-1.5" aria-hidden />
-                        <span className="hidden sm:inline">
-                            {t('geo.play.skipShort', 'Skip')}
-                        </span>
+                        <SkipForward className="size-4 mr-1.5" aria-hidden />
+                        {t('geo.play.skipShort', 'Skip')}
                     </Button>
                     {!runActive && (
                         <Button
                             type="button"
-                            variant="ghost"
+                            variant="outline"
                             onClick={onStartRun}
-                            className="min-h-12 text-neon-cyan hover:text-white"
+                            className="min-h-12 rounded-full border-neon-cyan/50 bg-transparent text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan"
                             disabled={loading}
                             aria-label={t('geo.play.run.start', 'Start a run')}
                             title={t('geo.play.run.start', 'Start a run')}
                         >
-                            <Zap className="size-4 sm:mr-1.5" aria-hidden />
+                            <Zap className="size-4 mr-1.5" aria-hidden />
+                            <span className="sm:hidden">
+                                {t('geo.play.run.startShort', 'Run')}
+                            </span>
                             <span className="hidden sm:inline">
                                 {t('geo.play.run.start', 'Start a run')}
                             </span>
