@@ -2563,11 +2563,17 @@
         "fromTarget": "{{percent}}% from the target",
         "newBest": "New personal best!",
         "best": "Personal best: {{score}}",
-        "correctMap": "The correct map was: {{map}}"
+        "correctMap": "The correct map was: {{map}}",
+        "tierLabel": {
+          "high": "Excellent!",
+          "mid": "Nice one!",
+          "low": "Way off…"
+        }
       },
       "progressAria": "{{played}} of {{total}} screenshots played",
       "run": {
         "start": "Start a run",
+        "startShort": "Run",
         "chip": "Run {{current}}/{{total}}",
         "abandon": "Abandon the run",
         "total": "Run total: {{score}}",
@@ -2595,17 +2601,17 @@
       "deck": {
         "label": "Screenshot and map"
       },
-      "empty": {
-        "title": "Help us map the world of video games",
-        "body": "Look at a screenshot, then drop a pin where the scene takes place on the game world map. Every pin grows a shared atlas that powers future location-guessing modes.",
-        "steps": {
-          "one": "Pick a game from your catalog.",
-          "two": "Tap the map where you think the screenshot was taken.",
-          "three": "Confirm — your pin joins the dataset."
-        },
+      "welcome": {
+        "title": "Guess where every screenshot was taken",
+        "body": "Study the screenshot, then drop your pin on the exact spot on the game map. Every pin grows the community atlas.",
         "pinsToday_one": "{{formatted}} pin dropped today by the community",
         "pinsToday_other": "{{formatted}} pins dropped today by the community",
-        "cta": "Pick a game"
+        "quickPlay": "Quick play",
+        "quickPlaySub": "A random screenshot — play right away.",
+        "pickGame": "Pick a game",
+        "pickGameSub": "Browse the catalog at your own pace.",
+        "startRun": "Start a run",
+        "startRunSub": "{{count}} scored rounds, one total to share."
       },
       "map": {
         "empty": {

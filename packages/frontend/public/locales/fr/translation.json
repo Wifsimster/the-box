@@ -2563,11 +2563,17 @@
         "fromTarget": "à {{percent}} % de la cible",
         "newBest": "Nouveau record perso !",
         "best": "Record perso : {{score}}",
-        "correctMap": "La bonne carte était : {{map}}"
+        "correctMap": "La bonne carte était : {{map}}",
+        "tierLabel": {
+          "high": "Excellent !",
+          "mid": "Bien joué !",
+          "low": "À côté…"
+        }
       },
       "progressAria": "{{played}} captures jouées sur {{total}}",
       "run": {
         "start": "Lancer un run",
+        "startShort": "Run",
         "chip": "Run {{current}}/{{total}}",
         "abandon": "Abandonner le run",
         "total": "Total du run : {{score}}",
@@ -2595,17 +2601,17 @@
       "deck": {
         "label": "Capture et carte"
       },
-      "empty": {
-        "title": "Aide-nous à cartographier l'univers du jeu vidéo",
-        "body": "Regarde la capture d'écran, puis pose une épingle là où la scène se passe sur la carte du jeu. Chaque épingle enrichit un atlas partagé qui alimentera de futurs modes \"devine le lieu\".",
-        "steps": {
-          "one": "Choisis un jeu dans ton catalogue.",
-          "two": "Tape sur la carte là où tu penses que la capture a été prise.",
-          "three": "Confirme — ton épingle rejoint le dataset."
-        },
+      "welcome": {
+        "title": "Devine où chaque capture a été prise",
+        "body": "Observe la capture d'écran, puis pose ton épingle à l'endroit exact sur la carte du jeu. Chaque épingle enrichit l'atlas communautaire.",
         "pinsToday_one": "{{formatted}} épingle posée aujourd'hui par la communauté",
         "pinsToday_other": "{{formatted}} épingles posées aujourd'hui par la communauté",
-        "cta": "Choisir un jeu"
+        "quickPlay": "Partie rapide",
+        "quickPlaySub": "Une capture au hasard — joue tout de suite.",
+        "pickGame": "Choisir un jeu",
+        "pickGameSub": "Parcours le catalogue et joue à ton rythme.",
+        "startRun": "Lancer un run",
+        "startRunSub": "{{count}} manches notées, un total à partager."
       },
       "map": {
         "empty": {

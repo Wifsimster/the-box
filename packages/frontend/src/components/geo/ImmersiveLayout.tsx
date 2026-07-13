@@ -6,6 +6,11 @@ import { cn } from '@/lib/utils'
 interface ImmersiveLayoutProps {
     screenshot: ReactNode
     map: ReactNode
+    // Full-deck takeover slot. When set, it replaces BOTH panels (the
+    // header and dock still render around it) — used for the cold-start
+    // welcome and the auth wall, where a split screenshot/map layout
+    // would just squeeze the message into the top third of the screen.
+    hero?: ReactNode
     // Right-aligned header actions (home link, fullscreen toggle).
     // Rendered inside the same header strip as `topBar` so the page has
     // a single top row instead of an absolute overlay racing the bar
@@ -40,6 +45,7 @@ interface ImmersiveLayoutProps {
 export function ImmersiveLayout({
     screenshot,
     map,
+    hero,
     topRight,
     topBar,
     bottomDock,
@@ -106,6 +112,9 @@ export function ImmersiveLayout({
                 Firefox and snaps elsewhere, which is an acceptable
                 fallback. */}
             <div className="flex-1 relative overflow-hidden">
+                {hero ? (
+                    <div className="absolute inset-0">{hero}</div>
+                ) : (
                 <div
                     className="absolute inset-0 grid grid-rows-[minmax(30%,1fr)_minmax(52%,1.6fr)] md:grid-rows-1 md:[grid-template-columns:var(--geo-desktop-cols)] md:transition-[grid-template-columns] md:duration-300 motion-reduce:md:transition-none"
                     style={deckStyle}
@@ -173,6 +182,7 @@ export function ImmersiveLayout({
                         {map}
                     </Panel>
                 </div>
+                )}
             </div>
 
             {/* Result overlay — sits above the deck but below the dock so

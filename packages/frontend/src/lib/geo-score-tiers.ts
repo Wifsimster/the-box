@@ -9,6 +9,11 @@ export const GEO_SCORE_TIER_BANDS = {
     mid: 500,
 } as const
 
+// Per-round score ceiling from the scoring curve (docs/geo-mode.md).
+// Shared by the reveal meter and the run recap bars so a "full" bar
+// means the same thing everywhere.
+export const GEO_ROUND_MAX = 2000
+
 export type GeoScoreTier = 'high' | 'mid' | 'low'
 
 export function geoScoreTier(score: number): GeoScoreTier {
