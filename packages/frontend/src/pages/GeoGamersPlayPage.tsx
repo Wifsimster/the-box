@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Loader2, MapPin, Sparkles, Trophy, Users } from 'lucide-react'
+import { ChevronDown, Loader2, Map, MapPin, Sparkles, Trophy, Users } from 'lucide-react'
 import { useGeoGamersStore } from '@/stores/geoGamersStore'
 import { useAuth } from '@/hooks/useAuth'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { MapPicker } from '@/components/geo/MapPicker'
+import { ScreenshotPip } from '@/components/geo/ScreenshotPip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -42,6 +43,8 @@ export default function GeoGamersPlayPage() {
         useJoker: applyJoker,
         reset,
     } = useGeoGamersStore()
+
+    const [mapPickerOpen, setMapPickerOpen] = useState(false)
 
     const startedRef = useRef(false)
     useEffect(() => {
@@ -187,33 +190,50 @@ export default function GeoGamersPlayPage() {
             {/* ---------------- LOCATE ---------------- */}
             {phase === 'locate' && run && selectedMap && (
                 <section>
-                    <div className="mb-3 rounded-lg bg-primary/15 px-4 py-2 text-center">
-                        <span className="text-sm text-muted-foreground">
-                            {t('geogamers.locate.banner')}{' '}
-                        </span>
-                        <span className="font-semibold text-neon-purple">{run.game?.name}</span>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-primary/15 px-4 py-2">
+                        <p className="min-w-0 flex-1 text-center sm:text-left">
+                            <span className="text-sm text-muted-foreground">
+                                {t('geogamers.locate.banner')}{' '}
+                            </span>
+                            <span className="font-semibold text-neon-purple">
+                                {run.game?.name}
+                            </span>
+                        </p>
+                        {mapPickerNeeded && (
+                            <button
+                                type="button"
+                                onClick={() => setMapPickerOpen(true)}
+                                aria-label={t('geogamers.locate.changeMap')}
+                                title={t('geogamers.locate.changeMap')}
+                                className="mx-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink sm:mx-0"
+                            >
+                                <Map className="size-3.5 text-neon-purple" aria-hidden />
+                                <span className="max-w-40 truncate">
+                                    {selectedMap.region ??
+                                        t('geo.daily.chooseMap.worldFallback', 'World map')}
+                                </span>
+                                <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden />
+                            </button>
+                        )}
                     </div>
 
-                    {mapPickerNeeded && (
-                        <div className="mb-3">
-                            <MapPicker
-                                open={false}
-                                onOpenChange={() => {}}
-                                maps={asGeoMaps(run.maps ?? [])}
-                                selectedMapId={selectedMapId}
-                                onSelect={(id) => selectMap(id ?? run.maps![0]!.id)}
-                            />
-                        </div>
-                    )}
-
-                    <GeoMapCanvas
-                        imageUrl={selectedMap.imageUrl}
-                        widthPx={selectedMap.widthPx}
-                        heightPx={selectedMap.heightPx}
-                        tiles={selectedMap.tiles}
-                        pin={pendingPin}
-                        onPin={setPendingPin}
-                    />
+                    {/* Map + floating capture: the screenshot stays in view as
+                        a picture-in-picture card while the player pins, instead
+                        of vanishing when the map appears. */}
+                    <div className="relative">
+                        <GeoMapCanvas
+                            imageUrl={selectedMap.imageUrl}
+                            widthPx={selectedMap.widthPx}
+                            heightPx={selectedMap.heightPx}
+                            tiles={selectedMap.tiles}
+                            pin={pendingPin}
+                            onPin={setPendingPin}
+                        />
+                        <ScreenshotPip
+                            imageUrl={run.screenshotUrl}
+                            alt={t('geogamers.identify.screenshotAlt')}
+                        />
+                    </div>
 
                     <Button
                         className="mt-4 w-full"
@@ -222,13 +242,23 @@ export default function GeoGamersPlayPage() {
                     >
                         {t('geogamers.locate.confirm')}
                     </Button>
+
+                    {mapPickerNeeded && (
+                        <MapPicker
+                            open={mapPickerOpen}
+                            onOpenChange={setMapPickerOpen}
+                            maps={asGeoMaps(run.maps ?? [])}
+                            selectedMapId={selectedMapId}
+                            onSelect={(id) => selectMap(id ?? run.maps![0]!.id)}
+                        />
+                    )}
                 </section>
             )}
 
             {/* ---------------- RESULT ---------------- */}
             {phase === 'result' && run && result && selectedMap && (
                 <section>
-                    <div className="mb-4">
+                    <div className="relative mb-4">
                         <GeoMapCanvas
                             imageUrl={selectedMap.imageUrl}
                             widthPx={selectedMap.widthPx}
@@ -238,6 +268,10 @@ export default function GeoGamersPlayPage() {
                             canonical={result.canonical}
                             showGuessLine
                             disabled
+                        />
+                        <ScreenshotPip
+                            imageUrl={run.screenshotUrl}
+                            alt={t('geogamers.identify.screenshotAlt')}
                         />
                     </div>
 

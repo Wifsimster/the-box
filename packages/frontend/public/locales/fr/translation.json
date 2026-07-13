@@ -2688,6 +2688,12 @@
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",
       "zoomReset": "Réinitialiser le zoom"
+    },
+    "pip": {
+      "show": "Afficher la capture",
+      "hide": "Masquer la capture",
+      "expand": "Agrandir la capture",
+      "shrink": "Réduire la capture"
     }
   },
   "apiErrors": {
@@ -2991,7 +2997,8 @@
     },
     "locate": {
       "banner": "Place ton marqueur sur la carte de",
-      "confirm": "Confirmer l'emplacement"
+      "confirm": "Confirmer l'emplacement",
+      "changeMap": "Changer de carte"
     },
     "result": {
       "breakdown": "{{game}} (jeu) + {{location}} (précision)",
