@@ -571,6 +571,17 @@
       "subheading": "Trois trophées que tu n'as pas encore. Encore.",
       "cta": "Voir tous les succès"
     },
+    "modes": {
+      "heading": "Explore les autres modes de jeu",
+      "subheading": "Au-delà du défi quotidien, deux façons de tester ta culture gaming.",
+      "cta": "Découvrir",
+      "geo": {
+        "description": "Repère où une capture a été prise sur la carte du jeu — plus tu vises juste, plus tu marques."
+      },
+      "geogamers": {
+        "description": "Un run quotidien en deux temps : devine le jeu caché, puis localise la scène sur sa carte."
+      }
+    },
     "completionMessages": {
       "perfect": [
         "Perfection absolue ! Tu es une légende vivante ! 🏆",
