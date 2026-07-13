@@ -571,6 +571,17 @@
       "subheading": "Three trophies you don't have yet. Yet.",
       "cta": "See all achievements"
     },
+    "modes": {
+      "heading": "Explore the other game modes",
+      "subheading": "Beyond the daily challenge, two more ways to test your gaming knowledge.",
+      "cta": "Discover",
+      "geo": {
+        "description": "Pinpoint where a screenshot was taken on the game's map — the closer you land, the more you score."
+      },
+      "geogamers": {
+        "description": "A daily two-phase run: guess the hidden game, then locate the scene on its map."
+      }
+    },
     "completionMessages": {
       "perfect": [
         "Absolute perfection! You're a living legend! 🏆",

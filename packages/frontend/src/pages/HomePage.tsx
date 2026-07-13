@@ -12,6 +12,7 @@ import { consumeTourPending, hasCompletedTour, TOUR_REPLAY_EVENT } from '@/compo
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { HomeDailyCta } from '@/components/home/HomeDailyCta'
+import { HomeModesShowcase } from '@/components/home/HomeModesShowcase'
 import { HomePremiumTeaser } from '@/components/home/HomePremiumTeaser'
 import { HomeSocialProof } from '@/components/home/HomeSocialProof'
 import { useBillingStore } from '@/stores/billingStore'
@@ -286,6 +287,11 @@ export default function HomePage() {
           yesterdayChallenge={yesterdayChallenge}
           motionProps={motionProps}
         />
+
+        {/* Game-modes showcase — explains the secondary modes (Geo,
+            GeoGamers) in one sentence each with a direct link, so the nav
+            badges aren't the only hint that these modes exist. */}
+        <HomeModesShowcase />
 
         {/* Premium teaser — surfaces subscriptions now that paid features
             are live. Hidden once the visitor already has Premium so we don't
