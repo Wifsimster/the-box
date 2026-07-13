@@ -8,9 +8,11 @@
  * renders in the player's language. Keep this list ordered newest-first and
  * add an entry only for releases worth announcing in-app.
  *
- * The running app's version comes from the build-time `__APP_VERSION__`
- * constant (see `vite.config.ts`). The dialog shows a release's notes once,
- * the first time a player runs that version.
+ * The dialog auto-opens a release's notes once, the first time a player loads
+ * the app after that release is announced here. The persisted seen-marker
+ * tracks *this registry* — not the build version — so routine version bumps
+ * that ship without a changelog entry never re-trigger the dialog (see
+ * `resolveChangelogAutoOpen`).
  */
 
 export type ChangelogSection = 'features' | 'improvements' | 'fixes'
@@ -74,4 +76,33 @@ export function compareVersions(a: string, b: string): number {
     if (diff !== 0) return diff
   }
   return 0
+}
+
+/** What the changelog dialog should do when the app starts. */
+export type ChangelogAutoOpenDecision = 'open' | 'mark-seen' | 'none'
+
+/**
+ * Decide whether the dialog auto-opens, given the newest announced release and
+ * the seen-marker persisted in this browser.
+ *
+ * - `mark-seen`: brand-new visitor (no marker yet). Don't greet them with
+ *   notes for a release they never "upgraded" from — record the latest
+ *   announced version silently so only future releases pop.
+ * - `open`: a release newer than the marker has been announced.
+ * - `none`: the player already acknowledged the newest announced release.
+ *
+ * Both inputs are announced-release versions. Comparing against the *build*
+ * version instead is the historical bug this function replaces: builds bump on
+ * every deploy, so each deploy re-opened the dialog with the same stale notes.
+ * (Markers written by that older code hold a build version; since builds only
+ * ever run ahead of the registry, they compare as already-seen and heal on the
+ * next `markSeen`.)
+ */
+export function resolveChangelogAutoOpen(
+  latestVersion: string | null | undefined,
+  lastSeenVersion: string | null,
+): ChangelogAutoOpenDecision {
+  if (!latestVersion) return 'none'
+  if (lastSeenVersion === null) return 'mark-seen'
+  return compareVersions(latestVersion, lastSeenVersion) > 0 ? 'open' : 'none'
 }
