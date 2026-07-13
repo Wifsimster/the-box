@@ -30,6 +30,25 @@ export function toSubscriptionStatus(raw: string): SubscriptionStatus {
     : 'incomplete'
 }
 
+// Entitlement decision for a subscription row. `active`/`trialing` (the
+// `unconditionalStatuses` set) grant premium outright; `past_due` grants only
+// while the already-paid period is still running — a grace window so a
+// transient renewal failure doesn't revoke access mid-cycle while Stripe
+// retries. Everything else is free. Kept pure (now is injectable) so it's the
+// single source of truth shared by getEntitlement below and testable in
+// isolation.
+export function isSubscriptionEntitled(
+  row: { status: SubscriptionStatus; current_period_end: Date | null },
+  unconditionalStatuses: ReadonlySet<SubscriptionStatus>,
+  now: Date = new Date(),
+): boolean {
+  if (unconditionalStatuses.has(row.status)) return true
+  if (row.status === 'past_due') {
+    return row.current_period_end != null && row.current_period_end.getTime() > now.getTime()
+  }
+  return false
+}
+
 // Narrow domain-facing gateway over the Stripe customer API. The composition
 // root adapts the concrete Stripe SDK to this; the service file never imports
 // the Stripe client, so it stays a pure domain unit.
@@ -119,7 +138,10 @@ export function createBillingService(deps: BillingServiceDeps): BillingService {
       }
     }
     const tier = await deps.catalog.tierFromPriceId(row.stripe_price_id)
-    const isPremium = deps.entitledStatuses.has(row.status)
+    // past_due rows only reach here within their grace window (the repository
+    // filters expired ones out), but re-run the pure check so the service
+    // owns the entitlement decision rather than trusting the query shape.
+    const isPremium = isSubscriptionEntitled(row, deps.entitledStatuses)
     return {
       isPremium,
       tier,
