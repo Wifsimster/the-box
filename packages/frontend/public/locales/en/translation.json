@@ -2688,6 +2688,12 @@
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "zoomReset": "Reset zoom"
+    },
+    "pip": {
+      "show": "Show the capture",
+      "hide": "Hide the capture",
+      "expand": "Enlarge the capture",
+      "shrink": "Shrink the capture"
     }
   },
   "apiErrors": {
@@ -2991,7 +2997,8 @@
     },
     "locate": {
       "banner": "Drop your marker on the map of",
-      "confirm": "Confirm location"
+      "confirm": "Confirm location",
+      "changeMap": "Change map"
     },
     "result": {
       "breakdown": "{{game}} (game) + {{location}} (precision)",

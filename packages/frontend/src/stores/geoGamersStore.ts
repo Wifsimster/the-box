@@ -129,7 +129,11 @@ export const useGeoGamersStore = create<GeoGamersState>()(
             },
 
             selectMap(id) {
-                set({ selectedMapId: id })
+                // A pin is expressed in the coordinate space of its map, so a
+                // draft pin can't survive a map switch.
+                if (id !== get().selectedMapId) {
+                    set({ selectedMapId: id, pendingPin: null })
+                }
             },
 
             setPendingPin(p) {

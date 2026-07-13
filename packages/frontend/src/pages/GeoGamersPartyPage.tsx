@@ -4,6 +4,7 @@ import { Loader2, Users, Crown, Copy, Check } from 'lucide-react'
 import { useGeoGamersPartyStore } from '@/stores/geoGamersPartyStore'
 import { useAuth } from '@/hooks/useAuth'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
+import { ScreenshotPip } from '@/components/geo/ScreenshotPip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -250,14 +251,21 @@ export default function GeoGamersPartyPage() {
                                     {view.round.gameName}
                                 </span>
                             </div>
-                            <GeoMapCanvas
-                                imageUrl={selectedMap.imageUrl}
-                                widthPx={selectedMap.widthPx}
-                                heightPx={selectedMap.heightPx}
-                                tiles={selectedMap.tiles}
-                                pin={pendingPin}
-                                onPin={setPendingPin}
-                            />
+                            {/* Keep the capture in view while pinning. */}
+                            <div className="relative">
+                                <GeoMapCanvas
+                                    imageUrl={selectedMap.imageUrl}
+                                    widthPx={selectedMap.widthPx}
+                                    heightPx={selectedMap.heightPx}
+                                    tiles={selectedMap.tiles}
+                                    pin={pendingPin}
+                                    onPin={setPendingPin}
+                                />
+                                <ScreenshotPip
+                                    imageUrl={view.round.screenshotUrl}
+                                    alt={t('geogamers.identify.screenshotAlt')}
+                                />
+                            </div>
                             <Button
                                 className="mt-4 w-full"
                                 disabled={!pendingPin}
