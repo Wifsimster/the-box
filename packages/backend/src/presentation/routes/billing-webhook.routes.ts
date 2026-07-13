@@ -204,10 +204,14 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
-      // Just log for now — the subsequent customer.subscription.updated
-      // event from Stripe carries the new status (past_due/unpaid), and
-      // that's where we adjust entitlement. Email notifications belong in
-      // a later iteration.
+      // Don't revoke here. The paired customer.subscription.updated carries the
+      // new status (past_due), and the entitlement layer treats past_due as a
+      // grace window (see GRACE_STATUSES / isSubscriptionEntitled) — the user
+      // keeps premium until current_period_end while Stripe retries. Access is
+      // only dropped when Stripe finally transitions the sub to unpaid/canceled
+      // (or the paid period expires).
+      // TODO(notification): a Resend "payment failed, we'll retry" email
+      // belongs here once the lifecycle email worker covers billing.
       log.warn(
         {
           invoiceId: invoice.id,
@@ -217,7 +221,24 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
           // SDK's discriminated union.
           subscriptionId: (invoice as unknown as { subscription?: string }).subscription,
         },
-        'invoice payment failed',
+        'invoice payment failed — entering grace window until current_period_end',
+      )
+      return
+    }
+
+    case 'invoice.paid': {
+      // Successful (re)payment. The paired customer.subscription.updated flips
+      // the status back to active, which the subscription-sync path above
+      // applies — so entitlement recovery from a prior past_due grace window is
+      // automatic. Logged here purely for a clean recovery trail.
+      const invoice = event.data.object as Stripe.Invoice
+      log.info(
+        {
+          invoiceId: invoice.id,
+          customerId: invoice.customer,
+          subscriptionId: (invoice as unknown as { subscription?: string }).subscription,
+        },
+        'invoice paid — entitlement recovered via subscription.updated',
       )
       return
     }
