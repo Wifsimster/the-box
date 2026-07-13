@@ -131,6 +131,76 @@ export function pickBestMapTitle(
   return ranked[0]?.title ?? null
 }
 
+// ---------------------------------------------------------------------------
+// Franchise-wiki gate — complements `hasSpecificGameSignal`.
+//
+// `hasSpecificGameSignal` accepts a title that shares ANY slug token with the
+// game. That's enough to reject a wholly-unrelated sibling map (Uncharted 2 vs
+// "Western Ghats"), but NOT a sibling that shares franchise words: on
+// `legendofzelda.fandom.com`, "Level 1 (First Quest) (The Legend of Zelda)" —
+// the 1986 original's map — shares `legend`/`zelda` with Ocarina of Time and
+// slips through. On a *franchise* wiki (one subdomain hosting many installments)
+// we therefore demand the full game name, not just a shared token. Single-game
+// wikis (bloodborne, eldenring) are unaffected. The resolver applies this at the
+// call site, where the subdomain is known.
+// ---------------------------------------------------------------------------
+
+// Subdomain tokens that carry no game identity (platform/lang/site suffixes).
+const WIKI_STOPWORDS = new Set([
+  'gamepedia', 'fandom', 'wiki', 'wikia', 'en', 'community', 'the',
+])
+
+/**
+ * Reduce a Fandom subdomain to its identity tokens, dropping platform/lang
+ * suffixes: `zelda_gamepedia_en` → `['zelda']`, `uncharted` → `['uncharted']`,
+ * `eldenring` → `['eldenring']`.
+ */
+export function fandomWikiBaseTokens(subdomain: string): string[] {
+  return subdomain
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((tok) => tok.length > 0 && !WIKI_STOPWORDS.has(tok))
+}
+
+/**
+ * True when the wiki spans more than one game, inferred from the subdomain
+ * being materially shorter than the game's collapsed slug. Game-specific wikis
+ * have the slug equal the base (`bloodborne` == `bloodborne`); franchise wikis
+ * omit the installment tokens (`uncharted` vs `uncharted2amongthieves`,
+ * `zelda` vs `thelegendofzeldaocarinaoftime`).
+ *
+ * Limitation: the fixed +3 margin misses franchises whose slug barely exceeds
+ * the base (`baldursgateiii` vs a `baldursgate` wiki) — a conservative miss
+ * (falls back to single-game handling), never a false franchise flag.
+ */
+export function isFranchiseWiki(subdomain: string, slug: string): boolean {
+  const collapsed = slug.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const base = fandomWikiBaseTokens(subdomain).join('')
+  if (!base || !collapsed) return false
+  if (collapsed === base) return false
+  return collapsed.length > base.length + 3
+}
+
+/**
+ * Whether a `Map:` title may be auto-assigned given the wiki it came from. On a
+ * game-specific wiki there's nothing to disambiguate (always true). On a
+ * franchise wiki, require the full normalized game name in the title —
+ * deliberately strict, since a false negative (no map) is recoverable via other
+ * tiers or manual assignment while a false positive feeds a sibling's map into
+ * the consensus pipeline.
+ */
+export function fandomMapTitleAcceptable(
+  mapTitle: string,
+  gameName: string,
+  subdomain: string,
+  slug: string,
+): boolean {
+  if (!isFranchiseWiki(subdomain, slug)) return true
+  const title = normalizeGameTitle(mapTitle.replace(/_/g, ' '))
+  const name = normalizeGameTitle(gameName)
+  return name.length > 0 && title.includes(name)
+}
+
 /**
  * Parse the Steam appid from a store URL, e.g.
  *   https://store.steampowered.com/app/1245620/ELDEN_RING/

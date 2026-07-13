@@ -5,6 +5,7 @@ import { geoIngestFailureRepository } from '../../repositories/index.js'
 import {
   FANDOM_MAP_NAMESPACE,
   extractVersionTokens,
+  fandomMapTitleAcceptable,
   isMapEligibleByGenre,
   normalizeGameTitle,
   pickBestMapTitle,
@@ -265,7 +266,14 @@ async function resolveFandomInteractiveMap(
     if (!pages.length) continue
 
     const titles = pages.map((p) => stripMapPrefix(p.title)).filter((t): t is string => Boolean(t))
-    const best = pickBestMapTitle(titles, gameName, slug)
+    // On a franchise wiki, a shared franchise token (legend/zelda) isn't enough
+    // — demand the full game name so a sibling installment's map (e.g. the 1986
+    // "Level 1" map for Ocarina of Time) can't slip past the scorer's gate.
+    // Game-specific wikis pass through unchanged.
+    const eligible = titles.filter((title) =>
+      fandomMapTitleAcceptable(title, gameName, sub, slug),
+    )
+    const best = pickBestMapTitle(eligible, gameName, slug)
     if (best) {
       log.info({ sub, choice: best, candidates: titles.length }, 'fandom map discovered')
       return { subdomain: sub, mapName: best }
