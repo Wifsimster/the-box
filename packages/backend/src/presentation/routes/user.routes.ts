@@ -9,6 +9,7 @@ import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { db } from '../../infrastructure/database/connection.js'
+import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
 import { PREMIUM_THEME_KEYS, DEFAULT_THEME_KEY, isValidThemeKey } from '../../config/themes.js'
 import type { AdvancedStats, PublicProfile } from '@the-box/types'
 
@@ -554,11 +555,58 @@ router.delete('/account', authMiddleware, async (req, res, next) => {
       })
     }
 
+    // Block deletion while a live recurring subscription is still billing, so
+    // we never orphan an active subscription in Stripe (the user row — and its
+    // stripe_customer_id — is about to be hard-deleted). Supporter-lifetime
+    // (source 'supporter') is one-time and doesn't block; a subscription
+    // already set to cancel at period end doesn't either, since the cleanup
+    // below cancels the remainder.
+    const entitlement = await billingService.getEntitlement(req.userId!)
+    if (
+      entitlement.source === 'subscription' &&
+      entitlement.isPremium &&
+      !entitlement.cancelAtPeriodEnd
+    ) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'SUBSCRIPTION_ACTIVE',
+          message:
+            'Cancel your active subscription in the billing portal before deleting your account.',
+        },
+      })
+    }
+
+    // Capture the Stripe customer id before the row (and the id with it) is
+    // deleted so the cleanup below can remove the customer.
+    const stripeCustomerId = await userRepository.getStripeCustomerId(req.userId!)
+
     // CASCADE removes sessions / accounts / game data, mirroring the admin
     // delete path. The cascaded `session` rows are enough to log the user out.
     await db('user').where('id', req.userId).del()
 
     logger.info({ userId: req.userId }, 'user self-deleted account')
+
+    // Best-effort Stripe customer cleanup. Done after the DB delete so a Stripe
+    // outage can't block account deletion; deleting the customer also cancels
+    // any lingering (cancel-at-period-end) subscription. Log-and-continue on
+    // failure — the account is already gone and a stale Stripe customer is
+    // harmless (and re-reconciled via the customer.deleted webhook otherwise).
+    if (stripeCustomerId && isStripeConfigured()) {
+      try {
+        await getStripe().customers.del(stripeCustomerId)
+        logger.info(
+          { userId: req.userId, stripeCustomerId },
+          'stripe customer deleted after account deletion',
+        )
+      } catch (err) {
+        logger.error(
+          { userId: req.userId, stripeCustomerId, err: String(err) },
+          'failed to delete stripe customer after account deletion',
+        )
+      }
+    }
+
     res.json({ success: true, data: { deleted: true } })
   } catch (error) {
     next(error)
