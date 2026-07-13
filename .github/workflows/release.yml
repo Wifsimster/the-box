@@ -172,6 +172,22 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Stripe price sync check
+        # Pre-release gate: asserts the live Stripe catalog still matches
+        # BILLING_CATALOG (currency / amount / interval / active product) so a
+        # renamed or archived price breaks CI before it reaches prod. Skips
+        # automatically when no STRIPE_SECRET_KEY secret is configured (forks,
+        # or before live mode is set up) rather than failing the release.
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${STRIPE_SECRET_KEY:-}" ]; then
+            echo "STRIPE_SECRET_KEY not configured — skipping stripe:check"
+            exit 0
+          fi
+          npm run stripe:check --workspace @the-box/backend -- --live
+
   build:
     # Split the multi-arch Docker build across native runners — arm64 via
     # QEMU emulation on an amd64 runner is roughly 5-10x slower than native
