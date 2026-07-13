@@ -4,10 +4,15 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 /**
  * Drives the "What's New" changelog dialog.
  *
- * `lastSeenVersion` is persisted to localStorage so a release's notes auto-open
- * exactly once — the first time a player runs that build. `open` is ephemeral
- * UI state: the dialog flips it on automatically after an update, and the footer
- * version chip can flip it on manually to re-read the latest notes any time.
+ * `lastSeenVersion` is the newest *announced* release (a `CHANGELOG` registry
+ * entry, not the build version) this browser has acknowledged. It is persisted
+ * to localStorage so a release's notes auto-open exactly once — the first load
+ * after that release is announced. Build versions bump on every deploy, so
+ * keying on them would re-open the dialog after each deploy; the registry only
+ * moves when there is genuinely something new to read. `open` is ephemeral UI
+ * state: the dialog flips it on automatically after a new announcement, and
+ * the footer version chip can flip it on manually to re-read the notes any
+ * time.
  *
  * `null` for `lastSeenVersion` means "this browser has never recorded a
  * version" (a brand-new visitor). We intentionally don't pop the changelog at

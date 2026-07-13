@@ -24,15 +24,11 @@ import { useChangelogStore } from '@/stores/changelogStore'
 import {
   CHANGELOG,
   CHANGELOG_SECTIONS,
-  compareVersions,
   getLatestRelease,
+  resolveChangelogAutoOpen,
   type ChangelogRelease,
   type ChangelogSection,
 } from '@/data/changelog'
-
-/** Build-time version of the running bundle (see vite.config.ts). */
-const APP_VERSION =
-  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 
 /** Localized i18n shape for a single release block. */
 interface ReleaseContent {
@@ -55,8 +51,8 @@ const SECTION_ACCENT: Record<ChangelogSection, string> = {
 }
 
 /**
- * "What's New" dialog. Auto-opens the newest release's notes once after the app
- * updates to that version, and opens on demand from the footer version chip.
+ * "What's New" dialog. Auto-opens the newest announced release's notes once
+ * per release, and opens on demand from the footer version chip.
  *
  * Releases are laid out on a *horizontal timeline* (newest first, left to
  * right): each version is a tappable stop, and the body shows one release at a
@@ -122,30 +118,17 @@ export function ChangelogDialog(): ReactElement | null {
     return () => window.removeEventListener('resize', updateFades)
   }, [open, activeIndex, updateFades, i18n.language])
 
-  // Auto-open the changelog the first time a player runs a build newer than the
-  // one this browser last acknowledged. Brand-new visitors (no recorded version)
-  // are marked seen silently so they aren't greeted by release notes for a build
-  // they never "upgraded" from. Runs once on mount.
-  //
-  // We intentionally do NOT require the running build to exactly match the newest
-  // changelog entry: if a release ships without a matching changelog bump, the
-  // dialog degrades gracefully to the latest notes on record instead of being
-  // silently disabled until the registry catches up.
+  // Auto-open the newest announced release's notes once, the first time a
+  // player loads the app after that release lands in the changelog registry.
+  // The seen-marker tracks the registry — NOT the build version, which bumps
+  // on every deploy and would re-open the dialog with the same stale notes
+  // after each one. Brand-new visitors (no recorded marker) are marked seen
+  // silently so they aren't greeted by notes for a release they never
+  // "upgraded" from. Runs once on mount.
   useEffect(() => {
-    if (!release) return
-    if (APP_VERSION === 'dev') return
-    if (lastSeenVersion === APP_VERSION) return
-
-    if (lastSeenVersion === null) {
-      markSeen(APP_VERSION)
-      return
-    }
-
-    if (compareVersions(APP_VERSION, lastSeenVersion) > 0) {
-      openChangelog()
-    } else {
-      markSeen(APP_VERSION)
-    }
+    const decision = resolveChangelogAutoOpen(release?.version, lastSeenVersion)
+    if (decision === 'open') openChangelog()
+    else if (decision === 'mark-seen' && release) markSeen(release.version)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -166,7 +149,7 @@ export function ChangelogDialog(): ReactElement | null {
   const activeEntry = CHANGELOG[activeIndex] ?? release
 
   const handleClose = (next: boolean): void => {
-    if (!next) markSeen(APP_VERSION === 'dev' ? release.version : APP_VERSION)
+    if (!next) markSeen(release.version)
   }
 
   const formatDate = (iso: string): string => {
