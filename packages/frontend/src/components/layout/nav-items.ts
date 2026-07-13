@@ -22,6 +22,11 @@ export interface NavLinkItem {
   badgeKey?: string
   /** Optional `data-tour` anchor id for the onboarding tour. */
   dataTour?: string
+  /**
+   * Runtime feature flag (from `useFeatures()`) gating this entry. Entries
+   * without a flag are always shown.
+   */
+  feature?: 'geoCommunity' | 'geogamers'
 }
 
 /**
@@ -45,6 +50,7 @@ export const PRIMARY_NAV: NavLinkItem[] = [
     icon: MapPin,
     path: '/geo',
     badgeKey: 'common.alpha',
+    feature: 'geoCommunity',
   },
   {
     key: 'geogamers',

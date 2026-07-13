@@ -38,11 +38,30 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             ...(init?.headers ?? {}),
         },
     })
-    const json = (await res.json()) as ApiEnvelope<T>
-    if (!res.ok || !json.success) {
+    // Guard the parse: when the community geo surface is disabled
+    // (GEO_COMMUNITY_ENABLED=false) the routes are unmounted and a request can
+    // come back as a non-JSON body. Treat any unparseable body as a failure
+    // instead of surfacing a raw parser error.
+    let json: ApiEnvelope<T> | undefined
+    try {
+        json = (await res.json()) as ApiEnvelope<T>
+    } catch {
+        json = undefined
+    }
+
+    if (!res.ok || !json || !json.success) {
+        // A 404 NOT_FOUND (routes unmounted) or a non-JSON body both mean the
+        // community geo surface isn't available on this deployment — map them
+        // to a single friendly, localized code. Endpoint-specific 404s carry
+        // their own codes (CANDIDATE_NOT_FOUND, NO_FREE_PLAY_CANDIDATE, …) and
+        // are passed through untouched.
+        const unavailable =
+            !json || (res.status === 404 && (json.error?.code ?? 'NOT_FOUND') === 'NOT_FOUND')
         throw new GeoApiError(
-            json.error?.code ?? 'GEO_REQUEST_FAILED',
-            json.error?.message ?? `Request to ${path} failed`,
+            unavailable
+                ? 'GEO_COMMUNITY_DISABLED'
+                : (json?.error?.code ?? 'GEO_REQUEST_FAILED'),
+            json?.error?.message ?? `Request to ${path} failed`,
             res.status,
         )
     }

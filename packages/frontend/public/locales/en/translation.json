@@ -2699,6 +2699,7 @@
   "apiErrors": {
     "default": "Something went wrong. Please try again.",
     "GEOGAMERS_UNAVAILABLE": "GeoGamers isn't available right now.",
+    "GEO_COMMUNITY_DISABLED": "Geo mode isn't available on this deployment.",
     "NETWORK_ERROR": "Network error. Please check your connection.",
     "VALIDATION_ERROR": "The information you entered is invalid.",
     "UNAUTHORIZED": "Please sign in to continue.",

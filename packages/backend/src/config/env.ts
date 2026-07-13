@@ -40,6 +40,15 @@ export const env = {
   // Public-facing frontend URL (used in marketing email CTAs)
   FRONTEND_URL: process.env['FRONTEND_URL'] || 'https://the-box.battistella.ovh',
 
+  // Community geo surface (free play + crowdsourced contribution) at /api/geo.
+  // On by default. Flipping it off unmounts the player-facing routes (they 404
+  // like a dark-shipped feature) so the community dataset-building loop can be
+  // sunset without touching the geo data layer — ingestion pipeline, agent
+  // sourcing API, admin geo-fetch and GeoGamers all keep running: they don't go
+  // through /api/geo. The consensus worker also stays registered because agent
+  // pin proposals (/api/agent/v1/geo) still feed it.
+  GEO_COMMUNITY_ENABLED: process.env['GEO_COMMUNITY_ENABLED'] || 'true',
+
   // GeoGamers mode (guess-the-game + geolocate). Off by default: the routes
   // 404 and the daily-challenge scheduler doesn't register until enabled, so
   // the feature can ship dark and be turned on once enough consensus-confirmed
