@@ -1,6 +1,6 @@
 {
   "name": "@the-box/types",
-  "version": "2.157.2",
+  "version": "2.157.3",
   "description": "Shared TypeScript types for The Box",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
