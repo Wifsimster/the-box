@@ -35,6 +35,9 @@ export function ResultCard() {
     challengeId,
     isSessionCompleted,
     showCompletionChoice,
+    pendingCompletionChoice,
+    setPendingCompletionChoice,
+    setShowCompletionChoice,
   } = useGameStore()
 
   // Auto-close countdown state (must be before early return)
@@ -50,6 +53,17 @@ export function ResultCard() {
   const nextPosition = lastResult ? findNextUnfinished(currentPosition) : null
 
   const handleNext = useCallback(() => {
+    // A completion-choice prompt was queued behind this result (the last correct
+    // guess with skipped positions still remaining). Now that the player has seen
+    // whether that guess was correct, reveal the choice modal. Switching to
+    // 'playing' unmounts this ResultCard so the modal shows over the game surface
+    // instead of stacking on top of the (now hidden) result card.
+    if (pendingCompletionChoice) {
+      setPendingCompletionChoice(false)
+      setGamePhase('playing')
+      setShowCompletionChoice(true)
+      return
+    }
     if (nextPosition) {
       // Navigate to next unfinished position
       navigateToPosition(nextPosition)
@@ -85,7 +99,16 @@ export function ResultCard() {
         setGamePhase('challenge_complete')
       }
     }
-  }, [nextPosition, navigateToPosition, positionStates, setGamePhase, challengeId])
+  }, [
+    nextPosition,
+    navigateToPosition,
+    positionStates,
+    setGamePhase,
+    challengeId,
+    pendingCompletionChoice,
+    setPendingCompletionChoice,
+    setShowCompletionChoice,
+  ])
 
   // Auto-navigation fires from the timer when it reaches zero. Wrapped as an
   // Effect Event so it always reads the latest state without being a reactive
@@ -174,6 +197,10 @@ export function ResultCard() {
 
   // Determine button text
   const getButtonText = () => {
+    // A completion choice is queued behind this result — advancing opens it.
+    if (pendingCompletionChoice) {
+      return t('game.continue', 'Continue')
+    }
     // Show "View Results" only when session is completed
     if (isSessionCompleted) {
       return t('game.viewResults')

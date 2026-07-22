@@ -340,6 +340,7 @@
     "time": "Time",
     "guessPlaceholder": "Game name...",
     "nextRound": "Next Round",
+    "continue": "Continue",
     "correct": "Correct!",
     "partialMatch": "Franchise recognised!",
     "partialMatchHint": "You named the series but not the full title — partial points awarded.",
