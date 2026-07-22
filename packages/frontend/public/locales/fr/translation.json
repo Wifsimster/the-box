@@ -340,6 +340,7 @@
     "time": "Temps",
     "guessPlaceholder": "Nom du jeu...",
     "nextRound": "Round Suivant",
+    "continue": "Continuer",
     "correct": "Correct !",
     "partialMatch": "Licence reconnue !",
     "partialMatchHint": "Tu as trouvé la série mais pas le titre complet — points partiels accordés.",

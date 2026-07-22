@@ -65,6 +65,12 @@ interface GameState {
   lastResult: GuessResult | null
   isSessionCompleted: boolean // Tracks if backend has marked session as complete
   showCompletionChoice: boolean // Controls visibility of the completion choice modal
+  // When true, a completion-choice prompt is queued but intentionally NOT shown
+  // yet: the per-screenshot ResultCard is displayed first so the player can see
+  // whether their last guess was correct. The choice modal only opens once they
+  // dismiss/advance from that result (see ResultCard.handleNext). This prevents
+  // the modal (a z-50 portal) from covering the result card (z-40).
+  pendingCompletionChoice: boolean
 
   // Actions
   setSessionId: (id: string, tierSessionId: string) => void
@@ -79,6 +85,7 @@ interface GameState {
   setLoading: (loading: boolean) => void
   setIsSessionCompleted: (completed: boolean) => void
   setShowCompletionChoice: (value: boolean) => void
+  setPendingCompletionChoice: (value: boolean) => void
 
   addGuessResult: (result: GuessResult) => void
   recordAttempt: (position: number, attempt: GuessAttempt) => void
@@ -170,6 +177,7 @@ const initialState = {
   lastResult: null,
   isSessionCompleted: false,
   showCompletionChoice: false,
+  pendingCompletionChoice: false,
 }
 
 export const useGameStore = create<GameState>()(
@@ -243,6 +251,7 @@ export const useGameStore = create<GameState>()(
         setGamePhase: (phase) => set({ gamePhase: phase }),
         setIsSessionCompleted: (completed) => set({ isSessionCompleted: completed }),
         setShowCompletionChoice: (value) => set({ showCompletionChoice: value }),
+        setPendingCompletionChoice: (value) => set({ pendingCompletionChoice: value }),
 
         setLoading: (loading) => set({ isLoading: loading }),
 
@@ -775,3 +784,12 @@ export const useGameStore = create<GameState>()(
     { name: 'GameStore' }
   )
 )
+
+// Dev-only test seam: expose the store on `window` so E2E specs can set up
+// deterministic game states (e.g. the "visited all + skipped" completion-choice
+// scenario) without a live backend. Guarded by `import.meta.env.DEV`, so it is
+// stripped from production builds and never widens the app's runtime surface.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as { __gameStore?: typeof useGameStore }).__gameStore =
+    useGameStore
+}

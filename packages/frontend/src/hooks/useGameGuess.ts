@@ -153,9 +153,14 @@ export function useGameGuess(submissionService: GuessSubmissionService) {
           const hasSkipped = store.hasSkippedPositions()
 
           if (result.isCorrect && hasVisitedAll && hasSkipped) {
-            // Show completion choice modal instead of auto-navigating
+            // Show the per-screenshot result FIRST so the player can clearly see
+            // whether this last guess was correct. The completion-choice modal is
+            // only queued here (pendingCompletionChoice) and opened once the
+            // player dismisses/advances from the result card — otherwise the
+            // modal (z-50 portal) would render on top of the result card (z-40)
+            // and hide the outcome. See ResultCard.handleNext.
             store.setGamePhase('result')
-            store.setShowCompletionChoice(true)
+            store.setPendingCompletionChoice(true)
           } else {
             // Show result screen before advancing to next screenshot
             store.setGamePhase('result')
