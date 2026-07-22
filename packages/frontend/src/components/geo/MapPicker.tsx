@@ -190,7 +190,7 @@ function MapCard({ map, selected, tabIndex, onKeyDown, onSelect, ref }: MapCardP
                 'group relative aspect-square w-full overflow-hidden rounded-lg border bg-muted/30 text-left transition',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink',
                 selected
-                    ? 'border-neon-pink ring-2 ring-neon-pink/60 shadow-[0_0_12px_rgba(236,72,153,0.4)]'
+                    ? 'border-neon-pink ring-2 ring-neon-pink/60 shadow-[var(--glow-pink-sm)]'
                     : 'border-muted/40 hover:border-neon-pink/60',
             )}
         >

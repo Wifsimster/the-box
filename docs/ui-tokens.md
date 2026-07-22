@@ -115,6 +115,8 @@ Toute valeur `box-shadow` dans un composant doit référencer un de ces tokens.
 | `--glow-success` | `0 0 20px oklch(0.75 0.2 145 / 0.5)` | Correct-guess pulse, success input state |
 | `--glow-warning` | `0 0 20px oklch(0.8 0.15 85 / 0.5)` | Cautionary progress bars, pending warnings |
 | `--glow-error` | `0 0 20px oklch(0.7 0.22 25 / 0.5)` | Wrong-guess shake, error input state |
+| `--glow-pink-sm` | `0 0 12px oklch(0.72 0.2 350 / 0.4)` | Pink selection ring (selected map tile) |
+| `--glow-pink-lg` | `0 0 40px -12px oklch(0.72 0.2 350 / 0.45)` | Diffuse pink card halo (highlighted pricing card) |
 | `--text-shadow-neon` | stacked neon text shadow | Hero titles (TierIntro, landing heroes) |
 
 **Classes utilitaires déjà câblées :**
