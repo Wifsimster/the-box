@@ -17,7 +17,13 @@
  */
 
 const HEX_COLOR_RE = /#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\b/
-const RAW_COLOR_FN_RE = /\b(?:rgba?|oklch|oklab|hsla?|color)\(/
+// NB: a leading `\b` here would MISS the most common offender —
+// `shadow-[0_0_20px_rgba(...)]` — because Tailwind joins arbitrary-value
+// tokens with `_`, and `_` is a word char, so there is no word boundary
+// between `_` and `rgba`. Use a negative lookbehind that only rejects an
+// alphabetic prefix (so `bgcolor(` stays un-matched) while still catching
+// the function after `_`, `(`, `,` or whitespace.
+const RAW_COLOR_FN_RE = /(?<![a-zA-Z])(?:rgba?|oklch|oklab|hsla?|color)\(/
 const PALETTE_CLASS_RE = /\b(?:bg|text|border|ring|from|to|via|fill|stroke|decoration|outline|divide|placeholder|caret|accent|shadow)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\d{2,3}/g
 const ARBITRARY_CLASS_RE = /\b(?:bg|text|border|ring|shadow|from|to|via|fill|stroke|decoration|outline)-\[([^[\]]+)\]/g
 const VAR_RE = /\bvar\(--/

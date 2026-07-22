@@ -326,7 +326,7 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
       {!showFallback && rect && (
         <div
           aria-hidden="true"
-          className="absolute pointer-events-none rounded-xl ring-2 ring-neon-purple shadow-[0_0_24px_rgba(168,85,247,0.55)]"
+          className="absolute pointer-events-none rounded-xl ring-2 ring-neon-purple shadow-[var(--glow-lg)]"
           style={{
             top: rect.top - PADDING,
             left: rect.left - PADDING,

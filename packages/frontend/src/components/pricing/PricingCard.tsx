@@ -73,7 +73,7 @@ export function PricingCard({
       <Card
         className={cn(
           'h-full flex flex-col relative overflow-hidden',
-          highlight && 'border-neon-pink/60 shadow-[0_0_40px_-12px_rgba(244,114,182,0.45)]',
+          highlight && 'border-neon-pink/60 shadow-[var(--glow-pink-lg)]',
         )}
       >
         {highlight && (

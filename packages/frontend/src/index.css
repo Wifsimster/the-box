@@ -157,6 +157,13 @@
   --glow-warning: 0 0 20px oklch(0.8 0.15 85 / 0.5);
   --glow-error: 0 0 20px oklch(0.7 0.22 25 / 0.5);
 
+  /* Neon-pink emphasis glows — pink-hued counterpart to --glow-* for
+     selection/highlight accents that read pink (selected map tile, the
+     highlighted pricing card). --glow-pink-lg uses a soft negative spread
+     for a diffuse card halo. */
+  --glow-pink-sm: 0 0 12px oklch(0.72 0.2 350 / 0.4);
+  --glow-pink-lg: 0 0 40px -12px oklch(0.72 0.2 350 / 0.45);
+
   /* Neon text-shadow stack for hero titles */
   --text-shadow-neon:
     0 0 10px oklch(0.65 0.2 293 / 0.8),
