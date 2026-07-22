@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Toaster } from '@/components/ui/sonner'
+import { ThinkingOrb } from '@/components/ui/thinking-orb'
 import { cn } from '@/lib/utils'
 import { ErrorBoundary, LazyComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { RouteSeo } from '@/components/RouteSeo'
@@ -62,9 +63,10 @@ const PricingPage = lazy(() => import('@/pages/PricingPage'))
 const TwoFactorChallengePage = lazy(() => import('@/pages/TwoFactorChallengePage'))
 
 function LoadingSpinner() {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <ThinkingOrb state="searching" size={64} aria-label={t('common.loading')} />
     </div>
   )
 }
