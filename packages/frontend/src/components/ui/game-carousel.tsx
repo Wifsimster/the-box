@@ -245,6 +245,7 @@ export function GameCarousel({
     const [api, setApi] = useState<CarouselApi>()
     const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
     const hasUserInteractedRef = useRef(false)
+    const rootRef = useRef<HTMLDivElement | null>(null)
 
     const zoom = useImageZoom(images[currentIndex]?.url ?? currentIndex)
     const { view } = zoom
@@ -316,6 +317,24 @@ export function GameCarousel({
         }
     }, [api])
 
+    // Re-measure embla whenever the viewer's box size settles or changes.
+    // Embla computes its snap positions once at init; if that happens before
+    // the flex height resolves (the screenshot frame is `flex-1 min-h-0`) its
+    // built-in resize watcher never fires — it only reacts to width changes —
+    // so the centered slide can land dozens of pixels off-centre and stay there.
+    // A ResizeObserver fires on the first real layout (and any later resize),
+    // letting us reInit and re-anchor the active slide exactly centered.
+    useEffect(() => {
+        const el = rootRef.current
+        if (!api || !el) return
+        const ro = new ResizeObserver(() => {
+            api.reInit()
+            api.scrollTo(currentIndex, false)
+        })
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [api, currentIndex])
+
     // Sync the embla carousel (an external, imperative system) to the
     // controlled `currentIndex` prop. This is the React-endorsed "synchronizing
     // with an external system" effect — there is no user event to hang it on,
@@ -340,7 +359,7 @@ export function GameCarousel({
     )
 
     return (
-        <div className={cn('relative size-full', className)}>
+        <div ref={rootRef} className={cn('relative size-full', className)}>
             <Carousel
                 setApi={setApi}
                 opts={{

@@ -179,7 +179,12 @@ const CarouselContent = ({ className, ref, ...props }: CarouselContentProps) => 
   const { carouselRef, orientation } = useCarousel()
 
   return (
-    <div ref={carouselRef} className="overflow-hidden">
+    // The embla viewport wrapper must inherit the section's height so a
+    // full-height carousel (e.g. the game screenshot viewer) keeps its vertical
+    // centering. Without `h-full` here the wrapper collapses to content height,
+    // pushing the image off-centre and breaking zoom geometry. `h-full` is a
+    // no-op for auto-height (horizontal card) carousels.
+    <div ref={carouselRef} className="h-full overflow-hidden">
       <div
         ref={ref}
         className={cn(
