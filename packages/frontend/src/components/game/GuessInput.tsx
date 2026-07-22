@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useGameStore } from '@/stores/gameStore'
-import { SkipForward, SkipBack, Loader2, Send } from 'lucide-react'
+import { SkipForward, SkipBack, Send } from 'lucide-react'
+import { ThinkingOrb } from '@/components/ui/thinking-orb'
 import { createGuessSubmissionService } from '@/services'
 import { LetterRevealBar } from '@/components/game/LetterRevealBar'
 import { ProximityHintBanner } from '@/components/game/ProximityHintBanner'
@@ -261,7 +262,15 @@ export function GuessInput() {
                 )}
               >
                 {isSubmitting ? (
-                  <Loader2 className={cn('size-4 sm:size-5 animate-spin', query.trim() && 'text-white')} />
+                  // `solving` reads as "checking your guess". Decorative here —
+                  // the Button already carries the `game.submit` aria-label, so
+                  // the orb is hidden from assistive tech to avoid a double read.
+                  <ThinkingOrb
+                    state="solving"
+                    size={20}
+                    role="presentation"
+                    aria-hidden
+                  />
                 ) : (
                   <Send className={cn('size-4 sm:size-5', query.trim() && 'text-white')} />
                 )}

@@ -60,6 +60,7 @@
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
+    "thinking-orbs": "^0.1.1",
     "three": "^0.182.0",
     "zod": "^4.3.5",
     "zustand": "^5.0.9"
