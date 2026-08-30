@@ -39,10 +39,14 @@
   <meta name="twitter:image" content="https://the-box.battistella.ovh/api/og/daily.png?lang=en" />
   <meta name="twitter:image:alt" content="The Box — daily video game screenshot guessing challenge" />
 
-  <script data-goatcounter="https://the-box-stats.battistella.ovh/count"
-          async src="//the-box-stats.battistella.ovh/count.js"></script>
   <!-- Umami — analytics self-hosted, sans cookie ni donnée personnelle -->
   <script defer src="https://umami.battistella.ovh/stats.js" data-website-id="b621662e-113a-4342-bd48-c2d16f849a5c"></script>
+
+  <!-- Heatmaps. Script distinct du tracker : `stats.js` ne l'embarque pas.
+       `replayEnabled` est OFF côté serveur, donc la charge utile ne contient
+       que des coordonnées de clic et de scroll — aucun DOM, aucun texte. -->
+  <script defer src="https://umami.battistella.ovh/recorder.js"
+    data-website-id="b621662e-113a-4342-bd48-c2d16f849a5c"></script>
 </head>
 
 <body>
