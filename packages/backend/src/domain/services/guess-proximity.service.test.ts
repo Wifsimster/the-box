@@ -10,12 +10,10 @@ import {
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
-  trace: () => {},
   debug: () => {},
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 }
 
 const fuzzyMatch = createFuzzyMatchService({ logger: silentLogger })

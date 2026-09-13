@@ -5,12 +5,10 @@ import type { DomainLogger } from '../ports/logger.js'
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
-  trace: () => {},
   debug: () => {},
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 }
 
 // Minimal harness exercising getScreenshot's projection of the tier's

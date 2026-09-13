@@ -8,12 +8,10 @@ import type { DomainLogger } from '../ports/logger.js'
 // Silent logger that satisfies the port without spamming test output.
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
-  trace: () => {},
   debug: () => {},
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 }
 
 interface FakeRepoState {

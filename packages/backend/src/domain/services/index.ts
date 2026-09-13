@@ -2,6 +2,16 @@ export { AuthError } from './auth.service.js'
 export { createGameService, type GameService, GameError } from './game.service.js'
 export { createLeaderboardService, type LeaderboardService } from './leaderboard.service.js'
 export { createAdminService, type AdminService } from './admin.service.js'
+export {
+  createAdminAnalyticsService,
+  buildUserAnalyticsReport,
+  buildGrowthStatsReport,
+  percent,
+  type AdminAnalyticsService,
+  type AdminAnalyticsServiceDeps,
+  type UserAnalyticsReport,
+  type GrowthStatsReport,
+} from './admin-analytics.service.js'
 export { createFuzzyMatchService, type FuzzyMatchService } from './fuzzy-match.service.js'
 export { createUserService, type UserService } from './user.service.js'
 export {
@@ -129,6 +139,7 @@ import { createRewardsService } from './rewards.service.js'
 import { createJobService } from './job.service.js'
 import { createLeaderboardService } from './leaderboard.service.js'
 import { createAdminService } from './admin.service.js'
+import { createAdminAnalyticsService } from './admin-analytics.service.js'
 import { createUserService } from './user.service.js'
 import { createAchievementService } from './achievement.service.js'
 import { createReferralService } from './referral.service.js'
@@ -149,6 +160,7 @@ import { isPushConfigured } from '../../infrastructure/push/push-sender.js'
 import { emitRewardGranted } from '../../infrastructure/socket/socket.js'
 import {
   achievementRepository,
+  adminAnalyticsRepository,
   challengeRepository,
   dailyLoginRepository,
   funnelEventRepository,
@@ -234,6 +246,11 @@ export const adminService = createAdminService({
   screenshotRepository,
   challengeRepository,
   sessionRepository,
+})
+
+export const adminAnalyticsService = createAdminAnalyticsService({
+  logger: serviceLogger,
+  analyticsRepository: adminAnalyticsRepository,
 })
 
 export const userService = createUserService({

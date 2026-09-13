@@ -68,3 +68,4 @@ export {
   type WebhookRow,
   type WebhookDeliveryRow,
 } from './webhook.repository.js'
+export { adminAnalyticsRepository } from './admin-analytics.repository.js'

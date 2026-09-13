@@ -16,8 +16,6 @@ const noopLogger = {
   warn() {},
   error() {},
   debug() {},
-  fatal() {},
-  trace() {},
   child() {
     return noopLogger
   },

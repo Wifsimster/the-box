@@ -7,12 +7,10 @@ import type { LeaderboardEntry } from '@the-box/types'
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
-  trace: () => {},
   debug: () => {},
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 }
 
 function makeService(opts: {

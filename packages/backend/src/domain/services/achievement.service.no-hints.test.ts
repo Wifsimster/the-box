@@ -10,12 +10,10 @@ import type { AchievementRow } from '../types/achievement.types.js'
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
-  trace: () => {},
   debug: () => {},
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 }
 
 const NO_HINTS_ACHIEVEMENT: AchievementRow = {

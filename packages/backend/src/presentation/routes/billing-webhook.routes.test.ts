@@ -20,12 +20,10 @@ import type { UpsertSubscriptionInput } from '../../infrastructure/repositories/
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
-  trace: () => {},
   debug: () => {},
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 }
 
 // The Stripe SDK only needs a key to construct; webhook signature
