@@ -140,17 +140,21 @@ export default function ResetPasswordPage() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <Link to={localizedPath('/forgot-password')}>
-                <Button variant="gaming" className="w-full">
+              {/* `asChild` rather than wrapping the Button in a Link: nesting a
+                  <button> inside an <a> is invalid HTML and rendered two
+                  overlapping targets — a bare 19px anchor box around a 40px
+                  button. `min-h-11` takes the single remaining target to 44px. */}
+              <Button variant="gaming" className="min-h-11 w-full" asChild>
+                <Link to={localizedPath('/forgot-password')}>
                   {t('auth.requestNewLink')}
-                </Button>
-              </Link>
-              <Link to={localizedPath('/login')}>
-                <Button variant="outline" className="w-full">
+                </Link>
+              </Button>
+              <Button variant="outline" className="min-h-11 w-full" asChild>
+                <Link to={localizedPath('/login')}>
                   <ArrowLeft className="size-4 mr-2" />
                   {t('auth.backToLogin')}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </m.div>

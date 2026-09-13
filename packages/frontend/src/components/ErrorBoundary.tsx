@@ -116,16 +116,18 @@ function DefaultErrorFallback({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={reset} variant="default" className="gap-2">
+        {/* Action Buttons — `min-h-11` because a crashed view leaves these as
+            the only controls on screen; the default 40px is under the mobile
+            target. */}
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Button onClick={reset} variant="default" className="min-h-11 gap-2">
             <RefreshCw className="size-4" />
             {t('errors.boundary.tryAgain')}
           </Button>
           <Button
             onClick={() => window.location.href = '/'}
             variant="outline"
-            className="gap-2"
+            className="min-h-11 gap-2"
           >
             <Home className="size-4" />
             {t('errors.boundary.goHome')}
@@ -191,11 +193,11 @@ function LazyLoadErrorFallback({ reset }: { reset: () => void }) {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => window.location.reload()} variant="default" className="gap-2">
+          <Button onClick={() => window.location.reload()} variant="default" className="min-h-11 gap-2">
             <RefreshCw className="size-4" />
             {t('errors.lazyLoad.reload')}
           </Button>
-          <Button onClick={reset} variant="outline" className="gap-2">
+          <Button onClick={reset} variant="outline" className="min-h-11 gap-2">
             {t('errors.lazyLoad.tryAgain')}
           </Button>
         </div>

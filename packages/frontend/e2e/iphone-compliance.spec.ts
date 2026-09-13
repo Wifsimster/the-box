@@ -184,7 +184,10 @@ test.describe('iPhone compliance', () => {
       await page.goto('/en')
       await page.waitForLoadState('load')
 
-      const banner = page.getByRole('dialog', { name: /cookie|consent|consentement/i })
+      // Located structurally rather than by label: the banner's accessible
+      // name is the translated "Your privacy choices", which would make this
+      // spec locale-dependent for no benefit.
+      const banner = page.locator('[role="dialog"][aria-modal="false"]')
       await expect(banner).toBeVisible()
 
       const bottomNav = page.getByRole('navigation', { name: /menu|navigation/i }).last()
@@ -221,9 +224,11 @@ test.describe('iPhone compliance', () => {
     // old `min-h-screen` + `-mt-20` pairing pulled it up behind the bar.
     const headerBottom = await page
       .locator('header')
+      .first()
       .evaluate((el) => el.getBoundingClientRect().bottom)
     const cardTop = await page
       .locator('form')
+      .first()
       .evaluate((el) => el.getBoundingClientRect().top)
 
     expect(cardTop, 'auth card starts behind the sticky header').toBeGreaterThanOrEqual(
@@ -232,25 +237,32 @@ test.describe('iPhone compliance', () => {
   })
 
   test('bottom-nav space collapses on the routes that drop the bar', async ({ page }) => {
+    // `getPropertyValue` hands back the *specified* value (`calc(4rem + 0px)`),
+    // so resolve it through a probe element to get real pixels.
+    const resolveBottomNavSpace = () =>
+      page.evaluate(() => {
+        const probe = document.createElement('div')
+        probe.style.cssText =
+          'position:absolute;visibility:hidden;height:var(--bottom-nav-space)'
+        document.body.append(probe)
+        const px = probe.getBoundingClientRect().height
+        probe.remove()
+        return { px, flag: document.documentElement.dataset.bottomNav ?? null }
+      })
+
     await page.goto('/en')
     await page.waitForLoadState('load')
-    const withBar = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-space').trim(),
-    )
-    expect(parseFloat(withBar), '--bottom-nav-space should reserve the bar on a normal route')
+    const withBar = await resolveBottomNavSpace()
+    expect(withBar.flag, '/en renders the bottom nav, so nothing should be stamped').toBeNull()
+    expect(withBar.px, '--bottom-nav-space should reserve the bar on a normal route')
       .toBeGreaterThan(0)
 
     await page.goto('/en/play')
     await page.waitForLoadState('load')
-    const inGame = await page.evaluate(() => ({
-      flag: document.documentElement.dataset.bottomNav,
-      space: getComputedStyle(document.documentElement)
-        .getPropertyValue('--bottom-nav-space')
-        .trim(),
-    }))
+    const inGame = await resolveBottomNavSpace()
     expect(inGame.flag, '/play should mark the bottom nav hidden').toBe('hidden')
     expect(
-      parseFloat(inGame.space),
+      inGame.px,
       '/play still reserves space for a bar it does not render',
     ).toBe(0)
   })

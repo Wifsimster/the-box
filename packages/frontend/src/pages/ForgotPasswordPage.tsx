@@ -94,12 +94,18 @@ export default function ForgotPasswordPage() {
                 {t('auth.resetEmailInstructions', { email: submittedEmail })}
               </p>
 
-              <Link to={localizedPath('/login')}>
-                <Button variant="outline" className="w-full h-12 rounded-xl border-white/10">
+              {/* `asChild`: a <button> inside an <a> is invalid HTML and left a
+                  19px anchor box stacked on the real control. */}
+              <Button
+                variant="outline"
+                className="h-12 w-full rounded-xl border-white/10"
+                asChild
+              >
+                <Link to={localizedPath('/login')}>
                   <ArrowLeft className="size-4 mr-2" />
                   {t('auth.backToLogin')}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </m.div>
           </m.div>
         </div>
