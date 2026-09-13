@@ -550,7 +550,7 @@
       "eyebrow": "Les abonnements sont là",
       "title": "Débloque The Box en entier.",
       "subtitle": "Soutiens le jeu et accède à toutes les archives, à des indices illimités en rattrapage et à un badge Premium sur ton profil.",
-      "perkArchive": "Archive complète des défis passés",
+      "perkArchive": "Archive complète des boîtes passées",
       "perkHints": "Indices illimités en rattrapage",
       "perkCosmetics": "Badge Premium et cosmétiques",
       "priceFrom": "À partir de {{price}} / mois",
@@ -563,7 +563,7 @@
     },
     "modes": {
       "heading": "Explore les autres modes de jeu",
-      "subheading": "Au-delà du défi quotidien, deux façons de tester ta culture gaming.",
+      "subheading": "Au-delà de la boîte du jour, deux façons de tester ta culture gaming.",
       "cta": "Découvrir",
       "geo": {
         "description": "Repère où une capture a été prise sur la carte du jeu — plus tu vises juste, plus tu marques."
@@ -607,6 +607,7 @@
   },
   "leaderboard": {
     "title": "Classement",
+    "subtitle": "Les ninjas du screenshot, classés par score.",
     "today": "Aujourd'hui",
     "allTime": "Tout Temps",
     "rank": "Rang",
@@ -636,7 +637,7 @@
     "skipped": "Passé",
     "errorLoading": "Impossible de charger les réponses",
     "clickToView": "Cliquez pour voir les réponses de ce joueur",
-    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs.",
+    "todayLocked": "Ouvre la boîte du jour pour voir les réponses des autres joueurs.",
     "capturesFound": "Captures découvertes",
     "avgCaptureTime": "Temps moyen par capture",
     "geogamers": {
@@ -665,7 +666,7 @@
     "noMatchingResults": "Aucune partie ne correspond à tes filtres",
     "game": "partie",
     "games": "parties",
-    "missedChallenges": "Défis Manqués",
+    "missedChallenges": "Boîtes manquées",
     "playCatchUp": "Rattraper",
     "catchUpBadge": "Rattrapage",
     "catchUpHint": "Pour ta progression — hors classement quotidien",
@@ -684,8 +685,8 @@
     },
     "empty": {
       "title": "Pas encore de parties",
-      "subtitle": "Joue le défi du jour pour commencer ton historique.",
-      "cta": "Jouer le défi du jour"
+      "subtitle": "Ouvre la boîte du jour pour commencer ton historique.",
+      "cta": "Ouvrir la boîte du jour"
     },
     "zeroScore": {
       "title": "Zéro cette fois — ça arrive.",
@@ -2010,7 +2011,10 @@
     "copyLink": "Copier dans le presse-papiers",
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
-    "discordCopied": "Copié pour Discord — colle-le dans ton serveur !"
+    "discordCopied": "Copié pour Discord — colle-le dans ton serveur !",
+    "result": "J'ai ouvert la boîte du {{date}} — {{score}} pts, {{found}}/{{total}}.",
+    "rankPercentile": "🏆 Top {{percentile}} %",
+    "rankPosition": "🏆 {{rank}}e sur {{total}}"
   },
   "referral": {
     "title": "Inviter des amis",
@@ -2138,7 +2142,7 @@
   "emailConsent": {
     "title": "Préférences e-mail",
     "description": "Contrôlez l'envoi d'e-mails marketing. Les e-mails transactionnels (compte, réinitialisation de mot de passe) sont toujours envoyés.",
-    "label": "Recevoir des e-mails occasionnels sur les nouveaux défis, les rappels de série et les récompenses.",
+    "label": "Recevoir des e-mails occasionnels sur les nouvelles boîtes, les rappels de série et les récompenses.",
     "updatedOn": "Dernière mise à jour le {{date}}",
     "optedIn": "Vous recevrez des actualités occasionnelles — merci !",
     "optedOut": "Vous ne recevrez plus d'e-mails marketing.",
@@ -2146,7 +2150,7 @@
   },
   "pushNotifications": {
     "title": "Notifications push",
-    "description": "Recevez le défi du jour et les rappels de série directement dans votre navigateur, même quand l'onglet est fermé.",
+    "description": "Recevez la boîte du jour et les rappels de série directement dans votre navigateur, même quand l'onglet est fermé.",
     "label": "Activer les notifications push sur cet appareil.",
     "optedIn": "Notifications activées sur cet appareil.",
     "optedOut": "Notifications désactivées sur cet appareil.",
@@ -2422,9 +2426,9 @@
     "welcomeTitle": "Bienvenue dans The Box !",
     "welcomeSubtitle": "Prêt à prouver ta culture gaming ?",
     "welcomeGift": "Cadeau de bienvenue : 3 indices ajoutés à ton inventaire.",
-    "welcomeRanked": "Tu es sur le classement mondial dès ton premier défi.",
+    "welcomeRanked": "Tu es sur le classement mondial dès ta première boîte.",
     "howTitle": "Comment ça marche",
-    "howSubtitle": "Un défi, 10 captures, un classement.",
+    "howSubtitle": "Une boîte, 10 captures, un classement.",
     "step1": "Regarde la capture d'écran.",
     "step2": "Devine le jeu — plus tu es rapide, plus le score grimpe.",
     "step3": "Utilise un indice si besoin, puis enchaîne la capture suivante.",
@@ -2441,11 +2445,11 @@
     "close": "Fermer la visite",
     "progress": "Étape {{current}} sur {{total}}",
     "replayTitle": "Rejouer la visite",
-    "replayDescription": "Revois en un coup d'œil le défi du jour, le mode geo, le classement et les récompenses.",
+    "replayDescription": "Revois en un coup d'œil la boîte du jour, le mode geo, le classement et les récompenses.",
     "replayCta": "Rejouer la visite",
     "steps": {
       "play": {
-        "title": "Défi du jour",
+        "title": "La boîte du jour",
         "body": "Tout commence ici. Dix captures, un jeu par capture, plus tu réponds vite plus le score grimpe."
       },
       "geo": {
@@ -2454,7 +2458,7 @@
       },
       "leaderboard": {
         "title": "Classement",
-        "body": "Vois ta place du jour et du mois. Mis à jour en direct quand les autres joueurs terminent leur défi."
+        "body": "Vois ta place du jour et du mois. Mis à jour en direct quand les autres joueurs ferment leur boîte."
       },
       "dailyReward": {
         "title": "Récompense quotidienne",
@@ -2462,7 +2466,7 @@
       },
       "profile": {
         "title": "Profil & historique",
-        "body": "Statistiques, succès et historique des défis sont accessibles depuis ton menu profil."
+        "body": "Statistiques, succès et historique des boîtes sont accessibles depuis ton menu profil."
       }
     }
   },
@@ -2471,14 +2475,14 @@
     "subtitle": "Crée un compte en 10 secondes pour garder tes progrès.",
     "benefitStreak": "Suis ta série de victoires jour après jour",
     "benefitLeaderboard": "Entre sur le classement mondial",
-    "benefitHints": "Reçois 3 indices offerts pour ton premier défi",
+    "benefitHints": "Reçois 3 indices offerts pour ta première boîte",
     "createAccount": "Créer un compte (10 s)",
     "continueGuest": "Continuer en invité"
   },
   "streakRisk": {
     "title": "Ta série de {{count}} jours est en danger !",
-    "subtitle": "Joue le défi d’aujourd’hui avant minuit UTC pour la prolonger.",
-    "cta": "Jouer maintenant"
+    "subtitle": "Ouvre la boîte du jour avant minuit UTC pour la prolonger.",
+    "cta": "Ouvrir maintenant"
   },
   "publicProfile": {
     "notFound": "Profil introuvable",

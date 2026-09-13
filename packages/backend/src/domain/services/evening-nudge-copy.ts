@@ -51,15 +51,17 @@ export function buildEveningNudge(
   ctx: EveningNudgeContext,
 ): EveningNudgeCopy {
   const fr = locale === 'fr'
-  const title = fr ? "Le défi du jour t'attend 🎮" : "Today's challenge is waiting 🎮"
+  // Box language, per docs/brand.md §1: the daily challenge is "la boîte du
+  // jour" everywhere a player meets it — CTA, push, e-mail, share.
+  const title = fr ? "La boîte du jour t'attend 🎮" : "Today's box is waiting 🎮"
 
   // Empty board — nobody has set a score yet.
   if (ctx.leaderScore == null) {
     return {
       title,
       body: fr
-        ? 'Personne n’a encore joué aujourd’hui. Sois la première personne à poser un score !'
-        : 'Nobody has played today yet. Be the first to set a score!',
+        ? 'Personne n’a encore ouvert la boîte du jour. Sois la première personne à poser un score !'
+        : "Nobody has opened today's box yet. Be the first to set a score!",
     }
   }
 
@@ -70,8 +72,8 @@ export function buildEveningNudge(
     return {
       title,
       body: fr
-        ? `${ctx.leaderName} mène avec ${score} pts. À toi de jouer avant minuit pour reprendre la tête !`
-        : `${ctx.leaderName} leads with ${score} pts. Play before midnight to take the lead!`,
+        ? `${ctx.leaderName} mène avec ${score} pts. Ouvre la boîte avant minuit pour reprendre la tête !`
+        : `${ctx.leaderName} leads with ${score} pts. Open the box before midnight to take the lead!`,
     }
   }
 
@@ -79,7 +81,7 @@ export function buildEveningNudge(
   return {
     title,
     body: fr
-      ? `Le meilleur score du jour est de ${score} pts. À toi de jouer avant minuit pour le battre !`
-      : `Today's top score is ${score} pts. Play before midnight and beat it!`,
+      ? `Le meilleur score du jour est de ${score} pts. Ouvre la boîte avant minuit pour le battre !`
+      : `Today's top score is ${score} pts. Open the box before midnight and beat it!`,
   }
 }

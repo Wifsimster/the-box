@@ -11,7 +11,7 @@ describe('buildEveningNudge', () => {
       leaderName: 'PixelHero',
       leaderScore: 4820,
     })
-    assert.match(title, /défi du jour/)
+    assert.match(title, /boîte du jour/)
     assert.ok(body.includes('PixelHero'))
     // FR groups thousands with a narrow no-break space (U+202F); match any separator.
     assert.match(body, /4\s820/, `expected grouped score, got: ${body}`)

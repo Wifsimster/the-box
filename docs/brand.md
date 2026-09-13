@@ -31,6 +31,23 @@ Le verbe est la formule d'appel du produit. Il s'emploie partout où l'on invite
 | L'archive Premium | toutes les boîtes · every box | « l'historique complet » |
 | Une partie de rattrapage | la boîte du {date} · the {date} box | « rejouer hier » |
 
+### Où la langue « boîte » est obligatoire — et où « défi » reste correct
+
+La boîte est un **mot d'invitation**, pas un renommage global de la mécanique.
+
+| Obligatoire | Sections / surfaces |
+|---|---|
+| Partout où l'on invite à jouer | hero et CTA, `history`, `leaderboard`, `onboarding`, `tour`, `guestGate`, `streakRisk`, `emailConsent`, `pushNotifications`, push et e-mails serveur, texte de partage |
+
+| « Défi » reste le terme descriptif | Pourquoi |
+|---|---|
+| `seo` | Les descriptions de recherche s'adressent à quelqu'un qui ne connaît pas encore le produit : « défi quotidien de jeux vidéo » porte le mot-clé, « boîte » ne le porte pas. |
+| `legal` | Le texte contractuel ne se reformule pas pour une raison de ton. |
+| `admin` | Surface interne. Le vocabulaire y suit le modèle de données (`challenge`), pas la marque. |
+| `apiErrors` | Messages techniques mappés sur des codes serveur. |
+| `achievements` | Descriptions de conditions de déblocage, pas des invitations. Les six succès de démarrage sont l'exception : ils parlent au joueur à sa première partie. |
+| `pricing` | Surface contractuelle (§3), registre vouvoiement. |
+
 ### Séparation lexicale obligatoire : boîte ≠ coffre
 
 En français gaming, « boîte » frôle la *loot box* — connotation hasard-et-argent que le produit ne veut pas.

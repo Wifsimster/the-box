@@ -257,7 +257,12 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <PageHero icon={Trophy} iconStyle="simple" title={t('leaderboard.title')}>
+    <PageHero
+      icon={Trophy}
+      iconStyle="simple"
+      title={t('leaderboard.title')}
+      subtitle={t('leaderboard.subtitle')}
+    >
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6 h-auto sm:h-10 p-1 gap-1">
