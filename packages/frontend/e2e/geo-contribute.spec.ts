@@ -1,18 +1,17 @@
 import { test, expect } from '@playwright/test'
 import { loginAsUser } from './helpers/game-helpers'
+import { geoCommunityEnabled } from './helpers/features'
 
 /**
  * E2E tests for the /geo/contribute pin mini-game.
  *
- * Skipped gracefully when the geo API is unreachable (older backend) or
+ * Skipped gracefully when the community geo surface is switched off
+ * (`GEO_COMMUNITY_ENABLED=false`, the default since the identity revamp) or
  * when there are no unlabeled candidates to tag for the default gameId.
  */
 
 async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {
-    const response = await page.request.get('/api/geo/games', {
-        failOnStatusCode: false,
-    })
-    return response.status() === 200
+    return geoCommunityEnabled(page.request)
 }
 
 test.describe('Geo Contribute', () => {

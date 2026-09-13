@@ -253,8 +253,11 @@
       <b>État au 13/09/2026 — les 5 phases sont livrées</b> sur la branche
       <code>claude/lucid-ramanujan-eyhx4e</code>. Les 4 décisions listées en §7 ont été prises et sont
       consignées dans <code>docs/brand.md</code> §6. Le document reste écrit au futur : c'est la trace du
-      raisonnement, pas le journal des commits. Deux affirmations de l'audit se sont révélées fausses à
-      l'implémentation et sont corrigées en place, barrées, plutôt que discrètement supprimées — §6 phases 4 et 5.
+      raisonnement, pas le journal des commits. <b>Trois affirmations de l'audit se sont révélées fausses</b> à
+      l'implémentation — elles sont corrigées en place, barrées, plutôt que discrètement supprimées (§6, phases 4 et 5).
+      Deux items ont par ailleurs été volontairement restreints par rapport au plan, et les limites sont écrites dans
+      <code>docs/brand.md</code> plutôt que laissées implicites : « défi » reste le terme descriptif hors des surfaces
+      d'invitation, et le renommage Panorama ne touche que la surface joueur.
     </p>
   </div>
 
@@ -791,7 +794,7 @@
         <h3>Le rituel et la boucle de partage</h3>
         <ul>
           <li>Langage « boîte » sur la série, le partage de résultat, les pushes et les e-mails&nbsp;: <code>geogamers-daily-push-copy.ts</code>, <code>evening-nudge-copy.ts</code>, <code>share.*</code></li>
-          <li>Carte OG de résultat alignée sur la phrase de partage</li>
+          <li><s>Carte OG de résultat alignée sur la phrase de partage</s> — <b>erreur de l'audit</b> : il n'existe pas de carte OG de résultat. <code>og.routes.ts</code> n'en sert que deux, <code>daily</code> et <code>geo-run</code> ; un lien partagé rend la carte quotidienne (capture floutée, « Tu reconnais ce jeu ? »), ce qui est le bon comportement — une carte de résultat divulguerait le score et la réponse. Fait à la place : le CTA de la carte quotidienne passe au verbe de marque</li>
           <li><s>Paramètres UTM sur les liens <code>/share/daily</code></s> — <b>erreur de l'audit</b> : <code>ShareCard</code> les posait déjà par canal (<code>utm_source</code>/<code>medium</code>/<code>campaign</code>). Rien à faire. À la place : le texte de partage était en anglais codé en dur sur un produit à défaut français — il est localisé et porte la phrase de partage du contrat</li>
           <li>Sortir « les ninjas du screenshot » du tirage aléatoire&nbsp;: label de profil et de classement</li>
         </ul>

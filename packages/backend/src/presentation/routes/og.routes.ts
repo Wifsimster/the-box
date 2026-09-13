@@ -108,7 +108,8 @@ function buildDailySvg(date: string, lang: 'fr' | 'en', imageDataUri: string | n
   const locale = lang === 'en' ? 'en-US' : 'fr-FR'
   const readable = escapeXml(formatDate(date, locale))
   const brand = escapeXml('THE BOX')
-  const cta = escapeXml(lang === 'fr' ? 'Joue le défi du jour' : 'Play today’s challenge')
+  // Box language, per docs/brand.md §1 — the card is an invitation surface.
+  const cta = escapeXml(lang === 'fr' ? 'Ouvre la boîte du jour' : "Open today's box")
 
   // With a screenshot: a YouTube-thumbnail-style card — the actual (blurred)
   // game still under a dark scrim, with a "Can you name it?" hook. The blur
