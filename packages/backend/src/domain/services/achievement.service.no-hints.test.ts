@@ -4,7 +4,7 @@ import {
   createAchievementService,
   type GameCompletionData,
 } from './achievement.service.js'
-import type { AchievementRepository, UserRepository } from '../ports/index.js'
+import type { AchievementRepository, AchievementUserContext } from '../ports/index.js'
 import type { DomainLogger } from '../ports/logger.js'
 import type { AchievementRow } from '../types/achievement.types.js'
 
@@ -57,7 +57,13 @@ function buildHarness(opts: {
     countHintFreeCompletedGames: async () => opts.hintFreeCompletedGames ?? 1,
   } as unknown as AchievementRepository
 
-  const userRepository = {} as unknown as UserRepository
+  // Was `{} as unknown as UserRepository` — a fake of an empty object
+  // standing in for a 15-method interface. `AchievementUserContext` is the
+  // two methods this service actually calls, so the fake can be honest.
+  const userRepository: AchievementUserContext = {
+    findById: async () => null,
+    getCurrentStreak: async () => 0,
+  }
 
   const service = createAchievementService({
     logger: silentLogger,

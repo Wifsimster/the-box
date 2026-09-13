@@ -13,9 +13,9 @@ import type {
 import type { DomainLogger } from '../ports/logger.js'
 import type {
   ChallengeRepository,
-  SessionRepository,
+  GameSessionStore,
   ScreenshotRepository,
-  UserRepository,
+  GamePlayerStore,
   InventoryRepository,
   GameRepository,
   FunnelEventRepository,
@@ -116,9 +116,17 @@ export interface GameServiceDeps {
   fuzzyMatchService: FuzzyMatchService
   achievementService: AchievementService
   challengeRepository: ChallengeRepository
-  sessionRepository: SessionRepository
+  /**
+   * The live play-through surface. Excludes history queries and the
+   * delete path, which this service has no business reaching.
+   */
+  sessionRepository: GameSessionStore
   screenshotRepository: ScreenshotRepository
-  userRepository: UserRepository
+  /**
+   * The game loop reads the account and writes the score/streak it earns.
+   * Narrowed so it cannot touch referral or profile columns.
+   */
+  userRepository: GamePlayerStore
   inventoryRepository: InventoryRepository
   gameRepository: GameRepository
   funnelEventRepository: FunnelEventRepository

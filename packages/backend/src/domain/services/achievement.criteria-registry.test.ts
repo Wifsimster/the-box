@@ -8,7 +8,7 @@ import {
 } from './achievement.service.js'
 import type { AchievementRow } from '../types/achievement.types.js'
 import { createRecordingLogger } from '../ports/logger.test-double.js'
-import type { AchievementRepository, UserRepository } from '../ports/index.js'
+import type { AchievementRepository, AchievementUserContext } from '../ports/index.js'
 
 /**
  * Guards the criteria registry against the two ways it used to rot:
@@ -88,9 +88,10 @@ describe('achievement criteria registry', () => {
       getUserBestChallengeRank: async () => null,
     } as unknown as AchievementRepository
 
-    const userRepository = {
+    const userRepository: AchievementUserContext = {
+      findById: async () => null,
       getCurrentStreak: async () => 0,
-    } as unknown as UserRepository
+    }
 
     const service = createAchievementService({
       logger,

@@ -10,7 +10,7 @@ import type {
   DomainLogger,
   ChallengeRepository,
   GameSessionRecord,
-  SessionRepository,
+  SessionHistoryQuery,
 } from '../ports/index.js'
 
 const TOTAL_SCREENSHOTS = 10
@@ -36,7 +36,11 @@ export interface UserService {
 
 export interface UserServiceDeps {
   logger: DomainLogger
-  sessionRepository: SessionRepository
+  /**
+   * Read-only past-games surface: history, replays, personal bests. This
+   * service never writes a session.
+   */
+  sessionRepository: SessionHistoryQuery
   challengeRepository: ChallengeRepository
 }
 

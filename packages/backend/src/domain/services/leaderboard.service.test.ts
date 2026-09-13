@@ -2,7 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createLeaderboardService } from './leaderboard.service.js'
 import type { DomainLogger } from '../ports/logger.js'
-import type { ChallengeRepository, LeaderboardRepository } from '../ports/index.js'
+import type { DailyChallengeLookup, LeaderboardRepository } from '../ports/index.js'
 import type { LeaderboardEntry } from '@the-box/types'
 
 const silentLogger: DomainLogger = {
@@ -18,18 +18,30 @@ function makeService(opts: {
   entries?: LeaderboardEntry[]
   playerCount?: number
 }) {
-  const challengeRepository = {
-    findByDate: async () => opts.challengeForDate ?? null,
-  } as unknown as ChallengeRepository
+  // No cast: `DailyChallengeLookup` is the two-method slice the service
+  // actually uses, so an honest fake satisfies it.
+  // No cast: `DailyChallengeLookup` is the two-method slice the service
+  // actually uses, so an honest fake satisfies it — and the compiler now
+  // checks the fixture is a real ChallengeRecord instead of taking the
+  // `as unknown as` cast's word for it.
+  const challengeRepository: DailyChallengeLookup = {
+    findByDate: async () =>
+      opts.challengeForDate
+        ? { ...opts.challengeForDate, challenge_date: '2026-01-01', created_at: new Date(0) }
+        : null,
+    findById: async () => null,
+  }
 
   let lastLimit: number | undefined
-  const leaderboardRepository = {
+  const leaderboardRepository: LeaderboardRepository = {
     findByChallenge: async (_id: number, limit?: number) => {
       lastLimit = limit
       return opts.entries ?? []
     },
     countPlayersByChallenge: async () => opts.playerCount ?? 0,
-  } as unknown as LeaderboardRepository
+    findByMonth: async () => [],
+    getPercentileForScore: async () => ({ percentile: 0, totalPlayers: 0, rank: 0 }),
+  }
 
   const service = createLeaderboardService({
     logger: silentLogger,

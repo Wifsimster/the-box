@@ -1,7 +1,7 @@
 import type {
   AchievementRepository,
   DomainLogger,
-  UserRepository,
+  AchievementUserContext,
 } from '../ports/index.js'
 import type {
   AchievementRow,
@@ -96,7 +96,11 @@ export interface AchievementService {
 export interface AchievementServiceDeps {
   logger: DomainLogger
   achievementRepository: AchievementRepository
-  userRepository: UserRepository
+  /**
+   * Two methods: read the account row, read the current streak. Achievement
+   * evaluation never writes to the user table.
+   */
+  userRepository: AchievementUserContext
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

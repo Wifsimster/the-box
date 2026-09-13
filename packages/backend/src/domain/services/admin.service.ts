@@ -6,7 +6,7 @@ import type {
   GameRepository,
   ScreenshotRepository,
   ScreenshotWithGameRecord,
-  SessionRepository,
+  GameSessionEraser,
   TierRecord,
 } from '../ports/index.js'
 
@@ -121,7 +121,11 @@ export interface AdminServiceDeps {
   gameRepository: GameRepository
   screenshotRepository: ScreenshotRepository
   challengeRepository: ChallengeRepository
-  sessionRepository: SessionRepository
+  /**
+   * Only resets a player's attempt at a challenge (1 method), so it
+   * depends on the eraser port rather than the full 25-method repository.
+   */
+  sessionRepository: GameSessionEraser
 }
 
 export function createAdminService(deps: AdminServiceDeps): AdminService {

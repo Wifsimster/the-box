@@ -2,7 +2,7 @@ import type { DomainLogger } from '../ports/logger.js'
 import type {
   GeoPinRepository,
   GeoScreenshotRepository,
-  SessionRepository,
+  PlayerActivityQuery,
 } from '../ports/repositories.js'
 import type {
   GeoMap,
@@ -92,7 +92,11 @@ export interface GeoGameServiceDeps {
   geoScreenshotRepository: GeoScreenshotRepository
   geoPinRepository: GeoPinRepository
   geoMapRepository: GeoMapRepository
-  sessionRepository: SessionRepository
+  /**
+   * Only asks how many distinct days the player has played, to gate geo
+   * contribution eligibility.
+   */
+  sessionRepository: PlayerActivityQuery
 }
 
 function validPoint(p: GeoPoint): boolean {
