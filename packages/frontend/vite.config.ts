@@ -41,7 +41,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      includeAssets: ['logo.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
+      includeAssets: ['logo.svg', 'logo-open.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,ico,png,webp,woff,woff2}'],
       },

@@ -525,13 +525,11 @@
     }
   },
   "home": {
-    "title": "The Box",
     "headline": "Une capture. Un jeu à deviner.",
     "subtitle": "Voyons si ta culture gaming tient encore debout.",
     "playersToday_one": "{{formatted}} joueur a ouvert la boîte du jour",
     "playersToday_other": "{{formatted}} joueurs ont ouvert la boîte du jour",
     "playToday": "Ouvre la boîte du jour",
-    "dailyGuess": "Défi Quotidien",
     "geoCta": "Mode Géo",
     "guestHint": "Pas de compte, pas d'attente — ouvre la boîte du jour",
     "offlineHint": "Tu es hors ligne — reconnecte-toi pour ouvrir la boîte du jour",
@@ -539,7 +537,6 @@
     "previewHeading": "Tu reconnais ce jeu ?",
     "previewSubtitle": "Clique pour ouvrir la boîte entière — 10 captures.",
     "previewAlt": "Première capture de la boîte du jour",
-    "multiplayerGame": "Mode Multijoueur",
     "todayCompleted": "Boîte du jour ouverte",
     "comeBackTomorrow": "Une nouvelle boîte demain, même heure.",
     "nextDailyIn": "Prochaine boîte dans :",

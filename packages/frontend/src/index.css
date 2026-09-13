@@ -52,6 +52,15 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 
+  /* Brand colours. The mark, the header lockup and the share cards are
+     painted with these and NEVER with `--primary` / `--neon-*`, which the
+     six premium themes re-skin: a paying player on "emerald matrix" would
+     otherwise see a green brand. Intentionally NOT redefined in any
+     `[data-theme="..."]` block below — same contract as the theme swatches.
+     Personalisation stops at the chrome. See docs/brand.md §4. */
+  --brand-purple: #a855f7;
+  --brand-pink: #ec4899;
+
   /* Gaming neon colors (preserved). `--neon-pink` lifted from #ec4899 →
      #f472b6 so pink-on-dark text (countdown clock, hover links) clears the
      4.5:1 contrast ratio. Decorative glows still read as the same pink. */
@@ -154,6 +163,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Brand colors — theme-immune, see `--brand-*` above */
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-pink: var(--brand-pink);
 
   /* Gaming colors */
   --color-neon-purple: var(--neon-purple);

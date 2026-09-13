@@ -242,9 +242,15 @@ export default function HomePage() {
           })}
           className="text-center mb-8 sm:mb-10 md:mb-12 lg:mb-16"
         >
+          {/* The mark carries state, not just identity: open while today's box
+              is still unplayed, closed once it's done (docs/brand.md §4). The
+              wordmark is gone from the hero — the header lockup carries the
+              brand on every route now, so the headline is the loudest thing
+              here. */}
           <m.img
-            src="/logo.svg"
-            alt="The Box"
+            src={isTodayCompleted ? '/logo.svg' : '/logo-open.svg'}
+            alt=""
+            aria-hidden="true"
             {...motionProps({
               initial: { scale: 0.8 },
               animate: { scale: 1 },
@@ -252,13 +258,6 @@ export default function HomePage() {
             })}
             className="size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
           />
-
-          {/* Brand wordmark stays small — the logo already carries it — so
-              the value headline is the loudest thing in the hero (principle:
-              sell from the hero, lead with value not the brand name). */}
-          <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-neon-purple/80 mb-2">
-            {t('home.title')}
-          </p>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 gradient-gaming-title">
             {t('home.headline')}

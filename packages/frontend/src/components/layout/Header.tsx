@@ -30,6 +30,7 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useBillingStore } from '@/stores/billingStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
 import { InstallPromptButton } from '@/components/pwa'
+import { BrandLockup } from '@/components/layout/BrandLockup'
 import { requestTourReplay } from '@/components/onboarding/tour-storage'
 import { cn } from '@/lib/utils'
 
@@ -325,99 +326,105 @@ export function Header() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full border-b backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md transition-colors duration-200',
+        'sticky top-0 z-50 w-full border-b transition-colors duration-200',
         // Pad the status bar so content clears the iOS notch when the app runs
         // as an installed PWA (apple-mobile-web-app-status-bar-style is
         // black-translucent). Resolves to 0 in a normal browser tab.
         'pt-[env(safe-area-inset-top)]',
         isScrolled
-          ? 'border-border/40 bg-background/80 supports-[backdrop-filter]:bg-background/70 shadow-md shadow-black/20'
-          : 'border-border/20 bg-transparent',
+          ? 'border-border/40 bg-background shadow-md shadow-black/20'
+          : 'border-border/20 bg-background',
       )}
     >
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4">
-        {/* Mobile menu trigger — shown below md */}
-        <div className="flex md:hidden">
-          <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuChange}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-11" aria-label={t('common.toggleMenu')}>
-                <Menu className="size-5" aria-hidden="true" />
-                <span className="sr-only">{t('common.toggleMenu')}</span>
-              </Button>
-            </SheetTrigger>
-            {/* `min(85vw, …)` instead of a flat 300px: on a 320px-wide phone a
-                fixed 300px drawer left a 20px strip of backdrop, which is not a
-                reachable tap-to-dismiss target. The cap keeps the drawer from
-                stretching on larger screens. */}
-            <SheetContent side="left" className="w-[min(85vw,300px)] overflow-y-auto sm:w-[340px]">
-              <SheetHeader>
-                <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
-                <SheetDescription className="sr-only">
-                  {t('common.menuDescription', 'Site navigation and account links')}
-                </SheetDescription>
-              </SheetHeader>
+        {/* Brand + navigation share the leading slot so the lockup always sits
+            first, on every route and every breakpoint (docs/brand.md §4). */}
+        <div className="flex items-center gap-1 md:gap-3">
+          {/* Mobile menu trigger — shown below md */}
+          <div className="flex md:hidden">
+            <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuChange}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-11" aria-label={t('common.toggleMenu')}>
+                  <Menu className="size-5" aria-hidden="true" />
+                  <span className="sr-only">{t('common.toggleMenu')}</span>
+                </Button>
+              </SheetTrigger>
+              {/* `min(85vw, …)` instead of a flat 300px: on a 320px-wide phone a
+                  fixed 300px drawer left a 20px strip of backdrop, which is not a
+                  reachable tap-to-dismiss target. The cap keeps the drawer from
+                  stretching on larger screens. */}
+              <SheetContent side="left" className="w-[min(85vw,300px)] overflow-y-auto sm:w-[340px]">
+                <SheetHeader>
+                  <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {t('common.menuDescription', 'Site navigation and account links')}
+                  </SheetDescription>
+                </SheetHeader>
 
-              <nav aria-label={t('nav.mobile')} className="mt-6 flex flex-col gap-1">
-                {primaryNav.map((item) => (
-                  <NavItemLink
-                    key={item.key}
-                    item={item}
-                    variant="drawer"
-                    onNavigate={() => setMobileMenuOpen(false)}
-                  />
-                ))}
-                {showPremiumUpsell && (
-                  <NavItemLink
-                    item={PREMIUM_NAV_ITEM}
-                    variant="drawer"
-                    accent
-                    onNavigate={() => setMobileMenuOpen(false)}
-                  />
-                )}
-              </nav>
-
-              <div className="mt-4">
-                <InstallPromptButton variant="mobile" onInstalled={() => setMobileMenuOpen(false)} />
-              </div>
-
-              <div className="mt-4 border-t border-border pt-4">
-                {showAuthButtons ? (
-                  <div className="flex flex-col gap-2">
-                    <Button variant="ghost" asChild className="h-11 w-full justify-start px-3">
-                      <Link to={localizedPath('/login')} onClick={() => setMobileMenuOpen(false)}>
-                        {t('common.login')}
-                      </Link>
-                    </Button>
-                    <Button variant="gaming" asChild className="h-11 w-full">
-                      <Link to={localizedPath('/register')} onClick={() => setMobileMenuOpen(false)}>
-                        {t('common.register')}
-                      </Link>
-                    </Button>
-                  </div>
-                ) : (
-                  isSignedIn && (
-                    <AccountMenu
+                <nav aria-label={t('nav.mobile')} className="mt-6 flex flex-col gap-1">
+                  {primaryNav.map((item) => (
+                    <NavItemLink
+                      key={item.key}
+                      item={item}
                       variant="drawer"
-                      isAdmin={isAdmin}
-                      isPremium={isPremium}
                       onNavigate={() => setMobileMenuOpen(false)}
-                      onReplayTour={handleReplayTour}
-                      onSignOut={signOut}
                     />
-                  )
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+                  ))}
+                  {showPremiumUpsell && (
+                    <NavItemLink
+                      item={PREMIUM_NAV_ITEM}
+                      variant="drawer"
+                      accent
+                      onNavigate={() => setMobileMenuOpen(false)}
+                    />
+                  )}
+                </nav>
 
-        {/* Desktop primary navigation — shown at md and up */}
-        <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 md:flex lg:gap-2">
-          {primaryNav.map((item) => (
-            <NavItemLink key={item.key} item={item} variant="desktop" />
-          ))}
-          {showPremiumUpsell && <NavItemLink item={PREMIUM_NAV_ITEM} variant="desktop" accent />}
-        </nav>
+                <div className="mt-4">
+                  <InstallPromptButton variant="mobile" onInstalled={() => setMobileMenuOpen(false)} />
+                </div>
+
+                <div className="mt-4 border-t border-border pt-4">
+                  {showAuthButtons ? (
+                    <div className="flex flex-col gap-2">
+                      <Button variant="ghost" asChild className="h-11 w-full justify-start px-3">
+                        <Link to={localizedPath('/login')} onClick={() => setMobileMenuOpen(false)}>
+                          {t('common.login')}
+                        </Link>
+                      </Button>
+                      <Button variant="gaming" asChild className="h-11 w-full">
+                        <Link to={localizedPath('/register')} onClick={() => setMobileMenuOpen(false)}>
+                          {t('common.register')}
+                        </Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    isSignedIn && (
+                      <AccountMenu
+                        variant="drawer"
+                        isAdmin={isAdmin}
+                        isPremium={isPremium}
+                        onNavigate={() => setMobileMenuOpen(false)}
+                        onReplayTour={handleReplayTour}
+                        onSignOut={signOut}
+                      />
+                    )
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <BrandLockup onNavigate={() => setMobileMenuOpen(false)} />
+
+          {/* Desktop primary navigation — shown at md and up */}
+          <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 md:flex lg:gap-2">
+            {primaryNav.map((item) => (
+              <NavItemLink key={item.key} item={item} variant="desktop" />
+            ))}
+            {showPremiumUpsell && <NavItemLink item={PREMIUM_NAV_ITEM} variant="desktop" accent />}
+          </nav>
+        </div>
 
         {/* Mobile reward widgets — surfaced in the header (not buried in the
             drawer) so the daily-streak loop is glanceable on first paint */}

@@ -32,6 +32,23 @@ Toutes les classes shadcn `bg-*` / `text-*` / `border-*` résolvent à travers c
 | Input | `--input` | `bg-input` | Input surfaces |
 | Ring | `--ring` | `ring-ring` / `focus-visible:ring-ring` | Focus ring |
 
+## Palette — couleurs de marque
+
+Le **chrome de marque** — le mark, le lockup du header, les cartes de partage — est peint avec ces tokens et **jamais** avec `--primary` ou `--neon-*`.
+
+| Token | Value | Tailwind class | Usage |
+|---|---|---|---|
+| Brand Purple | `--brand-purple` = `#a855f7` | `text-brand-purple` / `bg-brand-purple` | Mark, lockup, chrome de marque |
+| Brand Pink | `--brand-pink` = `#ec4899` | `text-brand-pink` / `bg-brand-pink` | Second arrêt du dégradé de marque |
+
+**Ces deux tokens ne sont redéfinis dans aucun bloc `[data-theme="…"]`**, et ne doivent jamais l'être. C'est le même contrat que les `--theme-swatch-*` : les six thèmes Premium re-skinnent `--primary` et `--neon-*`, donc un abonné en « Vert matrix » verrait autrement une marque verte. La personnalisation s'arrête au chrome.
+
+Le dégradé du mark est figé dans `public/logo.svg` et `public/logo-open.svg` — ces fichiers sont aussi servis comme favicon et comme asset OG, contextes où les variables CSS n'existent pas. Si ces valeurs changent ici, changer les deux SVG dans la même PR.
+
+Voir `docs/brand.md` §4.
+
+---
+
 ## Palette — néons gaming
 
 À utiliser avec parcimonie et de manière sémantique. Ce sont des accents identitaires, pas des couleurs polyvalentes.
