@@ -67,7 +67,7 @@ const PUBLIC_ROUTES = [
   '/en/cookies',
   '/en/profile',
   '/en/geo/contribute',
-  '/en/geogamers',
+  '/en/panorama',
   // French is the default locale and its strings are markedly longer than the
   // English ones — the layout has to survive them too.
   '/fr',

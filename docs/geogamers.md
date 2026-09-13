@@ -1,5 +1,7 @@
 # GeoGamers Mode
 
+> **Nom public : Panorama.** Le mode s'appelait « GeoGamers », à un mot de l'autre mode « Géo » — deux produits différents que rien ne distinguait à l'oral. Renommé pendant que `GEOGAMERS_ENABLED` était encore à `false`, donc sans casser de lien. **Seule la surface joueur change** (libellés, route `/:lang/panorama`) : tables, workers, sockets, routes API et ce document gardent l'identifiant `geogamers`. Voir `docs/brand.md` §6.
+
 "GeoGuessr for video games" — a daily challenge that fuses the two existing
 modes: **identify the game** from a screenshot (classic mode's skill) then
 **pin where it was captured** on that game's map (geo mode's skill). Inspired by
@@ -136,7 +138,7 @@ State is ephemeral (Redis, 2h TTL). Play runs over the Socket.io
 is the source of truth and is fully unit-tested. Views are spectator-safe — the
 game identity and canonical pin are withheld until a player resolves phase 1 or
 the round reveals. Screenshots stream through a party image proxy. Frontend:
-`GeoGamersPartyPage` (route `/:lang/geogamers/party`).
+`GeoGamersPartyPage` (route `/:lang/panorama/party`).
 
 ## Config
 

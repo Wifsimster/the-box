@@ -53,7 +53,7 @@
       "third": "3rd place"
     },
     "menuDescription": "Site navigation and account links",
-    "geogamers": "GeoGamers",
+    "geogamers": "Panorama",
     "new": "New"
   },
   "nav": {
@@ -563,7 +563,8 @@
     },
     "modes": {
       "heading": "Explore the other game modes",
-      "subheading": "Beyond today's box, two more ways to test your gaming knowledge.",
+      "subheading_one": "Beyond today's box, one more way to test your gaming knowledge.",
+      "subheading_other": "Beyond today's box, {{count}} more ways to test your gaming knowledge.",
       "cta": "Discover",
       "geo": {
         "description": "Pinpoint where a screenshot was taken on the game's map — the closer you land, the more you score."
@@ -641,7 +642,7 @@
     "capturesFound": "Captures found",
     "avgCaptureTime": "Average time per capture",
     "geogamers": {
-      "tab": "GeoGamers",
+      "tab": "Panorama",
       "title": "Season {{month}}",
       "players": "{{count}} player",
       "players_other": "{{count}} players",
@@ -650,7 +651,7 @@
       "daysPlayed": "{{count}} day played",
       "daysPlayed_other": "{{count}} days played",
       "dropped": "3 worst days dropped",
-      "unavailable": "The GeoGamers leaderboard is unavailable."
+      "unavailable": "The Panorama leaderboard is unavailable."
     }
   },
   "history": {
@@ -2698,7 +2699,7 @@
   },
   "apiErrors": {
     "default": "Something went wrong. Please try again.",
-    "GEOGAMERS_UNAVAILABLE": "GeoGamers isn't available right now.",
+    "GEOGAMERS_UNAVAILABLE": "Panorama isn't available right now.",
     "GEO_COMMUNITY_DISABLED": "Geo mode isn't available on this deployment.",
     "NETWORK_ERROR": "Network error. Please check your connection.",
     "VALIDATION_ERROR": "The information you entered is invalid.",
@@ -3019,7 +3020,7 @@
     }
   },
   "geogamersParty": {
-    "title": "GeoGamers — Party",
+    "title": "Panorama — Party",
     "create": "Create a party",
     "createCta": "Create",
     "rounds": "Rounds",

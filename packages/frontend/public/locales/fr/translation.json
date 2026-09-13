@@ -53,7 +53,7 @@
       "third": "3e place"
     },
     "menuDescription": "Navigation du site et liens du compte",
-    "geogamers": "GeoGamers",
+    "geogamers": "Panorama",
     "new": "Nouveau"
   },
   "nav": {
@@ -563,7 +563,8 @@
     },
     "modes": {
       "heading": "Explore les autres modes de jeu",
-      "subheading": "Au-delà de la boîte du jour, deux façons de tester ta culture gaming.",
+      "subheading_one": "Au-delà de la boîte du jour, une autre façon de tester ta culture gaming.",
+      "subheading_other": "Au-delà de la boîte du jour, {{count}} façons de tester ta culture gaming.",
       "cta": "Découvrir",
       "geo": {
         "description": "Repère où une capture a été prise sur la carte du jeu — plus tu vises juste, plus tu marques."
@@ -641,7 +642,7 @@
     "capturesFound": "Captures découvertes",
     "avgCaptureTime": "Temps moyen par capture",
     "geogamers": {
-      "tab": "GeoGamers",
+      "tab": "Panorama",
       "title": "Saison {{month}}",
       "players": "{{count}} joueur",
       "players_other": "{{count}} joueurs",
@@ -650,7 +651,7 @@
       "daysPlayed": "{{count}} jour joué",
       "daysPlayed_other": "{{count}} jours joués",
       "dropped": "3 pires jours retirés",
-      "unavailable": "Le classement GeoGamers n'est pas disponible."
+      "unavailable": "Le classement Panorama n'est pas disponible."
     }
   },
   "history": {
@@ -2698,7 +2699,7 @@
   },
   "apiErrors": {
     "default": "Une erreur est survenue. Veuillez réessayer.",
-    "GEOGAMERS_UNAVAILABLE": "GeoGamers n'est pas disponible pour le moment.",
+    "GEOGAMERS_UNAVAILABLE": "Panorama n'est pas disponible pour le moment.",
     "GEO_COMMUNITY_DISABLED": "Le mode Géo n'est pas disponible sur ce déploiement.",
     "NETWORK_ERROR": "Erreur réseau. Vérifiez votre connexion.",
     "VALIDATION_ERROR": "Les informations saisies sont invalides.",
@@ -3019,7 +3020,7 @@
     }
   },
   "geogamersParty": {
-    "title": "GeoGamers — Partie à plusieurs",
+    "title": "Panorama — Partie à plusieurs",
     "create": "Créer une partie",
     "createCta": "Créer",
     "rounds": "Nombre de manches",
