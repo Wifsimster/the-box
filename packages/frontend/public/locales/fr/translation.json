@@ -522,7 +522,8 @@
       "network": "Échec de la connexion réseau. Vérifie ta connexion et réessaie.",
       "unexpected": "Une erreur est survenue. Réessaie.",
       "sessionNotInitialized": "La partie n'est pas encore prête. Recharge la page."
-    }
+    },
+    "offlineGuess": "Tu es hors ligne — ta réponse ne peut pas être envoyée."
   },
   "home": {
     "headline": "Une capture. Un jeu à deviner.",

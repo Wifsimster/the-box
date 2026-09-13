@@ -522,7 +522,8 @@
       "network": "Network connection failed. Check your connection and try again.",
       "unexpected": "Something went wrong. Please try again.",
       "sessionNotInitialized": "The game session isn't ready yet. Please reload the page."
-    }
+    },
+    "offlineGuess": "You're offline — your guess can't be sent."
   },
   "home": {
     "headline": "One screenshot. One guess.",
