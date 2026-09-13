@@ -109,7 +109,10 @@ export function PricingCard({
 
         <CardFooter>
           <Button
-            className="w-full"
+            // `min-h-11` rather than the default 40px: this is the plan's
+            // primary conversion CTA and the one thing a visitor taps on a
+            // phone, so hold it to the 44px target.
+            className="min-h-11 w-full"
             disabled={isCurrentPlan || isWorking}
             aria-busy={isPending}
             onClick={() => onSelect(price.tier)}

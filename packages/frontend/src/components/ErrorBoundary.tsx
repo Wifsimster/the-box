@@ -87,7 +87,7 @@ function DefaultErrorFallback({
   const isDev = import.meta.env.DEV
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center">
         {/* Error Icon */}
         <div className="mb-6 flex justify-center">
@@ -177,7 +177,7 @@ function LazyLoadErrorFallback({ reset }: { reset: () => void }) {
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-6 flex justify-center">
           <div className="size-20 rounded-full bg-warning/10 flex items-center justify-center">

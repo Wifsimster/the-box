@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
 
   if (tokenError) {
     return (
-      <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
+      <div className="container mx-auto flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
         <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -160,7 +160,7 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
+      <div className="container mx-auto flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
         <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -196,7 +196,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
+    <div className="container mx-auto flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
       <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

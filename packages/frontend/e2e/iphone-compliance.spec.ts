@@ -12,8 +12,12 @@
  *      than the viewport.
  *   3. Viewport / PWA head — `viewport-fit=cover` (notch handling) plus the
  *      apple-touch-icon and apple-mobile-web-app meta tags must be present.
- *   4. Touch targets — the mobile BottomNav entries must clear the 44px
- *      minimum (WCAG 2.5.5 / Apple HIG).
+ *   4. Touch targets — the mobile BottomNav entries, the footer links and the
+ *      password reveal toggle must clear the 44px minimum (WCAG 2.5.5 /
+ *      Apple HIG).
+ *   5. Bottom chrome — the consent banner has to sit *above* the BottomNav
+ *      rather than on top of it, and the page height variables have to leave
+ *      the header out of the usable area exactly once.
  *
  * The spec emulates an iPhone 13 viewport (390x844, 3x, touch) via
  * `test.use(devices['iPhone 13'])`. It runs under the configured Chromium
@@ -23,8 +27,8 @@
  * in playwright.config.ts and run with WebKit installed.
  *
  * Prerequisites: dev servers running (`npm run dev`) + seeded DB
- * (`npm run e2e:seed`). Only public pages (home, login) are exercised so the
- * suite stays resilient to auth/seed state.
+ * (`npm run e2e:seed`). Only pages reachable without a session are exercised,
+ * so the suite stays resilient to auth/seed state.
  */
 import { test, expect, devices } from '@playwright/test'
 
@@ -39,6 +43,37 @@ test.use(iPhone13)
 const MIN_NO_ZOOM_FONT_PX = 16
 /** WCAG 2.5.5 / Apple HIG minimum interactive target. */
 const MIN_TOUCH_TARGET_PX = 44
+
+/**
+ * Every route reachable without a session or seeded game state. The overflow
+ * sweep used to cover only `/en` and `/en/login`, which left ~20 screens — the
+ * whole legal/marketing set, the profile hub and both Geo entry points —
+ * unguarded against the one-wide-element bug this suite exists to catch.
+ */
+const PUBLIC_ROUTES = [
+  '/en',
+  '/en/login',
+  '/en/register',
+  '/en/forgot-password',
+  '/en/reset-password',
+  '/en/two-factor',
+  '/en/leaderboard',
+  '/en/premium',
+  '/en/rules',
+  '/en/faq',
+  '/en/contact',
+  '/en/terms',
+  '/en/privacy',
+  '/en/cookies',
+  '/en/profile',
+  '/en/geo/contribute',
+  '/en/geogamers',
+  // French is the default locale and its strings are markedly longer than the
+  // English ones — the layout has to survive them too.
+  '/fr',
+  '/fr/premium',
+  '/fr/regles',
+]
 
 test.describe('iPhone compliance', () => {
   test('login form controls render at >= 16px (no iOS zoom-on-focus)', async ({ page }) => {
@@ -69,7 +104,7 @@ test.describe('iPhone compliance', () => {
     }
   })
 
-  for (const path of ['/en', '/en/login']) {
+  for (const path of PUBLIC_ROUTES) {
     test(`no horizontal overflow at iPhone width on ${path}`, async ({ page }) => {
       await page.goto(path)
       await page.waitForLoadState('load')
@@ -101,6 +136,123 @@ test.describe('iPhone compliance', () => {
     await expect(
       page.locator('meta[name="apple-mobile-web-app-capable"]'),
     ).toHaveAttribute('content', 'yes')
+  })
+
+  test('footer links clear the 44px minimum', async ({ page }) => {
+    await page.goto('/en')
+    await page.waitForLoadState('load')
+
+    const links = page.getByRole('navigation', { name: /footer|pied/i }).getByRole('link')
+    const count = await links.count()
+    expect(count, 'footer should render its legal/help links').toBeGreaterThan(0)
+
+    for (let i = 0; i < count; i++) {
+      const label = (await links.nth(i).textContent())?.trim()
+      const box = await links.nth(i).boundingBox()
+      expect(box, `footer link "${label}" should have a layout box`).not.toBeNull()
+      expect(
+        box!.height,
+        `footer link "${label}" is ${box!.height}px tall (< ${MIN_TOUCH_TARGET_PX}px)`,
+      ).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX)
+    }
+  })
+
+  test('password reveal toggle is a full-height target, not the icon box', async ({ page }) => {
+    await page.goto('/en/login')
+    await page.waitForSelector('form')
+
+    const toggle = page.getByRole('button', { name: /show password|afficher le mot de passe/i })
+    await expect(toggle).toBeVisible()
+
+    const box = await toggle.boundingBox()
+    expect(box, 'password toggle should have a layout box').not.toBeNull()
+    // The 16px lucide icon used to be the whole hit area. It now fills the
+    // input's `pr-10` gutter, which clears the 24x24 WCAG 2.5.8 floor.
+    expect(
+      box!.height,
+      `password toggle is only ${box!.height}px tall`,
+    ).toBeGreaterThanOrEqual(24)
+    expect(box!.width, `password toggle is only ${box!.width}px wide`).toBeGreaterThanOrEqual(24)
+  })
+
+  test('consent banner sits above the bottom nav instead of covering it', async ({ browser }) => {
+    // A fresh context: the banner only shows until a choice is persisted, and
+    // the shared storageState in playwright.config.ts has already made one.
+    const context = await browser.newContext({ ...iPhone13, storageState: undefined })
+    const page = await context.newPage()
+    try {
+      await page.goto('/en')
+      await page.waitForLoadState('load')
+
+      const banner = page.getByRole('dialog', { name: /cookie|consent|consentement/i })
+      await expect(banner).toBeVisible()
+
+      const bottomNav = page.getByRole('navigation', { name: /menu|navigation/i }).last()
+      await expect(bottomNav).toBeVisible()
+
+      const bannerBox = await banner.boundingBox()
+      const navBox = await bottomNav.boundingBox()
+      expect(bannerBox).not.toBeNull()
+      expect(navBox).not.toBeNull()
+
+      // 1px slack for sub-pixel rounding at 3x.
+      expect(
+        bannerBox!.y + bannerBox!.height,
+        'consent banner overlaps the bottom nav, leaving a first-time phone visitor with no navigation',
+      ).toBeLessThanOrEqual(navBox!.y + 1)
+
+      // Geometry, not hit-testing: the first-run onboarding tour can also be
+      // on screen here, and its overlay would make an elementFromPoint probe
+      // fail for a reason this test isn't about.
+      expect(
+        await bottomNav.getByRole('link').first().isVisible(),
+        'bottom-nav tabs should stay visible while the consent banner is up',
+      ).toBe(true)
+    } finally {
+      await context.close()
+    }
+  })
+
+  test('page-height variables subtract the header exactly once', async ({ page }) => {
+    await page.goto('/en/login')
+    await page.waitForSelector('form')
+
+    // The centred auth card must not start underneath the sticky header — the
+    // old `min-h-screen` + `-mt-20` pairing pulled it up behind the bar.
+    const headerBottom = await page
+      .locator('header')
+      .evaluate((el) => el.getBoundingClientRect().bottom)
+    const cardTop = await page
+      .locator('form')
+      .evaluate((el) => el.getBoundingClientRect().top)
+
+    expect(cardTop, 'auth card starts behind the sticky header').toBeGreaterThanOrEqual(
+      headerBottom - 1,
+    )
+  })
+
+  test('bottom-nav space collapses on the routes that drop the bar', async ({ page }) => {
+    await page.goto('/en')
+    await page.waitForLoadState('load')
+    const withBar = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-space').trim(),
+    )
+    expect(parseFloat(withBar), '--bottom-nav-space should reserve the bar on a normal route')
+      .toBeGreaterThan(0)
+
+    await page.goto('/en/play')
+    await page.waitForLoadState('load')
+    const inGame = await page.evaluate(() => ({
+      flag: document.documentElement.dataset.bottomNav,
+      space: getComputedStyle(document.documentElement)
+        .getPropertyValue('--bottom-nav-space')
+        .trim(),
+    }))
+    expect(inGame.flag, '/play should mark the bottom nav hidden').toBe('hidden')
+    expect(
+      parseFloat(inGame.space),
+      '/play still reserves space for a bar it does not render',
+    ).toBe(0)
   })
 
   test('mobile bottom-nav targets clear the 44px minimum', async ({ page }) => {

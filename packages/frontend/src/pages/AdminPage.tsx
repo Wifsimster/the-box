@@ -140,7 +140,7 @@ export default function AdminPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="flex min-h-screen"
+      className="flex min-h-[var(--page-h)]"
     >
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 transition-all duration-300" style={{ paddingRight: sidebarOffset }}>

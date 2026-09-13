@@ -8,6 +8,14 @@ import { format } from 'date-fns'
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
 
+/**
+ * Footer links are the app's smallest tap targets — 20px tall as bare text,
+ * under the 44px Apple HIG / WCAG 2.5.5 target the mobile nav is already held
+ * to. `min-h-11` (44px) pads the hit area without changing the type scale.
+ */
+const footerLinkClass =
+  'inline-flex min-h-11 items-center px-1 text-muted-foreground transition-colors hover:text-neon-purple'
+
 export function Footer() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -23,41 +31,44 @@ export function Footer() {
     <footer className="py-4 text-center relative z-10">
       <nav
         aria-label={t('nav.footer')}
-        className="flex items-center justify-center gap-6 text-sm flex-wrap"
+        // `gap-y-0` because each link now carries its own 44px tap height —
+        // stacking that on a 24px row gap left a cavernous wrapped footer on a
+        // phone, where these six links always wrap to two or three rows.
+        className="flex flex-wrap items-center justify-center gap-x-6 gap-y-0 text-sm"
       >
         <Link
           to={localizedPath('/terms')}
-          className="text-muted-foreground hover:text-neon-purple transition-colors"
+          className={footerLinkClass}
         >
           {t('footer.terms')}
         </Link>
         <Link
           to={localizedPath('/privacy')}
-          className="text-muted-foreground hover:text-neon-purple transition-colors"
+          className={footerLinkClass}
         >
           {t('footer.privacy')}
         </Link>
         <Link
           to={localizedPath('/cookies')}
-          className="text-muted-foreground hover:text-neon-purple transition-colors"
+          className={footerLinkClass}
         >
           {t('footer.cookies')}
         </Link>
         <Link
           to={localizedPath('/faq')}
-          className="text-muted-foreground hover:text-neon-purple transition-colors"
+          className={footerLinkClass}
         >
           {t('footer.faq')}
         </Link>
         <Link
           to={localizedPath('/rules')}
-          className="text-muted-foreground hover:text-neon-purple transition-colors"
+          className={footerLinkClass}
         >
           {t('footer.rules')}
         </Link>
         <Link
           to={localizedPath('/contact')}
-          className="text-muted-foreground hover:text-neon-purple transition-colors"
+          className={footerLinkClass}
         >
           {t('footer.contact')}
         </Link>
@@ -70,7 +81,7 @@ export function Footer() {
             <button
               type="button"
               onClick={openChangelog}
-              className="underline-offset-2 hover:text-neon-purple hover:underline transition-colors"
+              className="inline-flex min-h-11 items-center px-2 align-middle underline-offset-2 transition-colors hover:text-neon-purple hover:underline"
               title={t('changelog.openTitle')}
             >
               v{appVersion}
