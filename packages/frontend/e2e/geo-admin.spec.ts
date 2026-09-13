@@ -13,7 +13,12 @@ import { loginAsAdmin } from './helpers/game-helpers'
  */
 
 async function geoRoutesReachable(page: import('@playwright/test').Page): Promise<boolean> {
-    const response = await page.request.get('/api/geo/games', {
+    // Probe the admin surface these tests actually exercise, not the player
+    // one. `/api/geo` is unmounted whenever GEO_COMMUNITY_ENABLED is false
+    // (the default since the identity revamp) while the admin geo panel stays
+    // live, so probing the player routes would skip this suite for the wrong
+    // reason — or, before the fix, read their 404 as "up".
+    const response = await page.request.get('/api/admin/geo-fetch/status', {
         failOnStatusCode: false,
     })
     return response.status() < 500

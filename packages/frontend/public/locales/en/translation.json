@@ -2318,7 +2318,8 @@
       "fileTooLarge": "File is too large. Maximum size is 10MB.",
       "uploadError": "Failed to upload avatar. Please try again.",
       "deleteError": "Failed to remove avatar. Please try again."
-    }
+    },
+    "memberSince": "Screenshot ninja since {{date}}"
   },
   "rewards": {
     "inboxTitle": "Your rewards",

@@ -89,6 +89,40 @@ Quality bar before trusting vision pins at scale: `npm run eval:geo-vision`
 must clear ≥40% of predictions within the map's consensus radius and median
 normalized error < 0.1 on ≥50 known-truth metas.
 
+## Contributor exit plan (shipped with the default flip)
+
+The flag now defaults to `false` (identity revamp, PR #375), so this section
+stops being hypothetical: real players earned contributor tiers and rewards on
+a surface that is off by default from this release on.
+
+**What they keep.** Everything they actually earned. Contributor grants were
+written straight to the player's inventory
+(`geo-reward.service` → `inventoryRepository.addItems`), which has no
+dependency on the geo surface: power-ups, tokens and chests stay redeemable in
+the rewards inbox exactly as before. Nothing is revoked, nothing expires.
+
+**What they lose.** The tier badge display only — the bronze/silver/gold/diamond
+ring on the profile's *creator* tab. `geo_contributor` rows are untouched in the
+database; they are simply no longer surfaced, because a tier in a mode you can
+no longer play is a label without a use.
+
+**What the code does about it.** `GeoContributorCard` is gated on the
+`geoCommunity` runtime flag, at its mount site in `ProfileTabs` and again inside
+the component. Without that gate the card fell through to
+`GeoCrowdsourcerPlaceholder` — the card's "start contributing" empty state —
+because `/api/geo/contributor/me` 404s when the router is unmounted and the
+store swallows the error. A Gold contributor would have been shown an
+invitation to a surface that no longer exists.
+
+**If the tier should survive the sunset**, the cheapest option is to move the
+contributor stats read out of `/api/geo` (it is a profile read, not a geo-mode
+read) and render the card read-only with a "retired" badge. That is a product
+call, not a blocker, and it is deliberately not taken here.
+
+**Before flipping the flag on an instance with active contributors**, announce
+it through the rewards inbox — the same channel used for referral and reward
+announcements — so the badge does not vanish without a word.
+
 ## Phase 2 (separate PR, only after agent sourcing is proven)
 
 Once the flag has been `false` in production for a full season with no content

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGeoStore } from '@/stores/geoStore'
+import { useFeatures } from '@/hooks/useFeatures'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Lock, MapPin, ShieldCheck, Target } from 'lucide-react'
@@ -26,10 +27,24 @@ const TIER_LABEL: Record<GeoContributorTier, string> = {
 export function GeoContributorCard() {
     const { t } = useTranslation()
     const { contributor, loadContributor } = useGeoStore()
+    const { geoCommunity } = useFeatures()
 
     useEffect(() => {
+        // `/api/geo` is unmounted when the community surface is off, so the
+        // fetch would 404 into the store's silent catch and leave us rendering
+        // the "start contributing" placeholder — an invitation to a surface
+        // that no longer exists, shown even to someone who reached Gold.
+        if (!geoCommunity) return
         loadContributor()
-    }, [loadContributor])
+    }, [geoCommunity, loadContributor])
+
+    // Earned rewards are unaffected: contributor grants went straight into the
+    // player's inventory, which is independent of this surface. What the card
+    // would show is the tier badge, and there is nothing to do with a tier in
+    // a mode you can no longer play. See tasks/prd-geo-community-sunset.md.
+    if (!geoCommunity) {
+        return null
+    }
 
     if (!contributor) {
         return <GeoCrowdsourcerPlaceholder />

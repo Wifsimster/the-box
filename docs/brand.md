@@ -156,7 +156,7 @@ Consignées ici pour qu'elles ne se reperdent pas. Voir `tasks/product-identity-
 |---|---|---|
 | 1 | Adopter « boîte » comme verbe de marque | **Prise** — ce document |
 | 2 | Nom public du mode ex-« GeoGamers » | **Prise** — *Panorama* (le mode appelait déjà sa capture un panorama). Change via `common.panorama` + `PANORAMA_PATH` ; les identifiants internes restent `geogamers`. |
-| 3 | Sunset du Géo communautaire | **Prise** — `GEO_COMMUNITY_ENABLED` par défaut à `false` |
+| 3 | Sunset du Géo communautaire | **Prise** — `GEO_COMMUNITY_ENABLED` par défaut à `false`. Plan de sortie des contributeurs dans `tasks/prd-geo-community-sunset.md` : les récompenses gagnées sont dans l'inventaire et survivent, seul le badge de palier disparaît. |
 | 4 | Registre du classement et du partage | **Prise** — tutoiement (ce sont des surfaces de jeu) |
 
 ---

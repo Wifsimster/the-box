@@ -15,6 +15,7 @@ import { PushNotificationCard } from './PushNotificationCard'
 import { ProfileSection } from './ProfileSection'
 import { clearTourCompleted, markTourPending } from '@/components/onboarding/tour-storage'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useFeatures } from '@/hooks/useFeatures'
 import type { AchievementWithProgress, User as UserType } from '@the-box/types'
 import { isThemeKey, type ThemeKey } from '@/lib/themes'
 
@@ -99,6 +100,7 @@ export function ProfileTabs({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
+  const { geoCommunity } = useFeatures()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const activeTab = useMemo(() => parseTab(searchParams.get('tab')), [searchParams])
@@ -254,9 +256,14 @@ export function ProfileTabs({
             <ProfileSection>
               <StreamerKitCard />
             </ProfileSection>
-            <ProfileSection delay={0.05}>
-              <GeoContributorCard />
-            </ProfileSection>
+            {/* Gated at the mount site, not just inside the card: an empty
+                ProfileSection still collects the parent's `space-y-6`, which
+                would leave a 24px hole under the streamer kit. */}
+            {geoCommunity && (
+              <ProfileSection delay={0.05}>
+                <GeoContributorCard />
+              </ProfileSection>
+            )}
           </Suspense>
         )}
       </TabsContent>

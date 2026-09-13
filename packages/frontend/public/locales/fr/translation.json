@@ -2318,7 +2318,8 @@
       "fileTooLarge": "Le fichier est trop volumineux. La taille maximum est de 10 Mo.",
       "uploadError": "Échec du téléchargement de l'avatar. Veuillez réessayer.",
       "deleteError": "Échec de la suppression de l'avatar. Veuillez réessayer."
-    }
+    },
+    "memberSince": "Ninja du screenshot depuis le {{date}}"
   },
   "rewards": {
     "inboxTitle": "Tes récompenses",

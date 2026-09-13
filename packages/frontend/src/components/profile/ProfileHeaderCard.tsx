@@ -90,7 +90,10 @@ export function ProfileHeaderCard({
                 {email && <div>{email}</div>}
                 <div className="flex items-center justify-center sm:justify-start gap-1.5">
                   <Calendar className="size-3" />
-                  <span>{joinDate}</span>
+                  {/* The player noun earns a job here rather than sitting in
+                      the random end-of-run message pool: it names who this
+                      profile belongs to, dated (docs/brand.md §1). */}
+                  <span>{t('profile.memberSince', { date: joinDate })}</span>
                   {!emailVerified && (
                     <Badge variant="outline" className="text-xs ml-2">
                       {t('common.guestBadge')}
