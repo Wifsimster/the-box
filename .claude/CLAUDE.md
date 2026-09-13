@@ -352,11 +352,12 @@ Detailed docs live in `docs/`:
 - `api.md` — Internal REST endpoint reference
 - `database.md` — Schema
 - `realtime.md` — Socket.io events
+- `brand.md` — Brand contract: name, promise, voice (tu/vous), mark, share system
 - `ui-tokens.md`, `oxygen-design-system.md` — Design tokens / system
 
 ## HTML-First Artifacts
 
-Prefer single-file HTML (inline CSS, optional vanilla JS, SVG diagrams) for any artifact a human will read and react to: PRDs in `tasks/`, subagent meeting notes, design proposals, release notes, post-incident reports, PR review packets. Plain Markdown is still correct for code-adjacent reference docs that tooling reads or that benefit from grep: `README.md`, `docs/api.md`, `docs/database.md`, `docs/ui-tokens.md`, ADRs, migration notes.
+Prefer single-file HTML (inline CSS, optional vanilla JS, SVG diagrams) for any artifact a human will read and react to: PRDs in `tasks/`, subagent meeting notes, design proposals, release notes, post-incident reports, PR review packets. Plain Markdown is still correct for code-adjacent reference docs that tooling reads or that benefit from grep: `README.md`, `docs/api.md`, `docs/database.md`, `docs/ui-tokens.md`, `docs/brand.md`, ADRs, migration notes.
 
 **Do not create a `/html` slash command or skill** — prompt for HTML output explicitly per task ("write this as a self-contained HTML file under `tasks/`"). This is a prompting practice, not tooling. Rationale: [Thariq's "Unreasonable Effectiveness of HTML"](https://x.com/trq212/status/2052809885763747935).
 

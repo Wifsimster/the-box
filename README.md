@@ -25,6 +25,7 @@ Plateforme de jeu où les joueurs identifient des jeux vidéo à partir de captu
 | [Mode Géo](docs/geo-mode.md) | Localisation sur carte, contribution crowdsourcée et pipeline d'ingestion |
 | [Abonnements Stripe](docs/billing-stripe.md) | Catalogue d'offres, flux Checkout et webhooks de facturation |
 | [Événements temps réel](docs/realtime.md) | Événements Socket.io pour les classements en direct |
+| [Marque](docs/brand.md) | Contrat d'identité : nom, promesse, voix, mark, système de partage |
 | [Tokens UI](docs/ui-tokens.md) | Contrat des tokens de design (couleurs, ombres, rayons, typographie) |
 | [Design System Oxygen](docs/oxygen-design-system.md) | Principes Oxygen appliqués à The Box (accessibilité, hiérarchie d'actions) |
 

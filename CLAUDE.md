@@ -338,6 +338,7 @@ Detailed docs live in `docs/`:
 - `api.md` – Internal REST endpoints
 - `database.md` – Schema
 - `realtime.md` – Socket.io events
+- `brand.md` – Brand contract: name, promise, voice (tu/vous), mark, share system
 - `ui-tokens.md`, `oxygen-design-system.md` – Design tokens / system
 
 ## Pre-Commit Checklist
