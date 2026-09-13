@@ -190,6 +190,13 @@ function measurementReducer(
  * step index resets naturally on each open (fresh mount) — no derived
  * prev-prop state needed.
  */
+/**
+ * The tour's Prev/Next controls are `size="sm"` (32px) so the popover stays
+ * compact next to whatever it is pointing at; on a phone they still have to
+ * clear the 44px target, so lift the height below `sm` only.
+ */
+const tourButtonClass = 'min-h-11 sm:min-h-8'
+
 export function TourGuide({ open, onClose }: TourGuideProps) {
   if (!open) return null
   if (typeof document === 'undefined') return null
@@ -367,7 +374,10 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={finish}
             aria-label={t('tour.close')}
-            className="text-muted-foreground hover:text-foreground transition-colors rounded p-1 -m-1"
+            // The tour's only escape hatch, so it has to be comfortably
+            // tappable: `p-1 -m-1` gave it a 24px box. The negative margin
+            // keeps the icon optically aligned with the heading row.
+            className="-m-2 flex size-11 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="size-4" />
           </button>
@@ -383,12 +393,12 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
           </span>
           <div className="flex items-center gap-2">
             {stepIndex > 0 && (
-              <Button variant="ghost" size="sm" onClick={handlePrev}>
+              <Button variant="ghost" size="sm" className={tourButtonClass} onClick={handlePrev}>
                 <ArrowLeft className="size-3.5" />
                 {t('tour.prev')}
               </Button>
             )}
-            <Button variant="gaming" size="sm" onClick={handleNext}>
+            <Button variant="gaming" size="sm" className={tourButtonClass} onClick={handleNext}>
               {isLast ? t('tour.finish') : t('tour.next')}
               {!isLast && <ArrowRight className="size-3.5" />}
             </Button>

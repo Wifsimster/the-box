@@ -74,7 +74,13 @@ export function ImmersiveLayout({
                 'relative flex flex-col bg-black text-foreground',
                 isImmersive
                     ? 'fixed inset-0 z-50 h-[100dvh]'
-                    : 'min-h-[100svh] h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-4rem)]',
+                    // `--page-h` is the viewport minus the sticky header and the
+                    // BottomNav space. The previous value hard-coded the header
+                    // at `md` (the header actually grows at `sm`, so 640–767px
+                    // clipped 8px) and the `min-h-[100svh]` floor overrode the
+                    // subtraction entirely, pushing the whole deck a header's
+                    // height below the fold on every phone.
+                    : 'h-[var(--page-h)]',
             )}
             data-immersive={isImmersive ? 'true' : 'false'}
         >
@@ -86,7 +92,11 @@ export function ImmersiveLayout({
                 <div
                     className="z-30 border-b border-white/10 bg-black/70 backdrop-blur"
                     style={{
-                        paddingTop: 'env(safe-area-inset-top, 0px)',
+                        // Only the fullscreen branch actually sits under the
+                        // status bar. Embedded (/geo/play, /geo/contribute) the
+                        // app Header is above and has already padded the notch,
+                        // so repeating it here double-counted the inset.
+                        paddingTop: isImmersive ? 'env(safe-area-inset-top, 0px)' : undefined,
                         paddingLeft: 'env(safe-area-inset-left, 0px)',
                         paddingRight: 'env(safe-area-inset-right, 0px)',
                     }}

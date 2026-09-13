@@ -114,14 +114,20 @@ export function GameErrorState({
       ) : (
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <p className="text-destructive">{error}</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button variant="gaming" asChild>
+          {/* `min-h-11`: these are the only way out of a broken game screen,
+              so they hold the 44px mobile target rather than the default 40px. */}
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button variant="gaming" className="min-h-11" asChild>
               <Link to={localizedPath('/')}>
                 <Home className="size-4 mr-2" />
                 {t('common.home')}
               </Link>
             </Button>
-            <Button variant="outline" onClick={() => window.location.reload()}>
+            <Button
+              variant="outline"
+              className="min-h-11"
+              onClick={() => window.location.reload()}
+            >
               {t('common.retry')}
             </Button>
           </div>

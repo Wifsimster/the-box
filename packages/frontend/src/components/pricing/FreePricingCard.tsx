@@ -44,7 +44,10 @@ export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePri
 
         <CardFooter>
           <Button
-            className="w-full"
+            // `min-h-11` rather than the default 40px: this is the plan's
+            // primary conversion CTA and the one thing a visitor taps on a
+            // phone, so hold it to the 44px target.
+            className="min-h-11 w-full"
             disabled={isCurrentPlan || isLoggedIn}
             onClick={onSignUp}
             variant="outline"

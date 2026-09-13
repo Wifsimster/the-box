@@ -17,6 +17,14 @@ import {
  *
  * Mounted once globally in the language layout so it appears on every page.
  */
+/**
+ * The banner's actions are `size="sm"` (32px) to keep the bar compact on a
+ * desktop viewport, but on a phone they are the first thing a visitor has to
+ * tap. `min-h-11` lifts them to the 44px Apple HIG / WCAG 2.5.5 target below
+ * `sm` and hands the compact height back above it.
+ */
+const consentButtonClass = 'min-h-11 sm:min-h-8'
+
 export function ConsentBanner() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -37,9 +45,15 @@ export function ConsentBanner() {
       aria-modal="false"
       aria-label={t('consent.title')}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-[90] border-t border-border bg-card/95 backdrop-blur-md',
+        // Sits *above* the mobile BottomNav rather than on top of it: anchored
+        // at bottom-0 the banner covered all four tabs until the visitor made a
+        // consent choice, so a first-time phone visitor had no navigation. The
+        // PWA install prompts already reserved this space; the banner hadn't.
+        'fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[90] border-t border-border bg-card/95 backdrop-blur-md',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom motion-safe:duration-300',
-        'pb-[env(safe-area-inset-bottom)]',
+        // `--bottom-nav-space` already carries the home-indicator inset, so only
+        // pad for it from `md` up where the bar is hidden and bottom is 0.
+        'md:bottom-0 md:pb-[env(safe-area-inset-bottom)]',
       )}
     >
       <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6">
@@ -120,21 +134,23 @@ export function ConsentBanner() {
               {showPreferences ? (
                 <Button
                   size="sm"
+                  className={consentButtonClass}
                   onClick={() => setPreferences({ analytics, support })}
                 >
                   {t('consent.save')}
                 </Button>
               ) : (
                 <>
-                  <Button size="sm" onClick={acceptAll}>
+                  <Button size="sm" className={consentButtonClass} onClick={acceptAll}>
                     {t('consent.acceptAll')}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={rejectNonEssential}>
+                  <Button size="sm" variant="outline" className={consentButtonClass} onClick={rejectNonEssential}>
                     {t('consent.rejectNonEssential')}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
+                    className={consentButtonClass}
                     onClick={() => setShowPreferences(true)}
                   >
                     {t('consent.managePreferences')}

@@ -65,7 +65,7 @@ const TwoFactorChallengePage = lazy(() => import('@/pages/TwoFactorChallengePage
 function LoadingSpinner() {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex min-h-[var(--page-h)] items-center justify-center">
       <ThinkingOrb state="searching" size={64} aria-label={t('common.loading')} />
     </div>
   )
@@ -85,6 +85,29 @@ function LanguageRedirect() {
 function ProfileTabRedirect({ tab }: { tab: string }) {
   const { localizedPath } = useLocalizedPath()
   return <Navigate to={localizedPath(`/profile?tab=${tab}`)} replace />
+}
+
+/**
+ * Mirrors "is the mobile BottomNav rendered?" onto `<html data-bottom-nav>` so
+ * `--bottom-nav-space` collapses to 0 on the routes that drop the bar.
+ *
+ * The consent banner and the PWA install prompts are `position: fixed` and sit
+ * outside this layout's subtree, so they can't read the flag from a React
+ * prop — a root-level data attribute is the one place all of them can see.
+ */
+function BottomNavSpaceSync({ hidden }: { hidden: boolean }) {
+  useEffect(() => {
+    const root = document.documentElement
+    if (hidden) {
+      root.dataset.bottomNav = 'hidden'
+    } else {
+      delete root.dataset.bottomNav
+    }
+    return () => {
+      delete root.dataset.bottomNav
+    }
+  }, [hidden])
+  return null
 }
 
 function LanguageLayout() {
@@ -173,6 +196,7 @@ function LanguageLayout() {
         !hideBottomNav && 'pb-[var(--bottom-nav-space)] md:pb-0',
       )}
     >
+      <BottomNavSpaceSync hidden={hideBottomNav} />
       <RouteSeo />
       <a
         href="#main-content"

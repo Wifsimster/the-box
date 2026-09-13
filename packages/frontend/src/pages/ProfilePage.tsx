@@ -177,8 +177,8 @@ export default function ProfilePage() {
   return (
     <>
       <CubeBackground />
-      <div className="min-h-screen relative z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[calc(2rem+var(--bottom-nav-h,0px))] space-y-6">
+      <div className="relative z-10 min-h-[var(--page-h)]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           <ProfileSection delay={0.05}>
             <ProfileHeaderCard
               avatarUrl={avatarUrl}

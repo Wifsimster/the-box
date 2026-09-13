@@ -70,7 +70,10 @@ export default function ContactPage() {
                   {method.isEmail ? (
                     <a
                       href={`mailto:${method.content}`}
-                      className="text-neon-purple hover:text-neon-pink transition-colors"
+                      // Standalone (not inline in prose), so the WCAG 2.5.8
+                      // inline exception doesn't apply and the bare 19px text
+                      // box was the whole target.
+                      className="inline-flex min-h-11 items-center text-neon-purple transition-colors hover:text-neon-pink"
                     >
                       {method.content}
                     </a>
@@ -84,7 +87,7 @@ export default function ContactPage() {
                           href={method.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-neon-purple hover:text-neon-pink transition-colors"
+                          className="inline-flex min-h-11 items-center gap-1 text-sm text-neon-purple transition-colors hover:text-neon-pink"
                         >
                           <ExternalLink className="size-3" />
                           {method.linkLabel}

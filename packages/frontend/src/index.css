@@ -11,6 +11,18 @@
      a single source of truth so the bar and the reserved space can't drift. */
   --bottom-nav-h: 4rem;
   --bottom-nav-space: calc(4rem + env(safe-area-inset-bottom));
+  /* Sticky Header height. The bar itself is `h-14 sm:h-16` and pads the iOS
+     status bar with `env(safe-area-inset-top)` (non-zero only in the installed
+     PWA), so the space it actually occupies is bar + inset. Full-height screens
+     (/play, the Geo immersive layout) and the centred auth screens subtract
+     this instead of hard-coding `3.5rem`/`4rem`, which silently ignored the
+     notch inset and had drifted to different breakpoints per component. */
+  --header-h: calc(3.5rem + env(safe-area-inset-top));
+  /* Vertical space a routed page can occupy inside the app shell: the dynamic
+     viewport minus the header, minus the space the shell reserves for the
+     mobile BottomNav. `dvh` (not `vh`) so it tracks the mobile browser toolbar
+     rather than the toolbar-hidden maximum. */
+  --page-h: calc(100dvh - var(--header-h) - var(--bottom-nav-space));
   /* Dark violet theme (default since dark-only) */
   --background: oklch(0.129 0.042 283.713);
   --foreground: oklch(0.984 0.003 247.858);
@@ -93,6 +105,33 @@
   --theme-swatch-sunset-blaze-to: #ef4444;
   --theme-swatch-retro-80s-from: #ff2e88;
   --theme-swatch-retro-80s-to: #2de2e6;
+}
+
+/* The header grows to `h-16` at `sm`; keep `--header-h` in step. Components
+   used to redeclare this themselves and had drifted apart — GamePage switched
+   at `sm` while the Geo immersive layout switched at `md`, so every viewport
+   between 640px and 768px clipped 8px off the bottom of the Geo screen. */
+@media (min-width: 40rem) {
+  :root {
+    --header-h: calc(4rem + env(safe-area-inset-top));
+  }
+}
+
+/* The BottomNav is `md:hidden`, so from `md` up a page gets the header back
+   but no reserved bar space. */
+@media (min-width: 48rem) {
+  :root {
+    --page-h: calc(100dvh - var(--header-h));
+  }
+}
+
+/* `LanguageLayout` stamps this whenever it drops the BottomNav (the fullscreen
+   Geo route and the in-game /play route). Zeroing the reserved space here —
+   rather than in each component — keeps every consumer honest at once: the
+   shell padding, the consent banner and the PWA install prompts all stop
+   holding a gap for a bar that isn't rendered. */
+:root[data-bottom-nav='hidden'] {
+  --bottom-nav-space: 0px;
 }
 
 @theme inline {
@@ -201,8 +240,8 @@ html {
    mobile BottomNav (bottom) when the browser scrolls them into view —
    WCAG 2.2 SC 2.4.11 Focus Not Obscured. */
 html {
-  scroll-padding-top: 5rem;
-  scroll-padding-bottom: calc(var(--bottom-nav-h) + 1rem);
+  scroll-padding-top: calc(var(--header-h) + 1rem);
+  scroll-padding-bottom: calc(var(--bottom-nav-space) + 1rem);
 }
 
 /* Default keyboard focus ring. Components that need a custom ring can
