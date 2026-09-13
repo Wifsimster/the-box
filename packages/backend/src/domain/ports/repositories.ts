@@ -134,10 +134,25 @@ export interface UserRepository
 
 // ---------- Game ----------
 
-export interface GameRepository {
+/**
+ * Game catalog ports, segregated by role (ISP).
+ *
+ * `game.service` calls three of these thirteen methods, all read-only — yet
+ * depending on the whole interface meant the daily game loop could, as far as
+ * the type system was concerned, DELETE a game mid-session. Writing to the
+ * catalog is admin/import territory.
+ */
+
+/** Resolving a single game by one of its identifiers. */
+export interface GameLookup {
+
   findById(id: number): Promise<Game | null>
   findBySlug(slug: string): Promise<Game | null>
   findByRawgId(rawgId: number): Promise<Game | null>
+}
+
+/** Listing and searching the catalog. */
+export interface GameBrowse extends GameLookup {
   findAll(): Promise<Game[]>
   findPaginated(options: {
     page?: number
@@ -147,24 +162,13 @@ export interface GameRepository {
     sortOrder?: 'asc' | 'desc'
   }): Promise<{ games: Game[]; total: number; page: number; limit: number }>
   search(query: string, limit?: number): Promise<GameSearchResult[]>
-  create(data: Partial<Game>): Promise<Game>
-  update(id: number, data: Partial<Game>): Promise<Game | null>
-  delete(id: number): Promise<void>
-  updateFromRawg(
-    id: number,
-    data: {
-      name?: string
-      releaseYear?: number
-      developer?: string
-      publisher?: string
-      genres?: string[]
-      platforms?: string[]
-      coverImageUrl?: string
-      metacritic?: number
-      rawgId?: number
-      lastSyncedAt?: Date
-    }
-  ): Promise<Game | null>
+}
+
+/**
+ * The reads gameplay needs: genre lookups for achievement evaluation, and
+ * candidate resolution for the proximity ("warmer") hint.
+ */
+export interface GameplayGameQuery {
   /**
    * Returns just the `genres` array for a game, or `[]` if the game
    * does not exist or has no genres set. Used by the domain when the
@@ -187,6 +191,34 @@ export interface GameRepository {
    */
   findGuessMatchCandidates(guessText: string, limit?: number): Promise<Game[]>
 }
+
+/** Creating and mutating catalog entries. Admin panel and importers only. */
+export interface GameCatalogWriter {
+  create(data: Partial<Game>): Promise<Game>
+  update(id: number, data: Partial<Game>): Promise<Game | null>
+  delete(id: number): Promise<void>
+  updateFromRawg(
+    id: number,
+    data: {
+      name?: string
+      releaseYear?: number
+      developer?: string
+      publisher?: string
+      genres?: string[]
+      platforms?: string[]
+      coverImageUrl?: string
+      metacritic?: number
+      rawgId?: number
+      lastSyncedAt?: Date
+    }
+  ): Promise<Game | null>
+}
+
+/** The union, implemented by the Knex game repository. */
+export interface GameRepository
+  extends GameBrowse,
+    GameplayGameQuery,
+    GameCatalogWriter {}
 
 // ---------- Session ----------
 

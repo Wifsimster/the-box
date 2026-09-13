@@ -17,10 +17,11 @@ import type {
   ScreenshotRepository,
   GamePlayerStore,
   InventoryRepository,
-  GameRepository,
+  GameplayGameQuery,
   FunnelEventRepository,
   PositionSecondChanceRepository,
   PositionLetterRevealRepository,
+  TierSessionWithContextRecord,
 } from '../ports/repositories.js'
 import type { FuzzyMatchService, MatchPrecision } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
@@ -105,7 +106,11 @@ export interface GameServiceDeps {
    */
   userRepository: GamePlayerStore
   inventoryRepository: InventoryRepository
-  gameRepository: GameRepository
+  /**
+   * Read-only. The game loop looks up genres and proximity-hint candidates;
+   * it has no business creating, updating or deleting a catalog entry.
+   */
+  gameRepository: GameplayGameQuery
   funnelEventRepository: FunnelEventRepository
   positionSecondChanceRepository: PositionSecondChanceRepository
   positionLetterRevealRepository: PositionLetterRevealRepository
@@ -290,6 +295,134 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     return { currentStreak, longestStreak }
   }
+
+  /**
+   * Everything that happens when the final screenshot falls.
+   *
+   * Streak, lifetime score, achievements, the completion webhook, the funnel
+   * event and the response payload. Extracted from the middle of
+   * `submitGuess` — the happy path of a guess and the end-of-session
+   * ceremony are different jobs, and the latter was 140 lines wedged inside
+   * an `if` in the former.
+   *
+   * Every side-effect here is best-effort by design: a failed achievement
+   * check or webhook must never turn a completed game into a 500.
+   */
+  async function finalizeCompletedSession(params: {
+    userId: string
+    screenshotId: number
+    tierSession: TierSessionWithContextRecord
+    newTotalScore: number
+    totalScreenshotsFound: number
+    completionReason: 'all_found'
+    screenshot: { gameId: number }
+    gameName: string
+    coverImageUrl: string | undefined
+    releaseYear: number | undefined
+    metacritic: number | undefined
+  }): Promise<{ correctGame: Game; newlyEarnedAchievements: NewlyEarnedAchievement[] }> {
+    const {
+      userId,
+      tierSession,
+      newTotalScore,
+      totalScreenshotsFound,
+      completionReason,
+      screenshot,
+      gameName,
+      coverImageUrl,
+      releaseYear,
+      metacritic,
+    } = params
+
+    log.info(
+      {
+        userId,
+        sessionId: tierSession.game_session_id,
+        finalScore: newTotalScore,
+        screenshotsFound: totalScreenshotsFound,
+        completionReason,
+      },
+      'game completed'
+    )
+
+    void funnelEventRepository.record({
+      eventName: 'session_completed',
+      userId,
+      sessionId: tierSession.game_session_id,
+      payload: {
+        finalScore: newTotalScore,
+        screenshotsFound: totalScreenshotsFound,
+        completionReason,
+      },
+    })
+
+    // Public-API webhook fan-out. Fire-and-forget; webhook delivery errors
+    // must not fail the guess submission.
+    if (deps.onAfterSessionCompleted) {
+      void deps
+        .onAfterSessionCompleted({
+          userId,
+          sessionId: tierSession.game_session_id,
+          challengeId: tierSession.daily_challenge_id,
+          finalScore: newTotalScore,
+          screenshotsFound: totalScreenshotsFound,
+          reason: 'all_found',
+          isCatchUp: tierSession.is_catch_up,
+        })
+        .catch((error) => {
+          log.warn(
+            { userId, error: String(error) },
+            'onAfterSessionCompleted hook failed (non-fatal)'
+          )
+        })
+    }
+
+    let newlyEarnedAchievements: NewlyEarnedAchievement[] = []
+    try {
+      const user = await userRepository.findById(userId)
+      const updatedStreak = await calculateAndUpdateStreak(userId, user)
+
+      log.info({ userId, scoreToAdd: newTotalScore }, 'Updating user total score')
+      await userRepository.updateScore(userId, newTotalScore)
+
+      const [allGuesses, gameGenres] = await Promise.all([
+        sessionRepository.findAchievementGuessData(tierSession.game_session_id),
+        gameRepository.getGenresById(screenshot.gameId),
+      ])
+
+      newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
+        userId,
+        sessionId: tierSession.game_session_id,
+        challengeId: tierSession.daily_challenge_id,
+        totalScore: newTotalScore,
+        guesses: allGuesses,
+        gameGenres,
+        currentStreak: updatedStreak.currentStreak,
+        longestStreak: updatedStreak.longestStreak,
+      })
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to check achievements')
+    }
+
+    const correctGame: Game = {
+      id: screenshot.gameId,
+      name: gameName,
+      slug: '',
+      aliases: [],
+      coverImageUrl,
+      releaseYear,
+      metacritic,
+    }
+
+    const fullGameData = await screenshotRepository.getGameByScreenshotId(params.screenshotId)
+    if (fullGameData) {
+      correctGame.publisher = fullGameData.publisher ?? undefined
+      correctGame.developer = fullGameData.developer ?? undefined
+    }
+
+    return { correctGame, newlyEarnedAchievements }
+  }
+
 
   return {
   async getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse> {
@@ -906,94 +1039,19 @@ export function createGameService(deps: GameServiceDeps): GameService {
     })
 
     if (isCompleted) {
-      log.info(
-        {
-          userId: data.userId,
-          sessionId: tierSession.game_session_id,
-          finalScore: newTotalScore,
-          screenshotsFound: totalScreenshotsFound,
-          completionReason
-        },
-        'game completed'
-      )
-
-      void funnelEventRepository.record({
-        eventName: 'session_completed',
+      const { correctGame, newlyEarnedAchievements } = await finalizeCompletedSession({
         userId: data.userId,
-        sessionId: tierSession.game_session_id,
-        payload: {
-          finalScore: newTotalScore,
-          screenshotsFound: totalScreenshotsFound,
-          completionReason,
-        },
-      })
-
-      // Public-API webhook fan-out (M2). Fire-and-forget; webhook delivery
-      // errors must not fail the guess submission.
-      if (deps.onAfterSessionCompleted) {
-        void deps.onAfterSessionCompleted({
-          userId: data.userId,
-          sessionId: tierSession.game_session_id,
-          challengeId: tierSession.daily_challenge_id,
-          finalScore: newTotalScore,
-          screenshotsFound: totalScreenshotsFound,
-          reason: 'all_found',
-          isCatchUp: tierSession.is_catch_up,
-        }).catch((error) => {
-          log.warn(
-            { userId: data.userId, error: String(error) },
-            'onAfterSessionCompleted hook failed (non-fatal)',
-          )
-        })
-      }
-
-      // Check achievements after game completion
-      let newlyEarnedAchievements: any[] = []
-      try {
-        // Get user info for streak data
-        const user = await userRepository.findById(data.userId)
-
-        // Calculate and update streak
-        const updatedStreak = await calculateAndUpdateStreak(data.userId, user)
-
-        // Update user's total score
-        log.info({ userId: data.userId, scoreToAdd: newTotalScore }, 'Updating user total score')
-        await userRepository.updateScore(data.userId, newTotalScore)
-
-        const allGuesses = await sessionRepository.findAchievementGuessData(tierSession.game_session_id)
-        const gameGenres = await gameRepository.getGenresById(screenshot.gameId)
-
-        newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
-          userId: data.userId,
-          sessionId: tierSession.game_session_id,
-          challengeId: tierSession.daily_challenge_id,
-          totalScore: newTotalScore,
-          guesses: allGuesses,
-          gameGenres,
-          currentStreak: updatedStreak.currentStreak,
-          longestStreak: updatedStreak.longestStreak,
-        })
-      } catch (error) {
-        log.error({ error, userId: data.userId }, 'Failed to check achievements')
-      }
-
-      // Return response with achievements
-      const correctGame: Game = {
-        id: screenshot.gameId,
-        name: gameName,
-        slug: '',
-        aliases: [],
+        screenshotId: data.screenshotId,
+        tierSession,
+        newTotalScore,
+        totalScreenshotsFound,
+        completionReason: 'all_found',
+        screenshot,
+        gameName,
         coverImageUrl,
         releaseYear,
         metacritic,
-      }
-
-      const fullGameData = await screenshotRepository.getGameByScreenshotId(data.screenshotId)
-
-      if (fullGameData) {
-        correctGame.publisher = fullGameData.publisher ?? undefined
-        correctGame.developer = fullGameData.developer ?? undefined
-      }
+      })
 
       return {
         isCorrect,
@@ -1008,7 +1066,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
         matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
-        newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
+        newlyEarnedAchievements:
+          newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
     }
 

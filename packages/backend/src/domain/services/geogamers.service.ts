@@ -10,7 +10,7 @@ import type {
   GeoScreenshotMeta,
 } from '@the-box/types'
 import type {
-  GameRepository,
+  GameLookup,
   GeoMapRepository,
   GeoScreenshotRepository,
 } from '../ports/repositories.js'
@@ -151,7 +151,10 @@ export interface GeoGamersServiceDeps {
   alternatePicker: GeoGamersAlternatePicker
   screenshotRepo: GeoScreenshotRepository
   mapRepo: GeoMapRepository
-  gameRepo: GameRepository
+  /**
+   * Resolves the hidden game for a run. Read-only, single lookup.
+   */
+  gameRepo: GameLookup
   fuzzyMatch: FuzzyMatchService
   scoring: GeoGamersScoringService
   // Builds the opaque proxy URL the client uses to fetch the screenshot

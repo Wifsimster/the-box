@@ -3,7 +3,8 @@ import { env } from '../../config/env.js'
 import type {
   DomainLogger,
   ChallengeRepository,
-  GameRepository,
+  GameBrowse,
+  GameCatalogWriter,
   ScreenshotRepository,
   ScreenshotWithGameRecord,
   GameSessionEraser,
@@ -118,7 +119,11 @@ export interface AdminService {
 
 export interface AdminServiceDeps {
   logger: DomainLogger
-  gameRepository: GameRepository
+  /**
+   * The admin catalog surface: browse, search, and write. The only service
+   * that may mutate a game.
+   */
+  gameRepository: GameBrowse & GameCatalogWriter
   screenshotRepository: ScreenshotRepository
   challengeRepository: ChallengeRepository
   /**
