@@ -248,6 +248,16 @@
     refonte qui ne change ni le nom, ni le domaine, ni le paquet Docker.
   </p>
 
+  <div class="note" style="margin-top:1.6rem;border-left-color:var(--keep);background:rgba(34,197,94,0.06)">
+    <p style="margin:0">
+      <b>État au 13/09/2026 — les 5 phases sont livrées</b> sur la branche
+      <code>claude/lucid-ramanujan-eyhx4e</code>. Les 4 décisions listées en §7 ont été prises et sont
+      consignées dans <code>docs/brand.md</code> §6. Le document reste écrit au futur : c'est la trace du
+      raisonnement, pas le journal des commits. Deux affirmations de l'audit se sont révélées fausses à
+      l'implémentation et sont corrigées en place, barrées, plutôt que discrètement supprimées — §6 phases 4 et 5.
+    </p>
+  </div>
+
   <div class="figs">
     <div class="fig">
       <div class="n">7</div>
@@ -782,7 +792,7 @@
         <ul>
           <li>Langage « boîte » sur la série, le partage de résultat, les pushes et les e-mails&nbsp;: <code>geogamers-daily-push-copy.ts</code>, <code>evening-nudge-copy.ts</code>, <code>share.*</code></li>
           <li>Carte OG de résultat alignée sur la phrase de partage</li>
-          <li>Paramètres UTM sur les liens <code>/share/daily</code> — lacune d'instrumentation ouverte depuis le plan social</li>
+          <li><s>Paramètres UTM sur les liens <code>/share/daily</code></s> — <b>erreur de l'audit</b> : <code>ShareCard</code> les posait déjà par canal (<code>utm_source</code>/<code>medium</code>/<code>campaign</code>). Rien à faire. À la place : le texte de partage était en anglais codé en dur sur un produit à défaut français — il est localisé et porte la phrase de partage du contrat</li>
           <li>Sortir « les ninjas du screenshot » du tirage aléatoire&nbsp;: label de profil et de classement</li>
         </ul>
       </div>
@@ -795,7 +805,7 @@
         <ul>
           <li><code>GEO_COMMUNITY_ENABLED=false</code> en production (l'interrupteur existe, la décision non)</li>
           <li>Renommer GeoGamers avant de lever <code>GEOGAMERS_ENABLED</code> — gratuit maintenant, coûteux après</li>
-          <li><code>nav-items.ts</code> — <code>PRIMARY_NAV</code> de 5 à 3 ; <code>HomeModesShowcase</code> réduit ou retiré</li>
+          <li><code>nav-items.ts</code> — la nav tombe à 3 entrées par l'effet des flags, pas par une coupe dans <code>PRIMARY_NAV</code> : les deux modes secondaires sont déjà conditionnés par <code>useFeatures()</code>, et les deux flags sont désormais à <code>false</code> par défaut. <code>HomeModesShowcase</code> devient sensible au nombre (pluriel correct, une colonne quand un seul mode est actif)</li>
           <li>Plan de sortie pour les contributeurs Géo&nbsp;: des joueurs réels ont gagné des paliers et des récompenses sur cette surface</li>
         </ul>
       </div>
