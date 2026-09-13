@@ -23,7 +23,7 @@ import type {
   PositionLetterRevealRepository,
   TierSessionWithContextRecord,
 } from '../ports/repositories.js'
-import type { FuzzyMatchService, MatchPrecision } from './fuzzy-match.service.js'
+import type { FuzzyMatchService } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
 import {
   buildMaskedTitle,
@@ -32,6 +32,7 @@ import {
   LETTER_PENALTY_STEPS,
 } from './letter-reveal.service.js'
 import { computeGuessProximityHint } from './guess-proximity.service.js'
+import { resolveMatchPrecision, resolveRoundTimer } from './guess-validation.service.js'
 import {
   SECOND_CHANCE_FLOOR,
   calculateGuessScore,
@@ -791,13 +792,15 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const matchResult =
       trimmedGuess !== ''
         ? fuzzyMatchService.evaluateMatch(data.guessText, gameName, aliases)
-        : { matched: false, precision: 'none' as MatchPrecision }
-    const precision: MatchPrecision =
-      matchResult.precision !== 'none'
-        ? matchResult.precision
-        : trimmedGuess !== '' && data.gameId === screenshot.gameId
-          ? 'exact'
-          : 'none'
+        : null
+    // Precision resolution (including the "text is required, gameId is only a
+    // tiebreaker" anti-leak rule) lives in guess-validation.service.ts.
+    const precision = resolveMatchPrecision({
+      trimmedGuess,
+      matchResult,
+      submittedGameId: data.gameId,
+      answerGameId: screenshot.gameId,
+    })
     const isCorrect = precision !== 'none'
 
     // Server-authoritative round timer. The client submits its own
@@ -811,21 +814,27 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // fallback ("if NULL, trust the client") opened a window any time
     // the DB blipped during getScreenshot or the user POSTed
     // out-of-order; refuse the submit instead.
-    if (
-      tierSession.round_started_at == null ||
-      tierSession.round_position !== data.position
-    ) {
+    // Server-authoritative round timer; see guess-validation.service.ts for
+    // why the slower of server/client elapsed wins.
+    const timer = resolveRoundTimer({
+      roundStartedAt: tierSession.round_started_at,
+      stampedPosition: tierSession.round_position,
+      submittedPosition: data.position,
+      clientElapsedMs: data.roundTimeTakenMs,
+      now: Date.now(),
+    })
+
+    if (!timer.valid) {
       throw new GameError(
         'ROUND_NOT_STARTED',
         'No active round timer for this position. Reload the screenshot and retry.',
         409
       )
     }
-    const roundStartedAt = new Date(tierSession.round_started_at).getTime()
-    const serverElapsedMs = Math.max(0, Date.now() - roundStartedAt)
-    const effectiveTimeTakenMs = Math.max(serverElapsedMs, data.roundTimeTakenMs)
-    if (Math.abs(serverElapsedMs - data.roundTimeTakenMs) > 2000) {
-      log.warn?.(
+
+    const { serverElapsedMs, effectiveTimeTakenMs } = timer
+    if (timer.diverged) {
+      log.warn(
         {
           userId: data.userId,
           tierSessionId: data.tierSessionId,
