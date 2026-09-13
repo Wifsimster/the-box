@@ -16,7 +16,7 @@ import {
 } from './geogamers.service.js'
 
 const noopLogger: DomainLogger = {
-  info() {}, warn() {}, error() {}, debug() {}, fatal() {}, trace() {},
+  info() {}, warn() {}, error() {}, debug() {},
   child() { return noopLogger },
 }
 

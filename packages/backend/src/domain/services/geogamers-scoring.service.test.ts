@@ -16,8 +16,6 @@ const noopLogger: DomainLogger = {
   warn() {},
   error() {},
   debug() {},
-  fatal() {},
-  trace() {},
   child() {
     return noopLogger
   },

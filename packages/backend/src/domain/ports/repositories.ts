@@ -54,15 +54,50 @@ export interface ReferralIdentity {
   email: string
 }
 
-export interface UserRepository {
+/**
+ * User ports, segregated by role (ISP).
+ *
+ * Four domain services depend on the user table, and their needs barely
+ * overlap: achievements read a streak, the game loop writes score and
+ * streak, referrals touch only the referral columns, billing only the Stripe
+ * ones. All four previously depended on one 15-method interface — so
+ * `achievement.service`, which calls two methods, could type-check a fake of
+ * `{}` only by casting it.
+ *
+ * (`BillingUserRepository` below was already split out this way; these follow
+ * the same precedent.)
+ */
+
+/** Resolving a user by one of its identities. */
+export interface UserLookup {
+
   findById(id: string): Promise<User | null>
   findByEmail(email: string): Promise<User | null>
   findByUsername(username: string): Promise<User | null>
   findByUsernameOrEmail(username: string, email: string): Promise<User | null>
-  updateScore(userId: string, additionalScore: number): Promise<void>
+}
+
+/** The daily-play streak columns. */
+export interface PlayerStreakStore {
+  getCurrentStreak(userId: string): Promise<number>
   updateStreak(userId: string, currentStreak: number, longestStreak: number): Promise<void>
+  getStreakGraceUsedAt(userId: string): Promise<Date | null>
+  markStreakGraceUsed(userId: string): Promise<void>
+}
+
+/** Lifetime score accumulation. */
+export interface PlayerScoreStore {
+  updateScore(userId: string, additionalScore: number): Promise<void>
+}
+
+/** User-editable profile fields. */
+export interface UserProfileStore {
   updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<User | null>
   updateEmailMarketingConsent(userId: string, consent: boolean): Promise<User | null>
+}
+
+/** The referral columns on the user table. */
+export interface ReferralUserStore {
   // Referral-related user queries (operate on the user table only)
   getReferralInfo(userId: string): Promise<ReferralUserInfo | null>
   getReferralIdentity(userId: string): Promise<ReferralIdentity | null>
@@ -72,17 +107,52 @@ export interface UserRepository {
    */
   linkReferral(refereeId: string, referrerId: string, claimedAt: Date): Promise<boolean>
   countReferralsMade(referrerId: string): Promise<number>
-  getCurrentStreak(userId: string): Promise<number>
-  getStreakGraceUsedAt(userId: string): Promise<Date | null>
-  markStreakGraceUsed(userId: string): Promise<void>
 }
+
+/**
+ * What achievement evaluation needs from the user table: the account row and
+ * the current streak. Nothing else — it never writes.
+ */
+export type AchievementUserContext = Pick<UserLookup, 'findById'> &
+  Pick<PlayerStreakStore, 'getCurrentStreak'>
+
+/**
+ * What the game loop needs: read the account, and write the score/streak it
+ * earns. No referral or profile access.
+ */
+export type GamePlayerStore = Pick<UserLookup, 'findById'> &
+  PlayerStreakStore &
+  PlayerScoreStore
+
+/** The union, implemented by the Knex user repository. */
+export interface UserRepository
+  extends UserLookup,
+    PlayerStreakStore,
+    PlayerScoreStore,
+    UserProfileStore,
+    ReferralUserStore {}
 
 // ---------- Game ----------
 
-export interface GameRepository {
+/**
+ * Game catalog ports, segregated by role (ISP).
+ *
+ * `game.service` calls three of these thirteen methods, all read-only — yet
+ * depending on the whole interface meant the daily game loop could, as far as
+ * the type system was concerned, DELETE a game mid-session. Writing to the
+ * catalog is admin/import territory.
+ */
+
+/** Resolving a single game by one of its identifiers. */
+export interface GameLookup {
+
   findById(id: number): Promise<Game | null>
   findBySlug(slug: string): Promise<Game | null>
   findByRawgId(rawgId: number): Promise<Game | null>
+}
+
+/** Listing and searching the catalog. */
+export interface GameBrowse extends GameLookup {
   findAll(): Promise<Game[]>
   findPaginated(options: {
     page?: number
@@ -92,24 +162,13 @@ export interface GameRepository {
     sortOrder?: 'asc' | 'desc'
   }): Promise<{ games: Game[]; total: number; page: number; limit: number }>
   search(query: string, limit?: number): Promise<GameSearchResult[]>
-  create(data: Partial<Game>): Promise<Game>
-  update(id: number, data: Partial<Game>): Promise<Game | null>
-  delete(id: number): Promise<void>
-  updateFromRawg(
-    id: number,
-    data: {
-      name?: string
-      releaseYear?: number
-      developer?: string
-      publisher?: string
-      genres?: string[]
-      platforms?: string[]
-      coverImageUrl?: string
-      metacritic?: number
-      rawgId?: number
-      lastSyncedAt?: Date
-    }
-  ): Promise<Game | null>
+}
+
+/**
+ * The reads gameplay needs: genre lookups for achievement evaluation, and
+ * candidate resolution for the proximity ("warmer") hint.
+ */
+export interface GameplayGameQuery {
   /**
    * Returns just the `genres` array for a game, or `[]` if the game
    * does not exist or has no genres set. Used by the domain when the
@@ -132,6 +191,34 @@ export interface GameRepository {
    */
   findGuessMatchCandidates(guessText: string, limit?: number): Promise<Game[]>
 }
+
+/** Creating and mutating catalog entries. Admin panel and importers only. */
+export interface GameCatalogWriter {
+  create(data: Partial<Game>): Promise<Game>
+  update(id: number, data: Partial<Game>): Promise<Game | null>
+  delete(id: number): Promise<void>
+  updateFromRawg(
+    id: number,
+    data: {
+      name?: string
+      releaseYear?: number
+      developer?: string
+      publisher?: string
+      genres?: string[]
+      platforms?: string[]
+      coverImageUrl?: string
+      metacritic?: number
+      rawgId?: number
+      lastSyncedAt?: Date
+    }
+  ): Promise<Game | null>
+}
+
+/** The union, implemented by the Knex game repository. */
+export interface GameRepository
+  extends GameBrowse,
+    GameplayGameQuery,
+    GameCatalogWriter {}
 
 // ---------- Session ----------
 
@@ -212,10 +299,33 @@ export interface GuessWithGameRecord {
   createdAt: Date
 }
 
-export interface SessionRepository {
+/**
+ * Session ports, segregated by the role a caller plays (ISP).
+ *
+ * `SessionRepository` used to be one 25-method interface that every consumer
+ * depended on wholesale. `admin.service` calls exactly ONE of those methods
+ * and `geo-game.service` exactly one, yet both had to accept — and every one
+ * of their tests had to fake — all 25. That is what drove the
+ * `as unknown as` casts throughout the domain test suite.
+ *
+ * The concrete Knex repository still implements everything (see
+ * `SessionRepository` at the bottom), so the composition root passes the same
+ * object; each service just declares the slice it actually uses.
+ */
+
+/** Locating a player's session — needed by nearly every consumer. */
+export interface GameSessionLookup {
+
   findGameSession(userId: string, challengeId: number): Promise<GameSessionRecord | null>
   findGameSessionById(sessionId: string, userId: string): Promise<GameSessionRecord | null>
-  findCompletedGameSessionById(sessionId: string): Promise<GameSessionRecord | null>
+  countGuessesBySession(gameSessionId: string): Promise<number>
+}
+
+/**
+ * The live play-through surface: create a session, stamp round timers, save
+ * guesses, advance score. Used by `game.service`.
+ */
+export interface GameSessionStore extends GameSessionLookup {
   findLatestTierSession(gameSessionId: string): Promise<TierSessionRecord | null>
   createGameSession(data: {
     userId: string
@@ -267,13 +377,7 @@ export interface SessionRepository {
   // (wrong) attempt on the position — same spirit as the metadata hints'
   // "first wrong guess" unlock, enforced server-side.
   hasWrongGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
-  countGuessesBySession(gameSessionId: string): Promise<number>
   getCorrectPositions(gameSessionId: string): Promise<number[]>
-  deleteGameSession(userId: string, challengeId: number): Promise<boolean>
-  findUserGameHistory(userId: string): Promise<GameHistoryRecord[]>
-  findMaxCompletedScore(userId: string): Promise<number>
-  findAllInProgressSessions(): Promise<GameSessionRecord[]>
-  findGuessesByGameSession(gameSessionId: string): Promise<GuessWithGameRecord[]>
   /**
    * Returns the minimal per-guess fields needed by achievement evaluation
    * for every guess across every tier session of a given game session,
@@ -287,8 +391,44 @@ export interface SessionRepository {
     powerUpUsed: string | null
     screenshotId: number
   }>>
+  findAllInProgressSessions(): Promise<GameSessionRecord[]>
+}
+
+/**
+ * Read-only past-games surface: history lists, replays, personal bests.
+ * Used by `user.service`.
+ */
+export interface SessionHistoryQuery extends GameSessionLookup {
+  findCompletedGameSessionById(sessionId: string): Promise<GameSessionRecord | null>
+  findGuessesByGameSession(gameSessionId: string): Promise<GuessWithGameRecord[]>
+  findUserGameHistory(userId: string): Promise<GameHistoryRecord[]>
+  findMaxCompletedScore(userId: string): Promise<number>
+}
+
+/** Resetting a player's attempt at a challenge. Used by `admin.service`. */
+export interface GameSessionEraser {
+  deleteGameSession(userId: string, challengeId: number): Promise<boolean>
+}
+
+/**
+ * How many distinct days a player has played. Its own port because the geo
+ * contribution eligibility gate is the only thing that asks, and it has no
+ * business seeing the session-writing surface.
+ */
+export interface PlayerActivityQuery {
   countDistinctDaysPlayed(userId: string): Promise<number>
 }
+
+/**
+ * The union, implemented by the Knex session repository. Prefer depending on
+ * one of the narrower ports above; this exists so the concrete repository has
+ * a single name and existing broad consumers keep working.
+ */
+export interface SessionRepository
+  extends GameSessionStore,
+    SessionHistoryQuery,
+    GameSessionEraser,
+    PlayerActivityQuery {}
 
 // ---------- Screenshot ----------
 
@@ -359,12 +499,25 @@ export interface AchievementLeaderboardEntry {
   achievementCount: number
 }
 
-export interface AchievementRepository {
+/**
+ * Achievement ports, segregated by role (ISP).
+ *
+ * One 23-method interface previously covered three unrelated jobs: reading
+ * the achievement catalog, granting/reading a user's awards, and running the
+ * lifetime statistics queries that criteria are measured against. Callers
+ * that only read the catalog had to depend on the award-writing surface too.
+ */
+
+/** The achievement definitions themselves — the catalog, read-only. */
+export interface AchievementCatalog {
+
   findAll(): Promise<AchievementRecord[]>
   findByKey(key: string): Promise<AchievementRecord | undefined>
   findByCategory(category: string): Promise<AchievementRecord[]>
-  findUserAchievements(userId: string): Promise<UserAchievementWithDetailsRecord[]>
-  hasAchievement(userId: string, achievementKey: string): Promise<boolean>
+}
+
+/** Granting achievements and reading what a user has earned. */
+export interface AchievementAwarding {
   awardAchievement(
     userId: string,
     achievementKey: string,
@@ -373,6 +526,7 @@ export interface AchievementRepository {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: Record<string, any> | null
   ): Promise<UserAchievementRecord>
+  hasAchievement(userId: string, achievementKey: string): Promise<boolean>
   updateProgress(
     userId: string,
     achievementKey: string,
@@ -382,6 +536,7 @@ export interface AchievementRepository {
     metadata?: Record<string, any> | null
   ): Promise<UserAchievementRecord>
   getUserProgress(userId: string): Promise<Record<string, UserAchievementRecord>>
+  findUserAchievements(userId: string): Promise<UserAchievementWithDetailsRecord[]>
   getUserStats(userId: string): Promise<{
     totalEarned: number
     totalPoints: number
@@ -389,6 +544,13 @@ export interface AchievementRepository {
     byTier: Record<number, number>
   }>
   getLeaderboard(limit?: number): Promise<AchievementLeaderboardEntry[]>
+}
+
+/**
+ * The lifetime counters achievement criteria are evaluated against. Pure
+ * reads over gameplay history — no achievement is written through this port.
+ */
+export interface AchievementStatistics {
   // ---- Aggregations used by the domain service ----
   countCompletedGameSessions(userId: string): Promise<number>
   countStartedGameSessions(userId: string): Promise<number>
@@ -432,6 +594,12 @@ export interface AchievementRepository {
    */
   getUserBestChallengeRank(userId: string): Promise<number | null>
 }
+
+/** The union, implemented by the Knex achievement repository. */
+export interface AchievementRepository
+  extends AchievementCatalog,
+    AchievementAwarding,
+    AchievementStatistics {}
 
 // ---------- Daily Login ----------
 
@@ -695,9 +863,26 @@ export interface TierScreenshotWithGame {
   game: Game
 }
 
-export interface ChallengeRepository {
+/**
+ * Challenge ports, segregated by role (ISP).
+ *
+ * `leaderboard.service` calls exactly ONE of these fifteen methods
+ * (`findByDate`) yet depended on all of them, including the four that WRITE
+ * challenges. Its unit test consequently needed an `as unknown as` cast to
+ * fake a one-method object. It now depends on `DailyChallengeLookup`.
+ */
+
+/** Finding a daily challenge. The slice most consumers need. */
+export interface DailyChallengeLookup {
+
   findById(id: number): Promise<ChallengeRecord | null>
   findByDate(date: string): Promise<ChallengeRecord | null>
+}
+
+/** Reading challenge structure: tiers and their screenshots. */
+export interface ChallengeContentQuery extends DailyChallengeLookup {
+  findAll(): Promise<ChallengeRecord[]>
+  findRecentChallenges(days: number): Promise<ChallengeRecord[]>
   findTiersByChallenge(challengeId: number): Promise<TierRecord[]>
   findTierById(tierId: number): Promise<TierRecord | null>
   findTierByNumber(challengeId: number, tierNumber: number): Promise<TierRecord | null>
@@ -705,17 +890,6 @@ export interface ChallengeRepository {
     tierId: number,
     position: number
   ): Promise<TierScreenshotRecord | null>
-  findAll(): Promise<ChallengeRecord[]>
-  create(challengeDate: string): Promise<ChallengeRecord>
-  createTier(data: {
-    dailyChallengeId: number
-    tierNumber: number
-    name: string
-    timeLimitSeconds: number
-  }): Promise<TierRecord>
-  createTierScreenshots(tierId: number, screenshotIds: number[]): Promise<void>
-  deleteTierScreenshots(tierId: number): Promise<number>
-  findRecentChallenges(days: number): Promise<ChallengeRecord[]>
   /**
    * Returns every position in a tier with its screenshot shape only
    * (no game info). Used by session-detail views to render already-played
@@ -743,6 +917,22 @@ export interface ChallengeRepository {
     excludePositions: number[]
   ): Promise<TierScreenshotWithGame[]>
 }
+
+/** Building challenges. Admin/scheduler territory — nothing else may write. */
+export interface ChallengeBuilder {
+  create(challengeDate: string): Promise<ChallengeRecord>
+  createTier(data: {
+    dailyChallengeId: number
+    tierNumber: number
+    name: string
+    timeLimitSeconds: number
+  }): Promise<TierRecord>
+  createTierScreenshots(tierId: number, screenshotIds: number[]): Promise<void>
+  deleteTierScreenshots(tierId: number): Promise<number>
+}
+
+/** The union, implemented by the Knex challenge repository. */
+export interface ChallengeRepository extends ChallengeContentQuery, ChallengeBuilder {}
 
 // ---------- Import State ----------
 

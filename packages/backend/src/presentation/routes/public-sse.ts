@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import type { Logger } from 'pino'
-import { db } from '../../infrastructure/database/connection.js'
+import { publicProfileRepository } from '../../infrastructure/repositories/public-profile.repository.js'
+import { leaderboardRepository } from '../../infrastructure/repositories/leaderboard.repository.js'
 import { challengeRepository } from '../../infrastructure/repositories/challenge.repository.js'
 import { hashPayload } from '../../domain/services/webhook-dispatch.service.js'
 import { isSandboxSlug, sandboxState } from '../../domain/services/sandbox.service.js'
@@ -51,12 +52,7 @@ function writeFrame(res: Response, event: SseEventName, data: unknown, id?: stri
 }
 
 async function findUserBySlug(slug: string): Promise<{ id: string } | null> {
-  const row = await db('user')
-    .where('public_slug', slug)
-    .andWhere('public_profile_enabled', true)
-    .select<{ id: string }>('id')
-    .first()
-  return row ?? null
+  return publicProfileRepository.findBySlug(slug)
 }
 
 async function pollSnapshot(userId: string): Promise<PollSnapshot | null> {
@@ -69,42 +65,22 @@ async function pollSnapshot(userId: string): Promise<PollSnapshot | null> {
     return { status: 'not_started', score: 0, screenshotsDone: 0, rank: null, startedAt: null, completedAt: null }
   }
 
-  const session = await db('game_sessions')
-    .where('user_id', userId)
-    .andWhere('daily_challenge_id', challenge.id)
-    .andWhere('is_catch_up', false)
-    .select<{
-      id: string
-      total_score: number
-      is_completed: boolean
-      started_at: Date
-      completed_at: Date | null
-    }>('id', 'total_score', 'is_completed', 'started_at', 'completed_at')
-    .first()
+  const session = await publicProfileRepository.findDailySession(userId, challenge.id)
 
   if (!session) {
     return { status: 'not_started', score: 0, screenshotsDone: 0, rank: null, startedAt: null, completedAt: null }
   }
 
-  const tierAgg = await db('tier_sessions')
-    .where('game_session_id', session.id)
-    .sum<{ sum: string | null }[]>('correct_answers as sum')
-    .first()
-  const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(tierAgg?.sum ?? 0))
+  const correctAnswers = await publicProfileRepository.countCorrectAnswers(session.id)
+  const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(correctAnswers))
 
-  let rank: number | null = null
-  if (session.is_completed) {
-    const higher = await db('game_sessions')
-      .join('user', 'game_sessions.user_id', 'user.id')
-      .where('daily_challenge_id', challenge.id)
-      .andWhere('is_completed', true)
-      .andWhere('is_catch_up', false)
-      .whereRaw('"user"."isAnonymous" = ?', [false])
-      .andWhere('total_score', '>', session.total_score)
-      .count<{ count: string }[]>('game_sessions.id as count')
-      .first()
-    rank = Number(higher?.count ?? 0) + 1
-  }
+  // Rank is only meaningful once the session is finished — partial scores
+  // ride the leaderboard when completed_at is set, never before. Uses the
+  // same repository method the REST surface does, so the overlay and the
+  // /streamers endpoint can never report different ranks for one session.
+  const rank: number | null = session.is_completed
+    ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
+    : null
 
   return {
     status: session.is_completed ? 'completed' : 'in_progress',

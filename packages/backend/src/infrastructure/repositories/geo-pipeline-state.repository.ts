@@ -1,3 +1,4 @@
+import type { Knex } from 'knex'
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
 import type {
@@ -40,7 +41,88 @@ function rowTo(row: Row): MapPipelineState {
   }
 }
 
+/** A pipeline row joined to its game, as the admin Geo-Fetch table renders it. */
+export interface GeoPipelineListRow {
+  game_id: number
+  current_stage: string
+  active_source: string | null
+  zones_total: number | null
+  zones_covered: number | null
+  zones_selected: number | null
+  needs_curation: boolean
+  last_attempt_at: Date | null
+  next_eligible_at: Date | null
+  updated_at: Date
+  name: string | null
+  slug: string | null
+}
+
 export const geoPipelineStateRepository = {
+  /** How many games sit in each pipeline stage. Powers the panel's sticky header. */
+  async countByStage(): Promise<Array<{ current_stage: string; count: string }>> {
+    const result = await db.raw<{ rows: Array<{ current_stage: string; count: string }> }>(
+      `
+      SELECT current_stage, COUNT(*)::text AS count
+      FROM geo_game_pipeline_state
+      GROUP BY current_stage
+      `,
+    )
+    return (result as unknown as { rows: Array<{ current_stage: string; count: string }> }).rows
+  },
+
+  /**
+   * One page of the pipeline table, joined to game names, plus the total
+   * matching the same filters so the caller can page.
+   *
+   * The page query and the count query necessarily share their WHERE clauses;
+   * they are built from one filter function here so the two can't drift and
+   * report a total that disagrees with the rows.
+   */
+  async listPaged(filters: {
+    stage?: string | undefined
+    search?: string | undefined
+    limit: number
+    offset: number
+  }): Promise<{ rows: GeoPipelineListRow[]; total: number }> {
+    const applyFilters = <T extends Knex.QueryBuilder>(query: T): T => {
+      let filtered = query
+      if (filters.stage) filtered = filtered.where('s.current_stage', filters.stage) as T
+      if (filters.search) {
+        filtered = filtered.where('g.name', 'ilike', `%${filters.search}%`) as T
+      }
+      return filtered
+    }
+
+    const base = () =>
+      applyFilters(
+        db('geo_game_pipeline_state as s').leftJoin('games as g', 'g.id', 's.game_id'),
+      )
+
+    const [rows, totalRow] = await Promise.all([
+      base()
+        .select(
+          's.game_id',
+          's.current_stage',
+          's.active_source',
+          's.zones_total',
+          's.zones_covered',
+          's.zones_selected',
+          's.needs_curation',
+          's.last_attempt_at',
+          's.next_eligible_at',
+          's.updated_at',
+          'g.name',
+          'g.slug',
+        )
+        .orderBy('s.updated_at', 'desc')
+        .limit(filters.limit)
+        .offset(filters.offset) as Promise<GeoPipelineListRow[]>,
+      base().count<{ count: string }[]>('* as count').first(),
+    ])
+
+    return { rows, total: Number(totalRow?.count ?? 0) }
+  },
+
   async findByGameId(gameId: number): Promise<MapPipelineState | null> {
     const row = await db('geo_game_pipeline_state')
       .where({ game_id: gameId })

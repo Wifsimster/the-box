@@ -1,6 +1,8 @@
 import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
-import { achievementService } from '../../../domain/services/index.js'
+import {
+  achievementService,
+} from '../../../composition/services.js'
 import { emitAchievementUnlocked } from '../../socket/socket.js'
 
 const log = queueLogger.child({ worker: 'milestone-account-age' })

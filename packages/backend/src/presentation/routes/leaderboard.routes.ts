@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { leaderboardService, userService } from '../../domain/services/index.js'
+import {
+  leaderboardService,
+  userService,
+} from '../../composition/services.js'
 import { optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()

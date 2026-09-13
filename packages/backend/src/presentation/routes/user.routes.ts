@@ -1,6 +1,9 @@
 import { Router } from 'express'
-import { userService } from '../../domain/services/index.js'
-import { billingService } from '../../domain/services/index.js'
+import {
+  billingService,
+  playerStatsService,
+  userService,
+} from '../../composition/services.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
@@ -8,10 +11,8 @@ import { gdprRepository } from '../../infrastructure/repositories/gdpr.repositor
 import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
-import { db } from '../../infrastructure/database/connection.js'
 import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
 import { PREMIUM_THEME_KEYS, DEFAULT_THEME_KEY, isValidThemeKey } from '../../config/themes.js'
-import type { AdvancedStats, PublicProfile } from '@the-box/types'
 
 const router = Router()
 
@@ -37,57 +38,7 @@ router.get('/public/:username', async (req, res, next) => {
       })
     }
 
-    const recentRows = await db('game_sessions')
-      .where('user_id', user.id)
-      .andWhere('is_completed', true)
-      .orderBy('completed_at', 'desc')
-      .limit(5)
-      .select<Array<{
-        total_score: number
-        completed_at: Date | null
-        daily_challenge_id: number
-      }>>('total_score', 'completed_at', 'daily_challenge_id')
-
-    const challengeIds = recentRows.map((r) => r.daily_challenge_id)
-    const challengeRows = challengeIds.length
-      ? await db('daily_challenges')
-          .whereIn('id', challengeIds)
-          .select<Array<{ id: number; challenge_date: string }>>(
-            'id',
-            db.raw('challenge_date::text as challenge_date')
-          )
-      : []
-    const dateById = new Map(challengeRows.map((c) => [c.id, c.challenge_date]))
-
-    const gamesPlayedRow = await db('game_sessions')
-      .where('user_id', user.id)
-      .andWhere('is_completed', true)
-      .count<{ count: string }[]>('id as count')
-      .first()
-    const gamesPlayed = Number(gamesPlayedRow?.count ?? 0)
-
-    const badgeRows = await db('user_inventory')
-      .where('user_id', user.id)
-      .andWhere('item_type', 'badge')
-      .andWhere('quantity', '>', 0)
-      .select<Array<{ item_key: string; quantity: number }>>('item_key', 'quantity')
-
-    const profile: PublicProfile = {
-      username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      createdAt: user.createdAt,
-      totalScore: user.totalScore,
-      currentStreak: user.currentStreak,
-      longestStreak: user.longestStreak ?? 0,
-      gamesPlayed,
-      badges: badgeRows.map((r) => ({ key: r.item_key, quantity: r.quantity })),
-      recentSessions: recentRows.map((r) => ({
-        challengeDate: dateById.get(r.daily_challenge_id) ?? '',
-        totalScore: r.total_score,
-        completedAt: r.completed_at ? r.completed_at.toISOString() : null,
-      })),
-    }
+    const profile = await playerStatsService.getPublicProfile(user)
 
     res.json({ success: true, data: profile })
   } catch (error) {
@@ -254,129 +205,7 @@ router.delete('/avatar', authMiddleware, async (req, res, next) => {
 // one round-trip on mount instead of a fan-out per stat.
 router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, next) => {
   try {
-    const userId = req.userId!
-
-    // Score aggregates across completed, non-catch-up daily sessions.
-    const scoreRow = await db('game_sessions')
-      .where({ user_id: userId, is_completed: true, is_catch_up: false })
-      .select<{
-        best: string | null
-        avg: string | null
-        total: string | null
-        perfect: string | null
-      }>(
-        db.raw('MAX(total_score) as best'),
-        db.raw('AVG(total_score) as avg'),
-        db.raw('COUNT(*) as total'),
-        db.raw('COUNT(*) FILTER (WHERE total_score = 2000) as perfect'),
-      )
-      .first()
-
-    // Solve-time percentiles + mean over correct guesses, joined to the
-    // user's tier sessions so we don't pick up other players' guesses.
-    const timeRow = await db('guesses')
-      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
-      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
-      .where('game_sessions.user_id', userId)
-      .andWhere('game_sessions.is_completed', true)
-      .andWhere('game_sessions.is_catch_up', false)
-      .andWhere('guesses.is_correct', true)
-      .select<{
-        p25: string | null
-        median: string | null
-        p75: string | null
-        mean: string | null
-      }>(
-        db.raw(
-          'PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY guesses.time_taken_ms) as p25',
-        ),
-        db.raw(
-          'PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY guesses.time_taken_ms) as median',
-        ),
-        db.raw(
-          'PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY guesses.time_taken_ms) as p75',
-        ),
-        db.raw('AVG(guesses.time_taken_ms) as mean'),
-      )
-      .first()
-
-    // Hint usage. The four legacy metadata hints were retired 2026-06
-    // (migration 20260613_retire_legacy_metadata_hints); their historical
-    // guess rows are sacred, so we keep querying them but fold the four
-    // keys into a single `legacyMetadataHints` rollup beside the live
-    // letter-reveal count. "Free" entries (no power_up_used) are ignored.
-    const legacyHintRow = await db('guesses')
-      .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
-      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
-      .where('game_sessions.user_id', userId)
-      .whereIn('guesses.power_up_used', [
-        'hint_year',
-        'hint_publisher',
-        'hint_developer',
-        'hint_genre',
-      ])
-      .count<{ count: string }>({ count: '*' })
-      .first()
-
-    // Letter reveals live in their own table (one row per slot, counter
-    // per letter) rather than on the guess row — sum the letters so the
-    // matrix shows reveal volume, comparable to per-use hint counts.
-    const letterRow = await db('position_letter_reveals')
-      .join('tier_sessions', 'position_letter_reveals.tier_session_id', 'tier_sessions.id')
-      .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
-      .where('game_sessions.user_id', userId)
-      .sum<{ sum: string | null }>('position_letter_reveals.letters_revealed as sum')
-      .first()
-
-    const hintUsage = {
-      hintLetter: Number(letterRow?.sum ?? 0),
-      legacyMetadataHints: Number(legacyHintRow?.count ?? 0),
-    }
-
-    // Last-six-months progression. Bucketing on completed_at gives the
-    // calendar months the user actually finished sessions in; an empty
-    // month is omitted (the panel decides whether to fill gaps).
-    const sixMonthsAgo = new Date()
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-    sixMonthsAgo.setDate(1)
-    sixMonthsAgo.setHours(0, 0, 0, 0)
-
-    const monthlyRows = await db('game_sessions')
-      .where({ user_id: userId, is_completed: true, is_catch_up: false })
-      .andWhere('completed_at', '>=', sixMonthsAgo)
-      .groupByRaw("to_char(date_trunc('month', completed_at), 'YYYY-MM')")
-      .orderByRaw("to_char(date_trunc('month', completed_at), 'YYYY-MM') ASC")
-      .select<Array<{ month: string; total: string; sessions: string }>>(
-        db.raw("to_char(date_trunc('month', completed_at), 'YYYY-MM') as month"),
-        db.raw('SUM(total_score) as total'),
-        db.raw('COUNT(*) as sessions'),
-      )
-
-    const user = await userRepository.findById(userId)
-    const stats: AdvancedStats = {
-      bestScore: Number(scoreRow?.best ?? 0),
-      averageScore: Math.round(Number(scoreRow?.avg ?? 0)),
-      totalCompletedSessions: Number(scoreRow?.total ?? 0),
-      perfectSessions: Number(scoreRow?.perfect ?? 0),
-      solveTimeMs: {
-        p25: Math.round(Number(timeRow?.p25 ?? 0)),
-        median: Math.round(Number(timeRow?.median ?? 0)),
-        p75: Math.round(Number(timeRow?.p75 ?? 0)),
-        mean: Math.round(Number(timeRow?.mean ?? 0)),
-      },
-      hintUsage,
-      monthlyScores: monthlyRows.map((r) => ({
-        month: r.month,
-        totalScore: Number(r.total),
-        sessionCount: Number(r.sessions),
-      })),
-      streaks: {
-        current: user?.currentStreak ?? 0,
-        longest: user?.longestStreak ?? 0,
-      },
-    }
-
-    res.json({ success: true, data: stats })
+    res.json({ success: true, data: await playerStatsService.getAdvancedStats(req.userId!) })
   } catch (error) {
     next(error)
   }
@@ -583,7 +412,7 @@ router.delete('/account', authMiddleware, async (req, res, next) => {
 
     // CASCADE removes sessions / accounts / game data, mirroring the admin
     // delete path. The cascaded `session` rows are enough to log the user out.
-    await db('user').where('id', req.userId).del()
+    await userRepository.deleteAccount(req.userId!)
 
     logger.info({ userId: req.userId }, 'user self-deleted account')
 

@@ -1,6 +1,8 @@
 import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
-import { rewardsService } from '../../../domain/services/index.js'
+import {
+  rewardsService,
+} from '../../../composition/services.js'
 import { inventoryRepository } from '../../repositories/index.js'
 import { emitRewardGranted } from '../../socket/socket.js'
 import type { RewardGrantedEvent } from '@the-box/types'

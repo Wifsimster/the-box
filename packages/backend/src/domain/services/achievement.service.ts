@@ -1,7 +1,7 @@
 import type {
   AchievementRepository,
   DomainLogger,
-  UserRepository,
+  AchievementUserContext,
 } from '../ports/index.js'
 import type {
   AchievementRow,
@@ -96,11 +96,89 @@ export interface AchievementService {
 export interface AchievementServiceDeps {
   logger: DomainLogger
   achievementRepository: AchievementRepository
-  userRepository: UserRepository
+  /**
+   * Two methods: read the account row, read the current streak. Achievement
+   * evaluation never writes to the user table.
+   */
+  userRepository: AchievementUserContext
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Criteria = Record<string, any>
+
+/**
+ * Pre-computed lifetime counters, fetched once per progress calculation and
+ * handed to every criterion so none of them issues its own query.
+ */
+interface ProgressTotals {
+  challengesCompleted: number
+  challengesStarted: number
+  totalGuesses: number
+  totalCorrectGuesses: number
+  totalWrongGuesses: number
+  currentStreak: number
+  speedGuesses3s: number
+  speedGuesses5s: number
+  hintFreeGames: number
+}
+
+/**
+ * Every criteria `type` the system understands.
+ *
+ * Declaring them as a closed union lets TypeScript enforce that the registry
+ * below handles all of them: typing the registry as
+ * `Record<AchievementCriteriaType, CriterionHandler>` turns "you added a
+ * criterion type and forgot to implement it" from a silent runtime warning
+ * into a compile error.
+ */
+export const ACHIEVEMENT_CRITERIA_TYPES = [
+  'perfect_score',
+  'min_score',
+  'consecutive_speed',
+  'total_speed',
+  'single_speed',
+  'no_hints',
+  'consecutive_correct',
+  'streak',
+  'genre_master',
+  'challenges_completed',
+  'leaderboard_rank',
+  'challenges_started',
+  'total_guesses',
+  'total_correct_guesses',
+  'correct_in_game',
+  'perfect_score_count',
+  'attempts_in_game',
+  'comeback_in_game',
+  'first_try_in_game',
+  'flawless_game',
+  'total_wrong_guesses',
+  'account_age_days',
+  'geogamers_runs_completed',
+  'geogamers_perfect_run',
+] as const
+
+export type AchievementCriteriaType = (typeof ACHIEVEMENT_CRITERIA_TYPES)[number]
+
+/**
+ * One achievement criterion type. Both halves are optional: a session-scoped
+ * criterion has only `evaluate`, a wall-clock one only `progress`.
+ */
+interface CriterionHandler {
+  /** Runs after a completed game. Returns true if the achievement was awarded. */
+  evaluate?: (
+    achievement: AchievementRow,
+    data: GameCompletionData,
+    criteria: Criteria
+  ) => Promise<boolean>
+  /** The cumulative counter for the progress bar, or null when not applicable. */
+  progress?: (
+    achievement: AchievementRow,
+    criteria: Criteria,
+    totals: ProgressTotals,
+    userId: string
+  ) => Promise<number | null> | number | null
+}
 
 export function createAchievementService(deps: AchievementServiceDeps): AchievementService {
   const { achievementRepository, userRepository } = deps
@@ -630,6 +708,141 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
     return false
   }
 
+  /**
+   * Criteria registry — the single source of truth for what an achievement
+   * criteria `type` means.
+   *
+   * Each entry owns both halves of a criterion's behavior:
+   *   `evaluate` — run after a completed game; awards and returns true.
+   *   `progress` — the cumulative counter shown on the achievements page,
+   *                or omitted for session-scoped criteria that have no
+   *                meaningful running total (a perfect score either happened
+   *                this game or it didn't).
+   *
+   * This replaced two parallel `switch` statements that had drifted apart:
+   * adding a criterion meant remembering to edit both, and forgetting the
+   * second silently shipped an achievement whose progress bar never moved.
+   * Now a new criterion is ONE entry here and the dispatchers below never
+   * change (open for extension, closed for modification).
+   */
+  const criteriaRegistry: Record<AchievementCriteriaType, CriterionHandler> = {
+    // --- Session-scoped: evaluated from a single completed game ---
+    perfect_score: {
+      evaluate: (achievement, data) => checkPerfectScore(achievement, data),
+    },
+    min_score: {
+      evaluate: (achievement, data, criteria) => checkMinScore(achievement, data, criteria),
+    },
+    consecutive_speed: {
+      evaluate: (achievement, data, criteria) =>
+        checkConsecutiveSpeed(achievement, data, criteria),
+    },
+    single_speed: {
+      evaluate: (achievement, data, criteria) => checkSingleSpeed(achievement, data, criteria),
+    },
+    consecutive_correct: {
+      evaluate: (achievement, data, criteria) =>
+        checkConsecutiveCorrect(achievement, data, criteria),
+    },
+    correct_in_game: {
+      evaluate: (achievement, data, criteria) => checkCorrectInGame(achievement, data, criteria),
+    },
+    attempts_in_game: {
+      evaluate: (achievement, data, criteria) => checkAttemptsInGame(achievement, data, criteria),
+    },
+    comeback_in_game: {
+      evaluate: (achievement, data, criteria) => checkComebackInGame(achievement, data, criteria),
+    },
+    first_try_in_game: {
+      evaluate: (achievement, data, criteria) => checkFirstTryInGame(achievement, data, criteria),
+    },
+    flawless_game: {
+      evaluate: (achievement, data, criteria) => checkFlawlessGame(achievement, data, criteria),
+    },
+    perfect_score_count: {
+      evaluate: (achievement, data, criteria) =>
+        checkPerfectScoreCount(achievement, data, criteria),
+    },
+
+    // --- Cumulative: evaluated from a game AND tracked as running progress ---
+    total_speed: {
+      evaluate: (achievement, data, criteria) => checkTotalSpeed(achievement, data, criteria),
+      // Two counters exist (sub-3s and sub-5s); pick by the criterion's own
+      // threshold so both tiers read from the right one.
+      progress: (_achievement, criteria, totals) =>
+        criteria.max_time_ms <= 3000 ? totals.speedGuesses3s : totals.speedGuesses5s,
+    },
+    no_hints: {
+      evaluate: (achievement, data, criteria) => checkNoHints(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.hintFreeGames,
+    },
+    streak: {
+      evaluate: (achievement, data, criteria) => checkStreak(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.currentStreak,
+    },
+    challenges_completed: {
+      evaluate: (achievement, data, criteria) =>
+        checkChallengesCompleted(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.challengesCompleted,
+    },
+    challenges_started: {
+      evaluate: (achievement, data, criteria) =>
+        checkChallengesStarted(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.challengesStarted,
+    },
+    total_guesses: {
+      evaluate: (achievement, data, criteria) => checkTotalGuesses(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.totalGuesses,
+    },
+    total_correct_guesses: {
+      evaluate: (achievement, data, criteria) =>
+        checkTotalCorrectGuesses(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.totalCorrectGuesses,
+    },
+    total_wrong_guesses: {
+      evaluate: (achievement, data, criteria) =>
+        checkTotalWrongGuesses(achievement, data, criteria),
+      progress: (_achievement, _criteria, totals) => totals.totalWrongGuesses,
+    },
+    genre_master: {
+      evaluate: (achievement, data, criteria) => checkGenreMaster(achievement, data, criteria),
+      progress: async (_achievement, criteria, _totals, userId) =>
+        criteria.genre
+          ? await achievementRepository.countGenreCorrectGuesses(userId, criteria.genre)
+          : null,
+    },
+    leaderboard_rank: {
+      evaluate: (achievement, data, criteria) =>
+        checkLeaderboardRank(achievement, data, criteria),
+      progress: async (_achievement, criteria, _totals, userId) => {
+        if (!criteria.max_rank) return null
+        const bestRank = await achievementRepository.getUserBestChallengeRank(userId)
+        return bestRank !== null && bestRank <= criteria.max_rank ? 1 : 0
+      },
+    },
+
+    // --- Awarded outside the classic game loop ---
+    // These criteria types exist in the `achievements` table but are never
+    // evaluated from a completed classic game, so they register no handler.
+    // They are listed anyway: the dispatcher warns about types it does not
+    // recognize, and before this registry the two GeoGamers entries tripped
+    // that warning on every single game completion. Registering them says
+    // "handled elsewhere, not missing".
+
+    // Awarded by the milestone-account-age BullMQ worker (wall-clock time,
+    // not gameplay) via evaluateAccountAgeMilestones below.
+    account_age_days: {},
+    // Awarded by key from the GeoGamers run-completion route, which knows
+    // the run's score directly. See presentation/routes/geogamers.routes.ts.
+    geogamers_runs_completed: {},
+    geogamers_perfect_run: {},
+  }
+
+  /**
+   * Post-game dispatcher. Type-agnostic: it looks the criterion up and runs
+   * it. An unregistered type is a data problem (a row in `achievements`
+   * whose criteria.type nothing implements), so it warns rather than throws.
+   */
   async function checkSingleAchievement(
     achievement: AchievementRow,
     data: GameCompletionData
@@ -640,54 +853,19 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
       return false
     }
 
+    const handler = criteriaRegistry[criteria.type as AchievementCriteriaType]
+    if (!handler) {
+      log.warn({ type: criteria.type }, 'Unknown achievement criteria type')
+      return false
+    }
+    // Registered but progress-only (e.g. account_age_days): nothing to do
+    // after a game.
+    if (!handler.evaluate) {
+      return false
+    }
+
     try {
-      switch (criteria.type) {
-        case 'perfect_score':
-          return checkPerfectScore(achievement, data)
-        case 'min_score':
-          return checkMinScore(achievement, data, criteria)
-        case 'consecutive_speed':
-          return checkConsecutiveSpeed(achievement, data, criteria)
-        case 'total_speed':
-          return checkTotalSpeed(achievement, data, criteria)
-        case 'single_speed':
-          return checkSingleSpeed(achievement, data, criteria)
-        case 'no_hints':
-          return checkNoHints(achievement, data, criteria)
-        case 'consecutive_correct':
-          return checkConsecutiveCorrect(achievement, data, criteria)
-        case 'streak':
-          return checkStreak(achievement, data, criteria)
-        case 'genre_master':
-          return checkGenreMaster(achievement, data, criteria)
-        case 'challenges_completed':
-          return checkChallengesCompleted(achievement, data, criteria)
-        case 'leaderboard_rank':
-          return checkLeaderboardRank(achievement, data, criteria)
-        case 'challenges_started':
-          return checkChallengesStarted(achievement, data, criteria)
-        case 'total_guesses':
-          return checkTotalGuesses(achievement, data, criteria)
-        case 'total_correct_guesses':
-          return checkTotalCorrectGuesses(achievement, data, criteria)
-        case 'correct_in_game':
-          return checkCorrectInGame(achievement, data, criteria)
-        case 'perfect_score_count':
-          return checkPerfectScoreCount(achievement, data, criteria)
-        case 'attempts_in_game':
-          return checkAttemptsInGame(achievement, data, criteria)
-        case 'comeback_in_game':
-          return checkComebackInGame(achievement, data, criteria)
-        case 'first_try_in_game':
-          return checkFirstTryInGame(achievement, data, criteria)
-        case 'flawless_game':
-          return checkFlawlessGame(achievement, data, criteria)
-        case 'total_wrong_guesses':
-          return checkTotalWrongGuesses(achievement, data, criteria)
-        default:
-          log.warn({ type: criteria.type }, 'Unknown achievement criteria type')
-          return false
-      }
+      return await handler.evaluate(achievement, data, criteria)
     } catch (error) {
       log.error({ error, achievementKey: achievement.key }, 'Error checking achievement')
       return false
@@ -732,57 +910,35 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
       achievementRepository.countHintFreeCompletedGames(userId),
     ])
 
-    // Map progress to achievement keys based on their criteria type
+    // Bundle the counters once so each criterion's `progress` function is a
+    // pure pick rather than its own query.
+    const totals: ProgressTotals = {
+      challengesCompleted,
+      challengesStarted,
+      totalGuesses,
+      totalCorrectGuesses,
+      totalWrongGuesses,
+      currentStreak,
+      speedGuesses3s,
+      speedGuesses5s,
+      hintFreeGames,
+    }
+
+    // Map progress to achievement keys via the same registry the post-game
+    // evaluator uses, so the two can never disagree about a criterion type.
     for (const achievement of allAchievements) {
       const criteria = achievement.criteria
       if (!criteria || !criteria.type) continue
 
-      switch (criteria.type) {
-        case 'challenges_completed':
-          progress[achievement.key] = challengesCompleted
-          break
-        case 'challenges_started':
-          progress[achievement.key] = challengesStarted
-          break
-        case 'total_guesses':
-          progress[achievement.key] = totalGuesses
-          break
-        case 'total_correct_guesses':
-          progress[achievement.key] = totalCorrectGuesses
-          break
-        case 'total_wrong_guesses':
-          progress[achievement.key] = totalWrongGuesses
-          break
-        case 'streak':
-          progress[achievement.key] = currentStreak
-          break
-        case 'total_speed':
-          if (criteria.max_time_ms <= 3000) {
-            progress[achievement.key] = speedGuesses3s
-          } else {
-            progress[achievement.key] = speedGuesses5s
-          }
-          break
-        case 'no_hints':
-          progress[achievement.key] = hintFreeGames
-          break
-        case 'genre_master':
-          if (criteria.genre) {
-            progress[achievement.key] = await achievementRepository.countGenreCorrectGuesses(
-              userId,
-              criteria.genre
-            )
-          }
-          break
-        case 'leaderboard_rank':
-          if (criteria.max_rank) {
-            const bestRank = await achievementRepository.getUserBestChallengeRank(userId)
-            progress[achievement.key] =
-              bestRank !== null && bestRank <= criteria.max_rank ? 1 : 0
-          }
-          break
-        // Other types (perfect_score, min_score, consecutive_speed, etc.)
-        // are session-based and don't have meaningful cumulative progress
+      const handler = criteriaRegistry[criteria.type as AchievementCriteriaType]
+      // No `progress` function means the criterion is session-scoped
+      // (perfect_score, min_score, consecutive_speed, ...) and has no
+      // meaningful cumulative total to show.
+      if (!handler?.progress) continue
+
+      const value = await handler.progress(achievement, criteria, totals, userId)
+      if (value !== null && value !== undefined) {
+        progress[achievement.key] = value
       }
     }
 

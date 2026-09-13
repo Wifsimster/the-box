@@ -9,7 +9,6 @@ import type {
   BillingUserRepository,
   BillingSubscriptionRepository,
 } from '../ports/index.js'
-import type Stripe from 'stripe'
 
 // Stripe Subscription.status values map 1:1 to our SubscriptionStatus union;
 // this guard keeps the type system honest when reading from the SDK.
@@ -23,6 +22,28 @@ const KNOWN_STATUSES: ReadonlySet<SubscriptionStatus> = new Set([
   'unpaid',
   'paused',
 ])
+
+/**
+ * The shape of a payment-provider subscription, as the domain needs it.
+ *
+ * Deliberately structural and vendor-neutral: it names the four fields this
+ * service reads and nothing else. A real `Stripe.Subscription` satisfies it
+ * without a cast or an adapter at the call site, but the domain no longer
+ * imports the Stripe SDK — so swapping or stubbing the provider is a
+ * composition-root concern, and a unit test can build one from a literal.
+ */
+export interface ExternalSubscriptionItem {
+  price: { id: string }
+  /** Unix seconds. Stripe moved this onto the item; older payloads omit it. */
+  current_period_end?: number | undefined
+}
+
+export interface ExternalSubscription {
+  id: string
+  status: string
+  cancel_at_period_end: boolean
+  items: { data: ExternalSubscriptionItem[] }
+}
 
 export function toSubscriptionStatus(raw: string): SubscriptionStatus {
   return (KNOWN_STATUSES as Set<string>).has(raw)
@@ -94,7 +115,7 @@ export interface BillingService {
       active: boolean
     }>
   >
-  fromStripeSubscription(sub: Stripe.Subscription): {
+  fromStripeSubscription(sub: ExternalSubscription): {
     stripeSubscriptionId: string
     stripePriceId: string
     status: SubscriptionStatus
@@ -208,7 +229,7 @@ export function createBillingService(deps: BillingServiceDeps): BillingService {
     // upsert without leaking SDK types into the data layer. Period end on a
     // canceled subscription is the cancellation timestamp, which we keep
     // around so the UI can show "premium ended on …".
-    fromStripeSubscription(sub: Stripe.Subscription) {
+    fromStripeSubscription(sub: ExternalSubscription) {
       const item = sub.items.data[0]
       if (!item) {
         throw new Error(`stripe subscription ${sub.id} has no items`)
@@ -227,8 +248,7 @@ export function createBillingService(deps: BillingServiceDeps): BillingService {
           'subscription has multiple items; using first',
         )
       }
-      const periodEnd = (item as Stripe.SubscriptionItem & { current_period_end?: number })
-        .current_period_end
+      const periodEnd = item.current_period_end
       return {
         stripeSubscriptionId: sub.id,
         stripePriceId: item.price.id,

@@ -13,7 +13,9 @@
 
 import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
-import { pushService } from '../../../domain/services/index.js'
+import {
+  pushService,
+} from '../../../composition/services.js'
 import { buildGeoGamersDailyCopy } from '../../../domain/services/geogamers-daily-push-copy.js'
 
 const log = queueLogger.child({ module: 'geogamers-daily-push' })

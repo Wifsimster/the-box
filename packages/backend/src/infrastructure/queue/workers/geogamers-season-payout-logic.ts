@@ -15,7 +15,10 @@
  */
 
 import { queueLogger } from '../../logger/logger.js'
-import { rewardsService, geoGamersSeasonService } from '../../../domain/services/index.js'
+import {
+  rewardsService,
+  geoGamersSeasonService,
+} from '../../../composition/services.js'
 import { emitRewardGranted, emitGeoGamersSeasonUpdated } from '../../socket/socket.js'
 import { priorMonthLabel } from './leaderboard-payout-period.js'
 import type { RewardGrantedEvent } from '@the-box/types'

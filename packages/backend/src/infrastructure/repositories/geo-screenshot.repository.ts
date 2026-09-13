@@ -81,6 +81,20 @@ export const geoScreenshotRepository = {
     return row ? mapCandidate(row) : null
   },
 
+  /**
+   * Whether a candidate already exists for a (source, external_id) pair.
+   *
+   * `createCandidate` is already protected by that unique constraint, so this
+   * is not the correctness guard — it exists so a bulk import can report an
+   * honest inserted/skipped split rather than claiming every row was new.
+   */
+  async candidateExists(source: string, externalId: string): Promise<boolean> {
+    const row = await db('geo_screenshot_candidate')
+      .where({ source, external_id: externalId })
+      .first<{ id: number }>('id')
+    return row !== undefined
+  },
+
   async createCandidate(data: {
     gameId: number
     geoMapId: number

@@ -1,7 +1,7 @@
 import type {
   DomainLogger,
   InventoryRepository,
-  UserRepository,
+  ReferralUserStore,
 } from '../ports/index.js'
 
 export class ReferralError extends Error {
@@ -52,7 +52,10 @@ export interface ReferralService {
 
 export interface ReferralServiceDeps {
   logger: DomainLogger
-  userRepository: UserRepository
+  /**
+   * Only the referral columns.
+   */
+  userRepository: ReferralUserStore
   inventoryRepository: InventoryRepository
 }
 

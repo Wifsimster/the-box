@@ -1,7 +1,7 @@
 import type { LeaderboardResponse, PercentileResponse, MonthlyLeaderboardResponse } from '@the-box/types'
 import type {
   DomainLogger,
-  ChallengeRepository,
+  DailyChallengeLookup,
   LeaderboardRepository,
 } from '../ports/index.js'
 
@@ -32,7 +32,12 @@ export interface LeaderboardService {
 
 export interface LeaderboardServiceDeps {
   logger: DomainLogger
-  challengeRepository: ChallengeRepository
+  /**
+   * Only resolves a date to a challenge id. Narrowed from the full
+   * `ChallengeRepository` so this read-only service cannot reach the
+   * challenge-writing methods.
+   */
+  challengeRepository: DailyChallengeLookup
   leaderboardRepository: LeaderboardRepository
 }
 

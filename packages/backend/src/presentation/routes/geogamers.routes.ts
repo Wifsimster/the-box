@@ -1,6 +1,12 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { geoGamersService, geoGamersSeasonService, GeoGamersError } from '../../domain/services/index.js'
+import {
+  GeoGamersError,
+} from '../../domain/services/index.js'
+import {
+  geoGamersService,
+  geoGamersSeasonService,
+} from '../../composition/services.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'

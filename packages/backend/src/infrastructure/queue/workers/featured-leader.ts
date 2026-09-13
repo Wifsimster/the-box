@@ -1,5 +1,7 @@
 import { db } from '../../database/connection.js'
-import { leaderboardService } from '../../../domain/services/index.js'
+import {
+  leaderboardService,
+} from '../../../composition/services.js'
 import { isDisplayNameSafe } from '../../../domain/services/display-name-safety.js'
 import { truncateDisplayName } from '../../../domain/services/evening-nudge-copy.js'
 

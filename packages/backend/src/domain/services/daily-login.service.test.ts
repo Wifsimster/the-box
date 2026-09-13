@@ -12,12 +12,10 @@ import type { DomainLogger } from '../ports/logger.js'
 
 const silentLogger: DomainLogger = {
     child: () => silentLogger,
-    trace: () => {},
     debug: () => {},
     info: () => {},
     warn: () => {},
     error: () => {},
-    fatal: () => {},
 }
 
 function todayUTC(): string {

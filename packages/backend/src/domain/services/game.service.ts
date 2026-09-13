@@ -13,16 +13,17 @@ import type {
 import type { DomainLogger } from '../ports/logger.js'
 import type {
   ChallengeRepository,
-  SessionRepository,
+  GameSessionStore,
   ScreenshotRepository,
-  UserRepository,
+  GamePlayerStore,
   InventoryRepository,
-  GameRepository,
+  GameplayGameQuery,
   FunnelEventRepository,
   PositionSecondChanceRepository,
   PositionLetterRevealRepository,
+  TierSessionWithContextRecord,
 } from '../ports/repositories.js'
-import type { FuzzyMatchService, MatchPrecision } from './fuzzy-match.service.js'
+import type { FuzzyMatchService } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
 import {
   buildMaskedTitle,
@@ -31,6 +32,11 @@ import {
   LETTER_PENALTY_STEPS,
 } from './letter-reveal.service.js'
 import { computeGuessProximityHint } from './guess-proximity.service.js'
+import { resolveMatchPrecision, resolveRoundTimer } from './guess-validation.service.js'
+import {
+  SECOND_CHANCE_FLOOR,
+  calculateGuessScore,
+} from './guess-scoring.service.js'
 
 export class GameError extends Error {
   constructor(
@@ -44,15 +50,8 @@ export class GameError extends Error {
 }
 
 const TOTAL_SCREENSHOTS = 10
-const BASE_SCORE = 100
 const UNFOUND_PENALTY = 0
 const WRONG_GUESS_PENALTY = 0
-// Fraction of the (speed-scaled, capped) score awarded for a `partial` match —
-// the player named the franchise but omitted the sequel number / full subtitle.
-// 0.40 is deliberately below 0.5 so the FASTEST partial (200 × 0.40 = 80) can
-// never beat the SLOWEST exact (100): full identification is always strictly
-// the better play. Applied after the 200 cap, before letter penalty / floor.
-const PARTIAL_MATCH_FACTOR = 0.4
 // Free tier no longer gets a catch-up window — only today's daily is
 // playable. Premium keeps the 365-day archive. Setting this to 0 (rather
 // than removing the constant) keeps the conditional shape downstream so
@@ -88,26 +87,6 @@ function buildLetterRevealState(
   }
 }
 
-/**
- * Calculate speed multiplier based on time taken to find the screenshot
- * @param timeTakenMs Time in milliseconds from screenshot shown to correct guess
- * @returns Multiplier value (1.0 to 2.0)
- */
-function calculateSpeedMultiplier(timeTakenMs: number): number {
-  const timeTakenSeconds = timeTakenMs / 1000
-
-  if (timeTakenSeconds < 3) {
-    return 2.0 // 200 points
-  } else if (timeTakenSeconds < 5) {
-    return 1.75 // 175 points
-  } else if (timeTakenSeconds < 10) {
-    return 1.5 // 150 points
-  } else if (timeTakenSeconds < 20) {
-    return 1.25 // 125 points
-  } else {
-    return 1.0 // 100 points
-  }
-}
 
 const STREAK_GRACE_COOLDOWN_DAYS = 7
 
@@ -116,11 +95,23 @@ export interface GameServiceDeps {
   fuzzyMatchService: FuzzyMatchService
   achievementService: AchievementService
   challengeRepository: ChallengeRepository
-  sessionRepository: SessionRepository
+  /**
+   * The live play-through surface. Excludes history queries and the
+   * delete path, which this service has no business reaching.
+   */
+  sessionRepository: GameSessionStore
   screenshotRepository: ScreenshotRepository
-  userRepository: UserRepository
+  /**
+   * The game loop reads the account and writes the score/streak it earns.
+   * Narrowed so it cannot touch referral or profile columns.
+   */
+  userRepository: GamePlayerStore
   inventoryRepository: InventoryRepository
-  gameRepository: GameRepository
+  /**
+   * Read-only. The game loop looks up genres and proximity-hint candidates;
+   * it has no business creating, updating or deleting a catalog entry.
+   */
+  gameRepository: GameplayGameQuery
   funnelEventRepository: FunnelEventRepository
   positionSecondChanceRepository: PositionSecondChanceRepository
   positionLetterRevealRepository: PositionLetterRevealRepository
@@ -246,7 +237,6 @@ export function createGameService(deps: GameServiceDeps): GameService {
   // activation. 70 % of the BASE_SCORE per the powerups PRD; expressed as
   // an absolute integer so the math stays in sync with `scoreEarned` (also
   // an integer).
-  const SECOND_CHANCE_FLOOR = 70
 
   async function calculateAndUpdateStreak(
     userId: string,
@@ -306,6 +296,134 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     return { currentStreak, longestStreak }
   }
+
+  /**
+   * Everything that happens when the final screenshot falls.
+   *
+   * Streak, lifetime score, achievements, the completion webhook, the funnel
+   * event and the response payload. Extracted from the middle of
+   * `submitGuess` — the happy path of a guess and the end-of-session
+   * ceremony are different jobs, and the latter was 140 lines wedged inside
+   * an `if` in the former.
+   *
+   * Every side-effect here is best-effort by design: a failed achievement
+   * check or webhook must never turn a completed game into a 500.
+   */
+  async function finalizeCompletedSession(params: {
+    userId: string
+    screenshotId: number
+    tierSession: TierSessionWithContextRecord
+    newTotalScore: number
+    totalScreenshotsFound: number
+    completionReason: 'all_found'
+    screenshot: { gameId: number }
+    gameName: string
+    coverImageUrl: string | undefined
+    releaseYear: number | undefined
+    metacritic: number | undefined
+  }): Promise<{ correctGame: Game; newlyEarnedAchievements: NewlyEarnedAchievement[] }> {
+    const {
+      userId,
+      tierSession,
+      newTotalScore,
+      totalScreenshotsFound,
+      completionReason,
+      screenshot,
+      gameName,
+      coverImageUrl,
+      releaseYear,
+      metacritic,
+    } = params
+
+    log.info(
+      {
+        userId,
+        sessionId: tierSession.game_session_id,
+        finalScore: newTotalScore,
+        screenshotsFound: totalScreenshotsFound,
+        completionReason,
+      },
+      'game completed'
+    )
+
+    void funnelEventRepository.record({
+      eventName: 'session_completed',
+      userId,
+      sessionId: tierSession.game_session_id,
+      payload: {
+        finalScore: newTotalScore,
+        screenshotsFound: totalScreenshotsFound,
+        completionReason,
+      },
+    })
+
+    // Public-API webhook fan-out. Fire-and-forget; webhook delivery errors
+    // must not fail the guess submission.
+    if (deps.onAfterSessionCompleted) {
+      void deps
+        .onAfterSessionCompleted({
+          userId,
+          sessionId: tierSession.game_session_id,
+          challengeId: tierSession.daily_challenge_id,
+          finalScore: newTotalScore,
+          screenshotsFound: totalScreenshotsFound,
+          reason: 'all_found',
+          isCatchUp: tierSession.is_catch_up,
+        })
+        .catch((error) => {
+          log.warn(
+            { userId, error: String(error) },
+            'onAfterSessionCompleted hook failed (non-fatal)'
+          )
+        })
+    }
+
+    let newlyEarnedAchievements: NewlyEarnedAchievement[] = []
+    try {
+      const user = await userRepository.findById(userId)
+      const updatedStreak = await calculateAndUpdateStreak(userId, user)
+
+      log.info({ userId, scoreToAdd: newTotalScore }, 'Updating user total score')
+      await userRepository.updateScore(userId, newTotalScore)
+
+      const [allGuesses, gameGenres] = await Promise.all([
+        sessionRepository.findAchievementGuessData(tierSession.game_session_id),
+        gameRepository.getGenresById(screenshot.gameId),
+      ])
+
+      newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
+        userId,
+        sessionId: tierSession.game_session_id,
+        challengeId: tierSession.daily_challenge_id,
+        totalScore: newTotalScore,
+        guesses: allGuesses,
+        gameGenres,
+        currentStreak: updatedStreak.currentStreak,
+        longestStreak: updatedStreak.longestStreak,
+      })
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to check achievements')
+    }
+
+    const correctGame: Game = {
+      id: screenshot.gameId,
+      name: gameName,
+      slug: '',
+      aliases: [],
+      coverImageUrl,
+      releaseYear,
+      metacritic,
+    }
+
+    const fullGameData = await screenshotRepository.getGameByScreenshotId(params.screenshotId)
+    if (fullGameData) {
+      correctGame.publisher = fullGameData.publisher ?? undefined
+      correctGame.developer = fullGameData.developer ?? undefined
+    }
+
+    return { correctGame, newlyEarnedAchievements }
+  }
+
 
   return {
   async getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse> {
@@ -674,13 +792,15 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const matchResult =
       trimmedGuess !== ''
         ? fuzzyMatchService.evaluateMatch(data.guessText, gameName, aliases)
-        : { matched: false, precision: 'none' as MatchPrecision }
-    const precision: MatchPrecision =
-      matchResult.precision !== 'none'
-        ? matchResult.precision
-        : trimmedGuess !== '' && data.gameId === screenshot.gameId
-          ? 'exact'
-          : 'none'
+        : null
+    // Precision resolution (including the "text is required, gameId is only a
+    // tiebreaker" anti-leak rule) lives in guess-validation.service.ts.
+    const precision = resolveMatchPrecision({
+      trimmedGuess,
+      matchResult,
+      submittedGameId: data.gameId,
+      answerGameId: screenshot.gameId,
+    })
     const isCorrect = precision !== 'none'
 
     // Server-authoritative round timer. The client submits its own
@@ -694,21 +814,27 @@ export function createGameService(deps: GameServiceDeps): GameService {
     // fallback ("if NULL, trust the client") opened a window any time
     // the DB blipped during getScreenshot or the user POSTed
     // out-of-order; refuse the submit instead.
-    if (
-      tierSession.round_started_at == null ||
-      tierSession.round_position !== data.position
-    ) {
+    // Server-authoritative round timer; see guess-validation.service.ts for
+    // why the slower of server/client elapsed wins.
+    const timer = resolveRoundTimer({
+      roundStartedAt: tierSession.round_started_at,
+      stampedPosition: tierSession.round_position,
+      submittedPosition: data.position,
+      clientElapsedMs: data.roundTimeTakenMs,
+      now: Date.now(),
+    })
+
+    if (!timer.valid) {
       throw new GameError(
         'ROUND_NOT_STARTED',
         'No active round timer for this position. Reload the screenshot and retry.',
         409
       )
     }
-    const roundStartedAt = new Date(tierSession.round_started_at).getTime()
-    const serverElapsedMs = Math.max(0, Date.now() - roundStartedAt)
-    const effectiveTimeTakenMs = Math.max(serverElapsedMs, data.roundTimeTakenMs)
-    if (Math.abs(serverElapsedMs - data.roundTimeTakenMs) > 2000) {
-      log.warn?.(
+
+    const { serverElapsedMs, effectiveTimeTakenMs } = timer
+    if (timer.diverged) {
+      log.warn(
         {
           userId: data.userId,
           tierSessionId: data.tierSessionId,
@@ -720,83 +846,73 @@ export function createGameService(deps: GameServiceDeps): GameService {
       )
     }
 
-    // Calculate score based on speed multiplier (only for correct guesses)
-    // Base score is 100 points, multiplied by speed factor
+    // Score for this guess. Zero unless the position was solved; the
+    // modifiers below are filled in by the scoring pipeline.
     let scoreEarned = 0
-    if (isCorrect) {
-      const speedMultiplier = calculateSpeedMultiplier(effectiveTimeTakenMs)
-      scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
-      // Cap max score per screenshot at 200 points
-      scoreEarned = Math.min(scoreEarned, 200)
-      // Franchise-only identification earns a fraction of the full score. The
-      // factor is applied AFTER the cap so partial tops out at 80, never 200.
-      if (precision === 'partial') {
-        scoreEarned = Math.round(scoreEarned * PARTIAL_MATCH_FACTOR)
-      }
-    }
-
-    // Letter-reveal penalty — the cumulative percent was locked in at
-    // reveal time (POST /reveal-letter) and is deducted here exactly once,
-    // on the correct guess. Ordering contract: after the speed-multiplier
-    // cap, BEFORE the second-chance floor — a paid floor still wins over
-    // letter costs. Re-deduction on a later guess is blocked by the
-    // POSITION_ALREADY_SOLVED anti-replay guard.
     let letterPenalty = 0
+    let secondChanceFloorBoost: number | undefined
+    // Reported in the telemetry line below; null on a wrong guess.
+    let speedMultiplier: number | null = null
+
+    // Fetch the two modifiers the scoring pipeline needs. Both are only
+    // consumed on a correct guess — a miss leaves the reveal and the
+    // activation pending for the next attempt.
     let pendingLetterRevealId: number | null = null
+    let letterPenaltyPct = 0
+    let pendingSecondChanceActivationId: number | null = null
+    let secondChanceActive = false
+
     if (isCorrect) {
-      const letterReveal = await positionLetterRevealRepository.findPending(
-        data.tierSessionId,
-        data.position
-      )
+      const [letterReveal, activation] = await Promise.all([
+        positionLetterRevealRepository.findPending(data.tierSessionId, data.position),
+        positionSecondChanceRepository.findPending(data.tierSessionId, data.position),
+      ])
       if (letterReveal) {
         pendingLetterRevealId = letterReveal.id
-        if (letterReveal.penalty_pct > 0) {
-          letterPenalty = Math.round((scoreEarned * letterReveal.penalty_pct) / 100)
-          scoreEarned -= letterPenalty
-          log.info(
-            {
-              userId: data.userId,
-              position: data.position,
-              lettersRevealed: letterReveal.letters_revealed,
-              penaltyPct: letterReveal.penalty_pct,
-              penalty: letterPenalty,
-            },
-            'letter-reveal penalty applied'
-          )
-        }
+        letterPenaltyPct = letterReveal.penalty_pct
       }
-    }
-
-    // Second-chance score floor — applies to the next correct guess on
-    // a position where the user previously activated the powerup. The
-    // activation row is created by POST /api/game/second-chance and lives
-    // in `position_second_chances`. We treat 70 % of BASE_SCORE as a
-    // FLOOR (not a cap, despite the literal PRD wording — see service
-    // contract above). The activation is marked applied AFTER the guess
-    // is saved so the row's `applied_to_guess_id` points at the
-    // surviving guess record.
-    let secondChanceFloorBoost: number | undefined
-    let pendingSecondChanceActivationId: number | null = null
-    if (isCorrect) {
-      const activation = await positionSecondChanceRepository.findPending(
-        data.tierSessionId,
-        data.position
-      )
       if (activation) {
         pendingSecondChanceActivationId = activation.id
-        if (scoreEarned < SECOND_CHANCE_FLOOR) {
-          secondChanceFloorBoost = SECOND_CHANCE_FLOOR - scoreEarned
-          scoreEarned = SECOND_CHANCE_FLOOR
-          log.info(
-            {
-              userId: data.userId,
-              position: data.position,
-              boost: secondChanceFloorBoost,
-              floor: SECOND_CHANCE_FLOOR,
-            },
-            'second_chance floor applied'
-          )
-        }
+        secondChanceActive = true
+      }
+
+      // The scoring pipeline itself (speed -> cap -> partial factor ->
+      // letter penalty -> second-chance floor) lives in
+      // guess-scoring.service.ts, where the ordering contract is documented
+      // and unit-tested without a database.
+      const breakdown = calculateGuessScore({
+        precision,
+        effectiveTimeTakenMs,
+        letterPenaltyPct,
+        secondChanceActive,
+      })
+      scoreEarned = breakdown.scoreEarned
+      letterPenalty = breakdown.letterPenalty
+      secondChanceFloorBoost = breakdown.secondChanceFloorBoost
+      speedMultiplier = breakdown.speedMultiplier
+
+      if (letterPenalty > 0 && letterReveal) {
+        log.info(
+          {
+            userId: data.userId,
+            position: data.position,
+            lettersRevealed: letterReveal.letters_revealed,
+            penaltyPct: letterReveal.penalty_pct,
+            penalty: letterPenalty,
+          },
+          'letter-reveal penalty applied'
+        )
+      }
+      if (secondChanceFloorBoost !== undefined) {
+        log.info(
+          {
+            userId: data.userId,
+            position: data.position,
+            boost: secondChanceFloorBoost,
+            floor: SECOND_CHANCE_FLOOR,
+          },
+          'second_chance floor applied'
+        )
       }
     }
 
@@ -821,7 +937,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         clientRoundTimeTakenMs: data.roundTimeTakenMs,
         effectiveTimeTakenMs,
         serverElapsedMs,
-        speedMultiplier: isCorrect ? calculateSpeedMultiplier(effectiveTimeTakenMs) : null,
+        speedMultiplier,
         guessedGame: data.guessText,
         correctGame: gameName,
       },
@@ -932,94 +1048,19 @@ export function createGameService(deps: GameServiceDeps): GameService {
     })
 
     if (isCompleted) {
-      log.info(
-        {
-          userId: data.userId,
-          sessionId: tierSession.game_session_id,
-          finalScore: newTotalScore,
-          screenshotsFound: totalScreenshotsFound,
-          completionReason
-        },
-        'game completed'
-      )
-
-      void funnelEventRepository.record({
-        eventName: 'session_completed',
+      const { correctGame, newlyEarnedAchievements } = await finalizeCompletedSession({
         userId: data.userId,
-        sessionId: tierSession.game_session_id,
-        payload: {
-          finalScore: newTotalScore,
-          screenshotsFound: totalScreenshotsFound,
-          completionReason,
-        },
-      })
-
-      // Public-API webhook fan-out (M2). Fire-and-forget; webhook delivery
-      // errors must not fail the guess submission.
-      if (deps.onAfterSessionCompleted) {
-        void deps.onAfterSessionCompleted({
-          userId: data.userId,
-          sessionId: tierSession.game_session_id,
-          challengeId: tierSession.daily_challenge_id,
-          finalScore: newTotalScore,
-          screenshotsFound: totalScreenshotsFound,
-          reason: 'all_found',
-          isCatchUp: tierSession.is_catch_up,
-        }).catch((error) => {
-          log.warn(
-            { userId: data.userId, error: String(error) },
-            'onAfterSessionCompleted hook failed (non-fatal)',
-          )
-        })
-      }
-
-      // Check achievements after game completion
-      let newlyEarnedAchievements: any[] = []
-      try {
-        // Get user info for streak data
-        const user = await userRepository.findById(data.userId)
-
-        // Calculate and update streak
-        const updatedStreak = await calculateAndUpdateStreak(data.userId, user)
-
-        // Update user's total score
-        log.info({ userId: data.userId, scoreToAdd: newTotalScore }, 'Updating user total score')
-        await userRepository.updateScore(data.userId, newTotalScore)
-
-        const allGuesses = await sessionRepository.findAchievementGuessData(tierSession.game_session_id)
-        const gameGenres = await gameRepository.getGenresById(screenshot.gameId)
-
-        newlyEarnedAchievements = await achievementService.checkAchievementsAfterGame({
-          userId: data.userId,
-          sessionId: tierSession.game_session_id,
-          challengeId: tierSession.daily_challenge_id,
-          totalScore: newTotalScore,
-          guesses: allGuesses,
-          gameGenres,
-          currentStreak: updatedStreak.currentStreak,
-          longestStreak: updatedStreak.longestStreak,
-        })
-      } catch (error) {
-        log.error({ error, userId: data.userId }, 'Failed to check achievements')
-      }
-
-      // Return response with achievements
-      const correctGame: Game = {
-        id: screenshot.gameId,
-        name: gameName,
-        slug: '',
-        aliases: [],
+        screenshotId: data.screenshotId,
+        tierSession,
+        newTotalScore,
+        totalScreenshotsFound,
+        completionReason: 'all_found',
+        screenshot,
+        gameName,
         coverImageUrl,
         releaseYear,
         metacritic,
-      }
-
-      const fullGameData = await screenshotRepository.getGameByScreenshotId(data.screenshotId)
-
-      if (fullGameData) {
-        correctGame.publisher = fullGameData.publisher ?? undefined
-        correctGame.developer = fullGameData.developer ?? undefined
-      }
+      })
 
       return {
         isCorrect,
@@ -1034,7 +1075,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
         matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
-        newlyEarnedAchievements: newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
+        newlyEarnedAchievements:
+          newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
       }
     }
 

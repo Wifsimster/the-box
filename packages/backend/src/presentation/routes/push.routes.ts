@@ -3,7 +3,9 @@ import type { Request } from 'express'
 import { z } from 'zod'
 import { env } from '../../config/env.js'
 import { pushSubscriptionRepository } from '../../infrastructure/repositories/index.js'
-import { pushService } from '../../domain/services/index.js'
+import {
+  pushService,
+} from '../../composition/services.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody } from '../middleware/validation.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'

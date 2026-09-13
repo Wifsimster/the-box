@@ -3,10 +3,11 @@ import { env } from '../../config/env.js'
 import type {
   DomainLogger,
   ChallengeRepository,
-  GameRepository,
+  GameBrowse,
+  GameCatalogWriter,
   ScreenshotRepository,
   ScreenshotWithGameRecord,
-  SessionRepository,
+  GameSessionEraser,
   TierRecord,
 } from '../ports/index.js'
 
@@ -118,10 +119,18 @@ export interface AdminService {
 
 export interface AdminServiceDeps {
   logger: DomainLogger
-  gameRepository: GameRepository
+  /**
+   * The admin catalog surface: browse, search, and write. The only service
+   * that may mutate a game.
+   */
+  gameRepository: GameBrowse & GameCatalogWriter
   screenshotRepository: ScreenshotRepository
   challengeRepository: ChallengeRepository
-  sessionRepository: SessionRepository
+  /**
+   * Only resets a player's attempt at a challenge (1 method), so it
+   * depends on the eraser port rather than the full 25-method repository.
+   */
+  sessionRepository: GameSessionEraser
 }
 
 export function createAdminService(deps: AdminServiceDeps): AdminService {

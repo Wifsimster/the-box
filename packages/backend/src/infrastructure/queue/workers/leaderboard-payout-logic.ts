@@ -1,5 +1,7 @@
 import { queueLogger } from '../../logger/logger.js'
-import { rewardsService } from '../../../domain/services/index.js'
+import {
+  rewardsService,
+} from '../../../composition/services.js'
 import { leaderboardRepository } from '../../repositories/index.js'
 import { emitRewardGranted } from '../../socket/socket.js'
 import { priorMonthLabel, frameItemKey } from './leaderboard-payout-period.js'

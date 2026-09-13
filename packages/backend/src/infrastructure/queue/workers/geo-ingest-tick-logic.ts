@@ -1,7 +1,7 @@
 import { db } from '../../database/connection.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
-import { geoQueue } from '../queues.js'
+import { geoQueue, type GeoJobData } from '../queues.js'
 import { geoMapRepository } from '../../repositories/index.js'
 import { findRegistryEntryBySlug } from './geo-registry-import-logic.js'
 // Combined per-game capture-provider cap. Shared with the agent curate
@@ -382,6 +382,88 @@ interface SingleTierGameRow {
 }
 
 /**
+ * A tier either produces a job to enqueue, or explains why it can't.
+ */
+type TierJobPlan =
+  | { name: string; data: GeoJobData }
+  | { reason: SingleTierFailure }
+
+/**
+ * Per-source job builders.
+ *
+ * This replaced a six-branch `if (source === ...)` chain inside
+ * `enqueueSingleTierImport`: adding an ingestion source meant editing that
+ * function, and the final source was an unlabelled fall-through at the
+ * bottom (easy to misread as a default). Now a source is one entry here and
+ * the dispatcher never changes.
+ *
+ * Typing this as `Record<RunnableTier, ...>` makes the compiler reject a new
+ * `RunnableTier` that has no builder, so the union and the behavior cannot
+ * drift apart.
+ */
+const TIER_JOB_BUILDERS: Record<
+  RunnableTier,
+  (game: SingleTierGameRow) => Promise<TierJobPlan> | TierJobPlan
+> = {
+  registry: async (game) => {
+    const entry = await findRegistryEntryBySlug(game.slug)
+    if (!entry) return { reason: 'NO_REGISTRY_ENTRY' }
+    return { name: 'import-registry-map', data: { kind: 'import-registry-map', gameId: game.id, entry } }
+  },
+
+  fandom: (game) => {
+    if (!game.wiki_subdomain || !game.wiki_page_title)
+      return { reason: 'MISSING_FANDOM_METADATA' }
+    return {
+      name: 'import-fandom-map',
+      data: {
+        kind: 'import-fandom-map',
+        gameId: game.id,
+        wikiSubdomain: game.wiki_subdomain,
+        pageTitle: game.wiki_page_title,
+      },
+    }
+  },
+
+  strategywiki: (game) => ({
+    name: 'import-strategywiki-map',
+    data: {
+      kind: 'import-strategywiki-map',
+      gameId: game.id,
+      gameName: game.name,
+      slug: game.slug,
+    },
+  }),
+
+  fextralife: (game) => ({
+    name: 'import-fextralife-map',
+    data: {
+      kind: 'import-fextralife-map',
+      gameId: game.id,
+      gameName: game.name,
+      slug: game.slug,
+    },
+  }),
+
+  wand: (game) => ({
+    name: 'import-wand-map',
+    data: {
+      kind: 'import-wand-map',
+      gameId: game.id,
+      wandUrl: `https://wand.com/maps/${encodeURIComponent(game.slug)}`,
+    },
+  }),
+
+  wikidata: (game) => {
+    if (!game.wikidata_qid) return { reason: 'MISSING_WIKIDATA_QID' }
+    return {
+      name: 'import-wikidata-map',
+      data: { kind: 'import-wikidata-map', gameId: game.id, wikidataQid: game.wikidata_qid },
+    }
+  },
+}
+
+/**
  * Enqueue a single tier's import job for one game. Used by the admin "Run now"
  * button on the per-tier eligible row, which lets an operator kick off just
  * that source instead of the whole cascade. Tombstones are intentionally not
@@ -412,81 +494,9 @@ export async function enqueueSingleTierImport(
 
   const jobId = `manual-${source}-${gameId}`
 
-  if (source === 'registry') {
-    const entry = await findRegistryEntryBySlug(game.slug)
-    if (!entry) return { enqueued: false, reason: 'NO_REGISTRY_ENTRY' }
-    await geoQueue.add(
-      'import-registry-map',
-      { kind: 'import-registry-map', gameId, entry },
-      { jobId },
-    )
-    return { enqueued: true, jobId }
-  }
+  const plan = await TIER_JOB_BUILDERS[source](game)
+  if ('reason' in plan) return { enqueued: false, reason: plan.reason }
 
-  if (source === 'fandom') {
-    if (!game.wiki_subdomain || !game.wiki_page_title)
-      return { enqueued: false, reason: 'MISSING_FANDOM_METADATA' }
-    await geoQueue.add(
-      'import-fandom-map',
-      {
-        kind: 'import-fandom-map',
-        gameId,
-        wikiSubdomain: game.wiki_subdomain,
-        pageTitle: game.wiki_page_title,
-      },
-      { jobId },
-    )
-    return { enqueued: true, jobId }
-  }
-
-  if (source === 'strategywiki') {
-    await geoQueue.add(
-      'import-strategywiki-map',
-      {
-        kind: 'import-strategywiki-map',
-        gameId,
-        gameName: game.name,
-        slug: game.slug,
-      },
-      { jobId },
-    )
-    return { enqueued: true, jobId }
-  }
-
-  if (source === 'fextralife') {
-    await geoQueue.add(
-      'import-fextralife-map',
-      {
-        kind: 'import-fextralife-map',
-        gameId,
-        gameName: game.name,
-        slug: game.slug,
-      },
-      { jobId },
-    )
-    return { enqueued: true, jobId }
-  }
-
-  if (source === 'wand') {
-    await geoQueue.add(
-      'import-wand-map',
-      {
-        kind: 'import-wand-map',
-        gameId,
-        wandUrl: `https://wand.com/maps/${encodeURIComponent(game.slug)}`,
-      },
-      { jobId },
-    )
-    return { enqueued: true, jobId }
-  }
-
-  // wikidata
-  if (!game.wikidata_qid)
-    return { enqueued: false, reason: 'MISSING_WIKIDATA_QID' }
-  await geoQueue.add(
-    'import-wikidata-map',
-    { kind: 'import-wikidata-map', gameId, wikidataQid: game.wikidata_qid },
-    { jobId },
-  )
+  await geoQueue.add(plan.name, plan.data, { jobId })
   return { enqueued: true, jobId }
 }

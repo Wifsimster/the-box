@@ -1,10 +1,12 @@
 import { queueLogger } from '../../logger/logger.js'
 import {
+  GEO_CONSENSUS_THRESHOLDS,
+} from '../../../domain/services/index.js'
+import {
   geoConsensusService,
   geoContributorService,
   geoRewardService,
-  GEO_CONSENSUS_THRESHOLDS,
-} from '../../../domain/services/index.js'
+} from '../../../composition/services.js'
 import {
   geoPinRepository,
   geoScreenshotRepository,

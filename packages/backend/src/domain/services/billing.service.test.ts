@@ -49,13 +49,15 @@ describe('isSubscriptionEntitled', () => {
 
 // ---- getEntitlement end-to-end (with fakes) ----------------------------
 
-const noopLogger = {
+// No cast needed since DomainLogger was segregated: `trace` and `fatal`
+// were on the port but called by no domain service.
+const noopLogger: DomainLogger = {
   child: () => noopLogger,
   info() {},
   warn() {},
   error() {},
   debug() {},
-} as unknown as DomainLogger
+}
 
 function makeService(row: {
   status: SubscriptionStatus

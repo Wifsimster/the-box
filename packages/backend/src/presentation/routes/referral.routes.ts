@@ -1,5 +1,10 @@
 import { Router } from 'express'
-import { referralService, ReferralError } from '../../domain/services/index.js'
+import {
+  ReferralError,
+} from '../../domain/services/index.js'
+import {
+  referralService,
+} from '../../composition/services.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()

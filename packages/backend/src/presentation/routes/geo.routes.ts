@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import {
-  geoGameService,
-  geoContributorService,
   GeoGameError,
   GEO_CONTRIBUTE_MIN_DAYS_PLAYED,
 } from '../../domain/services/index.js'
+import {
+  geoGameService,
+  geoContributorService,
+} from '../../composition/services.js'
 import {
   geoPinRepository,
   geoContributorRepository,

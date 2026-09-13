@@ -8,7 +8,7 @@ import {
   type UpsertSubscriptionInput,
 } from '../../infrastructure/repositories/subscription.repository.js'
 import { userRepository as userRepoProd } from '../../infrastructure/repositories/user.repository.js'
-import { billingService as billingServiceProd } from '../../domain/services/billing.composition.js'
+import { billingService as billingServiceProd } from '../../composition/billing.js'
 import { logger as loggerProd } from '../../infrastructure/logger/logger.js'
 import type { DomainLogger } from '../../domain/ports/logger.js'
 
