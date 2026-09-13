@@ -3028,6 +3028,8 @@
     "host": "Hôte",
     "disconnected": "Déconnecté",
     "wrongGuess_one": "Raté — 1 essai restant",
-    "wrongGuess_other": "Raté — {{count}} essais restants"
+    "wrongGuess_other": "Raté — {{count}} essais restants",
+    "forceReveal": "Clore la manche",
+    "forceRevealHint": "Termine la manche pour tout le monde. Les joueurs qui n'ont pas fini gardent les points déjà marqués."
   }
 }

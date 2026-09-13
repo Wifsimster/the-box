@@ -233,6 +233,23 @@ export function ensureGeoGamersPartyNamespace(io: SocketIOServer): void {
       }),
     )
 
+    // Host closes a round early. There is no server-side round timer, so a
+    // player who stays connected but idle would otherwise hold everyone on
+    // "waiting for others" indefinitely. `revealRound` force-times-out the
+    // stragglers, scoring whatever they had reached.
+    socket.on('party:force_reveal', (payload: { code: string }) =>
+      safe(async () => {
+        const { playerId } = id()
+        const party = await geoGamersPartyStore.get(payload.code)
+        if (!party || party.status !== 'in_round') return
+        if (party.hostId !== playerId) {
+          socket.emit('party:error', { code: 'NOT_HOST', message: 'only the host can close a round' })
+          return
+        }
+        await broadcast(io, revealRound(party))
+      }),
+    )
+
     // Host advances from the reveal screen to the next round / finish.
     socket.on('party:advance', (payload: { code: string }) =>
       safe(async () => {

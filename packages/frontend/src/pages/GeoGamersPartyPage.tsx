@@ -28,6 +28,7 @@ export default function GeoGamersPartyPage() {
         setPendingPin,
         submitLocation,
         advance,
+        forceReveal,
         leave,
     } = useGeoGamersPartyStore()
 
@@ -264,6 +265,25 @@ export default function GeoGamersPartyPage() {
                                 {t('geogamersParty.waitingOthers')}
                             </p>
                             {scoreboard}
+                            {/* Only the host, and only once they're done: there is no
+                                server-side round timer, so an idle player would hold
+                                everyone here indefinitely. Closing scores the
+                                stragglers on what they had reached — which is why it
+                                isn't offered to a host who hasn't played yet. */}
+                            {isHost && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        className="mt-4 w-full"
+                                        onClick={forceReveal}
+                                    >
+                                        {t('geogamersParty.forceReveal')}
+                                    </Button>
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        {t('geogamersParty.forceRevealHint')}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     ) : !view.you?.resolvedPhase1 ? (
                         // identify phase

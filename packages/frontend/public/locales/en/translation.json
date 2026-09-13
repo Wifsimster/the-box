@@ -3028,6 +3028,8 @@
     "host": "Host",
     "disconnected": "Disconnected",
     "wrongGuess_one": "Wrong — 1 try left",
-    "wrongGuess_other": "Wrong — {{count}} tries left"
+    "wrongGuess_other": "Wrong — {{count}} tries left",
+    "forceReveal": "Close the round",
+    "forceRevealHint": "Ends the round for everyone. Players who haven't finished keep the points they already scored."
   }
 }

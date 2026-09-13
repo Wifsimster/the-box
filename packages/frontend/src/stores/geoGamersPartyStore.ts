@@ -45,6 +45,7 @@ interface PartyState {
     selectMap: (id: number) => void
     submitLocation: () => void
     advance: () => void
+    forceReveal: () => void
     leave: () => void
 }
 
@@ -131,6 +132,12 @@ export const useGeoGamersPartyStore = create<PartyState>()((set, get) => ({
     advance() {
         const code = get().code
         if (code) getSocket().emit('party:advance', { code })
+    },
+
+    /** Host-only escape hatch: close the round without waiting on an idle player. */
+    forceReveal() {
+        const code = get().code
+        if (code) getSocket().emit('party:force_reveal', { code })
     },
 
     leave() {
