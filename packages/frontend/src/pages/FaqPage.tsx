@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { HelpCircle } from 'lucide-react'
+import { STUDIO } from '@/lib/studio'
 
 export default function FaqPage() {
   const { t } = useTranslation()
@@ -13,6 +14,14 @@ export default function FaqPage() {
     { question: t('legal.faqQuestion4'), answer: t('legal.faqAnswer4') },
     { question: t('legal.faqQuestion5'), answer: t('legal.faqAnswer5') },
     { question: t('legal.faqQuestion6'), answer: t('legal.faqAnswer6') },
+    {
+      question: t('legal.faqQuestion7'),
+      answer: t('legal.faqAnswer7', {
+        studio: STUDIO.name,
+        founder: STUDIO.founder,
+        domain: STUDIO.domain,
+      }),
+    },
   ]
 
   return (
