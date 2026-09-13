@@ -1,7 +1,7 @@
 import { Router } from 'express'
+import { gameRepository, geoAdminRepository } from '../../../infrastructure/repositories/index.js'
 import { z } from 'zod'
 import { recordAdminGeoAudit } from '../../middleware/admin-audit.js'
-import { db } from '../../../infrastructure/database/connection.js'
 import {
   geoScreenshotRepository,
   geoIngestFailureRepository,
@@ -37,11 +37,9 @@ router.post('/geo/curated', async (req, res, next) => {
     if (parse.data.curated) {
       update.geo_metadata_status = 'pending'
     }
-    const updated = await db('games')
-      .where({ id: parse.data.gameId })
-      .update(update)
+    const updated = await gameRepository.updateGeoColumns(parse.data.gameId, update)
 
-    if (updated === 0) {
+    if (!updated) {
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } })
       return
     }
@@ -90,25 +88,7 @@ router.post('/geo/curated/bulk', async (req, res, next) => {
       return
     }
 
-    let updated = 0
-    let notFound = 0
-    await db.transaction(async (trx) => {
-      for (const item of parse.data.items) {
-        const update: Record<string, unknown> = { geo_curated: item.curated }
-        if (item.curated) update.geo_metadata_status = 'pending'
-        const n = await trx('games').where({ id: item.gameId }).update(update)
-        if (n === 0) {
-          notFound++
-        } else {
-          updated++
-          if (item.curated) {
-            await trx('geo_ingest_failure')
-              .where({ game_id: item.gameId, source: 'metadata' })
-              .del()
-          }
-        }
-      }
-    })
+    const { updated, notFound } = await geoAdminRepository.setCurationBulk(parse.data.items)
 
     res.json({ success: true, data: { updated, notFound } })
   } catch (err) {
@@ -132,29 +112,7 @@ router.post('/geo/reimport', async (req, res, next) => {
     // scratch. Wrapped in a transaction so a crash mid-flight can't leave
     // half the tombstones cleared and the metadata still resolved.
     // Single round trip per source (whereIn-grouped) instead of 7 deletes.
-    await db.transaction(async (trx) => {
-      await trx('geo_ingest_failure')
-        .where({ game_id: gameId })
-        .whereIn('source', [
-          'registry',
-          'fandom',
-          'strategywiki',
-          'fextralife',
-          'wikidata',
-          'steam',
-          'metadata',
-        ])
-        .del()
-      await trx('games')
-        .where({ id: gameId })
-        .update({
-          geo_metadata_status: 'pending',
-          wiki_subdomain: null,
-          wiki_page_title: null,
-          steam_app_id: null,
-          wikidata_qid: null,
-        })
-    })
+    await geoAdminRepository.resetGameForReimport(gameId)
 
     // Enqueue jobs AFTER the transaction commits so the orchestrator can
     // observe the cleared state and a transaction rollback can't leak a

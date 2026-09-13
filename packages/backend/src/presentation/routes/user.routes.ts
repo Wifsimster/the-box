@@ -11,7 +11,6 @@ import { gdprRepository } from '../../infrastructure/repositories/gdpr.repositor
 import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
-import { db } from '../../infrastructure/database/connection.js'
 import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
 import { PREMIUM_THEME_KEYS, DEFAULT_THEME_KEY, isValidThemeKey } from '../../config/themes.js'
 
@@ -413,7 +412,7 @@ router.delete('/account', authMiddleware, async (req, res, next) => {
 
     // CASCADE removes sessions / accounts / game data, mirroring the admin
     // delete path. The cascaded `session` rows are enough to log the user out.
-    await db('user').where('id', req.userId).del()
+    await userRepository.deleteAccount(req.userId!)
 
     logger.info({ userId: req.userId }, 'user self-deleted account')
 

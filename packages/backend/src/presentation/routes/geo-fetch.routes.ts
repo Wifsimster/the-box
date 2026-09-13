@@ -1,8 +1,8 @@
 import { Router } from 'express'
+import { gameRepository } from '../../infrastructure/repositories/index.js'
 import { z } from 'zod'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
-import { db } from '../../infrastructure/database/connection.js'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { geoQueue, type GeoJobData } from '../../infrastructure/queue/queues.js'
 import { geoPipelineStateRepository } from '../../infrastructure/repositories/geo-pipeline-state.repository.js'
@@ -30,15 +30,7 @@ router.use(adminMiddleware)
 // Aggregate counts by stage. Cheap; powers the sticky header on the panel.
 router.get('/status', async (_req, res, next) => {
   try {
-    const result = await db.raw<{
-      rows: Array<{ current_stage: string; count: string }>
-    }>(
-      `
-      SELECT current_stage, COUNT(*)::text AS count
-      FROM geo_game_pipeline_state
-      GROUP BY current_stage
-      `,
-    )
+    const stageCounts = await geoPipelineStateRepository.countByStage()
     const counts: Record<string, number> = {
       queued: 0,
       fetching_map: 0,
@@ -47,7 +39,7 @@ router.get('/status', async (_req, res, next) => {
       ready: 0,
       blocked: 0,
     }
-    for (const row of result.rows) {
+    for (const row of stageCounts) {
       counts[row.current_stage] = Number(row.count)
     }
     const total = Object.values(counts).reduce((a, b) => a + b, 0)
@@ -68,43 +60,12 @@ const listQuerySchema = z.object({
 router.get('/games', async (req, res, next) => {
   try {
     const q = listQuerySchema.parse(req.query)
-    // The page query and the count query share the same WHERE filters.
-    // Inline both rather than threading a generic helper through Knex'
-    // builder types (which fight any wrapper that's structurally typed).
-    let pageQuery = db('geo_game_pipeline_state as s')
-      .leftJoin('games as g', 'g.id', 's.game_id')
-      .select(
-        's.game_id',
-        's.current_stage',
-        's.active_source',
-        's.zones_total',
-        's.zones_covered',
-        's.zones_selected',
-        's.needs_curation',
-        's.last_attempt_at',
-        's.next_eligible_at',
-        's.updated_at',
-        'g.name',
-        'g.slug',
-      )
-    let countQuery = db('geo_game_pipeline_state as s').leftJoin(
-      'games as g',
-      'g.id',
-      's.game_id',
-    )
-    if (q.stage) {
-      pageQuery = pageQuery.where('s.current_stage', q.stage)
-      countQuery = countQuery.where('s.current_stage', q.stage)
-    }
-    if (q.search) {
-      pageQuery = pageQuery.where('g.name', 'ilike', `%${q.search}%`)
-      countQuery = countQuery.where('g.name', 'ilike', `%${q.search}%`)
-    }
-    const [rows, totalRow] = await Promise.all([
-      pageQuery.orderBy('s.updated_at', 'desc').limit(q.limit).offset(q.offset),
-      countQuery.count<{ count: string }[]>('* as count').first(),
-    ])
-    const total = Number(totalRow?.count ?? 0)
+    const { rows, total } = await geoPipelineStateRepository.listPaged({
+      stage: q.stage,
+      search: q.search,
+      limit: q.limit,
+      offset: q.offset,
+    })
     res.json({
       success: true,
       data: {
@@ -140,11 +101,7 @@ router.post('/start', async (req, res, next) => {
     let gameIds = body.gameIds ?? []
     let truncated = false
     if (body.all) {
-      const rows = await db('games')
-        .where('geo_curated', true)
-        .where('geo_metadata_status', 'resolved')
-        .select<Array<{ id: number }>>('id')
-      gameIds = rows.map((r) => r.id)
+      gameIds = await gameRepository.findGeoIngestEligibleIds()
       // Truncate rather than reject: an admin clicking "Lancer tout" wants
       // the run to start, not a 400. Surface the truncation in the response
       // so the UI can show the clamp.

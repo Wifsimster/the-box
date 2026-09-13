@@ -1,7 +1,7 @@
 import { Router } from 'express'
+import { gameRepository, geoIngestFailureRepository } from '../../../infrastructure/repositories/index.js'
 import { z } from 'zod'
 import { recordAdminGeoAudit } from '../../middleware/admin-audit.js'
-import { db } from '../../../infrastructure/database/connection.js'
 import {
   geoMapRepository,
 } from '../../../infrastructure/repositories/index.js'
@@ -51,8 +51,8 @@ router.post('/geo/maps/manual', async (req, res, next) => {
     }
     const data = parse.data
 
-    const game = await db('games').where({ id: data.gameId }).first<{ id: number }>()
-    if (!game) {
+    const gameExists = await gameRepository.exists(data.gameId)
+    if (!gameExists) {
       res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
       return
     }
@@ -85,17 +85,14 @@ router.post('/geo/maps/manual', async (req, res, next) => {
       await geoMapRepository.enableForGame(data.gameId, map.id)
     }
 
-    await db('geo_ingest_failure')
-      .where({ game_id: data.gameId })
-      .whereIn('source', [
-        'registry',
-        'fandom',
-        'strategywiki',
-        'fextralife',
-        'wand',
-        'wikidata',
-      ])
-      .del()
+    await geoIngestFailureRepository.clearSources(data.gameId, [
+      'registry',
+      'fandom',
+      'strategywiki',
+      'fextralife',
+      'wand',
+      'wikidata',
+    ])
 
     await recordAdminGeoAudit(req, {
       action: 'geo.maps.manual',
@@ -148,8 +145,8 @@ router.post('/geo/maps/wand', async (req, res, next) => {
       return
     }
 
-    const game = await db('games').where({ id: data.gameId }).first<{ id: number }>()
-    if (!game) {
+    const gameExists = await gameRepository.exists(data.gameId)
+    if (!gameExists) {
       res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
       return
     }

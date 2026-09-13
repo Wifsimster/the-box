@@ -13,7 +13,6 @@ import { adminAuditRepository } from '../../../infrastructure/repositories/admin
 import { gameRepository } from '../../../infrastructure/repositories/game.repository.js'
 import { CAPTURE_TARGET_CANDIDATES } from '../../../domain/services/geo-metadata.service.js'
 import { importRawgScreenshots } from '../../../infrastructure/queue/workers/geo-rawg-import-logic.js'
-import { db } from '../../../infrastructure/database/connection.js'
 import {
   consumeCaptureImportBudget,
 } from '../../../infrastructure/redis/agent-budget.js'
@@ -109,9 +108,7 @@ router.post(
         let skipped = 0
         for (const imageUrl of imageUrls) {
           const externalId = `manual:${gameId}:${imageUrl}`
-          const existing = await db('geo_screenshot_candidate')
-            .where({ source: 'manual', external_id: externalId })
-            .first<{ id: number }>()
+          const existing = await geoScreenshotRepository.candidateExists('manual', externalId)
           if (existing) {
             skipped++
             continue

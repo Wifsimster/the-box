@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express'
+import { geoIngestFailureRepository } from '../../../infrastructure/repositories/index.js'
 import { z } from 'zod'
 import {
   requireAgentCurateEnabled,
@@ -14,7 +15,6 @@ import { gameRepository } from '../../../infrastructure/repositories/game.reposi
 import {
   RUNNABLE_TIERS,
 } from '../../../infrastructure/queue/workers/geo-ingest-tick-logic.js'
-import { db } from '../../../infrastructure/database/connection.js'
 import {
   consumeMapActionBudget,
   consumeMapUploadBudget,
@@ -142,10 +142,7 @@ router.post(
       // future ingest tick isn't short-circuited by a stale circuit-breaker.
       // Mirrors the admin manual-upload path (clears the fetch tiers, not the
       // metadata tombstone).
-      await db('geo_ingest_failure')
-        .where({ game_id: gameId })
-        .whereIn('source', [...RUNNABLE_TIERS])
-        .del()
+      await geoIngestFailureRepository.clearSources(gameId, RUNNABLE_TIERS)
 
       await adminAuditRepository.record({
         adminId: `apikey:${keyId}`,

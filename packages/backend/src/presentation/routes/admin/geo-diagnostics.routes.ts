@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { db } from '../../../infrastructure/database/connection.js'
+import { gameRepository, geoIngestFailureRepository } from '../../../infrastructure/repositories/index.js'
 import {
   geoMapRepository,
 } from '../../../infrastructure/repositories/index.js'
@@ -20,16 +20,7 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       return
     }
 
-    const game = await db('games')
-      .where({ id })
-      .first<{
-        id: number
-        name: string
-        slug: string
-        wiki_subdomain: string | null
-        wiki_page_title: string | null
-        wikidata_qid: string | null
-      }>('id', 'name', 'slug', 'wiki_subdomain', 'wiki_page_title', 'wikidata_qid')
+    const game = await gameRepository.findGeoMetadata(id)
     if (!game) {
       res.status(404).json({ success: false, error: { code: 'GAME_NOT_FOUND' } })
       return
@@ -38,17 +29,7 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     const [allMaps, registryEntry, failures] = await Promise.all([
       geoMapRepository.listByGameId(id),
       findRegistryEntryBySlug(game.slug),
-      db('geo_ingest_failure')
-        .where({ game_id: id })
-        .select<
-          Array<{
-            source: string
-            reason: string
-            attempt_count: number
-            last_attempt_at: Date
-            retry_after: Date
-          }>
-        >('source', 'reason', 'attempt_count', 'last_attempt_at', 'retry_after'),
+      geoIngestFailureRepository.listByGame(id),
     ])
 
     const candidatesBySource = new Map<

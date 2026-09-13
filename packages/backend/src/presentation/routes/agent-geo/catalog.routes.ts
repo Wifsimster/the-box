@@ -16,7 +16,6 @@ import {
   pinsToNextConsensusThreshold,
 } from '../../../domain/services/geo-consensus.service.js'
 import { getGeoGamersHealthSnapshot } from '../../../infrastructure/geogamers-health.js'
-import { db } from '../../../infrastructure/database/connection.js'
 import {
   consumeEnrollBudget,
 } from '../../../infrastructure/redis/agent-budget.js'
@@ -177,7 +176,7 @@ router.post(
       }
 
       const update: Record<string, unknown> = { geo_curated: true, geo_metadata_status: 'pending' }
-      await db('games').where({ id: game!.id }).update(update)
+      await gameRepository.updateGeoColumns(game!.id, update)
       await geoIngestFailureRepository.clear(game!.id, 'metadata')
 
       await adminAuditRepository.record({

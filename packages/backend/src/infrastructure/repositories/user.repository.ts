@@ -62,6 +62,42 @@ function mapRowToUser(row: UserRow): User {
 }
 
 export const userRepository = {
+  /** The streamer-kit opt-in settings: whether the profile is public, and its slug. */
+  async getPublicProfileSettings(
+    userId: string
+  ): Promise<{ public_profile_enabled: boolean; public_slug: string | null } | null> {
+    const row = await db('user')
+      .where('id', userId)
+      .select<{ public_profile_enabled: boolean; public_slug: string | null }>(
+        'public_profile_enabled',
+        'public_slug',
+      )
+      .first()
+    return row ?? null
+  },
+
+  /**
+   * Patch the public-profile settings. `public_slug` carries a UNIQUE
+   * constraint, so a duplicate raises Postgres 23505 — deliberately left to
+   * propagate so the caller can answer 409 SLUG_TAKEN rather than this
+   * repository inventing an HTTP concern.
+   */
+  async updatePublicProfileSettings(
+    userId: string,
+    update: Record<string, unknown>
+  ): Promise<void> {
+    await db('user').where('id', userId).update(update)
+  },
+
+  /**
+   * RGPD Art. 17 erasure. ON DELETE CASCADE removes sessions, accounts and
+   * game data, mirroring the admin delete path; the cascaded `session` rows
+   * are what log the user out.
+   */
+  async deleteAccount(userId: string): Promise<void> {
+    await db('user').where('id', userId).del()
+  },
+
   async findById(id: string): Promise<User | null> {
     log.debug({ userId: id }, 'findById')
     const row = await db('user').where('id', id).first<UserRow>()

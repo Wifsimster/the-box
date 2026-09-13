@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
@@ -7,7 +8,6 @@ import { webhookRepository } from '../../infrastructure/repositories/webhook.rep
 import { validateWebhookUrl } from '../../domain/services/webhook-signer.service.js'
 import { isReservedSlug } from '../../domain/services/sandbox.service.js'
 import { env } from '../../config/env.js'
-import { db } from '../../infrastructure/database/connection.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import type {
   ApiKeyCreated,
@@ -42,13 +42,7 @@ const SLUG_RE = /^[a-z0-9_-]{3,32}$/
 router.get('/me', async (req, res, next) => {
   try {
     const userId = req.userId!
-    const userRow = await db('user')
-      .where('id', userId)
-      .select<{ public_profile_enabled: boolean; public_slug: string | null }>(
-        'public_profile_enabled',
-        'public_slug'
-      )
-      .first()
+    const userRow = await userRepository.getPublicProfileSettings(userId)
     const keys = await apiKeyRepository.findByUser(userId)
     const summaries: ApiKeySummary[] = keys.map(apiKeyRepository.mapRow)
     res.json({
@@ -105,7 +99,7 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
     }
 
     try {
-      await db('user').where('id', userId).update(update)
+      await userRepository.updatePublicProfileSettings(userId, update)
     } catch (err) {
       // Postgres unique-violation on public_slug — surface a clean 409.
       const code = (err as { code?: string })?.code

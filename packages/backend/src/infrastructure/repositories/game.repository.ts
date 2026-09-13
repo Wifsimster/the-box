@@ -39,7 +39,60 @@ function mapRowToGame(row: GameRow): Game {
   }
 }
 
+/** The geo-metadata columns of a game, without the rest of the record. */
+export interface GeoGameMetadataRow {
+  id: number
+  name: string
+  slug: string
+  wiki_subdomain: string | null
+  wiki_page_title: string | null
+  wikidata_qid: string | null
+}
+
 export const gameRepository = {
+  /**
+   * The geo-metadata columns for one game. Used by the admin per-game tier
+   * diagnosis panel and by the agent enrollment surface, neither of which
+   * needs the full Game record.
+   */
+  async findGeoMetadata(id: number): Promise<GeoGameMetadataRow | null> {
+    const row = await db('games')
+      .where({ id })
+      .first<GeoGameMetadataRow>(
+        'id',
+        'name',
+        'slug',
+        'wiki_subdomain',
+        'wiki_page_title',
+        'wikidata_qid',
+      )
+    return row ?? null
+  },
+
+  /** Whether a game id exists at all. Cheaper than fetching the row to null-check it. */
+  async exists(id: number): Promise<boolean> {
+    const row = await db('games').where({ id }).first<{ id: number }>('id')
+    return row !== undefined
+  },
+
+  /** Ids of every curated game whose geo metadata resolved — the ingest-eligible set. */
+  async findGeoIngestEligibleIds(): Promise<number[]> {
+    const rows = await db('games')
+      .where('geo_curated', true)
+      .where('geo_metadata_status', 'resolved')
+      .select<Array<{ id: number }>>('id')
+    return rows.map((row) => row.id)
+  },
+
+  /**
+   * Patch the geo columns of one game. Returns false when no row matched so
+   * the caller can answer 404 rather than reporting a silent no-op success.
+   */
+  async updateGeoColumns(id: number, update: Record<string, unknown>): Promise<boolean> {
+    const updated = await db('games').where({ id }).update(update)
+    return updated > 0
+  },
+
   async findById(id: number): Promise<Game | null> {
     log.debug({ gameId: id }, 'findById')
     const row = await db('games').where('id', id).first<GameRow>()

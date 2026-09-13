@@ -17,6 +17,7 @@ import { join, relative } from 'node:path'
 
 const SRC = join(import.meta.dirname, '..')
 const DOMAIN = join(SRC, 'domain')
+const PRESENTATION = join(SRC, 'presentation')
 
 function tsFilesUnder(dir: string): string[] {
   const out: string[] = []
@@ -104,5 +105,72 @@ describe('layer dependency rule', () => {
     }
 
     assert.deepEqual(offenders.sort(), [], 'domain services must stay free of infrastructure libraries')
+  })
+})
+
+describe('presentation layer boundaries', () => {
+  /**
+   * Imported names from a module specifier — `import { a, b } from 'x'`.
+   * Used to tell "imports the Knex instance" from "imports a health probe
+   * that happens to live in the same module".
+   */
+  function importedNamesFrom(source: string, specifierPart: string): string[] {
+    const names: string[] = []
+    const pattern = new RegExp(
+      String.raw`import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"][^'"]*` + specifierPart + String.raw`[^'"]*['"]`,
+      'g'
+    )
+    for (const match of source.matchAll(pattern)) {
+      for (const raw of (match[1] ?? '').split(',')) {
+        const name = raw.replace(/\btype\b/, '').split(' as ')[0]?.trim()
+        if (name) names.push(name)
+      }
+    }
+    return names
+  }
+
+  it('no route or middleware imports the Knex instance', () => {
+    // Express handlers used to run 86 raw Knex statements: the admin
+    // dashboard's analytics, the premium stats panel, the public streamer
+    // API, the geo moderation lists. That put persistence, business rules
+    // and transport in one function, made the rules untestable without a
+    // database, and let the same query drift between copies (the SSE stream
+    // and the REST endpoint had two different implementations of one
+    // ranking rule).
+    //
+    // Data access belongs to a repository. Controllers call services.
+    // `testConnection` from the same module is fine and deliberately still
+    // allowed: the readiness probe's entire job is to check that the database
+    // is reachable. What is banned is `db` itself — the query builder.
+    const offenders: string[] = []
+
+    for (const file of tsFilesUnder(PRESENTATION)) {
+      if (file.endsWith('.test.ts')) continue
+      const source = readFileSync(file, 'utf8')
+      if (importedNamesFrom(source, 'database/connection').includes('db')) {
+        offenders.push(relative(SRC, file))
+      }
+    }
+
+    assert.deepEqual(
+      offenders.sort(),
+      [],
+      'presentation code must go through a repository, not the Knex instance'
+    )
+  })
+
+  it('no route or middleware imports a query builder package', () => {
+    const offenders: string[] = []
+
+    for (const file of tsFilesUnder(PRESENTATION)) {
+      if (file.endsWith('.test.ts')) continue
+      for (const specifier of importedModules(readFileSync(file, 'utf8'))) {
+        if (specifier === 'knex' || specifier === 'kysely') {
+          offenders.push(`${relative(SRC, file)} -> ${specifier}`)
+        }
+      }
+    }
+
+    assert.deepEqual(offenders.sort(), [])
   })
 })

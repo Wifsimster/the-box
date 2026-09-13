@@ -71,3 +71,4 @@ export {
 export { adminAnalyticsRepository } from './admin-analytics.repository.js'
 export { playerStatsRepository } from './player-stats.repository.js'
 export { publicProfileRepository } from './public-profile.repository.js'
+export { geoAdminRepository } from './geo-admin.repository.js'

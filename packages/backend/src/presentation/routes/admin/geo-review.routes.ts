@@ -1,6 +1,6 @@
 import { Router } from 'express'
+import { geoAdminRepository } from '../../../infrastructure/repositories/index.js'
 import { z } from 'zod'
-import { db } from '../../../infrastructure/database/connection.js'
 import {
   geoScreenshotRepository,
   geoPinRepository,
@@ -257,45 +257,10 @@ router.get('/geo/health', async (_req, res, next) => {
   try {
     const [counts, lastFandom, lastSteam, nextChallenge, queueCounts] =
       await Promise.all([
-        db
-          .raw<{
-            rows: Array<{
-              curated: string
-              resolved: string
-              with_map: string
-              total: string
-            }>
-          }>(
-            `
-            SELECT
-              COUNT(*) FILTER (WHERE g.geo_curated)::text AS curated,
-              COUNT(*) FILTER (WHERE g.geo_curated AND g.geo_metadata_status = 'resolved')::text AS resolved,
-              COUNT(*) FILTER (
-                WHERE g.geo_curated
-                  AND EXISTS (
-                    SELECT 1 FROM geo_map m
-                    WHERE m.game_id = g.id AND m.is_active = true
-                  )
-              )::text AS with_map,
-              COUNT(*)::text AS total
-            FROM games g
-            `,
-          )
-          .then(
-            (r) => (r as unknown as { rows: Array<{ curated: string; resolved: string; with_map: string; total: string }> }).rows[0]!,
-          ),
-        db('geo_map')
-          .where('source', 'fandom')
-          .orderBy('created_at', 'desc')
-          .first<{ created_at: Date }>('created_at'),
-        db('geo_screenshot_candidate')
-          .where('source', 'steam')
-          .orderBy('created_at', 'desc')
-          .first<{ created_at: Date }>('created_at'),
-        db('geo_challenge')
-          .where('challenge_date', '>=', new Date().toISOString().slice(0, 10))
-          .orderBy('challenge_date', 'asc')
-          .first<{ id: number; challenge_date: string }>('id', 'challenge_date'),
+        geoAdminRepository.getCoverageCounts(),
+        geoAdminRepository.findLatestMapAt('fandom'),
+        geoAdminRepository.findLatestCandidateAt('steam'),
+        geoAdminRepository.findNextChallenge(),
         geoQueue.getJobCounts('active', 'waiting', 'delayed', 'failed'),
       ])
 
@@ -310,8 +275,8 @@ router.get('/geo/health', async (_req, res, next) => {
           withMap: Number(counts.with_map),
           total: Number(counts.total),
         },
-        lastFandomImportAt: lastFandom?.created_at ?? null,
-        lastSteamImportAt: lastSteam?.created_at ?? null,
+        lastFandomImportAt: lastFandom ?? null,
+        lastSteamImportAt: lastSteam ?? null,
         nextChallenge: nextChallenge
           ? { id: nextChallenge.id, date: nextChallenge.challenge_date }
           : null,
@@ -358,64 +323,7 @@ router.get('/geo/games', async (req, res, next) => {
     const limit = parse.data.limit
 
     if (curated) {
-      const result = await db.raw<{
-        rows: Array<{
-          id: number
-          name: string
-          slug: string
-          release_year: number | null
-          developer: string | null
-          metacritic: number | null
-          genres: string[] | null
-          geo_metadata_status: string
-          steam_app_id: number | null
-          wiki_subdomain: string | null
-          has_map: boolean
-          map_count: number
-          candidate_count: number
-        }>
-      }>(
-        `
-        SELECT
-          g.id,
-          g.name,
-          g.slug,
-          g.release_year,
-          g.developer,
-          g.metacritic,
-          g.genres,
-          g.geo_metadata_status,
-          g.steam_app_id,
-          g.wiki_subdomain,
-          (m.id IS NOT NULL) AS has_map,
-          COALESCE(mc.cnt, 0)::int AS map_count,
-          COALESCE(c.cnt, 0)::int AS candidate_count
-        FROM games g
-        LEFT JOIN LATERAL (
-          SELECT id FROM geo_map
-          WHERE game_id = g.id AND is_active = true
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) m ON true
-        LEFT JOIN (
-          SELECT game_id, COUNT(*)::int AS cnt
-          FROM geo_map
-          WHERE is_active = true
-          GROUP BY game_id
-        ) mc ON mc.game_id = g.id
-        LEFT JOIN (
-          SELECT game_id, COUNT(*)::int AS cnt
-          FROM geo_screenshot_candidate
-          WHERE is_active IS NOT FALSE
-          GROUP BY game_id
-        ) c ON c.game_id = g.id
-        WHERE g.geo_curated = true
-        ORDER BY g.name
-        LIMIT ?
-        `,
-        [limit],
-      )
-      const rows = (result as unknown as { rows: typeof result.rows }).rows
+      const rows = await geoAdminRepository.listCuratedGames(limit)
       res.json({
         success: true,
         data: {
@@ -440,23 +348,7 @@ router.get('/geo/games', async (req, res, next) => {
       return
     }
 
-    const rows = await db('games')
-      .where('geo_curated', false)
-      .whereNotNull('metacritic')
-      .orderBy('metacritic', 'desc')
-      .orderBy('name')
-      .limit(limit)
-      .select<
-        Array<{
-          id: number
-          name: string
-          slug: string
-          release_year: number | null
-          developer: string | null
-          metacritic: number | null
-          genres: string[] | null
-        }>
-      >('id', 'name', 'slug', 'release_year', 'developer', 'metacritic', 'genres')
+    const rows = await geoAdminRepository.listUncuratedGames(limit)
 
     res.json({
       success: true,

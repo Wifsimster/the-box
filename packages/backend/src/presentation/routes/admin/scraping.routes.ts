@@ -1,7 +1,7 @@
 import { Router } from 'express'
+import { geoAdminRepository } from '../../../infrastructure/repositories/index.js'
 import { z } from 'zod'
 import { recordAdminGeoAudit } from '../../middleware/admin-audit.js'
-import { db } from '../../../infrastructure/database/connection.js'
 import { routeLogger } from '../../../infrastructure/logger/logger.js'
 
 const router = Router()
@@ -45,24 +45,7 @@ router.post('/scraping/reset', async (req, res, next) => {
       { adminId: req.userId },
       'admin requested scraping/reset',
     )
-    const result = await db.transaction(async (trx) => {
-      const importStates = await trx('import_states').delete()
-      const ingestFailures = await trx('geo_ingest_failure').delete()
-
-      await trx('games').update({
-        geo_metadata_status: 'pending',
-        geo_metadata_resolved_at: null,
-        wiki_subdomain: null,
-        wiki_page_title: null,
-        steam_app_id: null,
-        wikidata_qid: null,
-      })
-
-      const challenges = await trx('geo_challenge').delete()
-      const maps = await trx('geo_map').delete()
-
-      return { importStates, ingestFailures, challenges, maps }
-    })
+    const result = await geoAdminRepository.resetAllScrapingState()
 
     await recordAdminGeoAudit(req, {
       action: 'scraping.reset',
