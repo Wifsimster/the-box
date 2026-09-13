@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useOpenChangelog } from '@/components/pwa'
+import { STUDIO } from '@/lib/studio'
 import { format } from 'date-fns'
 
 // Get build-time constants (injected by Vite at build time)
@@ -89,6 +90,19 @@ export function Footer() {
             {formattedBuildTime && ` • ${formattedBuildTime}`}
           </>
         )}
+      </p>
+      {/* Studio credit — inline in prose, so the WCAG 2.5.8 inline exception
+          applies and the link doesn't need the 44px box the nav links carry. */}
+      <p className="mt-1 text-xs text-muted-foreground/60">
+        {t('footer.studioBy')}{' '}
+        <a
+          href={STUDIO.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-2 transition-colors hover:text-neon-purple hover:underline"
+        >
+          {STUDIO.name}
+        </a>
       </p>
     </footer>
   )

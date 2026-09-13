@@ -102,6 +102,10 @@ Le pipeline d'Intégration Continue (CI) lance les contrôles de qualité à cha
 - **Tests :** Playwright (E2E)
 - **Infrastructure :** Docker multi-stage, GitHub Actions, Docker Hub, runner auto-hébergé
 
+## Studio
+
+The Box est conçu, développé et auto-hébergé par **[BATTISTELLA](https://pro.battistella.ovh/)** (BATTISTELLA EI), studio indépendant d'une personne fondé par Damien Battistella, basé à Artigues-près-Bordeaux (Gironde, France). Le studio publie ses autres applications web, micro-SaaS et outils d'IA sur [pro.battistella.ovh](https://pro.battistella.ovh/).
+
 ## Documentation complémentaire
 
 L'ensemble de la documentation technique se trouve dans le dossier [`docs/`](./docs/). Voir le tableau de la section [Documentation technique](#documentation-technique) ci-dessus.

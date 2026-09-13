@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { FileText } from 'lucide-react'
+import { Building2, ExternalLink, FileText } from 'lucide-react'
+import { STUDIO } from '@/lib/studio'
 
 const emptySubscribe = () => () => {}
 let cachedLastUpdated: string | null = null
@@ -33,6 +34,18 @@ export default function TermsPage() {
     { title: t('legal.termsCancellationTitle'), content: t('legal.termsCancellation') },
     { title: t('legal.termsModificationTitle'), content: t('legal.termsModification') },
   ]
+
+  // Rendered apart from `sections` so the studio site can be a real link:
+  // LCEN art. 6-III expects the publisher's identity to be reachable, not just
+  // spelled out.
+  const publisher = t('legal.termsPublisher', {
+    studio: STUDIO.name,
+    legalName: STUDIO.legalName,
+    founder: STUDIO.founder,
+    city: STUDIO.city,
+    siret: STUDIO.siret,
+    email: STUDIO.email,
+  })
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
@@ -74,6 +87,28 @@ export default function TermsPage() {
                 </p>
               </m.div>
             ))}
+
+            <m.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: sections.length * 0.1 }}
+              className="space-y-2 rounded-lg border border-border bg-card/60 p-4"
+            >
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Building2 className="size-5 text-neon-purple" />
+                {t('legal.termsPublisherTitle')}
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">{publisher}</p>
+              <a
+                href={STUDIO.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-1 text-sm text-neon-purple transition-colors hover:text-neon-pink"
+              >
+                <ExternalLink className="size-3" />
+                {t('legal.studioWebsite')} — {STUDIO.domain}
+              </a>
+            </m.div>
           </CardContent>
         </Card>
       </m.div>

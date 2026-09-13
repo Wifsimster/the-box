@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Seo } from './Seo'
 import { SITE_NAME, SITE_URL, stripLangPrefix } from '@/lib/seo'
+import { STUDIO, STUDIO_LD_ID, studioOrganizationLd } from '@/lib/studio'
 
 type RouteDef = {
   /** Match against the language-stripped path (e.g. `/play`, `/u/foo`). */
@@ -32,6 +33,8 @@ const homeJsonLd = (lang: string): Record<string, unknown>[] => [
       lang === 'fr'
         ? 'Devinez des jeux vidéo à partir de screenshots. Défi quotidien, classements en direct, succès.'
         : 'Guess video games from screenshots. Daily challenge, live leaderboards, achievements.',
+    publisher: { '@id': STUDIO_LD_ID },
+    author: { '@id': STUDIO_LD_ID },
   },
   {
     '@context': 'https://schema.org',
@@ -39,7 +42,11 @@ const homeJsonLd = (lang: string): Record<string, unknown>[] => [
     name: SITE_NAME,
     url: SITE_URL,
     logo: `${SITE_URL}/logo.svg`,
+    parentOrganization: { '@id': STUDIO_LD_ID },
   },
+  // The studio behind the app; `sameAs` ties this graph to the one published
+  // on the studio's own site.
+  { ...studioOrganizationLd, sameAs: [STUDIO.url] },
 ]
 
 const breadcrumbLd = (lang: string, items: Array<{ name: string; path: string }>) => ({

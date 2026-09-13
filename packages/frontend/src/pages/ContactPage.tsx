@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Mail, MessageSquare, Bug, Clock, ExternalLink } from 'lucide-react'
+import { Mail, MessageSquare, Bug, Building2, Clock, ExternalLink } from 'lucide-react'
+import { STUDIO } from '@/lib/studio'
 
 export default function ContactPage() {
   const { t } = useTranslation()
@@ -24,8 +25,15 @@ export default function ContactPage() {
       icon: Bug,
       title: t('legal.contactBugTitle'),
       content: t('legal.contactBug'),
-      link: 'https://pro.battistella.ovh/',
-      linkLabel: 'pro.battistella.ovh',
+      link: STUDIO.url,
+      linkLabel: STUDIO.domain,
+    },
+    {
+      icon: Building2,
+      title: t('legal.contactStudioTitle'),
+      content: t('legal.contactStudio', { studio: STUDIO.name }),
+      link: STUDIO.url,
+      linkLabel: t('legal.studioWebsite'),
     },
   ]
 
