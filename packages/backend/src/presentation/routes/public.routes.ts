@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { db } from '../../infrastructure/database/connection.js'
+import { publicProfileRepository } from '../../infrastructure/repositories/public-profile.repository.js'
+import type { PublicStreamerRecord } from '../../domain/ports/public-profile.js'
 import { challengeRepository } from '../../infrastructure/repositories/challenge.repository.js'
 import { leaderboardRepository } from '../../infrastructure/repositories/leaderboard.repository.js'
 import { geoGamersSeasonRepository } from '../../infrastructure/repositories/geogamers-season.repository.js'
@@ -127,57 +128,15 @@ const profileQuerySchema = z.object({
   emoji: z.enum(['0', '1']).optional(),
 })
 
-interface PublicStreamerRow {
-  id: string
-  public_slug: string
-  display_name: string | null
-  username: string | null
-  avatar_url: string | null
-  current_streak: number
-  longest_streak: number
-  total_score: number
-}
-
-async function findPublicStreamer(slug: string): Promise<PublicStreamerRow | null> {
-  const row = await db('user')
-    .where('public_slug', slug)
-    .andWhere('public_profile_enabled', true)
-    .select<PublicStreamerRow>(
-      'id',
-      'public_slug',
-      'display_name',
-      'username',
-      'avatar_url',
-      'current_streak',
-      'longest_streak',
-      'total_score'
-    )
-    .first()
-  return row ?? null
-}
-
-async function buildStreamerProfile(row: PublicStreamerRow): Promise<PublicStreamerProfile> {
+async function buildStreamerProfile(row: PublicStreamerRecord): Promise<PublicStreamerProfile> {
   const date = todayDate()
   const challenge = await challengeRepository.findByDate(date)
 
-  const gamesPlayedRow = await db('game_sessions')
-    .where('user_id', row.id)
-    .andWhere('is_completed', true)
-    .andWhere('is_catch_up', false)
-    .count<{ count: string }[]>('id as count')
-    .first()
+  const gamesPlayed = Number(await publicProfileRepository.countRankedSessions(row.id))
 
   let today: PublicStreamerProfile['today'] = null
   if (challenge) {
-    const session = await db('game_sessions')
-      .where('user_id', row.id)
-      .andWhere('daily_challenge_id', challenge.id)
-      .andWhere('is_catch_up', false)
-      .select<{
-        total_score: number
-        is_completed: boolean
-      }>('total_score', 'is_completed')
-      .first()
+    const session = await publicProfileRepository.findDailySession(row.id, challenge.id)
 
     if (session) {
       // Rank is only meaningful when the session is finished — partial
@@ -200,7 +159,7 @@ async function buildStreamerProfile(row: PublicStreamerRow): Promise<PublicStrea
     currentStreak: row.current_streak ?? 0,
     longestStreak: row.longest_streak ?? 0,
     totalScore: row.total_score ?? 0,
-    gamesPlayed: Number(gamesPlayedRow?.count ?? 0),
+    gamesPlayed,
     today,
   }
 }
@@ -227,7 +186,7 @@ router.get(
       const profile = isSandboxSlug(slug)
         ? sandboxProfile()
         : await (async () => {
-            const row = await findPublicStreamer(slug)
+            const row = await publicProfileRepository.findBySlug(slug)
             return row ? buildStreamerProfile(row) : null
           })()
 
@@ -279,7 +238,7 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
       return
     }
 
-    const row = await findPublicStreamer(slug)
+    const row = await publicProfileRepository.findBySlug(slug)
     if (!row) {
       res.status(404).json({ success: false, error: { code: 'STREAMER_NOT_FOUND' } })
       return
@@ -294,19 +253,7 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
       return
     }
 
-    const session = await db('game_sessions')
-      .where('user_id', row.id)
-      .andWhere('daily_challenge_id', challenge.id)
-      .andWhere('is_catch_up', false)
-      .select<{
-        id: string
-        total_score: number
-        current_tier: number
-        is_completed: boolean
-        started_at: Date
-        completed_at: Date | null
-      }>('id', 'total_score', 'current_tier', 'is_completed', 'started_at', 'completed_at')
-      .first()
+    const session = await publicProfileRepository.findDailySession(row.id, challenge.id)
 
     if (!session) {
       res.json({
@@ -318,11 +265,8 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
 
     // screenshotsDone = sum of correct answers across tier_sessions for this
     // game_session. Bounded by TOTAL_SCREENSHOTS.
-    const tierAgg = await db('tier_sessions')
-      .where('game_session_id', session.id)
-      .sum<{ sum: string | null }[]>('correct_answers as sum')
-      .first()
-    const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(tierAgg?.sum ?? 0))
+    const correctAnswers = await publicProfileRepository.countCorrectAnswers(session.id)
+    const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(correctAnswers))
 
     const rank: number | null = session.is_completed
       ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
@@ -370,13 +314,7 @@ router.get('/leaderboard/daily', validateQuery(dailyQuerySchema), async (req, re
     // Join slug for each user_id that has one — slugs are the public id we
     // want to surface, but we still fall back to display_name.
     const userIds = entries.map((e: LeaderboardEntry) => e.userId)
-    const slugRows = userIds.length
-      ? await db('user')
-          .whereIn('id', userIds)
-          .andWhere('public_profile_enabled', true)
-          .select<Array<{ id: string; public_slug: string | null }>>('id', 'public_slug')
-      : []
-    const slugById = new Map(slugRows.map((r) => [r.id, r.public_slug]))
+    const slugById = await publicProfileRepository.findPublicSlugs(userIds)
 
     const data: PublicLeaderboardEntry[] = entries.map((e: LeaderboardEntry) => ({
       rank: e.rank,
@@ -411,13 +349,7 @@ router.get('/leaderboard/monthly', validateQuery(monthlyQuerySchema), async (req
     const entries = await leaderboardRepository.findByMonth(year, m, limit)
 
     const userIds = entries.map((e: MonthlyLeaderboardEntry) => e.userId)
-    const slugRows = userIds.length
-      ? await db('user')
-          .whereIn('id', userIds)
-          .andWhere('public_profile_enabled', true)
-          .select<Array<{ id: string; public_slug: string | null }>>('id', 'public_slug')
-      : []
-    const slugById = new Map(slugRows.map((r) => [r.id, r.public_slug]))
+    const slugById = await publicProfileRepository.findPublicSlugs(userIds)
 
     const data: PublicLeaderboardEntry[] = entries.map((e: MonthlyLeaderboardEntry) => ({
       rank: e.rank,
@@ -455,13 +387,7 @@ router.get(
       const standings = await geoGamersSeasonService.standings(month, limit)
 
       const userIds = standings.map((s) => s.userId)
-      const slugRows = userIds.length
-        ? await db('user')
-            .whereIn('id', userIds)
-            .andWhere('public_profile_enabled', true)
-            .select<Array<{ id: string; public_slug: string | null }>>('id', 'public_slug')
-        : []
-      const slugById = new Map(slugRows.map((r) => [r.id, r.public_slug]))
+      const slugById = await publicProfileRepository.findPublicSlugs(userIds)
 
       res.json({
         success: true,
