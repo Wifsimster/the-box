@@ -1959,32 +1959,6 @@
     "rulesFairPlayTitle": "10. Fair-play",
     "rulesFairPlay": "Partager les réponses, automatiser les saisies ou utiliser plusieurs comptes pour grimper au classement n'est pas autorisé et entraînera une réinitialisation du score et une suspension du compte. Si vous repérez un jeu mal classé ou une mauvaise réponse acceptée, signalez-le via la page Contact."
   },
-  "party": {
-    "title": "Mode Multijoueur",
-    "subtitle": "Joue avec tes amis en temps réel",
-    "createTitle": "Créer une partie",
-    "createDescription": "Crée une partie et invite tes amis avec le code",
-    "creating": "Création...",
-    "createButton": "Créer une partie",
-    "or": "ou",
-    "joinTitle": "Rejoindre une partie",
-    "joinDescription": "Entrez le code de la partie pour rejoindre",
-    "codePlaceholder": "Code de la partie (ex: ABC123)",
-    "connecting": "Connexion...",
-    "joinButton": "Rejoindre",
-    "lobbyTitle": "Salon de jeu",
-    "leave": "Quitter",
-    "partyCode": "Code de la partie",
-    "players": "Joueurs",
-    "admin": "Admin",
-    "leaderboard": "Classement",
-    "hostMessage": "Tu es administrateur de cette partie",
-    "startGame": "Lancer la partie",
-    "resetGame": "Recommencer la partie",
-    "waitingMessage": "En attente du lancement par l'administrateur...",
-    "gameStarted": "Partie en cours !",
-    "joinGame": "Rejoindre le jeu"
-  },
   "errors": {
     "boundary": {
       "title": "Oups ! Une erreur s'est produite",
@@ -3043,10 +3017,17 @@
     "leave": "Quitter",
     "round": "Manche {{n}} / {{total}}",
     "waitingOthers": "En attente des autres joueurs…",
-    "wrongGuess": "Raté — {{left}} essai(s) restant(s)",
     "answer": "Réponse :",
     "finished": "Partie terminée !",
     "nextRound": "Manche suivante",
-    "seeResults": "Voir les résultats"
+    "seeResults": "Voir les résultats",
+    "timer": "Temps par manche",
+    "seconds": "{{count}} s",
+    "connecting": "Connexion…",
+    "copyCode": "Copier le code d'invitation",
+    "host": "Hôte",
+    "disconnected": "Déconnecté",
+    "wrongGuess_one": "Raté — 1 essai restant",
+    "wrongGuess_other": "Raté — {{count}} essais restants"
   }
 }

@@ -2,20 +2,21 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Users, Crown, Copy, Check } from 'lucide-react'
 import { useGeoGamersPartyStore } from '@/stores/geoGamersPartyStore'
-import { useAuth } from '@/hooks/useAuth'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
 import { ScreenshotPip } from '@/components/geo/ScreenshotPip'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 export default function GeoGamersPartyPage() {
     const { t } = useTranslation()
-    const { user } = useAuth()
     const {
         view,
         code,
         error,
+        connected,
+        playerId,
         lastGuessCorrect,
         pendingPin,
         selectedMapId,
@@ -32,6 +33,7 @@ export default function GeoGamersPartyPage() {
 
     const [joinCode, setJoinCode] = useState('')
     const [rounds, setRounds] = useState(5)
+    const [timerSeconds, setTimerSeconds] = useState(45)
     const [guessText, setGuessText] = useState('')
     const [copied, setCopied] = useState(false)
 
@@ -39,8 +41,9 @@ export default function GeoGamersPartyPage() {
         connect()
     }, [connect])
 
-    const myId = user?.id
-    const isHost = !!view && !!myId && view.hostId === myId
+    // Identity comes from the server, which also issues guest ids. Reading it
+    // from the auth session left a guest host unable to start their own party.
+    const isHost = !!view && !!playerId && view.hostId === playerId
     const selectedMap = useMemo(
         () => view?.round?.maps?.find((m) => m.id === selectedMapId) ?? view?.round?.maps?.[0] ?? null,
         [view?.round?.maps, selectedMapId],
@@ -53,27 +56,56 @@ export default function GeoGamersPartyPage() {
                 <h1 className="mb-6 flex items-center gap-2 text-2xl font-bold">
                     <Users className="h-6 w-6 text-neon-purple" /> {t('geogamersParty.title')}
                 </h1>
-                {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+                {error && (
+                    <p role="alert" className="mb-4 text-sm text-destructive">
+                        {error}
+                    </p>
+                )}
 
                 <div className="mb-6 rounded-xl border border-border bg-card p-4">
                     <h2 className="mb-3 font-semibold">{t('geogamersParty.create')}</h2>
                     <label className="mb-2 block text-sm text-muted-foreground">
                         {t('geogamersParty.rounds')}
                     </label>
-                    <div className="mb-4 flex gap-2">
+                    <div className="mb-4 flex gap-2" role="group" aria-label={t('geogamersParty.rounds')}>
                         {[3, 5, 10].map((r) => (
                             <Button
                                 key={r}
                                 variant={rounds === r ? 'default' : 'outline'}
                                 size="sm"
+                                aria-pressed={rounds === r}
                                 onClick={() => setRounds(r)}
                             >
                                 {r}
                             </Button>
                         ))}
                     </div>
-                    <Button className="w-full" onClick={() => create({ rounds, timerSeconds: 45 })}>
-                        {t('geogamersParty.createCta')}
+
+                    {/* The server has validated 30/45/60 since day one; the UI
+                        hardcoded 45, so the option was unreachable. */}
+                    <label className="mb-2 block text-sm text-muted-foreground">
+                        {t('geogamersParty.timer')}
+                    </label>
+                    <div className="mb-4 flex gap-2" role="group" aria-label={t('geogamersParty.timer')}>
+                        {[30, 45, 60].map((sec) => (
+                            <Button
+                                key={sec}
+                                variant={timerSeconds === sec ? 'default' : 'outline'}
+                                size="sm"
+                                aria-pressed={timerSeconds === sec}
+                                onClick={() => setTimerSeconds(sec)}
+                            >
+                                {t('geogamersParty.seconds', { count: sec })}
+                            </Button>
+                        ))}
+                    </div>
+
+                    <Button
+                        className="w-full"
+                        disabled={!connected}
+                        onClick={() => create({ rounds, timerSeconds })}
+                    >
+                        {connected ? t('geogamersParty.createCta') : t('geogamersParty.connecting')}
                     </Button>
                 </div>
 
@@ -87,7 +119,10 @@ export default function GeoGamersPartyPage() {
                             maxLength={6}
                             className="flex-1 uppercase"
                         />
-                        <Button disabled={joinCode.length < 4} onClick={() => join(joinCode)}>
+                        <Button
+                            disabled={!connected || joinCode.length < 4}
+                            onClick={() => join(joinCode)}
+                        >
                             {t('geogamersParty.joinCta')}
                         </Button>
                     </div>
@@ -126,7 +161,11 @@ export default function GeoGamersPartyPage() {
                 </Button>
             </header>
 
-            {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
+            {error && (
+                <p role="alert" className="mb-3 text-sm text-destructive">
+                    {error}
+                </p>
+            )}
 
             {/* ---------- Lobby ---------- */}
             {view.status === 'lobby' && (
@@ -142,10 +181,20 @@ export default function GeoGamersPartyPage() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => {
-                                if (code) void navigator.clipboard?.writeText(code)
-                                setCopied(true)
-                                setTimeout(() => setCopied(false), 1500)
+                            aria-label={t('geogamersParty.copyCode')}
+                            onClick={async () => {
+                                // The old version flashed "copied" even when the
+                                // clipboard API was missing or the write was
+                                // refused — the invite code is the one thing
+                                // this screen exists to hand over.
+                                if (!code) return
+                                try {
+                                    await navigator.clipboard.writeText(code)
+                                    setCopied(true)
+                                    setTimeout(() => setCopied(false), 1500)
+                                } catch {
+                                    toast.error(t('share.copyError'))
+                                }
                             }}
                         >
                             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -161,14 +210,29 @@ export default function GeoGamersPartyPage() {
                                     p.connected ? 'bg-muted/40' : 'bg-muted/20 opacity-50',
                                 )}
                             >
-                                {p.isHost && <Crown className="h-4 w-4 text-medal-gold" />}
-                                {p.name}
+                                {p.isHost && (
+                                    <Crown
+                                        className="h-4 w-4 text-medal-gold"
+                                        aria-label={t('geogamersParty.host')}
+                                    />
+                                )}
+                                <span>{p.name}</span>
+                                {/* Opacity alone carried this state — a colour-only
+                                    signal, which ui-tokens forbids. */}
+                                {!p.connected && (
+                                    <span className="ml-auto text-xs text-muted-foreground">
+                                        {t('geogamersParty.disconnected')}
+                                    </span>
+                                )}
                             </div>
                         ))}
                     </div>
 
                     <p className="mt-3 text-xs text-muted-foreground">
-                        {t('geogamersParty.playerCount', { count: view.players.length, max: 4 })}
+                        {t('geogamersParty.playerCount', {
+                            count: view.players.length,
+                            max: view.maxPlayers,
+                        })}
                     </p>
 
                     {isHost ? (
@@ -207,14 +271,14 @@ export default function GeoGamersPartyPage() {
                             <div className="mb-4 overflow-hidden rounded-xl border border-border bg-card">
                                 <img
                                     src={view.round.screenshotUrl}
-                                    alt=""
+                                    alt={t('geogamers.identify.screenshotAlt')}
                                     className="max-h-[50vh] w-full object-contain"
                                 />
                             </div>
                             {lastGuessCorrect === false && (
                                 <p className="mb-2 text-sm text-warning">
                                     {t('geogamersParty.wrongGuess', {
-                                        left: 3 - (view.you?.attemptsUsed ?? 0),
+                                        count: view.you?.attemptsLeft ?? 0,
                                     })}
                                 </p>
                             )}

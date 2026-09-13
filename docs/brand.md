@@ -104,7 +104,7 @@ Un défi parle à un joueur. Des CGU parlent à un cocontractant. Cette ligne cl
 
 | Registre | Sections i18n | Pourquoi |
 |---|---|---|
-| **Tu** — le jeu | `home` · `game` · `geo` · `geogamers` · `history` · `profile` · `achievements` · `rewards` · `dailyLogin` · `onboarding` · `tour` · `leaderboard` · `share` · `streakRisk` · `guestGate` · `publicProfile` · `personalBests` · `advancedStats` · `notifications` · `premiumGate` · `themes` · `party` | Le produit met au défi. Un défi ne vouvoie pas. |
+| **Tu** — le jeu | `home` · `game` · `geo` · `geogamers` · `history` · `profile` · `achievements` · `rewards` · `dailyLogin` · `onboarding` · `tour` · `leaderboard` · `share` · `streakRisk` · `guestGate` · `publicProfile` · `personalBests` · `advancedStats` · `notifications` · `premiumGate` · `themes` · `geogamersParty` | Le produit met au défi. Un défi ne vouvoie pas. |
 | **Vous** — le contrat | `legal` · `auth` · `security` · `pricing` · `premium` · `accountData` · `editProfile` · `emailConsent` · `consent` · `pushNotifications` · `streamerKit` · `admin` · `report` · `seo` · `errors` · `apiErrors` | Argent, données, identité, conformité. Le vouvoiement y est un signal de sérieux. |
 
 `seo` reste au vouvoiement : les descriptions de résultats de recherche s'adressent à un visiteur qui n'est pas encore joueur.
