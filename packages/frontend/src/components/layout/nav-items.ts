@@ -56,7 +56,7 @@ export const PRIMARY_NAV: NavLinkItem[] = [
     key: 'geogamers',
     labelKey: 'common.geogamers',
     icon: Crosshair,
-    path: '/geogamers',
+    path: '/panorama',
     badgeKey: 'common.new',
   },
 ]

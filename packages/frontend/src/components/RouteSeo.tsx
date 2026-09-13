@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Seo } from './Seo'
-import { SITE_NAME, SITE_URL, stripLangPrefix } from '@/lib/seo'
+import { SITE_NAME, SITE_TAGLINE, SITE_URL, stripLangPrefix } from '@/lib/seo'
 import { STUDIO, STUDIO_LD_ID, studioOrganizationLd } from '@/lib/studio'
 
 type RouteDef = {
@@ -29,10 +29,7 @@ const homeJsonLd = (lang: string): Record<string, unknown>[] => [
       price: '0',
       priceCurrency: 'EUR',
     },
-    description:
-      lang === 'fr'
-        ? 'Devinez des jeux vidéo à partir de screenshots. Défi quotidien, classements en direct, succès.'
-        : 'Guess video games from screenshots. Daily challenge, live leaderboards, achievements.',
+    description: SITE_TAGLINE[lang === 'en' ? 'en' : 'fr'],
     publisher: { '@id': STUDIO_LD_ID },
     author: { '@id': STUDIO_LD_ID },
   },

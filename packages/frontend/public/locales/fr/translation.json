@@ -53,7 +53,7 @@
       "third": "3e place"
     },
     "menuDescription": "Navigation du site et liens du compte",
-    "geogamers": "GeoGamers",
+    "geogamers": "Panorama",
     "new": "Nouveau"
   },
   "nav": {
@@ -159,7 +159,7 @@
       },
       "first_win": {
         "name": "Première Victoire",
-        "description": "Complétez votre premier défi quotidien"
+        "description": "Termine ta première boîte quotidienne"
       },
       "century_club": {
         "name": "Club des Cent",
@@ -167,11 +167,11 @@
       },
       "top_ten": {
         "name": "Top 10",
-        "description": "Classez-vous dans le top 10 d'un défi quotidien"
+        "description": "Classe-toi dans le top 10 d'une boîte quotidienne"
       },
       "podium_finish": {
         "name": "Sur le Podium",
-        "description": "Classez-vous dans le top 3 d'un défi quotidien"
+        "description": "Classe-toi dans le top 3 d'une boîte quotidienne"
       },
       "champion": {
         "name": "Champion",
@@ -179,15 +179,15 @@
       },
       "welcome_player": {
         "name": "Bienvenue !",
-        "description": "Lancez votre premier défi quotidien"
+        "description": "Ouvre ta première boîte quotidienne"
       },
       "first_guess": {
         "name": "Premier Essai",
-        "description": "Faites votre première proposition"
+        "description": "Fais ta première proposition"
       },
       "first_correct": {
         "name": "Œil de Lynx",
-        "description": "Trouvez votre première bonne réponse"
+        "description": "Trouve ta première bonne réponse"
       },
       "getting_warmed_up": {
         "name": "Échauffement",
@@ -346,7 +346,7 @@
     "partialMatchHint": "Tu as trouvé la série mais pas le titre complet — points partiels accordés.",
     "incorrect": "Incorrect",
     "proximity": {
-      "warmer": "Vous chauffez !",
+      "warmer": "Tu chauffes !",
       "sameFranchise": "Même franchise que la réponse · {{value}}",
       "sameDeveloper": "Même studio que la réponse · {{value}}",
       "samePublisher": "Même éditeur que la réponse · {{value}}"
@@ -404,12 +404,12 @@
     "errorLoadingChallenge": "Impossible de charger le défi",
     "errorLoadingScreenshot": "Impossible de charger l'image",
     "errorStarting": "Impossible de démarrer la partie",
-    "alreadyCompleted": "Vous avez déjà terminé le défi d'aujourd'hui ! Revenez demain pour un nouveau.",
+    "alreadyCompleted": "Tu as déjà ouvert la boîte d'aujourd'hui ! Reviens demain pour la suivante.",
     "premiumRequiredForOldCatchup": "Ce défi a plus de 7 jours — accessible avec Premium.",
-    "catchUpNotice": "Ceci est une session de rattrapage. Votre score n'apparaîtra pas au classement.",
+    "catchUpNotice": "Ceci est une session de rattrapage. Ton score n'apparaîtra pas au classement.",
     "noChallenge": "Aucun défi disponible",
     "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Revenez plus tard !",
-    "guestWarning": "Vous n'êtes pas connecté. Votre score ne sera pas sauvegardé.",
+    "guestWarning": "Tu n'es pas connecté. Ton score ne sera pas sauvegardé.",
     "rules": {
       "title": "Comment jouer",
       "screenshots": "{{count}} captures à deviner",
@@ -417,7 +417,7 @@
       "explore": "Observez attentivement la capture d'écran",
       "guess": "Devinez le nom du jeu vidéo",
       "matchingTips": "Tapez le nom du jeu ou le sous-titre (ex: 'Skyrim'). Incluez le numéro pour les suites (ex: 'Dark Souls 3')",
-      "time": "Plus vous répondez vite, plus vous gagnez de points",
+      "time": "Plus tu réponds vite, plus tu gagnes de points",
       "speedShort": "Vitesse = points",
       "hintsShort": "Révélation de lettres",
       "quality": "Tous les jeux ont un Metascore d'au moins 85"
@@ -460,10 +460,10 @@
         "Ctrl+S ta partie et voyons les dégâts !",
         "Game over ? Non, game DONE ! 💪"
       ],
-      "confirmMessage": "Vous avez {{unfound}} capture(s) non trouvée(s). Cela appliquera une pénalité de -{{penalty}} points.",
+      "confirmMessage": "Il te reste {{unfound}} capture(s) non trouvée(s). Cela appliquera une pénalité de -{{penalty}} points.",
       "confirm": "Terminer",
       "currentScore": "Score actuel",
-      "totalScore": "Votre Score Total",
+      "totalScore": "Ton score total",
       "penaltyApplied": "Pénalité",
       "finalScore": "Score final",
       "points": "points",
@@ -504,7 +504,7 @@
     },
     "completionChoice": {
       "title": "Bien joué !",
-      "description": "Vous avez visité toutes les positions et trouvé un jeu. Voulez-vous continuer ou voir vos résultats ?",
+      "description": "Tu as visité toutes les positions et trouvé un jeu. Tu continues ou tu vois tes résultats ?",
       "gamesRemaining": "{{count}} jeu restant à deviner",
       "gamesRemaining_other": "{{count}} jeux restants à deviner",
       "continuePlaying": "Continuer à jouer",
@@ -525,43 +525,32 @@
     }
   },
   "home": {
-    "title": "The Box",
-    "headline": "Devine le jeu à partir d'une seule capture.",
-    "subtitle": "Une capture, un jeu à reconnaître. Voyons si ta culture gaming tient encore debout.",
-    "playersToday_one": "{{formatted}} joueur a relevé le défi du jour",
-    "playersToday_other": "{{formatted}} joueurs ont relevé le défi du jour",
-    "playToday": "Jouer au Défi du Jour",
-    "dailyGuess": "Défi Quotidien",
+    "headline": "Une capture. Un jeu à deviner.",
+    "subtitle": "Voyons si ta culture gaming tient encore debout.",
+    "playersToday_one": "{{formatted}} joueur a ouvert la boîte du jour",
+    "playersToday_other": "{{formatted}} joueurs ont ouvert la boîte du jour",
+    "playToday": "Ouvre la boîte du jour",
     "geoCta": "Mode Géo",
-    "guestHint": "Aucun compte requis — jouez instantanément en invité",
-    "offlineHint": "Vous êtes hors ligne — reconnectez-vous pour jouer le défi du jour",
-    "previewBadge": "Défi du jour",
-    "previewHeading": "Pensez-vous reconnaître ce jeu ?",
-    "previewSubtitle": "Cliquez pour jouer le défi complet de 10 captures.",
-    "previewAlt": "Première capture du défi du jour",
-    "multiplayerGame": "Mode Multijoueur",
-    "todayCompleted": "Défi du Jour Terminé",
-    "comeBackTomorrow": "Revenez demain pour un nouveau défi !",
-    "nextDailyIn": "Prochain défi dans :",
-    "missedYesterday": "Défi d'hier manqué ?",
-    "playYesterday": "Jouer hier",
+    "guestHint": "Pas de compte, pas d'attente — ouvre la boîte du jour",
+    "offlineHint": "Tu es hors ligne — reconnecte-toi pour ouvrir la boîte du jour",
+    "previewBadge": "La boîte du jour",
+    "previewHeading": "Tu reconnais ce jeu ?",
+    "previewSubtitle": "Clique pour ouvrir la boîte entière — 10 captures.",
+    "previewAlt": "Première capture de la boîte du jour",
+    "todayCompleted": "Boîte du jour ouverte",
+    "comeBackTomorrow": "Une nouvelle boîte demain, même heure.",
+    "nextDailyIn": "Prochaine boîte dans :",
+    "missedYesterday": "Tu as manqué la boîte d'hier ?",
+    "playYesterday": "Ouvrir celle d'hier",
     "catchUpNote": "Les scores de rattrapage ne comptent pas pour le classement",
-    "yourScore": "Votre Score",
+    "yourScore": "Ton score",
     "rank": "Classement",
-    "features": {
-      "panorama": "Testez Votre Mémoire",
-      "panoramaDesc": "Saurez-vous reconnaître le jeu en une seule image ? Prouvez votre culture gaming !",
-      "daily": "Défi Quotidien",
-      "dailyDesc": "Un nouveau puzzle chaque jour. Même défi pour tous — dominez le classement mondial !",
-      "multiplayer": "Mode Multijoueur",
-      "multiplayerDesc": "Défiez vos amis en temps réel avec scoring en direct"
-    },
     "premium": {
       "badge": "Premium",
       "eyebrow": "Les abonnements sont là",
       "title": "Débloque The Box en entier.",
       "subtitle": "Soutiens le jeu et accède à toutes les archives, à des indices illimités en rattrapage et à un badge Premium sur ton profil.",
-      "perkArchive": "Archive complète des défis passés",
+      "perkArchive": "Archive complète des boîtes passées",
       "perkHints": "Indices illimités en rattrapage",
       "perkCosmetics": "Badge Premium et cosmétiques",
       "priceFrom": "À partir de {{price}} / mois",
@@ -574,7 +563,8 @@
     },
     "modes": {
       "heading": "Explore les autres modes de jeu",
-      "subheading": "Au-delà du défi quotidien, deux façons de tester ta culture gaming.",
+      "subheading_one": "Au-delà de la boîte du jour, une autre façon de tester ta culture gaming.",
+      "subheading_other": "Au-delà de la boîte du jour, {{count}} façons de tester ta culture gaming.",
       "cta": "Découvrir",
       "geo": {
         "description": "Repère où une capture a été prise sur la carte du jeu — plus tu vises juste, plus tu marques."
@@ -618,6 +608,7 @@
   },
   "leaderboard": {
     "title": "Classement",
+    "subtitle": "Les ninjas du screenshot, classés par score.",
     "today": "Aujourd'hui",
     "allTime": "Tout Temps",
     "rank": "Rang",
@@ -647,11 +638,11 @@
     "skipped": "Passé",
     "errorLoading": "Impossible de charger les réponses",
     "clickToView": "Cliquez pour voir les réponses de ce joueur",
-    "todayLocked": "Termine le défi du jour pour voir les réponses des autres joueurs.",
+    "todayLocked": "Ouvre la boîte du jour pour voir les réponses des autres joueurs.",
     "capturesFound": "Captures découvertes",
     "avgCaptureTime": "Temps moyen par capture",
     "geogamers": {
-      "tab": "GeoGamers",
+      "tab": "Panorama",
       "title": "Saison {{month}}",
       "players": "{{count}} joueur",
       "players_other": "{{count}} joueurs",
@@ -660,23 +651,23 @@
       "daysPlayed": "{{count}} jour joué",
       "daysPlayed_other": "{{count}} jours joués",
       "dropped": "3 pires jours retirés",
-      "unavailable": "Le classement GeoGamers n'est pas disponible."
+      "unavailable": "Le classement Panorama n'est pas disponible."
     }
   },
   "history": {
     "title": "Historique des Parties",
     "subtitle": "Revis tes parties, reprends celles en cours, rattrape les manquées.",
-    "yourGames": "Vos Parties",
-    "noResults": "Aucune partie jouée. Jouez votre premier défi quotidien !",
+    "yourGames": "Tes parties",
+    "noResults": "Aucune partie jouée. Ouvre ta première boîte quotidienne !",
     "inProgress": "En cours",
     "completed": "Terminées",
     "searchPlaceholder": "Rechercher par date...",
     "searchLabel": "Filtrer les parties par date",
     "refreshLabel": "Rafraîchir la liste",
-    "noMatchingResults": "Aucune partie ne correspond à vos filtres",
+    "noMatchingResults": "Aucune partie ne correspond à tes filtres",
     "game": "partie",
     "games": "parties",
-    "missedChallenges": "Défis Manqués",
+    "missedChallenges": "Boîtes manquées",
     "playCatchUp": "Rattraper",
     "catchUpBadge": "Rattrapage",
     "catchUpHint": "Pour ta progression — hors classement quotidien",
@@ -695,8 +686,8 @@
     },
     "empty": {
       "title": "Pas encore de parties",
-      "subtitle": "Joue le défi du jour pour commencer ton historique.",
-      "cta": "Jouer le défi du jour"
+      "subtitle": "Ouvre la boîte du jour pour commencer ton historique.",
+      "cta": "Ouvrir la boîte du jour"
     },
     "zeroScore": {
       "title": "Zéro cette fois — ça arrive.",
@@ -1970,9 +1961,9 @@
   },
   "party": {
     "title": "Mode Multijoueur",
-    "subtitle": "Jouez avec vos amis en temps réel",
+    "subtitle": "Joue avec tes amis en temps réel",
     "createTitle": "Créer une partie",
-    "createDescription": "Créez une partie et invitez vos amis avec le code",
+    "createDescription": "Crée une partie et invite tes amis avec le code",
     "creating": "Création...",
     "createButton": "Créer une partie",
     "or": "ou",
@@ -1987,7 +1978,7 @@
     "players": "Joueurs",
     "admin": "Admin",
     "leaderboard": "Classement",
-    "hostMessage": "Vous êtes l'administrateur de cette partie",
+    "hostMessage": "Tu es administrateur de cette partie",
     "startGame": "Lancer la partie",
     "resetGame": "Recommencer la partie",
     "waitingMessage": "En attente du lancement par l'administrateur...",
@@ -2029,7 +2020,10 @@
     "copyLink": "Copier dans le presse-papiers",
     "copied": "Copié !",
     "copyError": "Échec de la copie dans le presse-papiers",
-    "discordCopied": "Copié pour Discord - collez dans votre serveur !"
+    "discordCopied": "Copié pour Discord — colle-le dans ton serveur !",
+    "result": "J'ai ouvert la boîte du {{date}} — {{score}} pts, {{found}}/{{total}}.",
+    "rankPercentile": "🏆 Top {{percentile}} %",
+    "rankPosition": "🏆 {{rank}}e sur {{total}}"
   },
   "referral": {
     "title": "Inviter des amis",
@@ -2157,7 +2151,7 @@
   "emailConsent": {
     "title": "Préférences e-mail",
     "description": "Contrôlez l'envoi d'e-mails marketing. Les e-mails transactionnels (compte, réinitialisation de mot de passe) sont toujours envoyés.",
-    "label": "Recevoir des e-mails occasionnels sur les nouveaux défis, les rappels de série et les récompenses.",
+    "label": "Recevoir des e-mails occasionnels sur les nouvelles boîtes, les rappels de série et les récompenses.",
     "updatedOn": "Dernière mise à jour le {{date}}",
     "optedIn": "Vous recevrez des actualités occasionnelles — merci !",
     "optedOut": "Vous ne recevrez plus d'e-mails marketing.",
@@ -2165,7 +2159,7 @@
   },
   "pushNotifications": {
     "title": "Notifications push",
-    "description": "Recevez le défi du jour et les rappels de série directement dans votre navigateur, même quand l'onglet est fermé.",
+    "description": "Recevez la boîte du jour et les rappels de série directement dans votre navigateur, même quand l'onglet est fermé.",
     "label": "Activer les notifications push sur cet appareil.",
     "optedIn": "Notifications activées sur cet appareil.",
     "optedOut": "Notifications désactivées sur cet appareil.",
@@ -2276,17 +2270,17 @@
     "unlocked": "Débloqués",
     "points": "Points",
     "title": "Succès",
-    "description": "Suivez votre progression et débloquez des succès en jouant à The Box",
+    "description": "Suis ta progression et débloque des succès en jouant à The Box",
     "progressByCategory": "Progression par Catégorie",
     "joined": "Inscrit",
     "emptyState": {
-      "totalScore": "Jouez votre première partie pour commencer à gagner des points !",
-      "currentStreak": "Complétez les défis quotidiens pour construire votre série !",
+      "totalScore": "Ouvre ta première boîte pour commencer à gagner des points !",
+      "currentStreak": "Ouvre une boîte chaque jour pour construire ta série !",
       "achievements": "Commencez à jouer pour débloquer des succès !",
       "achievementPoints": "Gagnez des points en débloquant des succès !"
     },
     "tooltips": {
-      "totalScoreDescription": "Cumul de tous vos scores de jeu",
+      "totalScoreDescription": "Cumul de tous tes scores de jeu",
       "currentStreakDescription": "Jours consécutifs de jeu",
       "unlockedAchievementsTitle": "Succès débloqués",
       "earnedOfTotal": "{{earned}}/{{total}} succès obtenus",
@@ -2306,9 +2300,9 @@
     "subscription": {
       "title": "Abonnement",
       "premiumBadge": "Premium",
-      "premiumDescription": "Vous profitez de toutes les fonctionnalités Premium.",
+      "premiumDescription": "Tu profites de toutes les fonctionnalités Premium.",
       "freeBadge": "Gratuit",
-      "freeDescription": "Vous utilisez la version gratuite. Passez Premium pour débloquer les thèmes, les statistiques avancées et plus encore.",
+      "freeDescription": "Tu utilises la version gratuite. Passe Premium pour débloquer les thèmes, les statistiques avancées et plus encore.",
       "upgradeCta": "Passer Premium"
     },
     "avatar": {
@@ -2382,8 +2376,8 @@
   "dailyLogin": {
     "dailyReward": "Récompense Quotidienne",
     "rewardClaimed": "Récompense Récupérée !",
-    "claimDescription": "Connectez-vous chaque jour pour obtenir des récompenses !",
-    "claimSuccessDescription": "Félicitations ! Votre récompense a été ajoutée à votre inventaire.",
+    "claimDescription": "Connecte-toi chaque jour pour obtenir des récompenses !",
+    "claimSuccessDescription": "Bien joué ! Ta récompense a été ajoutée à ton inventaire.",
     "claimReward": "Récupérer ma récompense",
     "claiming": "En cours...",
     "alreadyClaimed": "Déjà récupéré",
@@ -2405,11 +2399,11 @@
       },
       "day2": {
         "name": "Gel de Série",
-        "description": "Protégez votre série de connexion en cas de jour manqué"
+        "description": "Protège ta série de connexion en cas de jour manqué"
       },
       "day3": {
         "name": "100 Points",
-        "description": "Bonus de 100 points ajoutés à votre score"
+        "description": "Bonus de 100 points ajoutés à ton score"
       },
       "day4": {
         "name": "Révélation de Lettre",
@@ -2441,9 +2435,9 @@
     "welcomeTitle": "Bienvenue dans The Box !",
     "welcomeSubtitle": "Prêt à prouver ta culture gaming ?",
     "welcomeGift": "Cadeau de bienvenue : 3 indices ajoutés à ton inventaire.",
-    "welcomeRanked": "Tu es sur le classement mondial dès ton premier défi.",
+    "welcomeRanked": "Tu es sur le classement mondial dès ta première boîte.",
     "howTitle": "Comment ça marche",
-    "howSubtitle": "Un défi, 10 captures, un classement.",
+    "howSubtitle": "Une boîte, 10 captures, un classement.",
     "step1": "Regarde la capture d'écran.",
     "step2": "Devine le jeu — plus tu es rapide, plus le score grimpe.",
     "step3": "Utilise un indice si besoin, puis enchaîne la capture suivante.",
@@ -2460,11 +2454,11 @@
     "close": "Fermer la visite",
     "progress": "Étape {{current}} sur {{total}}",
     "replayTitle": "Rejouer la visite",
-    "replayDescription": "Revois en un coup d'œil le défi du jour, le mode geo, le classement et les récompenses.",
+    "replayDescription": "Revois en un coup d'œil la boîte du jour, le mode geo, le classement et les récompenses.",
     "replayCta": "Rejouer la visite",
     "steps": {
       "play": {
-        "title": "Défi du jour",
+        "title": "La boîte du jour",
         "body": "Tout commence ici. Dix captures, un jeu par capture, plus tu réponds vite plus le score grimpe."
       },
       "geo": {
@@ -2473,7 +2467,7 @@
       },
       "leaderboard": {
         "title": "Classement",
-        "body": "Vois ta place du jour et du mois. Mis à jour en direct quand les autres joueurs terminent leur défi."
+        "body": "Vois ta place du jour et du mois. Mis à jour en direct quand les autres joueurs ferment leur boîte."
       },
       "dailyReward": {
         "title": "Récompense quotidienne",
@@ -2481,7 +2475,7 @@
       },
       "profile": {
         "title": "Profil & historique",
-        "body": "Statistiques, succès et historique des défis sont accessibles depuis ton menu profil."
+        "body": "Statistiques, succès et historique des boîtes sont accessibles depuis ton menu profil."
       }
     }
   },
@@ -2490,14 +2484,14 @@
     "subtitle": "Crée un compte en 10 secondes pour garder tes progrès.",
     "benefitStreak": "Suis ta série de victoires jour après jour",
     "benefitLeaderboard": "Entre sur le classement mondial",
-    "benefitHints": "Reçois 3 indices offerts pour ton premier défi",
+    "benefitHints": "Reçois 3 indices offerts pour ta première boîte",
     "createAccount": "Créer un compte (10 s)",
     "continueGuest": "Continuer en invité"
   },
   "streakRisk": {
     "title": "Ta série de {{count}} jours est en danger !",
-    "subtitle": "Joue le défi d’aujourd’hui avant minuit UTC pour la prolonger.",
-    "cta": "Jouer maintenant"
+    "subtitle": "Ouvre la boîte du jour avant minuit UTC pour la prolonger.",
+    "cta": "Ouvrir maintenant"
   },
   "publicProfile": {
     "notFound": "Profil introuvable",
@@ -2525,7 +2519,7 @@
       "mapUnavailable": "Carte indisponible.",
       "chooseMap": {
         "title": "Quelle carte ?",
-        "hint": "Choisissez la carte où se trouve la capture, puis posez votre épingle.",
+        "hint": "Choisis la carte où se trouve la capture, puis pose ton épingle.",
         "worldFallback": "Carte du monde",
         "correct": "Bonne carte",
         "incorrect": "Mauvaise carte"
@@ -2539,10 +2533,10 @@
       "pickGame": "Choisir un jeu",
       "pickGameHint": "Tous les jeux avec au moins une capture jouable.",
       "pickMap": "Choisir une carte",
-      "pickMapHint": "Choisissez la carte du jeu sur laquelle vous voulez deviner.",
+      "pickMapHint": "Choisis la carte du jeu sur laquelle tu veux deviner.",
       "searchGames": "Rechercher un jeu",
       "searchGamesPlaceholder": "Rechercher un jeu…",
-      "noGamesFound": "Aucun jeu ne correspond à votre recherche.",
+      "noGamesFound": "Aucun jeu ne correspond à ta recherche.",
       "noGamesYet": "Aucun jeu n'est disponible en mode libre pour l'instant.",
       "noMapsYet": "Aucune carte n'est encore disponible pour ce jeu.",
       "mapCount": "{{count}} cartes",
@@ -2638,15 +2632,15 @@
       "unmarkIgnored": "Restaurer ce jeu",
       "unmarkIgnoredShort": "Restaurer",
       "exhausted": {
-        "title": "Vous avez vu toutes les captures",
-        "body": "Bravo ! Vous avez deviné toutes les captures disponibles pour ce jeu. Nous vous préviendrons quand de nouvelles seront ajoutées.",
+        "title": "Tu as vu toutes les captures",
+        "body": "Bravo ! Tu as deviné toutes les captures disponibles pour ce jeu. On te prévient quand de nouvelles arrivent.",
         "checkForNew": "Vérifier les nouvelles captures",
         "pickAnother": "Choisir un autre jeu",
         "markIgnored": "Je ne veux plus voir ce jeu"
       },
       "allDone": {
-        "title": "Vous avez terminé The Box !",
-        "body": "Bravo ! Vous avez deviné toutes les captures de tous les jeux de votre catalogue. Nous vous préviendrons quand de nouvelles seront ajoutées."
+        "title": "Tu as terminé The Box !",
+        "body": "Bravo ! Tu as deviné toutes les captures de tous les jeux de ton catalogue. On te prévient quand de nouvelles arrivent."
       },
       "auth": {
         "title": "Connecte-toi pour poser des épingles",
@@ -2671,7 +2665,7 @@
       "submit": "Envoyer l'épingle",
       "skip": "Passer",
       "loading": "Chargement de la capture…",
-      "thanks": "Merci — nous vous préviendrons quand d'autres joueurs confirmeront l'emplacement.",
+      "thanks": "Merci — on te prévient quand d'autres joueurs confirmeront l'emplacement.",
       "recent": "Récompenses récentes",
       "lockedTitle": "L'étiquetage se débloque après quelques parties quotidiennes.",
       "lockedProgress": "Progression",
@@ -2698,7 +2692,7 @@
     "map": {
       "ariaPin": "Épinglez l'emplacement sur la carte. Utilisez les flèches du clavier pour déplacer le curseur, puis Entrée pour valider.",
       "ariaPinDisabled": "Carte",
-      "labelYou": "Votre épingle",
+      "labelYou": "Ton épingle",
       "labelActual": "Emplacement réel",
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",
@@ -2713,7 +2707,7 @@
   },
   "apiErrors": {
     "default": "Une erreur est survenue. Veuillez réessayer.",
-    "GEOGAMERS_UNAVAILABLE": "GeoGamers n'est pas disponible pour le moment.",
+    "GEOGAMERS_UNAVAILABLE": "Panorama n'est pas disponible pour le moment.",
     "GEO_COMMUNITY_DISABLED": "Le mode Géo n'est pas disponible sur ce déploiement.",
     "NETWORK_ERROR": "Erreur réseau. Vérifiez votre connexion.",
     "VALIDATION_ERROR": "Les informations saisies sont invalides.",
@@ -3034,7 +3028,7 @@
     }
   },
   "geogamersParty": {
-    "title": "GeoGamers — Partie à plusieurs",
+    "title": "Panorama — Partie à plusieurs",
     "create": "Créer une partie",
     "createCta": "Créer",
     "rounds": "Nombre de manches",

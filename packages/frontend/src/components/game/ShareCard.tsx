@@ -64,21 +64,33 @@ export function ShareCard({
         return `https://the-box.battistella.ovh/share/daily?${params.toString()}`
     }
 
-    // Generate share text
+    // Generate share text.
+    //
+    // This is the single most-seen brand surface: most impressions of The Box
+    // happen in someone else's feed, not on the site. It used to be hardcoded
+    // English on a French-default product ("The Box Daily Challenge", "correct",
+    // "points"), so it is now localised and carries the box sentence from
+    // docs/brand.md §5 — date, score, verb, no emoji in the base line.
     const generateShareText = (channel: ShareChannel): string => {
         const date = challengeDate || new Date().toISOString().split('T')[0]
         const emojiGrid = generateEmojiGrid()
+        const readableDate = new Intl.DateTimeFormat(i18n.language, {
+            day: 'numeric',
+            month: 'long',
+        }).format(new Date(`${date}T00:00:00Z`))
 
-        let text = `🎮 The Box Daily Challenge\n`
-        text += `📅 ${date}\n\n`
+        let text = `${t('share.result', {
+            date: readableDate,
+            score,
+            found: correctAnswers,
+            total: totalScreenshots,
+        })}\n\n`
         text += `${emojiGrid}\n\n`
-        text += `🎯 ${correctAnswers}/${totalScreenshots} correct\n`
-        text += `⭐ ${score} points\n`
 
         if (percentile !== undefined) {
-            text += `🏆 Top ${percentile}%\n`
+            text += `${t('share.rankPercentile', { percentile })}\n`
         } else if (rank !== undefined && totalPlayers !== undefined) {
-            text += `🏆 Rank #${rank}/${totalPlayers}\n`
+            text += `${t('share.rankPosition', { rank, total: totalPlayers })}\n`
         }
 
         // Point the share URL at /share/daily — the backend serves that

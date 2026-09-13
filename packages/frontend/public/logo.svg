@@ -1,7 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- 3D Cube wireframe - white lines only -->
-  <g stroke="#ffffff" stroke-width="6" fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <!-- Top face -->
+  <!-- The Box — the mark IS the box (docs/brand.md §4). Closed state.
+       The gradient is frozen here rather than tokenised: the file is also
+       served as a favicon and an OG asset, where CSS variables don't exist.
+       It mirrors the brand-purple to brand-pink tokens in src/index.css. -->
+  <defs>
+    <linearGradient id="boxEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#boxEdge)" stroke-width="16" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Lid -->
     <polygon points="256,80 432,170 256,260 80,170"/>
     <!-- Vertical edges -->
     <line x1="256" y1="260" x2="256" y2="432"/>

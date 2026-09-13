@@ -4,6 +4,7 @@ import path from 'path'
 import { readFile } from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { Resvg } from '@resvg/resvg-js'
+import { SITE_TAGLINE } from '@the-box/types'
 import { challengeRepository } from '../../infrastructure/repositories/index.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 
@@ -115,9 +116,7 @@ function buildDailySvg(date: string, lang: 'fr' | 'en', imageDataUri: string | n
   // gradient text card.
   if (imageDataUri) {
     const hook = escapeXml(lang === 'fr' ? 'Tu reconnais ce jeu ?' : 'Can you name this game?')
-    const tagline = escapeXml(
-      lang === 'fr' ? 'Une capture. Un jeu à deviner.' : 'One screenshot. One guess.'
-    )
+    const tagline = escapeXml(SITE_TAGLINE[lang])
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <defs>
@@ -153,11 +152,7 @@ function buildDailySvg(date: string, lang: 'fr' | 'en', imageDataUri: string | n
 </svg>`
   }
 
-  const tagline = escapeXml(
-    lang === 'fr'
-      ? "Devinez le jeu à partir d'une capture d'écran."
-      : 'Guess the game from a screenshot.'
-  )
+  const tagline = escapeXml(SITE_TAGLINE[lang])
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <defs>

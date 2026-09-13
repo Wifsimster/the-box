@@ -267,8 +267,14 @@ function App() {
 
           <Route path="geo" element={<GeoPlayPage />} />
           <Route path="geo/play" element={<GeoPlayPage />} />
-          <Route path="geogamers" element={<GeoGamersPlayPage />} />
-          <Route path="geogamers/party" element={<GeoGamersPartyPage />} />
+          {/* Public path is /panorama — the mode was called "GeoGamers",
+              one word away from the separate "Géo" mode. Renamed while
+              GEOGAMERS_ENABLED is still false, so no live link breaks.
+              Internal identifiers stay `geogamers` (tables, workers, sockets,
+              API routes): renaming those is churn with no identity gain.
+              See docs/brand.md §6. */}
+          <Route path="panorama" element={<GeoGamersPlayPage />} />
+          <Route path="panorama/party" element={<GeoGamersPartyPage />} />
           <Route path="geo/contribute" element={<GeoContributePage />} />
 
           <Route path="premium" element={<PricingPage />} />

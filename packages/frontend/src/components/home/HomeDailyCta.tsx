@@ -138,7 +138,7 @@ export function HomeDailyCta({
                 className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
               >
                 <Play className="size-4 sm:size-5 md:size-6" />
-                {t('home.dailyGuess')}
+                {t('home.playToday')}
               </Button>
             )}
           </div>

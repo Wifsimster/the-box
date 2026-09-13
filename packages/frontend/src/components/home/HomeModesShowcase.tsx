@@ -8,6 +8,7 @@ import { GradientIcon } from '@/components/ui/gradient-icon'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { useFeatures, type RuntimeFeatures } from '@/hooks/useFeatures'
+import { cn } from '@/lib/utils'
 
 interface ModeCard {
   key: string
@@ -36,7 +37,7 @@ const MODES: ModeCard[] = [
   },
   {
     key: 'geogamers',
-    path: '/geogamers',
+    path: '/panorama',
     icon: Crosshair,
     titleKey: 'common.geogamers',
     descriptionKey: 'home.modes.geogamers.description',
@@ -85,12 +86,19 @@ export function HomeModesShowcase() {
             {t('home.modes.heading')}
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {t('home.modes.subheading')}
+            {t('home.modes.subheading', { count: modes.length })}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:gap-5 sm:grid-cols-2">
+      {/* One card must not sit alone in a two-column grid — with the geo
+          community surface sunset, a single mode is the default state. */}
+      <div
+        className={cn(
+          'grid gap-4 sm:gap-5',
+          modes.length > 1 ? 'sm:grid-cols-2' : 'sm:grid-cols-1',
+        )}
+      >
         {modes.map((mode) => {
           const Icon = mode.icon
           return (

@@ -47,7 +47,7 @@ export const env = {
   // sourcing API, admin geo-fetch and GeoGamers all keep running: they don't go
   // through /api/geo. The consensus worker also stays registered because agent
   // pin proposals (/api/agent/v1/geo) still feed it.
-  GEO_COMMUNITY_ENABLED: process.env['GEO_COMMUNITY_ENABLED'] || 'true',
+  GEO_COMMUNITY_ENABLED: process.env['GEO_COMMUNITY_ENABLED'] || 'false',
 
   // GeoGamers mode (guess-the-game + geolocate). Off by default: the routes
   // 404 and the daily-challenge scheduler doesn't register until enabled, so

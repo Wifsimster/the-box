@@ -53,7 +53,7 @@
       "third": "3rd place"
     },
     "menuDescription": "Site navigation and account links",
-    "geogamers": "GeoGamers",
+    "geogamers": "Panorama",
     "new": "New"
   },
   "nav": {
@@ -159,7 +159,7 @@
       },
       "first_win": {
         "name": "First Win",
-        "description": "Complete your first daily challenge"
+        "description": "Finish your first daily box"
       },
       "century_club": {
         "name": "Century Club",
@@ -179,7 +179,7 @@
       },
       "welcome_player": {
         "name": "Welcome!",
-        "description": "Start your first daily challenge"
+        "description": "Open your first daily box"
       },
       "first_guess": {
         "name": "First Try",
@@ -404,7 +404,7 @@
     "errorLoadingChallenge": "Failed to load challenge",
     "errorLoadingScreenshot": "Failed to load image",
     "errorStarting": "Failed to start game",
-    "alreadyCompleted": "You have already completed today's challenge! Come back tomorrow for a new one.",
+    "alreadyCompleted": "You've already opened today's box! Come back tomorrow for the next one.",
     "premiumRequiredForOldCatchup": "This challenge is more than 7 days old — available with Premium.",
     "catchUpNotice": "This is a catch-up session. Your score won't appear on the leaderboard.",
     "noChallenge": "No challenge available",
@@ -525,43 +525,32 @@
     }
   },
   "home": {
-    "title": "The Box",
-    "headline": "Name the game from one screenshot.",
-    "subtitle": "A fresh video-game challenge every day. Play instantly — no account needed.",
-    "playersToday_one": "{{formatted}} player has taken on today's challenge",
-    "playersToday_other": "{{formatted}} players have taken on today's challenge",
-    "playToday": "Play Today's Challenge",
-    "dailyGuess": "Daily Guess",
+    "headline": "One screenshot. One guess.",
+    "subtitle": "Same box, same day, everyone. Let's see if your gaming cred holds up.",
+    "playersToday_one": "{{formatted}} player has opened today's box",
+    "playersToday_other": "{{formatted}} players have opened today's box",
+    "playToday": "Open today's box",
     "geoCta": "Geo Mode",
-    "guestHint": "No account needed — play instantly as a guest",
-    "offlineHint": "You are offline — reconnect to play today's challenge",
-    "previewBadge": "Today's challenge",
-    "previewHeading": "Think you know this game?",
-    "previewSubtitle": "Click to play the full 10-screenshot challenge.",
-    "previewAlt": "Today's first challenge screenshot",
-    "multiplayerGame": "Multiplayer Game",
-    "todayCompleted": "Today's Challenge Completed",
-    "comeBackTomorrow": "Come back tomorrow for a new challenge!",
-    "nextDailyIn": "Next daily challenge in:",
-    "missedYesterday": "Missed yesterday's challenge?",
-    "playYesterday": "Play Yesterday",
+    "guestHint": "No account, no wait — open today's box",
+    "offlineHint": "You're offline — reconnect to open today's box",
+    "previewBadge": "Today's box",
+    "previewHeading": "Can you name this game?",
+    "previewSubtitle": "Tap to open the whole box — 10 screenshots.",
+    "previewAlt": "The first screenshot in today's box",
+    "todayCompleted": "Today's box is open",
+    "comeBackTomorrow": "A new box tomorrow, same time.",
+    "nextDailyIn": "Next box in:",
+    "missedYesterday": "Missed yesterday's box?",
+    "playYesterday": "Open yesterday's",
     "catchUpNote": "Catch-up scores don't count for leaderboards",
-    "yourScore": "Your Score",
+    "yourScore": "Your score",
     "rank": "Rank",
-    "features": {
-      "panorama": "Test Your Memory",
-      "panoramaDesc": "Can you name the game from a single screenshot? Put your gaming knowledge to the test!",
-      "daily": "Daily Challenge",
-      "dailyDesc": "New puzzle every day. Same challenge worldwide — climb the global leaderboard!",
-      "multiplayer": "Multiplayer Mode",
-      "multiplayerDesc": "Challenge friends in real-time battles with live scoring"
-    },
     "premium": {
       "badge": "Premium",
       "eyebrow": "Subscriptions are live",
       "title": "Unlock the full Box.",
       "subtitle": "Support the game and get the entire challenge archive, unlimited catch-up hints and a Premium badge for your profile.",
-      "perkArchive": "Full archive of past challenges",
+      "perkArchive": "Full archive of past boxes",
       "perkHints": "Unlimited hints in catch-up",
       "perkCosmetics": "Premium badge and cosmetics",
       "priceFrom": "From {{price}} / month",
@@ -574,7 +563,8 @@
     },
     "modes": {
       "heading": "Explore the other game modes",
-      "subheading": "Beyond the daily challenge, two more ways to test your gaming knowledge.",
+      "subheading_one": "Beyond today's box, one more way to test your gaming knowledge.",
+      "subheading_other": "Beyond today's box, {{count}} more ways to test your gaming knowledge.",
       "cta": "Discover",
       "geo": {
         "description": "Pinpoint where a screenshot was taken on the game's map — the closer you land, the more you score."
@@ -618,6 +608,7 @@
   },
   "leaderboard": {
     "title": "Leaderboard",
+    "subtitle": "The screenshot ninjas, ranked by score.",
     "today": "Today",
     "allTime": "All Time",
     "rank": "Rank",
@@ -647,11 +638,11 @@
     "skipped": "Skipped",
     "errorLoading": "Failed to load player answers",
     "clickToView": "Click to view this player's answers",
-    "todayLocked": "Complete today's challenge to view other players' answers.",
+    "todayLocked": "Open today's box to see other players' answers.",
     "capturesFound": "Captures found",
     "avgCaptureTime": "Average time per capture",
     "geogamers": {
-      "tab": "GeoGamers",
+      "tab": "Panorama",
       "title": "Season {{month}}",
       "players": "{{count}} player",
       "players_other": "{{count}} players",
@@ -660,14 +651,14 @@
       "daysPlayed": "{{count}} day played",
       "daysPlayed_other": "{{count}} days played",
       "dropped": "3 worst days dropped",
-      "unavailable": "The GeoGamers leaderboard is unavailable."
+      "unavailable": "The Panorama leaderboard is unavailable."
     }
   },
   "history": {
     "title": "Game History",
     "subtitle": "Replay past games, resume the ones in progress, catch up on what you missed.",
     "yourGames": "Your Games",
-    "noResults": "No games played yet. Play your first daily challenge!",
+    "noResults": "No games played yet. Open your first daily box!",
     "inProgress": "In Progress",
     "completed": "Completed",
     "searchPlaceholder": "Search by date...",
@@ -676,7 +667,7 @@
     "noMatchingResults": "No games match your filters",
     "game": "game",
     "games": "games",
-    "missedChallenges": "Missed Challenges",
+    "missedChallenges": "Missed boxes",
     "playCatchUp": "Catch up",
     "catchUpBadge": "Catch-up",
     "catchUpHint": "For your own progress — outside the daily leaderboard",
@@ -695,8 +686,8 @@
     },
     "empty": {
       "title": "No games yet",
-      "subtitle": "Play today's challenge to start your history.",
-      "cta": "Play today's challenge"
+      "subtitle": "Open today's box to start your history.",
+      "cta": "Open today's box"
     },
     "zeroScore": {
       "title": "Zero this time — it happens.",
@@ -2029,7 +2020,10 @@
     "copyLink": "Copy to Clipboard",
     "copied": "Copied!",
     "copyError": "Failed to copy to clipboard",
-    "discordCopied": "Copied for Discord - paste in your server!"
+    "discordCopied": "Copied for Discord - paste in your server!",
+    "result": "I opened the {{date}} box — {{score}} pts, {{found}}/{{total}}.",
+    "rankPercentile": "🏆 Top {{percentile}}%",
+    "rankPosition": "🏆 Rank {{rank}} of {{total}}"
   },
   "referral": {
     "title": "Invite Friends",
@@ -2280,8 +2274,8 @@
     "progressByCategory": "Progress by Category",
     "joined": "Joined",
     "emptyState": {
-      "totalScore": "Play your first game to start earning points!",
-      "currentStreak": "Complete daily challenges to build your streak!",
+      "totalScore": "Open your first box to start earning points!",
+      "currentStreak": "Open a box every day to build your streak!",
       "achievements": "Start playing to unlock achievements!",
       "achievementPoints": "Earn points by unlocking achievements!"
     },
@@ -2441,9 +2435,9 @@
     "welcomeTitle": "Welcome to The Box!",
     "welcomeSubtitle": "Ready to prove your gaming knowledge?",
     "welcomeGift": "Welcome gift: 3 hints added to your inventory.",
-    "welcomeRanked": "You're on the global leaderboard from your very first challenge.",
+    "welcomeRanked": "You're on the global leaderboard from your very first box.",
     "howTitle": "How it works",
-    "howSubtitle": "One challenge, 10 screenshots, one ranking.",
+    "howSubtitle": "One box, 10 screenshots, one leaderboard.",
     "step1": "Look at the screenshot.",
     "step2": "Guess the game — the faster you are, the higher the score.",
     "step3": "Use a hint if you need to, then move to the next screenshot.",
@@ -2464,7 +2458,7 @@
     "replayCta": "Replay tour",
     "steps": {
       "play": {
-        "title": "Today's challenge",
+        "title": "Today's box",
         "body": "Start here every day. Ten screenshots, one game per screenshot, the faster you guess the higher the score."
       },
       "geo": {
@@ -2473,7 +2467,7 @@
       },
       "leaderboard": {
         "title": "Leaderboard",
-        "body": "See where you rank today and this month. Updates live as other players finish their challenge."
+        "body": "See your daily and monthly place. Updated live as other players close their box."
       },
       "dailyReward": {
         "title": "Daily login reward",
@@ -2481,7 +2475,7 @@
       },
       "profile": {
         "title": "Profile & history",
-        "body": "Track stats, achievements and replay past challenges from your profile menu."
+        "body": "Stats, achievements and box history live in your profile menu."
       }
     }
   },
@@ -2490,14 +2484,14 @@
     "subtitle": "Create an account in 10 seconds to keep your progress.",
     "benefitStreak": "Track your winning streak day after day",
     "benefitLeaderboard": "Enter the global leaderboard",
-    "benefitHints": "Get 3 free hints for your first challenge",
+    "benefitHints": "Get 3 free hints for your first box",
     "createAccount": "Create account (10s)",
     "continueGuest": "Continue as guest"
   },
   "streakRisk": {
     "title": "Your {{count}}-day streak is at risk!",
-    "subtitle": "Play today’s challenge before midnight UTC to keep it alive.",
-    "cta": "Play now"
+    "subtitle": "Open today's box before midnight UTC to keep it alive.",
+    "cta": "Open now"
   },
   "publicProfile": {
     "notFound": "Profile not found",
@@ -2713,7 +2707,7 @@
   },
   "apiErrors": {
     "default": "Something went wrong. Please try again.",
-    "GEOGAMERS_UNAVAILABLE": "GeoGamers isn't available right now.",
+    "GEOGAMERS_UNAVAILABLE": "Panorama isn't available right now.",
     "GEO_COMMUNITY_DISABLED": "Geo mode isn't available on this deployment.",
     "NETWORK_ERROR": "Network error. Please check your connection.",
     "VALIDATION_ERROR": "The information you entered is invalid.",
@@ -3034,7 +3028,7 @@
     }
   },
   "geogamersParty": {
-    "title": "GeoGamers — Party",
+    "title": "Panorama — Party",
     "create": "Create a party",
     "createCta": "Create",
     "rounds": "Rounds",
