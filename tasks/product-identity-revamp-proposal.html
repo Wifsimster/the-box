@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: Revue d'identité produit de The Box + refonte proposée (2026-09-13, main @ 2.158.4).
+  Neuf constats vérifiés dans le code : 7 emplacements servent 6 taglines différentes, 0 marque dans le
+  chrome de l'app, 74 chaînes FR tutoient contre 181 qui vouvoient, « Géo » et « GeoGamers » se confondent.
+  Proposition : garder le nom et lui donner un verbe (« Ouvre la boîte »), tagline en constante, règle
+  « le jeu tutoie, le contrat vouvoie », marque dans le header, nav primaire de 5 à 3. 5 phases, 4 décisions.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Ouvre la boîte &middot; The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.09);
+    --border-strong: rgba(255,255,255,0.18);
+    --fg: #e7e4ef;
+    --muted: #9b96ad;
+    --purple: #a855f7;
+    --pink: #ec4899;
+    --cyan: #22b8cf;
+    --break: #ef4444;
+    --drift: #eab308;
+    --keep: #22c55e;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  img, svg { max-width: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-block: 2.5rem 5rem; padding-left: 1.25rem; padding-right: 1.25rem; }
+  .prose { max-width: 68ch; }
+
+  a { color: var(--purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--purple); }
+  a:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; border-radius: 4px; }
+
+  code, .mono { font-family: var(--mono); }
+  code {
+    font-size: 0.86em; background: var(--surface-2); color: #cbb8ea;
+    padding: 0.08em 0.36em; border-radius: 4px; overflow-wrap: anywhere;
+  }
+
+  h1 {
+    font-size: clamp(2.1rem, 6vw, 3.1rem); line-height: 1.04; letter-spacing: -0.03em;
+    font-weight: 800; margin: 0.6rem 0 0; text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.34rem; letter-spacing: -0.015em; font-weight: 700;
+    margin: 3.6rem 0 0.4rem; text-wrap: balance; scroll-margin-top: 1rem;
+  }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.9rem 0 0.35rem; letter-spacing: -0.005em; }
+  p { margin: 0.75rem 0; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.7rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted);
+    margin: 0;
+  }
+  h2 + .sub { color: var(--muted); margin-top: 0.15rem; max-width: 68ch; }
+
+  .docmeta {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem;
+    font-family: var(--mono); font-size: 0.74rem; color: var(--muted);
+    border-bottom: 1px solid var(--border); padding-bottom: 1.1rem; margin-bottom: 2.2rem;
+  }
+  .docmeta b { color: #c9c4d8; font-weight: 500; }
+
+  .thesis {
+    font-size: 1.12rem; color: #cfcadd; max-width: 64ch;
+    margin: 1.1rem 0 0; text-wrap: pretty;
+  }
+  .thesis strong { color: var(--fg); font-weight: 600; }
+
+  /* ---- verdict figures ---- */
+  .figs {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px; background: var(--border); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin: 2.6rem 0 0;
+  }
+  .fig { background: var(--surface); padding: 1.1rem 1.15rem; }
+  .fig .n {
+    font-family: var(--mono); font-size: 1.85rem; font-weight: 700;
+    letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums;
+    color: var(--purple);
+  }
+  .fig .n small { font-size: 0.95rem; color: var(--muted); font-weight: 500; }
+  .fig p { margin: 0.55rem 0 0; font-size: 0.83rem; color: var(--muted); line-height: 1.45; }
+
+  /* ---- findings ---- */
+  .findings { display: flex; flex-direction: column; gap: 1px; background: var(--border); border-block: 1px solid var(--border); margin: 1.6rem 0 0; }
+  .finding {
+    background: var(--surface); padding: 1.05rem 1.2rem 1.1rem;
+    border-left: 3px solid var(--sev, var(--muted));
+    display: grid; grid-template-columns: 2.4rem 1fr; gap: 0 0.9rem; align-items: start;
+  }
+  .finding[data-sev="break"] { --sev: var(--break); }
+  .finding[data-sev="drift"] { --sev: var(--drift); }
+  .finding[data-sev="miss"]  { --sev: var(--cyan); }
+  .finding .idx {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
+    padding-top: 0.22rem; font-variant-numeric: tabular-nums;
+  }
+  .finding h3 { margin: 0; font-size: 1rem; }
+  .finding .body { min-width: 0; }
+  .finding p { margin: 0.4rem 0 0; font-size: 0.92rem; }
+  .finding .ev {
+    margin-top: 0.6rem; font-family: var(--mono); font-size: 0.755rem;
+    color: var(--muted); line-height: 1.75; overflow-wrap: anywhere;
+  }
+  .finding .ev b { color: #b9a6d8; font-weight: 400; }
+  .sev-tag {
+    float: right; font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--sev); border: 1px solid color-mix(in srgb, var(--sev) 40%, transparent);
+    padding: 0.1rem 0.4rem; border-radius: 3px; margin-left: 0.8rem;
+  }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 1.1rem; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.9rem; }
+  .legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 0.45rem; vertical-align: 0; background: currentColor; }
+  .legend .l-break { color: var(--break); }
+  .legend .l-drift { color: var(--drift); }
+  .legend .l-miss  { color: var(--cyan); }
+
+  /* ---- the one loud moment ---- */
+  .lockup {
+    margin: 2rem 0 0; padding: 2.6rem 1.6rem 2.3rem; text-align: center;
+    background: radial-gradient(120% 140% at 50% 0%, rgba(168,85,247,0.13), rgba(236,72,153,0.05) 55%, transparent 80%);
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    box-shadow: 0 0 70px -26px rgba(168,85,247,0.55);
+  }
+  .lockup svg { display: block; margin: 0 auto 1.1rem; }
+  .lockup .verb {
+    font-size: clamp(1.7rem, 5.6vw, 2.6rem); font-weight: 800; letter-spacing: -0.03em;
+    margin: 0; line-height: 1.05;
+    background: linear-gradient(90deg, var(--purple), var(--pink));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lockup .verb-en { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0.7rem 0 0; }
+  .lockup .cat { margin: 1.15rem auto 0; max-width: 44ch; color: #cfcadd; font-size: 0.95rem; }
+
+  /* ---- specimen pairs ---- */
+  .specimens { display: flex; flex-direction: column; gap: 0.9rem; margin: 1.4rem 0 0; }
+  .spec {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); overflow: hidden;
+  }
+  .spec > .where {
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--border); background: var(--surface-2);
+    overflow-wrap: anywhere;
+  }
+  .spec .rows { display: grid; grid-template-columns: 4.6rem 1fr; }
+  .spec .rows > div { padding: 0.62rem 0.9rem; border-bottom: 1px solid var(--border); }
+  .spec .rows > div:nth-last-child(-n+2) { border-bottom: 0; }
+  .spec .tag { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .spec .now { color: #a9a3bb; text-decoration: line-through; text-decoration-color: rgba(239,68,68,.5); text-decoration-thickness: 1px; }
+  .spec .next { color: var(--fg); }
+  .spec .tag.t-next { color: var(--keep); }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; margin: 1.2rem 0 0; border: 1px solid var(--border); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 520px; }
+  th, td { text-align: left; padding: 0.62rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th {
+    color: var(--muted); font-weight: 500; font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.11em; font-family: var(--mono); background: var(--surface-2); white-space: nowrap;
+  }
+  td.m { font-family: var(--mono); font-size: 0.78rem; color: #b9a6d8; overflow-wrap: anywhere; }
+  td.k { white-space: nowrap; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ---- callouts ---- */
+  .note {
+    margin: 1.3rem 0 0; padding: 0.85rem 1.05rem; font-size: 0.9rem;
+    border-left: 3px solid var(--cyan); background: rgba(34,184,207,0.055);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .note.warn { border-left-color: var(--drift); background: rgba(234,179,8,0.06); }
+  .note p:first-child { margin-top: 0; }
+  .note p:last-child { margin-bottom: 0; }
+  .note b { color: var(--fg); }
+
+  /* ---- phases ---- */
+  .phases { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 1.4rem; }
+  .phase { background: var(--surface); padding: 1.05rem 1.2rem; display: grid; grid-template-columns: 5.2rem 1fr; gap: 0 1rem; }
+  .phase .p-id { font-family: var(--mono); font-size: 0.72rem; color: var(--purple); letter-spacing: 0.08em; padding-top: 0.2rem; }
+  .phase h3 { margin: 0; }
+  .phase .risk { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .phase ul { margin: 0.55rem 0 0; padding-left: 1.1rem; font-size: 0.9rem; }
+  .phase li { margin: 0.22rem 0; }
+  .phase li code { font-size: 0.78em; }
+
+  ul.clean { list-style: none; padding: 0; margin: 0.8rem 0 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  ul.clean > li { padding-left: 1.5rem; position: relative; font-size: 0.93rem; }
+  ul.clean > li::before {
+    content: ''; position: absolute; left: 0.15rem; top: 0.62em;
+    width: 7px; height: 7px; border: 1px solid var(--purple); border-radius: 1px; transform: rotate(45deg);
+  }
+  ol.asks { padding-left: 1.3rem; margin: 1rem 0 0; display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.95rem; }
+  ol.asks b { color: var(--fg); }
+  ol.asks::marker { color: var(--purple); }
+
+  hr.rule { border: 0; border-top: 1px solid var(--border); margin: 3.4rem 0 0; }
+
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 0.72rem; color: var(--muted); line-height: 1.8; }
+
+  @media (max-width: 560px) {
+    .finding { grid-template-columns: 1fr; }
+    .finding .idx { padding-top: 0; }
+    .phase { grid-template-columns: 1fr; }
+    .phase .p-id { padding-top: 0; margin-bottom: 0.2rem; }
+    .spec .rows { grid-template-columns: 1fr; }
+    .spec .rows > div { border-bottom: 0; padding-block: 0.35rem; }
+    .spec .rows > div.tag { padding-bottom: 0; }
+    .spec .rows > div:last-child { padding-bottom: 0.75rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <p class="eyebrow">Revue d'identité produit &amp; proposition de refonte</p>
+  <h1>The&nbsp;Box n'a pas d'identité.<br>Elle a&nbsp;sept&nbsp;taglines.</h1>
+
+  <p class="thesis">
+    Le produit est bon et la discipline visuelle est réelle — <code>docs/ui-tokens.md</code> est plus strict que
+    la plupart des design systems d'entreprise. Ce qui manque n'est pas au niveau des valeurs, c'est la couche
+    au-dessus : <strong>personne ne possède le nom, la promesse, la voix, ni le moment de partage.</strong>
+    Chaque nouvelle surface a donc réinventé la sienne. Ce document constate les dégâts, puis propose une
+    refonte qui ne change ni le nom, ni le domaine, ni le paquet Docker.
+  </p>
+
+  <div class="figs">
+    <div class="fig">
+      <div class="n">7</div>
+      <p>emplacements servent une tagline en production. Six promesses distinctes. Aucune n'est la même.</p>
+    </div>
+    <div class="fig">
+      <div class="n">74<small> / 181</small></div>
+      <p>chaînes FR en tutoiement contre vouvoiement. Six sections mélangent les deux — dont <code>home</code>.</p>
+    </div>
+    <div class="fig">
+      <div class="n">0</div>
+      <p>marque dans le chrome de l'app. Ni logo ni wordmark dans le header ou la bottom-nav.</p>
+    </div>
+    <div class="fig">
+      <div class="n">2</div>
+      <p>modes dont les noms ne diffèrent que d'un mot : « Géo » et « GeoGamers ». L'un part au rebut.</p>
+    </div>
+  </div>
+
+  <div class="docmeta" style="margin-top:2.6rem;border-top:1px solid var(--border);padding-top:1.1rem;border-bottom:0;padding-bottom:0">
+    <span>audience&nbsp;: <b>PO + engineering</b></span>
+    <span>version auditée&nbsp;: <b>2.158.4</b></span>
+    <span>portée&nbsp;: <b>identité, IA, voix — pas la mécanique de jeu</b></span>
+  </div>
+
+  <hr class="rule">
+
+  <h2>1. Ce qui est cassé</h2>
+  <p class="sub">Neuf constats, tous vérifiés dans le code de <code>main</code>. Classés par ce qu'ils coûtent, pas par effort de correction.</p>
+
+  <div class="legend">
+    <span class="l-break">casse la marque</span>
+    <span class="l-drift">dérive / incohérence</span>
+    <span class="l-miss">actif gaspillé</span>
+  </div>
+
+  <div class="findings">
+
+    <div class="finding" data-sev="break">
+      <div class="idx">01</div>
+      <div class="body">
+        <h3>La marque est absente de l'application<span class="sev-tag">casse</span></h3>
+        <p>
+          Le header ne rend ni logo ni wordmark : hamburger à gauche, nav au centre, compte à droite. La bottom-nav
+          mobile est faite de quatre icônes génériques. La seule impression de marque de toute l'app est sur la
+          page d'accueil — et le wordmark y est rendu en <em>12&nbsp;px, en eyebrow, au-dessus</em> du titre de valeur.
+          Un joueur qui ouvre l'app en PWA sur <code>/play</code> ne voit jamais The Box.
+        </p>
+        <p class="ev">
+          <b>Header.tsx:326-486</b> — aucune occurrence de <code>logo</code><br>
+          <b>HomePage.tsx:246</b> — <code>&lt;m.img src="/logo.svg"&gt;</code>, seul rendu du mark<br>
+          <b>HomePage.tsx:258-260</b> — <code>text-xs … tracking-[0.2em]</code> sur <code>home.title</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="break">
+      <div class="idx">02</div>
+      <div class="body">
+        <h3>Sept taglines, six promesses<span class="sev-tag">casse</span></h3>
+        <p>
+          Chacune décrit le même jeu autrement : une étiquette de catégorie, deux listes de fonctionnalités, deux
+          descriptions plates, et la seule vraiment bonne. Celle qui gagne — <em>« Une capture. Un jeu à deviner. »</em>
+          — n'existe que sur la carte sociale : elle n'apparaît nulle part dans le produit.
+        </p>
+        <p class="ev">
+          <b>index.html:16</b> « Daily Video Game Guessing Challenge »<br>
+          <b>vite.config.ts</b> manifest « Identify video games from screenshots. New daily challenge… »<br>
+          <b>og.routes.ts:119</b> « Une capture. Un jeu à deviner. »<br>
+          <b>og.routes.ts:158</b> « Devinez le jeu à partir d'une capture d'écran. »<br>
+          <b>RouteSeo.tsx:33</b> « Devinez des jeux vidéo à partir de screenshots. Défi quotidien… »<br>
+          <b>fr/translation.json — home.headline</b> « Devine le jeu à partir d'une seule capture. »<br>
+          <b>marketing-video/IntroScene.tsx:42</b> « Guess the game from a screenshot »
+        </p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="break">
+      <div class="idx">03</div>
+      <div class="body">
+        <h3>Le français ne sait pas s'il tutoie<span class="sev-tag">casse</span></h3>
+        <p>
+          Sur 2&nbsp;325&nbsp;chaînes, 74 tutoient et 181 vouvoient. Les surfaces récentes (<code>geogamers</code>,
+          <code>rewards</code>, <code>tour</code>, <code>onboarding</code>) tutoient ; les anciennes
+          (<code>auth</code>, <code>legal</code>, <code>security</code>, <code>seo</code>) vouvoient. Six sections
+          contiennent les deux. La page d'accueil se contredit à trois lignes d'intervalle.
+        </p>
+        <p class="ev">
+          <b>mixtes&nbsp;:</b> home · game · geo · history · profile · achievements<br>
+          <b>home.headline</b> « Devine le jeu… <b>ta</b> culture gaming »<br>
+          <b>home.guestHint</b> « <b>jouez</b> instantanément en invité »<br>
+          <b>home.yourScore</b> « <b>Votre</b> Score »
+        </p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="drift">
+      <div class="idx">04</div>
+      <div class="body">
+        <h3>Deux modes, un nom à une lettre près<span class="sev-tag">dérive</span></h3>
+        <p>
+          « Géo » (badge <em>Alpha</em>) et « GeoGamers » (badge <em>Nouveau</em>) sont deux produits différents
+          dont les noms ne se distinguent pas à l'oral. Le premier est déjà en cours de sunset — le PRD et
+          l'interrupteur sont écrits. Le second n'est <em>même pas encore allumé</em> en production.
+          Le renommage est donc gratuit aujourd'hui, et payant le jour du lancement.
+        </p>
+        <p class="ev">
+          <b>nav-items.ts:46-60</b> — <code>PRIMARY_NAV</code> porte les deux entrées<br>
+          <b>env.ts:50</b> <code>GEO_COMMUNITY_ENABLED = 'true'</code> · <b>env.ts:58</b> <code>GEOGAMERS_ENABLED = 'false'</code><br>
+          <b>tasks/prd-geo-community-sunset.md</b> — phase 1 livrée, décision d'ops en attente
+        </p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="drift">
+      <div class="idx">05</div>
+      <div class="body">
+        <h3>Le produit promet un mode multijoueur qui n'existe pas<span class="sev-tag">dérive</span></h3>
+        <p>
+          <code>home.features.*</code> vit toujours dans les deux locales — « Mode Multijoueur », « Défiez vos amis
+          en temps réel avec scoring en direct ». Aucun composant ne lit ces clés depuis que la grille de features
+          a été remplacée par le teaser de succès. C'est une promesse de fonctionnalité abandonnée, encore livrée
+          dans le bundle, encore lue par les traducteurs.
+        </p>
+        <p class="ev">
+          <b>fr/en translation.json — home.features</b> : panorama · daily · multiplayer<br>
+          <b>src/**/*.tsx</b> — zéro référence
+        </p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="break">
+      <div class="idx">06</div>
+      <div class="body">
+        <h3>Le design system a des valeurs, pas de marque<span class="sev-tag">casse</span></h3>
+        <p>
+          <code>ui-tokens.md</code> gouverne les couleurs, halos, rayons et dégradés autorisés.
+          <code>oxygen-design-system.md</code> gouverne les principes d'accessibilité et la hiérarchie d'actions.
+          Aucun document ne possède le <em>nom</em>, la <em>promesse</em>, la <em>voix</em>, le <em>logo</em> ou
+          le <em>système de partage</em>. C'est la cause racine des constats 01 à 05 : il n'y a pas d'endroit où
+          une décision d'identité pourrait être prise, donc chaque surface a pris la sienne.
+        </p>
+        <p class="ev"><b>docs/</b> — 18 fichiers, aucun <code>brand.md</code></p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="drift">
+      <div class="idx">07</div>
+      <div class="body">
+        <h3>Premium vend la couleur de la marque<span class="sev-tag">dérive</span></h3>
+        <p>
+          Cinq thèmes Premium remplacent la primaire violette — rose néon, bleu cyber, vert matrix, coucher
+          embrasé, rétro 80s. Aucune règle ne protège le chrome. Le jour où le header porte enfin un logo
+          (constat 01), un abonné en « Vert matrix » verra une marque verte. La personnalisation est une bonne
+          feature ; elle ne doit simplement pas atteindre le mark.
+        </p>
+        <p class="ev"><b>backend/src/config/themes.ts:15-21</b> — <code>PREMIUM_THEME_KEYS</code></p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="miss">
+      <div class="idx">08</div>
+      <div class="body">
+        <h3>Le meilleur actif de voix est enterré dans un tableau aléatoire<span class="sev-tag">gaspillé</span></h3>
+        <p>
+          « Les ninjas du screenshot » apparaît cinq fois par locale — uniquement dans les messages de fin de
+          partie, tirés au hasard, vus une fois par jour, jamais deux fois les mêmes. C'est le seul endroit du
+          produit qui donne un nom aux joueurs. Il n'y a ni badge, ni label de profil, ni onboarding, ni texte de
+          partage qui le reprenne. Ailleurs, un joueur de The Box n'est appelé… rien.
+        </p>
+        <p class="ev"><b>home.completionMessages.*</b> — 5 occurrences FR, 5 EN</p>
+      </div>
+    </div>
+
+    <div class="finding" data-sev="drift">
+      <div class="idx">09</div>
+      <div class="body">
+        <h3>La doc tient une barre que le produit ne tient pas<span class="sev-tag">dérive</span></h3>
+        <p>
+          La convention HTML du dépôt interdit le glassmorphism et plafonne à un halo néon par page. Le produit
+          compte 57 usages de <code>backdrop-blur</code>, à commencer par le header collant. Ce n'est pas
+          dramatique en soi — mais quand les artefacts internes sont tenus à une discipline visuelle plus stricte
+          que l'app que voient les joueurs, la règle est inversée.
+        </p>
+        <p class="ev">
+          <b>.claude/CLAUDE.md</b> — « no glassmorphism, one neon glow per page max »<br>
+          <b>src/**/*.tsx</b> — 57 × <code>backdrop-blur</code>, dont <b>Header.tsx:328</b>
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="rule">
+
+  <h2>2. L'idée</h2>
+  <p class="sub">Une seule décision résout le nom, le logo, le rituel et le partage d'un coup.</p>
+
+  <div class="prose">
+    <p>
+      « The Box » est un bon nom — court, prononçable, mémorisable — avec un défaut unique et réparable :
+      <strong>il ne veut rien dire.</strong> Rien dans le produit n'explique ce qu'est la boîte. Le logo est un cube
+      filaire blanc, muet lui aussi. On a donc un nom sans histoire et un symbole sans référent — la revue des
+      31 principes viraux de juin l'avait déjà noté&nbsp;: mémorable, oui&nbsp;; vendeur, non.
+    </p>
+    <p>
+      La réparation ne demande pas un renommage. Elle demande de <strong>dire ce qu'est la boîte</strong> — et la
+      réponse est déjà dans la mécanique&nbsp;: chaque jour à minuit UTC, une boîte s'ouvre, elle est la même pour
+      tout le monde, et elle se referme. Le nom devient un verbe.
+    </p>
+  </div>
+
+  <div class="lockup">
+    <svg width="76" height="76" viewBox="0 0 512 512" role="img" aria-label="Logo The Box proposé : cube filaire au trait dégradé violet-rose, couvercle entrouvert">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#a855f7"></stop>
+          <stop offset="100%" stop-color="#ec4899"></stop>
+        </linearGradient>
+      </defs>
+      <g stroke="url(#lg)" stroke-width="16" fill="none" stroke-linejoin="round" stroke-linecap="round">
+        <polygon points="256,52 432,142 256,232 80,142"></polygon>
+        <line x1="256" y1="260" x2="256" y2="432"></line>
+        <line x1="80" y1="170" x2="80" y2="342"></line>
+        <line x1="432" y1="170" x2="432" y2="342"></line>
+        <line x1="80" y1="342" x2="256" y2="432"></line>
+        <line x1="256" y1="432" x2="432" y2="342"></line>
+        <line x1="80" y1="170" x2="256" y2="260"></line>
+        <line x1="432" y1="170" x2="256" y2="260"></line>
+      </g>
+    </svg>
+    <p class="verb">Ouvre la boîte.</p>
+    <p class="verb-en">Open the box</p>
+    <p class="cat">Le jeu quotidien du screenshot. Une capture, un jeu, tout le monde la même.</p>
+  </div>
+
+  <div class="prose">
+    <h3>Ce que le verbe débloque</h3>
+    <ul class="clean">
+      <li><b>Le logo veut enfin dire quelque chose.</b> Le cube est la boîte. Le couvercle entrouvert devient l'état « boîte du jour disponible » ; fermé, l'état « déjà jouée ». Le mark porte de l'information, pas juste la marque.</li>
+      <li><b>La série se raconte.</b> « 14 boîtes d'affilée » est concret là où « série de 14 » est abstrait.</li>
+      <li><b>Le partage a une phrase.</b> « J'ai ouvert la boîte du 13 septembre — 4&nbsp;820 pts, 9/10. » Une date, un score, un verbe : le format Wordle sans le copier.</li>
+      <li><b>Premium a une offre évidente.</b> Le gratuit ouvre la boîte du jour ; Premium ouvre <em>toutes</em> les boîtes. L'archive n'est plus une feature, c'est la suite logique de la phrase.</li>
+      <li><b>Les joueurs ont un nom.</b> « Les ninjas du screenshot » sort du tirage aléatoire et devient le label de la communauté — profil, classement, partage.</li>
+    </ul>
+
+    <div class="note warn">
+      <p>
+        <b>Le risque à surveiller&nbsp;:</b> en français gaming, « boîte » frôle la <em>loot box</em>, connotation
+        hasard-et-argent qu'on ne veut pas. Mitigation lexicale stricte, à inscrire dans la doc de marque&nbsp;:
+        <b>boîte</b> = le défi quotidien, jamais une récompense. Les récompenses restent des <b>coffres</b>
+        (<code>rewards</code>, chest du jour&nbsp;7). Les deux mots ne se croisent jamais dans la même phrase.
+      </p>
+    </div>
+
+    <h3>L'alternative écartée&nbsp;: renommer</h3>
+    <p>
+      Un nom descriptif et « SEO-able » (type <em>Screenshot Ninja</em>, <em>Pixelguess</em>) réglerait la
+      découvrabilité. Il coûterait&nbsp;: le domaine, l'organisation Docker Hub, les noms de paquets npm du
+      monorepo, l'<code>id</code> du manifest PWA (réinstallation forcée pour les joueurs PWA), 57 occurrences de
+      copie, les cartes OG déjà partagées, et la reprise à zéro d'une antériorité de presque trois ans.
+      <strong>Recommandation&nbsp;: garder le nom, et régler la découvrabilité par la ligne de catégorie</strong>
+      — « The&nbsp;Box — le jeu quotidien du screenshot » — qui porte les mots-clés sans toucher à la marque.
+    </p>
+  </div>
+
+  <hr class="rule">
+
+  <h2>3. Une promesse, une voix</h2>
+  <p class="sub">Les sept taglines deviennent une constante ; les 74 tutoiements deviennent la règle.</p>
+
+  <h3>La promesse, par surface</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Surface</th><th>Ce qu'on sert</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Hero, OG, manifest</td><td>Une capture. Un jeu à deviner.</td><td class="m">SITE_TAGLINE</td></tr>
+        <tr><td>Titre de page, SEO</td><td>The Box — le jeu quotidien du screenshot</td><td class="m">SITE_CATEGORY</td></tr>
+        <tr><td>CTA primaire</td><td>Ouvre la boîte du jour</td><td class="m">home.playToday</td></tr>
+        <tr><td>Sous-titre hero</td><td>Voyons si ta culture gaming tient encore debout.</td><td class="m">home.subtitle</td></tr>
+        <tr><td>Partage de résultat</td><td>J'ai ouvert la boîte du {date} — {score} pts, {n}/10.</td><td class="m">share.result</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:0.86rem;color:var(--muted);margin-top:0.7rem">
+    Deux constantes exportées depuis <code>packages/frontend/src/lib/seo.ts</code> (à côté de <code>SITE_NAME</code>,
+    déjà en place) et consommées par le backend via <code>@the-box/types</code>. Un test unitaire vérifie qu'aucune
+    tagline littérale ne subsiste dans <code>og.routes.ts</code>, <code>index.html</code> ou le manifest.
+  </p>
+
+  <h3>La règle de voix</h3>
+  <p style="max-width:68ch">
+    Le tutoiement n'est pas un goût, c'est une frontière&nbsp;: <b>le jeu tutoie, le contrat vouvoie.</b>
+    Un défi parle à un joueur ; des CGU parlent à un cocontractant. Cette ligne est nette, testable, et elle
+    classe les 2&nbsp;325 chaînes sans arbitrage au cas par cas.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Registre</th><th>Sections i18n</th><th>Pourquoi</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Tu</b> — le jeu</td>
+          <td class="m">home · game · geo · geogamers · history · profile · achievements · rewards · dailyLogin · onboarding · tour · leaderboard · share · streakRisk</td>
+          <td>Le produit met au défi. Un défi ne vouvoie pas.</td>
+        </tr>
+        <tr>
+          <td><b>Vous</b> — le contrat</td>
+          <td class="m">legal · auth · security · pricing · accountData · emailConsent · consent · pushNotifications · streamerKit · admin</td>
+          <td>Argent, données, identité, conformité. Le vouvoiement y est un signal de sérieux.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Spécimens</h3>
+  <div class="specimens">
+
+    <div class="spec">
+      <div class="where">fr/translation.json — home.guestHint</div>
+      <div class="rows">
+        <div class="tag">actuel</div><div class="now">Aucun compte requis — jouez instantanément en invité</div>
+        <div class="tag t-next">proposé</div><div class="next">Pas de compte, pas d'attente — ouvre la boîte du jour</div>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="where">fr/translation.json — home.yourScore · home.comeBackTomorrow</div>
+      <div class="rows">
+        <div class="tag">actuel</div><div class="now">Votre Score · Revenez demain pour un nouveau défi !</div>
+        <div class="tag t-next">proposé</div><div class="next">Ton score · Une nouvelle boîte demain, même heure.</div>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="where">en/translation.json — home.subtitle</div>
+      <div class="rows">
+        <div class="tag">actuel</div><div class="now">A fresh video-game challenge every day. Play instantly — no account needed.</div>
+        <div class="tag t-next">proposé</div><div class="next">Same box, same day, everyone. Let's see if your gaming cred holds up.</div>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="where">backend — og.routes.ts:158 (carte texte de repli)</div>
+      <div class="rows">
+        <div class="tag">actuel</div><div class="now">Devinez le jeu à partir d'une capture d'écran.</div>
+        <div class="tag t-next">proposé</div><div class="next">Une capture. Un jeu à deviner.</div>
+      </div>
+    </div>
+
+  </div>
+  <div class="note">
+    <p>
+      <b>Coût de la passe FR&nbsp;:</b> ~180 chaînes touchées, un seul spec E2E référence de la copie au
+      vouvoiement (<code>e2e/leaderboard.spec.ts</code>). Le risque de régression de tests est quasi nul —
+      ce qui rend cette passe beaucoup moins chère qu'elle n'en a l'air.
+    </p>
+  </div>
+
+  <hr class="rule">
+
+  <h2>4. Trois modes deviennent un rituel</h2>
+  <p class="sub">La navigation primaire passe de cinq entrées à trois, sans rien supprimer que le dépôt n'ait déjà décidé de supprimer.</p>
+
+  <div style="overflow-x:auto;margin-top:1.5rem">
+  <svg viewBox="0 0 720 250" width="720" style="max-width:100%;height:auto" role="img"
+       aria-label="Diagramme : la navigation actuelle à cinq entrées (Accueil, Jouer, Classement, Géo alpha, GeoGamers nouveau) se réduit à trois entrées (Accueil, Jouer, Classement), Géo étant retiré et GeoGamers renommé puis fusionné dans le défi quotidien.">
+    <defs>
+      <linearGradient id="arrow" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#a855f7"></stop>
+        <stop offset="100%" stop-color="#ec4899"></stop>
+      </linearGradient>
+      <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#ec4899"></path>
+      </marker>
+    </defs>
+
+    <text x="0" y="14" fill="#9b96ad" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="1.6">AUJOURD'HUI · 5 ENTRÉES</text>
+    <g font-family="Inter, sans-serif" font-size="13" fill="#e7e4ef">
+      <g>
+        <rect x="0" y="30" width="128" height="34" rx="6" fill="#14141c" stroke="rgba(255,255,255,.12)"></rect>
+        <text x="14" y="52" fill="#e7e4ef">Accueil</text>
+      </g>
+      <g>
+        <rect x="0" y="72" width="128" height="34" rx="6" fill="#14141c" stroke="rgba(255,255,255,.12)"></rect>
+        <text x="14" y="94" fill="#e7e4ef">Jouer</text>
+      </g>
+      <g>
+        <rect x="0" y="114" width="128" height="34" rx="6" fill="#14141c" stroke="rgba(255,255,255,.12)"></rect>
+        <text x="14" y="136" fill="#e7e4ef">Classement</text>
+      </g>
+      <g>
+        <rect x="0" y="156" width="128" height="34" rx="6" fill="#14141c" stroke="rgba(239,68,68,.45)"></rect>
+        <text x="14" y="178" fill="#a9a3bb">Géo</text>
+        <text x="92" y="178" fill="#ef4444" font-family="JetBrains Mono, monospace" font-size="9">ALPHA</text>
+      </g>
+      <g>
+        <rect x="0" y="198" width="128" height="34" rx="6" fill="#14141c" stroke="rgba(234,179,8,.45)"></rect>
+        <text x="14" y="220" fill="#a9a3bb">GeoGamers</text>
+        <text x="86" y="220" fill="#eab308" font-family="JetBrains Mono, monospace" font-size="9">NOUVEAU</text>
+      </g>
+    </g>
+
+    <g stroke="url(#arrow)" stroke-width="1.5" fill="none" marker-end="url(#head)">
+      <path d="M136,47 L236,47"></path>
+      <path d="M136,89 L236,89"></path>
+      <path d="M136,131 L236,131"></path>
+      <path d="M136,173 C186,173 196,173 236,173"></path>
+      <path d="M136,215 C186,215 196,110 236,100"></path>
+    </g>
+
+    <text x="248" y="14" fill="#9b96ad" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="1.6">DEVENIR · 3 ENTRÉES</text>
+    <g font-family="Inter, sans-serif" font-size="13">
+      <g>
+        <rect x="248" y="30" width="150" height="34" rx="6" fill="#14141c" stroke="rgba(255,255,255,.12)"></rect>
+        <text x="262" y="52" fill="#e7e4ef">Accueil</text>
+      </g>
+      <g>
+        <rect x="248" y="72" width="150" height="62" rx="6" fill="#1b1b25" stroke="#a855f7"></rect>
+        <text x="262" y="94" fill="#e7e4ef">Ouvrir la boîte</text>
+        <text x="262" y="112" fill="#9b96ad" font-size="10.5" font-family="JetBrains Mono, monospace">nommer → situer</text>
+      </g>
+      <g>
+        <rect x="248" y="142" width="150" height="34" rx="6" fill="#14141c" stroke="rgba(255,255,255,.12)"></rect>
+        <text x="262" y="164" fill="#e7e4ef">Classement</text>
+      </g>
+    </g>
+
+    <g font-family="JetBrains Mono, monospace" font-size="10.5" fill="#9b96ad">
+      <text x="420" y="50">Géo communautaire retiré via</text>
+      <text x="420" y="66" fill="#b9a6d8">GEO_COMMUNITY_ENABLED=false</text>
+      <text x="420" y="82">— le pipeline d'ingestion reste,</text>
+      <text x="420" y="98">GeoGamers en dépend.</text>
+
+      <text x="420" y="132">GeoGamers renommé avant</text>
+      <text x="420" y="148">d'être allumé — il tourne encore</text>
+      <text x="420" y="164" fill="#b9a6d8">GEOGAMERS_ENABLED=false</text>
+      <text x="420" y="180">donc le renommage est gratuit.</text>
+    </g>
+  </svg>
+  </div>
+
+  <div class="prose">
+    <p>
+      La consolidation n'invente rien&nbsp;: le sunset du Géo communautaire est déjà spécifié et son interrupteur
+      est déjà livré (<code>tasks/prd-geo-community-sunset.md</code>, phase&nbsp;1). Il ne manque qu'une décision
+      d'ops. Ce que la refonte ajoute, c'est la <em>raison de marque</em> de la prendre&nbsp;: deux modes aux noms
+      jumeaux coûtent plus en confusion qu'ils ne rapportent en profondeur.
+    </p>
+    <div class="note">
+      <p>
+        <b>Fusionner GeoGamers dans la boîte quotidienne — recommandé comme cap, pas comme prochain sprint.</b>
+        Les deux phases de GeoGamers (nommer le jeu, puis situer la scène) sont exactement ce que « ouvrir la
+        boîte » devrait vouloir dire. Mais GeoGamers a sa propre saison, son propre barème sur 200 et son propre
+        classement mensuel&nbsp;: fusionner, c'est refondre deux économies de score. À faire à une frontière de
+        saison, pas en cours de route. <b>Cette itération se contente du renommage</b> — qui, lui, est gratuit
+        tant que le flag est à <code>false</code>.
+      </p>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h2>5. Mettre la marque à l'écran</h2>
+
+  <div class="prose">
+    <ul class="clean">
+      <li><b>Un lockup dans le header, sur toutes les pages.</b> Mark + wordmark, lien vers l'accueil, à gauche en desktop, à côté du hamburger en mobile. C'est la correction du constat&nbsp;01 et elle tient en un composant.</li>
+      <li><b>Le mark passe au dégradé autorisé.</b> Le trait blanc devient <code>from-neon-purple to-neon-pink</code> — un dégradé déjà inscrit à la liste blanche de <code>ui-tokens.md</code>, donc aucune nouvelle décision de design à arbitrer. Une variante « couvercle entrouvert » signale la boîte du jour non jouée.</li>
+      <li><b>Le hero rend son eyebrow.</b> Une fois la marque dans le chrome, le wordmark 12&nbsp;px au-dessus du <code>h1</code> n'a plus de raison d'être&nbsp;: le titre de valeur récupère toute la place.</li>
+      <li><b>Le chrome de marque est verrouillé sous les thèmes Premium.</b> Nouveau token <code>--brand-purple</code>, distinct de <code>--primary</code>, que les six thèmes n'ont pas le droit de redéfinir. Règle à inscrire dans <code>ui-tokens.md</code> en même temps que le token.</li>
+      <li><b>Le header perd son flou.</b> <code>backdrop-blur-md</code> → fond opaque. Le dépôt interdit déjà le glassmorphism dans ses propres artefacts&nbsp;; le chrome de l'app est le bon endroit pour arrêter d'en faire l'exception.</li>
+    </ul>
+  </div>
+
+  <hr class="rule">
+
+  <h2>6. Le plan</h2>
+  <p class="sub">Cinq phases, ordonnées par ratio risque/valeur. Les phases 1 à 3 sont livrables sans aucune décision produit.</p>
+
+  <div class="phases">
+
+    <div class="phase">
+      <div class="p-id">PHASE 1<br><span class="risk">nul</span></div>
+      <div>
+        <h3>Écrire la couche manquante</h3>
+        <ul>
+          <li><code>docs/brand.md</code> + <code>docs/brand.html</code> — nom et son sens, ligne de catégorie, tagline par surface, règle tu/vous, nom des joueurs, spec du logo, système de partage, séparation boîte/coffre</li>
+          <li>Référencer depuis <code>CLAUDE.md</code> et <code>.claude/CLAUDE.md</code> (tableau « Feature Documentation »)</li>
+          <li>Aucun code touché. C'est la phase qui empêche les constats 01-05 de revenir.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="p-id">PHASE 2<br><span class="risk">faible</span></div>
+      <div>
+        <h3>Une promesse, une voix</h3>
+        <ul>
+          <li><code>src/lib/seo.ts</code> — ajouter <code>SITE_TAGLINE</code> et <code>SITE_CATEGORY</code> par locale</li>
+          <li>Réécrire les sept emplacements&nbsp;: <code>index.html</code>, <code>vite.config.ts</code> (manifest), <code>RouteSeo.tsx</code>, <code>og.routes.ts</code> ×2, <code>home.headline</code>, <code>IntroScene.tsx</code></li>
+          <li>Passe tutoiement FR sur les six sections mixtes ; laisser <code>legal/auth/security/pricing/accountData</code> au vouvoiement</li>
+          <li>Passe de voix EN sur <code>home.subtitle</code> — porter le ton FR, ne pas traduire la liste de features</li>
+          <li>Supprimer <code>home.features.*</code> des deux locales (copie morte, promesse multijoueur)</li>
+          <li>Test unitaire&nbsp;: aucune tagline littérale hors des constantes</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="p-id">PHASE 3<br><span class="risk">faible</span></div>
+      <div>
+        <h3>La marque à l'écran</h3>
+        <ul>
+          <li>Nouveau <code>src/components/layout/BrandLockup.tsx</code>, monté dans <code>Header.tsx</code></li>
+          <li><code>public/logo.svg</code> au dégradé violet→rose ; ajouter <code>logo-open.svg</code> (état boîte disponible)</li>
+          <li><code>HomePage.tsx</code> — retirer le wordmark eyebrow du hero</li>
+          <li><code>index.css</code> — token <code>--brand-purple</code> hors de portée des thèmes ; règle ajoutée à <code>ui-tokens.md</code></li>
+          <li><code>Header.tsx</code> — retirer <code>backdrop-blur-md</code></li>
+          <li>Mettre à jour les snapshots de <code>e2e/visual-regression.spec.ts</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="p-id">PHASE 4<br><span class="risk">moyen</span></div>
+      <div>
+        <h3>Le rituel et la boucle de partage</h3>
+        <ul>
+          <li>Langage « boîte » sur la série, le partage de résultat, les pushes et les e-mails&nbsp;: <code>geogamers-daily-push-copy.ts</code>, <code>evening-nudge-copy.ts</code>, <code>share.*</code></li>
+          <li>Carte OG de résultat alignée sur la phrase de partage</li>
+          <li>Paramètres UTM sur les liens <code>/share/daily</code> — lacune d'instrumentation ouverte depuis le plan social</li>
+          <li>Sortir « les ninjas du screenshot » du tirage aléatoire&nbsp;: label de profil et de classement</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="p-id">PHASE 5<br><span class="risk">décision produit</span></div>
+      <div>
+        <h3>Consolidation des modes</h3>
+        <ul>
+          <li><code>GEO_COMMUNITY_ENABLED=false</code> en production (l'interrupteur existe, la décision non)</li>
+          <li>Renommer GeoGamers avant de lever <code>GEOGAMERS_ENABLED</code> — gratuit maintenant, coûteux après</li>
+          <li><code>nav-items.ts</code> — <code>PRIMARY_NAV</code> de 5 à 3 ; <code>HomeModesShowcase</code> réduit ou retiré</li>
+          <li>Plan de sortie pour les contributeurs Géo&nbsp;: des joueurs réels ont gagné des paliers et des récompenses sur cette surface</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="rule">
+
+  <h2>7. Ce qu'il me faut de toi</h2>
+
+  <ol class="asks">
+    <li><b>« Boîte » — on y va&nbsp;?</b> C'est la décision qui porte tout le reste. Si le mot te gêne (risque loot box), le reste du document tient quand même, mais il perd son verbe et redevient une passe de cohérence.</li>
+    <li><b>Le nouveau nom de GeoGamers.</b> Tant que <code>GEOGAMERS_ENABLED=false</code>, le renommage ne coûte rien. Après le lancement, il coûte des URLs, des succès et une saison.</li>
+    <li><b>Le sunset du Géo communautaire&nbsp;: on tire l'interrupteur&nbsp;?</b> Le code est prêt depuis le PRD. Ce n'est plus une question d'ingénierie.</li>
+    <li><b>Tu ou vous dans le classement et le partage.</b> J'ai tranché « tu » (c'est le jeu), mais ces deux surfaces sont publiques et c'est le seul endroit où la frontière est défendable dans les deux sens.</li>
+  </ol>
+
+  <div class="note" style="margin-top:2rem">
+    <p>
+      <b>Hors périmètre, volontairement&nbsp;:</b> la mécanique de jeu, le barème, l'économie d'indices, les prix
+      Premium et le catalogue de succès. Rien ici ne change ce que fait le produit — seulement ce qu'il dit
+      être. Les constats de mécanique déjà ouverts (indice de proximité non throttlé, forgeabilité du timer)
+      vivent dans <code>tasks/guess-system-personas-review.html</code> et ne sont pas repris ici.
+    </p>
+  </div>
+
+  <p class="foot">
+    Audit sur <b>main</b> @ 2.158.4 · chiffres comptés dans le code, pas estimés<br>
+    Antériorité&nbsp;: tasks/viral-product-principles-review.html · tasks/prd-geo-community-sunset.md · docs/ui-tokens.md · docs/oxygen-design-system.md
+  </p>
+
+</div>
+
+</body>
+</html>
