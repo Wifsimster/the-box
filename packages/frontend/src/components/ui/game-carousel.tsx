@@ -224,7 +224,6 @@ interface GameCarouselProps {
     currentIndex: number
     onSlideChange?: (index: number) => void
     className?: string
-    showSwipeHint?: boolean
     enableHapticFeedback?: boolean
     imageClassName?: string
     onImageLoad?: () => void

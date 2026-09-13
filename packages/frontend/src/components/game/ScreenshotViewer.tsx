@@ -146,7 +146,6 @@ export function ScreenshotViewer({
         currentIndex={1}
         onSlideChange={handleSlideChange}
         onImageLoad={onLoad}
-        showSwipeHint={gamePhase === 'playing'}
         enableHapticFeedback={true}
         className="size-full"
       />

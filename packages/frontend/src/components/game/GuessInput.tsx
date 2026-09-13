@@ -81,6 +81,13 @@ export function GuessInput() {
 
   const handleSubmit = async () => {
     if (isSubmitting || !query.trim()) return
+    // The submit button carried `!isOnline`, but Enter called straight through
+    // to here — so offline players fired a request that could only fail, while
+    // the button next to them sat greyed out. Guard the action, not the button.
+    if (!isOnline) {
+      toast.error(t('game.offlineGuess'))
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -295,6 +302,13 @@ export function GuessInput() {
           </Tooltip>
         )}
       </div>
+
+      {/* A dead submit button with no explanation reads as a broken app. */}
+      {gamePhase === 'playing' && !isOnline && (
+        <p role="status" className="mt-2 text-center text-xs text-warning">
+          {t('game.offlineGuess')}
+        </p>
+      )}
 
       {gamePhase === 'playing' && proximityHint && (
         <ProximityHintBanner hint={proximityHint} />
