@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<!--
+  SUMMARY: SOLID compliance audit of the backend (2026-09-13). Scored each of
+  the five principles against measured evidence, then fixed the violations.
+  Score went 3.1/5 -> 4.7/5. Headline changes: the 3658-line admin router and
+  1238-line agent router split by concern; all 107 raw SQL statements removed
+  from the presentation layer; the composition root moved out of domain/;
+  two type-tag switch pairs replaced by compiler-enforced registries; four fat
+  repository ports segregated by role. 480 -> 531 tests, all passing.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SOLID Audit — Backend · The Box</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1b1b25;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --neon-blue: #38bdf8;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --risk: #ef4444;
+    --radius: 0.625rem;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--sans);
+    line-height: 1.6; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--neon-purple); text-decoration: none; border-bottom: 1px dotted rgba(168,85,247,.4); }
+  a:hover { border-bottom-color: var(--neon-purple); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--neon-purple); outline-offset: 2px; border-radius: 4px; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre code { background: transparent; padding: 0; }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; overflow-x: auto; font-size: 0.85rem; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,10,15,0.85); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border); padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem;
+  }
+  header.top .title { font-weight: 600; }
+  header.top .repo { color: var(--muted); font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 72ch) 220px; gap: 3rem; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  main { min-width: 0; }
+  aside.toc {
+    position: sticky; top: 4.5rem; align-self: start; font-size: 0.875rem;
+    border-left: 1px solid var(--border); padding-left: 1rem;
+    max-height: calc(100vh - 6rem); overflow-y: auto;
+  }
+  aside.toc h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.5rem; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; }
+  aside.toc li { margin: 0.35rem 0; }
+  aside.toc a { color: var(--muted); border: none; }
+  aside.toc a:hover { color: var(--neon-purple); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: static; border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 1rem; max-height: none; }
+  }
+
+  h1 { font-size: 2.25rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 2.75rem 0 1rem; letter-spacing: -0.005em; scroll-margin-top: 4rem; }
+  h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+  .meta b { color: var(--fg); font-weight: 500; }
+
+  .hero {
+    margin-top: 1.25rem; padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(236,72,153,0.06));
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: 0 0 60px -20px rgba(168,85,247,0.4);
+  }
+  .hero .score-line { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+  .hero .from { font-family: var(--mono); font-size: 1.5rem; color: var(--muted); }
+  .hero .arrow { color: var(--muted); }
+  .hero .to { font-family: var(--mono); font-size: 2.5rem; font-weight: 600; color: var(--neon-purple); }
+  .hero .target { color: var(--muted); font-size: 0.9rem; }
+  .hero p { margin: 0.75rem 0 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+  .tbl-wrap { overflow-x: auto; }
+
+  .delta { font-family: var(--mono); font-size: 0.85rem; }
+  .delta .was { color: var(--risk); }
+  .delta .now { color: var(--ok); }
+
+  .bar { display: inline-block; vertical-align: middle; width: 84px; height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-left: 0.5rem; }
+  .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-pink)); }
+
+  .principle { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin: 1rem 0; overflow: hidden; }
+  .principle summary { padding: 0.9rem 1.25rem; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 0.75rem; font-weight: 500; flex-wrap: wrap; }
+  .principle summary::-webkit-details-marker { display: none; }
+  .principle summary::after { content: '+'; margin-left: auto; color: var(--muted); font-family: var(--mono); }
+  .principle[open] summary::after { content: '\2212'; }
+  .principle summary .tag { color: var(--neon-purple); font-family: var(--mono); font-size: 0.8rem; }
+  .principle summary .sc { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+  .principle .body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border); }
+  .principle .body > :first-child { margin-top: 1rem; }
+
+  .callout { border-left: 3px solid var(--neon-purple); background: var(--surface); padding: 0.85rem 1rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1.25rem 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  ul.tight li { margin: 0.3rem 0; }
+  .muted { color: var(--muted); }
+  footer { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem 3rem; color: var(--muted); font-size: 0.85rem; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="title">SOLID Audit — Backend</span>
+  <span class="repo">the-box · 2026-09-13</span>
+</header>
+
+<div class="layout">
+<main>
+
+<h1>SOLID Audit</h1>
+<p class="meta">Scope: <b>packages/backend</b> · Method: score against measured evidence, fix, re-measure · Verification: <b>531 unit tests, build and lint clean</b></p>
+
+<div class="hero">
+  <div class="score-line">
+    <span class="from">3.1</span>
+    <span class="arrow">&rarr;</span>
+    <span class="to">4.7</span>
+    <span class="target">/ 5 &nbsp;·&nbsp; target was &gt; 4.5</span>
+  </div>
+  <p>Every score below is anchored to something countable &mdash; file sizes, import counts, raw SQL statements, interface method counts &mdash; not to taste. Where a fix could be enforced rather than merely documented, it is: six architecture tests now fail the build if the layering regresses.</p>
+</div>
+
+<h2 id="scores">Scores</h2>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Principle</th><th>Before</th><th>After</th><th>Headline evidence</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Single Responsibility</td>
+      <td class="num">2.5</td>
+      <td class="num">4.5 <span class="bar"><span style="width:90%"></span></span></td>
+      <td>Largest route module <span class="delta"><span class="was">3658</span> &rarr; <span class="now">62</span></span> lines</td>
+    </tr>
+    <tr>
+      <td>Open/Closed</td>
+      <td class="num">3.0</td>
+      <td class="num">4.8 <span class="bar"><span style="width:96%"></span></span></td>
+      <td>Type-tag <code>switch</code>/<code>if</code> chains <span class="delta"><span class="was">3</span> &rarr; <span class="now">0</span></span>, replaced by compiler-enforced registries</td>
+    </tr>
+    <tr>
+      <td>Liskov Substitution</td>
+      <td class="num">4.5</td>
+      <td class="num">4.7 <span class="bar"><span style="width:94%"></span></span></td>
+      <td>No implementation inheritance anywhere; was already sound</td>
+    </tr>
+    <tr>
+      <td>Interface Segregation</td>
+      <td class="num">2.5</td>
+      <td class="num">4.5 <span class="bar"><span style="width:90%"></span></span></td>
+      <td>5 fat ports split into <span class="delta"><span class="now">22</span></span> role interfaces</td>
+    </tr>
+    <tr>
+      <td>Dependency Inversion</td>
+      <td class="num">3.0</td>
+      <td class="num">4.9 <span class="bar"><span style="width:98%"></span></span></td>
+      <td>Raw SQL in presentation <span class="delta"><span class="was">107</span> &rarr; <span class="now">0</span></span>; domain&rarr;infrastructure imports <span class="delta"><span class="was">3</span> &rarr; <span class="now">0</span></span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p class="muted">Average: <b>3.1</b> &rarr; <b>4.68</b>.</p>
+
+<h2 id="findings">Findings and fixes</h2>
+
+<details class="principle" open>
+  <summary><span class="tag">SRP</span> <span>Single Responsibility</span> <span class="sc">2.5 &rarr; 4.5</span></summary>
+  <div class="body">
+    <h3>What was wrong</h3>
+    <p><code>admin.routes.ts</code> was a 3658-line module holding 81 routes across 15 unrelated concerns &mdash; catalog, job queue, email, analytics, geo ingestion, moderation, billing, scraping &mdash; importing 17 infrastructure modules and running 64 raw SQL statements inline. <code>agent-geo.routes.ts</code> repeated the pattern at 1238 lines. <code>index.ts</code> was simultaneously the process entrypoint, an HTTP handler, an HTML templating engine and the cron schedule; its <code>start()</code> ran 570 lines. <code>submitGuess</code> was 509 lines mixing authorization, anti-replay, anti-oracle, timer validation, scoring, persistence, achievements and webhooks.</p>
+
+    <h3>What changed</h3>
+    <ul class="tight">
+      <li>Admin router split into <b>16 focused modules</b>; parent is 62 lines of guard + mounts. Route set verified byte-identical: same 81 method+path pairs.</li>
+      <li>Agent geo router split into <b>5 modules</b> + shared helpers; parent 57 lines. Same 15 routes.</li>
+      <li>Entrypoint decomposed: <code>bootstrap/scheduled-jobs.ts</code>, <code>health.routes.ts</code>, <code>share.routes.ts</code>. 984 &rarr; 424 lines.</li>
+      <li><code>submitGuess</code>'s scoring pipeline, anti-cheat rules and end-of-session ceremony each extracted into named, tested units.</li>
+    </ul>
+
+    <div class="callout">
+      <p><b>Ordering was load-bearing</b> in the entrypoint &mdash; the share shells must sit after <code>express.static</code> or the static <code>index.html</code> shadows them, and before the SPA fallback. Verified structurally rather than by eye: expanding each extracted router back in place yields the same 39 mounts in the same order.</p>
+    </div>
+
+    <h3>Residual</h3>
+    <p><code>submitGuess</code> remains ~430 lines. Every <em>decision</em> inside it is now an extracted, tested, pure unit; what is left is sequencing and persistence calls. Linear orchestration of that length is defensible, but it is the obvious next target.</p>
+  </div>
+</details>
+
+<details class="principle">
+  <summary><span class="tag">OCP</span> <span>Open/Closed</span> <span class="sc">3.0 &rarr; 4.8</span></summary>
+  <div class="body">
+    <h3>What was wrong</h3>
+    <p>Achievement criteria were dispatched by <b>two parallel <code>switch</code> statements</b> (21 and 10 cases) in a 943-line service. Adding a criterion meant remembering to edit both; forgetting the second silently shipped an achievement whose progress bar never moved. Geo ingestion had the same shape &mdash; a six-branch <code>if (source === ...)</code> chain whose last source was an unlabelled fall-through.</p>
+
+    <h3>What changed</h3>
+    <p>Both became declarative registries where each variant owns all of its behaviour, typed as <code>Record&lt;ClosedUnion, Handler&gt;</code>. Omitting a handler is now a <b>compile error</b>, not a runtime warning:</p>
+<pre><code>src/domain/services/achievement.service.ts(723,9): error TS2741:
+  Property 'brand_new_criterion' is missing in type '{ ... }'
+  but required in type 'Record&lt;"perfect_score" | ... , CriterionHandler&gt;'</code></pre>
+    <p class="muted">Verified by temporarily adding a criterion type and confirming the build fails.</p>
+
+    <div class="callout warn">
+      <p><b>The refactor surfaced a latent bug.</b> <code>geogamers_runs_completed</code> and <code>geogamers_perfect_run</code> are seeded into the <code>achievements</code> table but awarded by key from the GeoGamers route, so they hit the old <code>default:</code> branch and logged <i>"Unknown achievement criteria type"</i> after <em>every</em> classic game. They are now registered explicitly as handled-elsewhere.</p>
+    </div>
+
+    <h3>Guard</h3>
+    <p>A test parses the migrations and asserts every seeded <code>criteria.type</code> is registered, so the table and the code cannot drift apart again.</p>
+  </div>
+</details>
+
+<details class="principle">
+  <summary><span class="tag">LSP</span> <span>Liskov Substitution</span> <span class="sc">4.5 &rarr; 4.7</span></summary>
+  <div class="body">
+    <p>This was already the strongest dimension and needed no repair. The backend uses interfaces plus factory functions throughout; there is no implementation inheritance to violate. The only <code>extends</code> in the codebase widens interfaces, which is substitutable by construction.</p>
+    <p>It improved slightly as a side-effect of the ISP work: a service that depends on a four-method role interface can be handed any conforming object, so substitutability is now exercised in practice rather than merely available in principle.</p>
+  </div>
+</details>
+
+<details class="principle">
+  <summary><span class="tag">ISP</span> <span>Interface Segregation</span> <span class="sc">2.5 &rarr; 4.5</span></summary>
+  <div class="body">
+    <h3>What was wrong</h3>
+    <p>Five ports were single wide interfaces that every consumer depended on wholesale, however little they used:</p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Port</th><th class="num">Methods</th><th>Reality</th></tr></thead>
+      <tbody>
+        <tr><td><code>SessionRepository</code></td><td class="num">25</td><td><code>admin.service</code> calls 1, <code>geo-game</code> calls 1</td></tr>
+        <tr><td><code>AchievementRepository</code></td><td class="num">23</td><td>three unrelated roles in one interface</td></tr>
+        <tr><td><code>ChallengeRepository</code></td><td class="num">15</td><td><code>leaderboard.service</code> calls 1 &mdash; and could write challenges</td></tr>
+        <tr><td><code>UserRepository</code></td><td class="num">15</td><td>four consumers with near-disjoint 2&ndash;5 method slices</td></tr>
+        <tr><td><code>GameRepository</code></td><td class="num">13</td><td><code>game.service</code> calls 3, all reads &mdash; yet could delete a game</td></tr>
+        <tr><td><code>DomainLogger</code></td><td class="num">7</td><td><code>trace</code> and <code>fatal</code> called by <b>zero</b> services</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>What changed</h3>
+    <p>Each split into role interfaces, with the original name retained as the union the concrete repository implements &mdash; so the composition root passes the same objects and no runtime wiring changed. Several services can now no longer reach methods they have no business calling: the leaderboard cannot write a challenge, achievements cannot write to the user table, the game loop cannot touch referral columns or delete a catalog entry.</p>
+
+    <div class="callout">
+      <p><b>A cast was hiding a defect.</b> The fat interfaces forced <code>as unknown as</code> in test doubles. Removing one revealed that the leaderboard test's challenge fixture was <code>{ id: number }</code> where a full <code>ChallengeRecord</code> was required &mdash; the cast had silenced it. Another was <code>{} as unknown as UserRepository</code>: an empty object standing in for fifteen methods.</p>
+    </div>
+
+    <h3>Residual</h3>
+    <p><code>achievement.service</code> genuinely uses 18 of its 23 repository methods, so its test double is still cast. That is a signal the service itself is doing too much, not that the port is wrong &mdash; it belongs to the SRP backlog.</p>
+  </div>
+</details>
+
+<details class="principle">
+  <summary><span class="tag">DIP</span> <span>Dependency Inversion</span> <span class="sc">3.0 &rarr; 4.9</span></summary>
+  <div class="body">
+    <h3>What was wrong</h3>
+    <p>CLAUDE.md states the rule as <i>"presentation &rarr; domain &rarr; infrastructure; domain has no outward deps"</i>. The file asserting it was breaking it: the bottom 330 lines of <code>domain/services/index.ts</code> were a composition root importing the Pino logger, four BullMQ queues, the Socket.io emitter and 23 concrete repositories. <b>Importing a domain type opened a Redis connection.</b></p>
+    <p>Meanwhile Express handlers ran <b>107 raw Knex statements</b>, and <code>billing.service.ts</code> imported <code>Stripe.Subscription</code> straight from the vendor SDK.</p>
+
+    <h3>What changed</h3>
+    <ul class="tight">
+      <li>Composition root moved to <code>src/composition/</code>; the domain barrel is now pure. All 30 importers redirected.</li>
+      <li>All 107 raw SQL statements moved behind repositories, including three multi-table transactions.</li>
+      <li>Vendor type replaced by a domain-owned <code>ExternalSubscription</code> naming the four fields actually read. A real Stripe subscription still satisfies it structurally, so no call site changed.</li>
+    </ul>
+
+    <div class="callout">
+      <p><b>Two copies of one rule had already drifted apart.</b> The SSE stream hand-rolled its own ranking query &mdash; a line-for-line copy of <code>leaderboardRepository.rankForScore</code> &mdash; on a surface whose entire point is that a streamer's overlay and their public profile agree. Both now call the same method. The same "resolve user ids to public slugs" query appeared three times in one file.</p>
+    </div>
+
+    <h3>Guard</h3>
+    <p>Six tests in <code>domain/architecture.test.ts</code> make the layering rule executable instead of aspirational. They assert the domain imports nothing from <code>infrastructure/</code> or <code>presentation/</code>, that no domain service pulls in bullmq / ioredis / knex / kysely / socket.io / stripe / express / pino, and that no presentation file imports the Knex instance.</p>
+    <p class="muted"><code>testConnection</code> remains allowed in the readiness probe &mdash; checking the database is reachable is exactly that endpoint's job. The rule bans the query builder, not the module.</p>
+  </div>
+</details>
+
+<h2 id="verification">Verification</h2>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Check</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td><code>npm run build</code> (typecheck, all packages)</td><td>clean</td></tr>
+    <tr><td><code>npm test</code></td><td><b>531 passing, 0 failing</b> (baseline 480)</td></tr>
+    <tr><td><code>npm run lint</code></td><td>clean &mdash; 1 pre-existing warning in an untouched e2e spec</td></tr>
+    <tr><td>Admin route table</td><td>81 method+path pairs, identical before and after</td></tr>
+    <tr><td>Agent geo route table</td><td>15 method+path pairs, identical</td></tr>
+    <tr><td>Entrypoint mount order</td><td>39 mounts, identical order</td></tr>
+    <tr><td>Extracted job schedules</td><td>line-for-line identical; 13 cron patterns unchanged</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Each new architecture guard was checked negatively as well as positively &mdash; a violation was temporarily reintroduced to confirm the test fails, then reverted.</p>
+
+<div class="callout warn">
+  <p><b>Not verified:</b> the app was never booted. Docker is unavailable in the audit environment, so Postgres and Redis could not be started and no request was served end-to-end. The entrypoint decomposition in particular rests on structural verification (mount order, identical route tables) rather than an observed boot. <b>Run the E2E suite against a real stack before merging.</b></p>
+</div>
+
+<h2 id="backlog">Backlog</h2>
+<ul class="tight">
+  <li><code>submitGuess</code> at ~430 lines &mdash; decompose the persistence sequence.</li>
+  <li><code>achievement.service</code> at 1099 lines using 18 repository methods &mdash; the count is a symptom; split the service, then the port follows.</li>
+  <li><code>fuzzy-match.service</code> at 1036 lines with a 314-line <code>isMatchEnhanced</code> &mdash; cohesive as a matching algorithm, but the core function is worth breaking up.</li>
+  <li>Frontend was not audited. <code>GeoMapsTab.tsx</code> (1543 lines) and <code>adminStore.ts</code> (945) are the visible candidates.</li>
+</ul>
+
+</main>
+
+<aside class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#scores">Scores</a></li>
+    <li><a href="#findings">Findings and fixes</a></li>
+    <li><a href="#verification">Verification</a></li>
+    <li><a href="#backlog">Backlog</a></li>
+  </ol>
+</aside>
+</div>
+
+<footer>
+  Audit performed against <code>packages/backend</code>. Scores are judgements; the evidence columns are counts you can reproduce with <code>grep</code> and <code>wc</code>.
+</footer>
+
+</body>
+</html>
