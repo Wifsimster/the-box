@@ -71,9 +71,13 @@ export default function GeoGamersPlayPage() {
 
     if (phase === 'error') {
         return (
-            <div className="mx-auto max-w-md py-16 text-center">
+            <div className="mx-auto max-w-md px-4 py-16 text-center">
                 <p className="mb-4 text-destructive">{errorMessage ?? t('geogamers.error')}</p>
-                <Button onClick={() => void start()}>{t('geogamers.retry')}</Button>
+                {/* `min-h-11`: the only way out of the error state, so it holds
+                    the 44px mobile target rather than the default 40px. */}
+                <Button className="min-h-11" onClick={() => void start()}>
+                    {t('geogamers.retry')}
+                </Button>
             </div>
         )
     }

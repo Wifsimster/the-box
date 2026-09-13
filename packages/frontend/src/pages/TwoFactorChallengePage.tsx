@@ -55,12 +55,12 @@ export default function TwoFactorChallengePage() {
   return (
     <>
       <CubeBackground />
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+      <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
         <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md -mt-20"
+          className="w-full max-w-md"
         >
           <div className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl">
             <div className="text-center mb-6">
@@ -134,7 +134,7 @@ export default function TwoFactorChallengePage() {
               <button
                 type="button"
                 onClick={switchMode}
-                className="block w-full text-center text-xs text-muted-foreground hover:text-neon-purple transition-colors"
+                className="flex min-h-11 w-full items-center justify-center text-center text-xs text-muted-foreground transition-colors hover:text-neon-purple"
               >
                 {mode === 'totp'
                   ? t('security.challenge.useBackupCode')

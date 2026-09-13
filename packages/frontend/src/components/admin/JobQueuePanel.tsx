@@ -169,13 +169,13 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         onClick={handleToggleMinimize}
-                        className="fixed inset-0 top-14 sm:top-16 bg-background/60 backdrop-blur-sm z-40"
+                        className="fixed inset-0 top-[var(--header-h)] bg-background/60 backdrop-blur-sm z-40"
                         aria-hidden="true"
                     />
                 )}
             </AnimatePresence>
             <m.div
-                className="fixed right-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] max-w-[100vw] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
+                className="fixed right-0 top-[var(--header-h)] h-[calc(100dvh-var(--header-h))] max-w-[100vw] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
                 initial={false}
                 animate={{
                     width: isMinimized ? '0px' : expandedWidth

@@ -46,6 +46,10 @@ export function AnimatedTabs({
             onClick={() => onChange(tab.id)}
             className={cn(
               'relative px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+              // `py-2` around a 20px line box left a ~36px tab. The strip is
+              // already horizontally scrollable, so buying the extra height
+              // costs nothing and brings it to the 44px mobile target.
+              'inline-flex min-h-11 items-center justify-center',
               'shrink-0',
               'sm:flex-1',
               variant === 'underline' && 'rounded-none px-4 py-3',

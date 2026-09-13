@@ -148,7 +148,10 @@ export function HomeDailyCta({
               size="sm"
               onClick={() => navigate(localizedPath('/geo'))}
               data-tour="geo-cta"
-              className="gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-neon-pink"
+              // `size="sm"` keeps this secondary next to the primary Play CTA,
+              // but 32px is under the 44px mobile target — lift the height
+              // without touching the type scale that makes it read as secondary.
+              className="min-h-11 gap-1.5 text-xs text-muted-foreground hover:text-neon-pink sm:min-h-8 sm:text-sm"
             >
               <MapPin className="size-4" />
               {t('home.geoCta')}

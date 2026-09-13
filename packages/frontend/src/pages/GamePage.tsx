@@ -37,7 +37,7 @@ export default function GamePage() {
 
   return (
     <div
-      className="relative w-full bg-background overflow-hidden h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]"
+      className="relative w-full bg-background overflow-hidden h-[var(--page-h)]"
       style={{
         // Reserve space for the on-screen keyboard. The value snaps with the
         // keyboard's own animation; we intentionally don't add a CSS

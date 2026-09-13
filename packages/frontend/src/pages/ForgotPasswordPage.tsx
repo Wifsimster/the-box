@@ -74,12 +74,12 @@ export default function ForgotPasswordPage() {
     return (
       <>
         <CubeBackground />
-        <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+        <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
           <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="w-full max-w-md -mt-20"
+            className="w-full max-w-md"
           >
             <m.div
               initial={{ opacity: 0, y: 20 }}
@@ -94,12 +94,18 @@ export default function ForgotPasswordPage() {
                 {t('auth.resetEmailInstructions', { email: submittedEmail })}
               </p>
 
-              <Link to={localizedPath('/login')}>
-                <Button variant="outline" className="w-full h-12 rounded-xl border-white/10">
+              {/* `asChild`: a <button> inside an <a> is invalid HTML and left a
+                  19px anchor box stacked on the real control. */}
+              <Button
+                variant="outline"
+                className="h-12 w-full rounded-xl border-white/10"
+                asChild
+              >
+                <Link to={localizedPath('/login')}>
                   <ArrowLeft className="size-4 mr-2" />
                   {t('auth.backToLogin')}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </m.div>
           </m.div>
         </div>
@@ -110,12 +116,12 @@ export default function ForgotPasswordPage() {
   return (
     <>
       <CubeBackground />
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+      <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
         <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md -mt-20"
+          className="w-full max-w-md"
         >
           <m.div
             initial={{ opacity: 0, y: 20 }}

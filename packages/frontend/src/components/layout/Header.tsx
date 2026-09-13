@@ -345,7 +345,11 @@ export function Header() {
                 <span className="sr-only">{t('common.toggleMenu')}</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] overflow-y-auto sm:w-[340px]">
+            {/* `min(85vw, …)` instead of a flat 300px: on a 320px-wide phone a
+                fixed 300px drawer left a 20px strip of backdrop, which is not a
+                reachable tap-to-dismiss target. The cap keeps the drawer from
+                stretching on larger screens. */}
+            <SheetContent side="left" className="w-[min(85vw,300px)] overflow-y-auto sm:w-[340px]">
               <SheetHeader>
                 <SheetTitle className="text-left">{t('common.menu')}</SheetTitle>
                 <SheetDescription className="sr-only">

@@ -38,7 +38,12 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
             onClick={() => setShowPassword(!showPassword)}
             aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
             aria-pressed={showPassword}
-            className="absolute right-3 inset-y-0 my-auto flex h-fit items-center text-muted-foreground hover:text-foreground transition-colors"
+            // Fills the `pr-10` gutter so the hit area is the full 40px height
+            // of the input instead of the 16px icon box (which sat under both
+            // the 44px Apple HIG target and the 24px WCAG 2.5.8 floor). The
+            // icon's optical position is unchanged: centred in a 40px gutter
+            // lands it exactly where `right-3` did.
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
           >
             {showPassword ? (

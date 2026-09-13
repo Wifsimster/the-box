@@ -43,18 +43,16 @@ export function GamePlayScreen({
       className="relative size-full flex flex-col"
     >
       {/* Round Countdown Timer (Top Left) — mirrors the score panel shell. */}
-      <div
-        className="absolute left-2 sm:left-4 z-40"
-        style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
-      >
+      {/* `top-2` flat, not `max(…, env(safe-area-inset-top))`: /play keeps the
+          sticky Header, which already pads the notch, so adding the inset here
+          pushed the panel a second status-bar height down the screen in the
+          installed PWA. */}
+      <div className="absolute left-2 top-2 z-40 sm:left-4 sm:top-4">
         <CountdownTimer state={timer} />
       </div>
 
       {/* Score and End Game Button (Top Right) */}
-      <div
-        className="absolute right-2 sm:right-4 z-40 flex flex-col items-stretch min-w-28 sm:min-w-36"
-        style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
-      >
+      <div className="absolute right-2 top-2 z-40 flex min-w-28 flex-col items-stretch sm:right-4 sm:top-4 sm:min-w-36">
         <div className="bg-black/60 backdrop-blur-md rounded-t-xl px-4 sm:px-6 py-1.5 sm:py-2.5 border border-white/10 shadow-2xl">
           <ScoreDisplay />
         </div>
