@@ -39,7 +39,7 @@ export const IntroScene: React.FC = () => {
               textTransform: "uppercase",
             }}
           >
-            Guess the game from a screenshot
+            One screenshot. One guess.
           </div>
         </Reveal>
       </AbsoluteFill>

@@ -1,7 +1,11 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './i18n'
 
+// Brand strings live in ./brand (no imports, so a Node test can read them).
+// Re-exported here because this module is the established import site for
+// site-level constants. See docs/brand.md.
+export { SITE_NAME, SITE_TAGLINE, SITE_CATEGORY, type BrandLang } from './brand'
+
 export const SITE_URL = 'https://the-box.battistella.ovh'
-export const SITE_NAME = 'The Box'
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/api/og/daily.svg`
 
 export const LOCALE_BY_LANG: Record<SupportedLanguage, string> = {

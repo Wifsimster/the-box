@@ -2,7 +2,7 @@
 
 Référence faisant autorité pour le **nom**, la **promesse**, la **voix**, le **mark** et le **système de partage** de The Box. Document destiné aux développeurs, aux designers et à toute personne qui écrit une chaîne visible par un joueur.
 
-> **Règle d'or.** Une tagline, un registre, un mark. Toute chaîne de marque passe par les constantes de `packages/frontend/src/lib/seo.ts` ou par un fichier de locale. Une tagline écrite en dur dans un composant, une route ou un manifest est un bug.
+> **Règle d'or.** Une tagline, un registre, un mark. Toute chaîne de marque passe par les constantes de `packages/types/src/index.ts` (canonique), leur miroir `packages/frontend/src/lib/brand.ts`, ou un fichier de locale. Une tagline écrite en dur dans un composant, une route ou un manifest est un bug.
 
 Ce document est la couche **marque**. `docs/ui-tokens.md` est la couche **valeurs** (couleurs, ombres, rayons). `docs/oxygen-design-system.md` est la couche **principes** (accessibilité, hiérarchie d'actions). En cas de conflit sur une couleur, `ui-tokens.md` gagne ; sur une formulation, ce document gagne.
 
@@ -59,7 +59,7 @@ C'est cette ligne qui porte les mots-clés, pas la marque. Le nom reste court et
 
 ## 2. La promesse
 
-Une seule tagline en production, déclinée par surface. Source unique : `SITE_TAGLINE` et `SITE_CATEGORY` dans `packages/frontend/src/lib/seo.ts`, réexportées côté backend depuis `@the-box/types`.
+Une seule tagline en production, déclinée par surface. Source canonique : `SITE_TAGLINE` et `SITE_CATEGORY` dans `@the-box/types`, lues directement par le backend. Le frontend en tient un miroir dans `src/lib/brand.ts` (le paquet `types` compile en CommonJS, Rollup ne peut pas réexporter ses valeurs) ; `brand.test.ts` vérifie que les copies ne divergent pas.
 
 | Surface | Chaîne servie | Constante |
 |---|---|---|
@@ -69,7 +69,7 @@ Une seule tagline en production, déclinée par surface. Source unique : `SITE_T
 | Sous-titre du hero | **Voyons si ta culture gaming tient encore debout.** | `home.subtitle` |
 | Partage de résultat | **J'ai ouvert la boîte du {date} — {score} pts, {n}/10.** | `share.result` |
 
-**Interdit** : réécrire la tagline dans `index.html`, `vite.config.ts`, `og.routes.ts`, `RouteSeo.tsx` ou un composant. Le test `packages/frontend/src/lib/__tests__/seo.test.ts` échoue si une variante littérale réapparaît.
+**Interdit** : réécrire la tagline dans `index.html`, `vite.config.ts`, `og.routes.ts`, `RouteSeo.tsx` ou un composant. Le test `packages/frontend/src/lib/brand.test.ts` échoue si une variante littérale réapparaît.
 
 ### Ce qu'on ne dit pas
 

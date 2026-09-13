@@ -47,10 +47,12 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        name: 'The Box — Daily Video Game Guessing Challenge',
+        // Mirrors SITE_CATEGORY.fr / SITE_TAGLINE.fr in @the-box/types. Kept
+        // literal: this config is evaluated before the types package is built.
+        // seo.test.ts fails if these drift from the constants (docs/brand.md).
+        name: 'The Box — le jeu quotidien du screenshot',
         short_name: 'The Box',
-        description:
-          'Identify video games from screenshots. New daily challenge, live leaderboards, achievements.',
+        description: 'Une capture. Un jeu à deviner.',
         start_url: '/',
         scope: '/',
         display: 'standalone',
@@ -66,9 +68,9 @@ export default defineConfig({
         },
         shortcuts: [
           {
-            name: 'Défi du jour',
-            short_name: 'Jouer',
-            description: 'Lancer le défi quotidien',
+            name: 'La boîte du jour',
+            short_name: 'Ouvrir',
+            description: 'Ouvrir la boîte du jour',
             url: '/fr/play',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
           },

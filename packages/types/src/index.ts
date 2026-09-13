@@ -1,4 +1,33 @@
 // ============================================
+// Brand — single source of truth
+// ============================================
+// `docs/brand.md` is the contract these constants enforce. A tagline written
+// as a literal anywhere else (index.html, the PWA manifest, og.routes.ts,
+// RouteSeo.tsx, a component) is a bug: the product shipped seven of them for
+// six different promises before this block existed.
+// `packages/frontend/src/lib/brand.test.ts` fails if one reappears.
+
+export type BrandLang = 'fr' | 'en'
+
+export const SITE_NAME = 'The Box'
+
+/** The promise. Hero, OG card, PWA manifest, social copy. */
+export const SITE_TAGLINE: Record<BrandLang, string> = {
+  fr: 'Une capture. Un jeu à deviner.',
+  en: 'One screenshot. One guess.',
+}
+
+/**
+ * The category line. Page titles, meta descriptions, JSON-LD.
+ * The name is deliberately short and opaque; this line carries the keywords
+ * so discoverability never costs us the brand.
+ */
+export const SITE_CATEGORY: Record<BrandLang, string> = {
+  fr: 'The Box — le jeu quotidien du screenshot',
+  en: 'The Box — the daily video-game screenshot game',
+}
+
+// ============================================
 // Domain Entities
 // ============================================
 
