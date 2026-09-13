@@ -6,7 +6,9 @@
  * math in `domain/services/admin-analytics.service.ts`.
  */
 import { Router } from 'express'
-import { adminAnalyticsService } from '../../../domain/services/index.js'
+import {
+  adminAnalyticsService,
+} from '../../../composition/services.js'
 
 const router = Router()
 

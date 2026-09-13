@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { jobService } from '../../../domain/services/index.js'
+import {
+  jobService,
+} from '../../../composition/services.js'
 
 const router = Router()
 

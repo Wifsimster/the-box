@@ -3,7 +3,9 @@ import { z } from 'zod'
 import type { BillingTier } from '@the-box/types'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody } from '../middleware/validation.middleware.js'
-import { billingService } from '../../domain/services/index.js'
+import {
+  billingService,
+} from '../../composition/services.js'
 import { getCatalogEntry } from '../../config/billing.js'
 import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
 import { resolvePriceId } from '../../infrastructure/stripe/billing-catalog.resolver.js'

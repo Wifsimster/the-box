@@ -2,8 +2,15 @@ import { Router } from 'express'
 import type { Request } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { gameService, GameError } from '../../domain/services/index.js'
-import { billingService } from '../../domain/services/index.js'
+import {
+  GameError,
+} from '../../domain/services/index.js'
+import {
+  gameService,
+} from '../../composition/services.js'
+import {
+  billingService,
+} from '../../composition/services.js'
 import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'

@@ -7,7 +7,9 @@ import {
   geoMapRepository,
   geoIngestFailureRepository,
 } from '../../../infrastructure/repositories/index.js'
-import { GEO_CONSENSUS_VERSION } from '../../../domain/services/index.js'
+import {
+  GEO_CONSENSUS_VERSION,
+} from '../../../domain/services/index.js'
 import {
   evaluateConsensus,
   pinsToNextConsensusThreshold,

@@ -1,6 +1,8 @@
 import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
-import { pushService } from '../../../domain/services/index.js'
+import {
+  pushService,
+} from '../../../composition/services.js'
 import { buildEveningNudge } from '../../../domain/services/evening-nudge-copy.js'
 import { loadFeaturedLeader } from './featured-leader.js'
 

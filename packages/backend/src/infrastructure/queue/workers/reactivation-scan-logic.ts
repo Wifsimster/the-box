@@ -1,7 +1,9 @@
 import { db } from '../../database/connection.js'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
-import { rewardsService } from '../../../domain/services/index.js'
+import {
+  rewardsService,
+} from '../../../composition/services.js'
 import { sendEmail } from '../../email/email-sender.js'
 import { buildReactivationEmail } from '../../email/reactivation-email.js'
 import { emitRewardGranted } from '../../socket/socket.js'

@@ -1,5 +1,7 @@
 import { Router } from 'express'
-import { billingService } from '../../../domain/services/index.js'
+import {
+  billingService,
+} from '../../../composition/services.js'
 import { userRepository } from '../../../infrastructure/repositories/user.repository.js'
 import { routeLogger } from '../../../infrastructure/logger/logger.js'
 import { sendPremiumGrantedEmail } from '../../../infrastructure/email/premium-granted-email.js'

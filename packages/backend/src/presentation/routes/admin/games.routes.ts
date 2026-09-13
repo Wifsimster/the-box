@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { adminService } from '../../../domain/services/index.js'
+import {
+  adminService,
+} from '../../../composition/services.js'
 
 const router = Router()
 

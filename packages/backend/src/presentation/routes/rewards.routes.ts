@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { rewardsService } from '../../domain/services/index.js'
+import {
+  rewardsService,
+} from '../../composition/services.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { validateParams } from '../middleware/validation.middleware.js'
 

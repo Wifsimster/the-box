@@ -1,5 +1,10 @@
 import { Router } from 'express'
-import { dailyLoginService, DailyLoginError } from '../../domain/services/index.js'
+import {
+  DailyLoginError,
+} from '../../domain/services/index.js'
+import {
+  dailyLoginService,
+} from '../../composition/services.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()

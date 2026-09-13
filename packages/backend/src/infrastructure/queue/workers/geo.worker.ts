@@ -25,7 +25,9 @@ import { runMapsFetchFandom } from './maps-fetch-fandom.js'
 import { runMapsFetchStrategyWiki } from './maps-fetch-strategywiki.js'
 import { runMapsFetchWand } from './maps-fetch-wand.js'
 import { runMapsFetchMapgenie } from './maps-fetch-mapgenie.js'
-import { geoContributorService } from '../../../domain/services/index.js'
+import {
+  geoContributorService,
+} from '../../../composition/services.js'
 import { emitGeoTierUp } from '../../socket/socket.js'
 
 const log = queueLogger.child({ worker: 'geo' })
