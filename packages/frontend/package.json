@@ -1,7 +1,7 @@
 {
   "name": "@the-box/frontend",
   "private": true,
-  "version": "2.158.2",
+  "version": "2.158.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
