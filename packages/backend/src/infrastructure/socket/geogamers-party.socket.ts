@@ -9,6 +9,7 @@ import {
 import { geoMapRepository } from '../repositories/geo-map.repository.js'
 import { createFuzzyMatchService } from '../../domain/services/fuzzy-match.service.js'
 import { geoDistance } from '../../domain/services/geo-scoring.service.js'
+import { GEOGAMERS_ATTEMPTS_MAX } from '../../domain/services/geogamers-scoring.service.js'
 import {
   createParty,
   joinParty,
@@ -56,6 +57,7 @@ async function buildView(party: GeoGamersParty, playerId: string): Promise<GeoGa
     players: party.players,
     currentRound: party.currentRound,
     totalRounds: party.rounds.length,
+    maxPlayers: PARTY_MAX_PLAYERS,
     scoreboard: scoreboard(party).map((s) => ({ playerId: s.playerId, name: s.name, total: s.total })),
   }
 
@@ -63,9 +65,11 @@ async function buildView(party: GeoGamersParty, playerId: string): Promise<GeoGa
     const round = party.rounds[party.currentRound]
     if (round) {
       const result = round.results[playerId]
-      const resolved = !!result && (result.solvedGame || result.attemptsUsed >= 3)
+      const attemptsUsed = result?.attemptsUsed ?? 0
+      const resolved = !!result && (result.solvedGame || attemptsUsed >= GEOGAMERS_ATTEMPTS_MAX)
       view.you = {
-        attemptsUsed: result?.attemptsUsed ?? 0,
+        attemptsUsed,
+        attemptsLeft: Math.max(0, GEOGAMERS_ATTEMPTS_MAX - attemptsUsed),
         resolvedPhase1: resolved,
         done: result?.done ?? false,
       }
@@ -136,6 +140,10 @@ export function ensureGeoGamersPartyNamespace(io: SocketIOServer): void {
   ns.on('connection', (socket: Socket) => {
     const id = () => socket.data as PartyIdentity
 
+    // Guests are first-class here (`guest_<socketId>`), so the client cannot
+    // read its identity from the auth session — it has none. Hand it over.
+    socket.emit('party:identity', { playerId: (socket.data as PartyIdentity).playerId })
+
     const safe = (fn: () => Promise<void>) =>
       fn().catch((err) => {
         const code = err instanceof PartyError ? err.code : 'ERROR'
@@ -154,6 +162,7 @@ export function ensureGeoGamersPartyNamespace(io: SocketIOServer): void {
           }),
         )
         socket.join(room(created.code))
+        socket.data = { ...(socket.data ?? {}), code: created.code }
         socket.emit('party:created', { code: created.code })
         await broadcast(io, created)
       }),
@@ -173,6 +182,7 @@ export function ensureGeoGamersPartyNamespace(io: SocketIOServer): void {
         }
         const next = joinParty(party, { id: playerId, name: payload.name || name })
         socket.join(room(payload.code))
+        socket.data = { ...(socket.data ?? {}), code: payload.code }
         await broadcast(io, next)
       }),
     )
@@ -223,6 +233,23 @@ export function ensureGeoGamersPartyNamespace(io: SocketIOServer): void {
       }),
     )
 
+    // Host closes a round early. There is no server-side round timer, so a
+    // player who stays connected but idle would otherwise hold everyone on
+    // "waiting for others" indefinitely. `revealRound` force-times-out the
+    // stragglers, scoring whatever they had reached.
+    socket.on('party:force_reveal', (payload: { code: string }) =>
+      safe(async () => {
+        const { playerId } = id()
+        const party = await geoGamersPartyStore.get(payload.code)
+        if (!party || party.status !== 'in_round') return
+        if (party.hostId !== playerId) {
+          socket.emit('party:error', { code: 'NOT_HOST', message: 'only the host can close a round' })
+          return
+        }
+        await broadcast(io, revealRound(party))
+      }),
+    )
+
     // Host advances from the reveal screen to the next round / finish.
     socket.on('party:advance', (payload: { code: string }) =>
       safe(async () => {
@@ -240,13 +267,28 @@ export function ensureGeoGamersPartyNamespace(io: SocketIOServer): void {
         const party = await geoGamersPartyStore.get(payload.code)
         if (!party) return
         socket.leave(room(payload.code))
-        await broadcast(io, leaveParty(party, playerId))
+        // Not a bare broadcast: if the leaver was the last player the round
+        // was waiting on, everyone else would sit on "waiting for others"
+        // until somebody happened to act again.
+        await maybeAdvanceAndBroadcast(io, leaveParty(party, playerId))
       }),
     )
 
-    socket.on('disconnect', () => {
-      log.debug({ socketId: socket.id }, 'party client disconnected')
-    })
+    // A closed tab used to only be logged. The player stayed `connected: true`
+    // forever, so `allConnectedDone` never came true and — with no round timer
+    // scheduled anywhere — the round deadlocked for everyone else, with no host
+    // override (the advance button only exists on the reveal screen).
+    socket.on('disconnect', () =>
+      safe(async () => {
+        const { playerId } = id()
+        const code = (socket.data as { code?: string }).code
+        log.debug({ socketId: socket.id, code }, 'party client disconnected')
+        if (!code) return
+        const party = await geoGamersPartyStore.get(code)
+        if (!party) return
+        await maybeAdvanceAndBroadcast(io, leaveParty(party, playerId))
+      }),
+    )
   })
   ;(ns as unknown as { _wired?: boolean })._wired = true
 }

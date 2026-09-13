@@ -25,6 +25,12 @@ interface PartyState {
     view: GeoGamersPartyView | null
     code: string | null
     error: string | null
+    /**
+     * Who the server thinks we are. Guests get `guest_<socketId>` and have no
+     * auth session, so identity cannot come from `useAuth()` — deriving it
+     * there left a guest host with `isHost === false` and an unstartable party.
+     */
+    playerId: string | null
     // per-round local phase feedback
     lastGuessCorrect: boolean | null
     pendingPin: GeoPoint | null
@@ -39,6 +45,7 @@ interface PartyState {
     selectMap: (id: number) => void
     submitLocation: () => void
     advance: () => void
+    forceReveal: () => void
     leave: () => void
 }
 
@@ -47,6 +54,7 @@ export const useGeoGamersPartyStore = create<PartyState>()((set, get) => ({
     view: null,
     code: null,
     error: null,
+    playerId: null,
     lastGuessCorrect: null,
     pendingPin: null,
     selectedMapId: null,
@@ -57,13 +65,18 @@ export const useGeoGamersPartyStore = create<PartyState>()((set, get) => ({
             if (!s.connected) s.connect()
             return
         }
-        s.on('connect', () => set({ connected: true }))
+        s.on('connect', () => set({ connected: true, error: null }))
+        s.on('party:identity', (e: { playerId: string }) => set({ playerId: e.playerId }))
         s.on('disconnect', () => set({ connected: false }))
         s.on('party:created', (e: { code: string }) => set({ code: e.code }))
         s.on('party:state', (view: GeoGamersPartyView) => {
             set((prev) => ({
                 view,
                 code: view.code,
+                // A state push means the last action went through. Without this
+                // the banner from an earlier failure ("lobby full") stayed on
+                // screen for the rest of the session.
+                error: null,
                 // reset per-round local state when the round index advances
                 pendingPin: prev.view?.round?.index !== view.round?.index ? null : prev.pendingPin,
                 lastGuessCorrect:
@@ -80,11 +93,13 @@ export const useGeoGamersPartyStore = create<PartyState>()((set, get) => ({
     },
 
     create(opts) {
+        set({ error: null })
         get().connect()
         getSocket().emit('party:create', opts)
     },
 
     join(code, name) {
+        set({ error: null })
         get().connect()
         getSocket().emit('party:join', { code: code.toUpperCase(), name })
     },
@@ -119,9 +134,15 @@ export const useGeoGamersPartyStore = create<PartyState>()((set, get) => ({
         if (code) getSocket().emit('party:advance', { code })
     },
 
+    /** Host-only escape hatch: close the round without waiting on an idle player. */
+    forceReveal() {
+        const code = get().code
+        if (code) getSocket().emit('party:force_reveal', { code })
+    },
+
     leave() {
         const code = get().code
         if (code) getSocket().emit('party:leave', { code })
-        set({ view: null, code: null, pendingPin: null, lastGuessCorrect: null })
+        set({ view: null, code: null, pendingPin: null, lastGuessCorrect: null, error: null })
     },
 }))

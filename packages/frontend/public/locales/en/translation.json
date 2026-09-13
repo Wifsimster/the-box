@@ -1959,32 +1959,6 @@
     "rulesFairPlayTitle": "10. Fair play",
     "rulesFairPlay": "Sharing answers, automating guesses, or using multiple accounts to climb the leaderboard is not allowed and will result in score resets and account suspension. If you spot a misclassified game or a wrong answer being accepted, please report it via the Contact page."
   },
-  "party": {
-    "title": "Multiplayer Mode",
-    "subtitle": "Play with your friends in real-time",
-    "createTitle": "Create a Party",
-    "createDescription": "Create a party and invite your friends with the code",
-    "creating": "Creating...",
-    "createButton": "Create a Party",
-    "or": "or",
-    "joinTitle": "Join a Party",
-    "joinDescription": "Enter the party code to join",
-    "codePlaceholder": "Party code (e.g. ABC123)",
-    "connecting": "Connecting...",
-    "joinButton": "Join",
-    "lobbyTitle": "Game Lobby",
-    "leave": "Leave",
-    "partyCode": "Party Code",
-    "players": "Players",
-    "admin": "Admin",
-    "leaderboard": "Leaderboard",
-    "hostMessage": "You are the administrator of this party",
-    "startGame": "Start Game",
-    "resetGame": "Restart Game",
-    "waitingMessage": "Waiting for the administrator to start...",
-    "gameStarted": "Game in progress!",
-    "joinGame": "Join Game"
-  },
   "errors": {
     "boundary": {
       "title": "Oops! Something went wrong",
@@ -3043,10 +3017,19 @@
     "leave": "Leave",
     "round": "Round {{n}} / {{total}}",
     "waitingOthers": "Waiting for other players…",
-    "wrongGuess": "Missed — {{left}} attempt(s) left",
     "answer": "Answer:",
     "finished": "Game over!",
     "nextRound": "Next round",
-    "seeResults": "See results"
+    "seeResults": "See results",
+    "timer": "Time per round",
+    "seconds": "{{count}}s",
+    "connecting": "Connecting…",
+    "copyCode": "Copy the invite code",
+    "host": "Host",
+    "disconnected": "Disconnected",
+    "wrongGuess_one": "Wrong — 1 try left",
+    "wrongGuess_other": "Wrong — {{count}} tries left",
+    "forceReveal": "Close the round",
+    "forceRevealHint": "Ends the round for everyone. Players who haven't finished keep the points they already scored."
   }
 }

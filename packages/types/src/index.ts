@@ -2070,6 +2070,8 @@ export interface GeoGamersPartyView {
   players: GeoGamersPartyPlayer[]
   currentRound: number
   totalRounds: number
+  // Lobby capacity, mirrored from the server so the client never hardcodes it.
+  maxPlayers: number
   // The active round's playable payload (screenshot only) — present when
   // status === 'in_round'. Answer withheld.
   round?: {
@@ -2081,7 +2083,14 @@ export interface GeoGamersPartyView {
   }
   // The requesting player's OWN round state (safe — it's their own data). Lets
   // the client distinguish identify / locate / waiting-for-others.
-  you?: { attemptsUsed: number; resolvedPhase1: boolean; done: boolean }
+  // `attemptsLeft` is server-computed: the client used to derive it as
+  // `3 - attemptsUsed`, which silently lies if the attempt cap ever moves.
+  you?: {
+    attemptsUsed: number
+    attemptsLeft: number
+    resolvedPhase1: boolean
+    done: boolean
+  }
   // Scoreboard (cumulative totals) — always safe to show.
   scoreboard: Array<{ playerId: string; name: string; total: number }>
   // Full reveal payload — present only when status === 'reveal' or 'finished'.
@@ -2095,5 +2104,16 @@ export interface GeoGamersPartyView {
 
 export interface GeoGamersPartyCreatedEvent {
   code: string
+}
+
+/**
+ * Emitted once per connection so the client knows which player it is.
+ *
+ * The party namespace accepts guests (`guest_<socketId>`), but the client used
+ * to derive its identity from the auth session — so a guest host had no id,
+ * `isHost` was always false, and the party could never be started.
+ */
+export interface GeoGamersPartyIdentityEvent {
+  playerId: string
 }
 
