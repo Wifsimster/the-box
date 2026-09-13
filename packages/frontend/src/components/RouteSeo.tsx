@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Seo } from './Seo'
 import { SITE_NAME, SITE_TAGLINE, SITE_URL, stripLangPrefix } from '@/lib/seo'
+import { STUDIO, STUDIO_LD_ID, studioOrganizationLd } from '@/lib/studio'
 
 type RouteDef = {
   /** Match against the language-stripped path (e.g. `/play`, `/u/foo`). */
@@ -29,6 +30,8 @@ const homeJsonLd = (lang: string): Record<string, unknown>[] => [
       priceCurrency: 'EUR',
     },
     description: SITE_TAGLINE[lang === 'en' ? 'en' : 'fr'],
+    publisher: { '@id': STUDIO_LD_ID },
+    author: { '@id': STUDIO_LD_ID },
   },
   {
     '@context': 'https://schema.org',
@@ -36,7 +39,11 @@ const homeJsonLd = (lang: string): Record<string, unknown>[] => [
     name: SITE_NAME,
     url: SITE_URL,
     logo: `${SITE_URL}/logo.svg`,
+    parentOrganization: { '@id': STUDIO_LD_ID },
   },
+  // The studio behind the app; `sameAs` ties this graph to the one published
+  // on the studio's own site.
+  { ...studioOrganizationLd, sameAs: [STUDIO.url] },
 ]
 
 const breadcrumbLd = (lang: string, items: Array<{ name: string; path: string }>) => ({

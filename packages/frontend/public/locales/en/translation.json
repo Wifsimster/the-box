@@ -1819,7 +1819,8 @@
     "faq": "FAQ",
     "rules": "Game Rules",
     "contact": "Contact",
-    "buildTime": "Built on {{time}}"
+    "buildTime": "Built on {{time}}",
+    "studioBy": "Developed by"
   },
   "legal": {
     "termsTitle": "Terms of Use",
@@ -1843,6 +1844,8 @@
     "termsCancellation": "You can cancel a subscription at any time from your profile via the Stripe customer portal. Cancellation takes effect at the end of the current billing period and does not entitle you to a pro-rata refund, except where required by law. The 'Supporter Lifetime' purchase is final and non-refundable beyond the 14-day withdrawal period, except in case of proven service failure.",
     "termsModificationTitle": "9. Modifications",
     "termsModification": "We reserve the right to modify these terms at any time. Changes take effect upon publication on the site.",
+    "termsPublisherTitle": "10. Publisher",
+    "termsPublisher": "The Box is published, developed and operated by {{studio}} ({{legalName}}), an independent one-person studio founded by {{founder}} and based in {{city}}, France (SIRET {{siret}}). The application is self-hosted in France. For any question about the studio or the service, write to {{email}}.",
     "privacyTitle": "Privacy Policy",
     "privacyLastUpdated": "Last updated",
     "privacyIntro": "Your privacy is important to us. This policy explains how we collect and use your data.",
@@ -1876,6 +1879,9 @@
     "contactBugTitle": "Report a Bug",
     "contactBug": "If you encounter a technical issue, please provide as much detail as possible to help us resolve it.",
     "contactResponseTime": "We aim to respond within 48 hours.",
+    "contactStudioTitle": "The studio",
+    "contactStudio": "The Box is designed, developed and self-hosted by {{studio}}, an independent one-person studio. Discover its other applications on its website.",
+    "studioWebsite": "Studio website",
     "cookiesTitle": "Cookie Policy",
     "cookiesLastUpdated": "Last updated",
     "cookiesIntro": "This policy explains how The Box uses cookies and similar technologies.",
@@ -1905,6 +1911,8 @@
     "faqAnswer5": "Daily challenges reset at midnight UTC. Everyone gets the same challenge each day, so you can compete fairly on the global leaderboard.",
     "faqQuestion6": "How can I report a bug or suggest a feature?",
     "faqAnswer6": "Visit our Contact page to reach out. We appreciate all feedback and work to improve the game based on player suggestions.",
+    "faqQuestion7": "Who develops The Box?",
+    "faqAnswer7": "The Box is designed, developed and operated by {{studio}}, an independent one-person studio founded by {{founder}} and based in France. The studio builds and self-hosts its own web applications, micro-SaaS products and AI tools — you can find them all on {{domain}}.",
     "rulesTitle": "Game Rules",
     "rulesIntro": "Everything you need to play The Box: the daily challenge format, how scoring works, and — most importantly — how we decide whether your guess matches the game on screen.",
     "rulesGoalTitle": "1. The goal",
