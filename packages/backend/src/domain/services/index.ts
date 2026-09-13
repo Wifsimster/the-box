@@ -28,6 +28,13 @@ export {
 export { createFuzzyMatchService, type FuzzyMatchService } from './fuzzy-match.service.js'
 export { createUserService, type UserService } from './user.service.js'
 export {
+  createPlayerStatsService,
+  buildAdvancedStats,
+  ADVANCED_STATS_MONTHS,
+  type PlayerStatsService,
+  type PlayerStatsServiceDeps,
+} from './player-stats.service.js'
+export {
   createAchievementService,
   type AchievementService,
   type AchievementCheckContext,

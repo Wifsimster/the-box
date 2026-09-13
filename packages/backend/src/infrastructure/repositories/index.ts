@@ -69,3 +69,4 @@ export {
   type WebhookDeliveryRow,
 } from './webhook.repository.js'
 export { adminAnalyticsRepository } from './admin-analytics.repository.js'
+export { playerStatsRepository } from './player-stats.repository.js'

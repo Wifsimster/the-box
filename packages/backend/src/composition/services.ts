@@ -28,6 +28,7 @@ import { createLeaderboardService } from '../domain/services/leaderboard.service
 import { createAdminService } from '../domain/services/admin.service.js'
 import { createAdminAnalyticsService } from '../domain/services/admin-analytics.service.js'
 import { createUserService } from '../domain/services/user.service.js'
+import { createPlayerStatsService } from '../domain/services/player-stats.service.js'
 import { createAchievementService } from '../domain/services/achievement.service.js'
 import { createReferralService } from '../domain/services/referral.service.js'
 import { createGameService } from '../domain/services/game.service.js'
@@ -48,6 +49,7 @@ import { emitRewardGranted } from '../infrastructure/socket/socket.js'
 import {
   achievementRepository,
   adminAnalyticsRepository,
+  playerStatsRepository,
   challengeRepository,
   dailyLoginRepository,
   funnelEventRepository,
@@ -138,6 +140,12 @@ export const adminService = createAdminService({
 export const adminAnalyticsService = createAdminAnalyticsService({
   logger: serviceLogger,
   analyticsRepository: adminAnalyticsRepository,
+})
+
+export const playerStatsService = createPlayerStatsService({
+  logger: serviceLogger,
+  playerStatsRepository,
+  streakLookup: userRepository,
 })
 
 export const userService = createUserService({
