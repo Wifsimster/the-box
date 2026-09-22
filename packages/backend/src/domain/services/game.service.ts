@@ -742,6 +742,31 @@ export function createGameService(deps: GameServiceDeps): GameService {
       throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
     }
 
+    // A finished or forfeited run is closed. Forfeit (`endGame`) reveals
+    // every unfound answer, so accepting guesses afterwards would let a
+    // player read the answers, then score them (and re-bank the lifetime
+    // score a second time through finalizeCompletedSession).
+    if (tierSession.game_is_completed) {
+      throw new GameError('SESSION_ALREADY_COMPLETED', 'Session already completed', 409)
+    }
+
+    // The answer is checked against the game of `screenshotId`, so it must
+    // be the screenshot actually served at `position` for this challenge.
+    // Otherwise a client could replay one known (screenshotId, answer) pair
+    // against every other position and solve them all.
+    const guessTiers = await challengeRepository.findTiersByChallenge(tierSession.daily_challenge_id)
+    const guessTier = guessTiers[0]
+    const servedScreenshot = guessTier
+      ? await challengeRepository.findScreenshotAtPosition(guessTier.id, data.position)
+      : null
+    if (!servedScreenshot || servedScreenshot.screenshot_id !== data.screenshotId) {
+      throw new GameError(
+        'SCREENSHOT_POSITION_MISMATCH',
+        'Screenshot does not match this position',
+        400
+      )
+    }
+
     // Anti-replay: a position can only be SOLVED once. The round-timer guard
     // below only checks `round_position === data.position`, and that field is
     // never cleared after a correct guess — so without this check a client
@@ -1166,6 +1191,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       if (!tierSession || tierSession.user_id !== userId) {
         throw new GameError('SESSION_NOT_FOUND', 'Session not found', 404)
       }
+      if (tierSession.game_is_completed) {
+        throw new GameError('SESSION_ALREADY_COMPLETED', 'Session already completed', 409)
+      }
 
       // No buying letters for a slot that is already solved.
       if (await sessionRepository.hasCorrectGuessForPosition(tierSessionId, position)) {
@@ -1283,9 +1311,10 @@ export function createGameService(deps: GameServiceDeps): GameService {
     const { tierSessionId, position, userId } = input
     log.info({ tierSessionId, position, userId }, 'activateSecondChance')
 
-    // Validate session ownership before touching inventory.
+    // Validate session ownership (and that the run is still open) before
+    // touching inventory.
     const ts = await sessionRepository.findTierSessionWithContext(tierSessionId)
-    if (!ts || ts.user_id !== userId) {
+    if (!ts || ts.user_id !== userId || ts.game_is_completed) {
       return { ok: false, reason: 'SESSION_NOT_FOUND' }
     }
 
@@ -1353,12 +1382,17 @@ export function createGameService(deps: GameServiceDeps): GameService {
       }
     }
 
-    // Mark session as completed
-    await sessionRepository.updateGameSession(sessionId, {
+    // Mark session as completed. Conditional on it still being active so
+    // two concurrent forfeits (or a forfeit racing the final guess) can't
+    // both pass the is_completed check above and each add finalScore to
+    // the user's lifetime total.
+    const completed = await sessionRepository.completeGameSessionIfActive(sessionId, {
       totalScore: finalScore,
       currentPosition: session.current_position,
-      isCompleted: true,
     })
+    if (!completed) {
+      throw new GameError('SESSION_ALREADY_COMPLETED', 'Session already completed', 400)
+    }
 
     // Check achievements after game completion (forfeit)
     let newlyEarnedAchievements: NewlyEarnedAchievement[] = []

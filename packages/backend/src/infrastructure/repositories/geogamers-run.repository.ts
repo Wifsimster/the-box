@@ -126,6 +126,17 @@ export const geoGamersRunRepository: GeoGamersRunRepository = {
     return mapRun(row!)
   },
 
+  async updateIfUnchanged(runId, expected, patch): Promise<GeoGamersRunRecord | null> {
+    const [row] = await db('geogamers_run')
+      .where({ id: runId })
+      .whereNull('completed_at')
+      .whereRaw('jsonb_array_length(game_attempts) = ?', [expected.attemptCount])
+      .whereRaw('game_points IS NOT DISTINCT FROM ?::int', [expected.gamePoints])
+      .update(toDbPatch(patch))
+      .returning<GeoGamersRunRow[]>('*')
+    return row ? mapRun(row) : null
+  },
+
   async countCompletedBetter(challengeId: number, points: number): Promise<number> {
     const res = await db('geogamers_run')
       .where({ geogamers_challenge_id: challengeId })
@@ -151,9 +162,16 @@ export const geoGamersRunRepository: GeoGamersRunRepository = {
           .first<GeoGamersRunRow>()
         if (!guest) return null
 
-        await trx('geogamers_run')
+        // Re-check unclaimed in the UPDATE itself: the SELECT above takes no
+        // lock, so two different users claiming the same token concurrently
+        // would both pass it, and the claim index (per claimer) wouldn't
+        // collide. The row lock makes the second UPDATE re-evaluate and miss.
+        const claimed = await trx('geogamers_run')
           .where({ id: guestRunId })
+          .whereNull('user_id')
+          .whereNull('claimed_at')
           .update({ claimed_at: new Date().toISOString(), claimed_by_user_id: userId })
+        if (!claimed) return null
 
         const [copy] = await trx('geogamers_run')
           .insert({

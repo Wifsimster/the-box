@@ -179,7 +179,26 @@ export const dailyLoginRepository = {
             }
         }
     ): Promise<{ ok: true; freezesRemaining: number } | { ok: false }> {
+        const noFreeze = Symbol('no-freeze')
         return db.transaction(async (trx) => {
+            // Streak update FIRST: it row-locks the streak and is guarded on
+            // today's date, so of two concurrent /status calls only one
+            // matches. The loser must not decrement — previously the
+            // decrement ran first and committed even when the guarded
+            // update matched 0 rows, burning 2 freezes for 1 missed day.
+            const streakUpdated = await trx('user_login_streaks')
+                .where('user_id', userId)
+                .whereRaw('last_login_date IS DISTINCT FROM ?', [opts.streak.lastLoginDate])
+                .update({
+                    current_login_streak: opts.streak.currentLoginStreak,
+                    longest_login_streak: opts.streak.longestLoginStreak,
+                    last_login_date: opts.streak.lastLoginDate,
+                    current_day_in_cycle: opts.streak.currentDayInCycle,
+                    updated_at: new Date(),
+                })
+            if (!streakUpdated) {
+                return { ok: false as const }
+            }
             const decrement = await trx('user_inventory')
                 .where({
                     user_id: userId,
@@ -190,18 +209,10 @@ export const dailyLoginRepository = {
                 .decrement('quantity', 1)
             const affected = decrement as unknown as number
             if (!affected) {
-                return { ok: false as const }
+                // No freeze left: roll back the streak write so the caller's
+                // normal (reset) path applies.
+                throw noFreeze
             }
-            await trx('user_login_streaks')
-                .where('user_id', userId)
-                .whereRaw('last_login_date IS DISTINCT FROM ?', [opts.streak.lastLoginDate])
-                .update({
-                    current_login_streak: opts.streak.currentLoginStreak,
-                    longest_login_streak: opts.streak.longestLoginStreak,
-                    last_login_date: opts.streak.lastLoginDate,
-                    current_day_in_cycle: opts.streak.currentDayInCycle,
-                    updated_at: new Date(),
-                })
             const remaining = await trx('user_inventory')
                 .where({
                     user_id: userId,
@@ -210,6 +221,9 @@ export const dailyLoginRepository = {
                 })
                 .first<{ quantity: number }>('quantity')
             return { ok: true as const, freezesRemaining: remaining?.quantity ?? 0 }
+        }).catch((err: unknown) => {
+            if (err === noFreeze) return { ok: false as const }
+            throw err
         })
     },
 

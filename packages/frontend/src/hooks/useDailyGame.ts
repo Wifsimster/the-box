@@ -238,6 +238,11 @@ export function useDailyGame() {
     try {
       setLoading(true)
       const data = await gameApi.getScreenshot(sid, position)
+      // Drop out-of-order responses: after a quick 2 → 3 navigation, a late
+      // reply for 2 would otherwise yank currentPosition back to 2 (and bill
+      // its time to the wrong position). The effect below re-fetches the
+      // position the player is actually on.
+      if (useGameStore.getState().currentPosition !== position) return
       setScreenshotData(data)
     } catch (err) {
       console.error('Failed to fetch screenshot:', err)

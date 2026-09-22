@@ -1380,7 +1380,9 @@ export interface GeoFreePlayView {
   // copy; `name` may be empty when the service couldn't cheaply look it
   // up (the free-play picker fills it from its games-list cache anyway).
   game: { id: number; name: string }
-  meta: GeoScreenshotMeta
+  // Only the id: the canonical point and map are the answer, so the pick
+  // response must never carry them (scored server-side on guess).
+  meta: Pick<GeoScreenshotMeta, 'id'>
   candidate: GeoScreenshotCandidate
   maps: GeoMap[]
   // The map the screenshot canonically belongs to. Only populated AFTER

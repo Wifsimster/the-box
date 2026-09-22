@@ -47,6 +47,7 @@ export interface TierSessionWithContext extends TierSessionRow {
   game_session_id: string
   daily_challenge_id: number
   is_catch_up: boolean
+  game_is_completed: boolean
   tier_number: number
   time_limit_seconds: number
 }
@@ -204,6 +205,7 @@ export const sessionRepository = {
         'game_sessions.id as game_session_id',
         'game_sessions.daily_challenge_id',
         'game_sessions.is_catch_up',
+        'game_sessions.is_completed as game_is_completed',
         'tiers.tier_number',
         'tiers.time_limit_seconds'
       )
@@ -247,6 +249,26 @@ export const sessionRepository = {
         is_completed: data.isCompleted,
         completed_at: data.isCompleted ? new Date() : undefined,
       })
+  },
+
+  async completeGameSessionIfActive(gameSessionId: string, data: {
+    totalScore: number
+    currentPosition: number
+  }): Promise<boolean> {
+    log.info(
+      { sessionId: gameSessionId, totalScore: data.totalScore, position: data.currentPosition },
+      'completeGameSessionIfActive'
+    )
+    const updated = await db('game_sessions')
+      .where('id', gameSessionId)
+      .andWhere('is_completed', false)
+      .update({
+        total_score: data.totalScore,
+        current_position: data.currentPosition,
+        is_completed: true,
+        completed_at: new Date(),
+      })
+    return updated > 0
   },
 
   async saveGuess(data: {
