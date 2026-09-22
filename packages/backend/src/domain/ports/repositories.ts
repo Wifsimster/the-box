@@ -258,6 +258,8 @@ export interface TierSessionWithContextRecord extends TierSessionRecord {
   game_session_id: string
   daily_challenge_id: number
   is_catch_up: boolean
+  /** game_sessions.is_completed — true once the run finished or was forfeited. */
+  game_is_completed: boolean
   tier_number: number
   time_limit_seconds: number
 }
@@ -357,6 +359,14 @@ export interface GameSessionStore extends GameSessionLookup {
     gameSessionId: string,
     data: { totalScore: number; currentPosition: number; isCompleted: boolean }
   ): Promise<void>
+  /**
+   * Flip an active game session to completed with its final score. Returns
+   * false when it was already completed, so concurrent forfeits apply once.
+   */
+  completeGameSessionIfActive(
+    gameSessionId: string,
+    data: { totalScore: number; currentPosition: number }
+  ): Promise<boolean>
   saveGuess(data: {
     tierSessionId: string
     screenshotId: number

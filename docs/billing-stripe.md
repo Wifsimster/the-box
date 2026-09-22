@@ -131,7 +131,8 @@ Table `stripe_event_processed` :
 
 | Événement | Effet |
 |-----------|-------|
-| `checkout.session.completed` | Persiste l'abonnement OU marque l'utilisateur `supporter_lifetime` si `metadata.tier === 'supporter_lifetime'` |
+| `checkout.session.completed` | Persiste l'abonnement OU marque l'utilisateur `supporter_lifetime` si `metadata.tier === 'supporter_lifetime'` (uniquement si `payment_status !== 'unpaid'`) |
+| `checkout.session.async_payment_succeeded` | Accorde `supporter_lifetime` quand un paiement différé (ex. SEPA) est finalement encaissé |
 | `customer.subscription.created` | Crée l'enregistrement local |
 | `customer.subscription.updated` | Met à jour le statut, la date de fin, `cancel_at_period_end` |
 | `customer.subscription.deleted` | Marque l'abonnement comme terminé |

@@ -114,6 +114,14 @@ export interface GeoGamersRunRepository {
   findRankedForUser(challengeId: number, userId: string): Promise<GeoGamersRunRecord | null>
   create(input: CreateRunInput): Promise<GeoGamersRunRecord>
   update(runId: number, patch: UpdateRunInput): Promise<GeoGamersRunRecord>
+  // Compare-and-swap update for the guess endpoints: applies `patch` only if
+  // the run is still open and its attempts / gamePoints are what the caller
+  // read. Returns null when a concurrent request changed the run first.
+  updateIfUnchanged(
+    runId: number,
+    expected: { attemptCount: number; gamePoints: number | null },
+    patch: UpdateRunInput,
+  ): Promise<GeoGamersRunRecord | null>
   // Rank support: how many completed ranked runs beat `points` today.
   countCompletedBetter(challengeId: number, points: number): Promise<number>
   // Claim: copy a completed guest run into a new user-owned row and mark the
@@ -363,7 +371,17 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       if (typeof timeSpentMsDelta === 'number' && timeSpentMsDelta > 0) {
         patch.timeSpentMs = run.timeSpentMs + Math.min(timeSpentMsDelta, 5 * 60_000)
       }
-      const updated = await deps.runRepo.update(run.id, patch)
+      // Guarded write: without it, N parallel guesses all read
+      // attempts=[] and each is scored as attempt 1, bypassing the
+      // 3-attempt limit (and a late wrong write could reset attempts).
+      const updated = await deps.runRepo.updateIfUnchanged(
+        run.id,
+        { attemptCount: run.gameAttempts.length, gamePoints: run.gamePoints },
+        patch,
+      )
+      if (!updated) {
+        throw new GeoGamersError('run changed concurrently, reload and retry', 'WRONG_PHASE')
+      }
 
       const result: GeoGamersGuessGameResult = {
         correct,
@@ -404,7 +422,11 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       }
 
       const completedAt = new Date(now()).toISOString()
-      const updated = await deps.runRepo.update(run.id, {
+      // Guarded so two parallel location guesses can't both complete the run.
+      const updated = await deps.runRepo.updateIfUnchanged(run.id, {
+        attemptCount: run.gameAttempts.length,
+        gamePoints: run.gamePoints,
+      }, {
         guess,
         distance: scored.distance,
         locationPoints: scored.locationPoints,
@@ -413,6 +435,9 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
         timeSpentMs,
         completedAt,
       })
+      if (!updated) {
+        throw new GeoGamersError('run changed concurrently, reload and retry', 'WRONG_PHASE')
+      }
 
       const result: GeoGamersGuessLocationResult = {
         guess,

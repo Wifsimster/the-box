@@ -141,6 +141,9 @@ export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
 
 async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stripe.Event): Promise<void> {
   switch (event.type) {
+    // Delayed payment methods (e.g. SEPA debit) complete the Checkout
+    // Session as `unpaid` and settle later via async_payment_succeeded.
+    case 'checkout.session.async_payment_succeeded':
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       log.info(
@@ -160,6 +163,14 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
       if (session.mode !== 'payment') return
       if (session.metadata?.['tier'] !== 'supporter_lifetime') {
         log.debug({ sessionId: session.id }, 'one-time checkout ignored — not the supporter SKU')
+        return
+      }
+
+      // Never grant before the money has cleared: an `unpaid` completion
+      // is a pending async payment that may still fail. The grant then
+      // arrives with checkout.session.async_payment_succeeded.
+      if (session.payment_status === 'unpaid') {
+        log.info({ sessionId: session.id }, 'supporter checkout completed but unpaid — awaiting async payment')
         return
       }
 
@@ -286,7 +297,9 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
               { err: String(err), disputeId: dispute.id, chargeRef },
               'failed to retrieve charge for dispute',
             )
-            return
+            // Rethrow so the router answers 5xx and leaves processed_at
+            // NULL: Stripe retries, instead of the revocation being lost.
+            throw err
           }
         }
       }

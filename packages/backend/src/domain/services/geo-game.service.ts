@@ -42,7 +42,8 @@ export const GEO_CONTRIBUTE_MIN_DAYS_PLAYED = 3
 // the answer.
 export interface GeoFreePlayView {
   game: { id: number; name: string }
-  meta: GeoScreenshotMeta
+  // Only the id — canonical point and geoMapId are the answer.
+  meta: Pick<GeoScreenshotMeta, 'id'>
   candidate: GeoScreenshotCandidate
   maps: GeoMap[]
   // The map the screenshot canonically belongs to. Only populated AFTER the
@@ -164,7 +165,8 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       }
       return {
         game: { id: gameId, name: '' },
-        meta,
+        // Never ship canonical/geoMapId to the client — they are the answer.
+        meta: { id: meta.id },
         candidate,
         maps: enabledMaps,
       }

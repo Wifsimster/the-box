@@ -77,6 +77,13 @@ function makeDeps(overrides: { jokerUsed?: boolean } = {}) {
       if (patch.completedAt && r.totalPoints != null) completedScores.push(r.totalPoints)
       return r
     },
+    async updateIfUnchanged(runId, expected, patch) {
+      const r = [...runs.values()].find((x) => x.id === runId)!
+      if (r.completedAt || r.gameAttempts.length !== expected.attemptCount || r.gamePoints !== expected.gamePoints) {
+        return null
+      }
+      return this.update(runId, patch)
+    },
     async countCompletedBetter(_cid, points) {
       return completedScores.filter((s) => s > points).length
     },

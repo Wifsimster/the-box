@@ -343,6 +343,50 @@ describe('billing-webhook router — idempotency', () => {
     }
   })
 
+  it('does not grant supporter lifetime while the checkout payment is still unpaid', async () => {
+    const fakes = makeFakes()
+    const server = await serveRouter(fakes.deps)
+    try {
+      const event = buildEvent({
+        id: 'evt_supporter_unpaid',
+        type: 'checkout.session.completed',
+        data: {
+          id: 'cs_test_unpaid',
+          mode: 'payment',
+          payment_status: 'unpaid',
+          metadata: { tier: 'supporter_lifetime', userId: 'user-sepa' },
+        },
+      })
+      const res = await signedPost(server.url, event)
+      assert.equal(res.status, 200)
+      assert.deepEqual(fakes.state.grantSupporterCalls, [])
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('grants supporter lifetime once the async payment succeeds', async () => {
+    const fakes = makeFakes()
+    const server = await serveRouter(fakes.deps)
+    try {
+      const event = buildEvent({
+        id: 'evt_supporter_async_ok',
+        type: 'checkout.session.async_payment_succeeded',
+        data: {
+          id: 'cs_test_unpaid',
+          mode: 'payment',
+          payment_status: 'paid',
+          metadata: { tier: 'supporter_lifetime', userId: 'user-sepa' },
+        },
+      })
+      const res = await signedPost(server.url, event)
+      assert.equal(res.status, 200)
+      assert.deepEqual(fakes.state.grantSupporterCalls, ['user-sepa'])
+    } finally {
+      await server.close()
+    }
+  })
+
   it('short-circuits on replay (alreadyProcessed=true) without re-running side effects', async () => {
     const fakes = makeFakes({ claimEventResult: { alreadyProcessed: true } })
     const server = await serveRouter(fakes.deps)

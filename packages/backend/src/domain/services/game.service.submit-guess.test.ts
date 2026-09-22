@@ -55,6 +55,7 @@ function buildHarness() {
     correct_answers: 0,
     wrong_guesses: 0,
     game_total_score: 0,
+    game_is_completed: false,
   }
 
   const sessionRepository = {
@@ -117,7 +118,16 @@ function buildHarness() {
     achievementService: {
       checkAchievementsAfterGame: async () => [],
     },
-    challengeRepository: {},
+    // Position N serves screenshot N (the harness submits screenshotId = position).
+    challengeRepository: {
+      findTiersByChallenge: async () => [{ id: 1 }],
+      findScreenshotAtPosition: async (_tierId: number, position: number) => ({
+        position,
+        bonus_multiplier: '1',
+        screenshot_id: position,
+        image_url: '',
+      }),
+    },
     sessionRepository,
     screenshotRepository: {
       findWithGame: async () => ({
@@ -351,5 +361,32 @@ describe('game.service submitGuess — proximity hint anti-oracle gate', () => {
       ['wrong a', 'wrong b'],
       'each position gets exactly one proximity lookup on its first miss'
     )
+  })
+})
+
+describe('game.service submitGuess — session / screenshot binding', () => {
+  let h: ReturnType<typeof buildHarness>
+  beforeEach(() => {
+    h = buildHarness()
+  })
+
+  it('rejects a screenshotId that is not the one served at that position', async () => {
+    // Replay the (screenshot 1, answer) pair against position 2.
+    h.tierSession.round_position = 2
+    h.tierSession.round_started_at = new Date(Date.now() - 5000)
+    await assert.rejects(
+      () => h.submit(2, 'right', { screenshotId: 1 }),
+      (err: unknown) => err instanceof GameError && err.code === 'SCREENSHOT_POSITION_MISMATCH',
+    )
+    assert.equal(h.guesses.length, 0, 'no guess row may be written')
+  })
+
+  it('rejects guesses once the game session is completed (e.g. after forfeit)', async () => {
+    h.tierSession.game_is_completed = true
+    await assert.rejects(
+      () => h.submit(1, 'right'),
+      (err: unknown) => err instanceof GameError && err.code === 'SESSION_ALREADY_COMPLETED',
+    )
+    assert.equal(h.guesses.length, 0)
   })
 })
