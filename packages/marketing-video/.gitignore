@@ -2,3 +2,4 @@ node_modules
 out
 .remotion-cache
 *.log
+public/daily-promo

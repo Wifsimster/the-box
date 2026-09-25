@@ -3,6 +3,7 @@ import { Composition } from "remotion";
 import { MarketingVideo } from "./MarketingVideo";
 import { ShortVideo } from "./ShortVideo";
 import { FounderClip } from "./FounderClip";
+import { DailyBoxPromo, PROMO_DURATION } from "./DailyBoxPromo";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -42,6 +43,17 @@ export const RemotionRoot: React.FC = () => {
           withFounderVideo: false,
           withAudio: false,
         }}
+      />
+
+      {/* ~25s vertical promo for Facebook/Instagram Reels (1080×1920 @ 30fps).
+          Assets live in public/daily-promo/ — see scripts/fetch-daily-promo-assets.mjs. */}
+      <Composition
+        id="the-box-daily-promo"
+        component={DailyBoxPromo}
+        durationInFrames={PROMO_DURATION}
+        fps={30}
+        width={1080}
+        height={1920}
       />
     </>
   );
