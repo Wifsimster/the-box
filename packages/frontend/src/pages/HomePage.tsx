@@ -16,6 +16,7 @@ import { HomeModesShowcase } from '@/components/home/HomeModesShowcase'
 import { HomePremiumTeaser } from '@/components/home/HomePremiumTeaser'
 import { HomeSocialProof } from '@/components/home/HomeSocialProof'
 import { useBillingStore } from '@/stores/billingStore'
+import { useConsentStore } from '@/stores/consentStore'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
 // CubeBackground pulls in Three.js + react-three-fiber, so split it into
@@ -133,15 +134,20 @@ export default function HomePage() {
   // "pending" flag on close; otherwise we open it for any visitor who
   // hasn't completed (or dismissed) it yet. Skipping or finishing marks
   // it complete via the TourGuide itself.
+  // The tour waits for the cookie banner to be answered: both compete for
+  // the same first-visit attention and the banner covers the bottom of the
+  // page the tour spotlights.
+  const consentDecided = useConsentStore((s) => s.decided)
   const [tourOpen, setTourOpen] = useState(false)
   useEffect(() => {
+    if (!consentDecided) return
     const id = window.setTimeout(() => {
       if (consumeTourPending() || !hasCompletedTour()) {
         setTourOpen(true)
       }
     }, 600)
     return () => window.clearTimeout(id)
-  }, [])
+  }, [consentDecided])
 
   // Replay from the user menu while already on this page — the mount-time
   // effect above won't re-run, so listen for the explicit replay event.
@@ -230,7 +236,7 @@ export default function HomePage() {
         </Suspense>
       )}
       <WelcomeModal />
-      <TourGuide open={tourOpen} onClose={() => setTourOpen(false)} />
+      <TourGuide open={tourOpen && consentDecided} onClose={() => setTourOpen(false)} />
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
         <StreakRiskBanner />
         {/* Hero Section */}
