@@ -2405,6 +2405,15 @@
       "rare": "Rare",
       "epic": "Épique",
       "legendary": "Légendaire"
+    },
+    "addedToInventory": "Ajoutée à ton inventaire.",
+    "untilChest_one": "Encore {{count}} jour avant le coffre légendaire",
+    "untilChest": "Encore {{count}} jours avant le coffre légendaire",
+    "chestReached": "Coffre légendaire atteint !",
+    "dayStatus": {
+      "claimed": "récupéré",
+      "available": "disponible",
+      "locked": "verrouillé"
     }
   },
   "onboarding": {

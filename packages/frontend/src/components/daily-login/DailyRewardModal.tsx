@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
-import { Flame, Gift, Sparkles } from 'lucide-react'
+import { CircleCheck, Flame, Gift, Loader2, Sparkles } from 'lucide-react'
+import { RewardIcon } from './RewardIcon'
 import {
     getRarityStyle,
     getRewardRarity,
@@ -85,153 +86,181 @@ export function DailyRewardModal() {
     const rarity = reward ? getRewardRarity(reward) : 'common'
     const rarityStyle = reward ? getRarityStyle(reward) : null
 
+    const displayStreak = justClaimed?.newStreak ?? status.currentStreak
+    const dayInCycle = justClaimed?.newDayInCycle || status.currentDayInCycle
+    const hasClaimed = showClaimSuccess || status.hasClaimedToday
+    const cycleLength = status.allRewards.length
+    const daysReached = hasClaimed ? dayInCycle : dayInCycle - 1
+    const daysUntilChest = Math.max(cycleLength - daysReached, 0)
+
     return (
         <ResponsiveDialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
-            <ResponsiveDialogContent className="sm:max-w-md">
-                <ResponsiveDialogHeader>
-                    <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-                        <Gift className="size-5 text-primary" />
+            <ResponsiveDialogContent className="sm:max-w-md gap-5 sm:gap-6 overflow-x-hidden">
+                <ResponsiveDialogHeader className="items-center text-center sm:text-center">
+                    <ResponsiveDialogTitle
+                        className={cn(
+                            'flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest',
+                            showClaimSuccess ? 'text-success' : 'text-primary'
+                        )}
+                    >
+                        {showClaimSuccess
+                            ? <CircleCheck className="size-4" aria-hidden />
+                            : <Gift className="size-4" aria-hidden />}
                         {showClaimSuccess
                             ? t('dailyLogin.rewardClaimed')
                             : t('dailyLogin.dailyReward')}
                     </ResponsiveDialogTitle>
-                    <ResponsiveDialogDescription>
+                    <ResponsiveDialogDescription className="sr-only">
                         {showClaimSuccess
                             ? t('dailyLogin.claimSuccessDescription')
                             : t('dailyLogin.claimDescription')}
                     </ResponsiveDialogDescription>
                 </ResponsiveDialogHeader>
 
-                {/* Streak Display */}
-                <div className="flex items-center justify-center gap-2 py-2">
-                    <Flame className="size-5 text-neon-pink" />
-                    <span className="text-lg font-bold">
-                        {t('dailyLogin.dayStreak', {
-                            count: justClaimed?.newStreak ?? status.currentStreak,
-                        })}
-                    </span>
-                    {status.currentStreak >= 7 && (
-                        <Badge variant="outline" className="bg-neon-pink/10 border-neon-pink/30 text-neon-pink">
-                            {t('dailyLogin.onFire')}
-                        </Badge>
-                    )}
-                </div>
-
-                {/* Reward Display */}
+                {/* Reward hero */}
                 {reward && rarityStyle && (
-                    <div
-                        style={
-                            showClaimSuccess
-                                ? { boxShadow: rarityStyle.glow }
-                                : undefined
-                        }
-                        className={cn(
-                            'relative flex flex-col items-center p-6 rounded-lg border bg-linear-to-b',
-                            // The card is always tinted by the reward's rarity so
-                            // the colour signals prestige before the claim.
-                            rarityStyle.border,
-                            rarityStyle.gradient,
-                            isAnimating && !showClaimSuccess && 'animate-pulse',
-                            // On claim, escalate the reveal animation with rarity.
-                            showClaimSuccess && RARITY_CLAIM_ANIMATION[rarity]
-                        )}
-                    >
-                        {/* Sparkle effect on claim, tinted by rarity */}
-                        {showClaimSuccess && (
-                            <div className="absolute inset-0 pointer-events-none">
-                                <Sparkles className={cn('absolute top-2 left-4 size-4 animate-pulse', rarityStyle.sparkle)} />
-                                <Sparkles
-                                    className={cn('absolute top-4 right-6 size-3 animate-pulse', rarityStyle.sparkle)}
-                                    style={{ animationDelay: '100ms' }}
-                                />
-                                <Sparkles
-                                    className={cn('absolute bottom-4 left-8 size-3 animate-pulse', rarityStyle.sparkle)}
-                                    style={{ animationDelay: '200ms' }}
-                                />
-                                {(rarity === 'epic' || rarity === 'legendary') && (
-                                    <>
-                                        <Sparkles
-                                            className={cn('absolute bottom-3 right-5 size-4 animate-pulse', rarityStyle.sparkle)}
-                                            style={{ animationDelay: '150ms' }}
-                                        />
-                                        <Sparkles
-                                            className={cn('absolute top-1/2 left-2 size-3 animate-pulse', rarityStyle.sparkle)}
-                                            style={{ animationDelay: '250ms' }}
-                                        />
-                                    </>
+                    <div className="flex flex-col items-center text-center">
+                        <div className="relative flex size-36 items-center justify-center">
+                            {/* Light rays behind the medallion, tinted by rarity */}
+                            <div
+                                aria-hidden
+                                className={cn(
+                                    'reward-rays absolute inset-0 transition-opacity duration-500',
+                                    rarityStyle.sparkle,
+                                    showClaimSuccess ? 'opacity-100' : 'opacity-40'
                                 )}
+                            />
+                            <div
+                                aria-hidden
+                                className={cn('absolute inset-6 rounded-full blur-2xl opacity-40 bg-current', rarityStyle.text)}
+                            />
+                            <div
+                                style={{ boxShadow: rarityStyle.glow }}
+                                className={cn(
+                                    'relative flex size-20 items-center justify-center rounded-2xl border-2 bg-card',
+                                    rarityStyle.border,
+                                    isAnimating && !showClaimSuccess && 'motion-safe:animate-pulse',
+                                    showClaimSuccess && RARITY_CLAIM_ANIMATION[rarity]
+                                )}
+                            >
+                                <div className={cn('absolute inset-0 rounded-[14px] bg-linear-to-b', rarityStyle.gradient)} />
+                                <RewardIcon reward={reward} className={cn('relative size-10', rarityStyle.text)} strokeWidth={1.75} aria-hidden />
                             </div>
-                        )}
+                            {showClaimSuccess && (
+                                <div aria-hidden className="pointer-events-none absolute inset-0">
+                                    <Sparkles className={cn('absolute left-3 top-5 size-4 motion-safe:animate-pulse', rarityStyle.sparkle)} />
+                                    <Sparkles
+                                        className={cn('absolute bottom-6 right-3 size-3.5 motion-safe:animate-pulse', rarityStyle.sparkle)}
+                                        style={{ animationDelay: '200ms' }}
+                                    />
+                                    {(rarity === 'epic' || rarity === 'legendary') && (
+                                        <Sparkles
+                                            className={cn('absolute right-5 top-2 size-3 motion-safe:animate-pulse', rarityStyle.sparkle)}
+                                            style={{ animationDelay: '350ms' }}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
-                        {/* Rarity label */}
                         <Badge
                             variant="outline"
-                            className={cn('mb-2 uppercase tracking-wide text-[10px]', rarityStyle.badge, rarityStyle.border)}
+                            className={cn('-mt-1 uppercase tracking-widest text-[10px]', rarityStyle.badge, rarityStyle.border)}
                         >
                             {t(rarityStyle.labelKey)}
                         </Badge>
 
-                        <span className="text-4xl mb-2">{reward.iconUrl}</span>
-                        <h3 className="font-bold text-lg text-center">
+                        <h3 className="mt-3 text-2xl font-bold tracking-tight text-balance">
                             {t(`dailyLogin.rewards.day${reward.dayNumber}.name`, {
                                 defaultValue: reward.displayName,
                             })}
                         </h3>
-                        <p className="text-sm text-muted-foreground text-center mt-1">
+                        <p className="mt-1 max-w-xs text-sm text-muted-foreground text-balance">
                             {t(`dailyLogin.rewards.day${reward.dayNumber}.description`, {
                                 defaultValue: reward.description ?? '',
                             })}
                         </p>
 
-                        {/* Reward details */}
-                        <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                        <div className="mt-4 flex flex-wrap justify-center gap-2">
                             {reward.rewardValue.items.map((item: { key: string; quantity: number }) => (
                                 <RewardItemBadgeLabel key={item.key} item={item} />
                             ))}
                             {reward.rewardValue.points > 0 && (
-                                <Badge variant="secondary" className="bg-warning/20 text-warning">
+                                <Badge variant="secondary" className="bg-warning/15 text-warning">
                                     +{reward.rewardValue.points} {t('dailyLogin.points')}
                                 </Badge>
                             )}
                         </div>
+                        {showClaimSuccess && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {t('dailyLogin.addedToInventory')}
+                            </p>
+                        )}
                     </div>
                 )}
 
-                {/* Calendar Progress */}
-                <RewardCalendar
-                    rewards={status.allRewards}
-                    currentDayInCycle={justClaimed?.newDayInCycle || status.currentDayInCycle}
-                    hasClaimedToday={showClaimSuccess || status.hasClaimedToday}
-                />
+                {/* Streak + weekly track */}
+                <section className="rounded-xl border border-border bg-muted/30 p-3 sm:p-4">
+                    <div className="mb-4 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="flex size-8 items-center justify-center rounded-full bg-neon-pink/15">
+                                <Flame className="size-4 text-neon-pink" aria-hidden />
+                            </span>
+                            <div className="leading-tight">
+                                <p className="text-sm font-bold">
+                                    {t('dailyLogin.dayStreak', { count: displayStreak })}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    {daysUntilChest > 0
+                                        ? t('dailyLogin.untilChest', { count: daysUntilChest })
+                                        : t('dailyLogin.chestReached')}
+                                </p>
+                            </div>
+                        </div>
+                        {displayStreak >= 7 ? (
+                            <Badge variant="outline" className="shrink-0 bg-neon-pink/10 border-neon-pink/30 text-neon-pink">
+                                {t('dailyLogin.onFire')}
+                            </Badge>
+                        ) : (
+                            <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
+                                {Math.max(daysReached, 0)}/{cycleLength}
+                            </span>
+                        )}
+                    </div>
+                    <RewardCalendar
+                        rewards={status.allRewards}
+                        currentDayInCycle={dayInCycle}
+                        hasClaimedToday={hasClaimed}
+                    />
+                </section>
 
                 {/* Action Button */}
-                <div className="flex justify-center pt-2">
-                    {showClaimSuccess ? (
-                        <Button onClick={handleClose} variant="gaming">
-                            {t('common.close')}
-                        </Button>
-                    ) : status.canClaim ? (
-                        <Button
-                            onClick={handleClaim}
-                            disabled={isClaiming}
-                            variant="gaming"
-                            className="min-w-32"
-                        >
-                            {isClaiming ? (
-                                <span className="flex items-center gap-2">
-                                    <span className="animate-spin">⏳</span>
-                                    {t('dailyLogin.claiming')}
-                                </span>
-                            ) : (
-                                t('dailyLogin.claimReward')
-                            )}
-                        </Button>
-                    ) : (
-                        <Button onClick={handleClose} variant="outline">
-                            {t('dailyLogin.alreadyClaimed')}
-                        </Button>
-                    )}
-                </div>
+                {showClaimSuccess ? (
+                    <Button onClick={handleClose} variant="gaming" size="lg" className="w-full">
+                        {t('common.close')}
+                    </Button>
+                ) : status.canClaim ? (
+                    <Button
+                        onClick={handleClaim}
+                        disabled={isClaiming}
+                        variant="gaming"
+                        size="lg"
+                        className="w-full"
+                    >
+                        {isClaiming ? (
+                            <span className="flex items-center gap-2">
+                                <Loader2 className="size-4 animate-spin" aria-hidden />
+                                {t('dailyLogin.claiming')}
+                            </span>
+                        ) : (
+                            t('dailyLogin.claimReward')
+                        )}
+                    </Button>
+                ) : (
+                    <Button onClick={handleClose} variant="outline" size="lg" className="w-full">
+                        {t('dailyLogin.alreadyClaimed')}
+                    </Button>
+                )}
             </ResponsiveDialogContent>
         </ResponsiveDialog>
     )

@@ -685,3 +685,28 @@ html {
     transform-origin: center;
   }
 }
+
+/* Daily-reward hero: soft light rays behind the medallion. Painted with
+   `currentColor` so the rarity text token (text-success, text-warning…)
+   tints them; a radial mask fades them out towards the edge. */
+.reward-rays {
+  border-radius: 9999px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, currentColor 38%, transparent) 0deg 10deg,
+    transparent 10deg 30deg
+  );
+  mask-image: radial-gradient(circle, black 18%, transparent 70%);
+}
+
+@keyframes reward-rays-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reward-rays {
+    animation: reward-rays-spin 24s linear infinite;
+  }
+}
