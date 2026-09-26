@@ -2405,6 +2405,15 @@
       "rare": "Rare",
       "epic": "Epic",
       "legendary": "Legendary"
+    },
+    "addedToInventory": "Added to your inventory.",
+    "untilChest_one": "{{count}} more day until the legendary chest",
+    "untilChest": "{{count}} more days until the legendary chest",
+    "chestReached": "Legendary chest reached!",
+    "dayStatus": {
+      "claimed": "claimed",
+      "available": "available",
+      "locked": "locked"
     }
   },
   "onboarding": {
