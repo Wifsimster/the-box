@@ -6,7 +6,7 @@ import { join, relative } from 'node:path'
 /**
  * Executable dependency rule.
  *
- * CLAUDE.md states: "presentation -> domain -> infrastructure; domain has no
+ * AGENTS.md states: "presentation -> domain -> infrastructure; domain has no
  * outward deps". That was documentation only, and it had quietly stopped
  * being true — `domain/services/index.ts` was a composition root importing
  * the Pino logger, four BullMQ queues, the Socket.io emitter and 23

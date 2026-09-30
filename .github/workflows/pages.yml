@@ -5,7 +5,7 @@ name: Publish HTML artifacts to Pages
 # from a stable URL without cloning the repo. Markdown files stay in-repo.
 #
 # Pages serves from a separate origin (github.io) — that's intentional and
-# satisfies the security policy in .claude/CLAUDE.md: HTML docs must never
+# satisfies the security policy in AGENTS.md: HTML docs must never
 # be served from the Express app on the same origin as Better Auth cookies.
 #
 # One-time setup (repo admin): Settings → Pages → Build & deployment → Source
@@ -48,7 +48,7 @@ jobs:
         # Copy HTML artifacts under docs/ and tasks/ into _site/, then
         # generate _site/index.html listing them with their <!-- SUMMARY -->
         # blocks extracted. The SUMMARY convention is enforced by
-        # .claude/CLAUDE.md so the index always has meaningful entries.
+        # AGENTS.md so the index always has meaningful entries.
         run: |
           set -euo pipefail
 

@@ -111,4 +111,4 @@ The Box est conçu, développé et auto-hébergé par **[BATTISTELLA](https://pr
 
 L'ensemble de la documentation technique se trouve dans le dossier [`docs/`](./docs/). Voir le tableau de la section [Documentation technique](#documentation-technique) ci-dessus.
 
-Les directives spécifiques aux assistants IA sont dans [`CLAUDE.md`](./CLAUDE.md) (Claude Code) et [`AGENT.md`](./AGENT.md) (agents autonomes).
+Les directives destinées aux agents IA (Claude Code, Codex, agents autonomes…) sont dans [`AGENTS.md`](./AGENTS.md) ; [`CLAUDE.md`](./CLAUDE.md) se contente de l'importer.
