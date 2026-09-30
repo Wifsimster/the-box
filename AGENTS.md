@@ -26,7 +26,7 @@ Single source of truth for any coding agent (Claude Code, Codex, Copilot, autono
 - **Logging**: Pino (pino-pretty in dev)
 - **Marketing**: Remotion (`@the-box/marketing-video` package) for rendered promo videos
 - **Testing**: Node test runner (unit) + Playwright (E2E, incl. a11y & visual-regression specs)
-- **Monorepo**: npm workspaces (`types`, `backend`, `frontend`, `marketing-video`)
+- **Monorepo**: npm workspaces (`types`, `backend`, `frontend`, `marketing-video`, `geo-agent-mcp`)
 
 ## Project Structure
 
@@ -55,6 +55,7 @@ the-box/
     ├── types/                # @the-box/types - shared TypeScript types
     │   └── src/index.ts      # All domain types exported here
     ├── marketing-video/      # @the-box/marketing-video - Remotion promo compositions
+    ├── geo-agent-mcp/        # @the-box/geo-agent-mcp - MCP stdio server for the geo agent API
     ├── backend/              # @the-box/backend - Express API (Clean Architecture)
     │   ├── src/
     │   │   ├── index.ts            # Entrypoint (HTTP + Socket + workers)
@@ -268,7 +269,7 @@ npm run version:minor
 npm run version:major
 ```
 
-Release workflow (`.github/workflows/release.yml`) is triggered manually and publishes multi-arch (amd64, arm64) images to Docker Hub.
+Release workflow (`.github/workflows/release.yml`) runs on push to `main` (a `decide` job bumps from Conventional Commits and skips if only chore/docs/style/test/ci/build) or manually (`workflow_dispatch`), and publishes multi-arch (amd64, arm64) images to Docker Hub.
 
 ## Screenshot Fetcher Tool
 
@@ -327,7 +328,7 @@ Le hook husky `commit-msg` rejette tout commit non conforme.
 ### Pipeline CI/CD
 
 - **CI (`.github/workflows/ci.yml`)** — déclenché à chaque push et PR : lint, build, tests
-- **Release (`.github/workflows/release.yml`)** — déclenché manuellement : bump de version, changelog, build et push d'une image Docker multi-arch sur Docker Hub
+- **Release (`.github/workflows/release.yml`)** — déclenché à chaque push sur `main` (le job `decide` calcule le bump depuis les Conventional Commits et saute la release s'il n'y a que des commits non publiables) ou manuellement : bump de version, changelog, build et push d'une image Docker multi-arch sur Docker Hub
 - **Deploy (`.github/workflows/deploy.yml`)** — déclenché après une Release réussie : tire l'image et reconcilie la pile docker-compose sur le serveur
 
 ### Pre-Commit Checklist
