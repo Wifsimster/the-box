@@ -327,7 +327,7 @@ Le hook husky `commit-msg` rejette tout commit non conforme.
 
 ### Pipeline CI/CD
 
-- **CI (`.github/workflows/ci.yml`)** — déclenché à chaque push et PR : lint, build, tests
+- **CI (`.github/workflows/ci.yml`)** — déclenché sur chaque pull request et sur les push vers `main` uniquement : lint, build, tests
 - **Release (`.github/workflows/release.yml`)** — déclenché à chaque push sur `main` (le job `decide` calcule le bump depuis les Conventional Commits et saute la release s'il n'y a que des commits non publiables) ou manuellement : bump de version, changelog, build et push d'une image Docker multi-arch sur Docker Hub
 - **Deploy (`.github/workflows/deploy.yml`)** — déclenché après une Release réussie : tire l'image et reconcilie la pile docker-compose sur le serveur
 

@@ -91,7 +91,7 @@ graph LR
     G -->|Pull + reconcile compose| H[Serveur de production]
 ```
 
-Le pipeline d'Intégration Continue (CI) lance les contrôles de qualité à chaque push. Le workflow Release est déclenché manuellement, calcule la nouvelle version, génère le changelog, construit une image multi-architecture (amd64, arm64) et la publie sur Docker Hub. Le workflow Deploy s'exécute ensuite sur un runner auto-hébergé pour récupérer la nouvelle image et reconcilier la pile docker-compose en production.
+Le pipeline d'Intégration Continue (CI) lance les contrôles de qualité sur chaque pull request et sur les push vers `main`. Le workflow Release est déclenché à chaque push sur `main` (il saute la release s'il n'y a rien de publiable) ou manuellement, calcule la nouvelle version, génère le changelog, construit une image multi-architecture (amd64, arm64) et la publie sur Docker Hub. Le workflow Deploy s'exécute ensuite sur un runner auto-hébergé pour récupérer la nouvelle image et reconcilier la pile docker-compose en production.
 
 ## Stack technique
 
