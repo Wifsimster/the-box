@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
-import { Sparkles } from 'lucide-react'
+import { BadgeCheck, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHero } from '@/components/layout/PageHero'
 import { Card, CardContent } from '@/components/ui/card'
@@ -45,7 +45,7 @@ export default function PricingPage() {
 
   const isPremium = !!entitlement?.isPremium
   const validUntil = entitlement?.validUntil
-    ? new Date(entitlement.validUntil).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', {
+    ? new Date(entitlement.validUntil).toLocaleDateString(i18n.language, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -59,21 +59,30 @@ export default function PricingPage() {
       title={t('pricing.title')}
       subtitle={t('pricing.subtitle')}
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <div className="mx-auto max-w-6xl space-y-8 sm:space-y-10">
         {isAuthenticated && isPremium && (
-          <Card className="border-success/40 bg-success/5">
-            <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <p className="font-medium">{t('pricing.alreadyPremium')}</p>
-                {validUntil && (
-                  <p className="text-sm text-muted-foreground">
-                    {entitlement?.cancelAtPeriodEnd
-                      ? t('pricing.cancelScheduled', { date: validUntil })
-                      : t('pricing.premiumUntil', { date: validUntil })}
-                  </p>
-                )}
+          <Card variant="success" className="mx-auto max-w-2xl bg-success/5">
+            <CardContent className="flex flex-col gap-3 pt-(--card-padding) sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <BadgeCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+                <div>
+                  <p className="font-medium">{t('pricing.alreadyPremium')}</p>
+                  {validUntil && (
+                    <p className="text-sm text-muted-foreground">
+                      {entitlement?.cancelAtPeriodEnd
+                        ? t('pricing.cancelScheduled', { date: validUntil })
+                        : t('pricing.premiumUntil', { date: validUntil })}
+                    </p>
+                  )}
+                </div>
               </div>
-              <Button onClick={handlePortal} disabled={isOpeningPortal} variant="secondary">
+              <Button
+                onClick={handlePortal}
+                disabled={isOpeningPortal}
+                variant="outline"
+                className="w-full shrink-0 sm:w-auto"
+              >
+                {isOpeningPortal && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
                 {t('pricing.ctaManage')}
               </Button>
             </CardContent>
@@ -84,8 +93,9 @@ export default function PricingPage() {
 
         <FeatureMatrix />
 
-        <p className="text-center text-xs text-muted-foreground max-w-2xl mx-auto">
-          {t('pricing.footnote')}
+        <p className="mx-auto flex max-w-2xl items-start justify-center gap-2 text-center text-sm text-muted-foreground">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>{t('pricing.footnote')}</span>
         </p>
       </div>
     </PageHero>

@@ -18,7 +18,7 @@ export function PlanFeatureList({ featureKeys, leadKey }: PlanFeatureListProps) 
       {featureKeys.map((key) => (
         <li key={key} className="flex items-start gap-2">
           <Check className="size-4 mt-0.5 shrink-0 text-success" aria-hidden="true" />
-          <span className="text-foreground/90">{t(`pricing.features.items.${key}`)}</span>
+          <span>{t(`pricing.features.items.${key}`)}</span>
         </li>
       ))}
     </ul>

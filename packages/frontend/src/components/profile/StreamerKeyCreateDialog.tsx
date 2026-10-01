@@ -4,13 +4,13 @@ import { Copy, Loader2, Plus, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { toast } from '@/lib/toast'
 import { streamerKeysApi } from '@/lib/api/streamer-keys'
 import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
@@ -130,28 +130,28 @@ export function StreamerKeyCreateDialog({
   return (
     <>
       <Button
-        size="sm"
+        variant="outline"
         onClick={() => dispatch({ type: 'opened' })}
         disabled={!enabled}
         data-testid="streamer-kit-create-key"
       >
-        <Plus className="size-4 mr-1" />
+        <Plus aria-hidden="true" />
         {t('streamerKit.createKey')}
       </Button>
 
-      <Dialog
+      <ResponsiveDialog
         open={open}
         onOpenChange={(next) => {
           dispatch(next ? { type: 'opened' } : { type: 'closed' })
         }}
       >
-        <DialogContent data-testid="streamer-kit-create-dialog">
+        <ResponsiveDialogContent data-testid="streamer-kit-create-dialog">
           {!createdKey && (
             <>
-              <DialogHeader>
-                <DialogTitle>{t('streamerKit.createDialogTitle')}</DialogTitle>
-                <DialogDescription>{t('streamerKit.createDialogDesc')}</DialogDescription>
-              </DialogHeader>
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>{t('streamerKit.createDialogTitle')}</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>{t('streamerKit.createDialogDesc')}</ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
               <div className="space-y-2">
                 <label htmlFor="create-label" className="text-sm font-medium">
                   {t('streamerKit.keyLabelLabel')}
@@ -166,7 +166,7 @@ export function StreamerKeyCreateDialog({
                   autoFocus
                 />
               </div>
-              <DialogFooter>
+              <ResponsiveDialogFooter>
                 <Button variant="outline" onClick={() => dispatch({ type: 'closed' })}>
                   {t('streamerKit.cancel')}
                 </Button>
@@ -175,45 +175,46 @@ export function StreamerKeyCreateDialog({
                   disabled={creating || label.trim().length === 0}
                   data-testid="streamer-kit-confirm-create"
                 >
-                  {creating && <Loader2 className="size-4 mr-1 animate-spin" />}
+                  {creating && <Loader2 className="animate-spin" aria-hidden="true" />}
                   {t('streamerKit.confirmCreate')}
                 </Button>
-              </DialogFooter>
+              </ResponsiveDialogFooter>
             </>
           )}
 
           {createdKey && (
             <>
-              <DialogHeader>
-                <DialogTitle>{t('streamerKit.createdTitle')}</DialogTitle>
-                <DialogDescription>{t('streamerKit.createdDesc')}</DialogDescription>
-              </DialogHeader>
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>{t('streamerKit.createdTitle')}</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>{t('streamerKit.createdDesc')}</ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">{t('streamerKit.createdOnce')}</p>
                 <div className="flex items-center gap-2">
                   <code
                     data-testid="streamer-kit-key-plaintext"
-                    className="flex-1 truncate rounded border border-border bg-background/50 px-2 py-1.5 font-mono text-xs"
+                    className="min-w-0 flex-1 break-all rounded-md border border-border bg-background/50 px-2 py-1.5 font-mono text-xs"
                   >
                     {createdKey.plaintext}
                   </code>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={copyPlaintext}
+                    aria-label={copied ? t('share.copied') : t('share.copyLink')}
                     data-testid="streamer-kit-copy"
                   >
                     {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                   </Button>
                 </div>
               </div>
-              <DialogFooter>
+              <ResponsiveDialogFooter>
                 <Button onClick={() => dispatch({ type: 'closed' })}>{t('streamerKit.done')}</Button>
-              </DialogFooter>
+              </ResponsiveDialogFooter>
             </>
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }

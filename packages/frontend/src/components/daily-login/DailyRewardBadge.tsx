@@ -26,6 +26,10 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
     const canClaim = status.canClaim
     const streak = status.currentStreak
 
+    const label = canClaim
+        ? t('dailyLogin.claimAvailable')
+        : t('dailyLogin.streakDays', { count: streak })
+
     const openRewardModal = () => {
         onClick?.()
         openModal()
@@ -37,22 +41,26 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                 <TooltipTrigger asChild>
                     <Button
                         variant="ghost"
-                        size="sm"
                         onClick={openRewardModal}
+                        aria-label={label}
                         className={cn(
                             'relative flex items-center gap-1.5 px-2 sm:px-3',
                             className
                         )}
                     >
-                        <Gift className={cn(
-                            'size-4',
-                            canClaim ? 'text-primary' : 'text-muted-foreground'
-                        )} />
+                        <Gift
+                            aria-hidden="true"
+                            className={cn(
+                                'size-4',
+                                canClaim ? 'text-primary' : 'text-muted-foreground'
+                            )}
+                        />
 
                         {/* Streak count as subtle badge */}
                         {streak > 0 && (
                             <Badge
                                 variant="secondary"
+                                aria-hidden="true"
                                 className="h-5 px-1.5 text-xs font-medium"
                             >
                                 {streak}
@@ -61,18 +69,15 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
 
                         {/* Notification dot when can claim */}
                         {canClaim && (
-                            <span className="absolute -top-0.5 -right-0.5 flex size-2">
+                            <span aria-hidden="true" className="absolute top-1.5 right-1.5 flex size-2">
+                                <span className="absolute inline-flex size-full rounded-full bg-primary opacity-75 motion-safe:animate-ping" />
                                 <span className="relative inline-flex rounded-full size-2 bg-primary" />
                             </span>
                         )}
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                    {canClaim ? (
-                        <p>{t('dailyLogin.claimAvailable')}</p>
-                    ) : (
-                        <p>{t('dailyLogin.streakDays', { count: streak })}</p>
-                    )}
+                    <p>{label}</p>
                 </TooltipContent>
             </TooltipRoot>
         </TooltipProvider>

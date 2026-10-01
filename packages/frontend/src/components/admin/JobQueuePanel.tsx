@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { AnimatedProgress } from '@/components/ui/animated-progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useAdminStore } from '@/stores/adminStore'
-import { Trash2, Loader2, Clock, Play, CheckCircle2, XCircle, Pause, RefreshCw, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Trash2, Loader2, Clock, Play, CheckCircle2, XCircle, Pause, RefreshCw, ChevronRight, ChevronLeft, X } from 'lucide-react'
 import type { JobStatus } from '@/types'
 
 const statusIcons: Record<JobStatus, React.ReactNode> = {
@@ -90,6 +91,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const { jobs, isLoading, fetchJobs, clearCompleted, cancelJob, connectSocket, disconnectSocket } = useAdminStore()
     const [filterTab, setFilterTab] = useState<'all' | 'active' | 'completed' | 'failed' | 'delayed'>('all')
     const [isMinimized, setIsMinimized] = useState(true)
+    const [confirmClearOpen, setConfirmClearOpen] = useState(false)
     const isMobile = useIsMobile()
     // Full viewport on phones, fixed dock on tablets+. Keep as a string so the
     // value flows straight into Framer Motion's animate config.
@@ -128,8 +130,22 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
             await clearCompleted()
         } catch (err) {
             console.error('Failed to clear jobs:', err)
+        } finally {
+            setConfirmClearOpen(false)
         }
     }
+
+    useEffect(() => {
+        if (isMinimized) return
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !confirmClearOpen) {
+                setIsMinimized(true)
+                onMinimizedChangeRef.current?.(true)
+            }
+        }
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [isMinimized, confirmClearOpen])
 
     const handleCancelJob = async (jobId: string) => {
         try {
@@ -157,6 +173,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const activeJobs = jobs.filter((j) => j.status === 'active' || j.status === 'waiting' || j.status === 'delayed')
     const completedJobs = jobs.filter((j) => j.status === 'completed')
     const failedJobs = jobs.filter((j) => j.status === 'failed')
+    const activeCount = jobs.filter((j) => j.status === 'active' || j.status === 'waiting').length
 
     return (
         <>
@@ -175,6 +192,8 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                 )}
             </AnimatePresence>
             <m.div
+                role="complementary"
+                aria-label={t('admin.jobs.queueTitle', 'Job Queue')}
                 className="fixed right-0 top-[var(--header-h)] h-[calc(100dvh-var(--header-h))] max-w-[100vw] border-l bg-card shadow-lg flex flex-col z-50 pointer-events-auto"
                 initial={false}
                 animate={{
@@ -185,15 +204,22 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
             {/* Minimize/Expand Button */}
             <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={handleToggleMinimize}
-                className="absolute -left-8 top-4 size-8 p-0 rounded-l-md rounded-r-none border border-r-0 bg-card hover:bg-muted z-10 shadow-md"
+                aria-expanded={!isMinimized}
+                aria-label={isMinimized ? t('admin.jobs.expand', 'Expand') : t('admin.jobs.minimize', 'Minimize')}
                 title={isMinimized ? t('admin.jobs.expand', 'Expand') : t('admin.jobs.minimize', 'Minimize')}
+                className={`absolute -left-11 bottom-[calc(var(--bottom-nav-space)+1rem)] size-11 md:bottom-auto md:top-4 md:-left-8 md:size-8 rounded-l-md rounded-r-none border border-r-0 bg-card hover:bg-muted z-10 shadow-md ${!isMinimized && isMobile ? 'hidden' : ''}`}
             >
                 {isMinimized ? (
                     <ChevronLeft className="size-4" />
                 ) : (
                     <ChevronRight className="size-4" />
+                )}
+                {activeCount > 0 && isMinimized && (
+                    <span className="absolute -top-1.5 -left-1.5 flex min-w-5 h-5 items-center justify-center rounded-full bg-neon-blue px-1 text-[11px] font-semibold text-background tabular-nums" aria-hidden="true">
+                        {activeCount}
+                    </span>
                 )}
             </Button>
 
@@ -201,45 +227,55 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
             {!isMinimized && (
                 <>
                     {/* Header */}
-                    <div className="p-4 border-b bg-muted/50">
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold text-sm">{t('admin.jobs.queueTitle', 'Job Queue')}</h3>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={handleClearAll}
-                                disabled={jobs.length === 0}
-                                className="h-7 px-2 text-xs pointer-events-auto cursor-pointer"
-                            >
-                                <Trash2 className="size-3 mr-1" />
-                                {t('admin.jobs.clearAll', 'Clear')}
-                            </Button>
+                    <div className="p-3 sm:p-4 border-b bg-muted/50 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <h2 className="font-semibold text-base">{t('admin.jobs.queueTitle', 'Job Queue')}</h2>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="dangerGhost"
+                                    size="sm"
+                                    onClick={() => setConfirmClearOpen(true)}
+                                    disabled={jobs.length === 0}
+                                    className="h-(--control-h)"
+                                >
+                                    <Trash2 className="size-4" />
+                                    {t('admin.jobs.clearAll', 'Clear')}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleToggleMinimize}
+                                    aria-label={t('common.close')}
+                                    className="md:hidden"
+                                >
+                                    <X className="size-5" />
+                                </Button>
+                            </div>
                         </div>
 
-                        {/* Filter Tabs */}
                         <Tabs value={filterTab} onValueChange={(value) => setFilterTab(value as 'all' | 'active' | 'completed' | 'failed' | 'delayed')} className="w-full">
-                            <TabsList className="w-full h-auto p-0.5 grid grid-cols-2 sm:flex sm:h-8 gap-0.5">
-                                <TabsTrigger value="all" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
+                            <TabsList className="w-full justify-start">
+                                <TabsTrigger value="all" className="flex-1 gap-1.5 px-2">
                                     {t('admin.jobs.filter.all', 'All')}
-                                    <Badge variant="secondary" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
+                                    <Badge variant="secondary" className="h-5 min-w-5 px-1 text-xs tabular-nums">
                                         {jobs.length}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="active" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
+                                <TabsTrigger value="active" className="flex-1 gap-1.5 px-2">
                                     {t('admin.jobs.filter.active', 'Active')}
-                                    <Badge variant="info" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
+                                    <Badge variant="info" className="h-5 min-w-5 px-1 text-xs tabular-nums">
                                         {activeJobs.length}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="completed" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
+                                <TabsTrigger value="completed" className="flex-1 gap-1.5 px-2">
                                     {t('admin.jobs.filter.completed', 'Done')}
-                                    <Badge variant="success" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
+                                    <Badge variant="success" className="h-5 min-w-5 px-1 text-xs tabular-nums">
                                         {completedJobs.length}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="failed" className="flex-1 text-[10px] h-7 px-1.5 sm:px-2">
+                                <TabsTrigger value="failed" className="flex-1 gap-1.5 px-2">
                                     {t('admin.jobs.filter.failed', 'Failed')}
-                                    <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[9px]">
+                                    <Badge variant="destructive" className="h-5 min-w-5 px-1 text-xs tabular-nums">
                                         {failedJobs.length}
                                     </Badge>
                                 </TabsTrigger>
@@ -250,12 +286,13 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                     {/* Job List */}
                     <ScrollArea className="flex-1 p-3">
                         {isLoading && jobs.length === 0 ? (
-                            <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                                <Loader2 className="size-4 mr-2 animate-spin" />
+                            <div role="status" className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+                                <Loader2 className="size-4 mr-2 animate-spin" aria-hidden="true" />
                                 {t('admin.jobs.loading', 'Loading...')}
                             </div>
                         ) : filteredJobs.length === 0 ? (
-                            <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center gap-2 h-32 text-sm text-muted-foreground">
+                                <CheckCircle2 className="size-6" aria-hidden="true" />
                                 {t('admin.jobs.noJobs', 'No jobs')}
                             </div>
                         ) : (
@@ -274,23 +311,23 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                             {/* Job Header */}
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
                                                         {statusIcons[job.status]}
-                                                        <span className="text-xs font-medium truncate">
+                                                        <span className="text-sm font-medium truncate">
                                                             {t(getJobTranslationKey(job.type))}
                                                         </span>
                                                         {job.id.startsWith('repeat:') && (
-                                                            <Badge variant="outline" className="text-[9px] h-4 px-1">
-                                                                <RefreshCw className="size-2 mr-0.5" />
+                                                            <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                                                <RefreshCw className="size-3 mr-0.5" />
                                                                 {t('admin.jobs.recurring', 'Recurring')}
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                    <div className="text-[10px] text-muted-foreground">
+                                                    <div className="text-xs text-muted-foreground">
                                                         {formatDate(job.createdAt, t, i18n.language)}
                                                     </div>
                                                 </div>
-                                                <Badge variant={statusBadgeVariants[job.status]} className="text-[10px] h-5">
+                                                <Badge variant={statusBadgeVariants[job.status]} className="text-xs h-6 shrink-0">
                                                     {job.id.startsWith('repeat:') && job.status === 'delayed' && job.nextRunAt
                                                         ? formatNextRunDate(job.nextRunAt, i18n.language)
                                                         : t(`admin.jobs.status.${job.status}`)}
@@ -310,7 +347,7 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
 
                                             {/* Error Message */}
                                             {job.status === 'failed' && job.error && (
-                                                <div className="text-[10px] text-error truncate" title={job.error}>
+                                                <div className="text-xs text-error break-words line-clamp-3">
                                                     {job.error}
                                                 </div>
                                             )}
@@ -321,9 +358,9 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleCancelJob(job.id)}
-                                                    className="w-full h-6 text-[10px]"
+                                                    className="w-full h-(--control-h)"
                                                 >
-                                                    <XCircle className="size-3 mr-1" />
+                                                    <XCircle className="size-4" />
                                                     {t('admin.jobs.cancel', 'Cancel')}
                                                 </Button>
                                             )}
@@ -332,9 +369,9 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleCancelJob(job.id)}
-                                                    className="w-full h-6 text-[10px] text-muted-foreground hover:text-destructive"
+                                                    className="w-full h-(--control-h) text-muted-foreground hover:text-destructive"
                                                 >
-                                                    <Trash2 className="size-3 mr-1" />
+                                                    <Trash2 className="size-4" />
                                                     {t('admin.jobs.remove', 'Remove')}
                                                 </Button>
                                             )}
@@ -346,15 +383,14 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                     </ScrollArea>
 
                     {/* Refresh Button */}
-                    <div className="p-3 border-t">
+                    <div className="p-3 border-t pb-[max(env(safe-area-inset-bottom),0.75rem)]">
                         <Button
                             variant="outline"
-                            size="sm"
                             onClick={() => fetchJobs()}
                             disabled={isLoading}
-                            className="w-full h-8 text-xs"
+                            className="w-full"
                         >
-                            <RefreshCw className={`size-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
                             {t('admin.jobs.refresh', 'Refresh')}
                         </Button>
                     </div>
@@ -362,6 +398,16 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
             )
             }
             </m.div>
+            <ConfirmDialog
+                open={confirmClearOpen}
+                onOpenChange={setConfirmClearOpen}
+                title={t('admin.jobs.clearConfirm.title')}
+                description={t('admin.jobs.clearConfirm.description')}
+                confirmLabel={t('admin.jobs.clearAll', 'Clear')}
+                cancelLabel={t('common.cancel')}
+                destructive
+                onConfirm={handleClearAll}
+            />
         </>
     )
 }

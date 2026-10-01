@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, useParams, Navigate, Outlet } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
-import { LazyMotion, domAnimation } from 'framer-motion'
+import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -233,6 +233,7 @@ function App() {
   return (
     <ErrorBoundary>
       <LazyMotion features={domAnimation} strict>
+      <MotionConfig reducedMotion="user">
       <Routes>
         {/* Redirect root to browser language */}
         <Route path="/" element={<LanguageRedirect />} />
@@ -299,6 +300,7 @@ function App() {
       <ChangelogDialog />
       <InstallPromptBanner />
       <IOSInstallHint />
+      </MotionConfig>
       </LazyMotion>
     </ErrorBoundary>
   )

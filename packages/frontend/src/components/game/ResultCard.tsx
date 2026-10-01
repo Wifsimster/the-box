@@ -217,7 +217,7 @@ export function ResultCard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-40 flex items-center justify-center bg-background/90 backdrop-blur-lg"
+      className="absolute inset-0 z-40 flex overflow-y-auto overscroll-contain bg-background/90 backdrop-blur-lg px-4 py-6"
     >
       {/* Success particles/glow effect */}
       {isCorrect && (
@@ -226,7 +226,7 @@ export function ResultCard() {
           animate={{ opacity: 1, scale: 1 }}
           className="absolute inset-0 pointer-events-none"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 bg-success/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-72 sm:size-96 bg-success/20 rounded-full blur-3xl" />
         </m.div>
       )}
 
@@ -238,7 +238,7 @@ export function ResultCard() {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative max-w-sm w-full mx-4"
+        className="relative m-auto max-w-sm w-full"
       >
         {/* Single concise outcome line for assistive tech — the visual card is
             built from animated fragments that don't read as one coherent
@@ -260,14 +260,14 @@ export function ResultCard() {
         </div>
         <Card
           variant={isCorrect ? 'success' : 'error'}
-          className="relative border-2 rounded-2xl p-6 shadow-2xl"
+          className="relative border-2 p-(--card-padding) pt-6 shadow-2xl"
         >
         {/* Round Progress Badge */}
         <m.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-muted rounded-full text-xs font-medium text-muted-foreground border border-border"
+          className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-1 bg-muted rounded-full text-xs font-medium text-muted-foreground border border-border tabular-nums"
         >
           {t('game.round')} {currentPosition} / {totalScreenshots}
         </m.div>
@@ -277,7 +277,7 @@ export function ResultCard() {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.15, type: 'spring', stiffness: 400 }}
-          className="text-center mb-4 pt-2"
+          className="text-center mb-3 sm:mb-4"
         >
           <div
             className={cn(
@@ -294,18 +294,18 @@ export function ResultCard() {
                 <>
                   {/* Distinct icon from the exact-match check so the partial
                       state isn't differentiated by colour alone (WCAG 1.4.1). */}
-                  <Target className="size-5" />
+                  <Target className="size-5" aria-hidden="true" />
                   {t('game.partialMatch')}
                 </>
               ) : (
                 <>
-                  <CheckCircle className="size-5" />
+                  <CheckCircle className="size-5" aria-hidden="true" />
                   {t('game.correct')}
                 </>
               )
             ) : (
               <>
-                <XCircle className="size-5" />
+                <XCircle className="size-5" aria-hidden="true" />
                 {t('game.incorrect')}
               </>
             )}
@@ -338,16 +338,21 @@ export function ResultCard() {
         >
           <Button
             ref={nextButtonRef}
-            variant="secondary"
+            variant="gaming"
             size="lg"
             onClick={handleNext}
             className="w-full gap-2 font-bold"
           >
             {/* Show countdown only when auto-closing (session not completed or has next position) */}
-            {(nextPosition !== null || !isSessionCompleted) ? `${getButtonText()} (${countdown}s)` : getButtonText()}
-            <ChevronRight className="size-5" />
+            {(nextPosition !== null || !isSessionCompleted) ? (
+              <>
+                {getButtonText()}
+                <span className="tabular-nums" aria-hidden="true">({countdown}s)</span>
+              </>
+            ) : getButtonText()}
+            <ChevronRight className="size-5" aria-hidden="true" />
           </Button>
-          <span className="text-xs text-muted-foreground">
+          <span className="hidden pointer-fine:inline text-xs text-muted-foreground">
             {t('game.pressEnterToContinue', 'Press Enter to continue')}
           </span>
         </m.div>

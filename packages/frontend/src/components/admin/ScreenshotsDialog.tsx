@@ -1,17 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Game, Screenshot } from '@/types'
 import { adminApi } from '@/lib/api/admin'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PaginationDots } from '@/components/ui/pagination-dots'
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 
 interface ScreenshotsDialogProps {
   game: Game | null
@@ -21,16 +22,16 @@ interface ScreenshotsDialogProps {
 
 function getDifficultyLabel(
   difficulty: number,
-): { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' } {
+): { labelKey: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' } {
   switch (difficulty) {
     case 1:
-      return { label: 'Easy', variant: 'success' }
+      return { labelKey: 'achievements.difficulty.easy', variant: 'success' }
     case 2:
-      return { label: 'Medium', variant: 'warning' }
+      return { labelKey: 'achievements.difficulty.medium', variant: 'warning' }
     case 3:
-      return { label: 'Hard', variant: 'destructive' }
+      return { labelKey: 'achievements.difficulty.hard', variant: 'destructive' }
     default:
-      return { label: 'Unknown', variant: 'secondary' }
+      return { labelKey: 'common.unknown', variant: 'secondary' }
   }
 }
 
@@ -38,19 +39,19 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
   const { t } = useTranslation()
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-2xl lg:max-w-4xl">
+        <ResponsiveDialogHeader className="pr-10">
+          <ResponsiveDialogTitle>
             {t('admin.games.screenshotsDialog.title', { name: game?.name })}
-          </DialogTitle>
-        </DialogHeader>
+          </ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
 
         {/* Keying on the game id remounts the viewer per game, giving it fresh
             state (carousel index + loading) without any reset-on-prop effect. */}
-        {open && game && <ScreenshotsViewer key={game.id} gameId={game.id} />}
-      </DialogContent>
-    </Dialog>
+        {open && game && <ScreenshotsViewer key={game.id} gameId={game.id} gameName={game.name} />}
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }
 
@@ -59,7 +60,7 @@ interface ScreenshotsState {
   loading: boolean
 }
 
-function ScreenshotsViewer({ gameId }: { gameId: number }) {
+function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: string }) {
   const { t } = useTranslation()
   // `screenshots` and `loading` settle together (one fetch resolves both), so
   // they live in a single state object updated in one set call rather than a
@@ -69,6 +70,7 @@ function ScreenshotsViewer({ gameId }: { gameId: number }) {
     loading: true,
   })
   const [currentIndex, setCurrentIndex] = useState(0)
+  const touchStartX = useRef<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -114,20 +116,37 @@ function ScreenshotsViewer({ gameId }: { gameId: number }) {
   return (
     <>
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <div aria-busy="true" className="space-y-4">
+            <Skeleton className="aspect-video w-full" />
+            <Skeleton className="mx-auto h-4 w-24" variant="text" />
           </div>
         ) : screenshots.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+            <ImageOff className="size-8" aria-hidden="true" />
             {t('admin.games.screenshotsDialog.noScreenshots')}
           </div>
         ) : (
           <div className="relative">
             {/* Main image */}
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-background">
+            <div
+              className="relative aspect-video rounded-lg overflow-hidden bg-background touch-pan-y"
+              onTouchStart={(e) => {
+                touchStartX.current = e.touches[0]?.clientX ?? null
+              }}
+              onTouchEnd={(e) => {
+                const start = touchStartX.current
+                touchStartX.current = null
+                const end = e.changedTouches[0]?.clientX
+                if (start == null || end == null || screenshots.length <= 1) return
+                const delta = end - start
+                if (Math.abs(delta) < 40) return
+                if (delta > 0) goToPrevious()
+                else goToNext()
+              }}
+            >
               <img
                 src={currentScreenshot?.imageUrl}
-                alt={`Screenshot ${currentIndex + 1}`}
+                alt={`${gameName} — ${currentIndex + 1}/${screenshots.length}`}
                 className="size-full object-contain"
               />
 
@@ -137,7 +156,7 @@ function ScreenshotsViewer({ gameId }: { gameId: number }) {
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 size-9 sm:size-10"
+                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2"
                     onClick={goToPrevious}
                     aria-label={t('admin.games.screenshotsDialog.previous')}
                   >
@@ -146,7 +165,7 @@ function ScreenshotsViewer({ gameId }: { gameId: number }) {
                   <Button
                     variant="overlay"
                     size="icon"
-                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 size-9 sm:size-10"
+                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2"
                     onClick={goToNext}
                     aria-label={t('admin.games.screenshotsDialog.next')}
                   >
@@ -160,7 +179,7 @@ function ScreenshotsViewer({ gameId }: { gameId: number }) {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                   {currentScreenshot && (
                     <Badge variant={getDifficultyLabel(currentScreenshot.difficulty).variant}>
-                      {t('admin.games.screenshotsDialog.difficulty')}: {getDifficultyLabel(currentScreenshot.difficulty).label}
+                      {t('admin.games.screenshotsDialog.difficulty')} : {t(getDifficultyLabel(currentScreenshot.difficulty).labelKey)}
                     </Badge>
                   )}
                   {currentScreenshot?.locationHint && (
@@ -174,7 +193,7 @@ function ScreenshotsViewer({ gameId }: { gameId: number }) {
 
             {/* Counter and dots */}
             <div className="flex items-center justify-center gap-4 mt-4">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
                 {currentIndex + 1} / {screenshots.length}
               </span>
 

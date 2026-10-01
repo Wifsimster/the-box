@@ -57,8 +57,8 @@ export default function GeoFetchPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <MapIcon className="size-5 text-neon-purple" />
-        <h2 className="text-xl font-semibold">{t('admin.geoFetch.title', 'Cartes des jeux')}</h2>
+        <MapIcon className="size-5 text-neon-purple" aria-hidden="true" />
+        <h3 className="text-lg font-semibold">{t('admin.geoFetch.title', 'Cartes des jeux')}</h3>
       </div>
 
       <GeoFetchProgressHeader />

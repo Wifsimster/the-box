@@ -23,19 +23,25 @@ export function GeoFetchProgressHeader() {
   ]
 
   return (
-    <div className="rounded-md border border-white/10 bg-black/30 p-3 space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-white/80">
+    <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="text-foreground">
           {t('admin.geoFetch.progressSummary', '{{ready}}/{{total}} jeux prêts', {
             ready,
             total: status.total,
           })}
         </span>
-        <span className="font-mono text-white/60">{pct}%</span>
+        <span className="font-mono text-muted-foreground">{pct}%</span>
       </div>
-      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+      <div
+        className="h-2 w-full bg-muted rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+      >
         <div
-          className="h-full bg-gradient-to-r from-neon-purple to-neon-pink transition-all duration-300"
+          className="h-full bg-linear-to-r from-neon-purple to-neon-pink transition-all duration-300 motion-reduce:transition-none"
           style={{ width: `${pct}%` }}
         />
       </div>

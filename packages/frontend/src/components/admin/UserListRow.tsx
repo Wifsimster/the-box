@@ -158,7 +158,7 @@ function RoleSelect({
       onValueChange={(value) => onRoleChange(user, value)}
       disabled={isSubmitting}
     >
-      <SelectTrigger className={className} aria-label={t('admin.users.role.user')}>
+      <SelectTrigger className={className} aria-label={`${t('admin.users.roleLabel')} : ${user.email}`}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -181,7 +181,7 @@ export function UserCard({ user, index, onAction, onRoleChange, isSubmitting, en
       custom={index}
       layout
       transition={{ delay: index * 0.02 }}
-      className="rounded-lg border border-white/10 bg-card/50 p-3 space-y-3"
+      className="rounded-lg border border-border bg-card/50 p-3 space-y-3"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -195,13 +195,13 @@ export function UserCard({ user, index, onAction, onRoleChange, isSubmitting, en
           user={user}
           isSubmitting={isSubmitting}
           onRoleChange={onRoleChange}
-          className="h-8 w-24 shrink-0"
+          className="w-28 shrink-0"
         />
       </div>
 
       <dl className="grid grid-cols-2 gap-2 text-xs">
         <div className="space-y-0.5">
-          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <dt className="text-xs text-muted-foreground">
             {t('admin.users.totalScore')}
           </dt>
           <dd className="font-medium tabular-nums">
@@ -209,25 +209,25 @@ export function UserCard({ user, index, onAction, onRoleChange, isSubmitting, en
           </dd>
         </div>
         <div className="space-y-0.5">
-          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <dt className="text-xs text-muted-foreground">
             {t('admin.users.currentStreak')}
           </dt>
           <dd className="font-medium tabular-nums">{user.currentStreak ?? 0}</dd>
         </div>
         <div className="space-y-0.5">
-          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <dt className="text-xs text-muted-foreground">
             {t('admin.users.createdAt')}
           </dt>
           <dd className="text-muted-foreground">{formatDate(user.createdAt)}</dd>
         </div>
         <div className="space-y-0.5">
-          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <dt className="text-xs text-muted-foreground">
             {t('admin.users.lastLoginAt')}
           </dt>
           <dd className="text-muted-foreground">{formatDateTime(user.lastLoginAt)}</dd>
         </div>
         <div className="space-y-0.5 col-span-2">
-          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <dt className="text-xs text-muted-foreground">
             {t('admin.users.premium.label')}
           </dt>
           <dd>
@@ -236,7 +236,7 @@ export function UserCard({ user, index, onAction, onRoleChange, isSubmitting, en
         </div>
       </dl>
 
-      <div className="flex justify-end gap-1 pt-1 border-t border-white/5">
+      <div className="flex justify-end gap-1 pt-2 border-t border-border/60">
         <RowActions user={user} entitlement={entitlement} onAction={onAction} />
       </div>
     </m.div>
@@ -262,7 +262,7 @@ export function UserTableRow({
       custom={index}
       layout
       transition={{ delay: index * 0.02 }}
-      className="border-b border-white/5 transition-colors group"
+      className="border-b border-border/60 transition-colors group"
       whileHover={{
         backgroundColor: 'var(--table-row-hover)',
       }}
@@ -292,7 +292,7 @@ export function UserTableRow({
         <PremiumBadge entitlement={entitlement} />
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+        <div className="flex justify-end gap-1">
           <RowActions
             user={user}
             entitlement={entitlement}

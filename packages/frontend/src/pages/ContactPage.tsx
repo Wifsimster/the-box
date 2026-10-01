@@ -1,119 +1,147 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { m } from 'framer-motion'
+import { toast } from 'sonner'
+import {
+  Bug,
+  Building2,
+  Check,
+  ChevronRight,
+  Clock,
+  Copy,
+  Mail,
+  MessageSquare,
+  type LucideIcon,
+} from 'lucide-react'
+import { ContentPage } from '@/components/content/ContentPage'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Mail, MessageSquare, Bug, Building2, Clock, ExternalLink } from 'lucide-react'
 import { STUDIO } from '@/lib/studio'
+
+interface ContactMethod {
+  icon: LucideIcon
+  title: string
+  content: string
+  href: string
+  actionLabel: string
+  external: boolean
+}
 
 export default function ContactPage() {
   const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+  const email = t('legal.contactEmail')
 
-  const contactMethods = [
+  const bugReportHref = `mailto:${email}?${new URLSearchParams({
+    subject: t('legal.contactBugSubject'),
+    body: t('legal.contactBugBody', {
+      device: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+    }),
+  })
+    .toString()
+    .replace(/\+/g, '%20')}`
+
+  const contactMethods: ContactMethod[] = [
     {
-      icon: Mail,
-      title: t('legal.contactEmailTitle'),
-      content: t('legal.contactEmail'),
-      isEmail: true,
+      icon: Bug,
+      title: t('legal.contactBugTitle'),
+      content: t('legal.contactBug'),
+      href: bugReportHref,
+      actionLabel: t('legal.contactBugAction'),
+      external: false,
     },
     {
       icon: MessageSquare,
       title: t('legal.contactSocialTitle'),
       content: t('legal.contactSocial'),
-      link: 'https://discord.gg/5pRQGWvcj',
-      linkLabel: t('legal.contactSocialDiscord'),
-    },
-    {
-      icon: Bug,
-      title: t('legal.contactBugTitle'),
-      content: t('legal.contactBug'),
-      link: STUDIO.url,
-      linkLabel: STUDIO.domain,
+      href: 'https://discord.gg/5pRQGWvcj',
+      actionLabel: t('legal.contactSocialDiscord'),
+      external: true,
     },
     {
       icon: Building2,
       title: t('legal.contactStudioTitle'),
       content: t('legal.contactStudio', { studio: STUDIO.name }),
-      link: STUDIO.url,
-      linkLabel: t('legal.studioWebsite'),
+      href: STUDIO.url,
+      actionLabel: `${t('legal.studioWebsite')} — ${STUDIO.domain}`,
+      external: true,
     },
   ]
 
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(email)
+      setCopied(true)
+      toast.success(t('share.copied'))
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error(t('share.copyError'))
+    }
+  }
+
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="bg-card/50 border-border">
-          <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-pink to-neon-purple shadow-lg shadow-neon-pink/30">
-              <Mail className="size-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-linear-to-r from-neon-pink to-neon-purple bg-clip-text text-transparent">
-              {t('legal.contactTitle')}
-            </h1>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-muted-foreground text-center border-b border-border pb-6">
-              {t('legal.contactIntro')}
-            </p>
+    <ContentPage icon={Mail} title={t('legal.contactTitle')} subtitle={t('legal.contactIntro')}>
+      <Card variant="neon">
+        <CardHeader>
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {t('legal.contactEmailTitle')}
+          </h2>
+          <p className="text-lg font-semibold text-foreground break-all sm:text-xl">{email}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="gaming" size="lg" className="w-full sm:w-auto">
+              <a href={`mailto:${email}`}>
+                <Mail aria-hidden="true" />
+                {t('legal.contactEmailAction')}
+              </a>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={copyEmail}
+            >
+              {copied ? <Check className="text-success" aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              {t('legal.contactCopyEmail')}
+            </Button>
+          </div>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="size-4 shrink-0" aria-hidden="true" />
+            {t('legal.contactResponseTime')}
+          </p>
+        </CardContent>
+      </Card>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {contactMethods.map((method, index) => (
-                <m.div
-                  key={method.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="p-4 rounded-lg bg-card border border-border hover:border-neon-purple/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="size-10 rounded-lg bg-neon-purple/20 flex items-center justify-center">
-                      <method.icon className="size-5 text-neon-purple" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">
-                      {method.title}
-                    </h3>
-                  </div>
-                  {method.isEmail ? (
-                    <a
-                      href={`mailto:${method.content}`}
-                      // Standalone (not inline in prose), so the WCAG 2.5.8
-                      // inline exception doesn't apply and the bare 19px text
-                      // box was the whole target.
-                      className="inline-flex min-h-11 items-center text-neon-purple transition-colors hover:text-neon-pink"
-                    >
-                      {method.content}
-                    </a>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        {method.content}
-                      </p>
-                      {method.link && (
-                        <a
-                          href={method.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex min-h-11 items-center gap-1 text-sm text-neon-purple transition-colors hover:text-neon-pink"
-                        >
-                          <ExternalLink className="size-3" />
-                          {method.linkLabel}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </m.div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-4 text-sm text-muted-foreground">
-              <Clock className="size-4" />
-              <span>{t('legal.contactResponseTime')}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </m.div>
-    </div>
+      <Card>
+        <ul className="divide-y divide-border">
+          {contactMethods.map((method) => (
+            <li key={method.title} className="first:*:rounded-t-xl last:*:rounded-b-xl">
+              <a
+                href={method.href}
+                {...(method.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className="group flex items-start gap-3 p-(--card-padding) transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+              >
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <method.icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 space-y-1">
+                  <span className="block font-semibold text-foreground">{method.title}</span>
+                  <span className="block text-sm text-muted-foreground">{method.content}</span>
+                  <span className="block text-sm font-medium text-primary group-hover:text-neon-pink">
+                    {method.actionLabel}
+                    {method.external && <span className="sr-only"> {t('legal.opensInNewTab')}</span>}
+                  </span>
+                </span>
+                <ChevronRight
+                  className="mt-2.5 size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </ContentPage>
   )
 }

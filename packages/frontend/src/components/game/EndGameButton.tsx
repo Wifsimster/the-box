@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
+  ResponsiveDialogDescription,
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
@@ -65,10 +66,11 @@ export function EndGameButton() {
               stiffness: 500,
               damping: 35,
             }}
+            type="button"
             className="w-full flex items-center justify-center gap-1.5
-              h-8 sm:h-9
+              h-(--control-h) px-3
               bg-linear-to-r from-primary to-neon-purple
-              text-white text-xs sm:text-sm font-semibold
+              text-white text-sm font-semibold
               rounded-b-xl border border-t-0 border-white/10
               shadow-lg
               hover:brightness-110
@@ -76,7 +78,7 @@ export function EndGameButton() {
               transition-all duration-150
               touch-manipulation"
           >
-            <CheckCircle2 className="size-3.5" />
+            <CheckCircle2 className="size-4" aria-hidden="true" />
             <span>{t('game.endGame.button')}</span>
           </m.button>
         )}
@@ -86,31 +88,16 @@ export function EndGameButton() {
         <ResponsiveDialogContent className="sm:max-w-md">
           <ResponsiveDialogHeader className="text-center sm:text-center">
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-neon-purple/20 ring-2 ring-primary/30">
-              <Trophy className="size-8 text-primary" />
+              <Trophy className="size-8 text-primary" aria-hidden="true" />
             </div>
             <ResponsiveDialogTitle className="text-xl">{t('game.endGame.confirmTitle')}</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
 
-          <div className="py-4 text-center">
-            <p className="text-muted-foreground text-base italic">
-              "{funSentence}"
-            </p>
-          </div>
+          <ResponsiveDialogDescription className="py-2 sm:py-4 text-center text-sm sm:text-base italic">
+            "{funSentence}"
+          </ResponsiveDialogDescription>
 
-          <ResponsiveDialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              variant="gaming"
-              onClick={handleEndGame}
-              disabled={isEnding}
-              className="w-full"
-            >
-              {isEnding ? (
-                <Loader2 className="size-4 animate-spin mr-2" />
-              ) : (
-                <Trophy className="size-4 mr-2" />
-              )}
-              {t('game.endGame.confirm')}
-            </Button>
+          <ResponsiveDialogFooter className="sm:flex-col-reverse">
             <Button
               variant="ghost"
               onClick={() => setShowConfirm(false)}
@@ -118,6 +105,21 @@ export function EndGameButton() {
               className="w-full"
             >
               {t('common.cancel')}
+            </Button>
+            <Button
+              variant="gaming"
+              size="lg"
+              onClick={handleEndGame}
+              disabled={isEnding}
+              aria-busy={isEnding}
+              className="w-full"
+            >
+              {isEnding ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Trophy className="size-4" aria-hidden="true" />
+              )}
+              {t('game.endGame.confirm')}
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>

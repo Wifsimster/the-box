@@ -1,19 +1,20 @@
 import type { ReactNode } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from './dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from './responsive-dialog'
 import { Button } from './button'
 import { Loader2 } from 'lucide-react'
 
 // Reusable confirmation dialog — drop-in replacement for window.confirm()
 // when the action is destructive enough to warrant a styled prompt
 // (revoke key, delete account, etc.). Built on top of the existing
-// Dialog primitive so the visual treatment matches everything else
+// ResponsiveDialog primitive (bottom sheet on phones, so the confirm
+// button sits under the thumb) so the visual treatment matches everything else
 // in the settings page; the alternative was @radix-ui/react-alert-dialog
 // which we don't depend on yet and don't need just for this one shape.
 
@@ -49,13 +50,13 @@ export function ConfirmDialog({
   testId,
 }: ConfirmDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid={testId}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-        <DialogFooter>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent data-testid={testId}>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>{title}</ResponsiveDialogTitle>
+          {description && <ResponsiveDialogDescription>{description}</ResponsiveDialogDescription>}
+        </ResponsiveDialogHeader>
+        <ResponsiveDialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -73,8 +74,8 @@ export function ConfirmDialog({
             {busy && <Loader2 className="size-4 mr-1 animate-spin" />}
             {confirmLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

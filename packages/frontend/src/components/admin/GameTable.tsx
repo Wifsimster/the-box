@@ -14,7 +14,7 @@ import { Pencil, Trash2, ArrowUpDown, ArrowUp, Image } from 'lucide-react'
 import { tableRow } from '@/lib/animations'
 
 function metacriticClass(score: number): string {
-  return score >= 75 ? 'text-success/80' : score >= 50 ? 'text-warning/80' : 'text-error/80'
+  return score >= 75 ? 'text-success' : score >= 50 ? 'text-warning' : 'text-error'
 }
 
 interface GameTableProps {
@@ -56,7 +56,7 @@ function SortableHeader({
   onSort: (field: string) => void
 }) {
   return (
-    <TableHead>
+    <TableHead aria-sort={sortField === field ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button
         type="button"
         className="flex items-center font-medium hover:text-foreground transition-colors"
@@ -95,7 +95,7 @@ export function GameTable({
               custom={index}
               layout
               transition={{ delay: index * 0.02 }}
-              className="rounded-lg border border-white/10 bg-card/50 p-3 space-y-3"
+              className="rounded-lg border border-border bg-card/50 p-3 space-y-3"
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1 space-y-0.5">
@@ -105,8 +105,8 @@ export function GameTable({
                 {game.metacritic != null && (
                   <span
                     className={`shrink-0 text-xs font-semibold tabular-nums ${metacriticClass(game.metacritic)}`}
-                    aria-label={t('admin.games.table.metacritic')}
-                  >
+                                      >
+                    <span className="sr-only">{t('admin.games.table.metacritic')} </span>
                     {game.metacritic}
                   </span>
                 )}
@@ -114,19 +114,19 @@ export function GameTable({
 
               <dl className="grid grid-cols-2 gap-2 text-xs">
                 <div className="space-y-0.5 min-w-0">
-                  <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs text-muted-foreground">
                     {t('admin.games.table.releaseYear')}
                   </dt>
                   <dd className="tabular-nums">{game.releaseYear || '-'}</dd>
                 </div>
                 <div className="space-y-0.5 min-w-0">
-                  <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs text-muted-foreground">
                     {t('admin.games.table.developer')}
                   </dt>
                   <dd className="truncate">{game.developer || '-'}</dd>
                 </div>
                 <div className="col-span-2 space-y-0.5 min-w-0">
-                  <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs text-muted-foreground">
                     {t('admin.games.table.genres')}
                   </dt>
                   <dd className="text-muted-foreground truncate">
@@ -137,12 +137,13 @@ export function GameTable({
                 </div>
               </dl>
 
-              <div className="flex justify-end gap-1 pt-1 border-t border-white/5">
+              <div className="flex justify-end gap-1 pt-2 border-t border-border/60">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onViewScreenshots(game)}
                   title={t('admin.games.viewScreenshots')}
+                  aria-label={`${t('admin.games.viewScreenshots')} : ${game.name}`}
                   className="hover:bg-primary/20 hover:text-primary/70"
                 >
                   <Image className="size-4" />
@@ -152,6 +153,7 @@ export function GameTable({
                   size="icon"
                   onClick={() => onEdit(game)}
                   title={t('admin.games.editGame')}
+                  aria-label={`${t('admin.games.editGame')} : ${game.name}`}
                   className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                 >
                   <Pencil className="size-4" />
@@ -162,6 +164,7 @@ export function GameTable({
                   onClick={() => onDelete(game)}
                   className="text-destructive hover:text-destructive hover:bg-error/20"
                   title={t('admin.games.deleteGame')}
+                  aria-label={`${t('admin.games.deleteGame')} : ${game.name}`}
                 >
                   <Trash2 className="size-4" />
                 </Button>
@@ -172,10 +175,10 @@ export function GameTable({
       </div>
 
       {/* Table (md+) */}
-      <div className="hidden md:block rounded-lg border border-white/10 overflow-hidden">
+      <div className="hidden md:block rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-white/10">
+            <TableRow className="hover:bg-transparent">
               <SortableHeader field="name" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.name')}</SortableHeader>
               <SortableHeader field="slug" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.slug')}</SortableHeader>
               <SortableHeader field="releaseYear" sortField={sortField} sortOrder={sortOrder} onSort={onSort}>{t('admin.games.table.releaseYear')}</SortableHeader>
@@ -197,7 +200,7 @@ export function GameTable({
                   custom={index}
                   layout
                   transition={{ delay: index * 0.02 }}
-                  className="border-b border-white/5 transition-colors group"
+                  className="border-b border-border/60 transition-colors group"
                   whileHover={{
                     backgroundColor: 'var(--table-row-hover)',
                   }}
@@ -226,13 +229,14 @@ export function GameTable({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-1">
                       <m.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => onViewScreenshots(game)}
                           title={t('admin.games.viewScreenshots')}
+                  aria-label={`${t('admin.games.viewScreenshots')} : ${game.name}`}
                           className="hover:bg-primary/20 hover:text-primary/70"
                         >
                           <Image className="size-4" />
@@ -244,6 +248,7 @@ export function GameTable({
                           size="icon"
                           onClick={() => onEdit(game)}
                           title={t('admin.games.editGame')}
+                  aria-label={`${t('admin.games.editGame')} : ${game.name}`}
                           className="hover:bg-neon-blue/20 hover:text-neon-blue/70"
                         >
                           <Pencil className="size-4" />
@@ -256,6 +261,7 @@ export function GameTable({
                           onClick={() => onDelete(game)}
                           className="text-destructive hover:text-destructive hover:bg-error/20"
                           title={t('admin.games.deleteGame')}
+                  aria-label={`${t('admin.games.deleteGame')} : ${game.name}`}
                         >
                           <Trash2 className="size-4" />
                         </Button>

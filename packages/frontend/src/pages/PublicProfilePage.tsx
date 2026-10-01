@@ -2,11 +2,15 @@ import { useEffect, useReducer } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
-import { Trophy, Flame, Gamepad2, Calendar, Loader2, User as UserIcon, Award } from 'lucide-react'
+import { Trophy, Flame, Gamepad2, Calendar, User as UserIcon, Award, TrendingUp, Share2, Play } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
+import { toast } from '@/lib/toast'
 import type { PublicProfile } from '@the-box/types'
 
 interface PublicProfileState {
@@ -47,6 +51,7 @@ export default function PublicProfilePage() {
     publicProfileReducer,
     initialPublicProfileState,
   )
+  const reducedMotion = useReducedMotionSafe()
 
   // Intentional fetch-in-effect (no react-query/SWR in this stack); aborts via
   // AbortController on unmount / username change.
@@ -78,23 +83,48 @@ export default function PublicProfilePage() {
     }
   }, [username, t])
 
+  const containerClass = 'container mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 md:py-12'
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="size-8 animate-spin text-primary" />
+      <div className={containerClass} aria-busy="true">
+        <span className="sr-only" role="status">{t('common.loading')}</span>
+        <div className="space-y-6 rounded-xl border border-border bg-card p-(--card-padding)">
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-20 sm:size-24" variant="circular" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-7 w-40" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20" />
+            ))}
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-12" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error || !profile) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <UserIcon className="size-12 mx-auto mb-4 text-muted-foreground" />
-        <h1 className="text-xl font-bold mb-2">{t('publicProfile.notFound')}</h1>
-        <p className="text-muted-foreground mb-6">{error ?? t('publicProfile.notFoundDescription')}</p>
-        <Button variant="gaming" asChild>
-          <Link to={localizedPath('/')}>{t('common.home')}</Link>
-        </Button>
+      <div className={containerClass}>
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <UserIcon className="size-12 text-muted-foreground" aria-hidden="true" />
+          <h1 className="text-xl sm:text-2xl font-bold">{t('publicProfile.notFound')}</h1>
+          <p className="max-w-sm text-sm sm:text-base text-muted-foreground">
+            {error ?? t('publicProfile.notFoundDescription')}
+          </p>
+          <Button variant="gaming" size="lg" asChild className="mt-2 w-full sm:w-auto">
+            <Link to={localizedPath('/')}>{t('common.home')}</Link>
+          </Button>
+        </div>
       </div>
     )
   }
@@ -105,74 +135,105 @@ export default function PublicProfilePage() {
     month: 'long',
   })
 
+  const handleShare = async () => {
+    const url = window.location.href
+    const title = t('publicProfile.shareTitle', { name: profile.displayName })
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, url })
+        return
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success(t('publicProfile.linkCopied'))
+    } catch {
+      toast.error(t('share.copyError'))
+    }
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12 max-w-3xl">
+    <div className={containerClass}>
       <m.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={reducedMotion ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <Card className="backdrop-blur-xl bg-card/40 border-white/10">
-          <CardContent className="p-6 md:p-8">
-            <div className="flex items-center gap-4 mb-6">
-              <Avatar className="size-20 border-2 border-neon-purple/40">
-                <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
+        <Card variant="neon" className="bg-card/80 backdrop-blur-sm">
+          <CardContent className="space-y-6 pt-(--card-padding)">
+            <header className="flex items-center gap-4">
+              <Avatar className="size-20 sm:size-24 shrink-0 border-2 border-primary/40">
+                <AvatarImage src={profile.avatarUrl} alt="" />
                 <AvatarFallback className="text-2xl bg-card">
                   {profile.displayName.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
-                <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-cyan bg-clip-text text-transparent">
+              <div className="min-w-0 flex-1">
+                <h1 className="gradient-gaming-title wrap-break-word text-2xl sm:text-3xl font-bold">
                   {profile.displayName}
                 </h1>
-                <p className="text-sm text-muted-foreground">@{profile.username}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="truncate text-sm text-muted-foreground">@{profile.username}</p>
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                   {t('publicProfile.memberSince', { date: joined })}
                 </p>
               </div>
+            </header>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="gaming" size="lg" asChild className="w-full sm:w-auto">
+                <Link to={localizedPath('/play')}>
+                  <Play aria-hidden="true" />
+                  {t('history.empty.cta')}
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" onClick={handleShare} className="w-full sm:w-auto">
+                <Share2 aria-hidden="true" />
+                {t('common.share')}
+              </Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <StatTile icon={Trophy} label={t('publicProfile.totalScore')} value={profile.totalScore.toLocaleString(dateLocale)} />
-              <StatTile icon={Flame} label={t('publicProfile.currentStreak')} value={profile.currentStreak} />
-              <StatTile icon={Flame} label={t('publicProfile.longestStreak')} value={profile.longestStreak} />
-              <StatTile icon={Gamepad2} label={t('publicProfile.gamesPlayed')} value={profile.gamesPlayed} />
-            </div>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatTile icon={Trophy} iconClass="text-warning" label={t('publicProfile.totalScore')} value={profile.totalScore.toLocaleString(dateLocale)} />
+              <StatTile icon={Flame} iconClass="text-score-low" label={t('publicProfile.currentStreak')} value={profile.currentStreak} />
+              <StatTile icon={TrendingUp} iconClass="text-success" label={t('publicProfile.longestStreak')} value={profile.longestStreak} />
+              <StatTile icon={Gamepad2} iconClass="text-neon-cyan" label={t('publicProfile.gamesPlayed')} value={profile.gamesPlayed} />
+            </dl>
 
             {profile.badges.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                  <Award className="size-4" />
+              <section>
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Award className="size-4 text-primary" aria-hidden="true" />
                   {t('publicProfile.badges')}
                 </h2>
-                <div className="flex flex-wrap gap-2">
+                <ul className="flex flex-wrap gap-2 list-none">
                   {profile.badges.map((b) => (
-                    <span
-                      key={b.key}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 text-xs font-semibold text-foreground"
-                    >
-                      <Award className="size-3" />
-                      {t(`publicProfile.badgeLabels.${b.key}`, { defaultValue: b.key })}
-                      {b.quantity > 1 && <span className="opacity-60">×{b.quantity}</span>}
-                    </span>
+                    <li key={b.key}>
+                      <Badge variant="outline" className="gap-1.5 border-primary/40 bg-primary/10 px-3 py-1">
+                        <Award className="size-3" aria-hidden="true" />
+                        {t(`publicProfile.badgeLabels.${b.key}`, { defaultValue: b.key })}
+                        {b.quantity > 1 && <span className="text-muted-foreground">×{b.quantity}</span>}
+                      </Badge>
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              </section>
             )}
 
             {profile.recentSessions.length > 0 && (
-              <div>
-                <h2 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                  <Calendar className="size-4" />
+              <section>
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Calendar className="size-4 text-primary" aria-hidden="true" />
                   {t('publicProfile.recentGames')}
                 </h2>
-                <ul className="space-y-2">
+                <ul className="space-y-2 list-none">
                   {profile.recentSessions.map((s) => (
                     <li
                       key={s.challengeDate}
-                      className="flex items-center justify-between p-3 rounded-lg bg-card/40 border border-white/5"
+                      className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 p-3"
                     >
-                      <span className="text-sm text-foreground/90">
+                      <span className="text-sm text-foreground">
                         {s.challengeDate
                           ? new Date(`${s.challengeDate}T00:00:00Z`).toLocaleDateString(dateLocale, {
                               year: 'numeric',
@@ -182,13 +243,13 @@ export default function PublicProfilePage() {
                             })
                           : '—'}
                       </span>
-                      <span className="text-sm font-bold text-neon-cyan">
-                        {s.totalScore.toLocaleString(dateLocale)} pts
+                      <span className="shrink-0 text-sm font-bold text-primary tabular-nums">
+                        {s.totalScore.toLocaleString(dateLocale)} {t('leaderboard.points')}
                       </span>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </section>
             )}
           </CardContent>
         </Card>
@@ -199,18 +260,19 @@ export default function PublicProfilePage() {
 
 interface StatTileProps {
   icon: typeof Trophy
+  iconClass: string
   label: string
   value: number | string
 }
 
-function StatTile({ icon: Icon, label, value }: StatTileProps) {
+function StatTile({ icon: Icon, iconClass, label, value }: StatTileProps) {
   return (
-    <div className="p-3 rounded-lg bg-card/40 border border-white/5">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-        <Icon className="size-3.5" />
-        <span>{label}</span>
-      </div>
-      <p className="text-lg font-bold text-foreground">{value}</p>
+    <div className="min-w-0 rounded-lg border border-border bg-secondary/30 p-3">
+      <dt className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className={`size-3.5 shrink-0 ${iconClass}`} aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </dt>
+      <dd className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{value}</dd>
     </div>
   )
 }

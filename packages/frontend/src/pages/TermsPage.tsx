@@ -1,27 +1,22 @@
-import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
-import { m } from 'framer-motion'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Building2, ExternalLink, FileText } from 'lucide-react'
+import { ExternalLink, FileText } from 'lucide-react'
+import { LegalDocument } from '@/components/content/LegalDocument'
 import { STUDIO } from '@/lib/studio'
-
-const emptySubscribe = () => () => {}
-let cachedLastUpdated: string | null = null
-const getLastUpdatedSnapshot = () => {
-  if (cachedLastUpdated === null) {
-    cachedLastUpdated = new Date().toLocaleDateString()
-  }
-  return cachedLastUpdated
-}
-const getLastUpdatedServerSnapshot = (): string | null => null
 
 export default function TermsPage() {
   const { t } = useTranslation()
-  const lastUpdated = useSyncExternalStore(
-    emptySubscribe,
-    getLastUpdatedSnapshot,
-    getLastUpdatedServerSnapshot
-  )
+
+  // Rendered apart from the plain sections so the studio site can be a real
+  // link: LCEN art. 6-III expects the publisher's identity to be reachable,
+  // not just spelled out.
+  const publisher = t('legal.termsPublisher', {
+    studio: STUDIO.name,
+    legalName: STUDIO.legalName,
+    founder: STUDIO.founder,
+    city: STUDIO.city,
+    siret: STUDIO.siret,
+    email: STUDIO.email,
+  })
 
   const sections = [
     { title: t('legal.termsAcceptanceTitle'), content: t('legal.termsAcceptance') },
@@ -33,85 +28,34 @@ export default function TermsPage() {
     { title: t('legal.termsWithdrawalTitle'), content: t('legal.termsWithdrawal') },
     { title: t('legal.termsCancellationTitle'), content: t('legal.termsCancellation') },
     { title: t('legal.termsModificationTitle'), content: t('legal.termsModification') },
+    {
+      title: t('legal.termsPublisherTitle'),
+      content: (
+        <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-3 sm:p-4">
+          <p className="leading-relaxed text-muted-foreground break-words">{publisher}</p>
+          <a
+            href={STUDIO.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-neon-pink"
+          >
+            <ExternalLink className="size-4" aria-hidden="true" />
+            {t('legal.studioWebsite')} — {STUDIO.domain}
+            <span className="sr-only"> {t('legal.opensInNewTab')}</span>
+          </a>
+        </div>
+      ),
+    },
   ]
 
-  // Rendered apart from `sections` so the studio site can be a real link:
-  // LCEN art. 6-III expects the publisher's identity to be reachable, not just
-  // spelled out.
-  const publisher = t('legal.termsPublisher', {
-    studio: STUDIO.name,
-    legalName: STUDIO.legalName,
-    founder: STUDIO.founder,
-    city: STUDIO.city,
-    siret: STUDIO.siret,
-    email: STUDIO.email,
-  })
-
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="bg-card/50 border-border">
-          <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <FileText className="size-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold gradient-gaming bg-clip-text text-transparent">
-              {t('legal.termsTitle')}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              {t('legal.termsLastUpdated')}: {lastUpdated}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-muted-foreground text-center border-b border-border pb-6">
-              {t('legal.termsIntro')}
-            </p>
-
-            {sections.map((section, index) => (
-              <m.div
-                key={section.title}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="space-y-2"
-              >
-                <h2 className="text-lg font-semibold text-foreground">
-                  {section.title}
-                </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  {section.content}
-                </p>
-              </m.div>
-            ))}
-
-            <m.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: sections.length * 0.1 }}
-              className="space-y-2 rounded-lg border border-border bg-card/60 p-4"
-            >
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Building2 className="size-5 text-neon-purple" />
-                {t('legal.termsPublisherTitle')}
-              </h2>
-              <p className="text-muted-foreground leading-relaxed">{publisher}</p>
-              <a
-                href={STUDIO.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center gap-1 text-sm text-neon-purple transition-colors hover:text-neon-pink"
-              >
-                <ExternalLink className="size-3" />
-                {t('legal.studioWebsite')} — {STUDIO.domain}
-              </a>
-            </m.div>
-          </CardContent>
-        </Card>
-      </m.div>
-    </div>
+    <LegalDocument
+      icon={FileText}
+      title={t('legal.termsTitle')}
+      intro={t('legal.termsIntro')}
+      lastUpdatedLabel={t('legal.termsLastUpdated')}
+      idPrefix="terms"
+      sections={sections}
+    />
   )
 }

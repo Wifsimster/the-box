@@ -4,13 +4,13 @@ import { m } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Trophy,
   ChevronRight,
   CheckCircle2,
   Clock,
   Calendar,
   Play,
   Target,
+  SearchX,
 } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import type { GameHistoryEntry, MissedChallenge } from '@/types'
@@ -53,51 +53,51 @@ export function HistoryTimeline({
 
   if (timeline.length === 0) {
     return (
-      <div className="text-center py-8 text-sm text-muted-foreground">
-        {t('history.noMatchingResults')}
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <SearchX className="size-8 text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">{t('history.noMatchingResults')}</p>
       </div>
     )
   }
 
   return (
-    <ul className="space-y-2 sm:space-y-3 list-none">
+    <ul className="space-y-2 list-none">
       {timeline.map((item, index) => {
+        const motionProps = {
+          initial: reducedMotion ? false : { opacity: 0, y: 8 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: reducedMotion ? 0 : 0.25, delay: reducedMotion ? 0 : Math.min(index, 10) * 0.03 },
+        } as const
+
         if (item.kind === 'missed') {
           const { challenge } = item
           const dateLabel = formatDate(challenge.date)
           return (
             <m.li
               key={`missed-${challenge.challengeId}`}
-              initial={reducedMotion ? false : { opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-warning/10 border border-warning/20"
+              {...motionProps}
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/20 bg-warning/5 p-3 sm:flex-nowrap sm:p-4"
             >
-              <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                <div className="size-10 sm:size-12 shrink-0 rounded-full flex items-center justify-center bg-linear-to-br from-warning to-score-low" aria-hidden="true">
-                  <Calendar className="size-5 sm:size-6 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm sm:text-base font-semibold wrap-break-word">
-                    {dateLabel}
-                  </span>
-                </div>
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning/15" aria-hidden="true">
+                <Calendar className="size-5 text-warning" />
               </div>
-
-              <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                <Badge variant="outline" className="text-xs border-warning/50 bg-warning/10 text-warning">
-                  {t('history.catchUpBadge')}
-                </Badge>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
-                  aria-label={t('history.resumeGame', { date: dateLabel })}
-                  className="bg-linear-to-r from-warning to-score-low hover:from-warning hover:to-score-low text-white"
-                >
-                  <Play className="size-4 mr-1" aria-hidden="true" />
-                  {t('history.playCatchUp')}
-                </Button>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm sm:text-base font-semibold first-letter:uppercase">{dateLabel}</p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-warning">{t('history.catchUpBadge')}</span>
+                  {' · '}
+                  {t('history.catchUpHint')}
+                </p>
               </div>
+              <Button
+                variant="warning"
+                onClick={() => navigate(`${localizedPath('/play')}?date=${encodeURIComponent(challenge.date)}`)}
+                aria-label={t('history.resumeGame', { date: dateLabel })}
+                className="w-full sm:w-auto"
+              >
+                <Play aria-hidden="true" />
+                {t('history.playCatchUp')}
+              </Button>
             </m.li>
           )
         }
@@ -115,79 +115,53 @@ export function HistoryTimeline({
           : t('history.resumeGame', { date: dateLabel })
 
         return (
-          <m.li
-            key={entry.sessionId}
-            initial={reducedMotion ? false : { opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
-          >
+          <m.li key={entry.sessionId} {...motionProps}>
             <Link
               to={to}
               aria-label={ariaLabel}
-              className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 transition-all hover:bg-secondary/70 hover:ring-2 hover:ring-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:bg-secondary/70 no-underline"
+              className="group flex items-center gap-3 rounded-lg bg-secondary/50 p-3 no-underline transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-4 sm:p-4"
             >
-              {/* Left Section: Icon, Date, Status */}
-              <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                {/* Dynamic icon — three-channel signal (icon + color + Badge label) */}
-                <div
-                  className={`size-10 sm:size-12 shrink-0 rounded-full flex items-center justify-center ${isCompleted
-                    ? 'bg-linear-to-br from-success to-success/80'
-                    : 'bg-linear-to-br from-neon-blue to-neon-cyan'
-                    }`}
-                  aria-hidden="true"
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 className="size-5 sm:size-6 text-white" />
-                  ) : (
-                    <Clock className="size-5 sm:size-6 text-white" />
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm sm:text-base font-semibold wrap-break-word text-foreground">
-                      {dateLabel}
-                    </span>
-                    {!isCompleted && (
-                      <Badge variant="info" className="w-fit text-xs">
-                        <Clock className="size-3 mr-1" aria-hidden="true" />
-                        {t('history.inProgress')}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+              <div
+                className={`flex size-10 shrink-0 items-center justify-center rounded-full ${isCompleted ? 'bg-success/15' : 'bg-neon-blue/15'}`}
+                aria-hidden="true"
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="size-5 text-success" />
+                ) : (
+                  <Clock className="size-5 text-neon-blue" />
+                )}
               </div>
 
-              {/* Middle Section: X / N correct (primary) + tier label (secondary) */}
-              {isCompleted && (
-                <div className="flex flex-col items-start sm:items-end gap-0.5">
-                  <div className="flex items-center gap-1.5 text-sm sm:text-base font-semibold text-foreground tabular-nums">
-                    <Target className="size-3.5 sm:size-4 text-muted-foreground" aria-hidden="true" />
-                    <span aria-label={t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}>
-                      {t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm sm:text-base font-semibold text-foreground first-letter:uppercase">
+                  {dateLabel}
+                </p>
+                {isCompleted ? (
+                  <p className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground tabular-nums">
+                    <Target className="size-3.5 shrink-0" aria-hidden="true" />
+                    <span>{t('game.correctOutOf', { correct: entry.roundsCorrect, total: entry.totalScreenshots })}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      <span className="sr-only">{t('game.scoreQuality.label')}: </span>
+                      {tierLabel}
                     </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    <span className="sr-only">{t('game.scoreQuality.label')}: </span>
-                    {tierLabel}
-                  </span>
-                </div>
-              )}
-
-              {/* Right Section: Score & Chevron */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                <div className="flex items-center gap-2">
-                  <Trophy className="size-5 sm:size-6 text-primary" aria-hidden="true" />
-                  <Badge
-                    variant={tierBadgeVariant[tier]}
-                    className="text-base sm:text-xl font-bold px-3 sm:px-4 py-1 sm:py-1.5"
-                    aria-label={`${entry.totalScore} ${t('game.totalScore')} — ${tierLabel}`}
-                  >
-                    {entry.totalScore}
-                  </Badge>
-                </div>
-                <ChevronRight className="size-5 sm:size-6 text-muted-foreground group-hover:text-primary group-focus-visible:text-primary group-hover:translate-x-1 group-focus-visible:translate-x-1 transition-all" aria-hidden="true" />
+                  </p>
+                ) : (
+                  <p className="text-xs sm:text-sm font-medium text-neon-blue">{t('history.inProgress')}</p>
+                )}
               </div>
+
+              <Badge
+                variant={tierBadgeVariant[tier]}
+                className="shrink-0 px-2.5 py-1 text-sm sm:text-base font-bold tabular-nums"
+                aria-label={`${entry.totalScore} ${t('game.totalScore')} — ${tierLabel}`}
+              >
+                {entry.totalScore}
+              </Badge>
+              <ChevronRight
+                className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:text-primary motion-safe:group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </Link>
           </m.li>
         )

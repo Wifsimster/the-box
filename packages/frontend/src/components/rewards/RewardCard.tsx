@@ -58,17 +58,17 @@ export function RewardCard({ grant }: RewardCardProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="rounded-lg border border-border/40 bg-card/60 p-4 backdrop-blur-sm"
+            className="rounded-lg border border-border bg-card/60 p-4 backdrop-blur-sm"
         >
             <div className="flex items-start gap-3">
-                <div className={cn('flex size-10 items-center justify-center rounded-md bg-background/50', accent)}>
-                    <Icon className="size-5" />
+                <div className={cn('flex size-10 shrink-0 items-center justify-center rounded-md bg-background/50', accent)}>
+                    <Icon className="size-5" aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">
                         {t(titleKey, { defaultValue: grant.source })}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                         {t(subtitleKey, { defaultValue: '' })}
                     </p>
                     {grant.payload.items.length > 0 && (
@@ -76,7 +76,7 @@ export function RewardCard({ grant }: RewardCardProps) {
                             {grant.payload.items.map((item, i) => (
                                 <li
                                     key={`${item.itemKey}-${i}`}
-                                    className="rounded-full border border-border/40 bg-background/50 px-2 py-0.5 text-[11px] text-muted-foreground"
+                                    className="rounded-full border border-border bg-background/50 px-2 py-0.5 text-xs text-muted-foreground"
                                 >
                                     {t(`rewards.items.${item.itemKey}`, {
                                         defaultValue: item.itemKey,
@@ -90,7 +90,7 @@ export function RewardCard({ grant }: RewardCardProps) {
             </div>
             <div className="mt-3 flex justify-end">
                 <Button
-                    size="sm"
+                    className="w-full sm:w-auto"
                     variant={isUnlocked ? 'gaming' : 'outline'}
                     disabled={!isUnlocked || claiming}
                     onClick={() => {

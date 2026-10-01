@@ -1,10 +1,10 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
-import { Home, Award } from 'lucide-react'
+import { Home, Award, Play, Inbox } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
@@ -16,7 +16,6 @@ import type { GuessResult, GameSessionDetailsResponse } from '@/types'
 
 export default function ResultsPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const reducedMotion = useReducedMotionSafe()
   const {
@@ -90,9 +89,27 @@ export default function ResultsPage() {
     }
   }, [clearNotifications])
 
+  if (!sessionId && results.length === 0) {
+    return (
+      <div className="container mx-auto flex min-h-[var(--page-h)] max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="m-auto flex flex-col items-center gap-4 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden="true">
+            <Inbox className="size-7" />
+          </div>
+          <p className="text-sm sm:text-base text-muted-foreground">{t('game.noResults')}</p>
+          <Button variant="gaming" size="lg" asChild className="w-full sm:w-auto">
+            <Link to={localizedPath('/play')}>
+              <Play className="size-4" aria-hidden="true" />
+              {t('home.playToday')}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
-      {/* Achievement notifications render through sonner toasts — see useEffect above */}
+    <div className="container mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 md:py-12 lg:px-8">
       <SessionDetails
         results={results}
         totalScore={displayTotalScore}
@@ -107,26 +124,20 @@ export default function ResultsPage() {
         shareEnabled
         reducedMotion={reducedMotion}
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto"
-              onClick={() => navigate(localizedPath('/'))}
-            >
-              <Home className="size-4 sm:mr-2" />
-              <span>{t('common.home')}</span>
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-4">
+            <Button variant="outline" size="lg" asChild className="w-full px-4 sm:w-auto sm:px-8">
+              <Link to={localizedPath('/leaderboard')}>
+                <Award className="size-4" aria-hidden="true" />
+                {t('common.leaderboard')}
+              </Link>
             </Button>
-            <Button
-              variant="gaming"
-              size="lg"
-              className="w-full sm:w-auto"
-              onClick={() => navigate(localizedPath('/leaderboard'))}
-            >
-              <Award className="size-4 sm:mr-2" />
-              {t('common.leaderboard')}
+            <Button variant="outline" size="lg" asChild className="w-full px-4 sm:w-auto sm:px-8">
+              <Link to={localizedPath('/')}>
+                <Home className="size-4" aria-hidden="true" />
+                {t('common.home')}
+              </Link>
             </Button>
-          </>
+          </div>
         }
       />
     </div>

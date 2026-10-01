@@ -54,8 +54,8 @@ export function ModerationStatusRail({
 
     if (healthLoading && !health) {
         return (
-            <div className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-                <Loader2 className="size-3.5 animate-spin" />
+            <div role="status" className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 {t('admin.geo.strip.loading')}
             </div>
         )
@@ -63,8 +63,8 @@ export function ModerationStatusRail({
 
     if (healthError || !health) {
         return (
-            <div className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                <AlertTriangle className="size-3.5" />
+            <div role="alert" className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <AlertTriangle className="size-3.5" aria-hidden />
                 {t('admin.geo.strip.error')}
             </div>
         )
@@ -118,7 +118,7 @@ function CounterRow({
     const failures = (health.failures as HealthFailureRow[] | undefined) ?? []
 
     return (
-        <div className="flex flex-wrap items-center gap-3 px-3 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 text-sm md:text-xs">
             <Counter
                 icon={<Map className="size-3.5" aria-hidden />}
                 value={`${coverage.withMap} / ${coverage.curated}`}
@@ -181,7 +181,7 @@ function ColdStartRow({
                 <button
                     type="button"
                     onClick={ctaHandler}
-                    className="self-start sm:self-auto shrink-0 inline-flex items-center gap-1.5 rounded-md border border-neon-pink/40 bg-neon-pink/10 px-3 py-1.5 text-xs font-semibold text-neon-pink hover:bg-neon-pink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
+                    className="self-stretch sm:self-auto shrink-0 inline-flex min-h-11 md:min-h-8 items-center justify-center gap-1.5 rounded-md border border-neon-pink/40 bg-neon-pink/10 px-3 py-1.5 text-sm md:text-xs font-semibold text-neon-pink hover:bg-neon-pink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
                 >
                     {t(`admin.geo.coldStart.${stage}.cta`)}
                 </button>
@@ -196,7 +196,7 @@ function RunStateRow({ state }: { state: GeoRunStatePayload | null }) {
     const { active, waiting, delayed, failed } = state.counts
     return (
         <output
-            className="flex flex-wrap items-center gap-2 border-t border-neon-pink/20 bg-neon-pink/5 px-3 py-1.5 text-[11px]"
+            className="flex flex-wrap items-center gap-2 border-t border-neon-pink/20 bg-neon-pink/5 px-3 py-1.5 text-xs"
             aria-live="polite"
         >
             <span className="inline-flex items-center gap-1 text-neon-pink">
@@ -243,7 +243,7 @@ function Section({
         <div
             role={role}
             aria-live={role === 'status' ? 'polite' : undefined}
-            className={`flex flex-col sm:flex-row sm:items-center gap-3 border-t px-3 py-2.5 text-xs ${sectionToneClass(tone)}`}
+            className={`flex flex-col sm:flex-row sm:items-center gap-3 border-t px-3 py-2.5 text-sm md:text-xs ${sectionToneClass(tone)}`}
         >
             {children}
         </div>
@@ -281,7 +281,7 @@ function Counter({
             type="button"
             onClick={onClick}
             aria-label={ariaLabel}
-            className="inline-flex items-center gap-1.5 rounded px-1 -mx-1 hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
+            className="inline-flex min-h-11 md:min-h-7 items-center gap-1.5 rounded px-1 -mx-1 hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
         >
             {body}
         </button>
@@ -306,7 +306,7 @@ function ErrorsCounter({
                 <button
                     type="button"
                     aria-label={t('admin.geo.strip.errorsAria')}
-                    className="inline-flex items-center gap-1.5 rounded px-1 -mx-1 hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
+                    className="inline-flex min-h-11 md:min-h-7 items-center gap-1.5 rounded px-1 -mx-1 hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neon-pink"
                 >
                     <span className={valueClass}>
                         <AlertTriangle className="size-3.5" aria-hidden />
@@ -319,7 +319,7 @@ function ErrorsCounter({
                     </span>
                 </button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-80 text-xs">
+            <PopoverContent align="start" collisionPadding={16} className="w-80 max-w-[calc(100vw-2rem)] text-xs">
                 <p className="text-sm font-semibold">
                     {t('admin.geo.strip.errorsPopover.title')}
                 </p>

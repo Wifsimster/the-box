@@ -23,6 +23,16 @@
      mobile BottomNav. `dvh` (not `vh`) so it tracks the mobile browser toolbar
      rather than the toolbar-hidden maximum. */
   --page-h: calc(100dvh - var(--header-h) - var(--bottom-nav-space));
+  /* Inner padding of Card / CardHeader / CardContent / CardFooter. 1rem on
+     phones (a 24px gutter inside a 16px page gutter left ~280px of content on
+     a 360px screen), 1.5rem from `sm` up. A single token so a consumer's own
+     `p-*` override still wins at every breakpoint. */
+  --card-padding: 1rem;
+  /* Height of the default Button / icon Button / Input / Select / TabsList.
+     40px with a mouse, 44px on touch screens (Apple HIG / WCAG 2.5.5) — keyed
+     on the pointer, not the viewport, so desktop density is unchanged. A
+     consumer's explicit `h-*` / `size-*` still overrides it. */
+  --control-h: 2.5rem;
   /* Dark violet theme (default since dark-only) */
   --background: oklch(0.129 0.042 283.713);
   --foreground: oklch(0.984 0.003 247.858);
@@ -123,6 +133,13 @@
 @media (min-width: 40rem) {
   :root {
     --header-h: calc(4rem + env(safe-area-inset-top));
+    --card-padding: 1.5rem;
+  }
+}
+
+@media (pointer: coarse) {
+  :root {
+    --control-h: 2.75rem;
   }
 }
 
@@ -240,6 +257,32 @@ body {
      adjustment to 100% so text stays at its intended scale. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* A stray wide child (decorative glow, long word) must never give the
+     whole page a horizontal scroll on a phone. `clip` (unlike `hidden`)
+     doesn't create a scroll container, so the sticky Header keeps working. */
+  overflow-x: clip;
+}
+
+/* Balanced wrapping keeps short headings from leaving a single orphan word
+   on the last line at phone widths. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Removes the double-tap-to-zoom delay on tappable controls without
+   disabling pinch zoom on the page. */
+a,
+button,
+input,
+label,
+select,
+summary,
+textarea,
+[role='button'],
+[role='tab'] {
+  touch-action: manipulation;
 }
 
 /* Suppress the grey flash iOS Safari paints over tapped links/buttons — the
@@ -264,7 +307,6 @@ html {
 :focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 
 /* Custom scrollbar for dark theme */
@@ -317,9 +359,9 @@ html {
 .skeleton {
   background: linear-gradient(
     90deg,
-    oklch(0.2 0.02 280) 25%,
-    oklch(0.28 0.03 280) 50%,
-    oklch(0.2 0.02 280) 75%
+    var(--color-muted) 25%,
+    color-mix(in oklch, var(--color-muted), var(--color-foreground) 8%) 50%,
+    var(--color-muted) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite ease-in-out;
@@ -370,7 +412,7 @@ html {
 }
 
 .card-interactive:hover {
-  border-color: oklch(0.7 0.25 300 / 0.5);
+  border-color: var(--border-interactive);
   box-shadow: var(--glow-md);
 }
 
@@ -409,10 +451,17 @@ html {
     animation: none;
   }
 
-  * {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
   /* Disable blur animations for users with motion sensitivity */

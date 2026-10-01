@@ -39,11 +39,11 @@ export function ChallengeCompleteScreen({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex items-center justify-center size-full"
+      className="flex size-full overflow-y-auto px-4 py-6"
     >
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">{t('game.challengeComplete')}</h1>
-        <p className="text-2xl text-primary font-bold mb-2">{totalScore} pts</p>
+      <div className="m-auto w-full max-w-md text-center">
+        <h1 className="gradient-gaming-title text-3xl sm:text-4xl font-bold mb-4">{t('game.challengeComplete')}</h1>
+        <p className="text-3xl sm:text-4xl text-primary font-bold tabular-nums mb-2">{totalScore} pts</p>
 
         {/* Hint Penalties Summary */}
         {totalHintPenalties > 0 && (
@@ -63,32 +63,32 @@ export function ChallengeCompleteScreen({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="flex items-center justify-center gap-3 text-muted-foreground mb-8"
+            className="flex items-center justify-center gap-2 text-muted-foreground mb-6 sm:mb-8"
           >
-            <Globe className="size-5" />
-            <span className="text-lg">
+            <Globe className="size-5 shrink-0" aria-hidden="true" />
+            <span className="text-sm sm:text-lg">
               {t('game.worldTotal')}:{' '}
               <span className="font-bold text-foreground">{worldScore.toLocaleString()}</span> pts
             </span>
           </m.div>
         )}
 
-        <div className="flex gap-4 justify-center flex-wrap">
-          <Button variant="gaming" size="lg" asChild>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+          <Button variant="gaming" size="lg" asChild className="w-full sm:w-auto">
             <Link to={localizedPath('/leaderboard')}>
-              <Trophy className="size-4 mr-2" />
+              <Trophy className="size-4" aria-hidden="true" />
               {t('common.leaderboard')}
             </Link>
           </Button>
-          <Button variant="outline" size="lg" asChild>
+          <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
             <Link to={localizedPath('/')}>
-              <Home className="size-4 mr-2" />
+              <Home className="size-4" aria-hidden="true" />
               {t('common.home')}
             </Link>
           </Button>
           {isAdmin && (
-            <Button variant="outline" size="lg" onClick={onResetSession} disabled={isResetting}>
-              <RotateCcw className={`size-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+            <Button variant="ghost" size="lg" onClick={onResetSession} disabled={isResetting} className="w-full sm:w-auto">
+              <RotateCcw className={`size-4 ${isResetting ? 'animate-spin' : ''}`} aria-hidden="true" />
               {t('game.resetSession')}
             </Button>
           )}

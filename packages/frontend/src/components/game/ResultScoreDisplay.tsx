@@ -55,7 +55,7 @@ export function ResultScoreDisplay({
   const isPartial = matchPrecision === 'partial'
 
   const scoreColor = cn(
-    "text-5xl font-black",
+    "text-4xl sm:text-5xl font-black tabular-nums",
     scorePercentage >= 80
       ? "text-success"
       : scorePercentage >= 50
@@ -68,13 +68,13 @@ export function ResultScoreDisplay({
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.45 }}
-      className="text-center mb-6"
+      className="text-center mb-4 sm:mb-6"
     >
       {isCorrect && scoreEarned > 0 && !isPartial ? (
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center justify-center gap-2">
             <span className={scoreColor}>+100</span>
-            <span className="text-5xl font-black text-muted-foreground">×</span>
+            <span className="text-4xl sm:text-5xl font-black text-muted-foreground" aria-hidden="true">×</span>
             <span className={scoreColor}>
               {calculateSpeedMultiplier(timeTakenMs).toFixed(2)}
             </span>
@@ -83,7 +83,7 @@ export function ResultScoreDisplay({
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2">
-          <span className="text-5xl font-black text-muted-foreground">
+          <span className="text-4xl sm:text-5xl font-black tabular-nums text-muted-foreground">
             +{scoreEarned}
           </span>
           <span className="text-lg text-muted-foreground font-medium">pts</span>
@@ -146,7 +146,7 @@ export function ResultScoreDisplay({
           transition={{ delay: 0.6 }}
           className={cn("flex items-center justify-center gap-1.5 mt-2 text-sm", speedFeedback.color)}
         >
-          <speedFeedback.icon className="size-4" />
+          <speedFeedback.icon className="size-4" aria-hidden="true" />
           <span>{t(`game.speed.${speedFeedback.key}`)}</span>
           <span className="text-muted-foreground">• {timeDisplay}</span>
         </m.div>

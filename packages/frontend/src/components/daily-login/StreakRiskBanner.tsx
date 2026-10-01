@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import { Flame, X } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 const DISMISS_KEY = 'theBox.streakRiskDismissedDate'
 
@@ -59,12 +57,12 @@ async function fetchStreakAtRisk(signal: AbortSignal): Promise<number | null> {
 /**
  * Shows a banner when a logged-in user with an active streak hasn't played
  * today yet — complements the existing streak-risk email so users see the
- * nudge in-app too. Dismissal persists only for the current UTC day.
+ * nudge in-app too. It sits right above the home Play button, so it carries
+ * no CTA of its own. Dismissal persists only for the current UTC day.
  */
 export function StreakRiskBanner() {
   const { t } = useTranslation()
   const { data: session } = useSession()
-  const { localizedPath } = useLocalizedPath()
   const [streak, setStreak] = useState<number | null>(null)
   const [dismissed, setDismissed] = useState(() => {
     try {
@@ -106,27 +104,31 @@ export function StreakRiskBanner() {
   if (streak === null || dismissed) return null
 
   return (
-    <Alert variant="neon" className="mb-6 p-4 flex items-center gap-3">
-      <Flame className="size-5 shrink-0" />
-      <div className="flex-1 min-w-0 pl-7">
+    <Alert
+      variant="neon"
+      role="status"
+      className="mx-auto flex max-w-xl items-center gap-3 py-2 pl-3 pr-1"
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neon-pink/15">
+        <Flame className="size-5 text-neon-pink" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
         <AlertTitle className="text-sm font-semibold text-foreground">
           {t('streakRisk.title', { count: streak })}
         </AlertTitle>
-        <AlertDescription className="text-xs text-muted-foreground">
+        <AlertDescription className="text-sm text-muted-foreground">
           {t('streakRisk.subtitle')}
         </AlertDescription>
       </div>
-      <Button variant="gaming" size="sm" asChild>
-        <Link to={localizedPath('/game')}>{t('streakRisk.cta')}</Link>
-      </Button>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={handleDismiss}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className="shrink-0 text-muted-foreground"
         aria-label={t('common.close')}
       >
-        <X className="size-4" />
-      </button>
+        <X className="size-4" aria-hidden="true" />
+      </Button>
     </Alert>
   )
 }

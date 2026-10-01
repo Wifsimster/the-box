@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -96,17 +96,29 @@ export function GeoReviewPanel() {
             ? { gameId: seedGameId, gameName: seedGameName ?? `#${seedGameId}` }
             : null,
     )
-    // Strip the one-shot deep-link seed params after the initial state has
-    // captured them, so the game filter can be cleared and a refresh doesn't
-    // re-apply it. Runs once on mount.
+    // A deep link can also arrive while the panel is already mounted (the
+    // "À un pin" card sits on the same tab), so re-seed the filters whenever
+    // a new game id shows up in the URL.
+    const [prevSeedGameId, setPrevSeedGameId] = useState(seedGameId)
+    if (seedGameId !== prevSeedGameId) {
+        setPrevSeedGameId(seedGameId)
+        if (seedGameId != null) {
+            setGameFilter({ gameId: seedGameId, gameName: seedGameName ?? `#${seedGameId}` })
+            setStatusFilter('all')
+        }
+    }
+    const rootRef = useRef<HTMLDivElement>(null)
+    // Strip the one-shot deep-link seed params after the state has captured
+    // them, so the game filter can be cleared and a refresh doesn't re-apply
+    // it, and bring the queue into view.
     useEffect(() => {
         if (!searchParams.has('qGameId') && !searchParams.has('qGameName')) return
         const params = new URLSearchParams(searchParams)
         params.delete('qGameId')
         params.delete('qGameName')
         setSearchParams(params, { replace: true })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+        rootRef.current?.scrollIntoView({ block: 'start' })
+    }, [searchParams, setSearchParams])
     // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
     // polling and the live banner stays visible when the operator switches
     // between Pins / Maps / Games tabs.
@@ -152,11 +164,11 @@ export function GeoReviewPanel() {
     }
 
     return (
-        <div className="space-y-4">
+        <div ref={rootRef} className="space-y-4 scroll-mt-[calc(var(--header-h)+4.5rem)] sm:scroll-mt-[calc(var(--header-h)+1rem)]">
             {/* Page header */}
             <header className="space-y-1">
-                <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                    <MapPin className="size-5 text-neon-pink" />
+                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
+                    <MapPin className="size-5 text-neon-pink" aria-hidden="true" />
                     {t('admin.geo.title')}
                 </h2>
                 <p className="text-sm text-muted-foreground">{t('admin.geo.subtitle')}</p>
@@ -182,27 +194,27 @@ export function GeoReviewPanel() {
                 onValueChange={(v) => setActiveTab(v as GeoSubTab)}
                 className="space-y-4"
             >
-                <TabsList className="w-full overflow-x-auto justify-start scrollbar-hide">
+                <TabsList className="w-full justify-start">
                     <TabsTrigger value="catalog" className="gap-1.5 shrink-0">
-                        <Library className="size-3.5" />
+                        <Library className="size-3.5" aria-hidden="true" />
                         {t('admin.geo.tabs.catalog')}
                     </TabsTrigger>
                     <TabsTrigger value="acquisition" className="gap-1.5 shrink-0">
-                        <Workflow className="size-3.5" />
+                        <Workflow className="size-3.5" aria-hidden="true" />
                         {t('admin.geo.tabs.acquisition')}
                     </TabsTrigger>
                     <TabsTrigger value="queue" className="gap-1.5 shrink-0">
-                        <ListChecks className="size-3.5" />
+                        <ListChecks className="size-3.5" aria-hidden="true" />
                         {t('admin.geo.tabs.queue')}
                     </TabsTrigger>
                     <TabsTrigger value="reports" className="gap-1.5 shrink-0">
-                        <Flag className="size-3.5" />
+                        <Flag className="size-3.5" aria-hidden="true" />
                         {t('admin.geo.tabs.reports')}
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="acquisition" className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                         {t('admin.geo.tabs.acquisitionDescription')}
                     </p>
                     {/* Folded the standalone "Cartes" admin tab in here so
@@ -215,14 +227,14 @@ export function GeoReviewPanel() {
                 </TabsContent>
 
                 <TabsContent value="reports" className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                         {t('admin.geo.tabs.reportsDescription')}
                     </p>
                     <ReportsModerationPanel />
                 </TabsContent>
 
                 <TabsContent value="catalog" className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                         {t('admin.geo.tabs.catalogDescription')}
                     </p>
                     {/* Maps + Games used to live behind a [Cartes | Jeux]

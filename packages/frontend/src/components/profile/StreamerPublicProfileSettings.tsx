@@ -125,17 +125,17 @@ export function StreamerPublicProfileSettings({
 
   return (
     <div className="space-y-4" data-testid="streamer-kit-settings">
-      <label className="flex items-start gap-3 cursor-pointer select-none group">
+      <label className="flex items-start gap-3 cursor-pointer select-none">
         <input
           type="checkbox"
           checked={enabled}
           disabled={saving}
           onChange={(e) => onToggle(e.target.checked)}
           data-testid="streamer-kit-toggle"
-          className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
+          className="mt-0.5 size-5 shrink-0 rounded border-border bg-background/50 accent-primary cursor-pointer disabled:cursor-wait"
         />
         <span className="flex-1 space-y-1">
-          <span className="block text-sm text-foreground/90 group-hover:text-foreground transition-colors">
+          <span className="block text-sm text-foreground">
             {t('streamerKit.toggleLabel')}
           </span>
           <span className="block text-xs text-muted-foreground">
@@ -153,8 +153,8 @@ export function StreamerPublicProfileSettings({
               on the slug input, so an explicit Save button is the
               reliable affordance. onBlur is still wired as a
               desktop-convenience fallback. */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground font-mono">/streamers/</span>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-xs text-muted-foreground font-mono sm:inline">/streamers/</span>
             <Input
               id="streamer-slug"
               data-testid="streamer-kit-slug"
@@ -164,22 +164,25 @@ export function StreamerPublicProfileSettings({
               placeholder="wifsim"
               maxLength={32}
               disabled={saving}
-              className="max-w-xs"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="min-w-0 flex-1 sm:max-w-xs"
             />
             <Button
-              size="sm"
               variant="outline"
+              className="shrink-0"
               onClick={onSlugSaveClick}
               disabled={!slugDirty || saving}
               data-testid="streamer-kit-slug-save"
             >
-              {saving && <Loader2 className="size-3 mr-1 animate-spin" />}
+              {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
               {t('streamerKit.slugSave')}
             </Button>
           </div>
           {slugError && (
-            <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertTriangle className="size-3" />
+            <p role="alert" className="text-sm text-destructive flex items-center gap-1.5">
+              <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
               {slugError}
             </p>
           )}

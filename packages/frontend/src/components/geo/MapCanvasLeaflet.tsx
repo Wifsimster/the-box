@@ -100,7 +100,11 @@ export function MapCanvasLeaflet({
         // Without it, the +/- zoom controls and tile layers paint over
         // any Radix Sheet/Dialog (z-50) that opens above the page.
         <div
-            className={cn('relative isolate w-full overflow-hidden rounded-lg', className)}
+            className={cn(
+                'relative isolate w-full overflow-hidden rounded-lg',
+                'pointer-coarse:[&_.leaflet-bar_a]:!size-11 pointer-coarse:[&_.leaflet-bar_a]:!text-2xl pointer-coarse:[&_.leaflet-bar_a]:!leading-[44px]',
+                className,
+            )}
             style={{ aspectRatio: `${widthPx} / ${heightPx}`, zIndex: 0 }}
         >
             {!tiles && (

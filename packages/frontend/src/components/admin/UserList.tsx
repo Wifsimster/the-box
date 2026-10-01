@@ -16,7 +16,9 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { UserCard, UserTableRow, type UserActionKind } from './UserListRow'
 import { UserActionDialogs } from './UserActionDialogs'
 import { useUserActions } from './useUserActions'
-import { Search, Loader2, ArrowUpDown, ArrowUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Search, Loader2, ArrowUpDown, ArrowUp, Users, AlertTriangle, RefreshCw } from 'lucide-react'
+import { AdminListSkeleton } from './AdminListSkeleton'
 import { m, AnimatePresence } from 'framer-motion'
 
 function debounce<T extends (...args: Parameters<T>) => void>(
@@ -59,7 +61,7 @@ function UserSortableHeader({
   onSort: (field: string) => void
 }) {
   return (
-    <TableHead>
+    <TableHead aria-sort={sortField === field ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button
         type="button"
         className="flex items-center font-medium hover:text-foreground transition-colors"
@@ -185,8 +187,8 @@ export function UserList() {
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center justify-between gap-y-0">
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           {t('admin.users.title')}
           {usersPagination.total > 0 && (
             <span className="text-sm font-normal text-muted-foreground">
@@ -200,9 +202,11 @@ export function UserList() {
         {/* Search */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
+              type="search"
               className="pl-9"
+              aria-label={t('admin.users.searchPlaceholder')}
               placeholder={t('admin.users.searchPlaceholder')}
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -212,28 +216,37 @@ export function UserList() {
 
         {/* Error state */}
         {usersError && (
-          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {usersError}
+          <div role="alert" className="mb-4 flex flex-col gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {usersError}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => fetchUsers()} disabled={usersLoading} className="self-start sm:self-auto">
+              <RefreshCw className="size-4" />
+              {t('common.retry')}
+            </Button>
           </div>
         )}
 
-        {/* Loading state */}
         {usersLoading && users.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          </div>
+          <AdminListSkeleton />
         ) : users.length === 0 ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <Users className="size-8 text-muted-foreground" aria-hidden="true" />
             <p className="text-muted-foreground">{t('admin.users.noUsers')}</p>
+            {searchInput && (
+              <Button variant="outline" onClick={() => handleSearchChange('')}>
+                {t('common.clearAll')}
+              </Button>
+            )}
           </div>
         ) : (
           /* Table (md+) / Cards (mobile) */
           <>
-            <div className="relative">
+            <div className="relative" aria-busy={usersLoading}>
               {usersLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
                 </div>
               )}
 
@@ -255,10 +268,10 @@ export function UserList() {
               </div>
 
               {/* Table (md+) */}
-              <div className="hidden md:block rounded-lg border border-white/10 overflow-hidden">
+              <div className="hidden md:block rounded-lg border border-border overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-white/10">
+                    <TableRow className="hover:bg-transparent">
                       <UserSortableHeader field="email" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.email')}</UserSortableHeader>
                       <UserSortableHeader field="displayName" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.name')}</UserSortableHeader>
                       <UserSortableHeader field="role" sortField={usersSort.field} sortOrder={usersSort.order} onSort={handleSort}>{t('admin.users.roleLabel')}</UserSortableHeader>

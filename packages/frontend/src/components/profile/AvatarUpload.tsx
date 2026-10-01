@@ -204,18 +204,21 @@ export function AvatarUpload({
           className="relative group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
           aria-label={t('profile.avatar.change')}
         >
-          <Avatar className="size-32 border-4 border-primary/20 shadow-xl transition-all duration-200 group-hover:border-primary/40">
+          <Avatar className="size-24 sm:size-32 border-4 border-primary/20 shadow-xl transition-colors duration-200 group-hover:border-primary/40">
             <AvatarImage
               src={displayAvatar || undefined}
               alt={userName || 'User'}
             />
-            <AvatarFallback className="text-3xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
+            <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
               {userInitials}
             </AvatarFallback>
           </Avatar>
-          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Camera className="size-8 text-white" />
-          </div>
+          <span
+            className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-md transition-transform motion-safe:group-hover:scale-110"
+            aria-hidden="true"
+          >
+            <Camera className="size-4" />
+          </span>
         </button>
       </ResponsiveDialogTrigger>
 
@@ -227,9 +230,8 @@ export function AvatarUpload({
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <div className="flex flex-col items-center gap-6 py-4">
-          {/* Preview Avatar */}
-          <Avatar className="size-32 border-4 border-primary/20 shadow-xl">
+        <div className="flex flex-col items-center gap-4 py-2 sm:py-4">
+          <Avatar className="size-28 sm:size-32 border-4 border-primary/20 shadow-xl">
             <AvatarImage
               src={displayAvatar || undefined}
               alt={userName || 'User'}
@@ -239,7 +241,6 @@ export function AvatarUpload({
             </AvatarFallback>
           </Avatar>
 
-          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -249,7 +250,6 @@ export function AvatarUpload({
             aria-label={t('profile.avatar.selectFile')}
           />
 
-          {/* Upload button */}
           <Button
             type="button"
             variant="outline"
@@ -257,16 +257,14 @@ export function AvatarUpload({
             disabled={isUploading || isDeleting}
             className="w-full"
           >
-            <Upload className="size-4 mr-2" />
+            <Upload aria-hidden="true" />
             {t('profile.avatar.selectImage')}
           </Button>
 
-          {/* Error message */}
           {error && (
-            <p className="text-sm text-destructive text-center">{error}</p>
+            <p role="alert" className="text-sm text-destructive text-center">{error}</p>
           )}
 
-          {/* File size hint */}
           <p className="text-xs text-muted-foreground text-center">
             {t('profile.avatar.sizeHint')}
           </p>

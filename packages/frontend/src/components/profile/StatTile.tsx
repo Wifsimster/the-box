@@ -54,14 +54,17 @@ export function StatTile({
   return (
     <TooltipRoot>
       <TooltipTrigger asChild>
-        <div className="flex flex-col items-center text-center gap-y-1.5 cursor-help">
-          <div className={cn('flex items-center justify-center size-10 rounded-full', tones.bubble)}>
+        <div
+          tabIndex={0}
+          className="flex min-w-0 flex-col items-center gap-1 rounded-lg p-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className={cn('flex items-center justify-center size-9 rounded-full', tones.bubble)} aria-hidden="true">
             <Icon className={cn('size-5', tones.icon)} />
           </div>
-          <div className={cn('text-2xl font-bold bg-linear-to-r bg-clip-text text-transparent', tones.gradient)}>
+          <div className={cn('text-xl sm:text-2xl font-bold tabular-nums bg-linear-to-r bg-clip-text text-transparent', tones.gradient)}>
             {value}
           </div>
-          <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+          <div className="text-xs leading-tight text-muted-foreground">
             {label}
           </div>
           {extra}

@@ -54,7 +54,7 @@ export function CountdownTimer({ state }: { state: CountdownState }) {
       role="timer"
       aria-label={t('game.timer.label', { seconds })}
       data-state={phase}
-      className="relative flex size-12 items-center justify-center rounded-full border border-white/10 bg-black/60 shadow-2xl backdrop-blur-md sm:size-14"
+      className="relative flex size-12 items-center justify-center rounded-full border border-border/60 bg-background/70 shadow-2xl backdrop-blur-md sm:size-14"
       style={styles.glow && !prefersReducedMotion ? { boxShadow: styles.glow } : undefined}
     >
       <svg
@@ -62,7 +62,7 @@ export function CountdownTimer({ state }: { state: CountdownState }) {
         viewBox="0 0 48 48"
         aria-hidden="true"
       >
-        <circle cx="24" cy="24" r={RADIUS} fill="none" strokeWidth="3" className="stroke-white/10" />
+        <circle cx="24" cy="24" r={RADIUS} fill="none" strokeWidth="3" className="stroke-foreground/15" />
         <circle
           cx="24"
           cy="24"

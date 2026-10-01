@@ -2,10 +2,10 @@ import type { NewlyEarnedAchievement } from '@the-box/types'
 import { m } from 'framer-motion'
 import { toast as sonner } from 'sonner'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Trophy, X } from 'lucide-react'
+import { Trophy, X } from 'lucide-react'
 
 interface AchievementToastBodyProps {
     achievement: NewlyEarnedAchievement
@@ -32,70 +32,43 @@ export function AchievementToastBody({ achievement, toastId }: AchievementToastB
     const localizedDescription = t(`achievements.items.${achievement.key}.description`, {
         defaultValue: achievement.description,
     })
-    const localizedCategory = t(`achievements.categories.${achievement.category}`, {
-        defaultValue: achievement.category,
-    })
 
     return (
-        <Card className={`relative overflow-hidden border-2 bg-linear-to-br ${tierGradient} shadow-2xl w-full max-w-md`}>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
-
-            <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 size-6 rounded-full opacity-70 hover:opacity-100 z-10"
-                onClick={() => sonner.dismiss(toastId)}
-            >
-                <X className="size-4" />
-            </Button>
-
-            <CardHeader className="pb-3 relative">
-                <div className="flex items-center gap-2 mb-2">
-                    <m.div
-                        animate={{
-                            rotate: [0, 10, -10, 10, 0],
-                            scale: [1, 1.1, 1, 1.1, 1],
-                        }}
-                        transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
-                    >
-                        <Trophy className="size-5 text-warning" />
-                    </m.div>
-                    <span className="text-sm font-semibold text-warning flex items-center gap-1">
-                        <Sparkles className="size-4" />
+        <Card className={`relative w-full max-w-sm overflow-hidden border-2 bg-card bg-linear-to-br ${tierGradient} shadow-2xl`}>
+            <div className="flex items-center gap-3 py-3 pl-3 pr-1">
+                <m.div
+                    className="text-3xl leading-none shrink-0"
+                    initial={{ scale: 0.6, rotate: -10 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+                    aria-hidden="true"
+                >
+                    {achievement.iconUrl || '🏆'}
+                </m.div>
+                <div className="flex-1 min-w-0">
+                    <p className="flex items-center gap-1 text-xs font-semibold text-warning">
+                        <Trophy className="size-3.5 shrink-0" aria-hidden="true" />
                         {t('achievements.unlocked')}
-                    </span>
+                    </p>
+                    <CardTitle className="mt-1 text-base leading-tight truncate">{localizedName}</CardTitle>
+                    <CardDescription className="mt-0.5 text-xs line-clamp-1">
+                        {localizedDescription}
+                    </CardDescription>
                 </div>
-
-                <div className="flex items-start gap-3">
-                    <m.div
-                        className="text-5xl"
-                        animate={{
-                            scale: [1, 1.2, 1],
-                            rotate: [0, 5, -5, 0],
-                        }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                    >
-                        {achievement.iconUrl || '🏆'}
-                    </m.div>
-                    <div className="flex-1">
-                        <CardTitle className="text-xl">{localizedName}</CardTitle>
-                        <CardDescription className="mt-1 text-muted-foreground">
-                            {localizedDescription}
-                        </CardDescription>
-                    </div>
-                </div>
-            </CardHeader>
-
-            <CardContent className="pt-0 relative">
-                <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                        +{achievement.points} {t('dailyLogin.points')}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs capitalize">
-                        {localizedCategory}
-                    </Badge>
-                </div>
-            </CardContent>
+                <Badge variant="secondary" className="shrink-0 text-xs tabular-nums">
+                    +{achievement.points}
+                    <span className="sr-only"> {t('dailyLogin.points')}</span>
+                </Badge>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 rounded-full text-muted-foreground"
+                    onClick={() => sonner.dismiss(toastId)}
+                    aria-label={t('common.close')}
+                >
+                    <X className="size-4" aria-hidden="true" />
+                </Button>
+            </div>
         </Card>
     )
 }

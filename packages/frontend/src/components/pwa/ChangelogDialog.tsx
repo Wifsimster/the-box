@@ -11,16 +11,17 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Sparkles, Wrench, Zap } from 'lucide-react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useChangelogStore } from '@/stores/changelogStore'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
 import {
   CHANGELOG,
   CHANGELOG_SECTIONS,
@@ -68,6 +69,10 @@ export function ChangelogDialog(): ReactElement | null {
   const openChangelog = useChangelogStore((s) => s.openChangelog)
   const markSeen = useChangelogStore((s) => s.markSeen)
   const reducedMotion = useReducedMotion()
+  // Queue behind the welcome and daily-reward dialogs instead of stacking.
+  const welcomeActive = useWelcomeActive()
+  const rewardModalOpen = useDailyLoginStore((s) => s.isModalOpen)
+  const visible = open && !welcomeActive && !rewardModalOpen
 
   const release = getLatestRelease()
 
@@ -110,13 +115,13 @@ export function ChangelogDialog(): ReactElement | null {
   }, [])
 
   useEffect(() => {
-    if (!open) return
+    if (!visible) return
     const el = scrollRef.current
     if (el) el.scrollTop = 0
     updateFades()
     window.addEventListener('resize', updateFades)
     return () => window.removeEventListener('resize', updateFades)
-  }, [open, activeIndex, updateFades, i18n.language])
+  }, [visible, activeIndex, updateFades, i18n.language])
 
   // Auto-open the newest announced release's notes once, the first time a
   // player loads the app after that release lands in the changelog registry.
@@ -181,9 +186,12 @@ export function ChangelogDialog(): ReactElement | null {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:gap-0 sm:p-0">
-        <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 sm:px-6 sm:pr-14">
+    <ResponsiveDialog open={visible} onOpenChange={handleClose}>
+      <ResponsiveDialogContent
+        hideDragHandle
+        className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 pb-0 sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:gap-0 sm:p-0"
+      >
+        <ResponsiveDialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 text-left sm:px-6 sm:pr-14">
           <div className="flex items-center gap-3">
             <span
               className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-neon-purple to-neon-pink text-white"
@@ -192,13 +200,13 @@ export function ChangelogDialog(): ReactElement | null {
               <Sparkles className="size-5" />
             </span>
             <div className="flex flex-col text-left">
-              <DialogTitle>{t('changelog.title')}</DialogTitle>
-              <DialogDescription className="text-xs">
+              <ResponsiveDialogTitle>{t('changelog.title')}</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription className="text-sm">
                 {t('changelog.headerSubtitle')}
-              </DialogDescription>
+              </ResponsiveDialogDescription>
             </div>
           </div>
-        </DialogHeader>
+        </ResponsiveDialogHeader>
 
         <VersionTimeline
           activeIndex={activeIndex}
@@ -253,12 +261,12 @@ export function ChangelogDialog(): ReactElement | null {
           />
         </div>
 
-        <DialogFooter className="shrink-0 flex-row items-center gap-3 border-t border-border px-4 py-3 sm:px-6">
+        <div className="flex shrink-0 items-center gap-3 border-t border-border px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:px-6 sm:pb-3">
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
-              className="size-8 rounded-full"
+              className="rounded-full"
               onClick={() => goTo(activeIndex - 1)}
               disabled={activeIndex === 0}
               aria-label={t('changelog.pagination.previous')}
@@ -282,7 +290,7 @@ export function ChangelogDialog(): ReactElement | null {
             <Button
               variant="outline"
               size="icon"
-              className="size-8 rounded-full"
+              className="rounded-full"
               onClick={() => goTo(activeIndex + 1)}
               disabled={activeIndex === CHANGELOG.length - 1}
               aria-label={t('changelog.pagination.next')}
@@ -293,9 +301,9 @@ export function ChangelogDialog(): ReactElement | null {
           <Button className="ml-auto" onClick={() => handleClose(false)}>
             {t('changelog.gotIt')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }
 
@@ -363,7 +371,7 @@ function VersionTimeline({
               aria-selected={isActive}
               tabIndex={isActive ? 0 : -1}
               onClick={() => onSelect(index)}
-              className="group flex min-w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-2 pb-1.5 pt-1 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group flex min-h-11 min-w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-2 pb-1.5 pt-1 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {/* Stop marker sitting on the connecting rail. */}
               <span className="relative flex h-4 w-full items-center justify-center">
@@ -402,7 +410,7 @@ function VersionTimeline({
               >
                 v{entry.version}
               </span>
-              <span className="text-[10px] leading-none text-muted-foreground">
+              <span className="text-xs leading-none text-muted-foreground">
                 {formatShortDate(entry.date)}
               </span>
             </button>

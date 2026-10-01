@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Radio, Trash2, Loader2 } from 'lucide-react'
+import { Radio, Trash2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -94,16 +95,18 @@ export function StreamerKitCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Radio className="size-5" />
+          <Radio className="size-5" aria-hidden="true" />
           {t('streamerKit.title')}
         </CardTitle>
         <CardDescription>{t('streamerKit.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {loading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {t('streamerKit.loading')}
+          <div className="space-y-3" aria-busy="true">
+            <span className="sr-only" role="status">{t('streamerKit.loading')}</span>
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-10 w-2/3" />
+            <Skeleton className="h-14 w-full" />
           </div>
         )}
 
@@ -118,7 +121,7 @@ export function StreamerKitCard() {
 
             {/* Keys list */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-sm font-semibold">{t('streamerKit.keysTitle')}</h4>
                 <StreamerKeyCreateDialog
                   enabled={enabled}
@@ -190,7 +193,7 @@ function KeyRow({ apiKey, onRevoke, formatDate }: KeyRowProps) {
   return (
     <li
       data-testid={`streamer-kit-key-${apiKey.id}`}
-      className="flex items-center justify-between rounded border border-border bg-background/30 px-3 py-2"
+      className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/30 px-3 py-2"
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -206,20 +209,21 @@ function KeyRow({ apiKey, onRevoke, formatDate }: KeyRowProps) {
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
           <code className="font-mono">{apiKey.keyPrefix}…</code>
           <span>{t('streamerKit.lastUsed', { date: formatDate(apiKey.lastUsedAt) })}</span>
         </div>
       </div>
       {apiKey.isActive && (
         <Button
-          variant="ghost"
-          size="sm"
+          variant="dangerGhost"
+          size="icon"
+          className="shrink-0"
           onClick={() => onRevoke(apiKey.id)}
           aria-label={t('streamerKit.revokeAria')}
           data-testid={`streamer-kit-revoke-${apiKey.id}`}
         >
-          <Trash2 className="size-4" />
+          <Trash2 aria-hidden="true" />
         </Button>
       )}
     </li>

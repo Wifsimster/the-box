@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { m, type MotionProps } from 'framer-motion'
-import { Play, Trophy, History, Clock, CalendarDays, MapPin } from 'lucide-react'
+import { Play, Trophy, History, Clock, CalendarDays, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useFeatures } from '@/hooks/useFeatures'
 
 interface YesterdayChallenge {
   challengeId: number
@@ -34,6 +34,8 @@ export interface HomeDailyCtaStatus {
   previewAvailable: boolean
 }
 
+const pad = (value: number) => String(value).padStart(2, '0')
+
 export function HomeDailyCta({
   status,
   todayScore,
@@ -54,28 +56,35 @@ export function HomeDailyCta({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
-  const { geoCommunity } = useFeatures()
   const { isLoading, isTodayCompleted, isOnline, hasSession, previewAvailable } = status
+
+  const countdown = `${pad(timeRemaining.hours)}:${pad(timeRemaining.minutes)}:${pad(timeRemaining.seconds)}`
+
+  if (isLoading) {
+    return (
+      <div aria-busy="true" className="flex flex-col items-center gap-3">
+        <Skeleton className="h-14 w-full rounded-lg sm:w-80" />
+        <Skeleton className="h-4 w-56 max-w-full" variant="text" />
+      </div>
+    )
+  }
 
   return (
     <m.div
       {...motionProps({
-        initial: { opacity: 0, scale: 0.9 },
+        initial: { opacity: 0, scale: 0.96 },
         animate: { opacity: 1, scale: 1 },
-        transition: { duration: 0.5, delay: 0.4 },
+        transition: { duration: 0.4, delay: 0.2 },
       })}
-      className="flex flex-col items-center gap-4 mb-8 sm:mb-10 md:mb-12 lg:mb-16"
+      className="mx-auto flex w-full max-w-xl flex-col items-center gap-4"
     >
-      {/* Show completion message if today's challenge is completed */}
       {isTodayCompleted && (
-        <div className="text-center max-w-xl mx-auto">
-          <div className="bg-card/80 backdrop-blur-sm border border-neon-purple/30 rounded-lg p-4 sm:p-6 mb-3">
-            <p className="text-lg sm:text-xl font-bold text-foreground mb-3">
-              {humorousMessage}
-            </p>
-            <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm sm:text-base mb-4">
+        <Card variant="neon" className="w-full bg-card/80 text-center backdrop-blur-sm">
+          <CardContent className="space-y-3 pt-(--card-padding)">
+            <p className="text-lg font-bold text-foreground sm:text-xl">{humorousMessage}</p>
+            <div className="flex items-center justify-center gap-4 text-sm sm:gap-6 sm:text-base">
               <div className="flex items-center gap-2">
-                <Trophy className="size-4 sm:size-5 text-neon-cyan" />
+                <Trophy className="size-4 text-neon-cyan sm:size-5" aria-hidden="true" />
                 <span className="font-semibold text-foreground">{todayScore} pts</span>
               </div>
               <div className="text-muted-foreground">
@@ -83,112 +92,69 @@ export function HomeDailyCta({
               </div>
             </div>
 
-            {/* Countdown timer.
-                `role="timer"` + `aria-live="polite"` lets assistive tech
-                announce the countdown without interrupting; `aria-atomic`
-                re-reads the whole label rather than a stray digit. */}
+            {/* `role="timer"` is implicitly `aria-live="off"`: announcing a
+                value that changes every second would flood screen readers. */}
             <div
               role="timer"
-              aria-live="polite"
-              aria-atomic="true"
-              aria-label={`${t('home.nextDailyIn')} ${String(timeRemaining.hours).padStart(2, '0')}:${String(timeRemaining.minutes).padStart(2, '0')}:${String(timeRemaining.seconds).padStart(2, '0')}`}
-              className="flex items-center justify-center gap-2 pt-3 border-t border-neon-purple/20"
+              aria-label={`${t('home.nextDailyIn')} ${countdown}`}
+              className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-border pt-3"
             >
               <Clock className="size-4 text-neon-pink" aria-hidden="true" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {t('home.nextDailyIn')}
-              </span>
-              <span className="font-mono font-semibold text-foreground text-sm sm:text-base">
-                {String(timeRemaining.hours).padStart(2, '0')}:
-                {String(timeRemaining.minutes).padStart(2, '0')}:
-                {String(timeRemaining.seconds).padStart(2, '0')}
+              <span className="text-sm text-muted-foreground">{t('home.nextDailyIn')}</span>
+              <span className="font-mono text-base font-semibold tabular-nums text-foreground" aria-hidden="true">
+                {countdown}
               </span>
             </div>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            {t('home.comeBackTomorrow')}
-          </p>
-        </div>
+            <p className="text-sm text-muted-foreground">{t('home.comeBackTomorrow')}</p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Show appropriate button based on completion status.
-          One loud primary action (play / history) so visitors have a single
-          obvious next step; Geo mode is demoted to a quiet secondary link
-          below rather than competing as an equal-weight button. */}
-      {!isLoading && (
-        <div className="flex flex-col items-center gap-3 sm:gap-4 w-full sm:w-auto">
-          <div className="flex justify-center w-full sm:w-auto">
-            {isTodayCompleted ? (
-              <Button
-                variant="outline"
-                size="xl"
-                onClick={() => navigate(localizedPath('/history'))}
-                className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
-              >
-                <History className="size-4 sm:size-5 md:size-6" />
-                {t('common.history')}
-              </Button>
-            ) : (
-              <Button
-                variant="gaming"
-                size="xl"
-                disabled={!isOnline}
-                onClick={() => navigate(localizedPath('/play'))}
-                data-tour="play-cta"
-                className="gap-2 sm:gap-3 text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 lg:px-12 w-full sm:w-auto"
-              >
-                <Play className="size-4 sm:size-5 md:size-6" />
-                {t('home.playToday')}
-              </Button>
-            )}
-          </div>
-          {geoCommunity && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(localizedPath('/geo'))}
-              data-tour="geo-cta"
-              // `size="sm"` keeps this secondary next to the primary Play CTA,
-              // but 32px is under the 44px mobile target — lift the height
-              // without touching the type scale that makes it read as secondary.
-              className="min-h-11 gap-1.5 text-xs text-muted-foreground hover:text-neon-pink sm:min-h-8 sm:text-sm"
-            >
-              <MapPin className="size-4" />
-              {t('home.geoCta')}
-              <Badge
-                variant="outline"
-                className="ml-1 h-4 px-1 text-[9px] font-semibold uppercase tracking-wide border-neon-pink/40 text-neon-pink"
-              >
-                {t('common.alpha')}
-              </Badge>
-            </Button>
-          )}
-          {!isTodayCompleted && !hasSession && (
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {t('home.guestHint')}
-            </p>
-          )}
-          {!isTodayCompleted && !isOnline && (
-            <p className="text-xs sm:text-sm text-warning">
-              {t('home.offlineHint')}
-            </p>
-          )}
-        </div>
-      )}
+      <div className="flex w-full flex-col items-center gap-3 sm:w-auto">
+        {isTodayCompleted ? (
+          <Button
+            variant="outline"
+            size="xl"
+            onClick={() => navigate(localizedPath('/history'))}
+            className="w-full gap-3 sm:w-auto"
+          >
+            <History className="size-5" aria-hidden="true" />
+            {t('common.history')}
+          </Button>
+        ) : (
+          <Button
+            variant="gaming"
+            size="xl"
+            disabled={!isOnline}
+            onClick={() => navigate(localizedPath('/play'))}
+            data-tour="play-cta"
+            className="w-full gap-3 sm:w-auto sm:px-12"
+          >
+            <Play className="size-5" aria-hidden="true" />
+            {t('home.playToday')}
+          </Button>
+        )}
+        {!isTodayCompleted && !isOnline ? (
+          <p role="status" className="flex items-center gap-2 text-center text-sm text-warning">
+            <WifiOff className="size-4 shrink-0" aria-hidden="true" />
+            {t('home.offlineHint')}
+          </p>
+        ) : (
+          !isTodayCompleted && !hasSession && (
+            <p className="text-center text-sm text-muted-foreground">{t('home.guestHint')}</p>
+          )
+        )}
+      </div>
 
       {/* Public teaser — renders today's first screenshot for anonymous visitors */}
-      {!isLoading && !hasSession && previewAvailable && !isTodayCompleted && (
-        <m.button
+      {!hasSession && previewAvailable && !isTodayCompleted && (
+        <button
           type="button"
           onClick={() => navigate(localizedPath('/play'))}
-          {...motionProps({
-            initial: { opacity: 0, y: 10 },
-            animate: { opacity: 1, y: 0 },
-            transition: { delay: 0.2 },
-          })}
-          className="mt-6 block w-full max-w-xl overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm hover:border-neon-pink/60 transition-colors text-left"
+          disabled={!isOnline}
+          className="group mt-2 block w-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 text-left backdrop-blur-sm transition-colors hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60"
         >
-          <div className="relative aspect-video w-full overflow-hidden bg-black/40">
+          <div className="relative aspect-video w-full overflow-hidden bg-muted">
             <img
               src="/api/game/preview/image"
               alt={t('home.previewAlt')}
@@ -196,48 +162,34 @@ export function HomeDailyCta({
               decoding="async"
               width={1280}
               height={720}
-              className="size-full object-cover transition-transform hover:scale-105"
+              className="size-full object-cover transition-transform motion-safe:group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent" />
-            <span className="absolute top-3 left-3 text-[10px] uppercase tracking-wide font-semibold text-white bg-black/60 rounded px-2 py-1">
+            <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/10 to-transparent" />
+            <span className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               {t('home.previewBadge')}
             </span>
-            <div className="absolute bottom-3 left-3 right-3">
-              <p className="text-sm sm:text-base font-semibold text-white">
-                {t('home.previewHeading')}
-              </p>
-              <p className="text-xs text-white/80 mt-1">{t('home.previewSubtitle')}</p>
+            <div className="absolute inset-x-3 bottom-3">
+              <p className="text-base font-semibold text-white">{t('home.previewHeading')}</p>
+              <p className="mt-1 text-sm text-white/85">{t('home.previewSubtitle')}</p>
             </div>
           </div>
-        </m.button>
+        </button>
       )}
 
-      {/* Show yesterday's challenge option if available and not played */}
-      {!isLoading && yesterdayChallenge && !yesterdayChallenge.hasPlayed && (
-        <m.div
-          {...motionProps({
-            initial: { opacity: 0, y: 10 },
-            animate: { opacity: 1, y: 0 },
-            transition: { delay: 0.2 },
-          })}
-          className="mt-4 text-center"
-        >
-          <p className="text-xs sm:text-sm text-muted-foreground mb-2">
-            {t('home.missedYesterday')}
-          </p>
+      {yesterdayChallenge && !yesterdayChallenge.hasPlayed && (
+        <div className="mt-2 flex w-full flex-col items-center gap-2 text-center">
+          <p className="text-sm text-muted-foreground">{t('home.missedYesterday')}</p>
           <Button
             variant="outline"
-            size="lg"
             onClick={() => navigate(localizedPath(`/play?date=${yesterdayChallenge.date}`))}
-            className="gap-2 text-sm"
+            disabled={!isOnline}
+            className="w-full gap-2 sm:w-auto"
           >
-            <CalendarDays className="size-4" />
+            <CalendarDays className="size-4" aria-hidden="true" />
             {t('home.playYesterday')}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2 opacity-70">
-            {t('home.catchUpNote')}
-          </p>
-        </m.div>
+          <p className="text-xs text-muted-foreground">{t('home.catchUpNote')}</p>
+        </div>
       )}
     </m.div>
   )

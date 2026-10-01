@@ -4,6 +4,7 @@ import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
 import { ArrowLeft, ArrowRight } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -233,6 +234,7 @@ type CarouselButtonProps = React.ComponentProps<typeof Button> & {
 
 const CarouselPrevious = ({ className, variant = "outline", size = "icon", ref, ...props }: CarouselButtonProps) => {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
+  const { t } = useTranslation()
 
   return (
     <Button
@@ -250,8 +252,8 @@ const CarouselPrevious = ({ className, variant = "outline", size = "icon", ref, 
       onClick={scrollPrev}
       {...props}
     >
-      <ArrowLeft className="size-4" />
-      <span className="sr-only">Previous slide</span>
+      <ArrowLeft className="size-4" aria-hidden="true" />
+      <span className="sr-only">{t("game.navigation.previous")}</span>
     </Button>
   )
 }
@@ -259,6 +261,7 @@ CarouselPrevious.displayName = "CarouselPrevious"
 
 const CarouselNext = ({ className, variant = "outline", size = "icon", ref, ...props }: CarouselButtonProps) => {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
+  const { t } = useTranslation()
 
   return (
     <Button
@@ -276,8 +279,8 @@ const CarouselNext = ({ className, variant = "outline", size = "icon", ref, ...p
       onClick={scrollNext}
       {...props}
     >
-      <ArrowRight className="size-4" />
-      <span className="sr-only">Next slide</span>
+      <ArrowRight className="size-4" aria-hidden="true" />
+      <span className="sr-only">{t("game.navigation.next")}</span>
     </Button>
   )
 }

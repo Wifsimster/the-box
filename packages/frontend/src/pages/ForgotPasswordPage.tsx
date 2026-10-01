@@ -1,10 +1,9 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,28 +15,35 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { requestPasswordReset } from '@/lib/auth-client'
-import { Mail, Loader2, ArrowLeft } from 'lucide-react'
-import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { Mail, MailCheck, Loader2, ArrowLeft } from 'lucide-react'
+import { AuthLayout, AuthFormError } from '@/components/security/AuthLayout'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapPasswordResetError } from '@/lib/auth-errors'
 
-const formSchema = z.object({
-  email: z.email({ message: 'Please enter a valid email address' }),
-})
-
-type FormValues = z.infer<typeof formSchema>
+type FormValues = { email: string }
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
+  const location = useLocation()
   const { localizedPath, currentLang } = useLocalizedPath()
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
 
+  const formSchema = useMemo(
+    () => z.object({
+      email: z.string().trim().pipe(z.email({ message: t('auth.emailInvalid') })),
+    }),
+    [t],
+  )
+
+  const prefilledEmail = (location.state as { email?: string } | null)?.email ?? ''
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onTouched',
     defaultValues: {
-      email: '',
+      email: prefilledEmail,
     },
   })
 
@@ -72,136 +78,93 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <>
-        <CubeBackground />
-        <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-          <m.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-md"
+      <AuthLayout
+        icon={MailCheck}
+        iconClassName="bg-success/15 text-success"
+        title={t('auth.checkEmail')}
+        subtitle={
+          <span role="status">{t('auth.resetEmailInstructions', { email: submittedEmail })}</span>
+        }
+      >
+        <div className="space-y-3">
+          <Button variant="gaming" size="lg" className="w-full" asChild>
+            <Link to={localizedPath('/login')}>
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              {t('auth.backToLogin')}
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => setSuccess(false)}
           >
-            <m.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl text-center"
-            >
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                {t('auth.checkEmail')}
-              </h2>
-              <p className="text-muted-foreground text-sm mb-6">
-                {t('auth.resetEmailInstructions', { email: submittedEmail })}
-              </p>
-
-              {/* `asChild`: a <button> inside an <a> is invalid HTML and left a
-                  19px anchor box stacked on the real control. */}
-              <Button
-                variant="outline"
-                className="h-12 w-full rounded-xl border-white/10"
-                asChild
-              >
-                <Link to={localizedPath('/login')}>
-                  <ArrowLeft className="size-4 mr-2" />
-                  {t('auth.backToLogin')}
-                </Link>
-              </Button>
-            </m.div>
-          </m.div>
+            {t('auth.useAnotherEmail')}
+          </Button>
         </div>
-      </>
+      </AuthLayout>
     )
   }
 
   return (
-    <>
-      <CubeBackground />
-      <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl"
+    <AuthLayout
+      title={t('auth.forgotPassword')}
+      subtitle={t('auth.forgotPasswordSubtitle')}
+      footer={
+        <>
+          {t('auth.rememberPassword')}{' '}
+          <Link
+            to={localizedPath('/login')}
+            className="inline-flex min-h-11 items-center px-1 font-medium text-neon-purple transition-colors hover:text-neon-pink"
           >
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                {t('auth.forgotPassword')}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {t('auth.forgotPasswordSubtitle')}
-              </p>
-            </div>
+            {t('auth.login')}
+          </Link>
+        </>
+      }
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" aria-busy={isLoading} noValidate>
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('auth.email')}</FormLabel>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+                  <FormControl>
+                    <Input
+                      type="email"
+                      inputMode="email"
+                      placeholder="you@example.com"
+                      className="pl-10"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      enterKeyHint="send"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground/80">
-                        {t('auth.email')}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <Mail className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-pink transition-colors" />
-                          <Input
-                            type="email"
-                            placeholder="you@example.com"
-                            className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-pink/50 rounded-xl"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <AuthFormError>{form.formState.errors.root?.message}</AuthFormError>
 
-                {form.formState.errors.root && (
-                  <m.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
-                  >
-                    {form.formState.errors.root.message}
-                  </m.div>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="gaming"
-                  size="lg"
-                  className="w-full h-12 text-base font-semibold rounded-xl"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    t('auth.sendResetLink')
-                  )}
-                </Button>
-              </form>
-            </Form>
-
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {t('auth.rememberPassword')}{' '}
-              <Link
-                to={localizedPath('/login')}
-                className="text-neon-purple hover:text-neon-pink font-medium transition-colors"
-              >
-                {t('auth.login')}
-              </Link>
-            </p>
-          </m.div>
-        </m.div>
-      </div>
-    </>
+          <Button
+            type="submit"
+            variant="gaming"
+            size="lg"
+            className="w-full font-semibold"
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="size-5 animate-spin" aria-hidden="true" />}
+            {t('auth.sendResetLink')}
+          </Button>
+        </form>
+      </Form>
+    </AuthLayout>
   )
 }

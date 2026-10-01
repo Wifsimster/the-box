@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Share, X, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useBottomPromptSlotFree } from './prompt-timing'
 
 const DISMISS_KEY = 'pwa:ios-hint-dismissed-at'
 const DISMISS_TTL_MS = 1000 * 60 * 60 * 24 * 30
@@ -24,8 +26,12 @@ function shouldShowHint(): boolean {
     (navigator as { standalone?: boolean }).standalone === true
   if (isStandalone) return false
 
-  const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
-  if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return false
+  try {
+    const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
+    if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return false
+  } catch {
+    // storage blocked — show the hint; dismissal just won't persist
+  }
 
   return true
 }
@@ -33,6 +39,7 @@ function shouldShowHint(): boolean {
 export function IOSInstallHint() {
   const { t } = useTranslation()
   const [visible, setVisible] = useState(false)
+  const slotFree = useBottomPromptSlotFree()
 
   useEffect(() => {
     if (!shouldShowHint()) return
@@ -40,7 +47,7 @@ export function IOSInstallHint() {
     return () => window.clearTimeout(id)
   }, [])
 
-  if (!visible) return null
+  if (!visible || !slotFree) return null
 
   const dismiss = () => {
     try {
@@ -60,14 +67,15 @@ export function IOSInstallHint() {
         // drop to the corner at md where the BottomNav is hidden. A bare
         // bottom-3 anchored the hint on top of the fixed bottom nav.
         'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
-        'border-border p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
+        'border-border py-3 pl-4 pr-1 flex gap-2 items-start sm:max-w-md sm:left-auto sm:right-3',
+        'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4',
       )}
     >
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pt-1">
         <p id="ios-install-title" className="text-sm font-semibold text-foreground">
           {t('pwa.iosInstall.title')}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+        <p className="mt-1 text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
           {t('pwa.iosInstall.tap')}{' '}
           <Share className="size-3.5 text-primary inline-block" aria-hidden="true" />{' '}
           {t('pwa.iosInstall.then')}{' '}
@@ -75,14 +83,15 @@ export function IOSInstallHint() {
           {t('pwa.iosInstall.addToHome')}
         </p>
       </div>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={dismiss}
         aria-label={t('pwa.iosInstall.dismiss')}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className="shrink-0 text-muted-foreground"
       >
-        <X className="size-4" />
-      </button>
+        <X className="size-4" aria-hidden="true" />
+      </Button>
     </dialog>
   )
 }

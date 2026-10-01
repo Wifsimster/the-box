@@ -2,19 +2,16 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { m, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { JobCardSkeleton } from '@/components/ui/skeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { JobCardSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useAdminStore } from '@/stores/adminStore'
-import { RefreshCw, AlertTriangle } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { JobRow } from './JobRow'
+
+// Jobs that wipe player data ask for confirmation before running.
+const CONFIRM_BEFORE_RUN: Record<string, string> = {
+  'clear-daily-data': 'admin.jobs.descriptions.clearDailyData',
+}
 
 // Manual jobs that are not scheduled but can be triggered. Static, so it lives
 // at module scope for a single stable allocation rather than rebuilding each render.
@@ -46,6 +43,7 @@ export function JobList() {
   const [recurringJobLoading, setRecurringJobLoading] = useState<string | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set())
   const [showCancelSyncDialog, setShowCancelSyncDialog] = useState(false)
+  const [pendingConfirmJob, setPendingConfirmJob] = useState<string | null>(null)
 
   // Combine recurring jobs with manual jobs
   const allJobs = [
@@ -89,6 +87,14 @@ export function JobList() {
     }
   }
 
+  const requestTrigger = (jobName: string) => {
+    if (CONFIRM_BEFORE_RUN[jobName]) {
+      setPendingConfirmJob(jobName)
+      return
+    }
+    void handleTriggerRecurringJob(jobName)
+  }
+
   const handleCancelAndRestartSync = async () => {
     setShowCancelSyncDialog(false)
     setRecurringJobLoading('sync-all-games')
@@ -109,12 +115,13 @@ export function JobList() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="space-y-6"
+        aria-busy="true"
       >
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <div className="h-6 w-32 skeleton rounded" />
+            <Skeleton className="h-6 w-32" variant="text" />
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {[1, 2, 3].map((i) => (
               <JobCardSkeleton key={i} />
             ))}
@@ -139,13 +146,13 @@ export function JobList() {
           transition={{ delay: 0.1 }}
         >
           <Card className="bg-card/50 backdrop-blur-sm border-neon-purple/30">
-            <CardHeader className="pb-2 p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <RefreshCw className="size-4 text-neon-purple shrink-0" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <RefreshCw className="size-4 text-neon-purple shrink-0" aria-hidden="true" />
                 {t('admin.jobs.jobList')}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
+            <CardContent>
               <AnimatePresence initial={false}>
                 <m.div
                   className="space-y-2"
@@ -157,7 +164,7 @@ export function JobList() {
                       isExpanded={expandedJobs.has(job.id)}
                       isJobLoading={recurringJobLoading === job.name}
                       onToggle={toggleJobExpansion}
-                      onTrigger={handleTriggerRecurringJob}
+                      onTrigger={requestTrigger}
                     />
                   ))}
                 </m.div>
@@ -167,34 +174,31 @@ export function JobList() {
         </m.div>
       )}
 
-      {/* Cancel Stuck Sync Dialog */}
-      <Dialog open={showCancelSyncDialog} onOpenChange={setShowCancelSyncDialog}>
-        <DialogContent className="max-w-sm sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-warning" />
-              {t('admin.jobs.syncConflict.title', 'Sync Job Already Running')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('admin.jobs.syncConflict.description', 'A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelSyncDialog(false)}
-            >
-              {t('common.cancel', 'Cancel')}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleCancelAndRestartSync}
-            >
-              {t('admin.jobs.syncConflict.cancelAndRestart', 'Cancel & Restart')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={showCancelSyncDialog}
+        onOpenChange={setShowCancelSyncDialog}
+        title={t('admin.jobs.syncConflict.title', 'Sync Job Already Running')}
+        description={t('admin.jobs.syncConflict.description', 'A sync-all job is already in progress or paused. Would you like to cancel it and start a new one?')}
+        confirmLabel={t('admin.jobs.syncConflict.cancelAndRestart', 'Cancel & Restart')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        destructive
+        onConfirm={handleCancelAndRestartSync}
+      />
+
+      <ConfirmDialog
+        open={pendingConfirmJob !== null}
+        onOpenChange={(open) => !open && setPendingConfirmJob(null)}
+        title={t('admin.jobs.runConfirm.title')}
+        description={pendingConfirmJob ? t(CONFIRM_BEFORE_RUN[pendingConfirmJob]) : undefined}
+        confirmLabel={t('admin.jobs.runNow')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => {
+          const jobName = pendingConfirmJob
+          setPendingConfirmJob(null)
+          if (jobName) void handleTriggerRecurringJob(jobName)
+        }}
+      />
     </m.div>
   )
 }

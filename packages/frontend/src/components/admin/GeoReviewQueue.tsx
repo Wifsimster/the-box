@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Loader2, HelpCircle, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ReviewWorkspace } from './geo-review/ReviewWorkspace'
@@ -409,7 +409,7 @@ export function GeoReviewQueue({
 
     return (
         <>
-            <p className="text-xs text-muted-foreground">{t('admin.geo.tabs.queueDescription')}</p>
+            <p className="text-sm text-muted-foreground">{t('admin.geo.tabs.queueDescription')}</p>
             {/* Status filter */}
             <fieldset
                 className="m-0 flex flex-wrap items-center gap-2 border-0 p-0"
@@ -421,6 +421,8 @@ export function GeoReviewQueue({
                         type="button"
                         size="sm"
                         variant={statusFilter === s ? 'default' : 'outline'}
+                        aria-pressed={statusFilter === s}
+                        className="pointer-coarse:h-10"
                         onClick={() => onStatusFilterChange(s)}
                     >
                         {t(`admin.geo.statusFilter.${s}`)}
@@ -436,7 +438,7 @@ export function GeoReviewQueue({
                             type="button"
                             onClick={() => onGameFilterChange(null)}
                             aria-label={t('admin.geo.gameFilter.clear')}
-                            className="rounded hover:bg-neon-pink/10"
+                            className="-m-1 rounded p-1 hover:bg-neon-pink/10 pointer-coarse:-m-2.5 pointer-coarse:p-2.5"
                         >
                             <X className="size-3" aria-hidden />
                         </button>
@@ -527,66 +529,52 @@ function QueueDialogs({
     const { t } = useTranslation()
     return (
         <>
-            <Dialog open={dialog === 'intro'} onOpenChange={(open) => !open && onClose()}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>{t('admin.geo.guide.title')}</DialogTitle>
-                    </DialogHeader>
+            <ResponsiveDialog open={dialog === 'intro'} onOpenChange={(open) => !open && onClose()}>
+                <ResponsiveDialogContent className="sm:max-w-lg">
+                    <ResponsiveDialogHeader>
+                        <ResponsiveDialogTitle>{t('admin.geo.guide.title')}</ResponsiveDialogTitle>
+                    </ResponsiveDialogHeader>
                     <ol className="grid gap-3 text-sm">
                         {(['step1', 'step2', 'step3'] as const).map((step) => (
                             <li key={step} className="space-y-1">
                                 <p className="font-semibold text-foreground">
                                     {t(`admin.geo.guide.${step}Title`)}
                                 </p>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                <p className="text-sm text-muted-foreground leading-relaxed">
                                     {t(`admin.geo.guide.${step}Body`)}
                                 </p>
                             </li>
                         ))}
                     </ol>
-                    <DialogFooter>
+                    <ResponsiveDialogFooter>
                         <Button onClick={onClose}>{t('admin.geo.guide.close')}</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </ResponsiveDialogFooter>
+                </ResponsiveDialogContent>
+            </ResponsiveDialog>
 
-            <Dialog open={dialog === 'reject'} onOpenChange={(open) => !saving && !open && onClose()}>
-                <DialogContent className="max-w-sm sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{t('admin.geo.declineDialog.title')}</DialogTitle>
-                        <DialogDescription>{t('admin.geo.declineDialog.description')}</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-                        <Button variant="outline" onClick={onClose} disabled={saving}>
-                            {t('admin.geo.declineDialog.cancel')}
-                        </Button>
-                        <Button variant="destructive" onClick={onConfirmReject} disabled={saving}>
-                            {saving && <Loader2 className="size-3.5 animate-spin mr-2" />}
-                            {t('admin.geo.declineDialog.confirm')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmDialog
+                open={dialog === 'reject'}
+                onOpenChange={(open) => !saving && !open && onClose()}
+                title={t('admin.geo.declineDialog.title')}
+                description={t('admin.geo.declineDialog.description')}
+                confirmLabel={t('admin.geo.declineDialog.confirm')}
+                cancelLabel={t('admin.geo.declineDialog.cancel')}
+                destructive
+                busy={saving}
+                onConfirm={onConfirmReject}
+            />
 
-            <Dialog open={dialog === 'demote'} onOpenChange={(open) => !saving && !open && onClose()}>
-                <DialogContent className="max-w-sm sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{t('admin.geo.removeOfficialDialog.title')}</DialogTitle>
-                        <DialogDescription>
-                            {t('admin.geo.removeOfficialDialog.description')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-                        <Button variant="outline" onClick={onClose} disabled={saving}>
-                            {t('admin.geo.removeOfficialDialog.cancel')}
-                        </Button>
-                        <Button variant="destructive" onClick={onConfirmDemote} disabled={saving}>
-                            {saving && <Loader2 className="size-3.5 animate-spin mr-2" />}
-                            {t('admin.geo.removeOfficialDialog.confirm')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmDialog
+                open={dialog === 'demote'}
+                onOpenChange={(open) => !saving && !open && onClose()}
+                title={t('admin.geo.removeOfficialDialog.title')}
+                description={t('admin.geo.removeOfficialDialog.description')}
+                confirmLabel={t('admin.geo.removeOfficialDialog.confirm')}
+                cancelLabel={t('admin.geo.removeOfficialDialog.cancel')}
+                destructive
+                busy={saving}
+                onConfirm={onConfirmDemote}
+            />
         </>
     )
 }
@@ -644,7 +632,7 @@ function QueueSidebar({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    className="size-7 text-muted-foreground hover:text-neon-pink"
+                                    className="size-7 text-muted-foreground hover:text-neon-pink pointer-coarse:size-10"
                                     onClick={onOpenIntro}
                                     aria-label={t('admin.geo.guide.title')}
                                 >
@@ -693,7 +681,7 @@ function QueueSidebar({
                                             variant="outline"
                                             onClick={() => void onFetchMore()}
                                             disabled={fetchingMore}
-                                            className="w-full justify-center gap-1.5 border-neon-pink/40 text-neon-pink hover:bg-neon-pink/10"
+                                            className="w-full justify-center gap-1.5 border-neon-pink/40 text-neon-pink hover:bg-neon-pink/10 pointer-coarse:h-10"
                                         >
                                             {fetchingMore ? (
                                                 <Loader2 className="size-3.5 animate-spin" />
@@ -703,7 +691,7 @@ function QueueSidebar({
                                             {t('admin.geo.fetchMore')}
                                         </Button>
                                         {fetchMoreNotice && (
-                                            <output className="block text-[11px] text-muted-foreground" aria-live="polite">
+                                            <output className="block text-xs text-muted-foreground" aria-live="polite">
                                                 {fetchMoreNotice}
                                             </output>
                                         )}

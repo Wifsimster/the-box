@@ -39,7 +39,7 @@ export function HomeSocialProof() {
       transition={{ duration: 0.4, delay: 0.3 }}
       className="mt-4 flex justify-center"
     >
-      <span className="inline-flex items-center gap-2 rounded-full border border-neon-purple/30 bg-card/60 backdrop-blur-sm px-3 py-1.5 text-xs sm:text-sm text-muted-foreground">
+      <span className="inline-flex items-center gap-2 rounded-full border border-neon-purple/30 bg-card/60 backdrop-blur-sm px-3 py-1.5 text-sm text-muted-foreground">
         <Users className="size-4 text-neon-cyan" aria-hidden="true" />
         {t('home.playersToday', { count, formatted })}
       </span>

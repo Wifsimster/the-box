@@ -62,17 +62,17 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
 
     return (
         <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full flex-wrap h-auto gap-1">
+            <TabsList className="w-full gap-1">
                 {filters.map(filter => {
                     const { earned, total } = getFilterStats(filter)
                     return (
                         <TabsTrigger
                             key={filter}
                             value={filter}
-                            className="flex items-center gap-2"
+                            className="flex-1 gap-2"
                         >
                             {getFilterLabel(filter)}
-                            <span className="text-xs opacity-70">
+                            <span className="text-xs tabular-nums">
                                 {filter === 'all' ? `${earned}/${total}` : total}
                             </span>
                         </TabsTrigger>
@@ -81,8 +81,8 @@ export function AchievementGrid({ achievements, size = 'medium' }: AchievementGr
             </TabsList>
 
             {filters.map(filter => (
-                <TabsContent key={filter} value={filter} className="mt-6">
-                    <div className={`grid gap-4 ${size === 'small'
+                <TabsContent key={filter} value={filter} className="mt-4 sm:mt-6">
+                    <div className={`grid gap-3 sm:gap-4 ${size === 'small'
                         ? 'grid-cols-1 md:grid-cols-2'
                         : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                         }`}>

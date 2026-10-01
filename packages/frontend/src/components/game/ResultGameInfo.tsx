@@ -23,16 +23,16 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2 }}
-        className="relative w-40 h-52 mx-auto mb-4 rounded-xl overflow-hidden shadow-xl ring-2 ring-white/10"
+        className="relative w-28 h-36 sm:w-40 sm:h-52 mx-auto mb-3 sm:mb-4 rounded-lg overflow-hidden shadow-xl ring-2 ring-border"
       >
         {game.coverImageUrl ? (
           <img
             src={game.coverImageUrl}
-            alt={game.name}
+            alt=""
             className="size-full object-cover"
           />
         ) : (
-          <div className="size-full flex items-center justify-center bg-linear-to-br from-neon-purple/30 to-neon-pink/30">
+          <div className="size-full flex items-center justify-center bg-linear-to-br from-neon-purple/30 to-neon-pink/30" aria-hidden="true">
             <span className="text-4xl font-bold">{game.name[0]}</span>
           </div>
         )}
@@ -43,7 +43,7 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="text-xl font-bold text-center mb-2 line-clamp-2"
+        className="text-lg sm:text-xl font-bold text-center mb-2 line-clamp-2 text-balance"
       >
         {game.name}
       </m.h2>
@@ -54,7 +54,7 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center justify-center gap-4 text-sm text-muted-foreground mb-4"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3 sm:mb-4"
         >
           {game.releaseYear && (
             <span>{t('game.releaseYear')}: <span className="text-foreground font-medium">{game.releaseYear}</span></span>
@@ -78,7 +78,7 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="flex flex-col items-center gap-1 text-xs text-muted-foreground mb-4"
+          className="flex flex-col items-center gap-1 text-xs text-muted-foreground mb-3 sm:mb-4 text-center"
         >
           {game.publisher && (
             <span>{t('game.publisher')}: <span className="text-foreground font-medium">{game.publisher}</span></span>
@@ -95,7 +95,7 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="text-center text-sm text-muted-foreground mb-4"
+          className="text-center text-sm text-muted-foreground mb-3 sm:mb-4 break-words"
         >
           {t('game.yourGuess')}: <span className="text-error line-through">{userGuess}</span>
         </m.p>

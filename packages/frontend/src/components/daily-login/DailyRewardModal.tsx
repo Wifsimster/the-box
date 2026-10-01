@@ -14,6 +14,7 @@ import { RewardCalendar } from './RewardCalendar'
 import { cn } from '@/lib/utils'
 import { CircleCheck, Flame, Gift, Loader2, Sparkles } from 'lucide-react'
 import { RewardIcon } from './RewardIcon'
+import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
 import {
     getRarityStyle,
     getRewardRarity,
@@ -55,6 +56,8 @@ export function DailyRewardModal() {
     } = useDailyLoginStore()
 
     const [isAnimating, setIsAnimating] = useState(false)
+    // A brand-new player sees the welcome dialog first; the reward waits.
+    const welcomeActive = useWelcomeActive()
 
     if (!status) return null
 
@@ -94,8 +97,8 @@ export function DailyRewardModal() {
     const daysUntilChest = Math.max(cycleLength - daysReached, 0)
 
     return (
-        <ResponsiveDialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
-            <ResponsiveDialogContent className="sm:max-w-md gap-5 sm:gap-6 overflow-x-hidden">
+        <ResponsiveDialog open={isModalOpen && !welcomeActive} onOpenChange={(open) => { if (!open) handleClose() }}>
+            <ResponsiveDialogContent className="sm:max-w-md gap-4 sm:gap-6 overflow-x-hidden">
                 <ResponsiveDialogHeader className="items-center text-center sm:text-center">
                     <ResponsiveDialogTitle
                         className={cn(
@@ -120,7 +123,7 @@ export function DailyRewardModal() {
                 {/* Reward hero */}
                 {reward && rarityStyle && (
                     <div className="flex flex-col items-center text-center">
-                        <div className="relative flex size-36 items-center justify-center">
+                        <div className="relative flex size-28 sm:size-36 items-center justify-center">
                             {/* Light rays behind the medallion, tinted by rarity */}
                             <div
                                 aria-hidden
@@ -165,12 +168,12 @@ export function DailyRewardModal() {
 
                         <Badge
                             variant="outline"
-                            className={cn('-mt-1 uppercase tracking-widest text-[10px]', rarityStyle.badge, rarityStyle.border)}
+                            className={cn('-mt-1 uppercase tracking-widest text-xs', rarityStyle.badge, rarityStyle.border)}
                         >
                             {t(rarityStyle.labelKey)}
                         </Badge>
 
-                        <h3 className="mt-3 text-2xl font-bold tracking-tight text-balance">
+                        <h3 className="mt-3 text-xl sm:text-2xl font-bold tracking-tight text-balance">
                             {t(`dailyLogin.rewards.day${reward.dayNumber}.name`, {
                                 defaultValue: reward.displayName,
                             })}
@@ -192,7 +195,7 @@ export function DailyRewardModal() {
                             )}
                         </div>
                         {showClaimSuccess && (
-                            <p className="mt-2 text-xs text-muted-foreground">
+                            <p role="status" className="mt-2 text-sm text-muted-foreground">
                                 {t('dailyLogin.addedToInventory')}
                             </p>
                         )}
@@ -203,7 +206,7 @@ export function DailyRewardModal() {
                 <section className="rounded-xl border border-border bg-muted/30 p-3 sm:p-4">
                     <div className="mb-4 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                            <span className="flex size-8 items-center justify-center rounded-full bg-neon-pink/15">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-neon-pink/15">
                                 <Flame className="size-4 text-neon-pink" aria-hidden />
                             </span>
                             <div className="leading-tight">

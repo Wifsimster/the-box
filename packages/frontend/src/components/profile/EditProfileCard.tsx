@@ -76,7 +76,7 @@ export function EditProfileCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserPen className="size-5" />
+          <UserPen className="size-5" aria-hidden="true" />
           {t('editProfile.title')}
         </CardTitle>
         <CardDescription>{t('editProfile.description')}</CardDescription>
@@ -92,7 +92,7 @@ export function EditProfileCard({
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               disabled={isSaving}
-              autoComplete="off"
+              autoComplete="nickname"
             />
           </div>
 
@@ -106,11 +106,14 @@ export function EditProfileCard({
               onChange={(e) => setUsername(e.target.value)}
               disabled={isSaving}
               autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
             />
           </div>
 
-          <Button type="submit" disabled={isSaving || !isDirty}>
-            {isSaving && <Loader2 className="size-4 animate-spin" />}
+          <Button type="submit" disabled={isSaving || !isDirty} className="w-full sm:w-auto">
+            {isSaving && <Loader2 className="animate-spin" aria-hidden="true" />}
             {isSaving ? t('editProfile.saving') : t('editProfile.save')}
           </Button>
         </form>

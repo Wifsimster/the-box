@@ -1,13 +1,13 @@
 import { useReducer, useState, useEffect } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Password } from '@/components/ui/password'
 import { resetPassword } from '@/lib/auth-client'
 import { Lock, Loader2, KeyRound, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { AuthLayout, AuthFormError } from '@/components/security/AuthLayout'
 
 interface ResetState {
   isLoading: boolean
@@ -49,7 +49,6 @@ function resetReducer(state: ResetState, action: ResetAction): ResetState {
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
   const [searchParams] = useSearchParams()
   const [state, dispatch] = useReducer(resetReducer, initialResetState)
@@ -79,11 +78,6 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     dispatch({ type: 'submitStart' })
 
-    if (formData.password !== formData.confirmPassword) {
-      dispatch({ type: 'fail', error: t('auth.passwordMismatch') })
-      return
-    }
-
     if (formData.password.length < 8) {
       dispatch({ type: 'fail', error: t('auth.passwordTooShort') })
       return
@@ -91,6 +85,11 @@ export default function ResetPasswordPage() {
 
     if (formData.password.length > 128) {
       dispatch({ type: 'fail', error: t('auth.passwordTooLong') })
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      dispatch({ type: 'fail', error: t('auth.passwordMismatch') })
       return
     }
 
@@ -119,168 +118,107 @@ export default function ResetPasswordPage() {
 
   if (tokenError) {
     return (
-      <div className="container mx-auto flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-error to-score-low shadow-lg shadow-error/30">
-                <XCircle className="size-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {t('auth.invalidToken')}
-              </h1>
-              <p className="text-muted-foreground">
-                {t('auth.tokenExpiredMessage')}
-              </p>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* `asChild` rather than wrapping the Button in a Link: nesting a
-                  <button> inside an <a> is invalid HTML and rendered two
-                  overlapping targets — a bare 19px anchor box around a 40px
-                  button. `min-h-11` takes the single remaining target to 44px. */}
-              <Button variant="gaming" className="min-h-11 w-full" asChild>
-                <Link to={localizedPath('/forgot-password')}>
-                  {t('auth.requestNewLink')}
-                </Link>
-              </Button>
-              <Button variant="outline" className="min-h-11 w-full" asChild>
-                <Link to={localizedPath('/login')}>
-                  <ArrowLeft className="size-4 mr-2" />
-                  {t('auth.backToLogin')}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </m.div>
-      </div>
+      <AuthLayout
+        icon={XCircle}
+        iconClassName="bg-error/15 text-error"
+        title={t('auth.invalidToken')}
+        subtitle={t('auth.tokenExpiredMessage')}
+      >
+        <div className="space-y-3">
+          <Button variant="gaming" size="lg" className="w-full" asChild>
+            <Link to={localizedPath('/forgot-password')}>
+              {t('auth.requestNewLink')}
+            </Link>
+          </Button>
+          <Button variant="ghost" className="w-full" asChild>
+            <Link to={localizedPath('/login')}>
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              {t('auth.backToLogin')}
+            </Link>
+          </Button>
+        </div>
+      </AuthLayout>
     )
   }
 
   if (success) {
     return (
-      <div className="container mx-auto flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-success to-success/80 shadow-lg shadow-success/30">
-                <CheckCircle className="size-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {t('auth.passwordResetSuccess')}
-              </h1>
-              <p className="text-muted-foreground">
-                {t('auth.passwordResetSuccessMessage')}
-              </p>
-            </CardHeader>
-
-            <CardContent>
-              <Button
-                variant="gaming"
-                className="w-full"
-                onClick={() => navigate(localizedPath('/login'))}
-              >
-                {t('auth.login')}
-              </Button>
-            </CardContent>
-          </Card>
-        </m.div>
-      </div>
+      <AuthLayout
+        icon={CheckCircle}
+        iconClassName="bg-success/15 text-success"
+        title={t('auth.passwordResetSuccess')}
+        subtitle={<span role="status">{t('auth.passwordResetSuccessMessage')}</span>}
+      >
+        <Button variant="gaming" size="lg" className="w-full" asChild>
+          <Link to={localizedPath('/login')}>{t('auth.login')}</Link>
+        </Button>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="container mx-auto flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <Card className="bg-card/50 border-border">
-          <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <KeyRound className="size-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold gradient-gaming bg-clip-text text-transparent">
-              {t('auth.resetPassword')}
-            </h1>
-            <p className="text-muted-foreground">
-              {t('auth.resetPasswordSubtitle')}
-            </p>
-          </CardHeader>
+    <AuthLayout
+      icon={KeyRound}
+      title={t('auth.resetPassword')}
+      subtitle={t('auth.resetPasswordSubtitle')}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
+        <div className="space-y-2">
+          <Label htmlFor="reset-password">{t('auth.newPassword')}</Label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute inset-y-0 left-3 z-10 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+            <Password
+              id="reset-password"
+              name="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="pl-10"
+              autoComplete="new-password"
+              enterKeyHint="next"
+              aria-describedby="reset-password-hint"
+              minLength={8}
+              maxLength={128}
+              required
+            />
+          </div>
+          <p id="reset-password-hint" className="text-sm text-muted-foreground">
+            {t('auth.passwordHint')}
+          </p>
+        </div>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t('auth.newPassword')}
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-10"
-                    minLength={8}
-                    maxLength={128}
-                    required
-                  />
-                </div>
-              </div>
+        <div className="space-y-2">
+          <Label htmlFor="reset-password-confirm">{t('auth.confirmNewPassword')}</Label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute inset-y-0 left-3 z-10 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+            <Password
+              id="reset-password-confirm"
+              name="confirmPassword"
+              placeholder="••••••••"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              className="pl-10"
+              autoComplete="new-password"
+              enterKeyHint="done"
+              aria-invalid={error ? true : undefined}
+              required
+            />
+          </div>
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t('auth.confirmNewPassword')}
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
+        <AuthFormError>{error}</AuthFormError>
 
-              {error && (
-                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                  {error}
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                variant="gaming"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                ) : (
-                  <KeyRound className="size-4 mr-2" />
-                )}
-                {t('auth.resetPassword')}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </m.div>
-    </div>
+        <Button
+          type="submit"
+          variant="gaming"
+          size="lg"
+          className="w-full font-semibold"
+          disabled={isLoading}
+        >
+          {isLoading && <Loader2 className="size-5 animate-spin" aria-hidden="true" />}
+          {t('auth.resetPassword')}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Password } from '@/components/ui/password'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,7 +19,8 @@ import {
 } from '@/components/ui/form'
 import { authClient, useSession } from '@/lib/auth-client'
 import { Mail, Lock, User, Loader2 } from 'lucide-react'
-import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { AuthLayout, AuthFormError } from '@/components/security/AuthLayout'
+import { safeRedirect, withRedirect } from '@/components/security/authRedirect'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapRegisterError } from '@/lib/auth-errors'
 import { readStoredReferral, clearStoredReferral } from '@/hooks/useReferralCapture'
@@ -36,6 +38,8 @@ type FormValues = {
 export default function RegisterPage() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
+  const [searchParams] = useSearchParams()
+  const requestedRedirect = safeRedirect(searchParams.get('redirect'))
   const [isLoading, setIsLoading] = useState(false)
   const [marketingConsent, setMarketingConsent] = useState(false)
   const { refetch: refetchSession } = useSession()
@@ -43,9 +47,10 @@ export default function RegisterPage() {
   const formSchema = useMemo(() => z.object({
     username: z
       .string()
+      .trim()
       .min(3, { message: t('auth.usernameMin') })
       .max(50, { message: t('auth.usernameMax') }),
-    email: z.email({ message: t('auth.emailInvalid') }),
+    email: z.string().trim().pipe(z.email({ message: t('auth.emailInvalid') })),
     password: z
       .string()
       .min(8, { message: t('auth.passwordTooShort') })
@@ -59,6 +64,7 @@ export default function RegisterPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onTouched',
     defaultValues: {
       username: '',
       email: '',
@@ -129,7 +135,7 @@ export default function RegisterPage() {
       // Force a page reload to ensure cookies are picked up and session state is refreshed
       // This is more reliable than relying on React state updates
       // eslint-disable-next-line react-hooks/immutability -- Intentional page redirect after registration
-      window.location.href = localizedPath('/')
+      window.location.href = requestedRedirect || localizedPath('/')
     } catch (err) {
       const errorKey = mapRegisterError(err)
       form.setError('root', {
@@ -140,181 +146,153 @@ export default function RegisterPage() {
   }
 
   return (
-    <>
-      <CubeBackground />
-      <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl"
+    <AuthLayout
+      title={t('auth.registerTitle')}
+      subtitle={t('auth.registerSubtitle')}
+      footer={
+        <>
+          {t('auth.hasAccount')}{' '}
+          <Link
+            to={withRedirect(localizedPath('/login'), requestedRedirect)}
+            className="inline-flex min-h-11 items-center px-1 font-medium text-neon-purple transition-colors hover:text-neon-pink"
           >
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                {t('auth.registerTitle')}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {t('auth.registerSubtitle')}
-              </p>
-            </div>
+            {t('auth.login')}
+          </Link>
+        </>
+      }
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" aria-busy={isLoading} noValidate>
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('auth.username')}</FormLabel>
+                <div className="relative">
+                  <User className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder={t('auth.usernamePlaceholder')}
+                      className="pl-10"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      enterKeyHint="next"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground/80">
-                        {t('auth.username')}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <User className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
-                          <Input
-                            type="text"
-                            placeholder={t('auth.usernamePlaceholder')}
-                            className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-cyan/50 rounded-xl"
-                            autoComplete="off"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('auth.email')}</FormLabel>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+                  <FormControl>
+                    <Input
+                      type="email"
+                      inputMode="email"
+                      placeholder="you@example.com"
+                      className="pl-10"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      enterKeyHint="next"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground/80">
-                        {t('auth.email')}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <Mail className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
-                          <Input
-                            type="email"
-                            placeholder="you@example.com"
-                            className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-cyan/50 rounded-xl"
-                            autoComplete="email"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground/80">
-                        {t('auth.password')}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-cyan/50 rounded-xl"
-                            autoComplete="new-password"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground/80">
-                        {t('auth.confirmPassword')}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-cyan transition-colors" />
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-cyan/50 rounded-xl"
-                            autoComplete="new-password"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <label className="flex items-start gap-3 cursor-pointer select-none group">
-                  <Checkbox
-                    checked={marketingConsent}
-                    onCheckedChange={(checked) => setMarketingConsent(checked === true)}
-                    className="mt-0.5"
-                  />
-                  <span className="text-xs text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors">
-                    {t('auth.marketingConsent')}
-                  </span>
-                </label>
-
-                {form.formState.errors.root && (
-                  <m.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
-                  >
-                    {form.formState.errors.root.message}
-                  </m.div>
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('auth.password')}</FormLabel>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute inset-y-0 left-3 z-10 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+                  <FormControl>
+                    <Password
+                      placeholder="••••••••"
+                      className="pl-10"
+                      autoComplete="new-password"
+                      enterKeyHint="next"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                {form.formState.errors.password ? (
+                  <FormMessage />
+                ) : (
+                  <FormDescription>{t('auth.passwordHint')}</FormDescription>
                 )}
+              </FormItem>
+            )}
+          />
 
-                <Button
-                  type="submit"
-                  variant="gaming"
-                  size="lg"
-                  className="w-full h-12 text-base font-semibold rounded-xl"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    t('auth.register')
-                  )}
-                </Button>
-              </form>
-            </Form>
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('auth.confirmPassword')}</FormLabel>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute inset-y-0 left-3 z-10 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+                  <FormControl>
+                    <Password
+                      placeholder="••••••••"
+                      className="pl-10"
+                      autoComplete="new-password"
+                      enterKeyHint="done"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {t('auth.hasAccount')}{' '}
-              <Link
-                to={localizedPath('/login')}
-                className="text-neon-purple hover:text-neon-pink font-medium transition-colors"
-              >
-                {t('auth.login')}
-              </Link>
-            </p>
-          </m.div>
-        </m.div>
-      </div>
-    </>
+          <label className="flex min-h-11 cursor-pointer select-none items-start gap-3 py-1">
+            <Checkbox
+              checked={marketingConsent}
+              onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+              className="mt-0.5"
+            />
+            <span className="text-sm leading-relaxed text-muted-foreground">
+              {t('auth.marketingConsent')}
+            </span>
+          </label>
+
+          <AuthFormError>{form.formState.errors.root?.message}</AuthFormError>
+
+          <Button
+            type="submit"
+            variant="gaming"
+            size="lg"
+            className="w-full font-semibold"
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="size-5 animate-spin" aria-hidden="true" />}
+            {t('auth.register')}
+          </Button>
+        </form>
+      </Form>
+    </AuthLayout>
   )
 }

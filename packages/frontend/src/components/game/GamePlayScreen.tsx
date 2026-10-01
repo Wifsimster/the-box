@@ -53,7 +53,7 @@ export function GamePlayScreen({
 
       {/* Score and End Game Button (Top Right) */}
       <div className="absolute right-2 top-2 z-40 flex min-w-28 flex-col items-stretch sm:right-4 sm:top-4 sm:min-w-36">
-        <div className="bg-black/60 backdrop-blur-md rounded-t-xl px-4 sm:px-6 py-1.5 sm:py-2.5 border border-white/10 shadow-2xl">
+        <div className="bg-background/70 backdrop-blur-md rounded-t-xl last:rounded-b-xl px-4 sm:px-6 py-1.5 sm:py-2.5 border border-border/60 shadow-2xl">
           <ScoreDisplay />
         </div>
         <EndGameButton />
@@ -86,7 +86,7 @@ export function GamePlayScreen({
         {currentImageUrl ? (
           <ScreenshotViewer imageUrl={currentImageUrl} className="size-full min-h-0" />
         ) : (
-          <Loader2 className="size-8 animate-spin text-primary" />
+          <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
         )}
         {/* Report button — overlay on the viewer; only shown while we
             have a real screenshot in play. Pinned to the bottom-right
@@ -97,7 +97,7 @@ export function GamePlayScreen({
               target={{ screenshotId: currentScreenshotId }}
               isAuthenticated={isAuthenticated}
               iconOnly
-              triggerClassName="size-8 p-0 rounded-full bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-background/80"
+              triggerClassName="size-11 p-0 rounded-full bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-background/80"
             />
           </div>
         )}
@@ -112,10 +112,12 @@ export function GamePlayScreen({
             : 'max(0.5rem, env(safe-area-inset-bottom))',
         }}
       >
-        <div className="container mx-auto space-y-2 sm:space-y-3 md:space-y-4">
-          <div className="flex justify-center items-center">
-            <ProgressDots />
-          </div>
+        <div className="mx-auto w-full max-w-2xl space-y-2 sm:space-y-3">
+          {!isKeyboardOpen && (
+            <div className="flex justify-center items-center">
+              <ProgressDots />
+            </div>
+          )}
           <GuessInput />
         </div>
         <SecondChanceModal />

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { GeoWelcome } from '@/components/geo/GeoWelcome'
 import { StatePanel } from '@/components/geo/StatePanel'
 import { RUN_LENGTH, useGeoFreePlayStore } from '@/stores/geoFreePlayStore'
@@ -54,6 +55,7 @@ export function ScreenshotPanel({
     onStartRun,
     onCheckForNew,
     onIgnoreCurrent,
+    onRetry,
 }: {
     imageUrl: string | null
     gameName: string | null
@@ -73,6 +75,7 @@ export function ScreenshotPanel({
     onStartRun: () => void
     onCheckForNew: () => void
     onIgnoreCurrent: () => void
+    onRetry?: () => void
 }) {
     const { t } = useTranslation()
     const safeUrl = imageUrl && !isPlaceholderImageUrl(imageUrl) ? imageUrl : null
@@ -108,7 +111,7 @@ export function ScreenshotPanel({
                 bodyMaxWidthClass="max-w-xs"
                 actions={
                     <>
-                        <Button onClick={onPickGame} className="gradient-gaming hover:opacity-90">
+                        <Button onClick={onPickGame} variant="gaming">
                             <Gamepad2 className="size-4 mr-2" aria-hidden />
                             {t('geo.play.exhausted.pickAnother', 'Pick another game')}
                         </Button>
@@ -123,7 +126,7 @@ export function ScreenshotPanel({
                         <button
                             type="button"
                             onClick={onIgnoreCurrent}
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                            className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
                         >
                             <EyeOff className="size-3.5" aria-hidden />
                             {t(
@@ -152,7 +155,7 @@ export function ScreenshotPanel({
                 backdropUrl={safeUrl}
                 actions={
                     <>
-                        <Button asChild className="gradient-gaming hover:opacity-90 min-h-12">
+                        <Button asChild variant="gaming" className="min-h-12">
                             <Link to={loginHref}>
                                 {t('geo.play.auth.login', 'Sign in')}
                             </Link>
@@ -175,6 +178,14 @@ export function ScreenshotPanel({
                 icon={<AlertTriangle className="size-8 text-destructive" aria-hidden />}
                 title={t('common.error', 'Error')}
                 body={errorMessage}
+                actions={
+                    onRetry ? (
+                        <Button onClick={onRetry} variant="outline">
+                            <RefreshCw className="size-4 mr-2" aria-hidden />
+                            {t('common.retry', 'Retry')}
+                        </Button>
+                    ) : undefined
+                }
             />
         )
     }
@@ -196,15 +207,7 @@ export function ScreenshotPanel({
     }
 
     if (loading || !safeUrl) {
-        return (
-            <output
-                className="flex size-full items-center justify-center"
-                aria-busy="true"
-            >
-                <Loader2 className="size-8 animate-spin text-neon-pink" aria-hidden />
-                <span className="sr-only">{t('common.loading', 'Loading…')}</span>
-            </output>
-        )
+        return <PanelSkeleton />
     }
 
     const altText = gameName
@@ -273,7 +276,7 @@ function ResetZoomButton() {
         <button
             type="button"
             onClick={() => resetTransform()}
-            className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white shadow backdrop-blur min-h-9 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+            className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white shadow backdrop-blur min-h-11 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
             aria-label={t('geo.play.resetZoom', 'Reset zoom')}
         >
             <RefreshCw className="size-3" aria-hidden />
@@ -282,17 +285,18 @@ function ResetZoomButton() {
     )
 }
 
-export function MapChunkLoader() {
+function PanelSkeleton() {
     const { t } = useTranslation()
     return (
-        <output
-            className="flex size-full items-center justify-center"
-            aria-busy="true"
-        >
-            <Loader2 className="size-8 animate-spin text-neon-pink" aria-hidden />
+        <output className="block size-full p-2" aria-busy="true">
+            <Skeleton className="size-full" />
             <span className="sr-only">{t('common.loading', 'Loading…')}</span>
         </output>
     )
+}
+
+export function MapChunkLoader() {
+    return <PanelSkeleton />
 }
 
 export function MapPlaceholder({
@@ -595,6 +599,7 @@ export function ContextHeader({
     onEndRun: () => void
 }) {
     const { t } = useTranslation()
+    const [confirmEndRun, setConfirmEndRun] = useState(false)
     return (
         <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
             <button
@@ -629,15 +634,28 @@ export function ContextHeader({
                             total: run.total,
                         })}
                     </span>
-                    <button
-                        type="button"
-                        onClick={onEndRun}
-                        aria-label={t('geo.play.run.abandon', 'Abandon the run')}
-                        title={t('geo.play.run.abandon', 'Abandon the run')}
-                        className="inline-flex size-9 items-center justify-center rounded-full text-neon-cyan/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
-                    >
-                        <X className="size-3.5" aria-hidden />
-                    </button>
+                    {confirmEndRun ? (
+                        <button
+                            type="button"
+                            onClick={onEndRun}
+                            onBlur={() => setConfirmEndRun(false)}
+                            autoFocus
+                            className="ml-1 inline-flex min-h-11 items-center gap-1 rounded-full bg-destructive/20 px-3 font-medium text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        >
+                            <X className="size-4" aria-hidden />
+                            {t('geo.play.run.abandonConfirm', 'Abandon?')}
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setConfirmEndRun(true)}
+                            aria-label={t('geo.play.run.abandon', 'Abandon the run')}
+                            title={t('geo.play.run.abandon', 'Abandon the run')}
+                            className="inline-flex size-11 items-center justify-center rounded-full text-neon-cyan/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                        >
+                            <X className="size-4" aria-hidden />
+                        </button>
+                    )}
                 </span>
             ) : (
                 playedCount != null &&
@@ -707,7 +725,8 @@ export function Dock({
                 <Button
                     type="button"
                     onClick={onNextRound}
-                    className="gradient-gaming hover:opacity-90 min-h-12 w-full"
+                    variant="gaming"
+                    className="min-h-12 w-full"
                 >
                     {runComplete
                         ? t('geo.play.run.recapCta', 'See the recap')
@@ -734,7 +753,8 @@ export function Dock({
                         type="button"
                         onClick={onSubmit}
                         disabled={submitting}
-                        className="gradient-gaming hover:opacity-90 min-h-12 flex-1"
+                        variant="gaming"
+                        className="min-h-12 flex-1"
                         aria-live="polite"
                     >
                         {submitting ? (

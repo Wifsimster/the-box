@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useBottomPromptSlotFree } from './prompt-timing'
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
@@ -43,6 +44,8 @@ export function InstallPromptBanner() {
   const { t } = useTranslation()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
+  const slotFree = useBottomPromptSlotFree()
+  const showTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isStandalone() || isRecentlyDismissed()) return
@@ -52,7 +55,8 @@ export function InstallPromptBanner() {
       event.preventDefault()
       setDeferredPrompt(event as BeforeInstallPromptEvent)
       // Brief delay so we don't pop the banner the instant the page loads.
-      window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
+      window.clearTimeout(showTimer.current)
+      showTimer.current = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
     }
     const installed = () => {
       setDeferredPrompt(null)
@@ -62,6 +66,7 @@ export function InstallPromptBanner() {
     window.addEventListener('beforeinstallprompt', handler)
     window.addEventListener('appinstalled', installed)
     return () => {
+      window.clearTimeout(showTimer.current)
       window.removeEventListener('beforeinstallprompt', handler)
       window.removeEventListener('appinstalled', installed)
     }
@@ -85,7 +90,7 @@ export function InstallPromptBanner() {
     setDeferredPrompt(null)
   }
 
-  if (!visible || !deferredPrompt) return null
+  if (!visible || !deferredPrompt || !slotFree) return null
 
   return (
     <dialog
@@ -96,34 +101,36 @@ export function InstallPromptBanner() {
         // Sit just above the mobile BottomNav; drop to the corner at md where
         // the BottomNav is hidden.
         'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
-        'border-border p-4 flex gap-3 items-start sm:max-w-md sm:left-auto sm:right-3',
+        'border-border py-3 pl-4 pr-1 flex gap-2 items-start sm:max-w-md sm:left-auto sm:right-3',
+        'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4',
       )}
     >
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pt-1">
         <p id="pwa-install-banner-title" className="text-sm font-semibold text-foreground">
           {t('pwa.installBanner.title')}
         </p>
-        <p id="pwa-install-banner-desc" className="mt-1 text-xs text-muted-foreground">
+        <p id="pwa-install-banner-desc" className="mt-1 text-sm text-muted-foreground">
           {t('pwa.installBanner.description')}
         </p>
         <div className="mt-3 flex gap-2">
-          <Button size="sm" onClick={handleInstall}>
-            <Download className="size-4 mr-1.5" aria-hidden="true" />
+          <Button onClick={handleInstall}>
+            <Download className="size-4" aria-hidden="true" />
             {t('pwa.installBanner.install')}
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleDismiss}>
+          <Button variant="ghost" onClick={handleDismiss}>
             {t('pwa.installBanner.later')}
           </Button>
         </div>
       </div>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={handleDismiss}
         aria-label={t('pwa.installBanner.dismiss')}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className="shrink-0 text-muted-foreground"
       >
-        <X className="size-4" />
-      </button>
+        <X className="size-4" aria-hidden="true" />
+      </Button>
     </dialog>
   )
 }

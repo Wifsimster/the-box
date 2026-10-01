@@ -1,10 +1,12 @@
 import { useEffect, useReducer, useState, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trophy, Crown, Calendar, CalendarDays, Crosshair } from 'lucide-react'
+import { Trophy, Crown, Calendar, CalendarDays, Crosshair, Play } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { GeoGamersSeasonPanel } from '@/components/leaderboard/GeoGamersSeasonPanel'
 import { PageHero } from '@/components/layout/PageHero'
 import {
@@ -20,6 +22,11 @@ import { useSession } from '@/lib/auth-client'
 import type { GameSessionDetailsResponse } from '@the-box/types'
 
 const formatDateForApi = (date: Date) => format(date, 'yyyy-MM-dd')
+
+const TABS = ['daily', 'monthly', 'achievements', 'geogamers'] as const
+type LeaderboardTab = (typeof TABS)[number]
+const parseTab = (value: string | null): LeaderboardTab =>
+  (TABS as ReadonlyArray<string>).includes(value ?? '') ? (value as LeaderboardTab) : 'daily'
 
 interface BoardsState {
   daily: LeaderboardEntry[]
@@ -110,7 +117,8 @@ export default function LeaderboardPage() {
   const { t, i18n } = useTranslation()
   const { data: session } = useSession()
   const currentUserId = session?.user?.id ?? null
-  const [searchParams] = useSearchParams()
+  const { localizedPath } = useLocalizedPath()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [boards, dispatchBoards] = useReducer(boardsReducer, initialBoards)
   const {
     daily: leaderboard,
@@ -120,7 +128,22 @@ export default function LeaderboardPage() {
     monthlyLoading,
     achievementLoading,
   } = boards
-  const [activeTab, setActiveTab] = useState('daily')
+  const activeTab = parseTab(searchParams.get('tab'))
+  const setActiveTab = useCallback(
+    (value: string) => {
+      const next = parseTab(value)
+      setSearchParams(
+        (prev) => {
+          const sp = new URLSearchParams(prev)
+          if (next === 'daily') sp.delete('tab')
+          else sp.set('tab', next)
+          return sp
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
   const [sessionDialog, dispatchSessionDialog] = useReducer(
     sessionDialogReducer,
     initialSessionDialog,
@@ -265,38 +288,25 @@ export default function LeaderboardPage() {
     >
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6 h-auto sm:h-10 p-1 gap-1">
-            <TabsTrigger
-              value="daily"
-              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
-            >
-              <Calendar className="size-4 sm:mr-2 shrink-0" />
-              <span className="truncate max-w-full">{t('leaderboard.dailyScores')}</span>
+          <TabsList className="w-full mb-6">
+            <TabsTrigger value="daily" className="gap-2">
+              <Calendar className="hidden size-4 sm:block" aria-hidden="true" />
+              {t('leaderboard.daily')}
             </TabsTrigger>
-            <TabsTrigger
-              value="monthly"
-              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
-            >
-              <CalendarDays className="size-4 sm:mr-2 shrink-0" />
-              <span className="truncate max-w-full">{t('leaderboard.monthlyScores')}</span>
+            <TabsTrigger value="monthly" className="gap-2">
+              <CalendarDays className="hidden size-4 sm:block" aria-hidden="true" />
+              {t('leaderboard.monthly')}
             </TabsTrigger>
-            <TabsTrigger
-              value="achievements"
-              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
-            >
-              <Crown className="size-4 sm:mr-2 shrink-0" />
-              <span className="truncate max-w-full">{t('leaderboard.achievementPoints')}</span>
+            <TabsTrigger value="achievements" className="gap-2">
+              <Crown className="hidden size-4 sm:block" aria-hidden="true" />
+              {t('profile.achievements')}
             </TabsTrigger>
-            <TabsTrigger
-              value="geogamers"
-              className="flex-col sm:flex-row gap-1 sm:gap-0 px-1.5 sm:px-3 py-2 sm:py-1.5 text-[11px] sm:text-sm h-auto"
-            >
-              <Crosshair className="size-4 sm:mr-2 shrink-0" />
-              <span className="truncate max-w-full">{t('leaderboard.geogamers.tab')}</span>
+            <TabsTrigger value="geogamers" className="gap-2">
+              <Crosshair className="hidden size-4 sm:block" aria-hidden="true" />
+              {t('leaderboard.geogamers.tab')}
             </TabsTrigger>
           </TabsList>
 
-          {/* Daily Score Leaderboard */}
           <TabsContent value="daily">
             <DailyLeaderboardPanel
               entries={leaderboard}
@@ -310,12 +320,22 @@ export default function LeaderboardPage() {
                   ? t('leaderboard.noResults')
                   : t('leaderboard.noDataForDate')
               }
+              emptyAction={
+                isToday(selectedDate) ? (
+                  <Button asChild variant="gaming" size="lg" className="w-full sm:w-auto">
+                    <Link to={localizedPath('/play')}>
+                      <Play aria-hidden="true" />
+                      {t('history.empty.cta')}
+                    </Link>
+                  </Button>
+                ) : undefined
+              }
+              currentUserId={currentUserId}
               onDateChange={handleDateChange}
               onPlayerClick={handlePlayerClick}
             />
           </TabsContent>
 
-          {/* Monthly Score Leaderboard */}
           <TabsContent value="monthly">
             <MonthlyLeaderboardPanel
               entries={monthlyLeaderboard}
@@ -324,25 +344,24 @@ export default function LeaderboardPage() {
               maxDate={today}
               locale={getDateLocale()}
               cardTitle={getMonthlyCardTitle()}
+              currentUserId={currentUserId}
               onMonthChange={handleMonthChange}
             />
           </TabsContent>
 
-          {/* Achievement Points Leaderboard */}
           <TabsContent value="achievements">
             <AchievementLeaderboardPanel
               entries={achievementLeaderboard}
               loading={achievementLoading}
+              currentUserId={currentUserId}
             />
           </TabsContent>
 
-          {/* GeoGamers Season */}
           <TabsContent value="geogamers">
-            <GeoGamersSeasonPanel />
+            <GeoGamersSeasonPanel currentUserId={currentUserId} />
           </TabsContent>
         </Tabs>
 
-        {/* Player Answers Dialog */}
         <PlayerAnswersDialog
           selectedPlayer={selectedPlayer}
           playerSession={playerSession}

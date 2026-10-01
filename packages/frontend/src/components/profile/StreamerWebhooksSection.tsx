@@ -77,7 +77,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
 
   return (
     <div className="space-y-3" data-testid="streamer-kit-webhooks">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-sm font-semibold flex items-center gap-2">
           <Webhook className="size-4" />
           {t('streamerKit.webhooksTitle')}
@@ -107,7 +107,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
             <li
               key={w.id}
               data-testid={`streamer-kit-webhook-${w.id}`}
-              className="flex items-center justify-between rounded border border-border bg-background/30 px-3 py-2"
+              className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/30 px-3 py-2"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -119,7 +119,7 @@ export function StreamerWebhooksSection({ enabled }: Props) {
                   )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <code className="font-mono truncate max-w-[16rem]">{w.url}</code>
+                  <code className="min-w-0 truncate font-mono">{w.url}</code>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {w.events.length === 0
@@ -131,13 +131,14 @@ export function StreamerWebhooksSection({ enabled }: Props) {
               </div>
               {w.isActive && (
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="dangerGhost"
+                  size="icon"
+                  className="shrink-0"
                   onClick={() => setRevokeTargetId(w.id)}
                   aria-label={t('streamerKit.webhookRevokeAria')}
                   data-testid={`streamer-kit-revoke-webhook-${w.id}`}
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 aria-hidden="true" />
                 </Button>
               )}
             </li>

@@ -139,16 +139,30 @@ export function ShareCard({
     const canUseNativeShare =
         typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
-    const handleNativeShare = async () => {
+    const handleNativeShare = async (): Promise<boolean> => {
         const text = generateShareText('native')
         try {
             await navigator.share({ title: 'The Box', text })
+            return true
         } catch (err) {
             // AbortError = user cancelled — swallow silently
             if ((err as { name?: string })?.name !== 'AbortError') {
                 console.error('Native share failed:', err)
+                return false
             }
+            return true
         }
+    }
+
+    // On phones the OS share sheet already lists every app the player uses,
+    // so the share button opens it in one tap and the menu is only a fallback.
+    const handleTriggerClick = (e: React.MouseEvent) => {
+        if (open || !canUseNativeShare) return
+        if (!window.matchMedia?.('(pointer: coarse)').matches) return
+        e.preventDefault()
+        void handleNativeShare().then((shared) => {
+            if (!shared) setOpen(true)
+        })
     }
 
     const handleShareWhatsApp = () => {
@@ -173,87 +187,82 @@ export function ShareCard({
                     variant="gaming"
                     size={compact ? "sm" : "lg"}
                     className={compact ? "shrink-0" : "w-full sm:w-auto"}
+                    onClick={handleTriggerClick}
                 >
-                    <Share2 className="size-4 mr-2" />
+                    <Share2 className="size-4" aria-hidden="true" />
                     <span>{t('common.share')}</span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-2">
+            <PopoverContent align="center" className="w-64 max-w-[calc(100vw-2rem)] p-2">
                 <div className="flex flex-col gap-1">
                     {canUseNativeShare && (
                         <Button
                             variant="ghost"
-                            size="sm"
                             onClick={() => {
                                 void handleNativeShare()
                                 setOpen(false)
                             }}
-                            className="justify-start"
+                            className="w-full justify-start"
                         >
-                            <Smartphone className="size-4 mr-2" />
+                            <Smartphone className="size-4" aria-hidden="true" />
                             {t('share.native')}
                         </Button>
                     )}
                     <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                             handleShareTwitter()
                             setOpen(false)
                         }}
-                        className="justify-start"
+                        className="w-full justify-start"
                     >
-                        <Twitter className="size-4 mr-2" />
+                        <Twitter className="size-4" aria-hidden="true" />
                         {t('share.twitter')}
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                             handleShareWhatsApp()
                             setOpen(false)
                         }}
-                        className="justify-start"
+                        className="w-full justify-start"
                     >
-                        <MessageCircle className="size-4 mr-2" />
+                        <MessageCircle className="size-4" aria-hidden="true" />
                         {t('share.whatsapp')}
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                             handleShareSms()
                             setOpen(false)
                         }}
-                        className="justify-start"
+                        className="w-full justify-start"
                     >
-                        <MessageSquare className="size-4 mr-2" />
+                        <MessageSquare className="size-4" aria-hidden="true" />
                         {t('share.sms')}
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                             handleShareDiscord()
                             setOpen(false)
                         }}
-                        className="justify-start"
+                        className="w-full justify-start"
                     >
-                        <MessageSquare className="size-4 mr-2" />
+                        <MessageSquare className="size-4" aria-hidden="true" />
                         {t('share.discord')}
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                             handleCopyToClipboard()
                         }}
-                        className="justify-start"
+                        className="w-full justify-start"
                     >
                         {copied ? (
-                            <Check className="size-4 mr-2 text-success" />
+                            <Check className="size-4 text-success" aria-hidden="true" />
                         ) : (
-                            <Copy className="size-4 mr-2" />
+                            <Copy className="size-4" aria-hidden="true" />
                         )}
                         {copied ? t('share.copied') : t('share.copyLink')}
                     </Button>

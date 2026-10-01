@@ -5,13 +5,14 @@ import { useAdminStore } from '@/stores/adminStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { GameTable } from './GameTable'
 import { GameForm } from './GameForm'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { ScreenshotsDialog } from './ScreenshotsDialog'
-import { Plus, Search, Loader2 } from 'lucide-react'
+import { Plus, Search, Loader2, Gamepad2, AlertTriangle, RefreshCw } from 'lucide-react'
+import { AdminListSkeleton } from './AdminListSkeleton'
 import { toast } from '@/lib/toast'
 import { adminApi } from '@/lib/api/admin'
 
@@ -198,7 +199,7 @@ export function GameList() {
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 sm:gap-3 gap-y-0 p-4 sm:p-6">
+      <CardHeader className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 space-y-0">
         <CardTitle className="flex items-center gap-2 min-w-0 text-base sm:text-lg">
           <span className="truncate">{t('admin.games.title')}</span>
           {gamesPagination.total > 0 && (
@@ -213,13 +214,15 @@ export function GameList() {
         </Button>
       </CardHeader>
 
-      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+      <CardContent>
         {/* Search */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
+              type="search"
               className="pl-9"
+              aria-label={t('admin.games.searchPlaceholder')}
               placeholder={t('admin.games.searchPlaceholder')}
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -229,36 +232,45 @@ export function GameList() {
 
         {/* Error state */}
         {gamesError && (
-          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {gamesError}
+          <div role="alert" className="mb-4 flex flex-col gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {gamesError}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => fetchGames()} disabled={gamesLoading} className="self-start sm:self-auto">
+              <RefreshCw className="size-4" />
+              {t('common.retry')}
+            </Button>
           </div>
         )}
 
-        {/* Loading state */}
         {gamesLoading && games.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          </div>
+          <AdminListSkeleton />
         ) : games.length === 0 ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <Gamepad2 className="size-8 text-muted-foreground" aria-hidden="true" />
             <p className="text-muted-foreground">{t('admin.games.noGames')}</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => dispatchDialog({ type: 'openCreate' })}
-            >
-              <Plus className="size-4" />
-              {t('admin.games.addGame')}
-            </Button>
+            {searchInput ? (
+              <Button variant="outline" onClick={() => handleSearchChange('')}>
+                {t('common.clearAll')}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => dispatchDialog({ type: 'openCreate' })}
+              >
+                <Plus className="size-4" />
+                {t('admin.games.addGame')}
+              </Button>
+            )}
           </div>
         ) : (
           /* Table */
           <>
-            <div className="relative">
+            <div className="relative" aria-busy={gamesLoading}>
               {gamesLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
                 </div>
               )}
               <GameTable
@@ -287,11 +299,11 @@ export function GameList() {
       </CardContent>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={isFormOpen || !!editingGame} onOpenChange={handleCloseForm}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">
+      <ResponsiveDialog open={isFormOpen || !!editingGame} onOpenChange={(open) => !open && !isSubmitting && handleCloseForm()}>
+        <ResponsiveDialogContent className="sm:max-w-2xl">
+          <ResponsiveDialogTitle className="sr-only">
             {editingGame ? t('admin.games.editGame') : t('admin.games.addGame')}
-          </DialogTitle>
+          </ResponsiveDialogTitle>
           <GameForm
             game={editingGame}
             onSubmit={editingGame ? handleUpdate : handleCreate}
@@ -300,8 +312,8 @@ export function GameList() {
             isLoading={isSubmitting}
             isSyncing={isSyncing}
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog

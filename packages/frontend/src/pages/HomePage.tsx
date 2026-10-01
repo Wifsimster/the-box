@@ -9,6 +9,7 @@ import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
 import { TourGuide } from '@/components/onboarding/TourGuide'
 import { consumeTourPending, hasCompletedTour, TOUR_REPLAY_EVENT } from '@/components/onboarding/tour-storage'
+import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { HomeDailyCta } from '@/components/home/HomeDailyCta'
@@ -17,14 +18,55 @@ import { HomePremiumTeaser } from '@/components/home/HomePremiumTeaser'
 import { HomeSocialProof } from '@/components/home/HomeSocialProof'
 import { useBillingStore } from '@/stores/billingStore'
 import { useConsentStore } from '@/stores/consentStore'
+import { useDailyLoginStore } from '@/stores/dailyLoginStore'
+import { useChangelogStore } from '@/stores/changelogStore'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
 // CubeBackground pulls in Three.js + react-three-fiber, so split it into
 // its own chunk and skip rendering entirely when the visitor prefers
-// reduced motion (the chunk also never gets fetched in that case).
+// reduced motion or is on a low-power device (the chunk also never gets
+// fetched in that case).
 const CubeBackground = lazy(() =>
   import('@/components/backgrounds/CubeBackground').then((mod) => ({ default: mod.CubeBackground })),
 )
+
+/**
+ * Phones that ask for less data or report little memory / few cores get the
+ * plain themed backdrop instead of a WebGL canvas.
+ */
+function prefersLiteBackground(): boolean {
+  if (typeof navigator === 'undefined') return true
+  const nav = navigator as Navigator & {
+    connection?: { saveData?: boolean }
+    deviceMemory?: number
+  }
+  if (nav.connection?.saveData) return true
+  if (typeof nav.deviceMemory === 'number' && nav.deviceMemory < 4) return true
+  if (typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4) return true
+  return false
+}
+
+/**
+ * Mounts the Three.js background only once the browser is idle, so the WebGL
+ * chunk never competes with the hero and the Play button for first paint.
+ */
+function useIdleReady(enabled: boolean): boolean {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (!enabled) return
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(() => setReady(true), { timeout: 2000 })
+      return () => w.cancelIdleCallback?.(id)
+    }
+    const id = window.setTimeout(() => setReady(true), 800)
+    return () => window.clearTimeout(id)
+  }, [enabled])
+  return enabled && ready
+}
 
 interface YesterdayChallenge {
   challengeId: number
@@ -129,6 +171,8 @@ export default function HomePage() {
   }, [billingPrices, i18n.language])
 
   const reducedMotion = useReducedMotionSafe()
+  const [liteBackground] = useState(prefersLiteBackground)
+  const showCubeBackground = useIdleReady(!reducedMotion && !liteBackground)
 
   // Home tour: opens once the page has settled. WelcomeModal flips the
   // "pending" flag on close; otherwise we open it for any visitor who
@@ -137,17 +181,23 @@ export default function HomePage() {
   // The tour waits for the cookie banner to be answered: both compete for
   // the same first-visit attention and the banner covers the bottom of the
   // page the tour spotlights.
+  // It also waits for every auto-opening dialog (welcome, daily reward,
+  // changelog) so the spotlight never lands on top of a modal.
   const consentDecided = useConsentStore((s) => s.decided)
+  const welcomeActive = useWelcomeActive()
+  const rewardModalOpen = useDailyLoginStore((s) => s.isModalOpen)
+  const changelogOpen = useChangelogStore((s) => s.open)
+  const tourBlocked = !consentDecided || welcomeActive || rewardModalOpen || changelogOpen
   const [tourOpen, setTourOpen] = useState(false)
   useEffect(() => {
-    if (!consentDecided) return
+    if (tourBlocked) return
     const id = window.setTimeout(() => {
       if (consumeTourPending() || !hasCompletedTour()) {
         setTourOpen(true)
       }
     }, 600)
     return () => window.clearTimeout(id)
-  }, [consentDecided])
+  }, [tourBlocked])
 
   // Replay from the user menu while already on this page — the mount-time
   // effect above won't re-run, so listen for the explicit replay event.
@@ -227,18 +277,17 @@ export default function HomePage() {
 
   return (
     <>
-      {reducedMotion ? (
-        // Plain dark backdrop — no Canvas, no chunk fetch.
-        <div className="fixed inset-0 z-0 bg-background" aria-hidden="true" />
-      ) : (
+      {showCubeBackground ? (
         <Suspense fallback={null}>
           <CubeBackground />
         </Suspense>
+      ) : (
+        // Plain themed backdrop — no Canvas, no chunk fetch.
+        <div className="fixed inset-0 z-0 bg-background" aria-hidden="true" />
       )}
       <WelcomeModal />
-      <TourGuide open={tourOpen && consentDecided} onClose={() => setTourOpen(false)} />
-      <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12 lg:py-16 relative z-10">
-        <StreakRiskBanner />
+      <TourGuide open={tourOpen && !tourBlocked} onClose={() => setTourOpen(false)} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12 relative z-10 space-y-8 md:space-y-12">
         {/* Hero Section */}
         <m.div
           {...motionProps({
@@ -246,7 +295,7 @@ export default function HomePage() {
             animate: { opacity: 1, y: 0 },
             transition: { duration: 0.5 },
           })}
-          className="text-center mb-8 sm:mb-10 md:mb-12 lg:mb-16"
+          className="text-center"
         >
           {/* The mark carries state, not just identity: open while today's box
               is still unplayed, closed once it's done (docs/brand.md §4). The
@@ -262,22 +311,25 @@ export default function HomePage() {
               animate: { scale: 1 },
               transition: { duration: 0.5, delay: 0.2 },
             })}
-            className="size-16 sm:size-20 md:size-24 mb-4 sm:mb-5 md:mb-6 mx-auto"
+            className="size-14 sm:size-20 md:size-24 mb-3 sm:mb-5 md:mb-6 mx-auto"
           />
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 gradient-gaming-title">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 gradient-gaming-title">
             {t('home.headline')}
           </h1>
 
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto px-2 sm:px-4">
+          <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
             {t('home.subtitle')}
           </p>
 
           <HomeSocialProof />
         </m.div>
 
-        {/* CTA Button */}
-        <HomeDailyCta
+        {/* The one thing to do today: streak warning (when relevant) sits
+            right on top of the Play button it points to. */}
+        <div className="space-y-4">
+          <StreakRiskBanner />
+          <HomeDailyCta
           status={{
             isLoading,
             isTodayCompleted,
@@ -291,7 +343,8 @@ export default function HomePage() {
           timeRemaining={timeRemaining}
           yesterdayChallenge={yesterdayChallenge}
           motionProps={motionProps}
-        />
+          />
+        </div>
 
         {/* Game-modes showcase — explains the secondary modes (Geo,
             GeoGamers) in one sentence each with a direct link, so the nav

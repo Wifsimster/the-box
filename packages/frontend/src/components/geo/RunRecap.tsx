@@ -90,13 +90,13 @@ export function RunRecap({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/80 p-4 pb-[max(env(safe-area-inset-bottom),1rem)] backdrop-blur-sm sm:items-center"
             role="dialog"
             aria-modal="true"
             aria-labelledby="geo-run-recap-title"
         >
             <div
-                className="w-full max-w-sm rounded-2xl border border-neon-cyan/40 bg-card p-6 text-center motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300"
+                className="w-full max-w-sm rounded-2xl border border-neon-cyan/40 bg-card p-5 text-center motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-300 sm:p-6"
             >
                 <div className="mx-auto mb-3 w-fit rounded-full bg-neon-cyan/10 p-3">
                     <Zap className="size-6 text-neon-cyan" aria-hidden />
@@ -165,7 +165,7 @@ export function RunRecap({
                                     />
                                 </span>
                                 <span
-                                    className="text-[10px] tabular-nums text-muted-foreground"
+                                    className="text-xs tabular-nums text-muted-foreground"
                                     aria-hidden
                                 >
                                     {score.toLocaleString(language)}
@@ -180,7 +180,8 @@ export function RunRecap({
                         ref={primaryRef}
                         type="button"
                         onClick={onNewRun}
-                        className="gradient-gaming hover:opacity-90 min-h-12 w-full"
+                        variant="gaming"
+                        className="min-h-12 w-full"
                     >
                         <Zap className="size-4 mr-2" aria-hidden />
                         {t('geo.play.run.again', 'New run')}
@@ -208,7 +209,7 @@ export function RunRecap({
                         type="button"
                         variant="ghost"
                         onClick={onClose}
-                        className="min-h-11 w-full text-white/80 hover:text-white"
+                        className="min-h-11 w-full text-muted-foreground hover:text-foreground"
                     >
                         <X className="size-4 mr-2" aria-hidden />
                         {t('geo.play.run.close', 'Back to free play')}

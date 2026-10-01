@@ -5,6 +5,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
   ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Trophy, Flame, Gift } from 'lucide-react'
@@ -15,6 +16,12 @@ interface GuestGateModalProps {
   onContinueAsGuest: () => void
 }
 
+const BENEFITS = [
+  { key: 'guestGate.benefitStreak', icon: Flame, accent: 'text-neon-pink' },
+  { key: 'guestGate.benefitLeaderboard', icon: Trophy, accent: 'text-neon-cyan' },
+  { key: 'guestGate.benefitHints', icon: Gift, accent: 'text-neon-purple' },
+] as const
+
 export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: GuestGateModalProps) {
   const { t } = useTranslation()
 
@@ -22,36 +29,30 @@ export function GuestGateModal({ open, onCreateAccount, onContinueAsGuest }: Gue
     <ResponsiveDialog open={open} onOpenChange={(next) => { if (!next) onContinueAsGuest() }}>
       <ResponsiveDialogContent className="sm:max-w-md">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-            <Trophy className="size-5 text-neon-pink" />
+          <ResponsiveDialogTitle className="flex items-center justify-center gap-2 text-xl sm:justify-start">
+            <Trophy className="size-5 shrink-0 text-neon-pink" aria-hidden="true" />
             {t('guestGate.title')}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>{t('guestGate.subtitle')}</ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <ul className="grid gap-2 my-4 text-sm">
-          <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
-            <Flame className="size-4 text-neon-pink mt-0.5 shrink-0" />
-            <span>{t('guestGate.benefitStreak')}</span>
-          </li>
-          <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
-            <Trophy className="size-4 text-neon-cyan mt-0.5 shrink-0" />
-            <span>{t('guestGate.benefitLeaderboard')}</span>
-          </li>
-          <li className="flex items-start gap-3 p-2 rounded-lg bg-card/40 border border-white/5">
-            <Gift className="size-4 text-neon-purple mt-0.5 shrink-0" />
-            <span>{t('guestGate.benefitHints')}</span>
-          </li>
+        <ul className="grid gap-2 text-sm">
+          {BENEFITS.map(({ key, icon: Icon, accent }) => (
+            <li key={key} className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Icon className={`mt-0.5 size-4 shrink-0 ${accent}`} aria-hidden="true" />
+              <span className="text-foreground">{t(key)}</span>
+            </li>
+          ))}
         </ul>
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <ResponsiveDialogFooter className="pt-2">
           <Button variant="ghost" onClick={onContinueAsGuest}>
             {t('guestGate.continueGuest')}
           </Button>
-          <Button variant="gaming" onClick={onCreateAccount}>
+          <Button variant="gaming" size="lg" className="w-full sm:w-auto" onClick={onCreateAccount}>
             {t('guestGate.createAccount')}
           </Button>
-        </div>
+        </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   )

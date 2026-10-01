@@ -70,7 +70,7 @@ export function HomeModesShowcase() {
         transition: { duration: 0.5, delay: 0.45 },
       })}
       aria-labelledby="home-modes-heading"
-      className="max-w-4xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
+      className="max-w-4xl mx-auto"
     >
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <GradientIcon
@@ -81,11 +81,11 @@ export function HomeModesShowcase() {
         <div className="min-w-0">
           <h2
             id="home-modes-heading"
-            className="text-lg sm:text-xl md:text-2xl font-bold leading-tight gradient-gaming-title"
+            className="text-xl sm:text-2xl font-semibold leading-tight text-foreground"
           >
             {t('home.modes.heading')}
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             {t('home.modes.subheading', { count: modes.length })}
           </p>
         </div>
@@ -95,7 +95,7 @@ export function HomeModesShowcase() {
           community surface sunset, a single mode is the default state. */}
       <div
         className={cn(
-          'grid gap-4 sm:gap-5',
+          'grid gap-3 sm:gap-5',
           modes.length > 1 ? 'sm:grid-cols-2' : 'sm:grid-cols-1',
         )}
       >
@@ -105,7 +105,8 @@ export function HomeModesShowcase() {
             <Link
               key={mode.key}
               to={localizedPath(mode.path)}
-              className="group relative flex flex-col overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm p-5 sm:p-6 transition-colors hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              data-tour={mode.key === 'geo' ? 'geo-cta' : undefined}
+              className="group relative flex flex-col overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm p-(--card-padding) transition-colors hover:border-neon-pink/60 active:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <div
                 aria-hidden="true"
@@ -113,7 +114,7 @@ export function HomeModesShowcase() {
               />
               <div className="relative flex items-center gap-3 mb-3">
                 <GradientIcon
-                  icon={<Icon className="size-6 text-white" />}
+                  icon={<Icon className="size-6 text-white" aria-hidden="true" />}
                   className="shrink-0"
                 />
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -122,7 +123,7 @@ export function HomeModesShowcase() {
                   </h3>
                   <Badge
                     variant="outline"
-                    className="border-neon-pink/40 bg-neon-pink/10 text-[10px] uppercase tracking-wide text-neon-pink"
+                    className="border-neon-pink/40 bg-neon-pink/10 text-xs uppercase tracking-wide text-neon-pink"
                   >
                     {t(mode.badgeKey)}
                   </Badge>

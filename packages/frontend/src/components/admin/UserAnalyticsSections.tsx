@@ -49,14 +49,14 @@ export function TopPlayersList({ title, hint, icon, rows, lang, variant }: TopPl
   const { t } = useTranslation()
   return (
     <Card>
-      <CardHeader className="p-4 sm:p-6">
+      <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           {icon}
           {title}
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">{hint}</CardDescription>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+      <CardContent>
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
             {t('admin.analytics.empty')}
@@ -69,12 +69,12 @@ export function TopPlayersList({ title, hint, icon, rows, lang, variant }: TopPl
                 className="flex items-center justify-between py-2 gap-2 text-sm"
               >
                 <span className="flex items-center gap-3 min-w-0">
-                  <span className="text-muted-foreground font-mono w-6 text-center">
+                  <span className="text-muted-foreground font-mono w-6 shrink-0 text-center">
                     #{index + 1}
                   </span>
                   <span className="font-medium truncate">{row.displayName}</span>
                 </span>
-                <span className="flex items-center gap-3 text-xs">
+                <span className="flex shrink-0 items-center gap-3 text-xs">
                   <TopPlayerMeta
                     variant={variant}
                     row={
@@ -105,7 +105,7 @@ export function RecentlyActiveTable({
   const { t } = useTranslation()
   return (
     <Card>
-      <CardHeader className="p-4 sm:p-6">
+      <CardHeader>
         <CardTitle className="text-base sm:text-lg">
           {t('admin.analytics.recentlyActiveTitle')}
         </CardTitle>
@@ -113,13 +113,44 @@ export function RecentlyActiveTable({
           {t('admin.analytics.recentlyActiveHint')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+      <CardContent>
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
             {t('admin.analytics.empty')}
           </p>
         ) : (
-          <div className="overflow-x-auto -mx-2 sm:mx-0">
+          <>
+          <ul className="divide-y divide-border md:hidden">
+            {rows.map((row) => (
+              <li key={row.userId} className="space-y-1 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm font-medium">{row.displayName}</span>
+                    {row.banned && (
+                      <span className="shrink-0 rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">
+                        {t('admin.analytics.banned')}
+                      </span>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-neon-cyan">
+                    {numberFormat(row.totalScore, lang)}
+                  </span>
+                </div>
+                <div className="truncate text-xs text-muted-foreground">{row.email}</div>
+                <dl className="grid grid-cols-2 gap-x-3 text-xs text-muted-foreground">
+                  <div>
+                    <dt className="inline">{t('admin.analytics.colLastLogin')} : </dt>
+                    <dd className="inline tabular-nums">{formatRelative(row.lastLoginAt, lang, never)}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline">{t('admin.analytics.colLastPlayed')} : </dt>
+                    <dd className="inline tabular-nums">{formatRelative(row.lastPlayedAt, lang, never)}</dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground border-b border-border">
@@ -139,7 +170,7 @@ export function RecentlyActiveTable({
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-medium truncate">{row.displayName}</span>
                         {row.banned && (
-                          <span className="text-[10px] uppercase tracking-wide text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
+                          <span className="text-xs text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
                             {t('admin.analytics.banned')}
                           </span>
                         )}
@@ -163,6 +194,7 @@ export function RecentlyActiveTable({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </CardContent>
     </Card>

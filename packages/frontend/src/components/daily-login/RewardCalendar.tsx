@@ -68,7 +68,6 @@ export function RewardCalendar({
                         <li
                             key={reward.dayNumber}
                             className="flex flex-col items-center gap-1"
-                            title={`${name} · ${t(rarityStyle.labelKey)}`}
                             aria-current={isToday ? 'step' : undefined}
                         >
                             <div
@@ -106,7 +105,7 @@ export function RewardCalendar({
 
                             <span
                                 className={cn(
-                                    'text-[10px] sm:text-xs font-semibold leading-none',
+                                    'text-xs font-semibold leading-none',
                                     isToday ? 'text-foreground' : 'text-muted-foreground'
                                 )}
                             >
@@ -114,7 +113,7 @@ export function RewardCalendar({
                             </span>
                             <span
                                 className={cn(
-                                    'text-[9px] sm:text-[10px] leading-none tabular-nums',
+                                    'text-[10px] sm:text-xs leading-none tabular-nums',
                                     rarity === 'common' ? 'text-muted-foreground' : rarityStyle.text
                                 )}
                             >

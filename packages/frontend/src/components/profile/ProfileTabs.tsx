@@ -60,6 +60,8 @@ const VALID_TABS: ReadonlyArray<ProfileTab> = [
   'customize',
 ]
 
+const GUEST_TABS: ReadonlyArray<ProfileTab> = ['overview', 'activity']
+
 function parseTab(value: string | null): ProfileTab {
   return (VALID_TABS as ReadonlyArray<string>).includes(value ?? '')
     ? (value as ProfileTab)
@@ -103,7 +105,11 @@ export function ProfileTabs({
   const { geoCommunity } = useFeatures()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const activeTab = useMemo(() => parseTab(searchParams.get('tab')), [searchParams])
+  const isGuest = !userProfile || userProfile.isGuest
+  const activeTab = useMemo(() => {
+    const tab = parseTab(searchParams.get('tab'))
+    return isGuest && !GUEST_TABS.includes(tab) ? 'overview' : tab
+  }, [searchParams, isGuest])
 
   const handleTabChange = useCallback(
     (value: string) => {
@@ -127,34 +133,34 @@ export function ProfileTabs({
     navigate(localizedPath('/'))
   }, [navigate, localizedPath])
 
-  const isGuest = !userProfile || userProfile.isGuest
-
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      {/* Horizontally scrollable on small screens so the seven account
-          sections stay on one row without forcing document-level overflow. */}
-      <TabsList className="w-full max-w-3xl mx-auto flex h-auto justify-start overflow-x-auto sm:justify-center">
-        <TabsTrigger value="overview" className="shrink-0" data-testid="profile-tab-overview">
+      <TabsList className="flex w-full max-w-3xl mx-auto">
+        <TabsTrigger value="overview" data-testid="profile-tab-overview">
           {t('profile.tabs.overview')}
         </TabsTrigger>
-        <TabsTrigger value="account" className="shrink-0" data-testid="profile-tab-account" disabled={isGuest}>
-          {t('profile.tabs.account')}
-        </TabsTrigger>
-        <TabsTrigger value="security" className="shrink-0" data-testid="profile-tab-security" disabled={isGuest}>
-          {t('profile.tabs.security')}
-        </TabsTrigger>
-        <TabsTrigger value="activity" className="shrink-0" data-testid="profile-tab-activity">
+        <TabsTrigger value="activity" data-testid="profile-tab-activity">
           {t('profile.tabs.activity')}
         </TabsTrigger>
-        <TabsTrigger value="subscription" className="shrink-0" data-testid="profile-tab-subscription" disabled={isGuest}>
-          {t('profile.tabs.subscription')}
-        </TabsTrigger>
-        <TabsTrigger value="creator" className="shrink-0" data-testid="profile-tab-creator" disabled={isGuest}>
-          {t('profile.tabs.creator')}
-        </TabsTrigger>
-        <TabsTrigger value="customize" className="shrink-0" data-testid="profile-tab-customize" disabled={isGuest}>
-          {t('profile.tabs.customize')}
-        </TabsTrigger>
+        {!isGuest && (
+          <>
+            <TabsTrigger value="account" data-testid="profile-tab-account">
+              {t('profile.tabs.account')}
+            </TabsTrigger>
+            <TabsTrigger value="security" data-testid="profile-tab-security">
+              {t('profile.tabs.security')}
+            </TabsTrigger>
+            <TabsTrigger value="subscription" data-testid="profile-tab-subscription">
+              {t('profile.tabs.subscription')}
+            </TabsTrigger>
+            <TabsTrigger value="creator" data-testid="profile-tab-creator">
+              {t('profile.tabs.creator')}
+            </TabsTrigger>
+            <TabsTrigger value="customize" data-testid="profile-tab-customize">
+              {t('profile.tabs.customize')}
+            </TabsTrigger>
+          </>
+        )}
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6 mt-6">
@@ -162,8 +168,9 @@ export function ProfileTabs({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="size-5" />
-                {t('profile.title')} ({totalCount})
+                <Trophy className="size-5" aria-hidden="true" />
+                {t('profile.title')}
+                <span className="text-sm font-normal text-muted-foreground tabular-nums">({totalCount})</span>
               </CardTitle>
               <CardDescription>{t('profile.description')}</CardDescription>
             </CardHeader>
@@ -221,8 +228,8 @@ export function ProfileTabs({
       <TabsContent value="security" className="space-y-6 mt-6">
         {userProfile && !userProfile.isGuest && (
           <ProfileSection>
-            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
-              <Shield className="size-5 text-neon-purple" />
+            <h2 className="mb-2 flex items-center gap-2 text-xl sm:text-2xl font-semibold">
+              <Shield className="size-5 text-neon-purple" aria-hidden="true" />
               {t('security.title')}
             </h2>
             <Suspense fallback={<LazyPanelFallback />}>
@@ -293,8 +300,8 @@ export function ProfileTabs({
                   <CardDescription>{t('tour.replayDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="outline" onClick={handleReplayTour}>
-                    <Sparkles className="size-4" />
+                  <Button variant="outline" onClick={handleReplayTour} className="w-full sm:w-auto">
+                    <Sparkles aria-hidden="true" />
                     {t('tour.replayCta')}
                   </Button>
                 </CardContent>

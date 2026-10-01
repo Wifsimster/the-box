@@ -40,27 +40,33 @@ export const GeoFetchGameRow = memo(function GeoFetchGameRow({ row, onOpen }: Pr
   const Icon = meta.Icon
   const isSpinner = row.current_stage === 'fetching_map' || row.current_stage === 'fetching_candidates'
 
+  const name = row.name ?? `#${row.game_id}`
+
   return (
-    <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 border-b border-white/5 hover:bg-white/5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2 border-b border-border/60 hover:bg-muted/40 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
       <div className="min-w-0">
-        <div className="text-sm text-white truncate">{row.name ?? `#${row.game_id}`}</div>
-        <div className="text-xs text-white/40 truncate">{row.slug ?? ''}</div>
+        <div className="text-sm text-foreground truncate">{name}</div>
+        <div className="text-xs text-muted-foreground truncate">{row.slug ?? ''}</div>
       </div>
-      <div className="flex items-center gap-1.5 text-sm">
-        <Icon className={`size-4 ${meta.color} ${isSpinner ? 'animate-spin' : ''}`} />
-        <span className="text-white/80">{t(meta.labelKey, meta.fallback)}</span>
-        {row.active_source && isSpinner && (
-          <span className="text-white/50">· {row.active_source}</span>
-        )}
+      <div className="col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm md:col-start-auto md:row-start-auto md:contents">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Icon className={`size-4 shrink-0 ${meta.color} ${isSpinner ? 'animate-spin' : ''}`} aria-hidden="true" />
+          <span className="text-foreground">{t(meta.labelKey, meta.fallback)}</span>
+          {row.active_source && isSpinner && (
+            <span className="truncate text-muted-foreground">· {row.active_source}</span>
+          )}
+        </div>
+        <div className="font-mono text-muted-foreground">
+          <span className="md:hidden">{t('admin.geoFetch.cols.zones', 'Zones')} </span>
+          {row.zones_selected}/{row.zones_total || 0}
+        </div>
       </div>
-      <div className="text-sm text-white/70 font-mono">
-        {row.zones_selected}/{row.zones_total || 0}
-      </div>
-      <div className="flex items-center gap-1 justify-end">
+      <div className="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-1 md:col-start-auto md:row-span-1 md:row-start-auto">
         <Button
           size="icon"
           variant="ghost"
           onClick={() => onOpen(row.game_id)}
+          aria-label={`${t('admin.geoFetch.row.viewMaps', 'Voir les cartes')} : ${name}`}
           title={t('admin.geoFetch.row.viewMaps', 'Voir les cartes')}
         >
           <Eye className="size-4" />
@@ -69,6 +75,7 @@ export const GeoFetchGameRow = memo(function GeoFetchGameRow({ row, onOpen }: Pr
           size="icon"
           variant="ghost"
           onClick={() => void retryGame(row.game_id)}
+          aria-label={`${t('admin.geoFetch.row.retry', 'Réessayer')} : ${name}`}
           title={t('admin.geoFetch.row.retry', 'Réessayer')}
         >
           <RotateCcw className="size-4" />

@@ -1,15 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { User } from '@/types'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Loader2, Crown } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface UserActionDialogsProps {
   banningUser: User | null
@@ -37,92 +28,57 @@ export function UserActionDialogs({
   onRevoke,
 }: UserActionDialogsProps) {
   const { t } = useTranslation()
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !isSubmitting) onClose()
+  }
+  const cancelLabel = t('common.cancel')
   return (
     <>
-      {/* Ban Confirmation Dialog */}
-      <Dialog open={!!banningUser} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.banUser')}</DialogTitle>
-            <DialogDescription>
-              {banningUser && t('admin.users.confirmBan', { email: banningUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={onBan} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-              {t('admin.users.banUser')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={!!banningUser}
+        onOpenChange={handleOpenChange}
+        title={t('admin.users.banUser')}
+        description={banningUser ? t('admin.users.confirmBan', { email: banningUser.email }) : undefined}
+        confirmLabel={t('admin.users.banUser')}
+        cancelLabel={cancelLabel}
+        destructive
+        busy={isSubmitting}
+        onConfirm={onBan}
+      />
 
-      {/* Unban Confirmation Dialog */}
-      <Dialog open={!!unbanningUser} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.unbanUser')}</DialogTitle>
-            <DialogDescription>
-              {unbanningUser && t('admin.users.confirmUnban', { email: unbanningUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="default" onClick={onUnban} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-              {t('admin.users.unbanUser')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={!!unbanningUser}
+        onOpenChange={handleOpenChange}
+        title={t('admin.users.unbanUser')}
+        description={unbanningUser ? t('admin.users.confirmUnban', { email: unbanningUser.email }) : undefined}
+        confirmLabel={t('admin.users.unbanUser')}
+        cancelLabel={cancelLabel}
+        busy={isSubmitting}
+        onConfirm={onUnban}
+      />
 
-      {/* Grant Premium Confirmation Dialog */}
-      <Dialog open={!!grantingUser} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.grantPremium')}</DialogTitle>
-            <DialogDescription>
-              {grantingUser && t('admin.users.confirmGrant', { email: grantingUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="gaming" onClick={onGrant} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-              <Crown className="mr-1 size-4" />
-              {t('admin.users.grantPremium')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={!!grantingUser}
+        onOpenChange={handleOpenChange}
+        title={t('admin.users.grantPremium')}
+        description={grantingUser ? t('admin.users.confirmGrant', { email: grantingUser.email }) : undefined}
+        confirmLabel={t('admin.users.grantPremium')}
+        cancelLabel={cancelLabel}
+        busy={isSubmitting}
+        onConfirm={onGrant}
+      />
 
-      {/* Revoke Premium Confirmation Dialog */}
-      <Dialog open={!!revokingUser} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('admin.users.revokePremium')}</DialogTitle>
-            <DialogDescription>
-              {revokingUser && t('admin.users.confirmRevoke', { email: revokingUser.email })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={onRevoke} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-              {t('admin.users.revokePremium')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={!!revokingUser}
+        onOpenChange={handleOpenChange}
+        title={t('admin.users.revokePremium')}
+        description={revokingUser ? t('admin.users.confirmRevoke', { email: revokingUser.email }) : undefined}
+        confirmLabel={t('admin.users.revokePremium')}
+        cancelLabel={cancelLabel}
+        destructive
+        busy={isSubmitting}
+        onConfirm={onRevoke}
+      />
     </>
   )
 }
