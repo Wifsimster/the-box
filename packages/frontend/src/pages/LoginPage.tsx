@@ -1,26 +1,31 @@
 import { useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { m } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Password } from '@/components/ui/password'
 import { signIn, authClient } from '@/lib/auth-client'
 import { Lock, User, Loader2, Fingerprint } from 'lucide-react'
-import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { AuthLayout, AuthFormError } from '@/components/security/AuthLayout'
+import { safeRedirect, withRedirect } from '@/components/security/authRedirect'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { mapLoginError } from '@/lib/auth-errors'
 
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+const supportsPasskeys = typeof window !== 'undefined' && 'PublicKeyCredential' in window
 
 export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { localizedPath } = useLocalizedPath()
-  const redirectTo = searchParams.get('redirect') || localizedPath('/')
-  const [isLoading, setIsLoading] = useState(false)
+  const requestedRedirect = safeRedirect(searchParams.get('redirect'))
+  const redirectTo = requestedRedirect || localizedPath('/')
+  const [pending, setPending] = useState<'password' | 'passkey' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const isLoading = pending !== null
 
   const [formData, setFormData] = useState({
     identifier: '',
@@ -28,38 +33,40 @@ export default function LoginPage() {
   })
 
   const handlePasskeyLogin = async (): Promise<void> => {
-    setIsLoading(true)
+    setPending('passkey')
     setError(null)
     try {
       const result = await authClient.signIn.passkey()
       if (result?.error) {
         setError(t('security.passkeyLogin.error'))
-        setIsLoading(false)
+        setPending(null)
         return
       }
       await new Promise((r) => setTimeout(r, 100))
       navigate(redirectTo)
     } catch {
       setError(t('security.passkeyLogin.error'))
-      setIsLoading(false)
+      setPending(null)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setPending('password')
     setError(null)
+
+    const identifier = formData.identifier.trim()
 
     try {
       let result
-      if (isEmail(formData.identifier)) {
+      if (isEmail(identifier)) {
         result = await signIn.email({
-          email: formData.identifier,
+          email: identifier,
           password: formData.password,
         })
       } else {
         result = await authClient.signIn.username({
-          username: formData.identifier,
+          username: identifier,
           password: formData.password,
         })
       }
@@ -67,7 +74,7 @@ export default function LoginPage() {
       if (result.error) {
         const errorKey = mapLoginError(result.error)
         setError(t(errorKey))
-        setIsLoading(false)
+        setPending(null)
         return
       }
 
@@ -77,135 +84,121 @@ export default function LoginPage() {
     } catch (err) {
       const errorKey = mapLoginError(err)
       setError(t(errorKey))
-      setIsLoading(false)
+      setPending(null)
     }
   }
 
+  const prefillEmail = isEmail(formData.identifier.trim()) ? formData.identifier.trim() : undefined
+
   return (
-    <>
-      <CubeBackground />
-      <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl"
+    <AuthLayout
+      title={t('auth.loginTitle')}
+      subtitle={t('auth.loginSubtitle')}
+      footer={
+        <>
+          {t('auth.noAccount')}{' '}
+          <Link
+            to={withRedirect(localizedPath('/register'), requestedRedirect)}
+            className="inline-flex min-h-11 items-center px-1 font-medium text-neon-purple transition-colors hover:text-neon-pink"
           >
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                {t('auth.loginTitle')}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {t('auth.loginSubtitle')}
-              </p>
+            {t('auth.register')}
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
+        <div className="space-y-2">
+          <Label htmlFor="login-identifier">{t('auth.emailOrUsername')}</Label>
+          <div className="relative">
+            <User className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="login-identifier"
+              name="username"
+              type="text"
+              placeholder={t('auth.emailOrUsernamePlaceholder')}
+              value={formData.identifier}
+              onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+              autoComplete="username webauthn"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
+              aria-invalid={error ? true : undefined}
+              className="pl-10"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="login-password">{t('auth.password')}</Label>
+            <Link
+              to={localizedPath('/forgot-password')}
+              state={prefillEmail ? { email: prefillEmail } : undefined}
+              className="-my-3 inline-flex min-h-11 items-center px-1 text-sm text-neon-purple transition-colors hover:text-neon-pink"
+            >
+              {t('auth.forgotPassword')}
+            </Link>
+          </div>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute inset-y-0 left-3 z-10 my-auto size-4 text-muted-foreground" aria-hidden="true" />
+            <Password
+              id="login-password"
+              name="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              autoComplete="current-password"
+              enterKeyHint="go"
+              aria-invalid={error ? true : undefined}
+              className="pl-10"
+              required
+            />
+          </div>
+        </div>
+
+        <AuthFormError>{error}</AuthFormError>
+
+        <Button
+          type="submit"
+          variant="gaming"
+          size="lg"
+          className="w-full font-semibold"
+          disabled={isLoading}
+        >
+          {pending === 'password' && <Loader2 className="size-5 animate-spin" aria-hidden="true" />}
+          {t('auth.login')}
+        </Button>
+
+        {supportsPasskeys && (
+          <>
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('auth.or')}
+              </span>
+              <div className="h-px flex-1 bg-border" />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">
-                  {t('auth.emailOrUsername')}
-                </label>
-                <div className="relative group">
-                  <User className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors" />
-                  <Input
-                    type="text"
-                    placeholder={t('auth.emailOrUsernamePlaceholder')}
-                    value={formData.identifier}
-                    onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-                    autoComplete="username webauthn"
-                    className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-purple/50 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/80">
-                  {t('auth.password')}
-                </label>
-                <div className="relative group">
-                  <Lock className="absolute left-4 inset-y-0 my-auto size-4 text-muted-foreground group-focus-within:text-neon-purple transition-colors z-10" />
-                  <Password
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-11 h-12 bg-background/50 border-white/10 focus:border-neon-purple/50 rounded-xl"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Link
-                    to={localizedPath('/forgot-password')}
-                    className="inline-flex min-h-11 items-center px-1 text-xs text-neon-purple transition-colors hover:text-neon-pink"
-                  >
-                    {t('auth.forgotPassword')}
-                  </Link>
-                </div>
-              </div>
-
-              {error && (
-                <m.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
-                >
-                  {error}
-                </m.div>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handlePasskeyLogin}
+              disabled={isLoading}
+              className="w-full"
+            >
+              {pending === 'passkey' ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Fingerprint className="size-5" aria-hidden="true" />
               )}
-
-              <Button
-                type="submit"
-                variant="gaming"
-                size="lg"
-                className="w-full h-12 text-base font-semibold rounded-xl"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="size-5 animate-spin" />
-                ) : (
-                  t('auth.login')
-                )}
-              </Button>
-
-              <div className="flex items-center gap-3 my-2">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {t('auth.or')}
-                </span>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={handlePasskeyLogin}
-                disabled={isLoading}
-                className="w-full h-12 text-base font-medium rounded-xl border-neon-purple/30 hover:bg-neon-purple/10"
-              >
-                <Fingerprint className="size-5 mr-2" />
-                {t('security.passkeyLogin.button')}
-              </Button>
-            </form>
-
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {t('auth.noAccount')}{' '}
-              <Link
-                to={localizedPath('/register')}
-                className="text-neon-purple hover:text-neon-pink font-medium transition-colors"
-              >
-                {t('auth.register')}
-              </Link>
-            </p>
-          </m.div>
-        </m.div>
-      </div>
-    </>
+              {t('security.passkeyLogin.button')}
+            </Button>
+          </>
+        )}
+      </form>
+    </AuthLayout>
   )
 }

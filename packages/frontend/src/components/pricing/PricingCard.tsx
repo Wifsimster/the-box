@@ -63,44 +63,54 @@ export function PricingCard({
       ? 'pricing.billingMonthly'
       : 'pricing.billingAnnual'
 
+  const isAnnual = price.tier === 'premium_annual'
+
   return (
     <m.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={cn('h-full', highlight && 'md:scale-[1.03]')}
+      className={cn('h-full', highlight && 'max-md:order-first md:scale-[1.03]')}
     >
       <Card
         className={cn(
-          'h-full flex flex-col relative overflow-hidden',
+          'h-full flex flex-col',
           highlight && 'border-neon-pink/60 shadow-[var(--glow-pink-lg)]',
+          isCurrentPlan && 'border-success/50',
         )}
       >
-        {highlight && (
-          <Badge
-            variant="outline"
-            className="absolute top-4 right-4 border-neon-pink/60 text-neon-pink uppercase tracking-wide text-[10px] px-2 py-0.5"
-          >
-            <Sparkles className="size-3 mr-1" />
-            {t(`${tierKey}.highlight`, '')}
-          </Badge>
-        )}
-        <CardHeader className={cn(highlight && 'pr-32')}>
+        <CardHeader>
+          {highlight && (
+            <Badge
+              variant="outline"
+              className="mb-1 w-fit gap-1 border-neon-pink/60 text-xs text-neon-pink"
+            >
+              <Sparkles className="size-3" aria-hidden="true" />
+              {t(`${tierKey}.highlight`, '')}
+            </Badge>
+          )}
           <CardTitle className="text-xl">{t(`${tierKey}.name`)}</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{t(`${tierKey}.description`)}</p>
+          <p className="text-sm text-muted-foreground">{t(`${tierKey}.description`)}</p>
         </CardHeader>
 
         <CardContent className="flex-1 space-y-4">
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold">{currencyFormatter.format(price.unitAmount / 100)}</span>
-            <span className="text-muted-foreground text-sm">{t(intervalKey)}</span>
+          <div>
+            <div className="flex flex-wrap items-baseline gap-x-1">
+              <span className="text-4xl font-bold">{currencyFormatter.format(price.unitAmount / 100)}</span>
+              <span className="text-sm text-muted-foreground">{t(intervalKey)}</span>
+            </div>
+            {isAnnual && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('pricing.annualEquivalent', { price: currencyFormatter.format(price.unitAmount / 100 / 12) })}
+              </p>
+            )}
+            {isAnnual && (
+              <p className="mt-1 text-sm font-medium text-neon-pink">{t('pricing.savingsAnnual')}</p>
+            )}
+            {isOneTime && (
+              <p className="mt-1 text-sm font-medium text-neon-pink">{t('pricing.supporterNote')}</p>
+            )}
           </div>
-          {price.tier === 'premium_annual' && (
-            <p className="text-xs text-neon-pink/80 font-medium">{t('pricing.savingsAnnual')}</p>
-          )}
-          {isOneTime && (
-            <p className="text-xs text-neon-pink/80 font-medium">{t('pricing.supporterNote')}</p>
-          )}
           <PlanFeatureList
             featureKeys={PREMIUM_TIER_FEATURE_KEYS[price.tier]}
             leadKey="pricing.features.everythingInFree"
@@ -109,19 +119,17 @@ export function PricingCard({
 
         <CardFooter>
           <Button
-            // `min-h-11` rather than the default 40px: this is the plan's
-            // primary conversion CTA and the one thing a visitor taps on a
-            // phone, so hold it to the 44px target.
-            className="min-h-11 w-full"
+            size="lg"
+            className="h-auto min-h-12 w-full whitespace-normal px-4 py-2"
             disabled={isCurrentPlan || isWorking}
             aria-busy={isPending}
             onClick={() => onSelect(price.tier)}
-            variant={highlight ? 'default' : 'outline'}
+            variant={highlight && !isCurrentPlan ? 'gaming' : 'outline'}
           >
             {isPending ? (
-              <Loader2 className="size-4 mr-2 animate-spin" aria-hidden="true" />
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : isCurrentPlan ? (
-              <Check className="size-4 mr-2" aria-hidden="true" />
+              <Check className="size-4" aria-hidden="true" />
             ) : null}
             {isPending ? t('pricing.redirecting') : t(ctaKey)}
           </Button>

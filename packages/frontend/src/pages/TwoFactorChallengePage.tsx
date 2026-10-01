@@ -1,39 +1,45 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { m } from 'framer-motion'
-import { ShieldCheck, Loader2 } from 'lucide-react'
+import { ShieldCheck, Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CubeBackground } from '@/components/backgrounds/CubeBackground'
+import { Label } from '@/components/ui/label'
+import { AuthLayout, AuthFormError } from '@/components/security/AuthLayout'
+import { safeRedirect } from '@/components/security/authRedirect'
 import { authClient } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+
+const TOTP_LENGTH = 6
 
 export default function TwoFactorChallengePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { localizedPath } = useLocalizedPath()
-  const redirectTo = searchParams.get('redirect') || localizedPath('/')
+  const redirectTo = safeRedirect(searchParams.get('redirect')) || localizedPath('/')
 
+  const inputRef = useRef<HTMLInputElement>(null)
   const [mode, setMode] = useState<'totp' | 'backup'>('totp')
   const [code, setCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault()
+  const verify = async (value: string): Promise<void> => {
+    if (isLoading) return
     setIsLoading(true)
     setError(null)
     try {
       const result =
         mode === 'totp'
-          ? await authClient.twoFactor.verifyTotp({ code: code.trim() })
-          : await authClient.twoFactor.verifyBackupCode({ code: code.trim() })
+          ? await authClient.twoFactor.verifyTotp({ code: value.trim() })
+          : await authClient.twoFactor.verifyBackupCode({ code: value.trim() })
 
       if (result.error) {
         setError(t('security.challenge.invalidCode'))
+        setCode('')
         setIsLoading(false)
+        inputRef.current?.focus()
         return
       }
       // Session cookie is set by the verify endpoint; small delay so the
@@ -43,6 +49,23 @@ export default function TwoFactorChallengePage() {
     } catch {
       setError(t('security.challenge.invalidCode'))
       setIsLoading(false)
+      inputRef.current?.focus()
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent): void => {
+    e.preventDefault()
+    void verify(code)
+  }
+
+  const handleCodeChange = (value: string): void => {
+    const next = mode === 'totp' ? value.replace(/\D/g, '').slice(0, TOTP_LENGTH) : value
+    setCode(next)
+    if (error) setError(null)
+    if (mode === 'totp' && next.length === TOTP_LENGTH && !isLoading) {
+      // Authenticator apps and SMS autofill paste all six digits at once:
+      // submit immediately instead of making the player hunt for the button.
+      void verify(next)
     }
   }
 
@@ -50,100 +73,72 @@ export default function TwoFactorChallengePage() {
     setMode((m) => (m === 'totp' ? 'backup' : 'totp'))
     setCode('')
     setError(null)
+    inputRef.current?.focus()
   }
 
+  const isTotp = mode === 'totp'
+
   return (
-    <>
-      <CubeBackground />
-      <div className="relative z-10 flex min-h-[var(--page-h)] items-center justify-center px-4 py-8">
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md"
+    <AuthLayout
+      icon={ShieldCheck}
+      title={t('security.challenge.title')}
+      subtitle={isTotp ? t('security.challenge.subtitle') : t('security.challenge.backupSubtitle')}
+      footer={
+        <Link
+          to={localizedPath('/login')}
+          className="inline-flex min-h-11 items-center gap-2 px-1 transition-colors hover:text-foreground"
         >
-          <div className="backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl p-8 shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center size-12 rounded-full bg-neon-purple/15 mb-3">
-                <ShieldCheck className="size-6 text-neon-purple" />
-              </div>
-              <h1 className="text-2xl font-bold mb-2">
-                {t('security.challenge.title')}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {mode === 'totp'
-                  ? t('security.challenge.subtitle')
-                  : t('security.challenge.backupCodeLabel')}
-              </p>
-            </div>
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {t('auth.backToLogin')}
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
+        <div className="space-y-2">
+          <Label htmlFor="two-factor-code">
+            {isTotp ? t('security.challenge.codeLabel') : t('security.challenge.backupCodeLabel')}
+          </Label>
+          <Input
+            ref={inputRef}
+            id="two-factor-code"
+            name={isTotp ? 'totp' : 'backup-code'}
+            type="text"
+            inputMode={isTotp ? 'numeric' : 'text'}
+            autoComplete="one-time-code"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="done"
+            pattern={isTotp ? '\\d{6}' : undefined}
+            maxLength={isTotp ? TOTP_LENGTH : 12}
+            placeholder={isTotp ? '000000' : undefined}
+            value={code}
+            onChange={(e) => handleCodeChange(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'two-factor-error' : undefined}
+            required
+            autoFocus
+            className="h-14 text-center font-mono text-2xl tracking-[0.4em] md:text-2xl"
+          />
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="two-factor-code"
-                  className="text-sm font-medium text-foreground/80"
-                >
-                  {mode === 'totp'
-                    ? t('security.challenge.codeLabel')
-                    : t('security.challenge.backupCodeLabel')}
-                </label>
-                <Input
-                  id="two-factor-code"
-                  name={mode === 'totp' ? 'totp' : 'backup-code'}
-                  type="text"
-                  inputMode={mode === 'totp' ? 'numeric' : 'text'}
-                  autoComplete="one-time-code"
-                  pattern={mode === 'totp' ? '\\d{6}' : undefined}
-                  maxLength={mode === 'totp' ? 6 : 12}
-                  value={code}
-                  onChange={(e) =>
-                    setCode(
-                      mode === 'totp' ? e.target.value.replace(/\D/g, '') : e.target.value,
-                    )
-                  }
-                  required
-                  autoFocus
-                  className="mt-2 h-12 text-center text-lg font-mono tracking-widest"
-                />
-              </div>
+        <AuthFormError id="two-factor-error">{error}</AuthFormError>
 
-              {error && (
-                <m.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center"
-                >
-                  {error}
-                </m.div>
-              )}
+        <Button
+          type="submit"
+          variant="gaming"
+          size="lg"
+          className="w-full font-semibold"
+          disabled={isLoading || code.length === 0}
+        >
+          {isLoading && <Loader2 className="size-5 animate-spin" aria-hidden="true" />}
+          {t('security.challenge.verify')}
+        </Button>
 
-              <Button
-                type="submit"
-                variant="gaming"
-                size="lg"
-                className="w-full h-12 text-base font-semibold rounded-xl"
-                disabled={isLoading || code.length === 0}
-              >
-                {isLoading ? (
-                  <Loader2 className="size-5 animate-spin" />
-                ) : (
-                  t('security.challenge.verify')
-                )}
-              </Button>
-
-              <button
-                type="button"
-                onClick={switchMode}
-                className="flex min-h-11 w-full items-center justify-center text-center text-xs text-muted-foreground transition-colors hover:text-neon-purple"
-              >
-                {mode === 'totp'
-                  ? t('security.challenge.useBackupCode')
-                  : t('security.challenge.backToTotp')}
-              </button>
-            </form>
-          </div>
-        </m.div>
-      </div>
-    </>
+        <Button type="button" variant="ghost" onClick={switchMode} className="w-full text-muted-foreground">
+          {isTotp ? t('security.challenge.useBackupCode') : t('security.challenge.backToTotp')}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

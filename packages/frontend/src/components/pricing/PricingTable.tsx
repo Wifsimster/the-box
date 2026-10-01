@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { BillingTier } from '@the-box/types'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { withRedirect } from '@/components/security/authRedirect'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useBillingStore } from '@/stores/billingStore'
@@ -29,7 +32,7 @@ function PricingCardSkeleton() {
         </div>
       </CardContent>
       <CardFooter>
-        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-12 w-full" />
       </CardFooter>
     </Card>
   )
@@ -54,6 +57,7 @@ export function PricingTable() {
   // on the right card. Cleared in finally even if the store throws so the
   // button doesn't get stuck mid-animation.
   const [pendingTier, setPendingTier] = useState<BillingTier | null>(null)
+  const [retrying, setRetrying] = useState(false)
 
   useEffect(() => {
     void fetchPrices()
@@ -65,9 +69,7 @@ export function PricingTable() {
 
   const handleSelect = async (tier: BillingTier) => {
     if (!isAuthenticated) {
-      navigate(localizedPath('/login'), {
-        state: { redirectTo: localizedPath('/premium') },
-      })
+      navigate(withRedirect(localizedPath('/login'), localizedPath('/premium')))
       return
     }
     setPendingTier(tier)
@@ -84,45 +86,84 @@ export function PricingTable() {
   }
 
   const handleSignUp = () => {
-    navigate(localizedPath('/register'))
+    navigate(withRedirect(localizedPath('/register'), localizedPath('/premium')))
+  }
+
+  const retryPrices = async () => {
+    setRetrying(true)
+    try {
+      await fetchPrices()
+    } finally {
+      setRetrying(false)
+    }
   }
 
   const onFreePlan = isAuthenticated && !entitlement?.isPremium
 
+  const pricesUnavailable = pricesLoaded && prices.length === 0
+
   // Card grid: Free (anchor) → Monthly → Annual (highlighted) → Lifetime.
-  // Two columns on tablet, four on desktop; on mobile each card stacks.
-  // The max-w cap keeps cards from stretching too wide on big screens.
+  // Stacked on phones with the recommended plan pulled to the top, two
+  // columns on tablet, four on desktop.
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
-      {!pricesLoaded ? (
-        <>
-          <PricingCardSkeleton />
-          <PricingCardSkeleton />
-          <PricingCardSkeleton />
-          <PricingCardSkeleton />
-        </>
-      ) : (
-        <>
-          <FreePricingCard
-            isCurrentPlan={onFreePlan}
-            isLoggedIn={isAuthenticated}
-            onSignUp={handleSignUp}
-          />
-          {prices.map((price) => (
-            <PricingCard
-              key={price.tier}
-              price={price}
-              status={{
-                isCurrentPlan: entitlement?.tier === price.tier && entitlement.isPremium,
-                isLoggedIn: isAuthenticated,
-                isWorking: isStartingCheckout,
-                isPending: pendingTier === price.tier,
-              }}
-              highlight={price.tier === 'premium_annual'}
-              onSelect={handleSelect}
+    <div className="space-y-4">
+      <div
+        className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4"
+        aria-busy={!pricesLoaded}
+      >
+        {!pricesLoaded ? (
+          <>
+            <span className="sr-only" role="status">{t('pricing.loading')}</span>
+            <PricingCardSkeleton />
+            <PricingCardSkeleton />
+            <PricingCardSkeleton />
+            <PricingCardSkeleton />
+          </>
+        ) : (
+          <>
+            <FreePricingCard
+              isCurrentPlan={onFreePlan}
+              isLoggedIn={isAuthenticated}
+              onSignUp={handleSignUp}
             />
-          ))}
-        </>
+            {prices.map((price) => (
+              <PricingCard
+                key={price.tier}
+                price={price}
+                status={{
+                  isCurrentPlan: entitlement?.tier === price.tier && entitlement.isPremium,
+                  isLoggedIn: isAuthenticated,
+                  isWorking: isStartingCheckout,
+                  isPending: pendingTier === price.tier,
+                }}
+                highlight={price.tier === 'premium_annual'}
+                onSelect={handleSelect}
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      {pricesUnavailable && (
+        <Card variant="warning" role="alert" className="mx-auto max-w-2xl">
+          <CardContent className="flex flex-col items-center gap-3 pt-(--card-padding) text-center sm:flex-row sm:text-left">
+            <AlertTriangle className="size-5 shrink-0 text-warning" aria-hidden="true" />
+            <p className="flex-1 text-sm">{t('pricing.errorPrices')}</p>
+            <Button
+              variant="outline"
+              onClick={() => void retryPrices()}
+              disabled={retrying}
+              className="w-full sm:w-auto"
+            >
+              {retrying ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw className="size-4" aria-hidden="true" />
+              )}
+              {t('common.retry')}
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
