@@ -1,7 +1,10 @@
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { m } from 'framer-motion'
+import { ArrowRight, BookOpen, Check, Eye, Keyboard, Trophy, X, type LucideIcon } from 'lucide-react'
+import { ContentPage } from '@/components/content/ContentPage'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { BookOpen, Check, X } from 'lucide-react'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 interface MatchExample {
   guess: string
@@ -26,156 +29,169 @@ const REJECTED_EXAMPLES: MatchExample[] = [
   { guess: 'garage band', target: 'Xenoblade Chronicles 3D', whyKey: 'legal.rulesMatchingReject5Why' },
 ]
 
-function Section({
-  title,
-  children,
-  delay = 0,
-}: {
-  title: string
-  children: React.ReactNode
-  delay?: number
-}) {
+const STEPS: Array<{ icon: LucideIcon; titleKey: string; textKey: string }> = [
+  { icon: Eye, titleKey: 'legal.rulesStep1Title', textKey: 'legal.rulesStep1' },
+  { icon: Keyboard, titleKey: 'legal.rulesStep2Title', textKey: 'legal.rulesStep2' },
+  { icon: Trophy, titleKey: 'legal.rulesStep3Title', textKey: 'legal.rulesStep3' },
+]
+
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <m.section
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, delay }}
-      className="space-y-3 border-b border-border pb-6 last:border-0"
-    >
-      <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-      <div className="text-muted-foreground leading-relaxed space-y-2">{children}</div>
-    </m.section>
+    <section aria-labelledby={id} className="space-y-3 border-b border-border pb-8 last:border-0 last:pb-0">
+      <h2 id={id} className="text-lg font-semibold text-foreground sm:text-xl">
+        {title}
+      </h2>
+      <div className="space-y-2 leading-relaxed text-muted-foreground">{children}</div>
+    </section>
   )
 }
 
 function MatchExampleRow({ example, accepted }: { example: MatchExample; accepted: boolean }) {
   const { t } = useTranslation()
   const Icon = accepted ? Check : X
-  const iconClasses = accepted ? 'text-success' : 'text-error'
   return (
-    <li className="rounded-md border border-border bg-card/40 p-3">
-      <div className="flex items-start gap-3">
-        <Icon className={`mt-0.5 size-5 shrink-0 ${iconClasses}`} aria-hidden="true" />
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="grid grid-cols-1 gap-x-3 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
-            <span className="font-medium text-muted-foreground">
-              {t('legal.rulesMatchingExampleHeader')}:
-            </span>
-            <code className="font-mono text-foreground break-words">{example.guess}</code>
-            <span className="font-medium text-muted-foreground">
-              {t('legal.rulesMatchingTargetHeader')}:
-            </span>
-            <code className="font-mono text-foreground break-words">{example.target}</code>
-          </div>
-          <p className="text-sm text-muted-foreground">{t(example.whyKey)}</p>
-        </div>
+    <li className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+      <Icon
+        className={`mt-1 size-4 shrink-0 ${accepted ? 'text-success' : 'text-error'}`}
+        aria-hidden="true"
+      />
+      <div className="min-w-0 flex-1 space-y-1 text-sm">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="sr-only">{t('legal.rulesMatchingExampleHeader')}: </span>
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground break-all">
+            {example.guess}
+          </code>
+          <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">{t('legal.rulesMatchingTargetHeader')}: </span>
+          <span className="font-medium text-foreground break-words">{example.target}</span>
+        </p>
+        <p className="text-muted-foreground">{t(example.whyKey)}</p>
       </div>
     </li>
   )
 }
 
+function MatchExampleList({ accepted, examples }: { accepted: boolean; examples: MatchExample[] }) {
+  const { t } = useTranslation()
+  const Icon = accepted ? Check : X
+  return (
+    <div className="space-y-2">
+      <h3
+        className={`flex items-center gap-2 text-base font-semibold ${accepted ? 'text-success' : 'text-error'}`}
+      >
+        <Icon className="size-5" aria-hidden="true" />
+        {t(accepted ? 'legal.rulesMatchingAcceptedTitle' : 'legal.rulesMatchingRejectedTitle')}
+      </h3>
+      <ul className="space-y-2">
+        {examples.map((ex) => (
+          <MatchExampleRow key={ex.guess + ex.target} example={ex} accepted={accepted} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export default function RulesPage() {
   const { t } = useTranslation()
+  const { localizedPath } = useLocalizedPath()
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="bg-card/50 border-border">
-          <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center size-16 mx-auto mb-4 rounded-xl bg-linear-to-br from-neon-purple to-neon-pink shadow-lg shadow-neon-purple/30">
-              <BookOpen className="size-8 text-white" />
+    <ContentPage icon={BookOpen} title={t('legal.rulesTitle')} subtitle={t('legal.rulesIntro')}>
+      <Card variant="neon">
+        <CardHeader>
+          <h2 className="text-lg font-semibold leading-none tracking-tight text-foreground">
+            {t('game.rules.title')}
+          </h2>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ol className="grid gap-4 sm:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <li key={step.titleKey} className="flex gap-3 sm:flex-col">
+                <span className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <step.icon className="size-5" aria-hidden="true" />
+                  <span className="absolute -right-1.5 -top-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {index + 1}
+                  </span>
+                </span>
+                <div className="min-w-0 space-y-0.5">
+                  <p className="font-semibold text-foreground">{t(step.titleKey)}</p>
+                  <p className="text-sm text-muted-foreground">{t(step.textKey)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <Button asChild variant="gaming" size="lg" className="w-full sm:w-auto">
+            <Link to={localizedPath('/play')}>{t('nav.tabs.play')}</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-8 pt-(--card-padding)">
+          <Section id="rules-goal" title={t('legal.rulesGoalTitle')}>
+            <p>{t('legal.rulesGoal')}</p>
+          </Section>
+
+          <Section id="rules-daily" title={t('legal.rulesChallengeTitle')}>
+            <p>{t('legal.rulesChallenge')}</p>
+            <h3 className="pt-2 text-base font-semibold text-foreground">
+              {t('legal.rulesCatchupTitle')}
+            </h3>
+            <p>{t('legal.rulesCatchup')}</p>
+          </Section>
+
+          <Section id="rules-scoring" title={t('legal.rulesScoringTitle')}>
+            <ul className="list-disc space-y-1.5 pl-5 marker:text-primary">
+              <li>{t('legal.rulesScoringBase')}</li>
+              <li>{t('legal.rulesScoringSpeed')}</li>
+              <li>{t('legal.rulesScoringTries')}</li>
+              <li>{t('legal.rulesScoringHints')}</li>
+              <li>{t('legal.rulesScoringSkip')}</li>
+            </ul>
+          </Section>
+
+          <Section id="rules-hints" title={t('legal.rulesHintsTitle')}>
+            <p>{t('legal.rulesHints')}</p>
+          </Section>
+
+          <Section id="rules-matching" title={t('legal.rulesMatchingTitle')}>
+            <p>{t('legal.rulesMatchingIntro')}</p>
+            <p
+              className="flex flex-wrap items-center gap-x-2 pt-2 text-xs font-medium uppercase tracking-wide"
+              aria-hidden="true"
+            >
+              <span>{t('legal.rulesMatchingExampleHeader')}</span>
+              <ArrowRight className="size-3.5" />
+              <span>{t('legal.rulesMatchingTargetHeader')}</span>
+            </p>
+            <div className="space-y-6 pt-1">
+              <MatchExampleList accepted examples={ACCEPTED_EXAMPLES} />
+              <MatchExampleList accepted={false} examples={REJECTED_EXAMPLES} />
             </div>
-            <h1 className="text-3xl font-bold bg-linear-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">
-              {t('legal.rulesTitle')}
-            </h1>
-            <p className="text-muted-foreground mt-2">{t('legal.rulesIntro')}</p>
-          </CardHeader>
+          </Section>
 
-          <CardContent className="space-y-6">
-            <Section title={t('legal.rulesGoalTitle')} delay={0.05}>
-              <p>{t('legal.rulesGoal')}</p>
-            </Section>
+          <Section id="rules-geo" title={t('legal.rulesGeoTitle')}>
+            <p>{t('legal.rulesGeoIntro')}</p>
+            <p>{t('legal.rulesGeoScoring')}</p>
+          </Section>
 
-            <Section title={t('legal.rulesChallengeTitle')} delay={0.1}>
-              <p>{t('legal.rulesChallenge')}</p>
-              <div>
-                <h3 className="text-base font-semibold text-foreground mt-2">
-                  {t('legal.rulesCatchupTitle')}
-                </h3>
-                <p>{t('legal.rulesCatchup')}</p>
-              </div>
-            </Section>
+          <Section id="rules-premium" title={t('legal.rulesPremiumTitle')}>
+            <p>{t('legal.rulesPremium')}</p>
+          </Section>
 
-            <Section title={t('legal.rulesScoringTitle')} delay={0.15}>
-              <ul className="list-disc space-y-1.5 pl-5">
-                <li>{t('legal.rulesScoringBase')}</li>
-                <li>{t('legal.rulesScoringSpeed')}</li>
-                <li>{t('legal.rulesScoringTries')}</li>
-                <li>{t('legal.rulesScoringHints')}</li>
-                <li>{t('legal.rulesScoringSkip')}</li>
-              </ul>
-            </Section>
+          <Section id="rules-referral" title={t('legal.rulesReferralTitle')}>
+            <p>{t('legal.rulesReferral')}</p>
+          </Section>
 
-            <Section title={t('legal.rulesHintsTitle')} delay={0.2}>
-              <p>{t('legal.rulesHints')}</p>
-            </Section>
+          <Section id="rules-leaderboard" title={t('legal.rulesLeaderboardTitle')}>
+            <p>{t('legal.rulesLeaderboard')}</p>
+          </Section>
 
-            <Section title={t('legal.rulesMatchingTitle')} delay={0.25}>
-              <p>{t('legal.rulesMatchingIntro')}</p>
-
-              <div className="grid gap-6 md:grid-cols-2 mt-4">
-                <div>
-                  <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-success">
-                    <Check className="size-5" aria-hidden="true" />
-                    {t('legal.rulesMatchingAcceptedTitle')}
-                  </h3>
-                  <ul className="space-y-2">
-                    {ACCEPTED_EXAMPLES.map((ex) => (
-                      <MatchExampleRow key={ex.guess + ex.target} example={ex} accepted />
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-error">
-                    <X className="size-5" aria-hidden="true" />
-                    {t('legal.rulesMatchingRejectedTitle')}
-                  </h3>
-                  <ul className="space-y-2">
-                    {REJECTED_EXAMPLES.map((ex) => (
-                      <MatchExampleRow key={ex.guess + ex.target} example={ex} accepted={false} />
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </Section>
-
-            <Section title={t('legal.rulesGeoTitle')} delay={0.3}>
-              <p>{t('legal.rulesGeoIntro')}</p>
-              <p>{t('legal.rulesGeoScoring')}</p>
-            </Section>
-
-            <Section title={t('legal.rulesPremiumTitle')} delay={0.35}>
-              <p>{t('legal.rulesPremium')}</p>
-            </Section>
-
-            <Section title={t('legal.rulesReferralTitle')} delay={0.4}>
-              <p>{t('legal.rulesReferral')}</p>
-            </Section>
-
-            <Section title={t('legal.rulesLeaderboardTitle')} delay={0.45}>
-              <p>{t('legal.rulesLeaderboard')}</p>
-            </Section>
-
-            <Section title={t('legal.rulesFairPlayTitle')} delay={0.5}>
-              <p>{t('legal.rulesFairPlay')}</p>
-            </Section>
-          </CardContent>
-        </Card>
-      </m.div>
-    </div>
+          <Section id="rules-fair-play" title={t('legal.rulesFairPlayTitle')}>
+            <p>{t('legal.rulesFairPlay')}</p>
+          </Section>
+        </CardContent>
+      </Card>
+    </ContentPage>
   )
 }

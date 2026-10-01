@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Seo } from './Seo'
 import { SITE_NAME, SITE_TAGLINE, SITE_URL, stripLangPrefix } from '@/lib/seo'
 import { STUDIO, STUDIO_LD_ID, studioOrganizationLd } from '@/lib/studio'
@@ -12,7 +13,10 @@ type RouteDef = {
   noindex?: boolean
   ogType?: 'website' | 'profile' | 'article'
   /** Build JSON-LD for this route. */
-  jsonLd?: (lang: string) => Record<string, unknown> | Record<string, unknown>[] | undefined
+  jsonLd?: (
+    lang: string,
+    t: TFunction,
+  ) => Record<string, unknown> | Record<string, unknown>[] | undefined
 }
 
 const homeJsonLd = (lang: string): Record<string, unknown>[] => [
@@ -57,6 +61,28 @@ const breadcrumbLd = (lang: string, items: Array<{ name: string; path: string }>
   })),
 })
 
+const FAQ_COUNT = 7
+
+// Mirrors the questions rendered by FaqPage so search engines and assistants
+// can read the answers without expanding the accordion.
+const faqJsonLd = (lang: string, t: TFunction): Record<string, unknown> => ({
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: lang,
+  mainEntity: Array.from({ length: FAQ_COUNT }, (_, idx) => ({
+    '@type': 'Question',
+    name: t(`legal.faqQuestion${idx + 1}`),
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: t(`legal.faqAnswer${idx + 1}`, {
+        studio: STUDIO.name,
+        founder: STUDIO.founder,
+        domain: STUDIO.domain,
+      }),
+    },
+  })),
+})
+
 function exact(suffix: string) {
   const re = new RegExp(`^${suffix.replace(/\//g, '\\/')}\\/?$`)
   return (path: string) => (re.test(path) ? {} : null)
@@ -94,7 +120,7 @@ const ROUTES: RouteDef[] = [
   { match: exact('/terms'), key: 'terms' },
   { match: exact('/privacy'), key: 'privacy' },
   { match: exact('/cookies'), key: 'cookies' },
-  { match: exact('/faq'), key: 'faq' },
+  { match: exact('/faq'), key: 'faq', jsonLd: faqJsonLd },
   { match: exact('/rules'), key: 'rules' },
   { match: exact('/contact'), key: 'contact' },
   { match: exact('/premium'), key: 'premium' },
@@ -115,6 +141,7 @@ export function RouteSeo() {
 
   const suffix = stripLangPrefix(pathname) || '/'
   const matched = ROUTES.find((r) => r.match(suffix) !== null)
+  const jsonLd = matched?.jsonLd?.(i18n.language, t)
   if (!matched) {
     return (
       <Seo
@@ -127,7 +154,6 @@ export function RouteSeo() {
   const params = matched.match(suffix) ?? {}
   const title = t(`seo.${matched.key}.title`, params)
   const description = t(`seo.${matched.key}.description`, params)
-  const jsonLd = matched.jsonLd?.(i18n.language)
 
   return (
     <Seo
