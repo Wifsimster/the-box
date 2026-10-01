@@ -54,7 +54,8 @@
     },
     "menuDescription": "Site navigation and account links",
     "geogamers": "Panorama",
-    "new": "New"
+    "new": "New",
+    "goToItem": "Go to item {{index}}"
   },
   "nav": {
     "primary": "Primary navigation",
@@ -652,8 +653,12 @@
       "daysPlayed": "{{count}} day played",
       "daysPlayed_other": "{{count}} days played",
       "dropped": "3 worst days dropped",
-      "unavailable": "The Panorama leaderboard is unavailable."
-    }
+      "unavailable": "The Panorama leaderboard is unavailable.",
+      "jokerUsed": "Joker used"
+    },
+    "you": "You",
+    "yourRank": "You're #{{rank}} of {{total}}",
+    "seeMyRow": "Show"
   },
   "history": {
     "title": "Game History",
@@ -693,7 +698,8 @@
     "zeroScore": {
       "title": "Zero this time — it happens.",
       "subtitle": "Check the hints, spot the game, and come back stronger tomorrow."
-    }
+    },
+    "loadError": "Couldn't load your history."
   },
   "auth": {
     "login": "Login",
@@ -757,7 +763,9 @@
       "UNAUTHORIZED": "Authentication required. Please log in",
       "FORBIDDEN": "You don't have permission to access this resource",
       "AUTH_ERROR": "Authentication failed. Please try again"
-    }
+    },
+    "passwordHint": "At least 8 characters",
+    "useAnotherEmail": "Use a different email"
   },
   "admin": {
     "title": "Admin Panel",
@@ -1579,6 +1587,13 @@
         "active": "Active",
         "completed": "Done",
         "failed": "Failed"
+      },
+      "clearConfirm": {
+        "title": "Clear the job queue?",
+        "description": "All completed and failed jobs will be removed from the list."
+      },
+      "runConfirm": {
+        "title": "Run this job now?"
       }
     },
     "fullImport": {
@@ -1742,7 +1757,67 @@
       "emailRequired": "Please enter a recipient email address",
       "invalidEmail": "Please enter a valid email address"
     },
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "geogamersHealth": {
+      "title": "GeoGamers — content health",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "starved": "Not enough content: {{count}} eligible games (min {{min}}). Today's challenge may be skipped — add captures with a consensus pin.",
+      "healthy": "Enough content: {{count}} eligible games (min {{min}}).",
+      "stats": {
+        "eligibleGames": "Eligible games",
+        "eligibleScreenshots": "Eligible captures",
+        "gamesOnCooldown": "Games on cooldown",
+        "seasonPlayers": "Players (season)"
+      },
+      "summary": "Today's challenge: {{today}} · Current challenge: {{current}} · Cooldown: {{cooldown}} d · Season: {{season}}",
+      "todayCreated": "created",
+      "todayPending": "not yet",
+      "createToday": "Create today's challenge",
+      "alreadyCreated": "Today's challenge already created",
+      "loadError": "Couldn't load GeoGamers health."
+    },
+    "geoNeedingContent": {
+      "title": "One pin away from eligibility",
+      "description": "Games with an active map and captures collecting pins, but no canonical position yet. Promoting a capture (from the review queue) makes the game eligible for GeoGamers.",
+      "empty": "No game is waiting for a canonical pin: every collected capture already has a consensus position, or no game has an active map with captures yet.",
+      "captures_one": "{{count}} capture",
+      "captures_other": "{{count}} captures",
+      "topPins_one": "{{count}} pin (max)",
+      "topPins_other": "{{count}} pins (max)",
+      "pinsToThreshold_one": "{{count}} pin before recalculation",
+      "pinsToThreshold_other": "{{count}} pins before recalculation",
+      "review": "Review",
+      "loadError": "Games to complete:"
+    },
+    "agentKeys": {
+      "title": "Geo agent keys",
+      "description": "API keys for the agent sourcing surface (/api/agent/v1/geo). Admin-only, geo-agent:* scopes only. The plaintext is shown only once. Requires GEO_AGENT_API_ENABLED=true on the backend.",
+      "label": "Label",
+      "labelPlaceholder": "e.g. claude-exploration",
+      "mode": "Mode",
+      "scopes": "Scopes",
+      "scopeHints": {
+        "read": "health, games to complete, captures",
+        "ingest": "trigger the pipeline (phase 3)",
+        "propose": "propose pins (phase 4)",
+        "curate": "enrol games, candidate maps (phase 5)",
+        "promote": "confirm/promote a consensus pin (phase 7)"
+      },
+      "create": "Create key",
+      "copyNow": "Copy this key now — it won't be shown again.",
+      "copy": "Copy key",
+      "copied": "Key copied",
+      "copyError": "Couldn't copy the key",
+      "loadError": "Keys:",
+      "empty": "No agent keys.",
+      "revoked": "revoked",
+      "revoke": "Revoke",
+      "revokeConfirm": {
+        "title": "Revoke this key?",
+        "description": "The key \"{{label}}\" will stop working immediately. This can't be undone."
+      }
+    }
   },
   "pricing": {
     "title": "The Box Premium",
@@ -1810,7 +1885,9 @@
       "yes": "Yes",
       "no": "No"
     },
-    "footnote": "Secure payment via Stripe. VAT applied based on your country. Cancel anytime from your profile."
+    "footnote": "Secure payment via Stripe. VAT applied based on your country. Cancel anytime from your profile.",
+    "annualEquivalent": "that's {{price}}/month, billed yearly",
+    "errorPrices": "We couldn't load the Premium plans right now."
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
@@ -1958,7 +2035,23 @@
     "rulesLeaderboardTitle": "9. Leaderboard",
     "rulesLeaderboard": "Daily and monthly leaderboards update in real time as players finish challenges. Only main-challenge plays count — catch-up plays do not. Geo mode keeps its own separate daily and monthly leaderboards. Each player's games-played count and achievement total are shown next to their name.",
     "rulesFairPlayTitle": "10. Fair play",
-    "rulesFairPlay": "Sharing answers, automating guesses, or using multiple accounts to climb the leaderboard is not allowed and will result in score resets and account suspension. If you spot a misclassified game or a wrong answer being accepted, please report it via the Contact page."
+    "rulesFairPlay": "Sharing answers, automating guesses, or using multiple accounts to climb the leaderboard is not allowed and will result in score resets and account suspension. If you spot a misclassified game or a wrong answer being accepted, please report it via the Contact page.",
+    "tocTitle": "Contents",
+    "docQuestion": "Questions about this document?",
+    "opensInNewTab": "(opens in a new tab)",
+    "faqStillQuestions": "Didn't find your answer?",
+    "faqScoringLink": "See how scoring works",
+    "rulesStep1Title": "Look",
+    "rulesStep1": "A screenshot from a video game appears, getting harder as the challenge goes on.",
+    "rulesStep2Title": "Guess",
+    "rulesStep2": "Type the game's name. No need for the exact title, typos are forgiven.",
+    "rulesStep3Title": "Score",
+    "rulesStep3": "The faster you answer, the more points you earn. Climb the leaderboard!",
+    "contactEmailAction": "Send an email",
+    "contactCopyEmail": "Copy address",
+    "contactBugAction": "Describe the bug by email",
+    "contactBugSubject": "Bug report",
+    "contactBugBody": "What happened?\n\n\nSteps to reproduce the problem:\n\n\nDevice / browser: {{device}}"
   },
   "errors": {
     "boundary": {
@@ -2009,7 +2102,8 @@
     "stat_one": "{{count}} friend joined",
     "stat_other": "{{count}} friends joined",
     "claimedNote": "You were referred by a friend — thanks!",
-    "rewardHint": "Reward: your friend gets 2 letter reveals + 1 second chance, and you get 1 letter reveal + 1 streak freeze."
+    "rewardHint": "Reward: your friend gets 2 letter reveals + 1 second chance, and you get 1 letter reveal + 1 streak freeze.",
+    "linkLabel": "Your invite link"
   },
   "security": {
     "title": "Security",
@@ -2027,7 +2121,7 @@
       "continue": "Continue",
       "cancel": "Cancel",
       "scanQr": "Scan this QR code with your authenticator app.",
-      "manualSecret": "Or enter this secret manually:",
+      "manualSecret": "Or enter this key manually:",
       "codeLabel": "6-digit code",
       "codePlaceholder": "123456",
       "verify": "Verify and enable",
@@ -2043,7 +2137,11 @@
       "copied": "Codes copied.",
       "iSavedThem": "I saved my codes",
       "regenerate": "Regenerate",
-      "regenerateConfirm": "Regenerating will invalidate the old codes. Continue?"
+      "regenerateConfirm": "Regenerating will invalidate the old codes. Continue?",
+      "qrAlt": "QR code to scan with your authenticator app",
+      "openInApp": "Open in my authenticator app",
+      "copySecret": "Copy key",
+      "secretCopied": "Key copied."
     },
     "passkey": {
       "title": "Passkeys",
@@ -2057,7 +2155,8 @@
       "delete": "Delete",
       "deleteSuccess": "Passkey deleted.",
       "deleteError": "Deletion failed.",
-      "addedOn": "Added on {{date}}"
+      "addedOn": "Added on {{date}}",
+      "fallbackName": "Passkey"
     },
     "challenge": {
       "title": "Two-step verification",
@@ -2067,7 +2166,8 @@
       "useBackupCode": "Use a backup code",
       "backupCodeLabel": "Backup code",
       "backToTotp": "Back to 6-digit code",
-      "invalidCode": "Wrong code. Try again."
+      "invalidCode": "Wrong code. Try again.",
+      "backupSubtitle": "Enter one of the backup codes you saved when you turned on two-step verification."
     },
     "passkeyLogin": {
       "button": "Sign in with a passkey",
@@ -2491,7 +2591,9 @@
     "badges": "Badges",
     "badgeLabels": {
       "ambassador": "Ambassador"
-    }
+    },
+    "shareTitle": "{{name}}'s profile on The Box",
+    "linkCopied": "Profile link copied!"
   },
   "geo": {
     "daily": {
@@ -2573,7 +2675,8 @@
         "shareText": "I scored {{score}}/{{max}} in a {{rounds}}-round Geo run on The Box! {{url}}",
         "copied": "Copied!",
         "again": "New run",
-        "close": "Back to free play"
+        "close": "Back to free play",
+        "abandonConfirm": "Abandon?"
       },
       "next": "Next round",
       "reroll": "New screenshot",
@@ -2659,7 +2762,9 @@
         "sure": "Sure",
         "approx": "Approximate",
         "guess": "Guessing"
-      }
+      },
+      "rewardLine_one": "+{{count}} hint token",
+      "rewardLine_other": "+{{count}} hint tokens"
     },
     "profile": {
       "title": "Geo Crowdsourcer",
@@ -3040,6 +3145,10 @@
     "wrongGuess_one": "Wrong — 1 try left",
     "wrongGuess_other": "Wrong — {{count}} tries left",
     "forceReveal": "Close the round",
-    "forceRevealHint": "Ends the round for everyone. Players who haven't finished keep the points they already scored."
+    "forceRevealHint": "Ends the round for everyone. Players who haven't finished keep the points they already scored.",
+    "you": "you",
+    "roundPoints": "+{{count}} this round",
+    "leaveConfirmTitle": "Leave the party?",
+    "leaveConfirmBody": "You won't be able to score any more points in this party."
   }
 }

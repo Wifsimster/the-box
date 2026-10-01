@@ -54,7 +54,8 @@
     },
     "menuDescription": "Navigation du site et liens du compte",
     "geogamers": "Panorama",
-    "new": "Nouveau"
+    "new": "Nouveau",
+    "goToItem": "Aller à l'élément {{index}}"
   },
   "nav": {
     "primary": "Navigation principale",
@@ -652,8 +653,12 @@
       "daysPlayed": "{{count}} jour joué",
       "daysPlayed_other": "{{count}} jours joués",
       "dropped": "3 pires jours retirés",
-      "unavailable": "Le classement Panorama n'est pas disponible."
-    }
+      "unavailable": "Le classement Panorama n'est pas disponible.",
+      "jokerUsed": "Joker utilisé"
+    },
+    "you": "Toi",
+    "yourRank": "Tu es n°{{rank}} sur {{total}}",
+    "seeMyRow": "Voir"
   },
   "history": {
     "title": "Historique des Parties",
@@ -693,7 +698,8 @@
     "zeroScore": {
       "title": "Zéro cette fois — ça arrive.",
       "subtitle": "Regarde les indices, repère le jeu, et reviens plus fort demain."
-    }
+    },
+    "loadError": "Impossible de charger ton historique."
   },
   "auth": {
     "login": "Connexion",
@@ -757,7 +763,9 @@
       "UNAUTHORIZED": "Authentification requise. Veuillez vous connecter",
       "FORBIDDEN": "Vous n'avez pas la permission d'accéder à cette ressource",
       "AUTH_ERROR": "Échec de l'authentification. Veuillez réessayer"
-    }
+    },
+    "passwordHint": "8 caractères minimum",
+    "useAnotherEmail": "Utiliser une autre adresse"
   },
   "admin": {
     "title": "Administration",
@@ -1579,6 +1587,13 @@
         "active": "Actifs",
         "completed": "Terminés",
         "failed": "Échoués"
+      },
+      "clearConfirm": {
+        "title": "Vider la file de tâches ?",
+        "description": "Toutes les tâches terminées et échouées seront retirées de la liste."
+      },
+      "runConfirm": {
+        "title": "Exécuter cette tâche maintenant ?"
       }
     },
     "games": {
@@ -1742,7 +1757,67 @@
       "emailRequired": "Veuillez entrer une adresse email destinataire",
       "invalidEmail": "Veuillez entrer une adresse email valide"
     },
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "geogamersHealth": {
+      "title": "GeoGamers — état du contenu",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "starved": "Contenu insuffisant : {{count}} jeux éligibles (min {{min}}). Le défi du jour peut être ignoré — ajoute des captures avec pin de consensus.",
+      "healthy": "Contenu suffisant : {{count}} jeux éligibles (min {{min}}).",
+      "stats": {
+        "eligibleGames": "Jeux éligibles",
+        "eligibleScreenshots": "Captures éligibles",
+        "gamesOnCooldown": "Jeux en cooldown",
+        "seasonPlayers": "Joueurs (saison)"
+      },
+      "summary": "Défi du jour : {{today}} · Défi courant : {{current}} · Cooldown : {{cooldown}} j · Saison : {{season}}",
+      "todayCreated": "créé",
+      "todayPending": "pas encore",
+      "createToday": "Créer le défi du jour",
+      "alreadyCreated": "Défi du jour déjà créé",
+      "loadError": "Impossible de charger l'état GeoGamers."
+    },
+    "geoNeedingContent": {
+      "title": "À un pin de l'éligibilité",
+      "description": "Jeux avec une carte active et des captures qui collectent des pins, mais sans position canonique. Promouvoir une capture (via la file de revue) rend le jeu éligible au mode GeoGamers.",
+      "empty": "Aucun jeu en attente de pin canonique : toutes les captures collectées ont déjà une position de consensus, ou aucun jeu n'a encore de carte active avec des captures.",
+      "captures_one": "{{count}} capture",
+      "captures_other": "{{count}} captures",
+      "topPins_one": "{{count}} pin (max)",
+      "topPins_other": "{{count}} pins (max)",
+      "pinsToThreshold_one": "{{count}} pin avant recalcul",
+      "pinsToThreshold_other": "{{count}} pins avant recalcul",
+      "review": "Revoir",
+      "loadError": "Jeux à compléter :"
+    },
+    "agentKeys": {
+      "title": "Clés agent Géo",
+      "description": "Clés d'API pour la surface de sourcing agent (/api/agent/v1/geo). Réservées admin, portée geo-agent:* uniquement. Le texte en clair n'est affiché qu'une seule fois. Nécessite GEO_AGENT_API_ENABLED=true côté backend.",
+      "label": "Libellé",
+      "labelPlaceholder": "ex. exploration-claude",
+      "mode": "Mode",
+      "scopes": "Portées",
+      "scopeHints": {
+        "read": "santé, jeux à compléter, captures",
+        "ingest": "déclencher le pipeline (phase 3)",
+        "propose": "proposer des pins (phase 4)",
+        "curate": "inscrire des jeux, cartes candidates (phase 5)",
+        "promote": "confirmer/promouvoir un pin de consensus (phase 7)"
+      },
+      "create": "Créer la clé",
+      "copyNow": "Copie cette clé maintenant — elle ne sera plus affichée.",
+      "copy": "Copier la clé",
+      "copied": "Clé copiée",
+      "copyError": "Impossible de copier la clé",
+      "loadError": "Clés :",
+      "empty": "Aucune clé agent.",
+      "revoked": "révoquée",
+      "revoke": "Révoquer",
+      "revokeConfirm": {
+        "title": "Révoquer cette clé ?",
+        "description": "La clé « {{label}} » cessera immédiatement de fonctionner. Cette action est irréversible."
+      }
+    }
   },
   "pricing": {
     "title": "The Box Premium",
@@ -1810,7 +1885,9 @@
       "yes": "Oui",
       "no": "Non"
     },
-    "footnote": "Paiement sécurisé via Stripe. TVA appliquée selon votre pays. Annulation possible à tout moment depuis votre profil."
+    "footnote": "Paiement sécurisé via Stripe. TVA appliquée selon votre pays. Annulation possible à tout moment depuis votre profil.",
+    "annualEquivalent": "soit {{price}}/mois, facturé annuellement",
+    "errorPrices": "Impossible de charger les offres Premium pour le moment."
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",
@@ -1958,7 +2035,23 @@
     "rulesLeaderboardTitle": "9. Classement",
     "rulesLeaderboard": "Les classements quotidien et mensuel sont mis à jour en temps réel à mesure que les joueurs terminent les défis. Seules les parties du défi principal comptent — pas les rattrapages. Le mode Géo possède ses propres classements quotidien et mensuel, distincts. Le nombre de parties jouées et le total de succès de chaque joueur sont affichés à côté de son nom.",
     "rulesFairPlayTitle": "10. Fair-play",
-    "rulesFairPlay": "Partager les réponses, automatiser les saisies ou utiliser plusieurs comptes pour grimper au classement n'est pas autorisé et entraînera une réinitialisation du score et une suspension du compte. Si vous repérez un jeu mal classé ou une mauvaise réponse acceptée, signalez-le via la page Contact."
+    "rulesFairPlay": "Partager les réponses, automatiser les saisies ou utiliser plusieurs comptes pour grimper au classement n'est pas autorisé et entraînera une réinitialisation du score et une suspension du compte. Si vous repérez un jeu mal classé ou une mauvaise réponse acceptée, signalez-le via la page Contact.",
+    "tocTitle": "Sommaire",
+    "docQuestion": "Une question sur ce document ?",
+    "opensInNewTab": "(s'ouvre dans un nouvel onglet)",
+    "faqStillQuestions": "Vous n'avez pas trouvé votre réponse ?",
+    "faqScoringLink": "Voir le détail du calcul du score",
+    "rulesStep1Title": "Observez",
+    "rulesStep1": "Une capture d'écran d'un jeu vidéo s'affiche, de plus en plus difficile au fil du défi.",
+    "rulesStep2Title": "Devinez",
+    "rulesStep2": "Tapez le nom du jeu : pas besoin du titre exact, les fautes de frappe sont tolérées.",
+    "rulesStep3Title": "Marquez",
+    "rulesStep3": "Plus vous répondez vite, plus vous gagnez de points. Grimpez au classement !",
+    "contactEmailAction": "Écrire un email",
+    "contactCopyEmail": "Copier l'adresse",
+    "contactBugAction": "Décrire le bug par email",
+    "contactBugSubject": "Signalement de bug",
+    "contactBugBody": "Que s'est-il passé ?\n\n\nÉtapes pour reproduire le problème :\n\n\nAppareil / navigateur : {{device}}"
   },
   "errors": {
     "boundary": {
@@ -2009,7 +2102,8 @@
     "stat_one": "{{count}} ami inscrit",
     "stat_other": "{{count}} amis inscrits",
     "claimedNote": "Vous avez été parrainé par un ami — merci !",
-    "rewardHint": "Récompense : votre ami reçoit 2 révélations de lettre + 1 seconde chance, et vous 1 révélation de lettre + 1 protection de série."
+    "rewardHint": "Récompense : votre ami reçoit 2 révélations de lettre + 1 seconde chance, et vous 1 révélation de lettre + 1 protection de série.",
+    "linkLabel": "Votre lien d'invitation"
   },
   "security": {
     "title": "Sécurité",
@@ -2027,7 +2121,7 @@
       "continue": "Continuer",
       "cancel": "Annuler",
       "scanQr": "Scannez ce QR code avec votre application d'authentification.",
-      "manualSecret": "Ou saisissez ce secret manuellement :",
+      "manualSecret": "Ou saisissez cette clé manuellement :",
       "codeLabel": "Code à 6 chiffres",
       "codePlaceholder": "123456",
       "verify": "Vérifier et activer",
@@ -2043,7 +2137,11 @@
       "copied": "Codes copiés.",
       "iSavedThem": "J'ai sauvegardé mes codes",
       "regenerate": "Régénérer",
-      "regenerateConfirm": "Régénérer les codes invalidera les anciens. Continuer ?"
+      "regenerateConfirm": "Régénérer les codes invalidera les anciens. Continuer ?",
+      "qrAlt": "QR code à scanner avec votre application d'authentification",
+      "openInApp": "Ouvrir dans mon application d'authentification",
+      "copySecret": "Copier la clé",
+      "secretCopied": "Clé copiée."
     },
     "passkey": {
       "title": "Clés d'accès (passkeys)",
@@ -2057,7 +2155,8 @@
       "delete": "Supprimer",
       "deleteSuccess": "Passkey supprimée.",
       "deleteError": "Échec de la suppression.",
-      "addedOn": "Ajoutée le {{date}}"
+      "addedOn": "Ajoutée le {{date}}",
+      "fallbackName": "Passkey"
     },
     "challenge": {
       "title": "Vérification en deux étapes",
@@ -2067,7 +2166,8 @@
       "useBackupCode": "Utiliser un code de secours",
       "backupCodeLabel": "Code de secours",
       "backToTotp": "Revenir au code à 6 chiffres",
-      "invalidCode": "Code incorrect. Réessayez."
+      "invalidCode": "Code incorrect. Réessayez.",
+      "backupSubtitle": "Saisissez l'un des codes de secours enregistrés lors de l'activation de la double authentification."
     },
     "passkeyLogin": {
       "button": "Se connecter avec une passkey",
@@ -2491,7 +2591,9 @@
     "badges": "Badges",
     "badgeLabels": {
       "ambassador": "Ambassadeur"
-    }
+    },
+    "shareTitle": "Le profil de {{name}} sur The Box",
+    "linkCopied": "Lien du profil copié !"
   },
   "geo": {
     "daily": {
@@ -2573,7 +2675,8 @@
         "shareText": "J'ai marqué {{score}}/{{max}} sur un run Géo de {{rounds}} manches sur The Box ! {{url}}",
         "copied": "Copié !",
         "again": "Nouveau run",
-        "close": "Continuer en mode libre"
+        "close": "Continuer en mode libre",
+        "abandonConfirm": "Abandonner ?"
       },
       "next": "Suivant",
       "reroll": "Nouvelle capture",
@@ -2659,7 +2762,9 @@
         "sure": "Sûr",
         "approx": "À peu près",
         "guess": "Au pif"
-      }
+      },
+      "rewardLine_one": "+{{count}} jeton d'indice",
+      "rewardLine_other": "+{{count}} jetons d'indice"
     },
     "profile": {
       "title": "Contributeur Géo",
@@ -3040,6 +3145,10 @@
     "wrongGuess_one": "Raté — 1 essai restant",
     "wrongGuess_other": "Raté — {{count}} essais restants",
     "forceReveal": "Clore la manche",
-    "forceRevealHint": "Termine la manche pour tout le monde. Les joueurs qui n'ont pas fini gardent les points déjà marqués."
+    "forceRevealHint": "Termine la manche pour tout le monde. Les joueurs qui n'ont pas fini gardent les points déjà marqués.",
+    "you": "toi",
+    "roundPoints": "+{{count}} cette manche",
+    "leaveConfirmTitle": "Quitter la partie ?",
+    "leaveConfirmBody": "Tu ne pourras plus marquer de points dans cette partie."
   }
 }
