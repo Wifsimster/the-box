@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
     ResponsiveDialog,
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { CircleCheck, Flame, Gift, Loader2, Sparkles } from 'lucide-react'
 import { RewardIcon } from './RewardIcon'
 import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
+import { IN_GAME_PATH } from '@/components/pwa/prompt-timing'
 import {
     getRarityStyle,
     getRewardRarity,
@@ -58,6 +60,10 @@ export function DailyRewardModal() {
     const [isAnimating, setIsAnimating] = useState(false)
     // A brand-new player sees the welcome dialog first; the reward waits.
     const welcomeActive = useWelcomeActive()
+    // Never interrupt a round: the reward stays pending and opens once the
+    // player leaves the game screen.
+    const { pathname } = useLocation()
+    const inGame = IN_GAME_PATH.test(pathname)
 
     if (!status) return null
 
@@ -97,7 +103,7 @@ export function DailyRewardModal() {
     const daysUntilChest = Math.max(cycleLength - daysReached, 0)
 
     return (
-        <ResponsiveDialog open={isModalOpen && !welcomeActive} onOpenChange={(open) => { if (!open) handleClose() }}>
+        <ResponsiveDialog open={isModalOpen && !welcomeActive && !inGame} onOpenChange={(open) => { if (!open) handleClose() }}>
             <ResponsiveDialogContent className="sm:max-w-md gap-4 sm:gap-6 overflow-x-hidden">
                 <ResponsiveDialogHeader className="items-center text-center sm:text-center">
                     <ResponsiveDialogTitle

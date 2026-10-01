@@ -4,7 +4,7 @@ import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useChangelogStore } from '@/stores/changelogStore'
 import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
 
-const IN_GAME_PATH = /\/(play|geo)\/?$/
+export const IN_GAME_PATH = /\/(play|geo)\/?$/
 
 /**
  * Whether a passive bottom prompt (install banner, iOS hint) may show right
