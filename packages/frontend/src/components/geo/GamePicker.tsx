@@ -7,7 +7,6 @@ import {
     Eye,
     EyeOff,
     Image as ImageIcon,
-    Loader2,
     MapPin,
     Search,
     Sparkles,
@@ -20,6 +19,7 @@ import {
     SheetDescription,
 } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/lib/utils'
 import { isPlaceholderImageUrl } from '@/lib/geo-image'
@@ -141,8 +141,16 @@ export function GamePicker({
 
                 <div className="flex-1 overflow-y-auto px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
                     {isLoading ? (
-                        <output className="flex justify-center py-16">
-                            <Loader2 className="size-6 animate-spin text-neon-pink" aria-hidden />
+                        <output className="grid grid-cols-1 gap-3 pt-2" aria-busy="true">
+                            {[0, 1, 2].map((i) => (
+                                <div key={i} className="overflow-hidden rounded-lg border border-border">
+                                    <Skeleton className="aspect-video w-full rounded-none sm:aspect-[16/7]" />
+                                    <div className="space-y-2 p-3">
+                                        <Skeleton variant="text" className="w-2/3" />
+                                        <Skeleton variant="text" className="h-3 w-1/3" />
+                                    </div>
+                                </div>
+                            ))}
                             <span className="sr-only">
                                 {t('common.loading', 'Loading…')}
                             </span>
@@ -350,7 +358,7 @@ function GameCard({
                         e.stopPropagation()
                         onToggleIgnore()
                     }}
-                    className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur hover:border-neon-pink/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                    className="absolute right-1 top-1 z-10 inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border border-white/20 bg-black/60 px-3 text-xs text-white/90 backdrop-blur hover:border-neon-pink/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
                     aria-label={
                         ignored
                             ? t('geo.play.unmarkIgnored', 'Restore this game')
@@ -358,9 +366,9 @@ function GameCard({
                     }
                 >
                     {ignored ? (
-                        <Eye className="size-3" aria-hidden />
+                        <Eye className="size-4" aria-hidden />
                     ) : (
-                        <EyeOff className="size-3" aria-hidden />
+                        <EyeOff className="size-4" aria-hidden />
                     )}
                     <span className="hidden sm:inline">
                         {ignored

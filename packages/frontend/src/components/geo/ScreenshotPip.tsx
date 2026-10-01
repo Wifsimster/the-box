@@ -27,7 +27,7 @@ export function ScreenshotPip({ imageUrl, alt, className }: ScreenshotPipProps) 
                 type="button"
                 onClick={() => setHidden(false)}
                 className={cn(
-                    'absolute right-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink',
+                    'absolute right-2 top-2 z-20 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink',
                     className,
                 )}
             >
@@ -45,7 +45,7 @@ export function ScreenshotPip({ imageUrl, alt, className }: ScreenshotPipProps) 
         <div
             className={cn(
                 'absolute right-2 top-2 z-20 overflow-hidden rounded-lg border border-white/20 bg-black/70 shadow-lg backdrop-blur transition-[width] duration-200 motion-reduce:transition-none',
-                expanded ? 'w-[min(80%,26rem)]' : 'w-28 sm:w-40',
+                expanded ? 'w-[min(80%,26rem)]' : 'w-32 sm:w-40',
                 className,
             )}
         >
@@ -87,9 +87,11 @@ export function ScreenshotPip({ imageUrl, alt, className }: ScreenshotPipProps) 
                 }}
                 aria-label={t('geo.pip.hide', 'Hide the capture')}
                 title={t('geo.pip.hide', 'Hide the capture')}
-                className="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink"
+                className="group/hide absolute right-0 top-0 inline-flex size-11 items-start justify-end p-1 focus-visible:outline-none"
             >
-                <X className="size-3.5" aria-hidden />
+                <span className="inline-flex size-7 items-center justify-center rounded-full bg-black/60 text-white group-hover/hide:bg-black/80 group-focus-visible/hide:ring-2 group-focus-visible/hide:ring-neon-pink">
+                    <X className="size-4" aria-hidden />
+                </span>
             </button>
         </div>
     )

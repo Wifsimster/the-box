@@ -160,6 +160,9 @@ export function GeoPlayDeck({
                 onQuickPlay={() => void pickRandomAcrossGames()}
                 onStartRun={() => void startRun()}
                 onCheckForNew={() => void checkForNewScreenshots()}
+                onRetry={() =>
+                    void (currentGameId != null ? rerollScreenshot() : pickRandomAcrossGames())
+                }
                 onIgnoreCurrent={() => {
                     if (currentGameId != null) {
                         toggleIgnoreGame(currentGameId)
@@ -184,6 +187,7 @@ export function GeoPlayDeck({
             startRun,
             checkForNewScreenshots,
             toggleIgnoreGame,
+            rerollScreenshot,
         ],
     )
 

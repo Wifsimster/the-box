@@ -1,18 +1,33 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { GeoPinConfidence } from '@the-box/types'
 import { authClient, useSession } from '@/lib/auth-client'
 import { useGeoStore } from '@/stores/geoStore'
 import { connectGeoSocket } from '@/lib/geo-socket'
 import { GeoMapCanvas } from '@/components/geo/GeoMapCanvas'
+import { ScreenshotPip } from '@/components/geo/ScreenshotPip'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { cn } from '@/lib/utils'
-import { HandCoins, Loader2, Lock, SkipForward } from 'lucide-react'
+import {
+    AlertTriangle,
+    CheckCircle2,
+    HandCoins,
+    Loader2,
+    Lock,
+    MapPin,
+    Play,
+    RefreshCw,
+    SkipForward,
+} from 'lucide-react'
 
 export default function GeoContributePage() {
     const { t } = useTranslation()
+    const { localizedPath } = useLocalizedPath()
     const { data: session, isPending: isSessionPending } = useSession()
     const [searchParams] = useSearchParams()
     const gameIdParam = searchParams.get('gameId')
@@ -79,8 +94,12 @@ export default function GeoContributePage() {
         if (unlock.unlocked) pickContribution(gameId)
     }, [gameId, pickContribution, unlock])
 
+    const [submitting, setSubmitting] = useState(false)
+
     const handleSubmit = async () => {
+        setSubmitting(true)
         const ok = await submitPin()
+        setSubmitting(false)
         if (ok) {
             setMessage(
                 t(
@@ -100,13 +119,16 @@ export default function GeoContributePage() {
         pickContribution(gameId)
     }
 
+    const daysPlayed = unlock?.daysPlayed ?? 0
+    const minRequired = unlock?.minRequired ?? 0
+
     return (
-        <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
-            <header className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight gradient-gaming bg-clip-text text-transparent">
+        <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8">
+            <header className="space-y-2">
+                <h1 className="gradient-gaming-title text-3xl font-bold tracking-tight sm:text-4xl">
                     {t('geo.contribute.title', 'Tag a screenshot')}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground sm:text-base">
                     {t(
                         'geo.contribute.subtitle',
                         'Help the community by pinning where this scene happens. Accurate pins earn hint tokens.',
@@ -116,32 +138,47 @@ export default function GeoContributePage() {
 
             {isLocked && (
                 <Card>
-                    <CardContent className="py-10 text-center space-y-3">
-                        <Lock className="mx-auto size-8 text-muted-foreground" />
-                        <p className="text-sm">
+                    <CardContent className="mx-auto max-w-sm space-y-4 py-10 text-center">
+                        <Lock className="mx-auto size-8 text-muted-foreground" aria-hidden />
+                        <p className="text-sm sm:text-base">
                             {t(
                                 'geo.contribute.lockedTitle',
                                 'Tagging unlocks after a few daily games.',
                             )}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                            {t('geo.contribute.lockedProgress', 'Progress')}: {unlock?.daysPlayed}/
-                            {unlock?.minRequired}{' '}
-                            {t('geo.profile.unlockDays', 'days played')}
-                        </p>
+                        <div className="space-y-1.5">
+                            <Progress
+                                value={minRequired > 0 ? Math.min(100, (daysPlayed / minRequired) * 100) : 0}
+                                aria-label={t('geo.contribute.lockedProgress', 'Progress')}
+                            />
+                            <p className="text-xs text-muted-foreground tabular-nums">
+                                {t('geo.contribute.lockedProgress', 'Progress')}: {daysPlayed}/
+                                {minRequired} {t('geo.profile.unlockDays', 'days played')}
+                            </p>
+                        </div>
+                        <Button asChild variant="gaming" className="w-full sm:w-auto">
+                            <Link to={localizedPath('/play')}>
+                                <Play aria-hidden />
+                                {t('common.dailyGuess', 'Daily challenge')}
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
+            {message && (
+                <Card variant="success" role="status" aria-live="polite">
+                    <CardContent className="flex items-center gap-3 pt-(--card-padding) text-sm">
+                        <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden />
+                        {message}
                     </CardContent>
                 </Card>
             )}
 
             {!isLocked && phase === 'loading' && (
-                <output
-                    className="flex justify-center py-20"
-                    aria-busy="true"
-                >
-                    <Loader2
-                        className="size-8 animate-spin text-neon-pink"
-                        aria-hidden
-                    />
+                <output className="grid gap-6 lg:grid-cols-2" aria-busy="true">
+                    <Skeleton className="aspect-video w-full rounded-xl" />
+                    <Skeleton className="aspect-square w-full rounded-xl" />
                     <span className="sr-only">
                         {t('geo.contribute.loading', 'Loading screenshot…')}
                     </span>
@@ -149,83 +186,100 @@ export default function GeoContributePage() {
             )}
 
             {!isLocked && phase === 'error' && (
-                <Card>
-                    <CardContent className="py-10 text-center text-sm text-destructive">
-                        {errorMessage ?? t('common.error', 'Error')}
+                <Card variant="error">
+                    <CardContent className="flex flex-col items-center gap-4 py-10 text-center" role="alert">
+                        <AlertTriangle className="size-8 text-destructive" aria-hidden />
+                        <p className="text-sm">{errorMessage ?? t('common.error', 'Error')}</p>
+                        <Button variant="outline" onClick={handleSkip}>
+                            <RefreshCw aria-hidden />
+                            {t('common.retry', 'Retry')}
+                        </Button>
                     </CardContent>
                 </Card>
             )}
 
             {!isLocked && currentCandidate && currentCandidateMap && phase === 'playing' && (
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
                     <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">
+                        <CardHeader>
+                            <StepTitle step={1}>
                                 {t('geo.contribute.screenshot', 'Screenshot')}
-                            </CardTitle>
+                            </StepTitle>
                         </CardHeader>
                         <CardContent>
                             <img
                                 src={currentCandidate.imageUrl}
-                                alt="Unlabeled game screenshot"
+                                alt={t('geo.contribute.screenshot', 'Screenshot')}
                                 className="w-full rounded-lg border"
                             />
                         </CardContent>
                     </Card>
 
                     <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">
+                        <CardHeader>
+                            <StepTitle step={2}>
                                 {t('geo.contribute.map', 'Pin its location')}
-                            </CardTitle>
+                            </StepTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <GeoMapCanvas
-                                imageUrl={currentCandidateMap.imageUrl}
-                                widthPx={currentCandidateMap.widthPx}
-                                heightPx={currentCandidateMap.heightPx}
-                                tiles={currentCandidateMap.tiles}
-                                pin={pendingPin}
-                                onPin={setPendingPin}
-                            />
+                            {/* Below lg the screenshot card scrolls away while
+                                pinning — keep it floating over the map. */}
+                            <div className="relative">
+                                <GeoMapCanvas
+                                    imageUrl={currentCandidateMap.imageUrl}
+                                    widthPx={currentCandidateMap.widthPx}
+                                    heightPx={currentCandidateMap.heightPx}
+                                    tiles={currentCandidateMap.tiles}
+                                    pin={pendingPin}
+                                    onPin={setPendingPin}
+                                />
+                                <ScreenshotPip
+                                    imageUrl={currentCandidate.imageUrl}
+                                    alt={t('geo.contribute.screenshot', 'Screenshot')}
+                                    className="lg:hidden"
+                                />
+                            </div>
                             {/* Confidence chip — shown only after a pin is
                                 placed so it doesn't pre-bias the player.
                                 Skipping the chip is allowed; the server
                                 treats unspecified as "sure" today, and a
                                 follow-up will weight low-confidence pins
                                 proportionally less in consensus. */}
-                            {pendingPin && (
+                            {pendingPin ? (
                                 <ConfidenceChips
                                     value={pendingConfidence}
                                     onChange={setPendingConfidence}
                                 />
+                            ) : (
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <MapPin className="size-4 shrink-0 text-neon-pink" aria-hidden />
+                                    {t('geo.play.hint.tapMap', 'Tap the map to place your pin')}
+                                </p>
                             )}
-                            <div className="flex items-center justify-between">
+                            {errorMessage && (
+                                <p role="alert" className="text-sm text-destructive">
+                                    {errorMessage}
+                                </p>
+                            )}
+                            <div className="sticky bottom-[var(--bottom-nav-space)] z-10 flex gap-2 bg-card py-3">
                                 <Button
                                     variant="outline"
-                                    size="sm"
                                     onClick={handleSkip}
+                                    disabled={submitting}
                                 >
-                                    <SkipForward className="size-4 mr-2" />
+                                    <SkipForward aria-hidden />
                                     {t('geo.contribute.skip', 'Skip')}
                                 </Button>
                                 <Button
+                                    variant="gaming"
                                     onClick={handleSubmit}
-                                    disabled={!pendingPin}
-                                    className="gradient-gaming hover:opacity-90"
+                                    disabled={!pendingPin || submitting}
+                                    className="flex-1 sm:flex-none"
                                 >
+                                    {submitting && <Loader2 className="animate-spin" aria-hidden />}
                                     {t('geo.contribute.submit', 'Submit pin')}
                                 </Button>
                             </div>
-                            {message && (
-                                <p
-                                    className="text-xs text-success"
-                                    role="status"
-                                    aria-live="polite"
-                                >
-                                    {message}
-                                </p>
-                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -233,14 +287,14 @@ export default function GeoContributePage() {
 
             {recentRewards.length > 0 && (
                 <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                            <HandCoins className="size-4 text-success" />
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <HandCoins className="size-4 text-success" aria-hidden />
                             {t('geo.contribute.recent', 'Recent rewards')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ul className="text-xs text-muted-foreground space-y-1">
+                        <ul className="space-y-1 text-sm text-muted-foreground">
                             {recentRewards.slice(0, 5).map((r) => {
                                 const tokens = r.items.reduce((n, it) => n + it.quantity, 0)
                                 const itemsKey = r.items
@@ -250,8 +304,10 @@ export default function GeoContributePage() {
                                     <li
                                         key={`${r.userId}-${r.geoScreenshotCandidateId}-${itemsKey}`}
                                     >
-                                        +{tokens} hint tokens
-                                        (candidate #{r.geoScreenshotCandidateId})
+                                        {t('geo.contribute.rewardLine', {
+                                            defaultValue: '+{{count}} hint tokens',
+                                            count: tokens,
+                                        })}
                                     </li>
                                 )
                             })}
@@ -260,6 +316,20 @@ export default function GeoContributePage() {
                 </Card>
             )}
         </div>
+    )
+}
+
+function StepTitle({ step, children }: { step: number; children: ReactNode }) {
+    return (
+        <CardTitle className="flex items-center gap-2 text-base">
+            <span
+                aria-hidden
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-neon-pink/15 text-xs font-semibold text-neon-pink"
+            >
+                {step}
+            </span>
+            {children}
+        </CardTitle>
     )
 }
 

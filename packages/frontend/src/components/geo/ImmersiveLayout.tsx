@@ -64,9 +64,16 @@ export function ImmersiveLayout({
     const [mapHovered, setMapHovered] = useState(false)
     const [mapPinned, setMapPinned] = useState(false)
     const mapExpanded = mapPinned || mapHovered
+    const [photoFocused, setPhotoFocused] = useState(false)
     const deckStyle = {
         '--geo-desktop-cols': mapExpanded ? '35fr 65fr' : '60fr 40fr',
+        '--geo-mobile-rows': photoFocused
+            ? 'minmax(52%,1.6fr) minmax(30%,1fr)'
+            : 'minmax(30%,1fr) minmax(52%,1.6fr)',
     } as CSSProperties
+    const photoToggleLabel = photoFocused
+        ? t('geo.pip.shrink', 'Shrink the capture')
+        : t('geo.pip.expand', 'Enlarge the capture')
 
     return (
         <div
@@ -126,7 +133,7 @@ export function ImmersiveLayout({
                     <div className="absolute inset-0">{hero}</div>
                 ) : (
                 <div
-                    className="absolute inset-0 grid grid-rows-[minmax(30%,1fr)_minmax(52%,1.6fr)] md:grid-rows-1 md:[grid-template-columns:var(--geo-desktop-cols)] md:transition-[grid-template-columns] md:duration-300 motion-reduce:md:transition-none"
+                    className="absolute inset-0 grid grid-rows-(--geo-mobile-rows) transition-[grid-template-rows] duration-300 motion-reduce:transition-none md:grid-rows-1 md:[grid-template-columns:var(--geo-desktop-cols)] md:transition-[grid-template-columns] motion-reduce:md:transition-none"
                     style={deckStyle}
                 >
                     <Panel
@@ -140,6 +147,22 @@ export function ImmersiveLayout({
                             </>
                         }
                         className="border-b border-white/10 md:border-b-0 md:border-r"
+                        cornerAction={
+                            <button
+                                type="button"
+                                onClick={() => setPhotoFocused((p) => !p)}
+                                aria-pressed={photoFocused}
+                                aria-controls="geo-panel-photo"
+                                aria-label={photoToggleLabel}
+                                className="pointer-events-auto absolute bottom-2 right-2 z-20 inline-flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white shadow-lg backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink md:hidden"
+                            >
+                                {photoFocused ? (
+                                    <Minimize2 className="size-5" aria-hidden />
+                                ) : (
+                                    <Maximize2 className="size-5" aria-hidden />
+                                )}
+                            </button>
+                        }
                     >
                         {screenshot}
                     </Panel>
