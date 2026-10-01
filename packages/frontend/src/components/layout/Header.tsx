@@ -317,11 +317,14 @@ export function Header() {
 
   // Show login/register buttons if there's no session. Also check the session
   // is valid (has user data) — the session endpoint can return invalid data.
+  // Guests (anonymous sessions) get them too: it's their only way to turn the
+  // guest account into a real one, and the backend carries today's game over.
   const hasValidSession = session && session.user && session.user.id
-  const showAuthButtons = !hasValidSession
+  const isGuest = Boolean((session?.user as { isAnonymous?: boolean } | undefined)?.isAnonymous)
+  const showAuthButtons = !hasValidSession || isGuest
   const isAdmin = session?.user?.role === 'admin'
   const displayName = session?.user?.name || session?.user?.email?.split('@')[0]
-  const isSignedIn = Boolean(hasValidSession) && !isPending
+  const isSignedIn = Boolean(hasValidSession) && !isPending && !isGuest
 
   return (
     <header

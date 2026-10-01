@@ -192,6 +192,8 @@ function ProtectedRoute({ children }) {
 
 Better Auth supporte la connexion anonyme via `signIn.anonymous()`. Une session temporaire est créée et liée à un utilisateur sans e-mail.
 
+Un invité garde les boutons « Connexion » / « Inscription » dans le header. Quand il s'inscrit (ou se connecte) depuis sa session invité, le plugin `anonymous` appelle `onLinkAccount` puis supprime l'utilisateur invité. Avant cette suppression, `transferAnonymousUserData` (`infrastructure/auth/link-anonymous-account.ts`) déplace dans une transaction ses `game_sessions`, `live_event_participants` et `user_achievements` vers le nouveau compte, et crédite son score et ses séries. Les lignes en conflit (même défi déjà joué, succès déjà obtenu) restent sur l'invité et disparaissent avec lui.
+
 ## Tables créées par Better Auth
 
 > **Détail technique.** Better Auth crée et maintient ces tables automatiquement au premier `migrate`.
