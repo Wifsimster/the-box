@@ -2167,7 +2167,9 @@
       "backupCodeLabel": "Backup code",
       "backToTotp": "Back to 6-digit code",
       "invalidCode": "Wrong code. Try again.",
-      "backupSubtitle": "Enter one of the backup codes you saved when you turned on two-step verification."
+      "backupSubtitle": "Enter one of the backup codes you saved when you turned on two-step verification.",
+      "paste": "Paste",
+      "pasteEmpty": "No 6-digit code in the clipboard."
     },
     "passkeyLogin": {
       "button": "Sign in with a passkey",

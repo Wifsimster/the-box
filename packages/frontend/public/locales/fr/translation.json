@@ -2167,7 +2167,9 @@
       "backupCodeLabel": "Code de secours",
       "backToTotp": "Revenir au code à 6 chiffres",
       "invalidCode": "Code incorrect. Réessayez.",
-      "backupSubtitle": "Saisissez l'un des codes de secours enregistrés lors de l'activation de la double authentification."
+      "backupSubtitle": "Saisissez l'un des codes de secours enregistrés lors de l'activation de la double authentification.",
+      "paste": "Coller",
+      "pasteEmpty": "Aucun code à 6 chiffres dans le presse-papiers."
     },
     "passkeyLogin": {
       "button": "Se connecter avec une passkey",
