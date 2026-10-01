@@ -186,7 +186,7 @@ export function UserList() {
   }
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm">
+    <Card className="bg-card/50 backdrop-blur-sm" data-testid="user-list">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           {t('admin.users.title')}
