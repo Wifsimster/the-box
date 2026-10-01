@@ -74,7 +74,7 @@ export function ProgressDots() {
     <div
       role="group"
       aria-label={t('game.progressDots.label')}
-      className="flex gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-lg max-w-full"
+      className="flex gap-1.5 sm:gap-2 bg-background/70 border border-border/60 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-lg max-w-full"
     >
       {Array.from({ length: totalScreenshots }, (_, i) => {
         const pos = i + 1
@@ -109,7 +109,7 @@ export function ProgressDots() {
           >
             <span
               className={cn(
-                "relative flex items-center justify-center rounded-full font-semibold text-[11px] sm:text-xs transition-all duration-300",
+                "relative flex items-center justify-center rounded-full font-semibold text-xs transition-all duration-300",
                 "size-7 sm:size-8",
                 getStatusColor(status),
                 isCurrent && "bg-primary ring-2 ring-ring",

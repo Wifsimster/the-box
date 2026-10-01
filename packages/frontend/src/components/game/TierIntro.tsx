@@ -28,25 +28,21 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 flex items-center justify-center bg-linear-to-b from-background via-card to-background h-dvh"
+      className="relative flex size-full overflow-y-auto bg-linear-to-b from-background via-card to-background"
     >
-      {/* Background grid effect */}
-      <div className="absolute inset-0 opacity-20">
+      <div className="absolute inset-0 opacity-20 pointer-events-none" aria-hidden="true">
         <div className="size-full bg-grid-neon" />
       </div>
 
-      {/* Main content container - Mobile-first padding */}
-      <div className="relative text-center z-10 w-full px-4 sm:px-6 md:px-8 max-w-2xl mx-auto">
+      <div className="relative text-center z-10 w-full px-4 sm:px-6 md:px-8 py-6 sm:py-8 max-w-2xl m-auto">
         {/* Daily Challenge Title - Mobile-first typography */}
         <m.h1
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-shadow-neon text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-3 sm:mb-4 tracking-wider"
+          className="gradient-gaming-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-3 sm:mb-4 tracking-wide"
         >
-          <span className="bg-linear-to-r from-white via-neon-purple to-white bg-clip-text text-transparent">
-            {t('game.dailyChallenge')}
-          </span>
+          {t('game.dailyChallenge')}
         </m.h1>
 
         {/* Date - Mobile-first spacing */}
@@ -56,8 +52,8 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           transition={{ duration: 0.5, delay: 0.15 }}
           className="flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground mb-4 sm:mb-6 md:mb-8"
         >
-          <Calendar className="size-4 sm:size-5" />
-          <span className="text-sm sm:text-base md:text-lg">{formattedDate}</span>
+          <Calendar className="size-4 sm:size-5" aria-hidden="true" />
+          <span className="text-sm sm:text-base md:text-lg first-letter:uppercase">{formattedDate}</span>
         </m.div>
 
         {/* Game rules - Compact grid */}
@@ -66,6 +62,7 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-4 sm:mb-6 md:mb-8 grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto"
+          role="list"
         >
           {[
             { id: 'screenshots', icon: Images, label: t('game.rules.screenshotsShort', { count: totalScreenshots }), delay: 0 },
@@ -77,10 +74,11 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.2 + rule.delay }}
-              className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-lg bg-card/50 border border-border/50 hover:border-neon-purple/50 transition-colors"
+              role="listitem"
+              className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-lg bg-card/50 border border-border/50"
             >
-              <rule.icon className="size-5 sm:size-6 text-neon-purple" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground text-center leading-tight">
+              <rule.icon className="size-5 sm:size-6 text-neon-purple" aria-hidden="true" />
+              <span className="text-xs text-muted-foreground text-center leading-tight">
                 {rule.label}
               </span>
             </m.div>
@@ -93,10 +91,10 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 text-neon-blue mb-4 sm:mb-6 md:mb-8 px-4"
+            className="flex items-center justify-center gap-2 text-neon-blue mb-4 sm:mb-6 md:mb-8"
           >
-            <Info className="size-4 sm:size-5 shrink-0" />
-            <span className="text-xs sm:text-sm">{t('game.catchUpNotice')}</span>
+            <Info className="size-4 sm:size-5 shrink-0" aria-hidden="true" />
+            <span className="text-sm">{t('game.catchUpNotice')}</span>
           </m.div>
         )}
 
@@ -106,44 +104,28 @@ export function DailyIntro({ date, totalScreenshots, onStart, isCatchUp }: Daily
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: isCatchUp ? 0.3 : 0.25 }}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 text-warning mb-4 sm:mb-6 md:mb-8 px-4"
+            className="flex items-center justify-center gap-2 text-warning mb-4 sm:mb-6 md:mb-8"
           >
-            <AlertTriangle className="size-4 sm:size-5 shrink-0" />
-            <span className="text-xs sm:text-sm">{t('game.guestWarning')}</span>
+            <AlertTriangle className="size-4 sm:size-5 shrink-0" aria-hidden="true" />
+            <span className="text-sm">{t('game.guestWarning')}</span>
           </m.div>
         )}
 
-        {/* Start Button - Mobile-first sizing */}
         <m.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="px-2 sm:px-4"
         >
           <Button
             variant="gaming"
             size="xl"
             onClick={onStart}
-            className="gap-2 sm:gap-3 text-base sm:text-lg md:text-xl px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 w-full sm:w-auto"
+            className="gap-3 w-full sm:w-auto"
           >
             {t('game.startChallenge')}
-            <Play className="size-4 sm:size-5 md:size-6" />
+            <Play className="size-5" aria-hidden="true" />
           </Button>
         </m.div>
-
-        {/* Decorative elements - Hidden on mobile, shown on larger screens */}
-        <m.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="hidden md:block absolute -top-20 -left-20 size-40 bg-neon-purple/10 rounded-full blur-3xl"
-        />
-        <m.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="hidden md:block absolute -bottom-20 -right-20 size-40 bg-neon-pink/10 rounded-full blur-3xl"
-        />
       </div>
     </m.div>
   )

@@ -1,6 +1,7 @@
 import { m } from 'framer-motion'
 import { TrendingUp, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface PercentileBannerProps {
   percentile: number | null
@@ -22,16 +23,16 @@ export function PercentileBanner({
 
   if (isLoading) {
     return (
-      <m.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
+      <div
+        aria-busy="true"
+        className="bg-linear-to-r from-neon-purple/10 to-neon-pink/10 border border-neon-purple/30 rounded-xl p-3 sm:p-4"
       >
-        <div className="flex items-center justify-center gap-2">
-          <div className="size-3 sm:size-4 border-2 border-neon-purple border-t-transparent rounded-full animate-spin" />
-          <span className="text-muted-foreground text-xs sm:text-sm">{t('common.loading')}</span>
+        <span className="sr-only">{t('common.loading')}</span>
+        <div className="flex flex-col items-center gap-2">
+          <Skeleton className="h-5 sm:h-6 w-48 max-w-full" />
+          <Skeleton className="h-4 w-36 max-w-full" />
         </div>
-      </m.div>
+      </div>
     )
   }
 
@@ -48,18 +49,19 @@ export function PercentileBanner({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
+      role="status"
+      className="bg-linear-to-r from-neon-purple/20 to-neon-pink/20 border border-neon-purple/30 rounded-xl p-3 sm:p-4"
     >
-      <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+      <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center">
         <div className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-bold">
-          <TrendingUp className="size-4 sm:size-5 text-neon-purple shrink-0" />
+          <TrendingUp className="size-4 sm:size-5 text-neon-purple shrink-0" aria-hidden="true" />
           <span className="gradient-gaming bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
             {t('game.results.percentileTop', { percent: topPercent })}
           </span>
         </div>
         {rank !== null && (
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Users className="size-3.5 sm:size-4 shrink-0" />
+            <Users className="size-3.5 sm:size-4 shrink-0" aria-hidden="true" />
             <span>
               {t('game.results.rankOf', { rank, total: totalPlayers })}
             </span>

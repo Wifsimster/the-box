@@ -98,7 +98,7 @@ export function LetterRevealBar() {
       aria-label={t('game.hints.letterMaskAria', {
         revealed: letterState.lettersRevealed,
       })}
-      className="flex items-center gap-2 h-10 sm:h-11 pl-3 sm:pl-4 pr-1.5 sm:pr-2 border-b border-primary/20"
+      className="flex items-center gap-2 h-11 pl-3 sm:pl-4 pr-1 sm:pr-1.5 border-b border-primary/20"
     >
       {/* Visual mask — glyphs are decorative; the accessible name is the
           group's aria-label, and reveals are announced via the live region
@@ -110,7 +110,7 @@ export function LetterRevealBar() {
         className="flex-1 min-w-0 overflow-x-auto whitespace-nowrap font-mono tracking-wide select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {letterState.maskedTitle === '' ? (
-          <span aria-hidden="true" className="text-muted-foreground/70 italic">
+          <span aria-hidden="true" className="text-muted-foreground italic">
             {t('game.hints.maskHiddenPlaceholder')}
           </span>
         ) : (
@@ -134,7 +134,7 @@ export function LetterRevealBar() {
                 className={cn(
                   'inline-block',
                   char === '_'
-                    ? 'text-muted-foreground/70'
+                    ? 'text-muted-foreground'
                     : 'text-primary font-semibold'
                 )}
               >
@@ -149,7 +149,7 @@ export function LetterRevealBar() {
       {letterState.penaltyPct > 0 && (
         <span
           data-testid="letter-penalty-badge"
-          className="shrink-0 text-[11px] tabular-nums text-error/90"
+          className="shrink-0 text-xs font-medium tabular-nums text-error"
         >
           <span className="sr-only">
             {t('game.hints.letterPenaltyCurrent', { penalty: letterState.penaltyPct })}
@@ -170,7 +170,7 @@ export function LetterRevealBar() {
           aria-disabled={status !== 'ready' || isRevealing}
           aria-describedby={DESCRIPTION_ID}
           className={cn(
-            'shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 touch-manipulation transition-all duration-300',
+            "relative shrink-0 h-9 px-2.5 sm:px-3 touch-manipulation transition-all duration-300 pointer-coarse:after:absolute pointer-coarse:after:-inset-y-1 pointer-coarse:after:inset-x-0 pointer-coarse:after:content-['']",
             (status === 'locked' || status === 'no-inventory') &&
               'text-muted-foreground border-border/60'
           )}

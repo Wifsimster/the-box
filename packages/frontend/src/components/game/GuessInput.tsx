@@ -184,6 +184,12 @@ export function GuessInput() {
   // after a related wrong guess (same franchise / studio / publisher).
   const proximityHint = positionStates[currentPosition]?.proximityHint
 
+  // Tapping a dock button would otherwise blur the input and drop the mobile
+  // keyboard between guesses; keyboard activation still fires `click`.
+  const keepKeyboardOpen = (e: React.PointerEvent) => {
+    e.preventDefault()
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -213,7 +219,8 @@ export function GuessInput() {
               onClick={handlePrevious}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.previous')}
-              className="size-12 sm:size-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
+              onPointerDown={keepKeyboardOpen}
+              className="size-12 sm:size-14 shrink-0 touch-manipulation bg-background/60 backdrop-blur-sm"
             >
               <SkipBack className="size-4 sm:size-5" />
             </Button>
@@ -231,8 +238,8 @@ export function GuessInput() {
           <div
             className={cn(
               'rounded-xl overflow-hidden border-2 border-primary/30 shadow-[var(--glow-md)] bg-linear-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl focus-within:border-primary focus-within:shadow-[var(--glow-lg)] transition-all duration-300',
-              isSuccess && 'border-success shadow-[var(--glow-success)] animate-pulse',
-              !isSuccess && isShaking && 'border-error shadow-[var(--glow-error)]'
+              isSuccess && 'border-success shadow-[var(--glow-success)] motion-safe:animate-pulse',
+              !isSuccess && announceIncorrect && 'border-error shadow-[var(--glow-error)]'
             )}
           >
             <LetterRevealBar />
@@ -250,7 +257,9 @@ export function GuessInput() {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                className="h-12 sm:h-14 text-base md:text-lg border-0 rounded-none bg-transparent shadow-none focus-visible:ring-0 pl-3 sm:pl-4 pr-12 sm:pr-14 max-[360px]:pr-10"
+                aria-label={t('game.guessPlaceholder')}
+                aria-invalid={announceIncorrect || undefined}
+                className="h-12 sm:h-14 text-base md:text-lg border-0 rounded-none bg-transparent shadow-none focus-visible:ring-0 pl-3 sm:pl-4 pr-13 sm:pr-15"
                 disabled={gamePhase !== 'playing'}
               />
 
@@ -261,8 +270,9 @@ export function GuessInput() {
                 onClick={handleSubmit}
                 disabled={!query.trim() || isSubmitting || gamePhase !== 'playing' || !isOnline}
                 aria-label={t('game.submit', { defaultValue: 'Submit guess' })}
+                onPointerDown={keepKeyboardOpen}
                 className={cn(
-                  'absolute right-1.5 sm:right-2 inset-y-0 my-auto size-9 sm:size-10 max-[360px]:size-8 p-0 touch-manipulation transition-all duration-300',
+                  'absolute right-0.5 inset-y-0 my-auto size-11 sm:size-12 p-0 touch-manipulation transition-all duration-300',
                   query.trim()
                     ? 'bg-linear-to-r from-neon-pink to-neon-purple hover:from-neon-pink/90 hover:to-neon-purple/90'
                     : 'hover:bg-accent'
@@ -295,7 +305,8 @@ export function GuessInput() {
               onClick={handleSkip}
               disabled={gamePhase !== 'playing' || isSubmitting}
               aria-label={t('game.navigation.skip')}
-              className="size-12 sm:size-14 max-[360px]:h-10 max-[360px]:w-10 shrink-0 touch-manipulation"
+              onPointerDown={keepKeyboardOpen}
+              className="size-12 sm:size-14 shrink-0 touch-manipulation bg-background/60 backdrop-blur-sm"
             >
               <SkipForward className="size-4 sm:size-5" />
             </Button>

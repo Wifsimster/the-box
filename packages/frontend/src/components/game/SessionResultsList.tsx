@@ -72,7 +72,7 @@ export function SessionResultsList({
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <span className="font-medium text-sm sm:text-base block truncate">{result.correctGame.name}</span>
+                <span className="font-medium text-sm sm:text-base block min-w-0 truncate">{result.correctGame.name}</span>
                 {result.isCorrect && result.scoreEarned > 0 ? (
                   <Badge variant="success" className="text-xs sm:text-sm font-bold shrink-0">
                     +{result.scoreEarned}
@@ -93,17 +93,12 @@ export function SessionResultsList({
                 </span>
               )}
               {attempts.length > 0 && (
-                <>
-                  <span className="text-xs text-muted-foreground block mt-0.5">
-                    {t('game.attempts.count', { count: attempts.length })}
-                  </span>
-                  <GuessAttemptsList attempts={attempts} />
-                </>
+                <GuessAttemptsList attempts={attempts} />
               )}
               {result.isCorrect && result.timeTakenMs > 0 && (
                 <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-muted-foreground mt-1">
                   <Clock className="size-3 sm:size-3.5 shrink-0" aria-hidden="true" />
-                  <span className="whitespace-nowrap">
+                  <span className="min-w-0">
                     {t('game.discoveryTime', { time: formatDiscoveryTime(result.timeTakenMs) })}
                     {result.scoreEarned > 0 && multiplier > 1.0 && (
                       <> · 100 × {multiplier.toFixed(1)}x {t('game.speed.label')}</>
@@ -114,7 +109,7 @@ export function SessionResultsList({
               {result.isCorrect && (result.letterPenalty ?? 0) > 0 && (
                 <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-score-low mt-1">
                   <Type className="size-3 sm:size-3.5 shrink-0" aria-hidden="true" />
-                  <span className="whitespace-nowrap">
+                  <span className="min-w-0">
                     {t('game.letterPenaltyShort', { penalty: result.letterPenalty })}
                   </span>
                 </div>

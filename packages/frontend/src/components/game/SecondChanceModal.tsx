@@ -64,7 +64,7 @@ export function SecondChanceModal() {
             <ResponsiveDialogContent className="sm:max-w-md">
                 <ResponsiveDialogHeader>
                     <ResponsiveDialogTitle className="flex items-center gap-2">
-                        <Heart className="size-5 text-neon-pink" />
+                        <Heart className="size-5 text-neon-pink" aria-hidden="true" />
                         {t('game.secondChance.title')}
                     </ResponsiveDialogTitle>
                     <ResponsiveDialogDescription>

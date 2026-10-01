@@ -60,16 +60,16 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
     if (size === 'small') {
         return (
             <div
-                aria-label={statusAriaLabel}
                 className={cn(
                     'relative flex items-center gap-3 rounded-lg border p-3 transition-all',
                     isComplete
                         ? 'border-primary/40 bg-primary/10 shadow-sm'
-                        : 'border-muted/30 bg-muted/5 opacity-80',
+                        : 'border-border/60 bg-muted/10',
                     className
                 )}
             >
-                <div className="text-3xl">{isLocked ? <Lock className="size-8" aria-hidden="true" /> : achievement.iconUrl}</div>
+                <span className="sr-only">{statusAriaLabel}</span>
+                <div className={cn('text-3xl shrink-0', !isComplete && 'grayscale')} aria-hidden="true">{isLocked ? <Lock className="size-8" /> : achievement.iconUrl}</div>
                 <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm truncate">
                         {isLocked ? '???' : localizedName}
@@ -90,7 +90,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                         {achievement.points}pts
                     </Badge>
                     {isComplete && !isEarned && (
-                        <Badge variant="success" className="text-xs">
+                        <Badge variant="success" className="text-xs" aria-hidden="true">
                             ✓
                         </Badge>
                     )}
@@ -104,43 +104,27 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
 
     return (
         <Card
-            aria-label={statusAriaLabel}
             className={cn(
                 'relative overflow-hidden transition-all',
                 isComplete
                     ? 'border-primary/40 bg-primary/10 hover:border-primary/60 shadow-sm'
-                    : 'border-muted/30 bg-muted/5 opacity-85 hover:opacity-100',
+                    : 'border-border/60 bg-muted/10',
                 className
             )}
         >
-            {isComplete ? (
-                <div className="absolute top-2 right-2">
-                    <Badge variant="success" className="text-xs flex items-center gap-1">
-                        ✓ {earnedLabel}
-                    </Badge>
-                </div>
-            ) : (
-                <div className="absolute top-2 right-2">
-                    <Badge
-                        variant="outline"
-                        className="text-xs flex items-center gap-1 border-muted-foreground/40 text-muted-foreground"
-                    >
-                        <Lock className="size-3" aria-hidden="true" />
-                        {lockedLabel}
-                    </Badge>
-                </div>
-            )}
-
             <CardHeader className="pb-3">
                 <div className="flex items-start gap-3">
-                    <div className={cn(
-                        'text-4xl p-2 rounded-lg',
-                        isComplete ? 'bg-primary/20 ring-2 ring-primary/30' : 'bg-muted/20'
-                    )}>
-                        {isLocked ? <Lock className="size-10" aria-hidden="true" /> : achievement.iconUrl}
+                    <div
+                        className={cn(
+                            'text-4xl p-2 rounded-lg shrink-0',
+                            isComplete ? 'bg-primary/20 ring-2 ring-primary/30' : 'bg-muted/20 grayscale'
+                        )}
+                        aria-hidden="true"
+                    >
+                        {isLocked ? <Lock className="size-10" /> : achievement.iconUrl}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg">
+                        <CardTitle className="text-lg leading-snug">
                             {isLocked ? '???' : localizedName}
                         </CardTitle>
                         <CardDescription className="mt-1">
@@ -152,7 +136,20 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
 
             <CardContent className="pt-0">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {isComplete ? (
+                            <Badge variant="success" className="text-xs flex items-center gap-1">
+                                ✓ {earnedLabel}
+                            </Badge>
+                        ) : (
+                            <Badge
+                                variant="outline"
+                                className="text-xs flex items-center gap-1 border-border text-muted-foreground"
+                            >
+                                <Lock className="size-3" aria-hidden="true" />
+                                {lockedLabel}
+                            </Badge>
+                        )}
                         <Badge variant="outline" className={cn('text-xs', tierColor)}>
                             {getTierLabel(achievement.tier)} • {achievement.points}pts
                         </Badge>

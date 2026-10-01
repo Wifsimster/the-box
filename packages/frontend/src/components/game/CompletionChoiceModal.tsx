@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveDialog,
@@ -5,10 +6,12 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
   ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
 } from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
-import { Trophy, Play } from 'lucide-react'
+import { Trophy, Play, Loader2 } from 'lucide-react'
+import { toast } from '@/lib/toast'
 
 export function CompletionChoiceModal() {
   const { t } = useTranslation()
@@ -36,9 +39,18 @@ export function CompletionChoiceModal() {
     }
   }
 
+  const [isEnding, setIsEnding] = useState(false)
+
   const handleSeeResults = async () => {
-    setShowCompletionChoice(false)
-    await endGameAction()
+    setIsEnding(true)
+    try {
+      await endGameAction()
+      setShowCompletionChoice(false)
+    } catch {
+      toast.error(t('game.endGame.error'))
+    } finally {
+      setIsEnding(false)
+    }
   }
 
   return (
@@ -50,7 +62,7 @@ export function CompletionChoiceModal() {
       >
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="flex items-center gap-2 text-xl">
-            <Trophy className="size-5 text-primary" />
+            <Trophy className="size-5 text-primary" aria-hidden="true" />
             {t('game.completionChoice.title')}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
@@ -58,35 +70,41 @@ export function CompletionChoiceModal() {
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        {/* Remaining games info */}
-        <div className="flex flex-col items-center py-4">
-          <div className="text-4xl font-bold text-primary mb-2">
+        <div className="flex flex-col items-center gap-1 rounded-lg bg-muted/40 py-3 sm:py-4">
+          <span className="text-4xl font-bold tabular-nums text-primary" aria-hidden="true">
             {remainingGames}
-          </div>
-          <p className="text-muted-foreground text-center">
+          </span>
+          <p className="text-sm sm:text-base text-muted-foreground text-center">
             {t('game.completionChoice.gamesRemaining', { count: remainingGames })}
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-3">
-          <Button
-            onClick={handleContinuePlaying}
-            variant="gaming"
-            className="w-full"
-          >
-            <Play className="size-4 mr-2" />
-            {t('game.completionChoice.continuePlaying')}
-          </Button>
+        <ResponsiveDialogFooter>
           <Button
             onClick={handleSeeResults}
             variant="outline"
-            className="w-full"
+            disabled={isEnding}
+            aria-busy={isEnding}
+            className="w-full sm:w-auto"
           >
-            <Trophy className="size-4 mr-2" />
+            {isEnding ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Trophy className="size-4" aria-hidden="true" />
+            )}
             {t('game.completionChoice.seeResults')}
           </Button>
-        </div>
+          <Button
+            onClick={handleContinuePlaying}
+            variant="gaming"
+            size="lg"
+            disabled={isEnding}
+            className="w-full sm:w-auto"
+          >
+            <Play className="size-4" aria-hidden="true" />
+            {t('game.completionChoice.continuePlaying')}
+          </Button>
+        </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   )

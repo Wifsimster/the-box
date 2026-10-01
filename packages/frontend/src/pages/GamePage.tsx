@@ -1,4 +1,5 @@
 import { m, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { DailyIntro } from '@/components/game/TierIntro'
 import { GameErrorState } from '@/components/game/GameErrorState'
@@ -8,6 +9,7 @@ import { GuestGateModal } from '@/components/onboarding/GuestGateModal'
 import { useDailyGame } from '@/hooks/useDailyGame'
 
 export default function GamePage() {
+  const { t } = useTranslation()
   const {
     error,
     isResetting,
@@ -59,9 +61,11 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            role="status"
             className="flex items-center justify-center size-full"
           >
-            <Loader2 className="size-8 animate-spin text-primary" />
+            <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
+            <span className="sr-only">{t('common.loading')}</span>
           </m.div>
         )}
 

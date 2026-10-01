@@ -1,13 +1,15 @@
 import { m, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useGameStore } from '@/stores/gameStore'
 
 export function ScoreDisplay() {
-  const { totalScore } = useGameStore()
+  const { t } = useTranslation()
+  const totalScore = useGameStore((s) => s.totalScore)
 
   return (
     <div className="flex flex-col items-center">
-      <span className="text-[10px] sm:text-xs font-medium text-foreground/50 uppercase tracking-widest">
-        Score
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+        {t('game.score')}
       </span>
       <AnimatePresence mode="popLayout">
         <m.div
