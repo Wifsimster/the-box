@@ -34,14 +34,7 @@ import {
 } from 'lucide-react'
 import { AddMapDialog } from './AddMapDialog'
 import { ResetScrapingDialog } from './ResetScrapingDialog'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -257,9 +250,9 @@ export function GeoMapsTab({
             >
                 <SheetContent
                     side="bottom"
-                    className="lg:hidden h-[92vh] p-0 flex flex-col gap-0 rounded-t-xl"
+                    className="lg:hidden h-[92dvh] max-h-[92dvh] p-0 flex flex-col gap-0 rounded-t-xl"
                 >
-                    <SheetHeader className="px-4 py-3 border-b border-border/40 text-left">
+                    <SheetHeader className="px-4 py-3 pr-14 border-b border-border/40 text-left">
                         <SheetTitle className="text-sm font-semibold">
                             {selectedGame
                                 ? selectedGame.name
@@ -312,10 +305,9 @@ export function GeoMapsTab({
             <CardContent>
                 <Button
                     variant="destructive"
-                    size="sm"
                     onClick={() => setResetOpen(true)}
                     disabled={resetting}
-                    className="gap-1.5"
+                    className="w-full gap-1.5 sm:w-auto"
                 >
                     {resetting ? (
                         <Loader2 className="size-3.5 animate-spin" />
@@ -334,42 +326,21 @@ export function GeoMapsTab({
             isLoading={resetting}
         />
 
-        <Dialog
+        <ConfirmDialog
             open={uncurateFor !== null}
             onOpenChange={(open) => !uncurating && !open && setUncurateFor(null)}
-        >
-            <DialogContent className="max-w-sm sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>
-                        {t('admin.geo.maps.uncurate.dialog.title')}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {t('admin.geo.maps.uncurate.dialog.description', {
-                            name: uncurateFor?.name ?? '',
-                        })}
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setUncurateFor(null)}
-                        disabled={uncurating}
-                    >
-                        {t('admin.geo.maps.uncurate.dialog.cancel')}
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        onClick={() => uncurateFor && void handleUncurate(uncurateFor)}
-                        disabled={uncurating}
-                    >
-                        {uncurating && (
-                            <Loader2 className="size-3.5 animate-spin mr-2" />
-                        )}
-                        {t('admin.geo.maps.uncurate.dialog.confirm')}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+            title={t('admin.geo.maps.uncurate.dialog.title')}
+            description={t('admin.geo.maps.uncurate.dialog.description', {
+                name: uncurateFor?.name ?? '',
+            })}
+            confirmLabel={t('admin.geo.maps.uncurate.dialog.confirm')}
+            cancelLabel={t('admin.geo.maps.uncurate.dialog.cancel')}
+            destructive
+            busy={uncurating}
+            onConfirm={() => {
+                if (uncurateFor) void handleUncurate(uncurateFor)
+            }}
+        />
         </div>
     )
 }
@@ -545,7 +516,6 @@ function SidePanelBody({
 
             <div className="flex items-center gap-2 border-t border-border/40 pt-3">
                 <Button
-                    size="sm"
                     variant="outline"
                     className="flex-1"
                     onClick={() => onManualUpload(selectedGame)}
@@ -556,9 +526,9 @@ function SidePanelBody({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            size="sm"
+                            size="icon"
                             variant="outline"
-                            className="size-8 p-0"
+                            className="shrink-0"
                             aria-label={t('admin.geo.maps.sidePanel.moreActions')}
                             title={t('admin.geo.maps.sidePanel.moreActions')}
                         >
@@ -741,7 +711,7 @@ function ActiveMapHeroRow({
                                 'admin.geo.maps.multi.regionEditPlaceholder',
                                 'Region — e.g. Act II',
                             )}
-                            className="w-full rounded border border-border/60 bg-background px-1.5 py-0.5 text-[11px]"
+                            className="w-full rounded border border-border/60 bg-background px-1.5 py-0.5 text-[11px] pointer-coarse:py-2 pointer-coarse:text-base"
                         />
                     ) : (
                         <button
@@ -795,7 +765,7 @@ function ActiveMapHeroRow({
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        className="size-7 flex-none p-0"
+                        className="size-7 flex-none p-0 pointer-coarse:size-10"
                         aria-label={t('admin.geo.maps.sidePanel.moreActions')}
                         title={t('admin.geo.maps.sidePanel.moreActions')}
                     >
@@ -882,7 +852,7 @@ function CatalogRowItem({
                 <button
                     type="button"
                     onClick={onToggleSelect}
-                    className="flex size-4 items-center justify-center"
+                    className="-m-2 flex size-8 items-center justify-center rounded pointer-coarse:-m-3 pointer-coarse:size-10"
                     aria-label={
                         selected
                             ? t('admin.geo.catalog.deselect')
@@ -898,7 +868,17 @@ function CatalogRowItem({
             </td>
             <td className="px-3 py-2 align-middle">
                 <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
-                    <span className="font-medium truncate">{row.name}</span>
+                    {rowClickable ? (
+                        <button
+                            type="button"
+                            aria-expanded={isOpen}
+                            className="min-w-0 truncate text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                        >
+                            {row.name}
+                        </button>
+                    ) : (
+                        <span className="font-medium truncate">{row.name}</span>
+                    )}
                     {row.releaseYear && (
                         <span className="text-[10px] text-muted-foreground">
                             ({row.releaseYear})
@@ -921,8 +901,13 @@ function CatalogRowItem({
                         {row.developer}
                     </p>
                 )}
+                {row.curated && row.mapCount !== undefined && (
+                    <p className="text-[11px] text-muted-foreground sm:hidden">
+                        {t('admin.geo.maps.row.mapCount', { count: row.mapCount })}
+                    </p>
+                )}
             </td>
-            <td className="px-3 py-2 align-middle text-right tabular-nums text-muted-foreground">
+            <td className="hidden px-3 py-2 align-middle text-right tabular-nums text-muted-foreground sm:table-cell">
                 {row.curated && row.mapCount !== undefined
                     ? t('admin.geo.maps.row.mapCount', { count: row.mapCount })
                     : '—'}
@@ -1092,7 +1077,7 @@ function TierRow({
                                 variant="ghost"
                                 disabled={retrying}
                                 onClick={onRetry}
-                                className="h-6 gap-1 px-2 text-[10px] text-destructive hover:text-destructive"
+                                className="h-6 gap-1 px-2 text-[10px] pointer-coarse:h-9 pointer-coarse:text-xs text-destructive hover:text-destructive"
                                 title={t('admin.geo.maps.tierStatus.retryNowTooltip')}
                             >
                                 {retrying ? (
@@ -1109,7 +1094,7 @@ function TierRow({
                                 variant="ghost"
                                 disabled={runningNow}
                                 onClick={onRunNow}
-                                className="h-6 gap-1 px-2 text-[10px] text-warning hover:text-warning"
+                                className="h-6 gap-1 px-2 text-[10px] pointer-coarse:h-9 pointer-coarse:text-xs text-warning hover:text-warning"
                                 title={t('admin.geo.maps.tierStatus.runNowTooltip')}
                             >
                                 {runningNow ? (
@@ -1241,7 +1226,7 @@ function MatchedTierDetails({
                                             variant="outline"
                                             disabled={activating}
                                             onClick={() => onActivate(c.id)}
-                                            className="h-6 gap-1 px-2 text-[10px]"
+                                            className="h-6 gap-1 px-2 text-[10px] pointer-coarse:h-9 pointer-coarse:text-xs"
                                             title={t(
                                                 'admin.geo.maps.tierStatus.useThisMapTooltip',
                                             )}
@@ -1335,7 +1320,7 @@ function CatalogTableCard({
                                     size="sm"
                                     variant="outline"
                                     onClick={onGoToAcquisition}
-                                    className="h-7 gap-1.5 text-xs"
+                                    className="h-7 gap-1.5 text-xs pointer-coarse:h-10"
                                     title={t('admin.geo.maps.goToAcquisitionTooltip')}
                                 >
                                     <ArrowUpRight className="size-3.5" />
@@ -1348,7 +1333,7 @@ function CatalogTableCard({
                                 onClick={onReload}
                                 disabled={loading}
                                 aria-label={t('admin.geo.maps.refresh')}
-                                className="size-7 p-0"
+                                className="size-7 p-0 pointer-coarse:size-10"
                             >
                                 <RefreshCw
                                     className={`size-3.5 ${loading ? 'animate-spin' : ''}`}
@@ -1378,7 +1363,7 @@ function CatalogTableCard({
                                     size="sm"
                                     variant={filter === f ? 'default' : 'outline'}
                                     onClick={() => onSetFilter(f)}
-                                    className="h-7 text-xs"
+                                    className="h-7 text-xs pointer-coarse:h-10"
                                 >
                                     {t(`admin.geo.catalog.filter.${f}`)}
                                     {` (${counts[f]})`}
@@ -1389,7 +1374,7 @@ function CatalogTableCard({
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 type="search"
-                                className="h-8 pl-9 text-xs"
+                                className="h-8 pl-9 text-xs pointer-coarse:h-11 pointer-coarse:text-base"
                                 placeholder={t('admin.geo.catalog.searchPlaceholder')}
                                 value={search}
                                 onChange={(e) => onSetSearch(e.target.value)}
@@ -1420,7 +1405,7 @@ function CatalogTableCard({
                                     variant="outline"
                                     disabled={bulkBusy}
                                     onClick={() => void onApplyBulk(true)}
-                                    className="h-7 text-xs"
+                                    className="h-7 text-xs pointer-coarse:h-10"
                                 >
                                     {bulkBusy && (
                                         <Loader2 className="size-3 animate-spin mr-1" />
@@ -1432,7 +1417,7 @@ function CatalogTableCard({
                                     variant="outline"
                                     disabled={bulkBusy}
                                     onClick={() => void onApplyBulk(false)}
-                                    className="h-7 text-xs"
+                                    className="h-7 text-xs pointer-coarse:h-10"
                                 >
                                     {bulkBusy && (
                                         <Loader2 className="size-3 animate-spin mr-1" />
@@ -1444,7 +1429,7 @@ function CatalogTableCard({
                                     variant="ghost"
                                     onClick={onClearSelected}
                                     disabled={bulkBusy}
-                                    className="h-7 text-xs"
+                                    className="h-7 text-xs pointer-coarse:h-10"
                                 >
                                     {t('admin.geo.catalog.bulk.clear')}
                                 </Button>
@@ -1475,7 +1460,7 @@ function CatalogTableCard({
                                             <button
                                                 type="button"
                                                 onClick={onSelectAllVisible}
-                                                className="flex size-4 items-center justify-center"
+                                                className="-m-2 flex size-8 items-center justify-center rounded pointer-coarse:-m-3 pointer-coarse:size-10"
                                                 aria-label={
                                                     selected.size === visibleRows.length &&
                                                     visibleRows.length > 0
@@ -1499,13 +1484,13 @@ function CatalogTableCard({
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-2 text-right font-medium w-28"
+                                            className="hidden px-3 py-2 text-right font-medium w-28 sm:table-cell"
                                         >
                                             {t('admin.geo.catalog.col.maps')}
                                         </th>
                                         <th
                                             scope="col"
-                                            className="px-3 py-2 text-right font-medium w-32"
+                                            className="px-3 py-2 text-right font-medium sm:w-32"
                                         >
                                             {t('admin.geo.catalog.col.status')}
                                         </th>

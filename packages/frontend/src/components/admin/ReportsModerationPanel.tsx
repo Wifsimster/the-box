@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/lib/toast'
-import { Loader2, RefreshCw, Undo2, Flag, ImageOff } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Loader2, RefreshCw, Undo2, Flag, ImageOff, ShieldCheck } from 'lucide-react'
 import type { ScreenshotReportReason } from '@the-box/types'
 
 interface ReportSummary {
@@ -93,13 +94,13 @@ export function ReportsModerationPanel() {
 
     return (
         <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 gap-y-0 p-4 sm:p-6">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 space-y-0">
                 <CardTitle className="flex items-center gap-2 text-base min-w-0">
-                    <Flag className="size-4 text-neon-pink shrink-0" />
+                    <Flag className="size-4 text-neon-pink shrink-0" aria-hidden="true" />
                     <span className="truncate">{t('admin.reports.title')}</span>
                 </CardTitle>
                 <div className="flex items-center justify-between sm:justify-end gap-3 sm:shrink-0">
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                    <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
                         <Checkbox
                             checked={onlyDeactivated}
                             onCheckedChange={(v) => setOnlyDeactivated(v === true)}
@@ -108,10 +109,11 @@ export function ReportsModerationPanel() {
                     </label>
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => void load()}
                         disabled={loading}
-                        title={t('common.retry')}
+                        aria-label={t('admin.jobs.refresh')}
+                        title={t('admin.jobs.refresh')}
                     >
                         <RefreshCw
                             className={`size-4 ${loading ? 'animate-spin' : ''}`}
@@ -119,10 +121,18 @@ export function ReportsModerationPanel() {
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <CardContent>
                 {loading && reports === null ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="size-6 animate-spin text-neon-pink" />
+                    <div className="divide-y divide-border" aria-busy="true">
+                        {[0, 1, 2].map((i) => (
+                            <div key={i} className="flex items-start gap-3 py-3">
+                                <Skeleton className="h-16 w-24 shrink-0 rounded-md" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-1/2" variant="text" />
+                                    <Skeleton className="h-3 w-3/4" variant="text" />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : reports && reports.length > 0 ? (
                     <ul className="divide-y divide-border">
@@ -171,7 +181,7 @@ export function ReportsModerationPanel() {
                                                     <Badge
                                                         key={reason}
                                                         variant="outline"
-                                                        className="text-[10px] font-normal"
+                                                        className="text-xs font-normal"
                                                     >
                                                         {t(`report.reasons.${reason}`)} · {n}
                                                     </Badge>
@@ -194,7 +204,6 @@ export function ReportsModerationPanel() {
                                 {!row.isActive && (
                                     <Button
                                         variant="outline"
-                                        size="sm"
                                         onClick={() => void handleReactivate(row)}
                                         disabled={pendingKey === rowKey(row)}
                                         className="w-full sm:w-auto sm:shrink-0"
@@ -211,9 +220,10 @@ export function ReportsModerationPanel() {
                         ))}
                     </ul>
                 ) : (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                        {t('admin.reports.empty')}
-                    </p>
+                    <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
+                        <ShieldCheck className="size-8" aria-hidden="true" />
+                        <p>{t('admin.reports.empty')}</p>
+                    </div>
                 )}
             </CardContent>
         </Card>

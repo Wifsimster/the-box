@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { AlertTriangle, Loader2, MapPin, Target } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { AlertTriangle, ChevronRight, MapPin, Target } from 'lucide-react'
 import type { GeoGameNeedingContent } from '@the-box/types'
 import { fetchAdminJson } from '@/lib/api/admin'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /**
  * The "one pin away" diagnostic (issue #331, phase 1). The GeoGamers health
@@ -15,6 +17,7 @@ import { Button } from '@/components/ui/button'
  * queue for that game, where the existing override promotes a candidate.
  */
 export function GeoNeedingContentCard() {
+    const { t } = useTranslation()
     const [rows, setRows] = useState<GeoGameNeedingContent[] | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -59,83 +62,86 @@ export function GeoNeedingContentCard() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-6">
-                <Loader2 className="size-6 animate-spin text-primary" />
-            </div>
+            <Card className="border-border bg-card/50" aria-busy="true">
+                <CardHeader>
+                    <Skeleton className="h-5 w-48 max-w-full" variant="text" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {[0, 1, 2].map((i) => (
+                        <Skeleton key={i} className="h-11 w-full" />
+                    ))}
+                </CardContent>
+            </Card>
         )
     }
     if (error) {
         return (
-            <p className="py-4 text-sm text-muted-foreground">
-                Jeux à compléter : {error}
+            <p role="alert" className="flex items-start gap-2 text-sm text-muted-foreground">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+                <span className="break-words">
+                    {t('admin.geoNeedingContent.loadError')} {error}
+                </span>
             </p>
         )
     }
 
     return (
-        <Card className="mb-6 border-border bg-card/50">
+        <Card className="border-border bg-card/50">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                    <Target className="size-4 text-neon-pink" />
-                    <span>À un pin de l&apos;éligibilité</span>
+                    <Target className="size-4 text-neon-pink" aria-hidden="true" />
+                    <span>{t('admin.geoNeedingContent.title')}</span>
                 </CardTitle>
+                {rows && rows.length > 0 && (
+                    <CardDescription className="text-xs sm:text-sm">
+                        {t('admin.geoNeedingContent.description')}
+                    </CardDescription>
+                )}
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
                 {!rows || rows.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                        Aucun jeu en attente de pin canonique : toutes les captures
-                        collectées ont déjà une position de consensus, ou aucun jeu
-                        n&apos;a encore de carte active avec des captures.
+                        {t('admin.geoNeedingContent.empty')}
                     </p>
                 ) : (
-                    <>
-                        <p className="text-xs text-muted-foreground">
-                            Jeux avec une carte active et des captures qui collectent des
-                            pins, mais sans position canonique. Promouvoir une capture
-                            (via la file de revue) rend le jeu éligible au mode GeoGamers.
-                        </p>
-                        <ul className="divide-y divide-border/60">
-                            {rows.map((g) => (
-                                <li
-                                    key={g.gameId}
-                                    className="flex items-center justify-between gap-3 py-2"
+                    <ul className="-mx-2 divide-y divide-border/60">
+                        {rows.map((g) => (
+                            <li key={g.gameId}>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => openInQueue(g)}
+                                    className="h-auto min-h-11 w-full justify-between gap-3 whitespace-normal px-2 py-2 text-left font-normal"
                                 >
-                                    <div className="min-w-0">
-                                        <div className="truncate text-sm font-medium">
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-sm font-medium">
                                             {g.gameName ?? `#${g.gameId}`}
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                                        </span>
+                                        <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                                             <span>
-                                                {g.candidateCount} capture
-                                                {g.candidateCount > 1 ? 's' : ''}
+                                                {t('admin.geoNeedingContent.captures', { count: g.candidateCount })}
                                             </span>
                                             <span className="flex items-center gap-1">
-                                                <MapPin className="size-3" />
-                                                {g.topPinCount} pin
-                                                {g.topPinCount === 1 ? '' : 's'} (max)
+                                                <MapPin className="size-3" aria-hidden="true" />
+                                                {t('admin.geoNeedingContent.topPins', { count: g.topPinCount })}
                                             </span>
                                             {g.pinsToNextThreshold > 0 && (
                                                 <span className="flex items-center gap-1 text-warning">
-                                                    <AlertTriangle className="size-3" />
-                                                    {g.pinsToNextThreshold} pin
-                                                    {g.pinsToNextThreshold === 1 ? '' : 's'}{' '}
-                                                    avant recalcul
+                                                    <AlertTriangle className="size-3" aria-hidden="true" />
+                                                    {t('admin.geoNeedingContent.pinsToThreshold', {
+                                                        count: g.pinsToNextThreshold,
+                                                    })}
                                                 </span>
                                             )}
-                                        </div>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="shrink-0"
-                                        onClick={() => openInQueue(g)}
-                                    >
-                                        Revoir
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
+                                        </span>
+                                    </span>
+                                    <span className="flex shrink-0 items-center gap-1 text-sm text-primary">
+                                        <span className="hidden sm:inline">{t('admin.geoNeedingContent.review')}</span>
+                                        <ChevronRight className="size-4" aria-hidden="true" />
+                                    </span>
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
                 )}
             </CardContent>
         </Card>

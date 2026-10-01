@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogDescription,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,19 +46,19 @@ export function AddMapDialog({
     if (!game) return null
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-base">
+        <ResponsiveDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <ResponsiveDialogContent className="sm:max-w-lg">
+                <ResponsiveDialogHeader className="pr-10">
+                    <ResponsiveDialogTitle className="flex items-center justify-center gap-2 text-base sm:justify-start">
                         <Sparkles className="size-4 text-neon-pink" aria-hidden />
                         {t('admin.geo.addMap.title', { name: game.name })}
-                    </DialogTitle>
-                    <DialogDescription className="text-xs">
+                    </ResponsiveDialogTitle>
+                    <ResponsiveDialogDescription className="text-sm">
                         {game.hasMap
                             ? t('admin.geo.addMap.descriptionReplace')
                             : t('admin.geo.addMap.description')}
-                    </DialogDescription>
-                </DialogHeader>
+                    </ResponsiveDialogDescription>
+                </ResponsiveDialogHeader>
 
                 <Tabs
                     value={strategy}
@@ -106,8 +106,8 @@ export function AddMapDialog({
                         />
                     </TabsContent>
                 </Tabs>
-            </DialogContent>
-        </Dialog>
+            </ResponsiveDialogContent>
+        </ResponsiveDialog>
     )
 }
 
@@ -196,7 +196,7 @@ function ResearchPane({
                             />
                             <div className="min-w-0 flex-1">
                                 <p className="font-medium">{s.label}</p>
-                                <p className="text-[11px] text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     {s.description}
                                 </p>
                             </div>
@@ -204,19 +204,18 @@ function ResearchPane({
                     </li>
                 ))}
             </ul>
-            <DialogFooter className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row">
+            <ResponsiveDialogFooter className="flex-col border-t border-border/40 pt-3">
                 <Button
-                    size="sm"
                     variant="default"
                     className="flex-1"
                     onClick={onSwitchToManual}
                 >
                     {t('admin.geo.research.pasteUrlCta')}
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={onClose}>
+                <Button variant="outline" className="flex-1" onClick={onClose}>
                     {t('admin.geo.research.close')}
                 </Button>
-            </DialogFooter>
+            </ResponsiveDialogFooter>
         </>
     )
 }
@@ -343,7 +342,7 @@ function WandPane({
                 </p>
             )}
 
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 border-t border-border/40 pt-3">
+            <ResponsiveDialogFooter className="border-t border-border/40 pt-3">
                 <Button variant="outline" onClick={onClose} disabled={submitting}>
                     {t('common.cancel')}
                 </Button>
@@ -353,7 +352,7 @@ function WandPane({
                         ? t('admin.geo.wandMap.submitReplace')
                         : t('admin.geo.wandMap.submit')}
                 </Button>
-            </DialogFooter>
+            </ResponsiveDialogFooter>
         </>
     )
 }
@@ -572,7 +571,7 @@ function ManualPane({
                 </p>
             )}
 
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 border-t border-border/40 pt-3">
+            <ResponsiveDialogFooter className="border-t border-border/40 pt-3">
                 <Button variant="outline" onClick={onClose} disabled={submitting}>
                     {t('common.cancel')}
                 </Button>
@@ -582,7 +581,7 @@ function ManualPane({
                         ? t('admin.geo.manualMap.submitReplace')
                         : t('admin.geo.manualMap.submit')}
                 </Button>
-            </DialogFooter>
+            </ResponsiveDialogFooter>
         </>
     )
 }
@@ -607,7 +606,7 @@ function Field({
                 {required && <span className="text-destructive ml-0.5">*</span>}
             </Label>
             {children}
-            {hint && <p className="text-[10px] text-muted-foreground leading-snug">{hint}</p>}
+            {hint && <p className="text-xs text-muted-foreground leading-snug">{hint}</p>}
         </div>
     )
 }

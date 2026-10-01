@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogDescription,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,19 +48,19 @@ export function ResetScrapingDialog({
         !isLoading
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="max-w-sm sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="size-5 text-destructive" />
+        <ResponsiveDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+            <ResponsiveDialogContent className="sm:max-w-md">
+                <ResponsiveDialogHeader>
+                    <ResponsiveDialogTitle className="flex items-center justify-center gap-2 sm:justify-start">
+                        <AlertTriangle className="size-5 text-destructive" aria-hidden="true" />
                         {t('admin.geo.reset.dialog.title')}
-                    </DialogTitle>
-                    <DialogDescription>
+                    </ResponsiveDialogTitle>
+                    <ResponsiveDialogDescription>
                         {t('admin.geo.reset.dialog.body')}
-                    </DialogDescription>
-                </DialogHeader>
+                    </ResponsiveDialogDescription>
+                </ResponsiveDialogHeader>
 
-                <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
                     <li>{t('admin.geo.reset.dialog.bullets.importStates')}</li>
                     <li>{t('admin.geo.reset.dialog.bullets.ingestFailures')}</li>
                     <li>{t('admin.geo.reset.dialog.bullets.maps')}</li>
@@ -69,7 +69,7 @@ export function ResetScrapingDialog({
                 </ul>
 
                 <div className="space-y-2">
-                    <Label htmlFor="reset-confirm-input" className="text-xs">
+                    <Label htmlFor="reset-confirm-input">
                         {t('admin.geo.reset.dialog.confirmLabel', { word: confirmWord })}
                     </Label>
                     <Input
@@ -81,10 +81,13 @@ export function ResetScrapingDialog({
                         autoCapitalize="characters"
                         spellCheck={false}
                         disabled={isLoading}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && canConfirm) void onConfirm()
+                        }}
                     />
                 </div>
 
-                <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                <ResponsiveDialogFooter>
                     <Button
                         variant="outline"
                         onClick={handleClose}
@@ -102,8 +105,8 @@ export function ResetScrapingDialog({
                         {isLoading && <Loader2 className="size-4 animate-spin" />}
                         {t('admin.geo.reset.dialog.confirm')}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </ResponsiveDialogFooter>
+            </ResponsiveDialogContent>
+        </ResponsiveDialog>
     )
 }

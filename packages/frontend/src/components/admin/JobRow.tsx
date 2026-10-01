@@ -19,21 +19,13 @@ import {
   MapPin,
 } from 'lucide-react'
 
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = date.getTime() - now.getTime()
-  const diffMinutes = Math.round(diffMs / 60000)
-
-  if (diffMinutes < 0) {
-    return 'now'
-  } else if (diffMinutes < 60) {
-    return `in ${diffMinutes}m`
-  } else {
-    const hours = Math.floor(diffMinutes / 60)
-    const mins = diffMinutes % 60
-    return `in ${hours}h ${mins}m`
-  }
+function formatRelativeTime(dateString: string, language: string): string {
+  const diffMinutes = Math.max(0, Math.round((new Date(dateString).getTime() - Date.now()) / 60000))
+  const rtf = new Intl.RelativeTimeFormat(language, { numeric: 'auto', style: 'short' })
+  if (diffMinutes < 60) return rtf.format(diffMinutes, 'minute')
+  const hours = Math.round(diffMinutes / 60)
+  if (hours < 48) return rtf.format(hours, 'hour')
+  return rtf.format(Math.round(hours / 24), 'day')
 }
 
 function formatInterval(ms: number): string {
@@ -199,8 +191,15 @@ interface JobRowProps {
 }
 
 export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: JobRowProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const metadata = getJobMetadata(job.name, t)
+  const isRunning = job.isActive || isJobLoading
+  const jobLabel = t(getJobTranslationKey(job.name))
+  const schedule = job.isManual
+    ? t('admin.jobs.manual', 'Manual')
+    : job.nextRun && !job.isActive
+      ? formatRelativeTime(job.nextRun, i18n.language)
+      : null
 
   return (
     <Collapsible open={isExpanded} onOpenChange={() => onToggle(job.id)}>
@@ -212,78 +211,51 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
         transition={{ duration: 0.3, layout: { duration: 0.2 } }}
         className="rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all duration-200"
       >
-        {/* Job Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="size-8 p-0 shrink-0"
-              >
-                <ChevronDown
-                  className={`size-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
-                    }`}
-                />
-                <span className="sr-only">{t('common.toggleDetails')}</span>
-              </Button>
-            </CollapsibleTrigger>
-
-            {job.isActive || isJobLoading ? (
-              <div className="flex items-center gap-2 min-w-0">
-                <Loader2 className="size-4 animate-spin text-neon-blue shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-neon-blue/80 truncate">
-                  {t(getJobRunningTranslationKey(job.name))}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 min-w-0">
-                {metadata.icon && (
-                  <div className="shrink-0 text-success">
-                    {metadata.icon}
-                  </div>
-                )}
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs sm:text-sm font-medium truncate">
-                    {t(getJobTranslationKey(job.name))}
-                  </span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">
-                    {t(`admin.jobs.categories.${metadata.category}`)}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:shrink-0">
-            {!isExpanded && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
-                {job.isManual ? (
-                  <span className="text-score-low/80 whitespace-nowrap">
-                    {t('admin.jobs.manual', 'Manual')}
-                  </span>
-                ) : job.nextRun && !job.isActive ? (
-                  <span className="text-neon-purple whitespace-nowrap">
-                    {formatRelativeTime(job.nextRun)}
-                  </span>
-                ) : null}
-              </div>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onTrigger(job.name)}
-              disabled={job.isActive || isJobLoading}
-              className="border-neon-purple/30 hover:bg-neon-purple/10 w-full sm:w-auto sm:shrink-0"
+        <div className="flex items-center gap-2 p-1.5 sm:p-2">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-2 sm:gap-3 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {isJobLoading ? (
-                <Loader2 className="size-4 mr-1 animate-spin" />
-              ) : (
-                <Play className="size-4 mr-1" />
-              )}
-              {t('admin.jobs.runNow')}
-            </Button>
-          </div>
+              <ChevronDown
+                aria-hidden="true"
+                className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              />
+              <span className={`shrink-0 ${isRunning ? 'text-neon-blue' : 'text-success'}`} aria-hidden="true">
+                {isRunning ? <Loader2 className="size-4 animate-spin" /> : metadata.icon}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className={`truncate text-sm font-medium ${isRunning ? 'text-neon-blue' : ''}`}>
+                  {isRunning ? t(getJobRunningTranslationKey(job.name)) : jobLabel}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {t(`admin.jobs.categories.${metadata.category}`)}
+                  {schedule && (
+                    <>
+                      {' · '}
+                      <span className={job.isManual ? 'text-score-low' : 'text-neon-purple'}>{schedule}</span>
+                    </>
+                  )}
+                </span>
+              </span>
+            </button>
+          </CollapsibleTrigger>
+
+          <Button
+            variant="outline"
+            onClick={() => onTrigger(job.name)}
+            disabled={isRunning}
+            aria-label={`${t('admin.jobs.runNow')} : ${jobLabel}`}
+            title={t('admin.jobs.runNow')}
+            className="shrink-0 px-3 sm:px-4 border-neon-purple/30 hover:bg-neon-purple/10"
+          >
+            {isJobLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Play className="size-4" />
+            )}
+            <span className="hidden sm:inline">{t('admin.jobs.runNow')}</span>
+          </Button>
         </div>
 
         {/* Collapsible Content */}
@@ -304,7 +276,7 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                   <Timer className="size-3.5 text-neon-purple shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    <span className="text-xs text-muted-foreground">
                       {t('admin.jobs.interval')}
                     </span>
                     <span className="text-xs font-medium">
@@ -319,7 +291,7 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                   <Clock className="size-3.5 text-neon-purple shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    <span className="text-xs text-muted-foreground">
                       {t('admin.jobs.schedule')}
                     </span>
                     <span className="text-xs font-medium">
@@ -334,11 +306,11 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                   <Calendar className="size-3.5 text-neon-purple shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    <span className="text-xs text-muted-foreground">
                       {t('admin.jobs.nextRun')}
                     </span>
                     <span className="text-xs font-medium text-neon-purple">
-                      {formatRelativeTime(job.nextRun)}
+                      {formatRelativeTime(job.nextRun, i18n.language)}
                     </span>
                   </div>
                 </div>
@@ -347,12 +319,12 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
               {/* Manual Job Indicator */}
               {job.isManual && !job.isActive && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-score-low/10">
-                  <Play className="size-3.5 text-score-low/80 shrink-0" />
+                  <Play className="size-3.5 text-score-low shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    <span className="text-xs text-muted-foreground">
                       {t('admin.jobs.schedule')}
                     </span>
-                    <span className="text-xs font-medium text-score-low/80">
+                    <span className="text-xs font-medium text-score-low">
                       {t('admin.jobs.manual')}
                     </span>
                   </div>
@@ -364,10 +336,10 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-neon-blue/10">
                   <Loader2 className="size-3.5 text-neon-blue shrink-0 animate-spin" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    <span className="text-xs text-muted-foreground">
                       {t('admin.jobs.statusLabel')}
                     </span>
-                    <span className="text-xs font-medium text-neon-blue/80">
+                    <span className="text-xs font-medium text-neon-blue">
                       {t('admin.jobs.running')}
                     </span>
                   </div>

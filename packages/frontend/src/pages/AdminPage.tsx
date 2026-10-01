@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { m, AnimatePresence } from 'framer-motion'
@@ -42,6 +42,7 @@ export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const isMobile = useIsMobile()
   const [isPanelMinimized, setIsPanelMinimized] = useState(true)
+  const tabsRef = useRef<HTMLDivElement>(null)
   // On mobile the JobQueuePanel overlays the page instead of pushing it,
   // so only reserve right padding on viewports where the panel docks.
   const sidebarOffset = !isMobile && !isPanelMinimized ? '480px' : '0'
@@ -103,6 +104,14 @@ export default function AdminPage() {
     setSearchParams(newSearchParams, { replace: true })
   }, [searchParams, setSearchParams])
 
+  // The tab strip scrolls sideways on phones; keep the active tab in view
+  // when it is restored from the URL or picked near an edge.
+  useEffect(() => {
+    const active = tabsRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    active?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [activeTab, isPending])
+
   // Redirect non-admins
   useEffect(() => {
     if (!isPending && (!session || session.user?.role !== 'admin')) {
@@ -144,24 +153,25 @@ export default function AdminPage() {
     >
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 transition-all duration-300" style={{ paddingRight: sidebarOffset }}>
-        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <m.div
             variants={fadeInLeft}
             initial="initial"
             animate="animate"
             transition={{ delay: 0.1 }}
-            className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-8"
+            className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6"
           >
-            <Settings className="size-6 sm:size-8 text-neon-purple" />
+            <Settings className="size-6 sm:size-8 text-neon-purple" aria-hidden="true" />
             <h1 className="text-2xl sm:text-3xl font-bold">{t('admin.title')}</h1>
           </m.div>
 
-          <AnimatedTabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onChange={handleTabChange}
-            className="mb-4 sm:mb-6"
-          />
+          <div ref={tabsRef} className="sticky top-[var(--header-h)] z-30 -mx-4 mb-4 bg-background/90 px-4 py-2 backdrop-blur-sm sm:static sm:mx-0 sm:mb-6 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <AnimatedTabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onChange={handleTabChange}
+            />
+          </div>
 
           <AnimatePresence mode="wait">
             <m.div
@@ -171,11 +181,7 @@ export default function AdminPage() {
               animate="animate"
               exit="exit"
             >
-              {activeTab === 'jobs' && (
-                <div className="space-y-6">
-                  <JobList />
-                </div>
-              )}
+              {activeTab === 'jobs' && <JobList />}
               {activeTab === 'games' && <GameList />}
               {activeTab === 'users' && <UserList />}
               {activeTab === 'analytics' && <UserAnalyticsPanel />}
@@ -183,12 +189,12 @@ export default function AdminPage() {
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}
               {activeTab === 'geo' && (
-                <>
+                <div className="space-y-6">
                   <GeoGamersHealthCard />
                   <GeoNeedingContentCard />
-                  <AgentKeysCard />
                   <GeoReviewPanel />
-                </>
+                  <AgentKeysCard />
+                </div>
               )}
             </m.div>
           </AnimatePresence>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { adminApi, type UserAnalytics } from '@/lib/api/admin'
 import {
   Users,
@@ -9,7 +11,7 @@ import {
   Gamepad2,
   Trophy,
   Flame,
-  Loader2,
+  RefreshCw,
   ShieldAlert,
   CalendarClock,
   UserMinus,
@@ -44,13 +46,13 @@ function StatCard({ icon, label, value, hint, accent = 'gradient' }: StatCardPro
 
   return (
     <Card>
-      <CardHeader className="pb-2 p-4 sm:p-6">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           {icon}
           {label}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+      <CardContent>
         <div className={`text-2xl sm:text-3xl font-bold ${accentClass}`}>{value}</div>
         {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
       </CardContent>
@@ -83,7 +85,7 @@ function MiniBarChart({ data, primaryLabel, secondaryLabel }: MiniBarChartProps)
         </span>
       </div>
       <div className="flex items-end gap-1 sm:gap-2 h-32">
-        {data.map((d) => (
+        {data.map((d, i) => (
           <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
             <div
               className="w-full flex flex-col-reverse items-stretch gap-px"
@@ -100,7 +102,7 @@ function MiniBarChart({ data, primaryLabel, secondaryLabel }: MiniBarChartProps)
                 title={`${secondaryLabel}: ${d.secondary}`}
               />
             </div>
-            <span className="text-[10px] text-muted-foreground tabular-nums">
+            <span className={`text-[10px] text-muted-foreground tabular-nums ${(data.length - 1 - i) % 2 ? 'invisible sm:visible' : ''}`}>
               {d.label.slice(5)}
             </span>
           </div>
@@ -194,6 +196,13 @@ export function UserAnalyticsPanel() {
   const [data, setData] = useState<UserAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const retry = () => {
+    setLoading(true)
+    setError(null)
+    setReloadKey((k) => k + 1)
+  }
 
   // `loading`/`error` start at their initial values (true / null) so the mount
   // fetch only needs to write the settled outcome, no re-initialization here.
@@ -205,7 +214,7 @@ export function UserAnalyticsPanel() {
         if (!cancelled) setData(res)
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message ?? 'Failed to load analytics')
+        if (!cancelled) setError(err?.message ?? null)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -213,21 +222,46 @@ export function UserAnalyticsPanel() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="space-y-4 sm:space-y-6" aria-busy="true">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" variant="text" />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-full" variant="text" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-40" variant="text" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-32 w-full" />
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-sm text-destructive">
-          {error ?? t('admin.analytics.loadError')}
+      <Card variant="error">
+        <CardContent role="alert" className="flex flex-col items-center gap-3 pt-(--card-padding) text-center text-sm">
+          <AlertTriangle className="size-6 text-destructive" aria-hidden="true" />
+          <p className="text-destructive">{error ?? t('admin.analytics.loadError')}</p>
+          <Button variant="outline" onClick={retry}>
+            <RefreshCw className="size-4" />
+            {t('common.retry')}
+          </Button>
         </CardContent>
       </Card>
     )
@@ -239,7 +273,7 @@ export function UserAnalyticsPanel() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Headline metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<Users className="size-4" />}
           label={t('admin.analytics.totalUsers')}
@@ -317,7 +351,7 @@ export function UserAnalyticsPanel() {
 
       {/* 14-day timeline */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader>
           <CardTitle className="text-base sm:text-lg">
             {t('admin.analytics.timelineTitle')}
           </CardTitle>
@@ -325,7 +359,7 @@ export function UserAnalyticsPanel() {
             {t('admin.analytics.timelineHint')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+        <CardContent>
           {data.timeline.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
               {t('admin.analytics.empty')}
@@ -346,7 +380,7 @@ export function UserAnalyticsPanel() {
 
       {/* Engagement distribution */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader>
           <CardTitle className="text-base sm:text-lg">
             {t('admin.analytics.engagementTitle')}
           </CardTitle>
@@ -354,7 +388,7 @@ export function UserAnalyticsPanel() {
             {t('admin.analytics.engagementHint')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+        <CardContent>
           <DistributionBar
             segments={[
               {
@@ -388,9 +422,9 @@ export function UserAnalyticsPanel() {
       </Card>
 
       {/* === Churn metrics === */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          icon={<TrendingDown className="h-4 w-4" />}
+          icon={<TrendingDown className="size-4" />}
           label={t('admin.analytics.churn30d')}
           value={percentFormat(data.churn.churnRate30dPercent, lang)}
           hint={t('admin.analytics.churnHint', {
@@ -400,7 +434,7 @@ export function UserAnalyticsPanel() {
           accent="pink"
         />
         <StatCard
-          icon={<UserMinus className="h-4 w-4" />}
+          icon={<UserMinus className="size-4" />}
           label={t('admin.analytics.churn60d')}
           value={percentFormat(data.churn.churnRate60dPercent, lang)}
           hint={t('admin.analytics.churnHint', {
@@ -410,7 +444,7 @@ export function UserAnalyticsPanel() {
           accent="purple"
         />
         <StatCard
-          icon={<UserMinus className="h-4 w-4" />}
+          icon={<UserMinus className="size-4" />}
           label={t('admin.analytics.churn90d')}
           value={percentFormat(data.churn.churnRate90dPercent, lang)}
           hint={t('admin.analytics.churnHint', {
@@ -420,7 +454,7 @@ export function UserAnalyticsPanel() {
           accent="purple"
         />
         <StatCard
-          icon={<Zap className="h-4 w-4" />}
+          icon={<Zap className="size-4" />}
           label={t('admin.analytics.stickiness')}
           value={percentFormat(data.churn.stickinessPercent, lang)}
           hint={t('admin.analytics.stickinessHint', {
@@ -433,7 +467,7 @@ export function UserAnalyticsPanel() {
 
       {/* Dormancy lifecycle distribution */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader>
           <CardTitle className="text-base sm:text-lg">
             {t('admin.analytics.dormancyTitle')}
           </CardTitle>
@@ -441,7 +475,7 @@ export function UserAnalyticsPanel() {
             {t('admin.analytics.dormancyHint')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+        <CardContent>
           <DistributionBar
             segments={[
               {
@@ -481,7 +515,7 @@ export function UserAnalyticsPanel() {
 
       {/* Signup → first-play funnel */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader>
           <CardTitle className="text-base sm:text-lg">
             {t('admin.analytics.funnelTitle')}
           </CardTitle>
@@ -524,16 +558,16 @@ export function UserAnalyticsPanel() {
 
       {/* At-risk power users (streak ≥3, idle 36h–7d) */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertTriangle className="size-4 text-warning" />
             {t('admin.analytics.atRiskTitle')}
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
             {t('admin.analytics.atRiskHint')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+        <CardContent>
           {data.atRiskStreaks.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
               {t('admin.analytics.atRiskEmpty')}

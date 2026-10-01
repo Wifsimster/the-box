@@ -90,7 +90,7 @@ export function ReviewWorkspace({
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                className="size-8 shrink-0 lg:hidden"
+                                className="shrink-0 lg:hidden"
                                 onClick={onCloseDetail}
                                 aria-label={t('admin.geo.nav.backToList', 'Retour à la liste')}
                             >
@@ -298,13 +298,12 @@ function ActionBar({
     const { t } = useTranslation()
     if (detail.meta) {
         return (
-            <div className="sticky bottom-0 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-4 py-3 sm:px-6 rounded-b-xl">
+            <div className="sticky bottom-[var(--bottom-nav-space)] z-10 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-4 py-3 sm:px-6 rounded-b-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <p className="text-xs text-warning">
                         {t('admin.geo.alreadyOfficial')}
                     </p>
                     <Button
-                        size="sm"
                         variant="destructive"
                         onClick={onDemote}
                         disabled={saving}
@@ -319,7 +318,7 @@ function ActionBar({
         )
     }
     return (
-        <div className="sticky bottom-0 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-4 py-3 sm:px-6 rounded-b-xl">
+        <div className="sticky bottom-[var(--bottom-nav-space)] z-10 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-4 py-3 sm:px-6 rounded-b-xl">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <span className="text-xs text-muted-foreground tabular-nums">
                     {pin
@@ -330,9 +329,8 @@ function ActionBar({
                                   : 'admin.geo.pickPointForOfficial',
                           )}
                 </span>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
                     <Button
-                        size="sm"
                         variant="outline"
                         onClick={onReject}
                         disabled={saving}
@@ -343,11 +341,10 @@ function ActionBar({
                         {t('admin.geo.actions.decline')}
                     </Button>
                     <Button
-                        size="sm"
                         onClick={() => void onPromote()}
                         disabled={saving || (!pin && detail.pins.length === 0)}
                         aria-busy={saving}
-                        className="gradient-gaming hover:opacity-90 w-full sm:w-auto"
+                        className="gradient-gaming hover:opacity-90 w-full sm:w-auto whitespace-normal leading-tight"
                     >
                         {saving && (
                             <Loader2 className="size-3.5 animate-spin mr-2" />
@@ -388,7 +385,7 @@ function NavControls({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="size-7"
+                className="size-7 pointer-coarse:size-10"
                 disabled={!prev || disabled}
                 onClick={() => prev && void onNavigate(prev.id)}
                 aria-label={t('admin.geo.nav.previous')}
@@ -398,7 +395,7 @@ function NavControls({
             </Button>
             {currentIndex >= 0 && total > 0 && (
                 <span
-                    className="text-[10px] tabular-nums text-muted-foreground min-w-[2.5rem] text-center"
+                    className="text-xs tabular-nums text-muted-foreground min-w-[2.5rem] text-center"
                     aria-live="polite"
                 >
                     {t('admin.geo.nav.position', {
@@ -411,7 +408,7 @@ function NavControls({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="size-7"
+                className="size-7 pointer-coarse:size-10"
                 disabled={!next || disabled}
                 onClick={() => next && void onNavigate(next.id)}
                 aria-label={t('admin.geo.nav.next')}

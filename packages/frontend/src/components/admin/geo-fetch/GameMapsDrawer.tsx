@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { geoFetchApi, type GeoFetchMapsResponse } from '@/lib/api/geo-fetch'
 import { useGeoFetchStore } from '@/stores/geoFetchStore'
 
@@ -83,8 +84,8 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
 
   return (
     <Sheet open={gameId != null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
-        <SheetHeader>
+      <SheetContent side="right" className="w-full px-4 sm:max-w-3xl sm:px-6">
+        <SheetHeader className="pr-10">
           <SheetTitle>{t('admin.geoFetch.drawer.title', 'Cartes du jeu')}</SheetTitle>
           <SheetDescription className="sr-only">
             {t(
@@ -95,13 +96,15 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
         </SheetHeader>
 
         {isLoading && (
-          <div className="text-sm text-white/60 py-12 text-center">
-            {t('admin.geoFetch.loading', 'Chargement…')}
+          <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="aspect-video w-full" />
+            ))}
           </div>
         )}
 
         {!isLoading && data && data.zones.length === 0 && (
-          <div className="rounded-md border border-white/10 bg-black/30 p-8 text-center text-sm text-white/60 mt-4">
+          <div className="rounded-lg border border-border bg-muted/40 p-8 text-center text-sm text-muted-foreground mt-4">
             {t(
               'admin.geoFetch.drawer.noCandidates',
               'Aucune carte récupérée pour ce jeu.',
@@ -114,26 +117,26 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
             {data.zones.map((zone) => (
               <div key={zone.zoneSlug ?? '__world__'} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white/80">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {zone.zoneName ?? t('admin.geoFetch.drawer.worldZone', 'Monde')}
                   </h3>
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-muted-foreground">
                     {t('admin.geoFetch.drawer.candidateCount', '{{count}} candidate(s)', {
                       count: zone.maps.length,
                     })}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 gap-3">
                   {zone.maps.map((map) => (
                     <div
                       key={map.id}
                       className={`rounded-md border overflow-hidden ${
                         map.isSelected
                           ? 'border-neon-purple ring-1 ring-neon-purple/50'
-                          : 'border-white/10'
+                          : 'border-border'
                       }`}
                     >
-                      <div className="aspect-video bg-black/30 relative">
+                      <div className="aspect-video bg-muted relative">
                         <img
                           src={map.imageUrl}
                           alt={map.zoneName ?? ''}
@@ -142,21 +145,20 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                         />
                         {map.isSelected && (
                           <div className="absolute top-1 left-1 bg-neon-purple/90 rounded p-1">
-                            <Star className="size-3 text-white fill-white" />
+                            <Star className="size-3 text-primary-foreground fill-current" aria-hidden="true" />
                           </div>
                         )}
                       </div>
                       <div className="p-2 space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-mono uppercase text-white/60">
+                          <span className="font-mono uppercase text-muted-foreground">
                             {map.provider ?? map.source}
                           </span>
-                          <span className="text-white/40">
+                          <span className="text-muted-foreground">
                             {map.widthPx}×{map.heightPx}
                           </span>
                         </div>
                         <Button
-                          size="sm"
                           variant={map.isSelected ? 'secondary' : 'default'}
                           className="w-full"
                           disabled={map.isSelected || busyMapId === map.id}
@@ -175,7 +177,7 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
                   {/* Re-fetch every distinct source represented in this zone.
                       Hard-coding "fandom" here was a real bug — operators
                       thought they triggered a global retry but only one
@@ -185,15 +187,11 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                   {Array.from(new Set(zone.maps.map((m) => m.source))).map((src) => (
                     <Button
                       key={src}
-                      size="sm"
                       variant="ghost"
                       onClick={() => {
                         if (gameId == null) return
                         void retrySource(gameId, src)
                       }}
-                      title={t('admin.geoFetch.drawer.refetchSource', 'Re-récupérer ({{source}})', {
-                        source: src,
-                      })}
                     >
                       <RotateCcw className="size-3 mr-1" />
                       {t('admin.geoFetch.drawer.refetchSource', 'Re-récupérer ({{source}})', {

@@ -145,7 +145,6 @@ export function GameForm({
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={onSyncRawg}
               disabled={isSyncing || isLoading}
               className="w-full sm:w-auto"
@@ -192,6 +191,8 @@ export function GameForm({
                       <Input
                         {...field}
                         placeholder={t('admin.games.form.slugPlaceholder')}
+                        autoCapitalize="none"
+                        autoCorrect="off"
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -230,6 +231,7 @@ export function GameForm({
                       <Input
                         {...field}
                         type="number"
+                        inputMode="numeric"
                         placeholder="2024"
                         min={1970}
                         max={2100}
@@ -245,6 +247,7 @@ export function GameForm({
                 <FormControl>
                   <Input
                     type="number"
+                    readOnly
                     value={game?.metacritic ?? ''}
                     placeholder="—"
                     disabled
@@ -344,6 +347,9 @@ export function GameForm({
                         <Input
                           {...field}
                           type="url"
+                          inputMode="url"
+                          autoCapitalize="none"
+                          autoCorrect="off"
                           placeholder="https://example.com/cover.jpg"
                           disabled={isLoading}
                           onChange={(e) => {
@@ -359,7 +365,7 @@ export function GameForm({
               )}
             />
 
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
+            <div className="sticky bottom-0 z-10 -mx-4 flex flex-col-reverse gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:justify-end md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:pb-0 md:pt-4">
               <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="w-full sm:w-auto">
                 {t('common.cancel')}
               </Button>

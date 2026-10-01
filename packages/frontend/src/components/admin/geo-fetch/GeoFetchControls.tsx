@@ -3,14 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Play, Square, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useGeoFetchStore } from '@/stores/geoFetchStore'
 import type { GeoFetchStage } from '@/lib/api/geo-fetch'
 
@@ -42,41 +35,51 @@ export function GeoFetchControls() {
   const visibleCount = Object.keys(games).length
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-      <div className="flex gap-2">
+    <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+      <div className="grid grid-cols-2 gap-2 sm:flex">
         <Button
+          variant="gaming"
           onClick={() => setStartConfirmOpen(true)}
           disabled={isStarting}
-          className="bg-gradient-to-r from-neon-purple to-neon-pink"
         >
-          <Play className="size-4 mr-1.5" />
+          <Play className="size-4" />
           {t('admin.geoFetch.start', 'Lancer')}
         </Button>
         <Button variant="outline" onClick={() => setCancelConfirmOpen(true)}>
-          <Square className="size-4 mr-1.5" />
+          <Square className="size-4" />
           {t('admin.geoFetch.cancel', 'Annuler')}
         </Button>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto">
-        {STAGE_FILTERS.map((f) => (
-          <button
-            key={f.value ?? 'all'}
-            type="button"
-            onClick={() => setFilterStage(f.value)}
-            className={`px-2.5 py-1 text-xs rounded-md border whitespace-nowrap ${
-              filterStage === f.value
-                ? 'border-neon-purple bg-neon-purple/20 text-white'
-                : 'border-white/10 text-white/60 hover:text-white'
-            }`}
-          >
-            {t(f.labelKey, f.fallback)}
-          </button>
-        ))}
+      <div
+        role="group"
+        aria-label={t('admin.geoFetch.cols.status', 'Statut')}
+        className="-mx-1 flex gap-1 overflow-x-auto scrollbar-hide px-1"
+      >
+        {STAGE_FILTERS.map((f) => {
+          const active = filterStage === f.value
+          return (
+            <button
+              key={f.value ?? 'all'}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setFilterStage(f.value)}
+              className={`inline-flex min-h-(--control-h) shrink-0 items-center rounded-md border px-3 text-sm whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                active
+                  ? 'border-neon-purple bg-neon-purple/20 text-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t(f.labelKey, f.fallback)}
+            </button>
+          )
+        })}
       </div>
 
-      <div className="flex-1 min-w-[150px]">
+      <div className="flex min-w-0 flex-1 items-center gap-2 lg:min-w-[200px]">
         <Input
+          type="search"
+          aria-label={t('admin.geoFetch.searchPlaceholder', 'Rechercher un jeu…')}
           placeholder={t('admin.geoFetch.searchPlaceholder', 'Rechercher un jeu…')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -84,73 +87,53 @@ export function GeoFetchControls() {
           onKeyDown={(e) => {
             if (e.key === 'Enter') void hydrate()
           }}
+          className="flex-1"
         />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => void hydrate()}
+          aria-label={t('admin.geoFetch.refresh', 'Rafraîchir')}
+          title={t('admin.geoFetch.refresh', 'Rafraîchir')}
+          className="shrink-0"
+        >
+          <RefreshCcw className="size-4" />
+        </Button>
       </div>
 
-      <Button variant="ghost" size="icon" onClick={() => void hydrate()} title={t('admin.geoFetch.refresh', 'Rafraîchir')}>
-        <RefreshCcw className="size-4" />
-      </Button>
+      <ConfirmDialog
+        open={startConfirmOpen}
+        onOpenChange={setStartConfirmOpen}
+        title={t('admin.geoFetch.startConfirm.title', 'Lancer la récupération globale ?')}
+        description={t(
+          'admin.geoFetch.startConfirm.body',
+          'Tous les jeux curés et résolus seront mis en file. Le serveur tronque la file à 1000 jeux maximum.',
+        )}
+        confirmLabel={t('admin.geoFetch.startConfirm.confirm', 'Lancer')}
+        cancelLabel={t('admin.cancel', 'Annuler')}
+        onConfirm={async () => {
+          setStartConfirmOpen(false)
+          await start({ all: true })
+        }}
+      />
 
-      <Dialog open={startConfirmOpen} onOpenChange={setStartConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {t('admin.geoFetch.startConfirm.title', 'Lancer la récupération globale ?')}
-            </DialogTitle>
-            <DialogDescription>
-              {t(
-                'admin.geoFetch.startConfirm.body',
-                'Tous les jeux curés et résolus seront mis en file. Le serveur tronque la file à 1000 jeux maximum.',
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStartConfirmOpen(false)}>
-              {t('admin.cancel', 'Annuler')}
-            </Button>
-            <Button
-              className="bg-gradient-to-r from-neon-purple to-neon-pink"
-              onClick={async () => {
-                setStartConfirmOpen(false)
-                await start({ all: true })
-              }}
-            >
-              {t('admin.geoFetch.startConfirm.confirm', 'Lancer')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {t('admin.geoFetch.cancelConfirm.title', "Annuler l'ingestion en cours ?")}
-            </DialogTitle>
-            <DialogDescription>
-              {t(
-                'admin.geoFetch.cancelConfirm.body',
-                'Les tâches déjà actives terminent leur exécution. Toutes les tâches en attente (maps:*) seront supprimées de la file.',
-                { count: visibleCount },
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelConfirmOpen(false)}>
-              {t('admin.cancel', 'Annuler')}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                setCancelConfirmOpen(false)
-                await cancel()
-              }}
-            >
-              {t('admin.geoFetch.cancelConfirm.confirm', 'Tout annuler')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onOpenChange={setCancelConfirmOpen}
+        title={t('admin.geoFetch.cancelConfirm.title', "Annuler l'ingestion en cours ?")}
+        description={t(
+          'admin.geoFetch.cancelConfirm.body',
+          'Les tâches déjà actives terminent leur exécution. Toutes les tâches en attente (maps:*) seront supprimées de la file.',
+          { count: visibleCount },
+        )}
+        confirmLabel={t('admin.geoFetch.cancelConfirm.confirm', 'Tout annuler')}
+        cancelLabel={t('admin.cancel', 'Annuler')}
+        destructive
+        onConfirm={async () => {
+          setCancelConfirmOpen(false)
+          await cancel()
+        }}
+      />
     </div>
   )
 }
