@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { markTourCompleted } from './tour-storage'
 
 /**
@@ -71,6 +72,11 @@ const STEPS: TourStep[] = [
 const PADDING = 8
 const TOOLTIP_GAP = 12
 const TOOLTIP_WIDTH = 320
+const VIEWPORT_MARGIN = 8
+
+function getTooltipWidth(): number {
+  return Math.min(TOOLTIP_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2)
+}
 
 interface Rect {
   top: number
@@ -104,6 +110,7 @@ function getTargetRect(target: TourTarget): Rect | null {
 function computeTooltipPosition(rect: Rect, preferred: Placement): TooltipPosition {
   const viewportW = window.innerWidth
   const viewportH = window.innerHeight
+  const width = getTooltipWidth()
   // Estimate tooltip height — actual size measured after render is hard
   // to thread through React without two passes, so we clamp against a
   // conservative 220px floor.
@@ -115,23 +122,23 @@ function computeTooltipPosition(rect: Rect, preferred: Placement): TooltipPositi
     let left = 0
     if (place === 'bottom') {
       top = rect.top + rect.height + TOOLTIP_GAP
-      left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2
+      left = rect.left + rect.width / 2 - width / 2
     } else if (place === 'top') {
       top = rect.top - estHeight - TOOLTIP_GAP
-      left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2
+      left = rect.left + rect.width / 2 - width / 2
     } else if (place === 'right') {
       top = rect.top + rect.height / 2 - estHeight / 2
       left = rect.left + rect.width + TOOLTIP_GAP
     } else {
       top = rect.top + rect.height / 2 - estHeight / 2
-      left = rect.left - TOOLTIP_WIDTH - TOOLTIP_GAP
+      left = rect.left - width - TOOLTIP_GAP
     }
 
     const fits =
       top >= 8 &&
       left >= 8 &&
       top + estHeight <= viewportH - 8 &&
-      left + TOOLTIP_WIDTH <= viewportW - 8
+      left + width <= viewportW - 8
 
     if (fits) return { top, left, placement: place }
   }
@@ -142,8 +149,8 @@ function computeTooltipPosition(rect: Rect, preferred: Placement): TooltipPositi
     viewportH - estHeight - 8,
   )
   const left = Math.min(
-    Math.max(rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2, 8),
-    viewportW - TOOLTIP_WIDTH - 8,
+    Math.max(rect.left + rect.width / 2 - width / 2, 8),
+    viewportW - width - 8,
   )
   return { top, left, placement: 'bottom' }
 }
@@ -190,12 +197,6 @@ function measurementReducer(
  * step index resets naturally on each open (fresh mount) — no derived
  * prev-prop state needed.
  */
-/**
- * The tour's Prev/Next controls are `size="sm"` (32px) so the popover stays
- * compact next to whatever it is pointing at; on a phone they still have to
- * clear the 44px target, so lift the height below `sm` only.
- */
-const tourButtonClass = 'min-h-11 sm:min-h-8'
 
 export function TourGuide({ open, onClose }: TourGuideProps) {
   if (!open) return null
@@ -211,14 +212,27 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
     initialMeasurement,
   )
   const rafRef = useRef<number | null>(null)
+  const primaryRef = useRef<HTMLButtonElement>(null)
+  const reducedMotion = useReducedMotionSafe()
 
-  // Filter steps to only those whose target currently exists in the DOM —
-  // anonymous visitors don't have `daily-reward-badge` or `profile-menu`,
-  // so we silently skip those rather than showing an empty spotlight.
+  // Keep only the steps whose target is actually rendered — anonymous
+  // visitors don't have `daily-reward-badge` or `profile-menu`, and the
+  // desktop nav anchors are `display: none` on a phone — so we skip those
+  // rather than showing an empty spotlight.
   const visibleSteps = useMemo(() => {
     if (typeof document === 'undefined') return STEPS
-    return STEPS.filter((s) => document.querySelector(`[data-tour="${s.target}"]`))
+    return STEPS.filter((s) => getTargetRect(s.target) !== null)
   }, [])
+
+  // Return focus to wherever it was before the tour took over.
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    return () => previous?.focus?.({ preventScroll: true })
+  }, [])
+
+  useEffect(() => {
+    primaryRef.current?.focus({ preventScroll: true })
+  }, [stepIndex])
 
   const currentStep = visibleSteps[stepIndex]
   const isLast = stepIndex >= visibleSteps.length - 1
@@ -263,8 +277,8 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!currentStep) return
     const el = document.querySelector<HTMLElement>(`[data-tour="${currentStep.target}"]`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [currentStep])
+    el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' })
+  }, [currentStep, reducedMotion])
 
   // Esc to skip.
   useEffect(() => {
@@ -352,13 +366,13 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
             ? {
                 top: '50%',
                 left: '50%',
-                width: TOOLTIP_WIDTH,
+                width: getTooltipWidth(),
                 transform: 'translate(-50%, -50%)',
               }
             : {
                 top: tooltipPos!.top,
                 left: tooltipPos!.left,
-                width: TOOLTIP_WIDTH,
+                width: getTooltipWidth(),
               }
         }
         role="document"
@@ -379,11 +393,11 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
             // keeps the icon optically aligned with the heading row.
             className="-m-2 flex size-11 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
           >
-            <X className="size-4" />
+            <X className="size-4" aria-hidden="true" />
           </button>
         </div>
 
-        <p className="text-foreground/85 leading-relaxed mb-4">
+        <p className="text-muted-foreground leading-relaxed mb-4">
           {t(currentStep.bodyKey)}
         </p>
 
@@ -392,15 +406,21 @@ function TourGuideContent({ onClose }: { onClose: () => void }) {
             {t('tour.progress', { current: stepIndex + 1, total: visibleSteps.length })}
           </span>
           <div className="flex items-center gap-2">
-            {stepIndex > 0 && (
-              <Button variant="ghost" size="sm" className={tourButtonClass} onClick={handlePrev}>
-                <ArrowLeft className="size-3.5" />
+            {stepIndex > 0 ? (
+              <Button variant="ghost" className="px-3" onClick={handlePrev}>
+                <ArrowLeft className="size-3.5" aria-hidden="true" />
                 {t('tour.prev')}
               </Button>
+            ) : (
+              visibleSteps.length > 1 && (
+                <Button variant="ghost" className="px-3" onClick={finish}>
+                  {t('onboarding.skip')}
+                </Button>
+              )
             )}
-            <Button variant="gaming" size="sm" className={tourButtonClass} onClick={handleNext}>
+            <Button ref={primaryRef} variant="gaming" className="px-3" onClick={handleNext}>
               {isLast ? t('tour.finish') : t('tour.next')}
-              {!isLast && <ArrowRight className="size-3.5" />}
+              {!isLast && <ArrowRight className="size-3.5" aria-hidden="true" />}
             </Button>
           </div>
         </div>

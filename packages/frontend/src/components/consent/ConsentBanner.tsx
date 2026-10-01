@@ -17,13 +17,10 @@ import {
  *
  * Mounted once globally in the language layout so it appears on every page.
  */
-/**
- * The banner's actions are `size="sm"` (32px) to keep the bar compact on a
- * desktop viewport, but on a phone they are the first thing a visitor has to
- * tap. `min-h-11` lifts them to the 44px Apple HIG / WCAG 2.5.5 target below
- * `sm` and hands the compact height back above it.
- */
-const consentButtonClass = 'min-h-11 sm:min-h-8'
+const wrapButtonClass = 'h-auto min-h-(--control-h) whitespace-normal py-2 leading-tight'
+
+const checkboxClass =
+  'mt-0.5 size-5 shrink-0 rounded border-border bg-background/50 accent-neon-purple'
 
 export function ConsentBanner() {
   const { t } = useTranslation()
@@ -39,36 +36,56 @@ export function ConsentBanner() {
 
   if (!shouldShow) return null
 
+  const optionalCategories = [
+    {
+      key: 'analytics',
+      checked: analytics,
+      onChange: setAnalytics,
+      label: t('consent.analyticsLabel'),
+      desc: t('consent.analyticsDesc'),
+    },
+    {
+      key: 'support',
+      checked: support,
+      onChange: setSupport,
+      label: t('consent.supportLabel'),
+      desc: t('consent.supportDesc'),
+    },
+  ]
+
   return (
     <div
       role="dialog"
       aria-modal="false"
-      aria-label={t('consent.title')}
+      aria-labelledby="consent-banner-title"
+      aria-describedby="consent-banner-desc"
       className={cn(
         // Sits *above* the mobile BottomNav rather than on top of it: anchored
         // at bottom-0 the banner covered all four tabs until the visitor made a
-        // consent choice, so a first-time phone visitor had no navigation. The
-        // PWA install prompts already reserved this space; the banner hadn't.
-        'fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[90] border-t border-border bg-card/95 backdrop-blur-md',
+        // consent choice, so a first-time phone visitor had no navigation.
+        // z-45: above the BottomNav (z-40) but under modal dialogs (z-50), so
+        // an auto-opened dialog's bottom sheet is never hidden behind it.
+        'fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[45] border-t border-border bg-card/95 backdrop-blur-md',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom motion-safe:duration-300',
         // `--bottom-nav-space` already carries the home-indicator inset, so only
         // pad for it from `md` up where the bar is hidden and bottom is 0.
         'md:bottom-0 md:pb-[env(safe-area-inset-bottom)]',
       )}
     >
-      <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6">
+      <div className="mx-auto max-h-[calc(100dvh-var(--header-h)-var(--bottom-nav-space))] max-w-4xl overflow-y-auto overscroll-contain px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-start gap-3">
-          <Cookie className="mt-0.5 size-5 shrink-0 text-neon-purple" aria-hidden="true" />
+          <Cookie className="mt-0.5 hidden size-5 shrink-0 text-neon-purple sm:block" aria-hidden="true" />
           <div className="flex-1 space-y-3">
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold text-foreground">
+              <h2 id="consent-banner-title" className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Cookie className="size-4 shrink-0 text-neon-purple sm:hidden" aria-hidden="true" />
                 {t('consent.title')}
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p id="consent-banner-desc" className="text-xs text-muted-foreground sm:text-sm">
                 {t('consent.description')}{' '}
                 <Link
                   to={localizedPath('/privacy')}
-                  className="text-neon-purple underline-offset-2 hover:underline"
+                  className="text-neon-purple underline underline-offset-2 sm:no-underline sm:hover:underline"
                 >
                   {t('consent.privacyLink')}
                 </Link>
@@ -76,88 +93,64 @@ export function ConsentBanner() {
             </div>
 
             {showPreferences && (
-              <div className="space-y-2 rounded-md border border-border bg-background/40 p-3">
-                <label className="flex items-start gap-3 opacity-70">
-                  <input
-                    type="checkbox"
-                    checked
-                    disabled
-                    className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple"
-                  />
+              <fieldset className="space-y-1 rounded-md border border-border bg-background/40 p-2">
+                <legend className="sr-only">{t('consent.managePreferences')}</legend>
+                <label className="flex items-start gap-3 rounded-md p-2">
+                  <input type="checkbox" checked disabled className={cn(checkboxClass, 'opacity-60')} />
                   <span className="flex-1 space-y-0.5">
-                    <span className="block text-sm text-foreground/90">
-                      {t('consent.essentialLabel')}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {t('consent.essentialDesc')}
-                    </span>
+                    <span className="block text-sm text-foreground">{t('consent.essentialLabel')}</span>
+                    <span className="block text-xs text-muted-foreground">{t('consent.essentialDesc')}</span>
                   </span>
                 </label>
-
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={analytics}
-                    onChange={(e) => setAnalytics(e.target.checked)}
-                    className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer"
-                  />
-                  <span className="flex-1 space-y-0.5">
-                    <span className="block text-sm text-foreground/90">
-                      {t('consent.analyticsLabel')}
+                {optionalCategories.map((category) => (
+                  <label
+                    key={category.key}
+                    className="flex cursor-pointer select-none items-start gap-3 rounded-md p-2 transition-colors hover:bg-muted/50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={category.checked}
+                      onChange={(e) => category.onChange(e.target.checked)}
+                      className={cn(checkboxClass, 'cursor-pointer')}
+                    />
+                    <span className="flex-1 space-y-0.5">
+                      <span className="block text-sm text-foreground">{category.label}</span>
+                      <span className="block text-xs text-muted-foreground">{category.desc}</span>
                     </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {t('consent.analyticsDesc')}
-                    </span>
-                  </span>
-                </label>
-
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={support}
-                    onChange={(e) => setSupport(e.target.checked)}
-                    className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer"
-                  />
-                  <span className="flex-1 space-y-0.5">
-                    <span className="block text-sm text-foreground/90">
-                      {t('consent.supportLabel')}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {t('consent.supportDesc')}
-                    </span>
-                  </span>
-                </label>
-              </div>
+                  </label>
+                ))}
+              </fieldset>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              {showPreferences ? (
+            {showPreferences ? (
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                <Button variant="ghost" className={wrapButtonClass} onClick={() => setShowPreferences(false)}>
+                  {t('common.back')}
+                </Button>
                 <Button
-                  size="sm"
-                  className={consentButtonClass}
+                  className={wrapButtonClass}
                   onClick={() => setPreferences({ analytics, support })}
                 >
                   {t('consent.save')}
                 </Button>
-              ) : (
-                <>
-                  <Button size="sm" className={consentButtonClass} onClick={acceptAll}>
-                    {t('consent.acceptAll')}
-                  </Button>
-                  <Button size="sm" variant="outline" className={consentButtonClass} onClick={rejectNonEssential}>
-                    {t('consent.rejectNonEssential')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className={consentButtonClass}
-                    onClick={() => setShowPreferences(true)}
-                  >
-                    {t('consent.managePreferences')}
-                  </Button>
-                </>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                <Button variant="outline" className={cn(wrapButtonClass, 'sm:order-2')} onClick={rejectNonEssential}>
+                  {t('consent.rejectNonEssential')}
+                </Button>
+                <Button className={cn(wrapButtonClass, 'sm:order-3')} onClick={acceptAll}>
+                  {t('consent.acceptAll')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn(wrapButtonClass, 'col-span-2 text-muted-foreground sm:order-1 sm:mr-auto sm:px-2')}
+                  onClick={() => setShowPreferences(true)}
+                >
+                  {t('consent.managePreferences')}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

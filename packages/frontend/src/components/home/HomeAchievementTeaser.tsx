@@ -15,7 +15,6 @@ import { useAchievementStore } from '@/stores/achievementStore'
 import { useSession } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
-import { cn } from '@/lib/utils'
 import type { Achievement, AchievementWithProgress } from '@the-box/types'
 
 // Shape we render in the teaser. We coerce both `Achievement` (catalog,
@@ -56,15 +55,12 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
     defaultValue: achievement.description,
   })
   return (
-    <div
-      className="group relative h-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm transition-colors hover:border-neon-pink/60"
-      aria-label={`${localizedName} — ${lockedLabel}`}
-    >
+    <div className="group relative h-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm transition-colors hover:border-neon-pink/60">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-neon-pink/20 blur-3xl opacity-50 group-hover:opacity-70 transition-opacity"
       />
-      <div className="relative flex flex-col items-center text-center p-5 sm:p-6 gap-3">
+      <div className="relative flex flex-col items-center text-center p-(--card-padding) gap-3">
         <div className="relative">
           <GradientIcon
             icon={
@@ -81,15 +77,16 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
             <Lock className="size-3" />
           </span>
         </div>
-        <h3 className="text-sm sm:text-base font-semibold leading-tight text-foreground">
+        <h3 className="text-base font-semibold leading-tight text-foreground">
           {localizedName}
+          <span className="sr-only">{` — ${lockedLabel}`}</span>
         </h3>
-        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3">
+        <p className="text-sm text-muted-foreground line-clamp-3">
           {localizedDescription}
         </p>
         <Badge
           variant="outline"
-          className="border-neon-purple/40 bg-neon-purple/10 text-[11px] uppercase tracking-wide text-neon-purple"
+          className="border-neon-purple/40 bg-neon-purple/10 text-xs uppercase tracking-wide text-neon-purple"
         >
           {achievement.points} pts
         </Badge>
@@ -100,7 +97,7 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
 
 function TeaserSkeleton() {
   return (
-    <div className="rounded-xl border border-white/10 bg-card/40 p-5 sm:p-6 flex flex-col items-center gap-3">
+    <div className="rounded-xl border border-border bg-card/40 p-(--card-padding) flex flex-col items-center gap-3">
       <Skeleton className="size-12 rounded-xl" />
       <Skeleton className="h-4 w-3/4" variant="text" />
       <Skeleton className="h-3 w-full" variant="text" />
@@ -217,30 +214,31 @@ export function HomeAchievementTeaser() {
         transition: { duration: 0.5, delay: 0.5 },
       })}
       aria-labelledby="home-achievements-heading"
-      className="max-w-4xl mx-auto mb-8 sm:mb-10 md:mb-12 lg:mb-16"
+      aria-busy={loading || undefined}
+      className="max-w-4xl mx-auto"
     >
       <div className="flex items-end justify-between gap-4 mb-4 sm:mb-6">
         <div className="flex items-center gap-3 min-w-0">
           <GradientIcon
             size="sm"
-            icon={<Trophy className="size-4 text-white" />}
+            icon={<Trophy className="size-4 text-white" aria-hidden="true" />}
             className="shrink-0"
           />
           <div className="min-w-0">
             <h2
               id="home-achievements-heading"
-              className="text-lg sm:text-xl md:text-2xl font-bold leading-tight gradient-gaming-title"
+              className="text-xl sm:text-2xl font-semibold leading-tight text-foreground"
             >
               {t('home.achievements.heading')}
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {t('home.achievements.subheading')}
             </p>
           </div>
         </div>
         <Link
           to={localizedPath('/profile')}
-          className="hidden sm:inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 -mx-3 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="hidden md:inline-flex items-center gap-1.5 min-h-11 px-3 py-2 -mx-3 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {t('home.achievements.cta')}
           <ArrowRight className="size-4" aria-hidden="true" />
@@ -258,7 +256,7 @@ export function HomeAchievementTeaser() {
             {items.map((item) => (
               <CarouselItem
                 key={item.key}
-                className={cn('pl-3 basis-[85%]')}
+                className="pl-3 basis-[85%]"
               >
                 <div className="h-full">{item.node}</div>
               </CarouselItem>
@@ -277,10 +275,10 @@ export function HomeAchievementTeaser() {
       </div>
 
       {/* Mobile-only CTA below the carousel; desktop CTA sits in the header. */}
-      <div className="mt-4 sm:hidden text-center">
+      <div className="mt-4 md:hidden">
         <Link
           to={localizedPath('/profile')}
-          className="inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-md text-sm font-semibold text-foreground hover:text-neon-pink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="flex w-full items-center justify-center gap-1.5 min-h-11 px-4 py-2 rounded-md border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {t('home.achievements.cta')}
           <ArrowRight className="size-4" aria-hidden="true" />

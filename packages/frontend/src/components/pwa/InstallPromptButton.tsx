@@ -23,8 +23,12 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
-    const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
-    if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return
+    try {
+      const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
+      if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return
+    } catch {
+      // storage blocked — offer the install button anyway
+    }
 
     const handler = (event: Event) => {
       event.preventDefault()
@@ -49,7 +53,11 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
       await deferredPrompt.prompt()
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'dismissed') {
-        localStorage.setItem(DISMISS_KEY, String(Date.now()))
+        try {
+          localStorage.setItem(DISMISS_KEY, String(Date.now()))
+        } catch {
+          // storage blocked — accept the loss
+        }
       }
     } finally {
       setDeferredPrompt(null)
@@ -61,12 +69,11 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size={isMobile ? 'default' : 'sm'}
       onClick={promptInstall}
       className={cn(isMobile && 'w-full justify-start')}
-      aria-label={t('pwa.install')}
     >
-      <Download className={cn('size-4', isMobile ? 'mr-2' : 'mr-1')} />
+      <Download className="size-4" aria-hidden="true" />
       {t('pwa.install')}
     </Button>
   )
