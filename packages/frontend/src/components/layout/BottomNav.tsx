@@ -29,8 +29,7 @@ export function BottomNav() {
       aria-label={t('nav.mobile')}
       className={cn(
         'fixed inset-x-0 bottom-0 z-40 md:hidden',
-        'border-t border-border/60 bg-background/95 backdrop-blur-md',
-        'supports-[backdrop-filter]:bg-background/80',
+        'border-t border-border/60 bg-background',
         'pb-[env(safe-area-inset-bottom)]',
       )}
     >

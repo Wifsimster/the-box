@@ -2167,7 +2167,9 @@
       "backupCodeLabel": "Backup code",
       "backToTotp": "Back to 6-digit code",
       "invalidCode": "Wrong code. Try again.",
-      "backupSubtitle": "Enter one of the backup codes you saved when you turned on two-step verification."
+      "backupSubtitle": "Enter one of the backup codes you saved when you turned on two-step verification.",
+      "paste": "Paste",
+      "pasteEmpty": "No 6-digit code in the clipboard."
     },
     "passkeyLogin": {
       "button": "Sign in with a passkey",
@@ -2177,6 +2179,7 @@
   "consent": {
     "title": "Your privacy choices",
     "description": "We use strictly necessary cookies to run The Box. With your consent, we also load privacy-friendly analytics and an in-app support widget. You can change this anytime.",
+    "descriptionShort": "Cookies needed to play, plus anonymous analytics and a support widget if you agree.",
     "acceptAll": "Accept all",
     "rejectNonEssential": "Reject non-essential",
     "managePreferences": "Manage preferences",

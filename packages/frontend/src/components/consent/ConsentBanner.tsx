@@ -82,7 +82,8 @@ export function ConsentBanner() {
                 {t('consent.title')}
               </h2>
               <p id="consent-banner-desc" className="text-xs text-muted-foreground sm:text-sm">
-                {t('consent.description')}{' '}
+                <span className="sm:hidden">{t('consent.descriptionShort')}</span>
+                <span className="hidden sm:inline">{t('consent.description')}</span>{' '}
                 <Link
                   to={localizedPath('/privacy')}
                   className="text-neon-purple underline underline-offset-2 sm:no-underline sm:hover:underline"

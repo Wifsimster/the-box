@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, Loader2, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, Loader2, ArrowLeft, ClipboardPaste } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +11,10 @@ import { authClient } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 const TOTP_LENGTH = 6
+
+// Password managers on Android (Bitwarden, …) can't fill the code field, but
+// copy the TOTP to the clipboard after filling the login: one tap pastes it.
+const canReadClipboard = typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
 
 export default function TwoFactorChallengePage() {
   const { t } = useTranslation()
@@ -69,6 +73,21 @@ export default function TwoFactorChallengePage() {
     }
   }
 
+  const pasteCode = async (): Promise<void> => {
+    try {
+      const text = await navigator.clipboard.readText()
+      const match = text.match(/\d{6}/)
+      if (!match) {
+        setError(t('security.challenge.pasteEmpty'))
+        inputRef.current?.focus()
+        return
+      }
+      handleCodeChange(match[0])
+    } catch {
+      inputRef.current?.focus()
+    }
+  }
+
   const switchMode = (): void => {
     setMode((m) => (m === 'totp' ? 'backup' : 'totp'))
     setCode('')
@@ -95,9 +114,24 @@ export default function TwoFactorChallengePage() {
     >
       <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
         <div className="space-y-2">
-          <Label htmlFor="two-factor-code">
-            {isTotp ? t('security.challenge.codeLabel') : t('security.challenge.backupCodeLabel')}
-          </Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="two-factor-code">
+              {isTotp ? t('security.challenge.codeLabel') : t('security.challenge.backupCodeLabel')}
+            </Label>
+            {isTotp && canReadClipboard && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void pasteCode()}
+                disabled={isLoading}
+                className="-mr-2 min-h-11 gap-1.5 text-neon-purple"
+              >
+                <ClipboardPaste className="size-4" aria-hidden="true" />
+                {t('security.challenge.paste')}
+              </Button>
+            )}
+          </div>
           <Input
             ref={inputRef}
             id="two-factor-code"

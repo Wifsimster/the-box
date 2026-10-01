@@ -5,6 +5,7 @@ import { useSession, signOut as authSignOut } from '@/lib/auth-client'
 import { useGameStore } from '@/stores/gameStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useAchievementStore } from '@/stores/achievementStore'
+import { safeRedirect, withRedirect } from '@/components/security/authRedirect'
 
 /**
  * Custom hook for authentication logic
@@ -46,7 +47,7 @@ export function useAuth() {
 
   const signIn = useCallback(
     (redirectTo?: string) => {
-      navigate(`/${currentLang}/login`, { state: { redirectTo } })
+      navigate(withRedirect(`/${currentLang}/login`, safeRedirect(redirectTo)))
     },
     [navigate, currentLang]
   )
