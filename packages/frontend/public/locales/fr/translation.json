@@ -2177,6 +2177,7 @@
   "consent": {
     "title": "Vos choix de confidentialité",
     "description": "Nous utilisons des cookies strictement nécessaires pour faire fonctionner The Box. Avec votre accord, nous chargeons aussi des statistiques respectueuses de la vie privée et un widget de support intégré. Vous pouvez modifier ce choix à tout moment.",
+    "descriptionShort": "Cookies nécessaires au jeu, plus statistiques anonymes et widget de support si vous l'acceptez.",
     "acceptAll": "Tout accepter",
     "rejectNonEssential": "Refuser le non-essentiel",
     "managePreferences": "Gérer mes préférences",

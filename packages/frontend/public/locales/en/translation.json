@@ -2177,6 +2177,7 @@
   "consent": {
     "title": "Your privacy choices",
     "description": "We use strictly necessary cookies to run The Box. With your consent, we also load privacy-friendly analytics and an in-app support widget. You can change this anytime.",
+    "descriptionShort": "Cookies needed to play, plus anonymous analytics and a support widget if you agree.",
     "acceptAll": "Accept all",
     "rejectNonEssential": "Reject non-essential",
     "managePreferences": "Manage preferences",
