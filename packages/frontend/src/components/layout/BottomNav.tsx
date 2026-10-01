@@ -45,7 +45,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   cn(
                     'relative flex h-full flex-col items-center justify-center gap-1 px-1',
-                    'text-[11px] font-medium transition-colors',
+                    'text-xs font-medium transition-colors',
                     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                     isActive
                       ? 'text-primary'

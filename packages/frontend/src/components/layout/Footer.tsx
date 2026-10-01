@@ -74,7 +74,7 @@ export function Footer() {
           {t('footer.contact')}
         </Link>
       </nav>
-      <p className="mt-2 text-xs text-muted-foreground/60">
+      <p className="mt-2 text-xs text-muted-foreground">
         &copy; {currentYear} The Box. {t('footer.allRightsReserved')}
         {appVersion !== 'dev' && (
           <>
@@ -93,7 +93,7 @@ export function Footer() {
       </p>
       {/* Studio credit — inline in prose, so the WCAG 2.5.8 inline exception
           applies and the link doesn't need the 44px box the nav links carry. */}
-      <p className="mt-1 text-xs text-muted-foreground/60">
+      <p className="mt-1 text-xs text-muted-foreground">
         {t('footer.studioBy')}{' '}
         <a
           href={STUDIO.url}

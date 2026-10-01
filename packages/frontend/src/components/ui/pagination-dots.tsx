@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 interface PaginationDotsProps {
@@ -20,27 +21,34 @@ function PaginationDots({
   maxVisible = 10,
   className,
 }: PaginationDotsProps) {
+  const { t } = useTranslation()
+
   // Don't render if only one item or exceeds max visible
   if (total <= 1 || total > maxVisible) {
     return null
   }
 
   return (
-    <div className={cn("flex gap-1.5", className)}>
+    <div className={cn("flex", className)}>
       {Array.from({ length: total }).map((_, index) => (
         <button
           key={index}
           type="button"
-          className={cn(
-            "size-2 rounded-full transition-colors",
-            index === current
-              ? "bg-primary"
-              : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-          )}
+          className="group flex size-6 items-center justify-center rounded-full"
           onClick={() => onSelect(index)}
-          aria-label={`Go to item ${index + 1}`}
+          aria-label={t("common.goToItem", { index: index + 1 })}
           aria-current={index === current ? "true" : undefined}
-        />
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              "size-2 rounded-full transition-colors",
+              index === current
+                ? "bg-primary"
+                : "bg-muted-foreground/30 group-hover:bg-muted-foreground/50"
+            )}
+          />
+        </button>
       ))}
     </div>
   )

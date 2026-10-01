@@ -12,6 +12,7 @@ export function Skeleton({
   return (
     <div
       data-slot="skeleton"
+      aria-hidden="true"
       className={cn(
         'skeleton',
         variant === 'circular' && 'rounded-full',

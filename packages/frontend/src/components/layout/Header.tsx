@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -269,6 +269,8 @@ function getScrolledServerSnapshot() {
  * driven by the shared `PRIMARY_NAV` config so the drawer, the desktop bar and
  * the mobile BottomNav stay in sync.
  */
+const AUTH_PATH_RE = /\/(login|register|forgot-password|reset-password|two-factor)\/?$/
+
 export function Header() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -325,6 +327,8 @@ export function Header() {
   const isAdmin = session?.user?.role === 'admin'
   const displayName = session?.user?.name || session?.user?.email?.split('@')[0]
   const isSignedIn = Boolean(hasValidSession) && !isPending && !isGuest
+  const { pathname } = useLocation()
+  const isOnAuthPage = AUTH_PATH_RE.test(pathname)
 
   return (
     <header
@@ -430,8 +434,15 @@ export function Header() {
         </div>
 
         {/* Mobile reward widgets — surfaced in the header (not buried in the
-            drawer) so the daily-streak loop is glanceable on first paint */}
+            drawer) so the daily-streak loop is glanceable on first paint.
+            Signed-out visitors get the login entry here instead, so it isn't
+            hidden behind the hamburger. */}
         <div className="flex items-center gap-1 md:hidden">
+          {showAuthButtons && !isPending && !isOnAuthPage && (
+            <Button variant="outline" asChild className="px-3">
+              <Link to={localizedPath('/login')}>{t('common.login')}</Link>
+            </Button>
+          )}
           {isSignedIn && (
             <>
               <RewardsInboxBell />

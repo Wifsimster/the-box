@@ -10,7 +10,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         // `text-base` (16px) on mobile keeps iOS Safari from auto-zooming the
         // viewport when the field gains focus; `md:text-sm` restores the
         // tighter desktop scale where zoom-on-focus doesn't apply.
-        "flex h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-base md:text-sm text-foreground",
+        "flex h-(--control-h) w-full rounded-md border border-border bg-card px-3 py-2 text-base md:text-sm text-foreground",
         "placeholder:text-muted-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:cursor-not-allowed disabled:opacity-50",

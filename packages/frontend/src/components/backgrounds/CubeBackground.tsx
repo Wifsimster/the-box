@@ -10,6 +10,7 @@
 /* oxlint-disable react-doctor/no-unknown-property */
 import { useRef, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useReducedMotion } from 'framer-motion'
 import * as THREE from 'three'
 
 function RotatingCube() {
@@ -143,11 +144,15 @@ function DigitalDust() {
 }
 
 export function CubeBackground() {
+  // Reduced-motion players get a single static frame instead of a
+  // continuously drifting scene (also spares the battery on phones).
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <div className="fixed inset-0 z-0 bg-background">
+    <div aria-hidden="true" className="fixed inset-0 z-0 bg-background">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 50 }}
-        style={{ background: '#0a0a0f' }}
+        frameloop={prefersReducedMotion ? 'demand' : 'always'}
         dpr={[1, 1.5]}
         gl={{ antialias: false, powerPreference: 'low-power' }}
       >
