@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Bell, Loader2 } from 'lucide-react'
 import { useWebPush } from '@/hooks/useWebPush'
 import { PushApiError } from '@/lib/api/push'
@@ -55,7 +56,7 @@ export function PushNotificationCard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="size-5" />
+            <Bell className="size-5" aria-hidden="true" />
             {t('pushNotifications.title')}
           </CardTitle>
           <CardDescription>{t('pushNotifications.description')}</CardDescription>
@@ -96,7 +97,7 @@ export function PushNotificationCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="size-5" />
+          <Bell className="size-5" aria-hidden="true" />
           {t('pushNotifications.title')}
         </CardTitle>
         <CardDescription id={descId}>{t('pushNotifications.description')}</CardDescription>
@@ -105,29 +106,28 @@ export function PushNotificationCard() {
         {isPermanentlyDenied ? (
           <p className="text-sm text-muted-foreground">{t('pushNotifications.permissionDeniedHint')}</p>
         ) : (
-          <label className="flex items-start gap-3 cursor-pointer select-none group" htmlFor={labelId}>
-            <input
+          <div className="flex items-start gap-3">
+            <Checkbox
               id={labelId}
-              type="checkbox"
               checked={isSubscribed}
               disabled={isLoading}
               aria-busy={isLoading}
               aria-describedby={descId}
-              onChange={(e) => void handleToggle(e.target.checked)}
-              className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
+              onCheckedChange={(value) => void handleToggle(value === true)}
+              className="mt-0.5"
             />
-            <span className="flex-1 space-y-1">
-              <span className="block text-sm text-foreground/90 group-hover:text-foreground transition-colors">
+            <div className="flex-1 space-y-1">
+              <label htmlFor={labelId} className="block cursor-pointer text-sm text-foreground">
                 {t('pushNotifications.label')}
-              </span>
+              </label>
               {isLoading && (
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="size-3 animate-spin" aria-hidden="true" />
                   <span className="sr-only">{t('pushNotifications.updating')}</span>
                 </span>
               )}
-            </span>
-          </label>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

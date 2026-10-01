@@ -50,7 +50,7 @@ export function AdvancedStatsPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" aria-busy="true">
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
@@ -173,27 +173,30 @@ export function AdvancedStatsPanel() {
               <TrendingUp className="size-4 text-muted-foreground" />
               {t('advancedStats.monthlyProgression')}
             </h3>
-            <div className="flex items-end gap-2 h-32">
+            <ul className="flex items-end gap-2 h-36 list-none">
               {stats.monthlyScores.map((m) => {
                 const ratio = m.totalScore / maxMonthly
                 const heightPct = Math.max(8, Math.round(ratio * 100))
                 return (
-                  <div
+                  <li
                     key={m.month}
-                    className="flex flex-col items-center gap-1 flex-1"
-                    title={`${m.month} · ${m.totalScore.toLocaleString()} pts`}
+                    className="flex flex-col items-center gap-1 flex-1 min-w-0"
+                    aria-label={`${m.month} · ${m.totalScore.toLocaleString()} ${t('leaderboard.points')}`}
                   >
-                    <div className="w-full flex flex-col justify-end h-24">
+                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground" aria-hidden="true">
+                      {m.totalScore.toLocaleString()}
+                    </span>
+                    <div className="w-full flex flex-col justify-end h-24" aria-hidden="true">
                       <div
                         className="w-full rounded-t bg-linear-to-t from-primary to-neon-pink"
                         style={{ height: `${heightPct}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{m.month.slice(5)}</span>
-                  </div>
+                    <span className="text-xs text-muted-foreground" aria-hidden="true">{m.month.slice(5)}</span>
+                  </li>
                 )
               })}
-            </div>
+            </ul>
           </section>
         )}
       </CardContent>
@@ -210,12 +213,12 @@ interface StatTileProps {
 
 function StatTile({ icon, label, value, dim }: StatTileProps) {
   return (
-    <div className="rounded-lg border border-border/60 bg-card/40 p-3 space-y-1">
-      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wide">
+    <div className="min-w-0 rounded-lg border border-border/60 bg-card/40 p-3 space-y-1">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon}
         <span>{label}</span>
       </div>
-      <div className={dim ? 'text-lg font-semibold' : 'text-2xl font-bold text-foreground'}>{value}</div>
+      <div className={dim ? 'text-lg font-semibold tabular-nums' : 'text-xl sm:text-2xl font-bold tabular-nums text-foreground'}>{value}</div>
     </div>
   )
 }

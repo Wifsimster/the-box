@@ -98,7 +98,7 @@ export function StreamerRecipesSection({ slug }: Props) {
           <li
             key={r.id}
             data-testid={`streamer-kit-recipe-${r.id}`}
-            className="rounded border border-border bg-background/30 p-3 space-y-2"
+            className="rounded-lg border border-border bg-background/30 p-3 space-y-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -106,18 +106,19 @@ export function StreamerRecipesSection({ slug }: Props) {
                 <p className="text-xs text-muted-foreground">{r.desc}</p>
               </div>
               <Button
-                size="sm"
+                size="icon"
                 variant="outline"
+                className="shrink-0"
                 onClick={() => {
                   void copy(r.id, r.code)
                 }}
                 aria-label={t('streamerKit.recipeCopyAria')}
                 data-testid={`streamer-kit-recipe-copy-${r.id}`}
               >
-                {copied === r.id ? <Check className="size-4" /> : <Copy className="size-4" />}
+                {copied === r.id ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
               </Button>
             </div>
-            <pre className="overflow-x-auto rounded bg-background/60 p-2 text-[11px] leading-relaxed">
+            <pre className="overflow-x-auto rounded-md bg-background/60 p-2 text-xs leading-relaxed">
               <code className="font-mono">{r.code}</code>
             </pre>
           </li>

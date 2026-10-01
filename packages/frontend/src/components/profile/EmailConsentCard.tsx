@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Mail, Loader2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { userApi } from '@/lib/api/user'
@@ -12,6 +13,7 @@ interface EmailConsentCardProps {
 
 export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCardProps) {
   const { t, i18n } = useTranslation()
+  const checkboxId = useId()
   const [consent, setConsent] = useState(initialConsent)
   // Local override applied only after a successful save. While null we fall
   // back to the `updatedAt` prop, so the timestamp isn't derived state.
@@ -50,30 +52,31 @@ export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCard
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mail className="size-5" />
+          <Mail className="size-5" aria-hidden="true" />
           {t('emailConsent.title')}
         </CardTitle>
         <CardDescription>{t('emailConsent.description')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <label className="flex items-start gap-3 cursor-pointer select-none group">
-          <input
-            type="checkbox"
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id={checkboxId}
             checked={consent}
             disabled={isSaving}
-            onChange={(e) => handleToggle(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-background/50 accent-neon-purple cursor-pointer disabled:cursor-wait"
+            aria-busy={isSaving}
+            onCheckedChange={(value) => handleToggle(value === true)}
+            className="mt-0.5"
           />
-          <span className="flex-1 space-y-1">
-            <span className="block text-sm text-foreground/90 group-hover:text-foreground transition-colors">
+          <div className="flex-1 space-y-1">
+            <label htmlFor={checkboxId} className="block cursor-pointer text-sm text-foreground">
               {t('emailConsent.label')}
-            </span>
-            <span className="flex items-center gap-2 text-xs text-muted-foreground">
-              {isSaving && <Loader2 className="size-3 animate-spin" />}
+            </label>
+            <p className="flex items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
+              {isSaving && <Loader2 className="size-3 animate-spin" aria-hidden="true" />}
               {formattedDate && !isSaving && t('emailConsent.updatedOn', { date: formattedDate })}
-            </span>
-          </span>
-        </label>
+            </p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

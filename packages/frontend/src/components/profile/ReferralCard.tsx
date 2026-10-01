@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { UserPlus, Copy, Check, Gift } from 'lucide-react'
+import { UserPlus, Copy, Check, Gift, Share2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { referralApi, type ReferralStats } from '@/lib/api/referral'
 
@@ -27,6 +27,7 @@ export function ReferralCard({ userId, language }: ReferralCardProps) {
   const [copied, setCopied] = useState(false)
 
   const inviteUrl = buildInviteUrl(userId, language)
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   useEffect(() => {
     let cancelled = false
@@ -51,27 +52,55 @@ export function ReferralCard({ userId, language }: ReferralCardProps) {
     }
   }
 
+  const handleShare = async () => {
+    try {
+      await navigator.share({ title: t('referral.title'), url: inviteUrl })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      void handleCopy()
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserPlus className="size-5" />
+          <UserPlus className="size-5" aria-hidden="true" />
           {t('referral.title')}
         </CardTitle>
         <CardDescription>{t('referral.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-2">
-          <Input readOnly value={inviteUrl} className="font-mono text-xs sm:text-sm" />
-          <Button variant="gaming" onClick={handleCopy} className="shrink-0">
-            {copied ? <Check className="size-4 mr-2" /> : <Copy className="size-4 mr-2" />}
-            {copied ? t('referral.copied') : t('referral.copyLink')}
-          </Button>
+          <Input
+            readOnly
+            value={inviteUrl}
+            aria-label={t('referral.linkLabel')}
+            onFocus={(e) => e.currentTarget.select()}
+            className="font-mono text-xs sm:text-sm"
+          />
+          <div className="flex gap-2">
+            <Button
+              variant={canShare ? 'outline' : 'gaming'}
+              onClick={handleCopy}
+              className="flex-1 sm:flex-none"
+              aria-live="polite"
+            >
+              {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              {copied ? t('referral.copied') : t('referral.copyLink')}
+            </Button>
+            {canShare && (
+              <Button variant="gaming" onClick={handleShare} className="flex-1 sm:flex-none">
+                <Share2 aria-hidden="true" />
+                {t('common.share')}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Badge variant="outline" className="gap-1.5">
-            <Gift className="size-3.5" />
+            <Gift className="size-3.5" aria-hidden="true" />
             {t('referral.stat', { count: stats?.referralsMade ?? 0 })}
           </Badge>
           {stats?.hasClaimed && (

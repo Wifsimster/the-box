@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, Play, Flame, Gamepad2, Sparkles } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Play, Flame, Gamepad2, Sparkles, CloudOff, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
@@ -27,6 +28,7 @@ interface HistoryDataState {
   history: GameHistoryEntry[]
   missedChallenges: MissedChallenge[]
   loading: boolean
+  failed: boolean
 }
 
 type HistoryDataAction =
@@ -38,6 +40,7 @@ const initialHistoryData: HistoryDataState = {
   history: [],
   missedChallenges: [],
   loading: true,
+  failed: false,
 }
 
 function historyDataReducer(
@@ -52,9 +55,10 @@ function historyDataReducer(
         history: action.history,
         missedChallenges: action.missedChallenges,
         loading: false,
+        failed: false,
       }
     case 'loadFailed':
-      return { ...state, loading: false }
+      return { ...state, loading: false, failed: true }
     default:
       return state
   }
@@ -99,7 +103,7 @@ export function ActivityPanel() {
   const { t, i18n } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const { session } = useAuth()
-  const [{ history, missedChallenges, loading }, dispatchData] = useReducer(
+  const [{ history, missedChallenges, loading, failed }, dispatchData] = useReducer(
     historyDataReducer,
     initialHistoryData,
   )
@@ -202,20 +206,37 @@ export function ActivityPanel() {
     return items
   }, [filteredHistory, missedChallenges, statusFilter, searchQuery, formatDate])
 
+  const initialLoading = loading && history.length === 0
+
   return (
     <div>
-      {/* Loading State */}
-      {loading && (
-        <output className="flex justify-center py-8 sm:py-12" aria-live="polite">
-          <Loader2 className="size-6 sm:size-8 animate-spin text-primary" aria-hidden="true" />
-          <span className="sr-only">{t('common.loading')}</span>
-        </output>
+      {initialLoading && (
+        <div aria-busy="true" className="space-y-4 sm:space-y-6">
+          <span className="sr-only" role="status">{t('common.loading')}</span>
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-10 w-full" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Empty State — sells today's challenge */}
-      {!loading && history.length === 0 && (
+      {!loading && failed && history.length === 0 && (
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+          <CloudOff className="size-10 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm sm:text-base text-muted-foreground">{t('history.loadError')}</p>
+          <Button variant="outline" onClick={fetchHistory}>
+            <RefreshCw aria-hidden="true" />
+            {t('common.retry')}
+          </Button>
+        </div>
+      )}
+
+      {!loading && !failed && history.length === 0 && (
         <Card variant="neon" className="bg-card/50 max-w-xl mx-auto text-center">
-          <CardContent className="py-10 sm:py-12 px-6 sm:px-8 flex flex-col items-center gap-4">
+          <CardContent className="py-10 sm:py-12 flex flex-col items-center gap-4">
             <div
               className="size-16 sm:size-20 rounded-full flex items-center justify-center bg-linear-to-br from-neon-purple to-neon-pink"
               style={{ boxShadow: 'var(--glow-md)' }}
@@ -229,9 +250,9 @@ export function ActivityPanel() {
             <p className="text-sm sm:text-base text-muted-foreground max-w-md">
               {t('history.empty.subtitle')}
             </p>
-            <Button asChild size="lg" className="mt-2">
+            <Button asChild variant="gaming" size="lg" className="mt-2 w-full sm:w-auto">
               <Link to={localizedPath('/play')}>
-                <Play className="size-4 mr-2" aria-hidden="true" />
+                <Play aria-hidden="true" />
                 {t('history.empty.cta')}
               </Link>
             </Button>
@@ -239,59 +260,54 @@ export function ActivityPanel() {
         </Card>
       )}
 
-      {/* History List */}
-      {!loading && history.length > 0 && (
+      {history.length > 0 && (
         <div className="space-y-4 sm:space-y-6">
-          {/* Stats Strip — Série · Joué (computed client-side, no extra API call) */}
-          <Card className="bg-card/50 border-border" aria-label={t('history.stats.label')}>
-            <CardContent className="p-4 sm:p-5 flex flex-row items-stretch divide-x divide-border">
-              <div className="flex-1 flex flex-col items-center gap-1 px-3">
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                  <Flame className="size-3.5 sm:size-4 text-neon-pink" aria-hidden="true" />
-                  <span>{t('history.stats.streak')}</span>
-                </div>
-                <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
-                  {t('history.stats.streakUnit', { count: aggregates.streak })}
-                </span>
-              </div>
-              <div className="flex-1 flex flex-col items-center gap-1 px-3">
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                  <Gamepad2 className="size-3.5 sm:size-4 text-neon-cyan" aria-hidden="true" />
-                  <span>{t('history.stats.played')}</span>
-                </div>
-                <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
-                  {t('history.stats.playedUnit', { count: aggregates.playedCount })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+          <section
+            aria-label={t('history.stats.label')}
+            className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card/50 py-4"
+          >
+            <div className="flex flex-col items-center gap-1 px-3 text-center">
+              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                <Flame className="size-4 text-neon-pink" aria-hidden="true" />
+                {t('history.stats.streak')}
+              </span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                {t('history.stats.streakUnit', { count: aggregates.streak })}
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-1 px-3 text-center">
+              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                <Gamepad2 className="size-4 text-neon-cyan" aria-hidden="true" />
+                {t('history.stats.played')}
+              </span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                {t('history.stats.playedUnit', { count: aggregates.playedCount })}
+              </span>
+            </div>
+          </section>
 
-          {/* Filters Section */}
-          <HistoryFilters
-            statusFilter={statusFilter}
-            searchQuery={searchQuery}
-            loading={loading}
-            onRefresh={fetchHistory}
-            onStatusChange={setStatusFilter}
-            onSearchChange={setSearchQuery}
-            onClear={() => {
-              setStatusFilter('all')
-              setSearchQuery('')
-            }}
-          />
-
-          {/* Unified Timeline — played sessions and missed challenges
-              interleaved by date, so today's game appears at the top. */}
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg font-bold text-foreground">
-                {t('history.yourGames')}
+          <Card className="bg-card/50">
+            <CardHeader>
+              <CardTitle className="flex items-baseline justify-between gap-2">
+                <span>{t('history.yourGames')}</span>
+                <span className="text-sm font-normal text-muted-foreground tabular-nums">
+                  {timeline.length} {timeline.length === 1 ? t('history.game') : t('history.games')}
+                </span>
               </CardTitle>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                {timeline.length} {timeline.length === 1 ? t('history.game') : t('history.games')}
-              </p>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
+            <CardContent className="space-y-4">
+              <HistoryFilters
+                statusFilter={statusFilter}
+                searchQuery={searchQuery}
+                loading={loading}
+                onRefresh={fetchHistory}
+                onStatusChange={setStatusFilter}
+                onSearchChange={setSearchQuery}
+                onClear={() => {
+                  setStatusFilter('all')
+                  setSearchQuery('')
+                }}
+              />
               <HistoryTimeline
                 timeline={timeline}
                 reducedMotion={reducedMotion}

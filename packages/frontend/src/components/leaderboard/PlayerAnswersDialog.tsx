@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Lock } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   ResponsiveDialog,
@@ -72,7 +72,7 @@ export function PlayerAnswersDialog({
             {selectedPlayer && (
               <>
                 <Avatar className="size-8 shrink-0">
-                  <AvatarImage src={selectedPlayer.avatarUrl} alt={selectedPlayer.displayName} />
+                  <AvatarImage src={selectedPlayer.avatarUrl} alt="" />
                   <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-sm font-bold">
                     {selectedPlayer.displayName[0]}
                   </AvatarFallback>
@@ -86,13 +86,17 @@ export function PlayerAnswersDialog({
         </ResponsiveDialogHeader>
 
         {sessionLoading && (
-          <div className="flex justify-center py-8">
-            <Loader2 className="size-8 animate-spin text-primary" />
+          <div role="status" className="flex justify-center py-8">
+            <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
+            <span className="sr-only">{t('leaderboard.loading')}</span>
           </div>
         )}
 
         {sessionError && (
-          <div className="text-center py-8 text-destructive">{sessionError}</div>
+          <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center">
+            <Lock className="size-8 text-muted-foreground" aria-hidden="true" />
+            <p className="max-w-xs text-sm sm:text-base text-muted-foreground">{sessionError}</p>
+          </div>
         )}
 
         {playerSession && !sessionLoading && (

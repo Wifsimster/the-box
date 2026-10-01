@@ -64,10 +64,10 @@ export function ProfileHeaderCard({
   )
 
   return (
-    <Card className="border-2 border-primary/20">
-      <CardContent className="pt-6 pb-5">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 lg:min-w-[280px]">
+    <Card variant="neon">
+      <CardContent className="pt-(--card-padding)">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 min-w-0 lg:min-w-[280px]">
             <m.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -81,21 +81,23 @@ export function ProfileHeaderCard({
                 onAvatarChange={onAvatarChange}
               />
             </m.div>
-            <div className="flex-1 space-y-2 text-center sm:text-left">
-              <h2 className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
-                <span>{userName}</span>
+            <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left">
+              <h1 className="flex max-w-full items-center justify-center sm:justify-start gap-2 text-2xl sm:text-3xl font-bold">
+                <span className="min-w-0 wrap-break-word bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  {userName}
+                </span>
                 {isPremium && <PremiumBadge compact />}
-              </h2>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                {email && <div>{email}</div>}
-                <div className="flex items-center justify-center sm:justify-start gap-1.5">
-                  <Calendar className="size-3" />
+              </h1>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                {email && <div className="break-all">{email}</div>}
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-1.5 gap-y-1">
+                  <Calendar className="size-3.5" aria-hidden="true" />
                   {/* The player noun earns a job here rather than sitting in
                       the random end-of-run message pool: it names who this
                       profile belongs to, dated (docs/brand.md §1). */}
                   <span>{t('profile.memberSince', { date: joinDate })}</span>
                   {!emailVerified && (
-                    <Badge variant="outline" className="text-xs ml-2">
+                    <Badge variant="outline" className="text-xs">
                       {t('common.guestBadge')}
                     </Badge>
                   )}
@@ -105,11 +107,11 @@ export function ProfileHeaderCard({
           </div>
 
           <TooltipProvider delayDuration={200}>
-            <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-3">
+            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               <StatTile
                 icon={Trophy}
                 value={totalScore.toLocaleString()}
-                label={t('profile.total')}
+                label={t('profile.totalScore')}
                 tone="warning"
                 tooltipTitle={t('profile.totalScore')}
                 tooltipBody={t('profile.tooltips.totalScoreDescription')}
@@ -117,23 +119,24 @@ export function ProfileHeaderCard({
               <StatTile
                 icon={Flame}
                 value={currentStreak}
-                label={t('profile.days')}
+                label={t('profile.currentStreak')}
                 tone="score-low"
                 tooltipTitle={t('profile.currentStreak')}
                 tooltipBody={currentStreakTooltipBody}
                 extra={
                   streakFreezeCount > 0 ? (
-                    <div className="flex items-center gap-1 text-[10px] text-neon-blue">
-                      <Snowflake className="size-3" />
+                    <div className="flex items-center gap-1 text-xs text-neon-blue">
+                      <Snowflake className="size-3" aria-hidden="true" />
                       <span>× {streakFreezeCount}</span>
+                      <span className="sr-only">{t('profile.streakFreezeTooltip', { count: streakFreezeCount })}</span>
                     </div>
                   ) : null
                 }
               />
               <StatTile
                 icon={Award}
-                value={earnedCount}
-                label={`${completionPercentage}%`}
+                value={`${earnedCount}/${totalCount}`}
+                label={`${t('profile.tooltips.unlockedAchievementsTitle')} · ${completionPercentage}%`}
                 tone="primary"
                 tooltipTitle={t('profile.tooltips.unlockedAchievementsTitle')}
                 tooltipBody={t('profile.tooltips.earnedOfTotal', { earned: earnedCount, total: totalCount })}
@@ -141,7 +144,7 @@ export function ProfileHeaderCard({
               <StatTile
                 icon={TrendingUp}
                 value={totalPoints}
-                label={t('profile.points')}
+                label={t('profile.achievementPoints')}
                 tone="success"
                 tooltipTitle={t('profile.achievementPoints')}
                 tooltipBody={t('profile.tooltips.achievementPointsDescription')}

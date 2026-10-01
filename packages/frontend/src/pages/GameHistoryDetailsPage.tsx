@@ -2,7 +2,8 @@ import { useEffect, useMemo, useReducer } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ArrowLeft, SearchX } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { gameApi } from '@/lib/api/game'
 import { getApiErrorMessage } from '@/lib/api-errors'
@@ -69,11 +70,19 @@ export default function GameHistoryDetailsPage() {
     [sessionData],
   )
 
+  const goBack = () => navigate(localizedPath('/history'))
+  const containerClass = 'container mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6 md:py-8'
+
   if (loading) {
     return (
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <Loader2 className="size-8 animate-spin text-primary" />
+      <div className={containerClass} aria-busy="true">
+        <span className="sr-only" role="status">{t('common.loading')}</span>
+        <Skeleton className="mb-4 h-11 w-24" />
+        <Skeleton className="mb-4 h-40 w-full rounded-xl" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
         </div>
       </div>
     )
@@ -81,11 +90,14 @@ export default function GameHistoryDetailsPage() {
 
   if (error || !sessionData) {
     return (
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">{error || 'Session not found'}</p>
-          <Button onClick={() => navigate(localizedPath('/history'))}>
-            <ArrowLeft className="size-4 mr-2" />
+      <div className={containerClass}>
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+          <SearchX className="size-10 text-muted-foreground" aria-hidden="true" />
+          <p className="max-w-sm text-sm sm:text-base text-muted-foreground">
+            {error || t('apiErrors.SESSION_NOT_FOUND')}
+          </p>
+          <Button variant="outline" onClick={goBack}>
+            <ArrowLeft aria-hidden="true" />
             {t('common.back')}
           </Button>
         </div>
@@ -104,17 +116,15 @@ export default function GameHistoryDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto p-3 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-4xl">
-      {/* Back link — top-left, compact on mobile to free vertical space */}
-      <div className="mb-3 sm:mb-4 md:mb-6">
+    <div className={containerClass}>
+      <div className="mb-3 sm:mb-4">
         <Button
           variant="ghost"
-          size="sm"
-          className="-ml-2 h-9 px-2 text-muted-foreground hover:text-foreground"
-          onClick={() => navigate(localizedPath('/history'))}
+          className="-ml-3 px-3 text-muted-foreground hover:text-foreground"
+          onClick={goBack}
         >
-          <ArrowLeft className="size-4 mr-1.5" aria-hidden="true" />
-          <span>{t('common.back')}</span>
+          <ArrowLeft aria-hidden="true" />
+          {t('common.back')}
         </Button>
       </div>
 

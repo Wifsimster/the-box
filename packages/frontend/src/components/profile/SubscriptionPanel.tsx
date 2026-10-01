@@ -51,12 +51,12 @@ export function SubscriptionPanel() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-2">
-              <Sparkles className="size-5 text-neon-pink" />
+              <Sparkles className="size-5 text-neon-pink" aria-hidden="true" />
               {t('profile.subscription.title')}
             </span>
-            <Badge className="bg-success/15 text-success border-success/30">
+            <Badge variant="success">
               {t('profile.subscription.premiumBadge')}
             </Badge>
           </CardTitle>
@@ -69,8 +69,8 @@ export function SubscriptionPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handlePortal} disabled={isOpeningPortal} variant="secondary">
-            {isOpeningPortal ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+          <Button onClick={handlePortal} disabled={isOpeningPortal} variant="secondary" className="w-full sm:w-auto">
+            {isOpeningPortal ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
             {t('pricing.ctaManage')}
           </Button>
         </CardContent>
@@ -81,9 +81,9 @@ export function SubscriptionPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2">
           <span className="flex items-center gap-2">
-            <Sparkles className="size-5 text-neon-pink" />
+            <Sparkles className="size-5 text-neon-pink" aria-hidden="true" />
             {t('profile.subscription.title')}
           </span>
           <Badge variant="outline" className="text-muted-foreground">
@@ -93,7 +93,7 @@ export function SubscriptionPanel() {
         <CardDescription>{t('profile.subscription.freeDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button asChild variant="gaming">
+        <Button asChild variant="gaming" size="lg" className="w-full sm:w-auto">
           <Link to={localizedPath('/premium')}>
             <Sparkles className="size-4" />
             {t('profile.subscription.upgradeCta')}

@@ -56,13 +56,13 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Palette className="size-5 text-primary" />
+          <Palette className="size-5 text-primary" aria-hidden="true" />
           {t('themes.title')}
         </CardTitle>
         <CardDescription>{t('themes.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {THEMES.map((theme) => {
             const locked = theme.premium && !isPremium
             const isSelected = theme.key === selected
@@ -75,7 +75,7 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
                 disabled={isSaving}
                 aria-pressed={isSelected}
                 className={cn(
-                  'relative rounded-lg border p-3 text-left transition-colors',
+                  'relative rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   isSelected
                     ? 'border-primary bg-primary/10'
                     : 'border-border/60 bg-card/40 hover:border-primary/40',
@@ -89,18 +89,18 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
                     backgroundImage: `linear-gradient(to right, ${theme.swatch.from}, ${theme.swatch.to})`,
                   }}
                 />
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm font-medium">
                     {t(`themes.options.${theme.i18nKey}`)}
                   </span>
                   {locked ? (
-                    <Lock className="size-4 text-muted-foreground" aria-label={t('themes.locked')} />
+                    <Lock className="size-4 shrink-0 text-muted-foreground" role="img" aria-label={t('themes.locked')} />
                   ) : isSelected ? (
-                    <Check className="size-4 text-success" aria-label={t('themes.selected')} />
+                    <Check className="size-4 shrink-0 text-success" role="img" aria-label={t('themes.selected')} />
                   ) : null}
                 </div>
                 {theme.premium && (
-                  <div className="text-[10px] text-neon-pink uppercase tracking-wide mt-1">
+                  <div className="mt-1 text-xs font-medium text-neon-pink">
                     {t('themes.premiumLabel')}
                   </div>
                 )}
@@ -109,13 +109,13 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
           })}
         </div>
         {error && (
-          <p className="text-xs text-destructive">{t('themes.errorMessage')}</p>
+          <p role="alert" className="text-sm text-destructive">{t('themes.errorMessage')}</p>
         )}
         {!isPremium && (
           <Button
             variant="outline"
-            size="sm"
             onClick={() => navigate(localizedPath('/pricing'))}
+            className="w-full sm:w-auto"
           >
             {t('themes.upgradeCta')}
           </Button>

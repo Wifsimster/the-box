@@ -4,14 +4,15 @@ import { Plus, Copy, Check, Loader2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { toast } from '@/lib/toast'
 import { streamerKeysApi } from '@/lib/api/streamer-keys'
 import type { PublicEventType, WebhookCreated, WebhookSummary } from '@the-box/types'
@@ -190,28 +191,28 @@ export function StreamerWebhookCreateDialog({
   return (
     <>
       <Button
-        size="sm"
+        variant="outline"
         onClick={() => dispatch({ type: 'opened' })}
         disabled={!enabled}
         data-testid="streamer-kit-add-webhook"
       >
-        <Plus className="size-4 mr-1" />
+        <Plus aria-hidden="true" />
         {t('streamerKit.addWebhook')}
       </Button>
 
-      <Dialog
+      <ResponsiveDialog
         open={open}
         onOpenChange={(next) => {
           dispatch(next ? { type: 'opened' } : { type: 'closed' })
         }}
       >
-        <DialogContent data-testid="streamer-kit-webhook-dialog">
+        <ResponsiveDialogContent data-testid="streamer-kit-webhook-dialog">
           {!created && (
             <>
-              <DialogHeader>
-                <DialogTitle>{t('streamerKit.webhookDialogTitle')}</DialogTitle>
-                <DialogDescription>{t('streamerKit.webhookDialogDesc')}</DialogDescription>
-              </DialogHeader>
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>{t('streamerKit.webhookDialogTitle')}</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>{t('streamerKit.webhookDialogDesc')}</ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1">
                   <label htmlFor="wh-url" className="text-sm font-medium">
@@ -223,6 +224,11 @@ export function StreamerWebhookCreateDialog({
                     value={url}
                     onChange={(e) => dispatch({ type: 'urlChanged', url: e.target.value })}
                     placeholder="https://hooks.example.com/the-box"
+                    type="url"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     maxLength={2048}
                     autoFocus
                   />
@@ -242,21 +248,19 @@ export function StreamerWebhookCreateDialog({
                 </div>
                 <div className="space-y-1">
                   <span className="text-sm font-medium">{t('streamerKit.webhookEventsLabel')}</span>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {EVENT_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className="flex items-center gap-2 text-sm cursor-pointer"
+                        className="flex min-h-10 items-center gap-3 text-sm cursor-pointer"
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={events.includes(opt.value)}
-                          onChange={() => dispatch({ type: 'eventToggled', event: opt.value })}
-                          className="size-4 rounded border-white/20 bg-background/50 accent-neon-purple"
+                          onCheckedChange={() => dispatch({ type: 'eventToggled', event: opt.value })}
                         />
                         <code className="text-xs">{opt.value}</code>
                         {!opt.live && (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                          <Badge variant="outline" className="text-[11px] text-muted-foreground">
                             {t('streamerKit.webhookEventSoon')}
                           </Badge>
                         )}
@@ -268,13 +272,13 @@ export function StreamerWebhookCreateDialog({
                   </p>
                 </div>
                 {createError && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
-                    <AlertTriangle className="size-3" />
+                  <p role="alert" className="text-sm text-destructive flex items-center gap-1.5">
+                    <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
                     {createError}
                   </p>
                 )}
               </div>
-              <DialogFooter>
+              <ResponsiveDialogFooter>
                 <Button variant="outline" onClick={() => dispatch({ type: 'closed' })}>
                   {t('streamerKit.cancel')}
                 </Button>
@@ -283,45 +287,46 @@ export function StreamerWebhookCreateDialog({
                   disabled={creating || url.trim().length === 0 || label.trim().length === 0}
                   data-testid="streamer-kit-confirm-webhook"
                 >
-                  {creating && <Loader2 className="size-4 mr-1 animate-spin" />}
+                  {creating && <Loader2 className="animate-spin" aria-hidden="true" />}
                   {t('streamerKit.webhookCreateButton')}
                 </Button>
-              </DialogFooter>
+              </ResponsiveDialogFooter>
             </>
           )}
 
           {created && (
             <>
-              <DialogHeader>
-                <DialogTitle>{t('streamerKit.webhookCreatedTitle')}</DialogTitle>
-                <DialogDescription>{t('streamerKit.webhookCreatedDesc')}</DialogDescription>
-              </DialogHeader>
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>{t('streamerKit.webhookCreatedTitle')}</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>{t('streamerKit.webhookCreatedDesc')}</ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">{t('streamerKit.createdOnce')}</p>
                 <div className="flex items-center gap-2">
                   <code
                     data-testid="streamer-kit-webhook-secret"
-                    className="flex-1 truncate rounded border border-border bg-background/50 px-2 py-1.5 font-mono text-xs"
+                    className="min-w-0 flex-1 break-all rounded-md border border-border bg-background/50 px-2 py-1.5 font-mono text-xs"
                   >
                     {created.secret}
                   </code>
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     onClick={copySecret}
+                    aria-label={copied ? t('share.copied') : t('share.copyLink')}
                     data-testid="streamer-kit-copy-secret"
                   >
                     {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                   </Button>
                 </div>
               </div>
-              <DialogFooter>
+              <ResponsiveDialogFooter>
                 <Button onClick={() => dispatch({ type: 'closed' })}>{t('streamerKit.done')}</Button>
-              </DialogFooter>
+              </ResponsiveDialogFooter>
             </>
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }

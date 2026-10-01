@@ -11,13 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { Download, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { userApi, UserApiError } from '@/lib/api/user'
@@ -93,7 +93,6 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
         <CardDescription>{t('accountData.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Export */}
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-foreground">
             {t('accountData.exportTitle')}
@@ -105,6 +104,7 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
             variant="outline"
             onClick={handleExport}
             disabled={isExporting}
+            className="w-full sm:w-auto"
           >
             {isExporting ? (
               <Loader2 className="size-4 animate-spin" />
@@ -115,8 +115,7 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
           </Button>
         </div>
 
-        {/* Delete (destructive zone) */}
-        <div className="space-y-2 rounded-md border border-error/30 bg-error/5 p-4">
+        <div className="space-y-2 rounded-lg border border-error/30 bg-error/5 p-4">
           <h3 className="flex items-center gap-2 text-sm font-medium text-error">
             <AlertTriangle className="size-4" />
             {t('accountData.deleteTitle')}
@@ -128,6 +127,7 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
             variant="destructive"
             onClick={() => setDialogOpen(true)}
             data-testid="delete-account-trigger"
+            className="w-full sm:w-auto"
           >
             <Trash2 className="size-4" />
             {t('accountData.deleteButton')}
@@ -135,18 +135,18 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
         </div>
       </CardContent>
 
-      <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent data-testid="delete-account-dialog">
-          <DialogHeader>
-            <DialogTitle>{t('accountData.deleteDialogTitle')}</DialogTitle>
-            <DialogDescription>
+      <ResponsiveDialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+        <ResponsiveDialogContent data-testid="delete-account-dialog">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t('accountData.deleteDialogTitle')}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {t('accountData.deleteDialogWarning')}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-2">
             <Label htmlFor="delete-confirm-input">
-              {t('accountData.deleteConfirmLabel')}
+              {t('accountData.deleteConfirmLabel', { username })}
             </Label>
             <Input
               id="delete-confirm-input"
@@ -154,12 +154,15 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
               onChange={(e) => setConfirmValue(e.target.value)}
               placeholder={t('accountData.deleteConfirmPlaceholder')}
               autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               disabled={isDeleting}
               data-testid="delete-account-confirm-input"
             />
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               variant="outline"
               onClick={() => handleDialogOpenChange(false)}
@@ -178,9 +181,9 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
                 ? t('accountData.deleting')
                 : t('accountData.deleteConfirmButton')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </Card>
   )
 }

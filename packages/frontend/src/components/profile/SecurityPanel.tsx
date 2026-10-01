@@ -145,18 +145,18 @@ export function SecurityPanel() {
 
   return (
     <>
-      <p className="text-muted-foreground mb-6">{t('security.subtitle')}</p>
+      <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">{t('security.subtitle')}</p>
 
       {/* --------- TOTP --------- */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-2">
-              <KeyRound className="size-5" />
+              <KeyRound className="size-5" aria-hidden="true" />
               {t('security.totp.title')}
             </span>
             {twoFactorEnabled ? (
-              <Badge className="bg-success/15 text-success border-success/30">
+              <Badge variant="success">
                 {t('security.totp.enabled')}
               </Badge>
             ) : (
@@ -169,12 +169,12 @@ export function SecurityPanel() {
         </CardHeader>
         <CardContent>
           {twoFactorEnabled ? (
-            <Button variant="outline" onClick={disableTotp} disabled={totpBusy || isAnonymous}>
-              {totpBusy ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+            <Button variant="outline" onClick={disableTotp} disabled={totpBusy || isAnonymous} className="w-full sm:w-auto">
+              {totpBusy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
               {t('security.totp.disable')}
             </Button>
           ) : (
-            <Button variant="gaming" onClick={startEnableTotp} disabled={totpBusy || isAnonymous}>
+            <Button variant="gaming" onClick={startEnableTotp} disabled={totpBusy || isAnonymous} className="w-full sm:w-auto">
               {t('security.totp.enable')}
             </Button>
           )}
