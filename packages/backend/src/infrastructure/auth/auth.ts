@@ -8,6 +8,7 @@ import { authLogger } from "../logger/logger.js";
 import { inventoryRepository } from "../repositories/inventory.repository.js";
 import { emailLogRepository } from "../repositories/email-log.repository.js";
 import { renderEmailHtml, renderEmailText } from "../email/template.js";
+import { transferAnonymousUserData } from "./link-anonymous-account.js";
 
 // Legacy metadata hints were retired 2026-06 (see migration
 // 20260613_retire_legacy_metadata_hints) — new accounts start with
@@ -176,6 +177,22 @@ function createAuth() {
       }),
       anonymous({
         emailDomainName: "guest.thebox.local",
+        // The plugin deletes the guest right after this callback; move its
+        // progress first so registering mid-day keeps today's game.
+        onLinkAccount: async ({ anonymousUser, newUser }) => {
+          try {
+            await transferAnonymousUserData(pool, anonymousUser.user.id, newUser.user.id);
+            authLogger.info(
+              { anonymousUserId: anonymousUser.user.id, userId: newUser.user.id },
+              "transferred guest progress to account",
+            );
+          } catch (error) {
+            authLogger.error(
+              { err: error, anonymousUserId: anonymousUser.user.id, userId: newUser.user.id },
+              "failed to transfer guest progress",
+            );
+          }
+        },
       }),
       admin({
         defaultRole: "user",
