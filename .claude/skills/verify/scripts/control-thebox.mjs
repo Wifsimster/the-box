@@ -490,7 +490,140 @@ COMMANDS.key = {
   },
 }
 
-const ORACLE_SQL = `select ts.position, g.name from daily_challenges dc join tiers t on t.daily_challenge_id = dc.id join tier_screenshots ts on ts.tier_id = t.id join screenshots s on s.id = ts.screenshot_id join games g on g.id = s.game_id where dc.challenge_date = current_date and t.tier_number = 1 order by ts.position`
+// ---------- passkeys ----------
+// A CDP virtual authenticator lives only as long as the CDP session that
+// created it, and every CLI call opens and closes its own session. So each
+// passkey command creates the authenticator, does its flow, then exports the
+// credentials (fake, throwaway keys) to .verify-run/passkey-credentials.json;
+// `passkey signin` imports them into a fresh authenticator.
+const PASSKEY_FILE = path.join(RUN_DIR, 'passkey-credentials.json')
+const AUTHENTICATOR = { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true }
+
+async function virtualAuthenticator(ctx, page) {
+  const cdp = await ctx.newCDPSession(page)
+  await cdp.send('WebAuthn.enable', { enableUI: false })
+  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', { options: AUTHENTICATOR })
+  return { cdp, authenticatorId }
+}
+function passkeyRows(email) {
+  return psqlJson(`select p.id, p.name, p."credentialID" as "credentialId", p.counter, p."deviceType", p."backedUp", p."createdAt" from passkey p join "user" u on u.id = p."userId" where u.email = '${email.replace(/'/g, "''")}' order by p."createdAt"`)
+}
+async function isLoggedIn(page) {
+  const r = await page.evaluate(() => fetch('/api/auth/get-session', { credentials: 'include' }).then((x) => x.json()).catch(() => null))
+  return r?.user ? r.user.email : null
+}
+async function logoutThroughMenu(page) {
+  // Same path as a player: user menu in the header → "Logout".
+  await page.goto(`${BASE}/en`, { waitUntil: 'networkidle' })
+  await dismissModals(page)
+  const email = await isLoggedIn(page)
+  if (!email) return null
+  const username = email.split('@')[0]
+  await page.getByRole('button', { name: new RegExp(`^${username}$`, 'i') }).first().click()
+  await page.getByRole('menuitem', { name: /^logout$/i }).click()
+  await waitFor(async () => !(await isLoggedIn(page)), { timeoutMs: 10000, label: 'logout' })
+  return email
+}
+
+COMMANDS.passkey = {
+  summary: 'Passkeys through a CDP virtual authenticator: passkey add | passkey signin | passkey list.',
+  help: `control-thebox passkey add [--name <device name>] [--dry-run]
+control-thebox passkey signin [--dry-run]
+control-thebox passkey list
+
+Headless Chromium has no authenticator; this attaches a CDP virtual one
+(WebAuthn.addVirtualAuthenticator: ctap2, internal, resident key, user verified).
+
+add     Logged-in user (run \`login\` first). Opens /en/profile?tab=security, clicks
+        "Add a passkey", types the name (default "Verify virtual key"), clicks Continue,
+        waits for the "Passkey registered." toast, then reads the passkey row back from the
+        DB. Exports the authenticator's credentials to .verify-run/passkey-credentials.json.
+        Side effect: one passkey row for the fake user.
+signin  Logs out through the user menu if a session exists, opens /en/login, imports the
+        saved credentials into a fresh authenticator, clicks "Sign in with a passkey", and
+        checks that the page left /login and /api/auth/get-session names the user.
+        Side effect: a new session row; the credential's sign counter goes up.
+list    Read-only: saved credential ids and the passkey rows in the DB.
+--dry-run   add/signin: report the steps and preconditions without touching the browser.`,
+  async run(flags, pos) {
+    const sub = pos[0]
+    const state = requireState()
+    if (sub === 'list') {
+      const saved = fs.existsSync(PASSKEY_FILE) ? JSON.parse(fs.readFileSync(PASSKEY_FILE, 'utf8')) : null
+      return { ok: true, saved: saved && { email: saved.email, credentialIds: saved.credentials.map((c) => c.credentialId) }, dbRows: psqlJson(`select p.name, u.email, p."credentialID" as "credentialId", p.counter from passkey p join "user" u on u.id = p."userId" order by p."createdAt"`) }
+    }
+    if (sub === 'add') {
+      const name = typeof flags.name === 'string' ? flags.name : 'Verify virtual key'
+      if (flags['dry-run']) return { ok: true, dryRun: true, steps: ['virtual authenticator', 'goto /en/profile?tab=security', 'click "Add a passkey"', `fill "${name}"`, 'click "Continue"', 'wait for "Passkey registered."', 'read passkey rows', `export to ${PASSKEY_FILE}`] }
+      const { browser, ctx, page } = await connect()
+      try {
+        const { cdp, authenticatorId } = await virtualAuthenticator(ctx, page)
+        await page.goto(`${BASE}/en/profile?tab=security`, { waitUntil: 'networkidle' })
+        await dismissModals(page)
+        const email = await isLoggedIn(page)
+        if (!email) fail('Not logged in.', 'Run `control-thebox login` first; adding a passkey needs a session.')
+        const before = passkeyRows(email).length
+        await page.getByRole('button', { name: /^add a passkey$/i }).first().click()
+        const dialog = page.getByRole('dialog')
+        await dialog.getByLabel(/device name/i).fill(name)
+        await page.screenshot({ path: shotPath(state, 'passkey-add-dialog') })
+        const verify = page.waitForResponse((r) => r.url().includes('/api/auth/passkey/verify-registration'), { timeout: 15000 }).catch(() => null)
+        await dialog.getByRole('button', { name: /^continue$/i }).click()
+        const vr = await verify
+        const toast = await page.getByText(/^passkey registered\.?$/i).first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false)
+        const file = shotPath(state, 'passkey-added')
+        await page.screenshot({ path: file })
+        const rows = passkeyRows(email)
+        const { credentials } = await cdp.send('WebAuthn.getCredentials', { authenticatorId })
+        fs.writeFileSync(PASSKEY_FILE, JSON.stringify({ email, credentials }, null, 2))
+        const ok = vr?.status() === 200 && toast && rows.length === before + 1
+        if (!ok) process.exitCode = 1
+        return { ok, account: email, verifyRegistrationStatus: vr?.status() ?? null, toastShown: toast, dbRowsBefore: before, dbRows: rows, authenticatorCredentials: credentials.map((c) => ({ credentialId: c.credentialId, rpId: c.rpId, isResidentCredential: c.isResidentCredential, signCount: c.signCount })), file, ...(ok ? {} : { fix: 'Check `control-thebox network-log --filter /api/auth/passkey` and `control-thebox console --level error`; rpID must be the hostname of API_URL.' }) }
+      } finally {
+        await browser.close()
+      }
+    }
+    if (sub === 'signin') {
+      if (!fs.existsSync(PASSKEY_FILE)) fail('No saved passkey credentials.', 'Run `control-thebox login` then `control-thebox passkey add` first.')
+      const saved = JSON.parse(fs.readFileSync(PASSKEY_FILE, 'utf8'))
+      if (flags['dry-run']) return { ok: true, dryRun: true, account: saved.email, credentials: saved.credentials.length, steps: ['logout through the user menu if logged in', 'goto /en/login', 'virtual authenticator + import credentials', 'click "Sign in with a passkey"', 'check /api/auth/get-session'] }
+      const { browser, ctx, page } = await connect()
+      try {
+        const loggedOut = await logoutThroughMenu(page)
+        await page.goto(`${BASE}/en/login`, { waitUntil: 'networkidle' })
+        const { cdp, authenticatorId } = await virtualAuthenticator(ctx, page)
+        for (const c of saved.credentials) await cdp.send('WebAuthn.addCredential', { authenticatorId, credential: c })
+        const counterBefore = passkeyRows(saved.email).map((r) => r.counter)
+        await page.screenshot({ path: shotPath(state, 'passkey-signin-before') })
+        const verify = page.waitForResponse((r) => r.url().includes('/api/auth/passkey/verify-authentication'), { timeout: 15000 }).catch(() => null)
+        await page.getByRole('button', { name: /^sign in with a passkey$/i }).click()
+        const vr = await verify
+        await page.waitForURL((u) => !u.pathname.endsWith('/login'), { timeout: 15000 }).catch(() => {})
+        // The URL changes before the login card unmounts; wait for it so the screenshot shows the landing page.
+        await page.getByRole('button', { name: /^sign in with a passkey$/i }).waitFor({ state: 'detached', timeout: 10000 }).catch(() => {})
+        await page.waitForLoadState('networkidle').catch(() => {})
+        await dismissModals(page)
+        const sessionEmail = await isLoggedIn(page)
+        const file = shotPath(state, 'passkey-signin-after')
+        await page.screenshot({ path: file })
+        const counterAfter = passkeyRows(saved.email).map((r) => r.counter)
+        // The server rejects a sign counter that does not increase (cloned-authenticator check),
+        // so save the bumped counter for the next signin.
+        const { credentials } = await cdp.send('WebAuthn.getCredentials', { authenticatorId })
+        fs.writeFileSync(PASSKEY_FILE, JSON.stringify({ email: saved.email, credentials }, null, 2))
+        const url = page.url()
+        const ok = vr?.status() === 200 && sessionEmail === saved.email && !url.includes('/login')
+        if (!ok) process.exitCode = 1
+        return { ok, loggedOutFirst: loggedOut, verifyAuthenticationStatus: vr?.status() ?? null, sessionEmail, url, dbCounterBefore: counterBefore, dbCounterAfter: counterAfter, file, ...(ok ? {} : { fix: 'Check `control-thebox network-log --filter /api/auth/passkey` and `control-thebox console --level error`.' }) }
+      } finally {
+        await browser.close()
+      }
+    }
+    fail(`Unknown passkey subcommand "${sub ?? ''}".`, 'Use `passkey add`, `passkey signin` or `passkey list` (see `control-thebox passkey --help`).')
+  },
+}
+
+const ORACLE_SQL =`select ts.position, g.name from daily_challenges dc join tiers t on t.daily_challenge_id = dc.id join tier_screenshots ts on ts.tier_id = t.id join screenshots s on s.id = ts.screenshot_id join games g on g.id = s.game_id where dc.challenge_date = current_date and t.tier_number = 1 order by ts.position`
 const WRONG_ANSWER = 'Definitely Not A Game'
 
 function pickAnswer(flags, position) {
@@ -726,7 +859,7 @@ Usage: control-thebox <command> [flags]      (JSON on stdout; exit 1 on failure)
 Health:       doctor, info, teardown
 Lifecycle:    launch
 Navigation:   goto, login
-Interaction:  click, key, play guess
+Interaction:  click, key, play guess, passkey
 Inspection:   screenshot, snapshot, leaderboard
 Streaming:    console, network-log
 

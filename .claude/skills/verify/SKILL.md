@@ -63,6 +63,7 @@ Use roles and accessible names, which come from `packages/frontend/public/locale
 | Navigate | `$C goto /en/leaderboard` |
 | One guess through the real input (`textbox "Game name..."`, `button "Submit guess"`) | `$C play guess --correct` / `--wrong` / `--answer "<text>"` |
 | Play every remaining position to completion | `$C play finish` |
+| Add a passkey from Profile → Security, then sign in with it from `/en/login` (CDP virtual authenticator) | `$C passkey add`, then `$C passkey signin` |
 | Leaderboard page compared against `GET /api/leaderboard/today` | `$C leaderboard` |
 | Click by role and name | `$C click --role button --name "^Skip$"` |
 | Keyboard | `$C key Enter` |
@@ -72,7 +73,7 @@ Use roles and accessible names, which come from `packages/frontend/public/locale
 | HTTP and WebSocket log | `$C network-log --filter /api/game --status-min 400` / `--filter socket.io` |
 | Recorded run, credentials, evidence dir | `$C info` |
 
-Commands with side effects accept `--dry-run`: `launch`, `teardown`, `login`, `click` and `play`. `play --dry-run` reports the position and the answer it would type. It never clicks Start, because Start inserts a `game_sessions` row, as confirmed by observing the DB during the pilot.
+Commands with side effects accept `--dry-run`: `launch`, `teardown`, `login`, `click`, `play` and `passkey add|signin`. `play --dry-run` reports the position and the answer it would type. It never clicks Start, because Start inserts a `game_sessions` row, as confirmed by observing the DB during the pilot.
 
 `--correct` reads the right answer for the current position from the throwaway DB. It is a test oracle only: the guess itself is typed and submitted through the UI.
 

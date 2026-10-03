@@ -32,5 +32,5 @@ Each feature file has an H1 and one paragraph, then exactly four H2s in this ord
 - [Daily guess](./daily-guess.md) covers the classic daily challenge: start, correct and wrong guesses, skip, result card, completion and the results page. **Driven end to end in the pilot run.**
 - [Leaderboard](./leaderboard.md) covers the daily and monthly rankings and the player's own rank. **Driven in the pilot run.**
 - [Achievements](./achievements.md) covers unlock on guess or completion, the real-time toast over the socket.io `/notifications` namespace, and the profile listing. **DB rows and toast observed in the pilot run.**
-- [Auth and passkeys](./auth-passkeys.md) covers email/password login and registration, the TOTP challenge, and passkey enrollment and sign-in. Password login is driven by `$C login`. Passkeys are not driven yet.
+- [Auth and passkeys](./auth-passkeys.md) covers email/password login and registration, the TOTP challenge, and passkey enrollment and sign-in. Password login is driven by `$C login`. Passkey enrollment and sign-in are driven by `$C passkey add` and `$C passkey signin` through a CDP virtual authenticator.
 - [Premium (Stripe test mode)](./premium-stripe.md) covers the pricing page, checkout redirect and webhook. It is **not drivable** without a Stripe `sk_test_` key. It documents what is safe today.
