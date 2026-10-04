@@ -51,7 +51,9 @@ playwright/.cache/
 _bmad/
 _bmad-output/
 packages/frontend/test-output.txt
-.claude/
+.claude/*
+# Project skills are shared with every agent (verify harness: .claude/skills/verify)
+!.claude/skills/
 ralph/
 
 # Database backups
@@ -61,3 +63,6 @@ backups/
 secrets/*
 !secrets/.gitkeep
 !secrets/README.md
+# Verification harness (.claude/skills/verify): scratch state and proof artifacts
+.verify-run/
+.verify-evidence/
