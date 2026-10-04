@@ -11,6 +11,7 @@ import type {
   LetterRevealState
 } from '@/types'
 import { gameApi } from '@/lib/api/game'
+import { pickRestorePosition } from '@/lib/restorePosition'
 
 interface GameState {
   // Hydration tracking
@@ -347,10 +348,13 @@ export const useGameStore = create<GameState>()(
             states[i] = { position: i, status, isCorrect }
           }
 
-          // Use persisted position only if same challenge and valid, otherwise use backend position
-          const restoredPosition = isSameChallenge && persistedPosition > 0 && persistedPosition <= totalScreenshots
-            ? persistedPosition
-            : backendPosition
+          const restoredPosition = pickRestorePosition({
+            persistedPosition,
+            isSameChallenge,
+            backendPosition,
+            correctPositions: correctPositionSet,
+            totalScreenshots,
+          })
 
           // Ensure restored position is marked as in_progress
           if (states[restoredPosition] && states[restoredPosition].status !== 'correct') {
