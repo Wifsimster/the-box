@@ -302,7 +302,7 @@ COMMANDS.doctor = {
 
 Read-only. Checks: state file, recorded pids alive, containers running, backend /healthz (db+redis),
 Vite answering, browser daemon CDP port, Playwright Chromium installed, seeded fake users present,
-today's challenge present, git sha of the checkout. Exit 0 only when every check passes.
+today's challenge present, today's preview screenshot served as an image, git sha of the checkout. Exit 0 only when every check passes.
 Run it first whenever anything looks off.`,
   async run() {
     const state = readState()
@@ -321,19 +321,21 @@ Run it first whenever anything looks off.`,
       } catch (e) { checks.db = e.message }
     }
     checks.gitSha = sh('git', ['-C', REPO, 'rev-parse', '--short', 'HEAD'])
-    // Express sendFile (send) refuses paths with a dot-segment, so a checkout under
-    // e.g. /root/jarvis-repos/.worktrees/ gets HTTP 500 on /api/game/image/:id.
-    // Not fatal (guesses still work), but screenshots render as broken images.
-    checks.screenshotsServable = !REPO.split(path.sep).some((seg) => seg.startsWith('.') && seg.length > 1)
+    // Fetch today's public preview image: proves the upload route streams a real screenshot file.
+    try {
+      const r = await fetch(`http://127.0.0.1:${PORTS.backend}/api/game/preview/image`)
+      checks.screenshotsServable = r.ok && (r.headers.get('content-type') || '').startsWith('image/')
+    } catch { checks.screenshotsServable = false }
     const backendOk = !!(checks.backendHealthz?.checks?.db && checks.backendHealthz?.checks?.redis)
     const ok = !!state && Object.values(checks.pids).every(Boolean) && Object.values(checks.containers).every(Boolean)
       && backendOk && checks.frontend && checks.browserCdp && checks.seededUsers && checks.todayChallenge && checks.playwrightChromium
+      && checks.screenshotsServable
     const hints = []
     if (!state) hints.push('No instance recorded: run `control-thebox launch`.')
     if (state && !Object.values(checks.pids).every(Boolean)) hints.push('A recorded process died: read .verify-run/logs/*.log, then `control-thebox teardown` and launch again.')
     if (!checks.playwrightChromium) hints.push('Run `npx playwright install chromium` in packages/frontend.')
     if (state && checks.containers[PG] && !checks.todayChallenge) hints.push('No challenge for today (UTC date rolled over?): run `npm run e2e:seed -w @the-box/backend` with DATABASE_URL from this tool, or relaunch.')
-    if (!checks.screenshotsServable) hints.push(`Checkout path ${REPO} has a dot-segment: /api/game/image/* will 500 (express send ignores dotfiles) and game screenshots render blank. Guess flow still works; for visual proof use a checkout path without dot-directories.`)
+    if (backendOk && !checks.screenshotsServable) hints.push('GET /api/game/preview/image did not return an image: check uploads/verify-fixtures/ exists and read .verify-run/logs/backend.log.')
     if (!ok) process.exitCode = 1
     return { ok: !!ok, runId: state?.runId, checks, hints }
   },

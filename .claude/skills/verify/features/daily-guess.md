@@ -35,7 +35,6 @@ Preconditions:
 ## Gotchas
 
 - The timer runs while the page sits on `/en/play`. Pause by navigating away (`$C goto /en`). A timed-out position disables the input, and `play` then fails after 15 s with a hint.
-- `GET /api/game/image/:id` returns 500 when the checkout path contains a dot-directory (`doctor.checks.screenshotsServable: false`). The viewer then shows a spinner, but guesses still work. See SKILL.md.
 - Once today's session is complete it cannot be replayed on the same DB. Relaunch for a fresh one.
 - `--correct` uses the DB as an answer oracle. The guess is still typed into the real input. Never "prove" scoring by POSTing to `/api/game/guess` directly.
 - Matching is fuzzy (`matchPrecision` in the response). To test near-misses, use `--answer "e2e test game 1"` and check `matchPrecision`.

@@ -49,9 +49,10 @@ $C doctor   # read-only; exit 0 only if every check passes
 - Vite answers and the CDP port is open
 - the Playwright Chromium is installed
 - both fake users and today's challenge exist
+- `GET /api/game/preview/image` returns an image (`screenshotsServable`)
 - the git SHA of the checkout
 
-It also reports `screenshotsServable`, which is false when the checkout path contains a dot-directory (see Gotchas). Run `doctor` first whenever anything looks off, and read its `hints`.
+Run `doctor` first whenever anything looks off, and read its `hints`.
 
 ## Drive
 
@@ -113,7 +114,6 @@ Run it after every failed iteration too, so a broken attempt does not leave proc
 
 ## Gotchas
 
-- **Checkout under a dot-directory** (for example `/root/jarvis-repos/.worktrees/...`): `GET /api/game/image/:id` returns 500 because Express `sendFile` passes an absolute path and `send` refuses paths with dot-segments. Game screenshots then show as a spinner. The guess flow, scoring and the results thumbnails (served by `express.static`) still work. For visual proof of the screenshot viewer, use a checkout path without dot-directories. A product-side fix (`sendFile(rel, { root: uploadsPath })`) belongs in its own PR.
 - **The 45 s timer per screenshot keeps running while you are idle on `/en/play`.** Leave the page between steps, or a position times out and the input stays disabled (`play` waits up to 15 s for the input, then fails with a hint).
 - **A correct guess opens a result card** ("Next Round (4s)", which auto-advances). `play finish` clicks it. If you drive by hand, press `Enter` or click `Next Round`.
 - **The leaderboard only lists completed, non-catch-up sessions.** Run `play finish` before `leaderboard`.
