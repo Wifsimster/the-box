@@ -15,6 +15,7 @@ import { challengeRepository, gameRepository, screenshotRepository } from '../..
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
+import { resolveUploadRelativePath, sendUploadFile } from './upload-file.js'
 
 // Public preview is cheap to compute but the image endpoint streams
 // raw files — tighter cap for the image route, more forgiving for the
@@ -36,19 +37,6 @@ const router = Router()
 // Get uploads path for serving screenshot images
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
-
-// Map a stored `/uploads/...` URL to an absolute file path, refusing any
-// value whose resolved path escapes the uploads directory. imageUrl comes
-// from the DB (admin-managed), but a crafted `/uploads/../...` value must
-// not turn either image route into an arbitrary-file read.
-function resolveUploadFilePath(imageUrl: string): string | null {
-  const relativePath = imageUrl.replace('/uploads/', '')
-  const filePath = path.resolve(uploadsPath, relativePath)
-  if (filePath !== uploadsPath && !filePath.startsWith(uploadsPath + path.sep)) {
-    return null
-  }
-  return filePath
-}
 
 // Resolve today's first easy-tier screenshot. Shared by the public
 // preview endpoints so anonymous visitors can glimpse the challenge
@@ -114,8 +102,8 @@ router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
       return
     }
 
-    const filePath = resolveUploadFilePath(preview.imageUrl)
-    if (!filePath) {
+    const relativePath = resolveUploadRelativePath(uploadsPath, preview.imageUrl)
+    if (!relativePath) {
       res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
@@ -123,15 +111,12 @@ router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
       return
     }
 
-    res.sendFile(
-      filePath,
-      {
-        maxAge: '10m',
-        headers: { 'Content-Type': 'image/jpeg' },
-      },
-      (err) => {
-        if (err) next(err)
-      }
+    sendUploadFile(
+      res,
+      uploadsPath,
+      relativePath,
+      { maxAge: '10m', headers: { 'Content-Type': 'image/jpeg' } },
+      next
     )
   } catch (error) {
     next(error)
@@ -204,9 +189,8 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
       return
     }
 
-    // Convert /uploads/screenshots/... to absolute file path
-    const filePath = resolveUploadFilePath(screenshot.imageUrl)
-    if (!filePath) {
+    const relativePath = resolveUploadRelativePath(uploadsPath, screenshot.imageUrl)
+    if (!relativePath) {
       res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Screenshot not found' },
@@ -214,17 +198,19 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
       return
     }
 
-    res.sendFile(filePath, {
-      maxAge: '1d',
-      headers: {
-        'Content-Type': contentType,
-        'X-Content-Type-Options': 'nosniff',
+    sendUploadFile(
+      res,
+      uploadsPath,
+      relativePath,
+      {
+        maxAge: '1d',
+        headers: {
+          'Content-Type': contentType,
+          'X-Content-Type-Options': 'nosniff',
+        },
       },
-    }, (err) => {
-      if (err) {
-        next(err)
-      }
-    })
+      next
+    )
   } catch (error) {
     next(error)
   }
