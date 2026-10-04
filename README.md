@@ -24,7 +24,7 @@ Plateforme de jeu où les joueurs identifient des jeux vidéo à partir de captu
 | [Mécanique de jeu](docs/game-flow.md) | Phases d'une partie, calcul des scores et système d'indices |
 | [Mode Géo](docs/geo-mode.md) | Localisation sur carte, contribution crowdsourcée et pipeline d'ingestion |
 | [Abonnements Stripe](docs/billing-stripe.md) | Catalogue d'offres, flux Checkout et webhooks de facturation |
-| [Événements temps réel](docs/realtime.md) | Événements Socket.io pour les classements en direct |
+| [Événements temps réel](docs/realtime.md) | Namespaces et événements Socket.io (admin, notifications, Geo, parties GeoGamers) |
 | [Marque](docs/brand.md) | Contrat d'identité : nom, promesse, voix, mark, système de partage |
 | [Tokens UI](docs/ui-tokens.md) | Contrat des tokens de design (couleurs, ombres, rayons, typographie) |
 | [Design System Oxygen](docs/oxygen-design-system.md) | Principes Oxygen appliqués à The Box (accessibilité, hiérarchie d'actions) |
@@ -44,7 +44,7 @@ Plateforme de jeu où les joueurs identifient des jeux vidéo à partir de captu
 - **Mode rattrapage** — Rejouez les défis manqués des 7 derniers jours (hors classement)
 - **Mode Géo** — Localisez la scène d'un jeu sur une carte interactive (Elden Ring, etc.)
 - **Indices et bonus** — Révélez l'année de sortie, le studio ou l'éditeur, ou prolongez le chronomètre
-- **Classements en direct** — Tableaux du jour et du mois mis à jour en temps réel via WebSocket
+- **Classements** — Tableaux du jour et du mois, à jour à chaque chargement de la page
 - **Tournois** — Compétitions ponctuelles entre joueurs
 - **Récompenses de connexion** — Calendrier de connexions quotidiennes et bonus de série
 - **Succès** — Trophées débloquables, du débutant à l'expert

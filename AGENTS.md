@@ -4,7 +4,7 @@ Single source of truth for any coding agent (Claude Code, Codex, Copilot, autono
 
 ## Project Overview
 
-"The Box" is a gaming screenshot guessing application where players identify video games from screenshots. The classic mode is a daily challenge with tiered difficulty, power-ups/hints, achievements, daily login rewards, tournaments, and live leaderboards with real-time updates. The app also ships a second game mode (**Geo Mode** – pinpoint where a screenshot was taken on a game map), a **premium subscription** tier (Stripe), a **referral** program, **web push** notifications, two-factor auth/passkeys, an admin panel, and a key-authenticated **public API / streamer kit** with outbound webhooks.
+"The Box" is a gaming screenshot guessing application where players identify video games from screenshots. The classic mode is a daily challenge with tiered difficulty, power-ups/hints, achievements, daily login rewards, tournaments, and daily/monthly leaderboards. The app also ships a second game mode (**Geo Mode** – pinpoint where a screenshot was taken on a game map), a **premium subscription** tier (Stripe), a **referral** program, **web push** notifications, two-factor auth/passkeys, an admin panel, and a key-authenticated **public API / streamer kit** with outbound webhooks.
 
 ## Tech Stack
 
@@ -158,7 +158,7 @@ Dépendances :
 - **Achievements** (including beginner-tier and mastery/account-age milestones)
 - **Daily Login Rewards** with streaks (UTC boundaries, streak-freeze) and calendar display
 - **Reward grants / chests** – day-7 chest and other reward grants (`rewards` store + routes)
-- **Live Leaderboards** – daily and monthly, Socket.io real-time updates, periodic payouts
+- **Leaderboards** – daily and monthly, served over REST (no Socket.io push), periodic payouts
 - **Tournaments** – weekly + monthly, created/closed by scheduled jobs
 
 **Geo Mode**
@@ -299,7 +299,7 @@ npm run render:video    # Render the promo composition
 - **Client State**: Zustand stores with `persist` middleware where needed
 - **Shared Types**: All cross-package types live in `@the-box/types/src/index.ts`. Rebuild the `types` package (`npm run build:types`) after edits so others pick them up.
 - **API**: REST under `/api/`, JSON in/out
-- **Real-time**: Socket.io for live leaderboard updates – events in `docs/realtime.md`
+- **Real-time**: Socket.io for admin job progress, per-user notifications, Geo rewards and GeoGamers parties (the leaderboard is REST only) – events in `docs/realtime.md`
 - **Validation**: Zod both sides (middleware on backend, form resolvers via `@hookform/resolvers/zod` on frontend)
 - **Auth Bootstrap**: First registered user becomes admin automatically
 - **Path Aliases**: `@/` → `src/` in both packages

@@ -29,6 +29,6 @@ Preconditions:
 
 ## Gotchas
 
-- **There is no socket.io push for the leaderboard.** `docs/realtime.md` describes `join_challenge` and `leaderboard_update` events, but no code emits them (checked 2026-10-03: no `leaderboard_update` in `packages/backend/src` or `packages/frontend/src`). The page fetches REST data on load. To verify "live" behavior, reload and compare. The docs need fixing.
+- **There is no socket.io push for the leaderboard.** The page fetches REST data on load (see `docs/realtime.md`). To verify "live" behavior, reload and compare.
 - Catch-up sessions and anonymous play are excluded (`leaderboard.repository.ts`).
 - The daily-reward modal can cover the page. `$C leaderboard` dismisses it before the screenshot.
