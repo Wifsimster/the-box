@@ -15,7 +15,7 @@ $C --help                 # command list
 $C <command> --help       # flags, side effects, what it proves
 ```
 
-Prerequisites: `npm ci` at the repo root, Docker, and the Playwright Chromium matching the repo's Playwright version (`cd packages/frontend && npx playwright install chromium`). `doctor` reports a missing browser.
+Prerequisites: `npm ci` at the repo root, Docker, and the Playwright Chromium matching the repo's Playwright version (`cd packages/frontend && npx playwright install chromium`). `doctor` reports a missing browser. Without it, `launch` fails at its last step (`Executable doesn't exist`) after it has started the containers: run `$C teardown`, install Chromium, then launch again.
 
 ## Launch
 
@@ -68,7 +68,7 @@ Use roles and accessible names, which come from `packages/frontend/public/locale
 | Leaderboard page compared against `GET /api/leaderboard/today` | `$C leaderboard` |
 | Click by role and name | `$C click --role button --name "^Skip$"` |
 | Keyboard | `$C key Enter` |
-| ARIA tree (also saved as `.aria.yml`) | `$C snapshot [--name x] [--selector main]` |
+| ARIA tree (also saved as `.aria.yml`); `--selector` is CSS (`main`, `header`), not an ARIA role | `$C snapshot [--name x] [--selector main]` |
 | PNG | `$C screenshot --name x [--full-page]` |
 | Browser console since launch | `$C console --level error --last 20` |
 | HTTP and WebSocket log | `$C network-log --filter /api/game --status-min 400` / `--filter socket.io` |
@@ -115,7 +115,7 @@ Run it after every failed iteration too, so a broken attempt does not leave proc
 ## Gotchas
 
 - **The 45 s timer per screenshot keeps running while you are idle on `/en/play`.** Leave the page between steps, or a position times out and the input stays disabled (`play` waits up to 15 s for the input, then fails with a hint).
-- **A correct guess opens a result card** ("Next Round (4s)", which auto-advances). `play finish` clicks it. If you drive by hand, press `Enter` or click `Next Round`.
+- **A correct guess opens a result card** ("Next Round (4s)"). `play finish` clicks it. If you drive by hand, press `Enter` or click `Next Round` before the countdown ends: letting it reach 0 currently crashes the page (product bug [#394](https://github.com/Wifsimster/the-box/issues/394)). `$C goto /en/play` recovers.
 - **The leaderboard only lists completed, non-catch-up sessions.** Run `play finish` before `leaderboard`.
 - **A "Daily Reward" modal appears after login and on later navigations.** `login`, `play` and `leaderboard` claim or close it. A claim is a real side effect on the fake user's inventory.
 - **The UTC day matters.** The seed creates the challenge for the current UTC date. If the date rolls over mid-run, `doctor` fails `todayChallenge`: relaunch.

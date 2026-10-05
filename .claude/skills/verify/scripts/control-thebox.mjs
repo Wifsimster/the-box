@@ -448,10 +448,11 @@ COMMANDS.screenshot = {
 
 COMMANDS.snapshot = {
   summary: 'ARIA snapshot of the current page (what a screen reader / agent sees).',
-  help: 'control-thebox snapshot [--name <label>] [--selector <css>]\n\nPrints the ARIA tree (YAML) of body or --selector, and saves it as <evidence>/<ts>_<label>.aria.yml.',
+  help: 'control-thebox snapshot [--name <label>] [--selector <css>]\n\nPrints the ARIA tree (YAML) of body or --selector (a CSS selector such as `header` or `main`, not an ARIA role; fails after 5 s when nothing matches), and saves it as <evidence>/<ts>_<label>.aria.yml.',
   async run(flags) {
     const { browser, page, state } = await connect()
-    const yml = await page.locator(flags.selector || 'body').ariaSnapshot()
+    const yml = await page.locator(flags.selector || 'body').first().ariaSnapshot({ timeout: 5000 })
+      .catch(async () => { await browser.close(); fail(`No element matches the CSS selector "${flags.selector || 'body'}".`, '--selector takes CSS, not an ARIA role: use `header`, `main` or `nav`, or omit it for the whole page.') })
     const file = shotPath(state, (flags.name || 'snapshot')).replace(/\.png$/, '.aria.yml')
     fs.writeFileSync(file, yml)
     const url = page.url()
@@ -892,7 +893,9 @@ async function main() {
     out(await c.run(flags, pos))
   } catch (e) {
     out({ ok: false, command: cmd, error: e.message, fix: e.fix || 'Run `control-thebox doctor` and read .verify-run/logs/.', ...(e.extra || {}) })
-    process.exitCode = 1
+    // A command that failed after connect() still holds its CDP connection open; exit
+    // once stdout is flushed so the CLI never hangs (the browser daemon keeps running).
+    process.stdout.write('', () => process.exit(1))
   }
 }
 main()

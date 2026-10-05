@@ -22,12 +22,12 @@ Preconditions:
 - A fresh `$C launch` and `$C login`.
 - **No Stripe key.** The harness forces `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` to empty. Never paste a live key (`sk_live_`). The Stripe client logs `mode: live|test` from the key prefix.
 
-- **Pricing page renders (safe today).** Run `$C goto /en/premium`, then `$C screenshot --name premium`. The "The Box Premium" title renders. Run `$C network-log --filter /api/billing`: with no key, `/api/billing/prices` returns an error, and the page should show its error or fallback state instead of crashing. Record what it shows.
-- **Webhook rejects unsigned calls (safe today).** Run `curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:3000/api/billing/webhook -H 'content-type: application/json' -d '{}'`. Expect a 4xx and never a 2xx. This mirrors `e2e/billing-webhook-smoke.spec.ts`.
+- **Pricing page renders (safe today).** Run `$C goto /en/premium`, then `$C screenshot --name premium`. The "The Box Premium" title renders. Run `$C network-log --filter /api/billing`: with no key, `/api/billing/prices` still returns 200, with every tier `active: false`. The page shows the four plans (Free €0, Monthly €3.99, Annual €29.99, Lifetime €79.99) and, logged out, `button "Sign in to subscribe"` on each paid plan. `/fr/abonnement` and `/fr/premium` both render the same page.
+- **Webhook rejects unsigned calls (safe today).** Run `curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:3000/api/billing/webhook -H 'content-type: application/json' -d '{}'`. Expect 400 (`missing stripe-signature header`), never a 2xx. This mirrors `e2e/billing-webhook-smoke.spec.ts`. With a forged `stripe-signature` header the harness gets 503 (`webhook not configured`), because `STRIPE_WEBHOOK_SECRET` is empty.
 - **Checkout and portal: blocked.** These need a Stripe **test** account: an `sk_test_` key, the two lookup keys configured, and `stripe listen --forward-to localhost:3000/api/billing/webhook` for the webhook secret. Once a human provides those through an env file outside the repo, extend `launch` with an opt-in `--stripe-test` flag that refuses any key not starting with `sk_test_`. Until then, report these sub-features as not verified.
 
 ## Gotchas
 
 - `npm run stripe:check` talks to the real Stripe API with whatever key is set. Do not run it from the harness.
 - Checkout redirects leave `localhost`. The CDP page will sit on `checkout.stripe.com` until you navigate back with `$C goto`.
-- `STRIPE_CHECKOUT_SUCCESS_URL` defaults to production-like URLs in `.env.example`. Set it to `http://localhost:5173/fr/premium?checkout=success` when Stripe test mode is wired.
+- `.env.example` already sets `STRIPE_CHECKOUT_SUCCESS_URL` / `_CANCEL_URL` to `http://localhost:5173/fr/premium?checkout=success|cancel`. Keep them on localhost when Stripe test mode is wired.

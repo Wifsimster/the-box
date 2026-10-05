@@ -15,7 +15,7 @@ Players register and sign in with email and password (Better Auth). They can add
 
 - The header `Sign in` link → `/en/login`. The link to `/en/register` sits under the form.
 - The user menu (`button "e2e_user"`) → Profile → Security tab (`/en/profile?tab=security`, `data-testid=profile-tab-security`).
-- Any protected route (`/en/play`, `/en/profile`) redirects a logged-out visitor to `/en/login`.
+- A protected route such as `/en/profile` redirects a logged-out visitor to `/en/login`. `/en/play` does not: a guest sees "You are not logged in. Your score will not be saved." and can still start the challenge.
 
 ## Driving it with control-thebox
 
@@ -23,7 +23,7 @@ Preconditions:
 
 - A fresh `$C launch`. The browser is logged out (fresh profile).
 
-- **Login.** Run `$C login --dry-run`, then `$C login`. The result has `signInStatus: 200` and a `url` no longer ending in `/login`. Confirm with `$C snapshot --selector banner`, which shows `button "e2e_user"`.
+- **Login.** Run `$C login --dry-run`, then `$C login`. The result has `signInStatus: 200` and a `url` no longer ending in `/login`. Confirm with `$C snapshot --selector header` (a CSS selector, not the ARIA role), which shows `button "e2e_user"`.
 - **Bad password.** Run `$C goto /en/login` and fill the form with `$C click`/`$C key`. A dedicated `login --password` flag does not exist yet, so this is a harness gap. The expected result is an alert, a 401 on `/api/auth/sign-in/email` (`$C network-log --filter /api/auth`), and the URL staying on `/en/login`.
 - **Admin.** Run `$C login --as admin`, then `$C goto /en/admin`. The admin panel renders. With `--as user` it does not.
 - **Add a passkey.** Run `$C login`, then `$C passkey add [--name "<device>"]`. The command attaches a CDP virtual authenticator (`ctap2`, `internal`, resident key, user verified), opens `/en/profile?tab=security`, clicks `button "Add a passkey"`, types the name in `textbox "Device name ..."` and clicks `button "Continue"`. Pass criteria: `verifyRegistrationStatus: 200`, `toastShown: true` ("Passkey registered."), and `dbRows` holds one more `passkey` row than `dbRowsBefore`. Screenshots: `passkey-add-dialog`, `passkey-added` (the list shows the new device name).
