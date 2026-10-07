@@ -376,11 +376,11 @@ interface ParsedTarget {
   numbers: Set<string>
 }
 
-function unitOf(kind: UnitKind, text: string): Unit {
+function unitOf(kind: UnitKind, text: string, allowEmpty = false): Unit {
   const tokens = tokenizeNormalized(normalizeText(text))
   // A subtitle that is only an edition ("Mass Effect: Legendary Edition")
   // names nothing; a base that is ("Remastered") is the whole name.
-  markTrailingEdition(tokens, kind === 'subtitle' || kind === 'expansion')
+  markTrailingEdition(tokens, allowEmpty || kind === 'subtitle' || kind === 'expansion')
   return { kind, tokens }
 }
 
@@ -412,7 +412,7 @@ function lastRequiredIndex(tokens: Token[]): number {
   return -1
 }
 
-function parseTarget(gameName: string, aliases: readonly string[]): ParsedTarget {
+function parseTarget(gameName: string, aliases: readonly string[], isAlias = false): ParsedTarget {
   // Parenthesised chunks: a year "(2018)" or an alternate name "(Indigo Prophecy)".
   const parens: Unit[] = []
   const years: Unit[] = []
@@ -433,7 +433,8 @@ function parseTarget(gameName: string, aliases: readonly string[]): ParsedTarget
   const subtitleTexts = colonParts.slice(1)
 
   const baseVariants = commaAlternatives(baseText) ?? [baseText]
-  const base = unitOf('base', baseVariants[0]!)
+  // An alias that is only an edition word ("HD", "Remake") names nothing.
+  const base = unitOf('base', baseVariants[0]!, isAlias)
   markBrandPrefix(base.tokens)
   const alts = baseVariants.slice(1).map(v => unitOf('alt', v))
 
@@ -445,11 +446,8 @@ function parseTarget(gameName: string, aliases: readonly string[]): ParsedTarget
     }
   }
 
-  const aliasTargets = aliases.map(a => parseTarget(a, []))
-  const units = [
-    base, ...alts, ...subtitles, ...expansions, ...parens, ...years,
-    ...aliasTargets.flatMap(a => a.units),
-  ]
+  const aliasTargets = aliases.map(a => parseTarget(a, [], true))
+  const units = [base, ...alts, ...subtitles, ...expansions, ...parens, ...years]
   // Units that lost every token to edition stripping ("Mass Effect:
   // Legendary Edition") name nothing on their own.
   const live = (u: Unit): boolean => u.tokens.some(isRequired)
@@ -470,18 +468,31 @@ function parseTarget(gameName: string, aliases: readonly string[]): ParsedTarget
   }
 
   const numbers = new Set<string>()
-  for (const u of units) for (const t of u.tokens) if (t.kind === 'number') numbers.add(t.text)
+  const numberUnits = [
+    ...units,
+    ...aliasTargets
+      .filter(a => a.seriesNumber === null || seriesNumber === null || a.seriesNumber === seriesNumber)
+      .flatMap(a => a.units),
+  ]
+  for (const u of numberUnits) for (const t of u.tokens) if (t.kind === 'number') numbers.add(t.text)
 
   const dlc = [...subtitleTexts, ...dashParts.slice(1)].some(isLikelyDLC)
+  const keptAliases = aliasTargets.filter(
+    a =>
+      live(a.base) &&
+      (a.seriesNumber === null || seriesNumber === null || a.seriesNumber === seriesNumber)
+  )
 
   return {
-    units,
+    units: [...units, ...keptAliases.flatMap(a => a.units)],
     base,
     subtitles: subtitles.filter(live),
     expansions: expansions.filter(live),
     alts: alts.filter(live),
     parens: parens.filter(live),
-    aliases: aliasTargets.filter(a => live(a.base)),
+    // Imported alternative names are noisy: an alias naming another sequel
+    // ("GTA 4" on Grand Theft Auto V) must not vouch for this entry.
+    aliases: keptAliases,
     seriesNumber,
     seriesNumberOmittable,
     dlc,
@@ -491,7 +502,9 @@ function parseTarget(gameName: string, aliases: readonly string[]): ParsedTarget
 
 function parseInput(input: string): Token[] {
   const tokens = tokenizeNormalized(normalizeText(input.slice(0, MAX_INPUT_LENGTH)))
-  markTrailingEdition(tokens)
+  // A guess that is only an edition word ("remake", "complete edition")
+  // names nothing.
+  markTrailingEdition(tokens, true)
   return tokens
 }
 
@@ -540,6 +553,37 @@ function wordsEquivalent(guess: string, word: string, lenient = false): boolean 
   const limit = length <= 8 ? 1 : 2
   if (Math.abs(guess.length - word.length) > limit) return false
   return editDistance(guess, word) <= limit
+}
+
+/**
+ * A guess that is a strict prefix of the word is a truncation, not a typo:
+ * the player has not finished naming the game. With other words around it
+ * a plural "s" is forgiven ("plant vs zombies"), as is a long word missing
+ * its last letter ("porta 2"); a lone "hade" or "minecraf" is not.
+ */
+function isTruncation(guess: string, word: string, inputWords: number): boolean {
+  if (!word.startsWith(guess) || guess === word) return false
+  if (inputWords < 2) return true
+  const missing = word.slice(guess.length)
+  if (missing === 's' || missing === 'es') return false
+  return word.length < 6
+}
+
+/** A short token with at most one vowel reads as shorthand ("botw", "lol"), not a word. */
+function isShorthand(text: string): boolean {
+  return text.length <= 4 && (text.match(/[aeiouy]/g) ?? []).length <= 1
+}
+
+/**
+ * "ffviii" is not a typo of "ffvii": when two words differ only in a
+ * trailing roman-numeral segment, they name different entries.
+ */
+function romanTailDiffers(a: string, b: string): boolean {
+  let i = 0
+  while (i < a.length && i < b.length && a[i] === b[i]) i++
+  const tailA = a.slice(i)
+  const tailB = b.slice(i)
+  return (tailA !== '' || tailB !== '') && /^[ivx]*$/.test(tailA) && /^[ivx]*$/.test(tailB)
 }
 
 /**
@@ -598,6 +642,8 @@ interface Placed {
   unit: Unit
   index: number
   token: Token
+  /** From an alias rather than the title itself. */
+  alias: boolean
 }
 
 interface Alignment {
@@ -650,15 +696,37 @@ function acronymRuns(unit: Unit): Token[][] {
 
 function align(input: Token[], target: ParsedTarget): Alignment {
   const placed: Placed[] = []
+  const aliasUnits = new Set(target.aliases.flatMap(a => a.units))
   for (const unit of target.units) {
-    unit.tokens.forEach((token, index) => placed.push({ unit, index, token }))
+    const alias = aliasUnits.has(unit)
+    unit.tokens.forEach((token, index) => placed.push({ unit, index, token, alias }))
   }
-  // Acronyms may also span the base and its subtitle ("csgo", "codmw2").
+  // Acronyms are derived from the title's own units (an alias that is
+  // already shorthand must not be shortened again: "r4" is not "RE4"), and
+  // may also span the base and its subtitle ("csgo", "codmw2").
+  const ownUnits: Unit[] = [
+    target.base, ...target.alts, ...target.subtitles, ...target.expansions, ...target.parens,
+  ]
   const core: Unit = {
     kind: 'base',
     tokens: [...target.base.tokens, ...target.subtitles.flatMap(u => u.tokens)],
   }
-  const acronymUnits = target.subtitles.length > 0 ? [...target.units, core] : target.units
+  const acronymUnits = target.subtitles.length > 0 ? [...ownUnits, core] : ownUnits
+  const findAcronymRun = (text: string): Token[] | null => {
+    for (const unit of acronymUnits) {
+      for (const run of acronymRuns(unit)) {
+        const { raw, canonical } = runInitials(run)
+        if (raw === text || canonical === text) return run
+      }
+    }
+    return null
+  }
+  const coverRun = (run: Token[]): void => {
+    for (const t of run) {
+      covered.add(t)
+      if (t.kind === 'number') inputNumbers.add(t.text)
+    }
+  }
   const covered = new Set<Token>()
   const foreign: Token[] = []
   const wrongNumbers: Token[] = []
@@ -696,29 +764,26 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       continue
     }
     if (coverEqual(tok.text)) {
-      if (isDistinctiveWord(tok)) distinctive.push(tok)
+      if (isDistinctiveWord(tok) || tok.kind === 'mixed') distinctive.push(tok)
+      // A short word equal to an alias token may still be an acronym of the
+      // title ("ds" next to the alias "DS1" is Dark Souls).
+      if (tok.kind === 'word' && tok.text.length <= 4) {
+        const run = findAcronymRun(tok.text)
+        if (run) {
+          coverRun(run)
+          distinctive.push(tok)
+          if (tok.text.length === 2) shortAcronyms++
+        }
+      }
       continue
     }
     if (tok.soft) continue
 
     if (tok.kind === 'mixed') {
       // "l4d" for "Left 4 Dead": an acronym with a number inside.
-      let mixedRun: Token[] | null = null
-      for (const unit of acronymUnits) {
-        for (const run of acronymRuns(unit)) {
-          const { raw, canonical } = runInitials(run)
-          if (raw === tok.text || canonical === tok.text) {
-            mixedRun = run
-            break
-          }
-        }
-        if (mixedRun) break
-      }
+      const mixedRun = findAcronymRun(tok.text)
       if (mixedRun) {
-        for (const t of mixedRun) {
-          covered.add(t)
-          if (t.kind === 'number') inputNumbers.add(t.text)
-        }
+        coverRun(mixedRun)
         distinctive.push(tok)
         continue
       }
@@ -755,15 +820,17 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       continue
     }
 
-    // Typo-tolerant word match, closest first. A lone guess that is a
-    // strict prefix of the word ("hade", "minecraf") is a truncation, not a
-    // typo: the player has not named the game.
+    // Typo-tolerant word match, closest first.
     let best: Placed | null = null
     let bestDistance = Infinity
     for (const p of placed) {
       if (p.token.kind !== 'word' || p.token.text.length === 1) continue
+      // Alias shorthand ("BotW", "TW3") must be spelled exactly; a short
+      // real word in an alias ("Épée") still tolerates a typo.
+      if (p.alias && isShorthand(p.token.text)) continue
       if (!wordsEquivalent(tok.text, p.token.text, lenient)) continue
-      if (realInput.length === 1 && p.token.text.startsWith(tok.text)) continue
+      if (isTruncation(tok.text, p.token.text, realInput.length)) continue
+      if (romanTailDiffers(tok.text, p.token.text)) continue
       const distance = editDistance(tok.text, p.token.text)
       if (distance < bestDistance) {
         best = p
@@ -771,28 +838,15 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       }
     }
     if (best) {
-      covered.add(best.token)
+      coverEqual(best.token.text)
       if (isDistinctiveWord(tok)) distinctive.push(tok)
       continue
     }
 
     // Acronym of a run ("gta", "botw", "tlou", "l4d", "ffvii", "csgo").
-    let acronymRun: Token[] | null = null
-    for (const unit of acronymUnits) {
-      for (const run of acronymRuns(unit)) {
-        const { raw, canonical } = runInitials(run)
-        if (raw === tok.text || canonical === tok.text) {
-          acronymRun = run
-          break
-        }
-      }
-      if (acronymRun) break
-    }
+    const acronymRun = findAcronymRun(tok.text)
     if (acronymRun) {
-      for (const t of acronymRun) {
-        covered.add(t)
-        if (t.kind === 'number') inputNumbers.add(t.text)
-      }
+      coverRun(acronymRun)
       distinctive.push(tok)
       if (tok.text.length === 2) shortAcronyms++
       continue
@@ -900,11 +954,37 @@ function targetForms(target: ParsedTarget): Form[] {
     const distinctive = words.length >= 2 || words.some(isDistinctiveWord)
     if (distinctive) forms.push({ kind: 'own-name', tokens: u.tokens })
   }
-  for (const u of target.parens) forms.push({ kind: 'own-name', tokens: u.tokens })
-  for (const alias of target.aliases) {
-    for (const form of targetForms(alias)) {
-      if (form.kind !== 'base') forms.push({ kind: 'own-name', tokens: form.tokens })
+  for (const u of target.parens) {
+    if (u.tokens.some(t => isRequired(t) && t.kind !== 'number')) {
+      forms.push({ kind: 'own-name', tokens: u.tokens })
     }
+  }
+  // An alias is the entry's own name only when it adds identity of its own:
+  // "Pokémon Épée", "GTA 5", "TW3". One that merely repeats part of the base
+  // ("Les Sims" on The Sims 4, "Portal" on Portal 2, "Cuphead" on its DLC)
+  // is the franchise, and is graded through the base rules. An alias's
+  // dash expansion ("… – Blood and Wine" listed on the base game) is a
+  // different entry, so only the alias core counts.
+  const baseRequired = new Set(target.base.tokens.filter(isRequired).map(t => t.text))
+  for (const alias of target.aliases) {
+    const core = [...alias.base.tokens, ...alias.subtitles.flatMap(u => u.tokens)]
+    const required = core.filter(isRequired)
+    const addsIdentity = required.some(t => !baseRequired.has(t.text))
+    if (!addsIdentity || !required.some(t => t.kind !== 'number')) continue
+    forms.push({ kind: 'own-name', tokens: core })
+    // A translated subtitle ("Les Sables du Temps") is the entry's own name
+    // when the title has a subtitle to translate; a subtitle the title does
+    // not have ("Les Sims 4: Chiens et Chats" listed on The Sims 4) is an
+    // expansion listed on the base game.
+    const titleHasEntryName = target.subtitles.length > 0 || target.expansions.length > 0
+    if (!titleHasEntryName) continue
+    for (const u of alias.subtitles) {
+      const words = u.tokens.filter(t => isRequired(t) && t.kind === 'word')
+      if (words.length >= 2 || words.some(isDistinctiveWord)) {
+        forms.push({ kind: 'own-name', tokens: u.tokens })
+      }
+    }
+    for (const alt of alias.alts) forms.push({ kind: 'own-name', tokens: alt.tokens })
   }
   if (target.subtitles.length > 0 || target.expansions.length > 0) {
     forms.push({ kind: 'base', tokens: target.base.tokens })
