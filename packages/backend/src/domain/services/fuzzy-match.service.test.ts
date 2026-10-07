@@ -234,7 +234,11 @@ describe('fuzzy-match.service', () => {
     it('accepts matching base + number ("Witcher 3" → "The Witcher 3: Wild Hunt")', () => {
       expectMatch('witcher 3', 'The Witcher 3: Wild Hunt')
       expectMatch('the witcher 3', 'The Witcher 3: Wild Hunt')
-      expectMatch('half-life 2', 'Half-Life 2: Episode Two')
+      // An "Episode N" subtitle numbers an episode of the base game, so the
+      // base game with its own number is the franchise, not the entry.
+      expectPrecision('half-life 2', 'Half-Life 2: Episode Two', 'partial')
+      expectPrecision('half life 2 episode 2', 'Half-Life 2: Episode Two', 'exact')
+      expectPrecision('half life 2 episode 2', 'Half-Life 2: Episode One', 'none')
     })
 
     it('reads every number of the title, not just the first', () => {
@@ -701,14 +705,21 @@ describe('fuzzy-match.service', () => {
         expectPrecision('witcher 3', 'The Witcher 3: Wild Hunt', 'exact')
         expectPrecision('portal 2', 'Portal 2', 'exact')
       })
-      it('the franchise\'s leading word + correct number', () => {
+      it('franchise + number needs every word of the franchise', () => {
+        // "sonic 2" would otherwise be Sonic Adventure 2 as much as Sonic the
+        // Hedgehog 2: naming part of the franchise with the number is partial.
         expectCases([
-          ['sonic 2', 'Sonic the Hedgehog 2', 'exact'],
-          ['red dead 2', 'Red Dead Redemption 2', 'exact'],
-          ['tony hawk 2', "Tony Hawk's Pro Skater 2", 'exact'],
-          ['crash 2', 'Crash Bandicoot 2: Cortex Strikes Back', 'exact'],
+          ['sonic 2', 'Sonic the Hedgehog 2', 'partial'],
+          ['sonic 2', 'Sonic Adventure 2', 'partial'],
+          ['sonic the hedgehog 2', 'Sonic the Hedgehog 2', 'exact'],
+          ['red dead 2', 'Red Dead Redemption 2', 'partial'],
+          ['rdr2', 'Red Dead Redemption 2', 'exact'],
+          ['mario 2', 'Mario Party 2', 'partial'],
           ['dark 3', 'Dark Souls III', 'none'],
           ['battlefront 2', 'Star Wars Battlefront II', 'partial'],
+          // A number the guess puts on the franchise belongs to the subtitle.
+          ['call of duty 2', 'Call of Duty: Modern Warfare 2', 'none'],
+          ['divinity 2', 'Divinity: Original Sin 2', 'none'],
         ])
       })
       it('subtitle-only is a full identification, not partial', () => {
@@ -982,7 +993,7 @@ const CORPUS: Case[] = [
     ['l4d2', 'Left 4 Dead 2', 'exact'],
     ['half-life 2 episode one', 'Half-Life 2: Episode Two', 'none'],
     ['half-life 2 episode two', 'Half-Life 2: Episode Two', 'exact'],
-    ['half life 2', 'Half-Life 2: Episode Two', 'exact'],
+    ['half life 2', 'Half-Life 2: Episode Two', 'partial'],
     ['gta 4', 'Grand Theft Auto V', 'none', ['GTA 5']],
     ['gta 5', 'Grand Theft Auto V', 'exact', ['GTA 5']],
     ['final fantasy 8', 'Final Fantasy VII', 'none', ['Final Fantasy 7']],
@@ -1064,7 +1075,7 @@ const CORPUS: Case[] = [
     ['civilization 6', "Sid Meier's Civilization VI", 'exact'],
     ['civilization 5', "Sid Meier's Civilization VI", 'none'],
     ['civilization', "Sid Meier's Civilization VI", 'partial'],
-    ['sonic 2', 'Sonic the Hedgehog 2', 'exact'],
+    ['sonic 2', 'Sonic the Hedgehog 2', 'partial'],
     ['sonic the hedgehog', 'Sonic the Hedgehog 2', 'partial'],
     ['sonic adventure 2', 'Sonic the Hedgehog 2', 'none'],
     ['street fighter 2', 'Street Fighter II', 'exact'],
@@ -1338,7 +1349,7 @@ const CORPUS: Case[] = [
     ['crash bandicoot 2', 'Crash Bandicoot 2: Cortex Strikes Back', 'exact'],
     ['crash bandicoot 3', 'Crash Bandicoot 2: Cortex Strikes Back', 'none'],
     ['cortex strikes back', 'Crash Bandicoot 2: Cortex Strikes Back', 'exact'],
-    ['crash 2', 'Crash Bandicoot 2: Cortex Strikes Back', 'exact'],
+    ['crash 2', 'Crash Bandicoot 2: Cortex Strikes Back', 'partial'],
     ['crash', 'Crash Bandicoot 2: Cortex Strikes Back', 'partial'],
     ['mortal kombat 11', 'Mortal Kombat 11', 'exact'],
     ['mk11', 'Mortal Kombat 11', 'exact'],
@@ -1380,8 +1391,8 @@ const CORPUS: Case[] = [
     ['2048', '2048', 'exact'],
     ['1080 snowboarding', '1080° Snowboarding', 'exact'],
     ['1080', '1080° Snowboarding', 'none'],
-    ['far 5', 'Far Cry 5', 'exact'],
-    ['final 7', 'Final Fantasy VII', 'exact'],
+    ['far 5', 'Far Cry 5', 'partial'],
+    ['final 7', 'Final Fantasy VII', 'partial'],
     ['dark 3', 'Dark Souls III', 'none'],
     ['star wars', 'Star Wars Jedi: Fallen Order', 'partial'],
     ['go', 'God of War', 'none'],
@@ -1410,7 +1421,7 @@ const CORPUS: Case[] = [
     ['smash bros', 'Super Smash Bros. Ultimate', 'partial'],
     ['super smash bros ultimate', 'Super Smash Bros. Ultimate', 'exact'],
     ['ssbu', 'Super Smash Bros. Ultimate', 'exact'],
-    ['divinity 2', 'Divinity: Original Sin 2', 'partial'],
+    ['divinity 2', 'Divinity: Original Sin 2', 'none'],
     ['divinity original sin 2', 'Divinity: Original Sin 2', 'exact'],
     ['original sin 2', 'Divinity: Original Sin 2', 'exact'],
     ['original sin', 'Divinity: Original Sin 2', 'partial'],
@@ -1551,7 +1562,7 @@ const CORPUS: Case[] = [
     ['sonic blast', 'Sonic 3D Blast', 'partial'],
     ['sonic 3d blast', 'Sonic 3D Blast', 'exact'],
     ['super mario 3d land', 'Super Mario 3D World', 'none'],
-    ['street 6', 'Street Fighter 6', 'exact'],
+    ['street 6', 'Street Fighter 6', 'partial'],
     ['street fighter 6', 'Street Fighter 6', 'exact'],
     ['call of duty zzz', 'Call of Duty: Black Ops II', 'none'],
     ['cod zzz', 'Call of Duty: Black Ops II', 'none'],
@@ -1660,8 +1671,8 @@ const CORPUS: Case[] = [
     ['village', 'Resident Evil Village', 'partial', ['Resident Evil 8']],
     ['mega man x 4', 'Mega Man X4', 'exact'],
     ['megaman x 4', 'Mega Man X4', 'exact'],
-    ['red dead 2', 'Red Dead Redemption 2', 'exact'],
-    ['tony hawk 2', "Tony Hawk's Pro Skater 2", 'exact'],
+    ['red dead 2', 'Red Dead Redemption 2', 'partial'],
+    ['tony hawk 2', "Tony Hawk's Pro Skater 2", 'partial'],
     ['tony hawks pro skater 2', "Tony Hawk's Pro Skater 2", 'exact'],
     ['thps2', "Tony Hawk's Pro Skater 2", 'exact'],
     ['battlefront 2', 'Star Wars Battlefront II', 'partial'],
@@ -1773,4 +1784,60 @@ const CORPUS: Case[] = [
     ['f-', 'F-Zero', 'none'],
     ['f z', 'F-Zero', 'none'],
     ['fz', 'F-Zero', 'none'],
+    ['final fantasy 2', 'Final Fantasy X-2', 'partial'],
+    ['ff2', 'Final Fantasy X-2', 'partial'],
+    ['half life 2 episode 2', 'Half-Life 2: Episode One', 'none'],
+    ['hl2 ep2', 'Half-Life 2: Episode One', 'none'],
+    ['half life 2', 'Half-Life 2: Episode One', 'partial'],
+    ['half life 2 episode 1', 'Half-Life 2: Episode One', 'exact'],
+    ['sonic 2', 'Sonic Adventure 2', 'partial'],
+    ['sonic adventure 2', 'Sonic Adventure 2', 'exact'],
+    ['sonic 2', 'Sonic Adventure 2: Battle', 'partial'],
+    ['yakuza 2', 'Yakuza Kiwami 2', 'partial'],
+    ['mario 2', 'Mario Party 2', 'partial'],
+    ['mario 2', 'Super Mario Galaxy 2', 'partial'],
+    ['mario 2', 'Mario Kart 2', 'partial'],
+    ['pokemon bleu', 'Pokémon Red, Blue', 'exact', ['Pokémon Rouge, Bleu']],
+    ['pokemon rouge', 'Pokémon Red, Blue', 'exact', ['Pokémon Rouge, Bleu']],
+    ['pokemon bouclier', 'Pokémon Sword, Shield', 'exact', ['Pokémon Épée, Bouclier']],
+    ['pokemon bouclier', 'Pokémon Sword, Shield', 'exact', ['Pokémon Épée et Bouclier']],
+    ['pokemon perle', 'Pokémon Diamond, Pearl', 'exact', ['Pokémon Diamant, Perle']],
+    ['pokemon red', 'Pokémon Red/Blue', 'exact'],
+    ['pokemon blue', 'Pokémon Red/Blue', 'exact'],
+    ['pokemon red', 'Pokémon Red and Blue', 'exact'],
+    ['pokemon blue', 'Pokémon Red & Blue', 'exact'],
+    ['pokemon shield', 'Pokémon Sword and Shield', 'exact'],
+    ['call of duty 2', 'Call of Duty: Modern Warfare 2', 'none'],
+    ['cod 2', 'Call of Duty: Black Ops II', 'none'],
+    ['call of duty 2', 'Call of Duty: Black Ops II', 'none'],
+    ['battlefield 2', 'Battlefield: Bad Company 2', 'none'],
+    ['bad company 2', 'Battlefield: Bad Company 2', 'exact'],
+    ['battlefield bad company 2', 'Battlefield: Bad Company 2', 'exact'],
+    ['battlefield', 'Battlefield: Bad Company 2', 'partial'],
+    ['call of duty ww2', 'Call of Duty: WWII', 'exact'],
+    ['cod ww2', 'Call of Duty: WWII', 'exact'],
+    ['ww2', 'Call of Duty: WWII', 'exact'],
+    ['call of duty wwii', 'Call of Duty: WWII', 'exact'],
+    ['street fighter v champion edition', 'Street Fighter V', 'exact'],
+    ['nier automata yorha edition', 'NieR:Automata', 'exact'],
+    ['gta 5 premium online edition', 'Grand Theft Auto V', 'exact'],
+    ['nier automata', 'NieR: Automata YoRHa Edition', 'exact'],
+    ['street fighter 5', 'Street Fighter V: Champion Edition', 'exact'],
+    ['persona 4 golden', 'Persona 4', 'exact'],
+    ['persona 4', 'Persona 4 Golden', 'exact'],
+    ['p4g', 'Persona 4 Golden', 'none'],
+    ['sonic mania plus', 'Sonic Mania', 'exact'],
+    ['sonic mania', 'Sonic Mania Plus', 'exact'],
+    ['persona 3', 'Persona 3 Portable', 'exact'],
+    ['doom 1', 'Doom (1993)', 'exact'],
+    ['hitman 1', 'Hitman (2016)', 'exact'],
+    ['tomb raider 1', 'Tomb Raider (2013)', 'exact'],
+    ['sonic 1', 'Sonic the Hedgehog', 'partial'],
+    ['ff7 remake', 'Final Fantasy VII Rebirth', 'partial'],
+    ['ff7 rebirth', 'Final Fantasy VII Remake', 'none'],
+    ['crisis core', 'Crisis Core: Final Fantasy VII', 'partial'],
+    ['final fantasy 3', 'Final Fantasy VI', 'none', ['Final Fantasy III']],
+    ['deltarune chapter 1', 'Deltarune: Chapter 2', 'none'],
+    ['deltarune', 'Deltarune: Chapter 2', 'partial'],
+    ['deltarune chapter 2', 'Deltarune: Chapter 2', 'exact'],
 ]
