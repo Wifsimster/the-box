@@ -327,9 +327,7 @@ function markTrailingEdition(tokens: Token[], allowEmpty = false): void {
       if (slice.every((t, i) => t.raw === phrase[i])) {
         // Keep at least one meaningful token: "Remastered" alone or "The
         // Collection" is the whole name, not a suffix.
-        if (!allowEmpty && end - phrase.length === 0 && tokens.slice(0, end).every(t => !t.stop)) {
-          continue
-        }
+        if (!allowEmpty && end - phrase.length === 0) continue
         for (const t of slice) t.edition = true
         end -= phrase.length
         changed = true
@@ -474,8 +472,6 @@ function parseTarget(gameName: string, aliases: readonly string[], isAlias = fal
     }
   }
 
-  const aliasTargets = aliases.map(a => parseTarget(a, [], true))
-  const units = [base, ...alts, ...subtitles, ...expansions, ...parens, ...years]
   // Units that lost every token to edition stripping ("Mass Effect:
   // Legendary Edition") name nothing on their own.
   const live = (u: Unit): boolean => u.tokens.some(isRequired)
@@ -495,31 +491,32 @@ function parseTarget(gameName: string, aliases: readonly string[], isAlias = fal
     }
   }
 
-  const numbers = new Set<string>()
-  const numberUnits = [
-    ...units,
-    ...aliasTargets
-      .filter(a => a.seriesNumber === null || seriesNumber === null || a.seriesNumber === seriesNumber)
-      .flatMap(a => a.units),
+  // Imported alternative names are noisy: an alias naming another sequel
+  // ("GTA 4" on Grand Theft Auto V) must not vouch for this entry.
+  const keptAliases = aliases
+    .map(a => parseTarget(a, [], true))
+    .filter(
+      a =>
+        live(a.base) &&
+        (a.seriesNumber === null || seriesNumber === null || a.seriesNumber === seriesNumber)
+    )
+  const units = [
+    base, ...alts, ...subtitles, ...expansions, ...parens, ...years,
+    ...keptAliases.flatMap(a => a.units),
   ]
-  for (const u of numberUnits) for (const t of u.tokens) if (t.kind === 'number') numbers.add(t.text)
+
+  const numbers = new Set<string>()
+  for (const u of units) for (const t of u.tokens) if (t.kind === 'number') numbers.add(t.text)
 
   const dlc = [...subtitleTexts, ...dashParts.slice(1)].some(isLikelyDLC)
-  const keptAliases = aliasTargets.filter(
-    a =>
-      live(a.base) &&
-      (a.seriesNumber === null || seriesNumber === null || a.seriesNumber === seriesNumber)
-  )
 
   return {
-    units: [...units, ...keptAliases.flatMap(a => a.units)],
+    units,
     base,
     subtitles: subtitles.filter(live),
     expansions: expansions.filter(live),
     alts: alts.filter(live),
     parens: parens.filter(live),
-    // Imported alternative names are noisy: an alias naming another sequel
-    // ("GTA 4" on Grand Theft Auto V) must not vouch for this entry.
     aliases: keptAliases,
     seriesNumber,
     seriesNumberOmittable,
@@ -767,6 +764,31 @@ function align(input: Token[], target: ParsedTarget): Alignment {
     tokens: [...target.base.tokens, ...target.subtitles.flatMap(u => u.tokens)],
   }
   const acronymUnits = target.subtitles.length > 0 ? [...ownUnits, core] : ownUnits
+
+  const covered = new Set<Token>()
+  const foreign: Token[] = []
+  const wrongNumbers: Token[] = []
+  const inputNumbers = new Set<string>()
+  const distinctive: Token[] = []
+  let shortAcronyms = 0
+  const realInput = input.filter(t => !t.stop && !t.structural && !t.edition && !t.soft)
+  // With a second word or a number alongside, a four-letter word may carry
+  // a typo; alone it must be spelled out.
+  const lenient = realInput.length >= 2
+  // Known up front so "the <word>" acronym runs can check for a number.
+  for (const t of input) if (t.kind === 'number') inputNumbers.add(t.text)
+
+  // Coverage is by text so the same word in an alias is covered too.
+  const coverEqual = (text: string): boolean => {
+    let hit = false
+    for (const p of placed) {
+      if (p.token.text === text) {
+        covered.add(p.token)
+        hit = true
+      }
+    }
+    return hit
+  }
   const findAcronymRun = (text: string): Token[] | null => {
     if (NEVER_ACRONYMS.has(text)) return null
     for (const unit of acronymUnits) {
@@ -784,34 +806,11 @@ function align(input: Token[], target: ParsedTarget): Alignment {
     )
     if (hit) coverEqual(hit.token.text)
   }
-  // Coverage is by text so the same word in an alias is covered too.
   const coverRun = (run: Token[]): void => {
     for (const t of run) {
       coverEqual(t.text)
       if (t.kind === 'number') inputNumbers.add(t.text)
     }
-  }
-  const covered = new Set<Token>()
-  const foreign: Token[] = []
-  const wrongNumbers: Token[] = []
-  const inputNumbers = new Set<string>()
-  const distinctive: Token[] = []
-  let shortAcronyms = 0
-  const realInput = input.filter(t => !t.stop && !t.structural && !t.edition && !t.soft)
-  // With a second word or a number alongside, a four-letter word may carry
-  // a typo; alone it must be spelled out.
-  const lenient = realInput.length >= 2
-  for (const t of input) if (t.kind === 'number') inputNumbers.add(t.text)
-
-  const coverEqual = (text: string): boolean => {
-    let hit = false
-    for (const p of placed) {
-      if (p.token.text === text) {
-        covered.add(p.token)
-        hit = true
-      }
-    }
-    return hit
   }
 
   for (let i = 0; i < input.length; i++) {
@@ -821,7 +820,6 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       continue
     }
     if (tok.kind === 'number') {
-      inputNumbers.add(tok.text)
       // "mega man x 4": a lone letter and a number spelling a mixed token ("x4").
       const next = input[i + 1]
       if (tok.raw.length === 1 && next?.kind === 'number' && coverEqual(tok.raw + next.text)) {
