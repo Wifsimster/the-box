@@ -267,16 +267,25 @@ function isNumberText(text: string): boolean {
   return /^\d+$/.test(text)
 }
 
-function makeToken(raw: string, index: number, count: number): Token {
+function makeToken(raw: string, index: number, raws: string[]): Token {
   let text = WORD_ALIASES[raw] ?? raw
-  // Roman numerals become their value. A lone "i" is far more often the
-  // English pronoun ("I Am Setsuna") than a numeral; only a trailing "i"
-  // ("The Last of Us Part I") counts.
+  const count = raws.length
+  const last = index === count - 1
   const roman = ROMAN_TO_ARABIC[text]
-  if (roman !== undefined && (text !== 'i' || (index === count - 1 && index > 0))) {
-    text = String(roman)
+  const next = index < count - 1 ? raws[index + 1] : undefined
+  if (roman !== undefined) {
+    // Roman numerals become their value. A lone "i" is far more often the
+    // English pronoun ("I Am Setsuna") than a numeral, and a leading "X" or
+    // "V" before a word is a letter ("X-COM", "V Rising"); only a trailing
+    // or inner numeral ("Part I", "Final Fantasy X", "Mega Man X") counts.
+    const pronoun = text === 'i' && (!last || index === 0)
+    const leadingLetter = index === 0 && next !== undefined && !/\d/.test(next)
+    if (!pronoun && !leadingLetter) text = String(roman)
   } else if (NUMBER_WORDS[text] !== undefined) {
     text = String(NUMBER_WORDS[text])
+  } else if (/^0\d+$/.test(text)) {
+    // "007": a code, not a sequel number, and one players leave out.
+    return { text, raw, kind: 'mixed', stop: false, structural: true, edition: false, brand: false, soft: false }
   } else if (isNumberText(text)) {
     text = String(parseInt(text, 10))
   }
@@ -299,6 +308,8 @@ function makeToken(raw: string, index: number, count: number): Token {
  * A one-letter stem ("x4", "p5r") is left whole and handled as a token.
  */
 function splitGlued(raw: string): { raw: string; soft: boolean }[] {
+  const sports = raw.match(/^([a-z]{2,})(\d+k\d*)$/)
+  if (sports) return [{ raw: sports[1]!, soft: false }, { raw: sports[2]!, soft: false }]
   const m = raw.match(/^([a-z]{2,}|[a-z]\d[a-z])(\d+)([a-z])?$/)
   if (!m) return [{ raw, soft: false }]
   const parts = [{ raw: m[1]!, soft: false }, { raw: m[2]!, soft: false }]
@@ -308,11 +319,29 @@ function splitGlued(raw: string): { raw: string; soft: boolean }[] {
 
 function tokenizeNormalized(normalized: string): Token[] {
   const raws = normalized.split(' ').filter(Boolean).flatMap(splitGlued)
+  const texts = raws.map(r => r.raw)
   return raws.map((r, i) => {
-    const tok = makeToken(r.raw, i, raws.length)
+    const tok = makeToken(r.raw, i, texts)
     tok.soft = r.soft
     return tok
   })
+}
+
+/**
+ * Settle what tokenisation could not know before the edition suffix was
+ * found: a trailing "I" before "Remastered" is still the numeral 1, and
+ * "Bros." inside a long name ("Super Mario Bros. Wonder") is optional.
+ */
+function finalizeTokens(tokens: Token[]): void {
+  const live = tokens.filter(t => !t.edition)
+  const lastLive = live[live.length - 1]
+  if (lastLive && lastLive.raw === 'i' && live.length > 1 && lastLive.kind === 'word') {
+    lastLive.text = '1'
+    lastLive.kind = 'number'
+  }
+  if (tokens.filter(isRequired).length >= 3) {
+    for (const t of tokens) if (t.text === 'bros') t.structural = true
+  }
 }
 
 /** Mark a trailing edition suffix ("... Remastered", "... Complete Edition"). */
@@ -407,16 +436,18 @@ function unitOf(kind: UnitKind, text: string, allowEmpty = false): Unit {
   // A subtitle that is only an edition ("Mass Effect: Legendary Edition")
   // names nothing; a base that is ("Remastered") is the whole name.
   markTrailingEdition(tokens, allowEmpty || kind === 'subtitle' || kind === 'expansion')
+  finalizeTokens(tokens)
   return { kind, tokens }
 }
 
 /**
- * "Pokémon X, Y" / "Pokémon Omega Ruby, Alpha Sapphire": a comma-separated
- * list of version names after a shared prefix. Returns the variants, or
- * null when the text is not of that shape.
+ * "Pokémon X, Y" / "Pokémon Sword and Shield" / "Pokémon Omega Ruby, Alpha
+ * Sapphire": version names listed after a shared prefix. Returns the
+ * variants, or null when the text is not of that shape ("Mario & Luigi" and
+ * "Ori and the Blind Forest" are single names).
  */
 function commaAlternatives(text: string): string[] | null {
-  const parts = text.split(/\s*,\s+/)
+  const parts = text.split(/\s*,\s+|\s+(?:&|and)\s+/i)
   if (parts.length < 2) return null
   const first = parts[0]!.split(/\s+/)
   const rest = parts.slice(1).map(p => p.split(/\s+/))
@@ -476,10 +507,14 @@ function parseTarget(gameName: string, aliases: readonly string[], isAlias = fal
   // Legendary Edition") name nothing on their own.
   const live = (u: Unit): boolean => u.tokens.some(isRequired)
 
-  // Sequel number: the last required token of the base, when numeric and small.
+  // Sequel number: the last required token of the base, when numeric and
+  // small; a trailing single letter ("Dragon Quest XI S") does not hide it.
   let seriesNumber: number | null = null
   let seriesNumberOmittable = false
-  const lastIdx = lastRequiredIndex(base.tokens)
+  let lastIdx = lastRequiredIndex(base.tokens)
+  if (lastIdx > 0 && base.tokens[lastIdx]!.text.length === 1 && base.tokens[lastIdx]!.kind === 'word') {
+    lastIdx = lastRequiredIndex(base.tokens.slice(0, lastIdx))
+  }
   const lastTok = lastIdx >= 0 ? base.tokens[lastIdx]! : null
   if (lastTok && lastIdx > 0 && lastTok.kind === 'number') {
     const value = parseInt(lastTok.text, 10)
@@ -530,6 +565,7 @@ function parseInput(input: string): Token[] {
   // A guess that is only an edition word ("remake", "complete edition")
   // names nothing.
   markTrailingEdition(tokens, true)
+  finalizeTokens(tokens)
   return tokens
 }
 
@@ -684,6 +720,8 @@ interface Alignment {
   distinctive: Token[]
   /** The whole guess is one two-letter acronym ("ds", "re"): too ambiguous for full credit. */
   shortAcronymOnly: boolean
+  /** The guess relies on a two-letter acronym somewhere. */
+  shortAcronyms: boolean
 }
 
 /**
@@ -721,26 +759,29 @@ function runInitials(run: Token[]): string[] {
 /**
  * Runs of a unit that an acronym may stand for: from its start, or from its
  * first real word, spanning at least two real words ("go" is not "God of").
- * "The Witcher" / "The Sims" count as a run only when the guess also carries
- * a number ("tw3", "ts4"), so a bare two-letter guess cannot ride an article.
+ * Numbers and single letters are not words here: the letter-reveal hint
+ * shows the first letter of a word and every digit for free, so "h3" must
+ * never read as "Halo 3" nor "vr" as "V Rising".
  */
-function acronymRuns(unit: Unit, inputNumbers: Set<string>): Token[][] {
+function acronymRuns(unit: Unit): { run: Token[]; compoundOnly: boolean }[] {
   const starts = new Set<number>([0])
   const firstReal = unit.tokens.findIndex(t => !t.stop && !t.brand)
   if (firstReal > 0) starts.add(firstReal)
-  const runs: Token[][] = []
+  const runs: { run: Token[]; compoundOnly: boolean }[] = []
+  const isWord = (t: Token): boolean => !t.stop && t.kind === 'word' && t.text.length >= 2
   for (const start of starts) {
     const single = unit.tokens[start]
-    if (single && COMPOUND_INITIALS[single.text] !== undefined) runs.push([single])
+    if (single && COMPOUND_INITIALS[single.text] !== undefined) {
+      runs.push({ run: [single], compoundOnly: true })
+    }
     for (let end = start + 2; end <= unit.tokens.length; end++) {
       const run = unit.tokens.slice(start, end)
       if (run.some(t => t.edition || t.soft)) break
-      const real = run.filter(t => !t.stop).length
-      if (real < 2) {
-        const articled = run.length === 2 && run[0]!.stop && real === 1 && inputNumbers.size > 0
-        if (!articled) continue
-      }
-      runs.push(run)
+      const words = run.filter(isWord).length
+      // "Battlefield V" counts as two words, but only as "bfv", never "bv".
+      const compounds = run.filter(t => isWord(t) && COMPOUND_INITIALS[t.text] !== undefined).length
+      if (words + compounds < 2) continue
+      runs.push({ run, compoundOnly: words < 2 })
     }
   }
   return runs
@@ -775,8 +816,6 @@ function align(input: Token[], target: ParsedTarget): Alignment {
   // With a second word or a number alongside, a four-letter word may carry
   // a typo; alone it must be spelled out.
   const lenient = realInput.length >= 2
-  // Known up front so "the <word>" acronym runs can check for a number.
-  for (const t of input) if (t.kind === 'number') inputNumbers.add(t.text)
 
   // Coverage is by text so the same word in an alias is covered too.
   const coverEqual = (text: string): boolean => {
@@ -792,8 +831,9 @@ function align(input: Token[], target: ParsedTarget): Alignment {
   const findAcronymRun = (text: string): Token[] | null => {
     if (NEVER_ACRONYMS.has(text)) return null
     for (const unit of acronymUnits) {
-      for (const run of acronymRuns(unit, inputNumbers)) {
-        if (runInitials(run).includes(text)) return run
+      for (const { run, compoundOnly } of acronymRuns(unit)) {
+        const variants = runInitials(run)
+        if ((compoundOnly ? variants.slice(2) : variants).includes(text)) return run
       }
     }
     return null
@@ -812,6 +852,26 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       if (t.kind === 'number') inputNumbers.add(t.text)
     }
   }
+  // A run of two or more title words written as one ("halflife", "fzero",
+  // "stalker" for S.T.A.L.K.E.R.), exactly or up to a typo.
+  const findGluedRun = (text: string, tolerant: boolean): Token[] | null => {
+    for (const unit of target.units) {
+      for (let start = 0; start < unit.tokens.length; start++) {
+        let joined = ''
+        for (let end = start; end < unit.tokens.length; end++) {
+          const t = unit.tokens[end]!
+          if (!/^[a-z]+$/.test(t.raw)) break
+          joined += t.raw
+          if (joined.length > text.length + 2) break
+          if (joined.length < 4) continue
+          if (end > start && (tolerant ? wordsEquivalent(text, joined, lenient) : joined === text)) {
+            return unit.tokens.slice(start, end + 1)
+          }
+        }
+      }
+    }
+    return null
+  }
 
   for (let i = 0; i < input.length; i++) {
     const tok = input[i]!
@@ -823,11 +883,10 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       // "mega man x 4": a lone letter and a number spelling a mixed token ("x4").
       const next = input[i + 1]
       if (tok.raw.length === 1 && next?.kind === 'number' && coverEqual(tok.raw + next.text)) {
-        inputNumbers.delete(tok.text)
-        inputNumbers.delete(next.text)
         i++
         continue
       }
+      inputNumbers.add(tok.text)
       if (coverEqual(tok.text)) continue
       // "half-life 1" for "Half-Life": the first entry has no number.
       if (tok.text === '1' && target.numbers.size === 0) continue
@@ -860,18 +919,35 @@ function align(input: Token[], target: ParsedTarget): Alignment {
         distinctive.push(tok)
         continue
       }
-      // "p5r" / "r6": one letter standing for the franchise's first word.
-      // It names the franchise only when the franchise is that one word
-      // ("p5" is Persona 5; "r4" is not quite Resident Evil 4).
+      // "r6 siege": one letter standing for the franchise's first word,
+      // only when the title spells its number in letters ("Rainbow Six")
+      // and another word of the title comes with it. With a digit in the
+      // title ("Portal 2") that letter + digit is exactly what the
+      // letter-reveal hint shows ("P_____ 2"), so "p2" / "p5r" earn
+      // nothing, and a lone "g5" names nothing; players have "persona 5",
+      // "gta 5" and "re4".
       const m = tok.text.match(/^([a-z])(\d+)([a-z])?$/)
-      const baseWords = target.base.tokens.filter(t => isRequired(t) && t.kind === 'word')
-      const first = baseWords[0]
-      if (m && first && first.text.startsWith(m[1]!) && target.numbers.has(String(parseInt(m[2]!, 10)))) {
-        if (baseWords.length === 1) coverEqual(first.text)
-        coverEqual(String(parseInt(m[2]!, 10)))
-        inputNumbers.add(String(parseInt(m[2]!, 10)))
+      if (m && lenient) {
+        const value = String(parseInt(m[2]!, 10))
+        const first = target.base.tokens.find(t => isRequired(t) && t.kind === 'word')
+        const spelledNumber = target.base.tokens.some(
+          t => t.kind === 'number' && t.text === value && /^[a-z]+$/.test(t.raw)
+        )
+        const trailingKnown =
+          !m[3] || placed.some(p => !p.alias && p.token.kind === 'word' && p.token.text.startsWith(m[3]!))
+        if (first && spelledNumber && first.text.startsWith(m[1]!) && trailingKnown) {
+          coverEqual(first.text)
+          coverEqual(value)
+          inputNumbers.add(value)
+          distinctive.push(tok)
+          if (m[3]) coverInitial(m[3])
+          continue
+        }
+      }
+      // "2k" for "NBA 2K23": the sports-series code without its year names
+      // the series, not the entry.
+      if (/^\d+k$/.test(tok.text) && placed.some(p => p.token.kind === 'mixed' && p.token.text.startsWith(tok.text))) {
         distinctive.push(tok)
-        if (m[3]) coverInitial(m[3])
         continue
       }
       // "x2" for "Final Fantasy X-2": a roman numeral glued to a number.
@@ -897,11 +973,21 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       continue
     }
 
+    // A guess that is exactly two or more title words glued together
+    // ("xmen", "halflife") is those words, before any typo reading.
+    const exactGlue = findGluedRun(tok.text, false)
+    if (exactGlue) {
+      for (const t of exactGlue) coverEqual(t.text)
+      distinctive.push(tok)
+      continue
+    }
+
     // Typo-tolerant word match, closest first.
     let best: Placed | null = null
     let bestDistance = Infinity
     for (const p of placed) {
       if (p.token.kind !== 'word' || p.token.text.length === 1) continue
+      if (p.token.stop || p.token.structural || p.token.edition) continue
       // Alias shorthand ("BotW", "TW3") must be spelled exactly; a short
       // real word in an alias ("Épée") still tolerates a typo.
       if (p.alias && isShorthand(p.token.text)) continue
@@ -916,7 +1002,7 @@ function align(input: Token[], target: ParsedTarget): Alignment {
     }
     if (best) {
       coverEqual(best.token.text)
-      if (isDistinctiveWord(tok)) distinctive.push(tok)
+      if (isDistinctiveWord(best.token)) distinctive.push(tok)
       continue
     }
 
@@ -929,27 +1015,14 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       continue
     }
 
-    // Glued words ("halflife", "eldenring", "stalker" for S.T.A.L.K.E.R.).
-    let concatRun: Token[] | null = null
-    for (const unit of target.units) {
-      for (let start = 0; start < unit.tokens.length && !concatRun; start++) {
-        let joined = ''
-        for (let end = start; end < unit.tokens.length; end++) {
-          const t = unit.tokens[end]!
-          if (t.kind !== 'word') break
-          joined += t.text
-          if (joined.length > tok.text.length + 2) break
-          if (end > start && wordsEquivalent(tok.text, joined, lenient)) {
-            concatRun = unit.tokens.slice(start, end + 1)
-            break
-          }
-        }
-      }
-      if (concatRun) break
-    }
+    // Glued words up to a typo ("eldenrign", "halflfe").
+    const concatRun = findGluedRun(tok.text, true)
     if (concatRun) {
       for (const t of concatRun) coverEqual(t.text)
-      if (concatRun.some(t => isDistinctiveWord(t))) distinctive.push(tok)
+      // Writing the name as one word is naming it ("fzero", "ninokuni").
+      if (concatRun.some(t => isDistinctiveWord(t)) || concatRun.filter(isRequired).length >= 2) {
+        distinctive.push(tok)
+      }
       continue
     }
 
@@ -991,7 +1064,7 @@ function align(input: Token[], target: ParsedTarget): Alignment {
 
   const shortAcronymOnly = shortAcronyms === 1 && realInput.length === 1
 
-  return { covered, foreign, wrongNumbers, inputNumbers, distinctive, shortAcronymOnly }
+  return { covered, foreign, wrongNumbers, inputNumbers, distinctive, shortAcronymOnly, shortAcronyms: shortAcronyms > 0 }
 }
 
 function isGenericWord(t: Token): boolean {
@@ -1019,9 +1092,13 @@ interface Form {
 function targetForms(target: ParsedTarget): Form[] {
   const forms: Form[] = []
   const coreTokens = [...target.base.tokens, ...target.subtitles.flatMap(u => u.tokens)]
-  forms.push({ kind: 'full', tokens: coreTokens })
   if (target.expansions.length > 0) {
+    // "Dark Souls - Artorias of the Abyss": the core is the base game, a
+    // different entry from its expansion.
+    forms.push({ kind: 'base', tokens: coreTokens })
     forms.push({ kind: 'full', tokens: [...coreTokens, ...target.expansions.flatMap(u => u.tokens)] })
+  } else {
+    forms.push({ kind: 'full', tokens: coreTokens })
   }
   for (const alt of target.alts) forms.push({ kind: 'full', tokens: alt.tokens })
   for (const u of [...target.subtitles, ...target.expansions]) {
@@ -1063,7 +1140,7 @@ function targetForms(target: ParsedTarget): Form[] {
     }
     for (const alt of alias.alts) forms.push({ kind: 'own-name', tokens: alt.tokens })
   }
-  if (target.subtitles.length > 0 || target.expansions.length > 0) {
+  if (target.subtitles.length > 0) {
     forms.push({ kind: 'base', tokens: target.base.tokens })
   }
   return forms
@@ -1096,7 +1173,10 @@ function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context:
   }
 
   const forms = targetForms(target)
-  const fullyCovered = (form: Form): boolean => requiredTokens(form, target).every(t => covered.has(t))
+  const fullyCovered = (form: Form): boolean => {
+    const required = requiredTokens(form, target)
+    return required.length > 0 && required.every(t => covered.has(t))
+  }
   const ownNameCovered = forms.some(f => f.kind === 'own-name' && fullyCovered(f))
 
   // One heavily misspelled franchise word is forgiven when the entry's own
@@ -1105,7 +1185,13 @@ function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context:
   if (foreign.length === 1 && ownNameCovered) {
     const stray = foreign[0]!
     const near = target.units.some(u =>
-      u.tokens.some(t => t.kind === 'word' && !covered.has(t) && jaroWinkler(stray.text, t.text) >= 0.7)
+      u.tokens.some(
+        t =>
+          t.kind === 'word' &&
+          !covered.has(t) &&
+          t.text[0] === stray.text[0] &&
+          jaroWinkler(stray.text, t.text) >= 0.7
+      )
     )
     if (near) foreign = []
   }
@@ -1136,18 +1222,17 @@ function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context:
     leading !== undefined &&
     covered.has(leading) &&
     (isDistinctiveWord(leading) || coveredBaseWords.length >= 2) &&
-    coveredBaseWords.length * 2 >= baseWords.length
+    coveredBaseWords.length * 2 >= baseWords.length &&
+    // "li 2" (two revealed letters + the free digit) is not Life is Strange 2.
+    !alignment.shortAcronyms
   if (hasSeriesNumber && namesFranchise) {
     log.debug(context, 'exact: franchise + sequel number')
     return 'exact'
   }
 
-  const baseForm = forms.find(f => f.kind === 'base')
-  if (baseForm && fullyCovered(baseForm)) {
-    // "halo 1" for "Halo: Combat Evolved": on a title that carries no
-    // number at all, a "1" names the first entry.
-    if (target.numbers.size === 0 && inputNumbers.has('1')) {
-      log.debug(context, 'exact: franchise + first entry')
+  if (forms.some(f => f.kind === 'base' && fullyCovered(f))) {
+    if (hasSeriesNumber) {
+      log.debug(context, 'exact: franchise + sequel number')
       return 'exact'
     }
     if (target.dlc) {
@@ -1163,7 +1248,12 @@ function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context:
   // Every word of the base, number omitted ("the last of us" for "The Last
   // of Us Part II", "left 4 dead" for "Left 4 Dead 2"): the franchise is
   // named even when its words are generic on their own.
-  if (baseWords.length > 0 && baseWords.every(t => covered.has(t))) {
+  if (
+    baseWords.length > 0 &&
+    baseWords.every(t => covered.has(t)) &&
+    // A single revealed letter ("F" of "F-Zero") is not the franchise.
+    baseWords.some(t => t.text.length >= 2)
+  ) {
     log.debug(context, 'partial: franchise named, number omitted')
     return 'partial'
   }

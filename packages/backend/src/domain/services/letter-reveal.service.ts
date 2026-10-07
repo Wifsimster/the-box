@@ -168,8 +168,25 @@ export function effectiveMaxReveals(
   let safe = 0
   while (safe < staticMax) {
     const fragment = revealedFragment(gameName, safe + 1)
-    if (fragment !== '' && isMatch(fragment, gameName)) break
+    if (fragmentVariants(fragment).some(v => isMatch(v, gameName))) break
     safe++
   }
   return safe
+}
+
+/**
+ * The strings an abuser would actually type from a revealed fragment: as
+ * shown, glued ("P 2" -> "p2"), and without the free article ("The W 3" ->
+ * "w 3" / "w3"). The gate holds only if none of them earns credit.
+ */
+export function fragmentVariants(fragment: string): string[] {
+  const trimmed = fragment.trim()
+  if (trimmed === '') return []
+  const noArticle = trimmed.replace(LEADING_ARTICLE, '').trim()
+  const variants = new Set<string>([trimmed, trimmed.replace(/\s+/g, '')])
+  if (noArticle !== '' && noArticle !== trimmed) {
+    variants.add(noArticle)
+    variants.add(noArticle.replace(/\s+/g, ''))
+  }
+  return [...variants]
 }

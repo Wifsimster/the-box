@@ -5,6 +5,7 @@ import {
   maxRevealableLetters,
   effectiveMaxReveals,
   revealedFragment,
+  fragmentVariants,
   penaltyPctForReveals,
   nextPenaltyPct,
   LETTER_PENALTY_STEPS,
@@ -92,6 +93,15 @@ describe('letter-reveal masking', () => {
 // ---------------------------------------------------------------------------
 describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
   const fuzzy = createFuzzyMatchService({ logger: silentLogger })
+  const expectNoCredit = (cases: Array<[string, string]>): void => {
+    for (const [guess, title] of cases) {
+      assert.equal(
+        fuzzy.evaluateMatch(guess, title).precision,
+        'none',
+        `leak: "${guess}" must NOT match "${title}"`
+      )
+    }
+  }
   // Any credit is a leak: a revealed fragment worth even a partial match
   // would solve the position at 40%.
   const isMatch = (input: string, name: string) => fuzzy.evaluateMatch(input, name).matched
@@ -125,14 +135,35 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
       const max = effectiveMaxReveals(title, isMatch)
       for (let n = 0; n <= max; n++) {
         const fragment = revealedFragment(title, n)
-        if (fragment === '') continue
-        assert.equal(
-          fuzzy.evaluateMatch(fragment, title).precision,
-          'none',
-          `leak: "${fragment}" (reveals=${n}) must NOT match "${title}"`
-        )
+        // A player types the fragment as shown, glued ("p2"), or without
+        // the free article: none of these may earn anything.
+        for (const variant of fragmentVariants(fragment)) {
+          assert.equal(
+            fuzzy.evaluateMatch(variant, title).precision,
+            'none',
+            `leak: "${variant}" (reveals=${n}) must NOT match "${title}"`
+          )
+        }
       }
     }
+  })
+
+  it('one paid letter glued to the free digit is never a name', () => {
+    // "P_____ 2" typed as "p2", "The W______ 3" typed as "w3" / "tw3":
+    // exactly the shorthand the hint hands out, so the matcher refuses it.
+    expectNoCredit([
+      ['p2', 'Portal 2'],
+      ['h3', 'Halo 3'],
+      ['f4', 'Fallout 4'],
+      ['w3', 'The Witcher 3: Wild Hunt'],
+      ['tw3', 'The Witcher 3: Wild Hunt'],
+      ['s4', 'The Sims 4'],
+      ['r4', 'Resident Evil 4'],
+      ['g5', 'Grand Theft Auto V'],
+      ['vr', 'V Rising'],
+      ['st', 'S.T.A.L.K.E.R.: Shadow of Chernobyl'],
+      ['thew3', 'The Witcher 3: Wild Hunt'],
+    ])
   })
 
   it('the free skeleton (digits, years, punctuation) earns nothing', () => {
