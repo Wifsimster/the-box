@@ -209,6 +209,8 @@ export interface GameCatalogWriter {
       coverImageUrl?: string
       metacritic?: number
       rawgId?: number
+      /** Full alias list to store — callers merge, never drop curated ones. */
+      aliases?: string[]
       lastSyncedAt?: Date
     }
   ): Promise<Game | null>

@@ -19,6 +19,7 @@ import { screenshotRepository } from '../../repositories/screenshot.repository.j
 import { importStateRepository } from '../../repositories/import-state.repository.js'
 import { importQueue } from '../queues.js'
 import type { ImportState, JobData } from '@the-box/types'
+import { mergeGameAliases } from '../../../domain/services/game-aliases.service.js'
 
 const log = queueLogger.child({ module: 'sync-all' })
 
@@ -73,6 +74,7 @@ interface RAWGGame {
   platforms: RAWGPlatform[]
   screenshots_count?: number
   metacritic?: number
+  alternative_names?: string[]
 }
 
 interface RAWGScreenshot {
@@ -435,6 +437,7 @@ export async function processSyncAllBatch(
               coverImageUrl: rawGame.background_image ?? undefined,
               metacritic: details.metacritic,
               rawgId: rawGame.id,
+              aliases: mergeGameAliases(rawGame.name, existingGame.aliases ?? [], details.alternative_names ?? []),
               lastSyncedAt: new Date(),
             })
             gamesUpdated++
@@ -468,7 +471,7 @@ export async function processSyncAllBatch(
         const game = await gameRepository.create({
           name: rawGame.name,
           slug: rawGame.slug,
-          aliases: [],
+          aliases: mergeGameAliases(rawGame.name, [], details.alternative_names ?? []),
           releaseYear: rawGame.released ? parseInt(rawGame.released.slice(0, 4)) : undefined,
           developer: details.developers?.[0]?.name,
           publisher: details.publishers?.[0]?.name,

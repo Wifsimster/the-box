@@ -344,8 +344,61 @@ describe('fuzzy-match.service', () => {
       it('subtitle-only is a full identification, not partial', () => {
         expectPrecision('skyrim', 'The Elder Scrolls V: Skyrim', 'exact')
       })
-      it('base-name guess for an unnumbered main game stays exact', () => {
-        expectPrecision('paper mario', 'Paper Mario: The Thousand-Year Door', 'exact')
+      it("the entry's own name (subtitle), whatever its length", () => {
+        expectPrecision('breath of the wild', 'The Legend of Zelda: Breath of the Wild', 'exact')
+        expectPrecision('ragnarok', 'God of War: Ragnarök', 'exact')
+        expectPrecision('arkham city', 'Batman: Arkham City', 'exact')
+      })
+      it('franchise + subtitle, or an alias', () => {
+        expectPrecision('far cry primal', 'Far Cry Primal', 'exact')
+        expectPrecision('halo reach', 'Halo: Reach', 'exact')
+        expectPrecision('dawn of war', 'Warhammer 40,000: Dawn of War - Dark Crusade', 'exact')
+        expectPrecision('zelda botw', 'The Legend of Zelda: Breath of the Wild', 'exact', ['Zelda BOTW'])
+      })
+    })
+
+    // Players read the old behaviour as random: "far cry" was partial on Far
+    // Cry 5 but full credit on Far Cry Primal, "halo" partial on Halo 3 but
+    // full on Halo: Reach, "zelda" refused outright. Naming only the
+    // franchise is now `partial` for every title shape.
+    describe('partial — one rule for franchise-only answers', () => {
+      it('numbered, subtitled and plain-suffixed titles grade the same', () => {
+        expectPrecision('far cry', 'Far Cry 5', 'partial')
+        expectPrecision('far cry', 'Far Cry Primal', 'partial')
+        expectPrecision('halo', 'Halo 3', 'partial')
+        expectPrecision('halo', 'Halo: Reach', 'partial')
+        expectPrecision('halo', 'Halo Infinite', 'partial')
+        expectPrecision('call of duty', 'Call of Duty: Black Ops', 'partial')
+        expectPrecision('assassins creed', "Assassin's Creed Valhalla", 'partial')
+        expectPrecision('paper mario', 'Paper Mario: The Thousand-Year Door', 'partial')
+      })
+      it('franchise words that do not start the title', () => {
+        expectPrecision('zelda', 'The Legend of Zelda: Breath of the Wild', 'partial')
+        expectPrecision('tomb raider', 'Rise of the Tomb Raider', 'partial')
+        expectPrecision('mario', 'Super Mario Odyssey', 'partial')
+      })
+      it('a franchise acronym on its own', () => {
+        expectPrecision('gta', 'Grand Theft Auto V', 'partial')
+        expectPrecision('gta', 'Grand Theft Auto: Vice City', 'partial')
+      })
+      it('isMatch (strict) is unchanged for franchise-only answers', () => {
+        expectMatch('call of duty', 'Call of Duty: Black Ops')
+        expectNoMatch('zelda', 'The Legend of Zelda: Breath of the Wild')
+      })
+    })
+
+    describe('French players', () => {
+      it('accents are folded, not dropped', () => {
+        expectPrecision('pokemon x', 'Pokémon X, Y', 'exact')
+        expectPrecision('ragnarök', 'God of War: Ragnarok', 'exact')
+        expectPrecision('pokémon', 'Pokemon X, Y', 'partial')
+      })
+      it('a French leading article reads like "The"', () => {
+        expectPrecision('les sims 4', 'The Sims 4', 'exact')
+        expectPrecision('les sims', 'The Sims 4', 'partial')
+      })
+      it('a French alias is a full answer', () => {
+        expectPrecision('pokemon epee', 'Pokémon Sword', 'exact', ['Pokémon Épée'])
       })
     })
 
@@ -385,6 +438,16 @@ describe('fuzzy-match.service', () => {
       })
       it('DLC base-name stays rejected (unnumbered subtitled target → no partial)', () => {
         expectPrecision('cuphead', 'Cuphead: The Delicious Last Course', 'none')
+      })
+      it('a generic title word alone earns nothing', () => {
+        expectPrecision('dark', 'Dark Souls III', 'none')
+        expectPrecision('super', 'Super Mario Odyssey', 'none')
+        expectPrecision('war', 'God of War: Ragnarök', 'none')
+      })
+      it('a missing or wrong number in the subtitle is not the entry', () => {
+        expectPrecision('zelda 2', 'The Legend of Zelda: Breath of the Wild', 'none')
+        expectPrecision('black ops', 'Call of Duty: Black Ops II', 'partial')
+        expectPrecision('black ops 3', 'Call of Duty: Black Ops II', 'none')
       })
       it('unrelated guesses stay none', () => {
         expectPrecision('garage band', 'Xenoblade Chronicles 3D', 'none')

@@ -89,6 +89,20 @@ Plus la réponse est rapide, plus le score est élevé.
 - **Indice utilisé :** −20 % du score gagné sur la capture concernée
 - **Capture non trouvée :** aucune pénalité (arrêt anticipé ou **temps écoulé** — la capture `timed_out` est révélée comme non trouvée à la fin)
 
+### Réponses acceptées (`fuzzy-match.service.ts`)
+
+Une seule règle, quelle que soit la forme du titre (numéroté, `Série : Sous-titre`, ou suffixe nu comme « Far Cry Primal ») :
+
+| Réponse | Précision | Exemples |
+|---------|-----------|----------|
+| Titre complet, nom propre de l'épisode (sous-titre) ou licence + bon numéro | `exact` (score plein) | « breath of the wild », « skyrim », « witcher 3 », « gta 5 », « far cry primal » |
+| Licence seule, ou des mots du titre sans ce qui distingue l'épisode | `partial` (× 0,4) | « far cry » (Far Cry 5 **et** Far Cry Primal), « halo », « zelda », « tomb raider », « gta » |
+| Mauvais numéro, mot étranger au titre, mot générique seul, réponse sans rapport | `none` | « witcher 2 », « black ops 3 » pour Black Ops II, « pokemon diamond » pour Pokémon X/Y, « dark », « super » |
+
+- Accents repliés (« pokemon » = « Pokémon »), article de tête français équivalent à « The » (« les sims 4 » = « The Sims 4 »).
+- Les **alias** (titres alternatifs, dont les titres français) valent le titre complet. Les imports RAWG et la synchro remplissent les alias depuis `alternative_names` (alphabet latin uniquement, alias curés conservés, plafond 20 — `game-aliases.service.ts`). Un admin peut en ajouter à la main.
+- `isMatch` (contrat strict utilisé par le garde-fou anti-fuite des lettres) n'est pas affecté par la notation `partial`.
+
 ### Score maximal
 
 - 200 points par capture (vitesse parfaite, sans indice)
