@@ -1,465 +1,194 @@
 import type { DomainLogger } from '../ports/logger.js'
 
-// Matching thresholds
-const SERIES_NAME_THRESHOLD = 0.85
-const SUBTITLE_THRESHOLD = 0.85
-const ALIAS_THRESHOLD = 0.90
-const FULL_MATCH_THRESHOLD = 0.88
-// Token-sort: input and target are accepted as a reorder of each other
-// only when the sorted-token join is near-identical. The threshold has to
-// stay tight enough that "witcher 3" ("3 witcher" sorted) does NOT match
-// "the witcher 3 wild hunt" ("3 hunt the wild witcher" sorted) via this
-// path — that case is still owned by the series-with-subtitle logic.
-const TOKEN_SORT_THRESHOLD = 0.95
-// Safety floor: when the full-string JW is this low AND the input shares no
-// meaningful token (≥3 chars) with the target, refuse to match no matter
-// what later heuristics decide. Catches obvious mis-types like
-// "garage band" → "Xenoblade Chronicles 3D".
-const HARD_FLOOR_SIMILARITY = 0.55
-const MEANINGFUL_TOKEN_MIN_LENGTH = 3
+/**
+ * Fuzzy "guess the game title" matcher.
+ *
+ * The answer check used to be a chain of Jaro-Winkler thresholds over the
+ * whole string. Jaro-Winkler rewards a shared prefix and ignores whole words,
+ * so "pokemon red" scored full credit on "Pokémon Blue", "dead space" on
+ * "Dead Cells" and "hades 2" on "Hades", while "ff7" or "zelda botw" earned
+ * nothing. This version reasons about WORDS instead:
+ *
+ *   1. both sides are normalised the same way (accents folded, apostrophes
+ *      and punctuation dropped, "&"/"et" read as "and", roman numerals and
+ *      number words read as digits, glued shorthand such as "ff7" split);
+ *   2. the title is parsed into units — base, subtitle(s), expansion(s),
+ *      parenthesised alternate name, year, comma alternatives ("Pokémon X, Y")
+ *      — plus the curated aliases;
+ *   3. every meaningful word of the guess must be EXPLAINED by the title: the
+ *      same word (typo-tolerant), an acronym of a run of words ("gta",
+ *      "botw", "tlou2"), a glued run ("halflife"), or a split word ("star
+ *      craft"). A word the title cannot explain, or a number the title does
+ *      not carry, is a different game → `none`;
+ *   4. the guess is `exact` when it covers one of the title's full FORMS —
+ *      the whole title, the entry's own name (subtitle / expansion /
+ *      alternate name / alias) or the franchise plus its sequel number — and
+ *      `partial` when it only names the franchise or some words of the
+ *      title.
+ *
+ * Player-facing contract: docs/game-flow.md, "Réponses acceptées". The
+ * letter-reveal leak gate (letter-reveal.service.ts) is verified against
+ * `evaluateMatch(...).matched`, so no revealed fragment may ever earn credit.
+ */
 
-// Roman numeral mapping
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Guesses are capped before any work: the alignment is quadratic in tokens. */
+const MAX_INPUT_LENGTH = 200
+
+/** Largest number read as a sequel number ("Fallout 76" yes, "1942" no). */
+const SEQUEL_NUMBER_MAX = 99
+
 const ROMAN_TO_ARABIC: Record<string, number> = {
-  I: 1,
-  II: 2,
-  III: 3,
-  IV: 4,
-  V: 5,
-  VI: 6,
-  VII: 7,
-  VIII: 8,
-  IX: 9,
-  X: 10,
-  XI: 11,
-  XII: 12,
-  XIII: 13,
-  XIV: 14,
-  XV: 15,
+  i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10,
+  xi: 11, xii: 12, xiii: 13, xiv: 14, xv: 15, xvi: 16, xvii: 17, xviii: 18,
+  xix: 19, xx: 20,
 }
 
-// Edition keywords to strip (case-insensitive)
-const EDITION_KEYWORDS = [
-  'complete edition',
-  'legendary edition',
-  'definitive edition',
-  'game of the year',
-  'goty edition',
-  'goty',
-  'final cut',
-  'remastered',
-  'remaster',
-  'enhanced edition',
-  'special edition',
-  'ultimate edition',
-  'premium edition',
-  'directors cut',
-  "director's cut",
-  'hd',
-  '3d',
-]
-
-interface ParsedGameTitle {
-  seriesName: string | null
-  seriesNumber: number | null
-  subtitle: string | null
-  baseName: string | null // Part before colon (for DLC detection)
-  original: string
-  normalized: string
+/** Number words and ordinals as they appear in titles ("Episode Two", "The 2nd Runner"). */
+const NUMBER_WORDS: Record<string, number> = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7,
+  eighth: 8, ninth: 9, tenth: 10,
+  '1st': 1, '2nd': 2, '3rd': 3, '4th': 4, '5th': 5, '6th': 6, '7th': 7,
+  '8th': 8, '9th': 9, '10th': 10,
+  // French players: "gta cinq", "witcher trois" ("un"/"une" stay articles).
+  deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10,
 }
 
 /**
- * Convert Roman numeral to Arabic number
+ * Initials of compound one-word franchises players abbreviate ("bf1" for
+ * Battlefield 1, "sc2" for StarCraft II). One initial per word cannot
+ * derive these.
  */
-function romanToArabic(roman: string): number | null {
-  const upper = roman.toUpperCase()
-  return ROMAN_TO_ARABIC[upper] ?? null
+const COMPOUND_INITIALS: Record<string, string> = {
+  battlefield: 'bf',
+  borderlands: 'bl',
+  starcraft: 'sc',
+  warcraft: 'wc',
+  overwatch: 'ow',
+  minecraft: 'mc',
+  battlefront: 'bf',
+  bioshock: 'bs',
+  deathloop: 'dl',
+  dishonored: 'dh',
+  titanfall: 'tf',
+  frostpunk: 'fp',
+}
+
+/** Real words that happen to be initials of a run ("dlc" is never "Delicious Last Course"). */
+const NEVER_ACRONYMS = new Set(['dlc', 'goty', 'hd'])
+
+/** Shorthand players and catalogues both use; mapped on both sides. */
+const WORD_ALIASES: Record<string, string> = {
+  versus: 'vs',
+  brothers: 'bros',
+  civ: 'civilization',
+  pkmn: 'pokemon',
+  ep: 'episode',
+  pt: 'part',
+  ch: 'chapter',
+  '&': 'and',
+  et: 'and',
 }
 
 /**
- * Extract series number from title part
- * Handles both Arabic (2, 3, 4) and Roman (II, III, IV) numerals
- * Looks for numbers anywhere in the string (end, middle, or beginning)
- */
-function extractSeriesNumber(text: string): { number: number | null; remaining: string } {
-  // Check for Roman numeral anywhere (e.g., "Dark Souls III", "Elder Scrolls V Skyrim")
-  // Look for standalone Roman numerals (word boundaries)
-  // Pattern covers I-XV: I, II, III, IV, V, VI, VII, VIII, IX, X, XI, XII, XIII, XIV, XV
-  const romanMatch = text.match(/\b(XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)\b/i)
-  if (romanMatch && romanMatch[1]) {
-    const roman = romanMatch[1].toUpperCase()
-    const num = romanToArabic(roman)
-    if (num !== null) {
-      return {
-        number: num,
-        remaining: text.replace(romanMatch[0], ' ').replace(/\s+/g, ' ').trim(),
-      }
-    }
-  }
-
-  // Check for Arabic number anywhere with word boundary (e.g., "Witcher 3", "Portal 2", "Fallout 4").
-  // Digit groups with thousands separators ("Warhammer 40,000") are read as
-  // one number so they parse identically to the separator-free form — both
-  // land above the sequel-number ceiling and are treated as franchise
-  // flavour, not a series number. Without this, "40,000" yields just "40".
-  const arabicMatch = text.match(/\b\d{1,3}(?:[.,]\d{3})+\b|\b\d+\b/)
-  if (arabicMatch) {
-    const raw = arabicMatch[0]
-    const num = parseInt(raw.replace(/[.,]/g, ''), 10)
-    if (num > 0 && num <= 50) {
-      // Reasonable game sequel number
-      return {
-        number: num,
-        remaining: text.replace(raw, ' ').replace(/\s+/g, ' ').trim(),
-      }
-    }
-  }
-
-  return { number: null, remaining: text }
-}
-
-/**
- * Strip edition keywords from title
- */
-function stripEditionKeywords(text: string): string {
-  let result = text.toLowerCase()
-  for (const keyword of EDITION_KEYWORDS) {
-    result = result.replace(new RegExp(`\\s*[-–—]?\\s*${keyword}\\s*`, 'gi'), ' ')
-  }
-  // General pattern: "game of the <word(s)> edition" (e.g., "Game of the YoRHa Edition")
-  result = result.replace(/\s*[-–—]?\s*game of the \w+ edition\s*/gi, ' ')
-  return result.replace(/\s+/g, ' ').trim()
-}
-
-/**
- * Normalize for fuzzy matching (removes all special chars)
- */
-function normalizeForFuzzy(text: string): string {
-  return foldDiacritics(text.toLowerCase())
-    .replace(/[^\w\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-/**
- * Fold accented letters onto their ASCII base ("Pokémon" -> "Pokemon",
- * "Ragnarök" -> "Ragnarok", "Œuvre" -> "Oeuvre"). Without this `\w` drops
- * every accented letter, so "pokémon" normalised to "pokmon" and never
- * equalled a player's "pokemon" — a guess was only accepted by luck of the
- * Jaro-Winkler prefix bonus.
- */
-function foldDiacritics(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .replace(/œ/g, 'oe')
-    .replace(/Œ/g, 'OE')
-    .replace(/æ/g, 'ae')
-    .replace(/Æ/g, 'AE')
-    .replace(/ß/g, 'ss')
-}
-
-/**
- * Strip a leading article for comparison. French articles count too: the UI
- * is French, so players write "les sims" for "The Sims" and "la légende de
- * zelda" style guesses. Applied to both sides, so a title that really starts
- * with "La"/"Le" ("LA Noire", "Le Mans") still compares like-for-like.
- */
-function stripCommonPrefixes(text: string): string {
-  return text.replace(/^(?:the|les|le|la)\s+|^l['’]\s*/i, '').trim()
-}
-
-/**
- * Drop a trailing expansion / DLC suffix introduced by a spaced dash, e.g.
- * "Dawn of War - Dark Crusade" -> "Dawn of War" or
- * "Wild Hunt – Blood and Wine" -> "Wild Hunt". The base game is a fair
- * guess for an expansion-titled challenge, so the pre-dash core is offered
- * as an extra match candidate. Hyphens without surrounding spaces
- * ("Half-Life", "Spider-Man") are part of the name and left untouched.
- */
-function stripExpansionSuffix(name: string): string {
-  const match = name.match(/^(.+?)\s+[-–—]\s+.+$/)
-  return match?.[1]?.trim() ?? name
-}
-
-/**
- * Pull a parenthesised alternate name out of a title, e.g.
- * "Fahrenheit (Indigo Prophecy)" -> { base: "Fahrenheit", aliases: ["Indigo Prophecy"] }.
- * Regional re-releases routinely carry the other-market name in parens, and
- * both forms are valid answers. Without this, the parenthesised tokens get
- * folded into the normalised target and crush the JW score for short
- * guesses against the base ("farenheit" vs "fahrenheit indigo prophecy"
- * drops from 0.91 to 0.77, falling under the full-match threshold).
- *
- * Returns the input untouched when no parenthesised chunk is present, and
- * skips empty-base or empty-alias results so we never recurse on "".
- */
-function extractParenthesizedAliases(name: string): { base: string; aliases: string[] } {
-  const aliases: string[] = []
-  const re = /\s*\(([^)]+)\)\s*/g
-  let match: RegExpExecArray | null
-  while ((match = re.exec(name)) !== null) {
-    const inner = match[1]?.trim()
-    if (inner) aliases.push(inner)
-  }
-  if (aliases.length === 0) return { base: name, aliases: [] }
-  const base = name.replace(re, ' ').replace(/\s+/g, ' ').trim()
-  return { base: base || name, aliases }
-}
-
-/**
- * Parse a game title into structured components
- *
- * Examples:
- * - "The Witcher 3: Wild Hunt" -> { seriesName: "The Witcher", seriesNumber: 3, subtitle: "Wild Hunt" }
- * - "Dark Souls III: The Ringed City" -> { seriesName: "Dark Souls", seriesNumber: 3, subtitle: "The Ringed City" }
- * - "Skyrim" -> { seriesName: null, seriesNumber: null, subtitle: "Skyrim" }
- */
-function parseGameTitle(title: string): ParsedGameTitle {
-  const strippedEdition = stripEditionKeywords(title)
-
-  // Split on colon ONLY if followed by a space (e.g., "The Witcher 3: Wild Hunt")
-  // Colons without spaces (e.g., "NieR:Automata") are treated as part of the word
-  const colonMatch = strippedEdition.match(/:\s/)
-  const colonIndex = colonMatch?.index ?? -1
-
-  let seriesPart: string
-  let subtitlePart: string | null = null
-
-  if (colonIndex > 0) {
-    seriesPart = strippedEdition.slice(0, colonIndex).trim()
-    subtitlePart = strippedEdition.slice(colonIndex + 1).trim()
-  } else {
-    seriesPart = strippedEdition
-  }
-
-  // Extract series number from series part
-  const { number: seriesNumber, remaining: seriesName } = extractSeriesNumber(seriesPart)
-
-  // If no colon separator, treat as potential subtitle-only input
-  // (user might type just "Skyrim" for "The Elder Scrolls V: Skyrim")
-  const hasSeriesIndicators =
-    seriesNumber !== null || seriesPart.toLowerCase().startsWith('the ') || seriesPart.split(' ').length > 2
-
-  return {
-    seriesName: hasSeriesIndicators ? seriesName : null,
-    seriesNumber,
-    subtitle: subtitlePart || (hasSeriesIndicators ? null : seriesPart),
-    baseName: colonIndex > 0 ? seriesPart : null, // Store base name when title has colon
-    original: title,
-    normalized: normalizeForFuzzy(strippedEdition),
-  }
-}
-
-/**
- * Check if two series numbers match
- * - Both null -> true (no number requirement)
- * - One null, one present -> false (must match when specified)
- * - Both present -> must be equal
- */
-function seriesNumbersMatch(inputNum: number | null, targetNum: number | null): boolean {
-  // If input has no number, it can match target with number (e.g., "Witcher" matches "Witcher 3")
-  // But if input HAS a number, it must match
-  if (inputNum === null) {
-    return true // Input doesn't specify a number, so it's not restrictive
-  }
-  if (targetNum === null) {
-    return false // Input specifies a number but target doesn't have one
-  }
-  return inputNum === targetNum
-}
-
-/**
- * Check if input specifies a wrong series number
- */
-function hasWrongSeriesNumber(inputNum: number | null, targetNum: number | null): boolean {
-  if (inputNum === null || targetNum === null) {
-    return false
-  }
-  return inputNum !== targetNum
-}
-
-/**
- * Jaro-Winkler similarity algorithm
- * Returns a value between 0 and 1 (1 = exact match)
- */
-function jaroWinkler(s1: string, s2: string): number {
-  if (s1 === s2) return 1.0
-  if (s1.length === 0 || s2.length === 0) return 0.0
-
-  const matchWindow = Math.floor(Math.max(s1.length, s2.length) / 2) - 1
-  const s1Matches = new Array(s1.length).fill(false)
-  const s2Matches = new Array(s2.length).fill(false)
-
-  let matches = 0
-  let transpositions = 0
-
-  // Find matches
-  for (let i = 0; i < s1.length; i++) {
-    const start = Math.max(0, i - matchWindow)
-    const end = Math.min(i + matchWindow + 1, s2.length)
-
-    for (let j = start; j < end; j++) {
-      if (s2Matches[j] || s1[i] !== s2[j]) continue
-      s1Matches[i] = true
-      s2Matches[j] = true
-      matches++
-      break
-    }
-  }
-
-  if (matches === 0) return 0.0
-
-  // Count transpositions
-  let k = 0
-  for (let i = 0; i < s1.length; i++) {
-    if (!s1Matches[i]) continue
-    while (!s2Matches[k]) k++
-    if (s1[i] !== s2[k]) transpositions++
-    k++
-  }
-
-  // Jaro similarity
-  const jaro = (matches / s1.length + matches / s2.length + (matches - transpositions / 2) / matches) / 3
-
-  // Winkler modification (prefix bonus)
-  let prefix = 0
-  for (let i = 0; i < Math.min(4, s1.length, s2.length); i++) {
-    if (s1[i] === s2[i]) prefix++
-    else break
-  }
-
-  return jaro + prefix * 0.1 * (1 - jaro)
-}
-
-/**
- * Check if a text contains only a subtitle (no series name/number)
- */
-function isSubtitleOnly(parsed: ParsedGameTitle): boolean {
-  return parsed.seriesName === null && parsed.seriesNumber === null && parsed.subtitle !== null
-}
-
-/**
- * Split a normalized string into tokens, dropping empties.
- */
-function tokenize(text: string): string[] {
-  return text.split(/\s+/).filter(Boolean)
-}
-
-/**
- * Initials of the alphabetic tokens of a multi-word franchise name, so
- * "Grand Theft Auto" → "gta", "The Last of Us" → "tlou",
- * "Breath of the Wild" → "botw". Stop tokens stay in (players say "tlou"
- * and "botw", not "lu" / "bw"). Digit-only tokens are dropped so that
- * "Resident Evil 4" → "re", not "re4". Returns null for single-word
- * sources, where an acronym would be a single character and over-fire.
- */
-function deriveAcronym(name: string): string | null {
-  const toks = tokenize(normalizeForFuzzy(name)).filter(t => /^[a-z]/.test(t))
-  if (toks.length < 2) return null
-  const acronym = toks.map(t => t[0]).join('')
-  return acronym.length >= 2 ? acronym : null
-}
-
-/**
- * Jaro-Winkler over both strings after their tokens have been sorted
- * alphabetically. This makes the comparison invariant to word order, so
- * "total war rome" and "rome total war" score 1.0.
- */
-function tokenSortSimilarity(a: string, b: string): number {
-  const ta = tokenize(a).sort().join(' ')
-  const tb = tokenize(b).sort().join(' ')
-  return jaroWinkler(ta, tb)
-}
-
-/**
- * Returns true when at least one input token of meaningful length
- * appears (as a substring match or near-equal token) anywhere in the
- * target or its aliases. Used as a safety floor: an input that shares no
- * substantial word with anything in the candidate set should never be a
- * "yes". Stop words like "the", "of", "and" are excluded so they can't
- * single-handedly carry an unrelated guess across the floor.
+ * Words that carry no identity: articles and prepositions (English + French,
+ * the UI is French), "vs"/"and". Never required, never foreign.
  */
 const STOP_TOKENS = new Set([
-  'the', 'of', 'and', 'a', 'an', 'in', 'on', 'to', 'for', 'vs',
-  'de', 'la', 'le', 'les', 'du', 'des', 'et', 'un', 'une',
+  'the', 'a', 'an', 'of', 'and', 'in', 'on', 'to', 'for', 'at', 'vs',
+  'le', 'la', 'les', 'l', 'de', 'du', 'des', 'd', 'un', 'une', 'au', 'aux',
 ])
 
-function hasMeaningfulTokenOverlap(input: string, candidates: string[]): boolean {
-  const inputTokens = tokenize(input).filter(
-    t => t.length >= MEANINGFUL_TOKEN_MIN_LENGTH && !STOP_TOKENS.has(t)
-  )
-  if (inputTokens.length === 0) {
-    // No meaningful tokens to compare; defer to other heuristics
-    return true
-  }
-  const candidateTokens = candidates.flatMap(c => tokenize(c))
-  for (const it of inputTokens) {
-    for (const ct of candidateTokens) {
-      if (ct.length < MEANINGFUL_TOKEN_MIN_LENGTH) continue
-      // Substring containment in either direction catches typos like
-      // "conquers" vs "conquer" and prefixes like "starcr" vs "starcraft".
-      if (ct.includes(it) || it.includes(ct)) return true
-      if (jaroWinkler(it, ct) >= 0.9) return true
-    }
-  }
-  return false
-}
+/** Structural words around a number ("Part II", "Episode Two"): optional. */
+const STRUCTURAL_TOKENS = new Set([
+  'part', 'episode', 'chapter', 'vol', 'volume', 'season', 'version', 'ver',
+])
 
 /**
- * A title token as a comparable unit: Roman numerals II-XV become their
- * Arabic value so "iii" and "3" are the same token. A lone "i" is left alone
- * — it is far more often the English pronoun than a numeral.
+ * Edition / re-release suffixes, stripped from the END of a unit only, so
+ * "Ocarina of Time 3D" is Ocarina of Time but "Super Mario 3D World" keeps
+ * its "3D". Longest phrases first.
  */
-function canonicalToken(token: string): string {
-  if (token !== 'i') {
-    const roman = ROMAN_TO_ARABIC[token.toUpperCase()]
-    if (roman !== undefined) return String(roman)
-  }
-  // "40,000" normalises to "40000" already; strip leading zeros for "02".
-  return /^\d+$/.test(token) ? String(parseInt(token, 10)) : token
-}
+const EDITION_PHRASES: string[][] = [
+  ['game', 'of', 'the', 'year', 'edition'],
+  ['premium', 'online', 'edition'],
+  ['game', 'of', 'the', 'year'],
+  ['the', 'definitive', 'edition'],
+  ['complete', 'edition'],
+  ['legendary', 'edition'],
+  ['definitive', 'edition'],
+  ['enhanced', 'edition'],
+  ['special', 'edition'],
+  ['ultimate', 'edition'],
+  ['premium', 'edition'],
+  ['deluxe', 'edition'],
+  ['anniversary', 'edition'],
+  ['collectors', 'edition'],
+  ['gold', 'edition'],
+  ['goty', 'edition'],
+  ['directors', 'cut'],
+  ['final', 'cut'],
+  ['final', 'mix'],
+  ['hd', 'remaster'],
+  ['hd', 'remastered'],
+  ['hd', 'collection'],
+  ['the', 'collection'],
+  ['remastered'],
+  ['remaster'],
+  ['remake'],
+  ['goty'],
+  ['hd'],
+  ['3d'],
+  ['deluxe'],
+  ['royal'],
+  ['golden'],
+  ['portable'],
+  ['plus'],
+  ['vr'],
+  ['redux'],
+  ['reloaded'],
+  ['intergrade'],
+  ['fes'],
+  ['collection'],
+  ['trilogy'],
+  ['anthology'],
+  ['remix'],
+]
 
-function isNumberToken(token: string): boolean {
-  return /^\d+$/.test(token)
-}
+/** Owner / studio prefixes players leave out ("Sid Meier's Civilization VI"). */
+const BRAND_PREFIXES: string[][] = [
+  ['sid', 'meiers'],
+  ['tom', 'clancys'],
+  ['american', 'mcgees'],
+  ['ea', 'sports'],
+  ['marvels'],
+  ['disneys'],
+  ['disney'],
+  ['lego'],
+  ['microsoft'],
+]
 
 /**
- * Comparable tokens of a title: editions stripped, accents folded, leading
- * article dropped, numerals canonicalised.
+ * Words so common across game titles that naming only them identifies
+ * nothing ("super" fits hundreds of games). A fragment guess needs at least
+ * one token outside this list to earn partial credit.
  */
-function titleTokens(text: string): string[] {
-  return tokenize(normalizeForFuzzy(stripCommonPrefixes(stripEditionKeywords(text)))).map(
-    canonicalToken
-  )
-}
+const GENERIC_TITLE_TOKENS = new Set([
+  'super', 'new', 'game', 'games', 'world', 'worlds', 'war', 'wars', 'battle',
+  'legend', 'legends', 'city', 'dark', 'age', 'star', 'stars', 'online',
+  'story', 'adventure', 'adventures', 'tales', 'quest', 'hero', 'heroes',
+  'king', 'kingdom', 'space', 'evil', 'life', 'ultimate', 'origins',
+  'chronicles', 'saga', 'return', 'rise', 'night', 'dead', 'last', 'lost',
+  'black', 'red', 'blue', 'island', 'racing', 'party', 'mega', 'escape',
+  'tactics', 'arena', 'collection', 'simulator', 'edition', 'part',
+])
 
-/** True when both normalised strings carry exactly the same numbers. */
-function sameNumberTokens(a: string, b: string): boolean {
-  const nums = (t: string) =>
-    tokenize(t).map(canonicalToken).filter(isNumberToken).sort().join(' ')
-  return nums(a) === nums(b)
-}
-
-/**
- * Token equality tolerant of a typo ("assasins" ~ "assassins") but not of a
- * truncation ("unb" !~ "unbound"): Jaro-Winkler alone rewards a shared
- * prefix, so the lengths must also be close.
- */
-function tokensEquivalent(a: string, b: string): boolean {
-  if (a === b) return true
-  if (a.length < MEANINGFUL_TOKEN_MIN_LENGTH || b.length < MEANINGFUL_TOKEN_MIN_LENGTH) return false
-  if (isNumberToken(a) || isNumberToken(b)) return false
-  return Math.abs(a.length - b.length) <= 2 && jaroWinkler(a, b) >= 0.9
-}
-
-function isMeaningfulToken(token: string): boolean {
-  return (
-    isNumberToken(token) ||
-    (token.length >= MEANINGFUL_TOKEN_MIN_LENGTH && !STOP_TOKENS.has(token))
-  )
-}
-
-// DLC indicator keywords in subtitles (case-insensitive)
+/** Subtitle words that mark a DLC / expansion rather than a main entry. */
 const DLC_KEYWORDS = [
   'dlc',
   'expansion',
@@ -471,453 +200,965 @@ const DLC_KEYWORDS = [
   'standalone',
 ]
 
+/** Cyrillic look-alikes that slip into catalogue names ("StarСraft"). */
+const CONFUSABLES: Record<string, string> = {
+  'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'х': 'x', 'у': 'y',
+  'к': 'k', 'м': 'm', 'т': 't', 'н': 'h', 'в': 'b', 'і': 'i',
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Normalisation
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Check if subtitle suggests this is a DLC/expansion
+ * Fold accented letters onto their ASCII base ("Pokémon" -> "Pokemon",
+ * "Ragnarök" -> "Ragnarok", "Œuvre" -> "Oeuvre", "Ōkami" -> "Okami") and
+ * compatibility forms onto plain letters (fullwidth "ｄｏｏｍ" -> "doom").
  */
-function isLikelyDLC(subtitle: string): boolean {
-  const normalizedSubtitle = subtitle.toLowerCase()
-  return DLC_KEYWORDS.some(keyword => normalizedSubtitle.includes(keyword))
+function foldDiacritics(text: string): string {
+  return text
+    .replace(/[™®©°]/g, '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/œ/g, 'oe')
+    .replace(/æ/g, 'ae')
+    .replace(/ß/g, 'ss')
+    .replace(/ø/g, 'o')
+    .replace(/đ/g, 'd')
+    .replace(/ł/g, 'l')
+    .replace(/[а-яії]/g, ch => CONFUSABLES[ch] ?? ch)
 }
 
 /**
- * Check if input appears to be an incomplete/truncated version of the base name
- * Rejects cases like "A Space for the Unb" for "A Space for the Unbound"
+ * Lowercase, accent-folded, punctuation-free text. Apostrophes are dropped
+ * inside a word ("Assassin's" -> "assassins") and a French elision is cut
+ * off ("L'Ombre" -> "ombre"); "&" and "+" read as "and"; digit groups keep
+ * their value ("40,000" -> "40000"); everything else non-alphanumeric is a
+ * separator ("Half-Life" -> "half life", "NieR:Automata" -> "nier automata").
  */
-function isIncompleteBaseName(input: string, baseName: string): boolean {
-  const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
-  const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(baseName))
-  
-  // Check if input is a prefix of baseName (incomplete word at the end)
-  // This catches cases like "A Space for the Unb" vs "A Space for the Unbound"
-  if (normalizedBaseName.startsWith(normalizedInput)) {
-    // Input is a prefix - check if it ends mid-word (not at a word boundary)
-    const inputWords = normalizedInput.trim().split(/\s+/)
-    const baseNameWords = normalizedBaseName.trim().split(/\s+/)
-    
-    // If input has fewer words, it's likely incomplete
-    if (inputWords.length < baseNameWords.length) {
-      return true
-    }
-    
-    // If same number of words but input is shorter, check if last word is incomplete
-    if (inputWords.length === baseNameWords.length && inputWords.length > 0) {
-      const lastInputWord = inputWords[inputWords.length - 1]
-      const lastBaseWord = baseNameWords[baseNameWords.length - 1]
-      // If last word of input is a prefix of last word of baseName and significantly shorter, it's incomplete
-      // Require at least 2 characters difference to avoid false positives with short words
-      if (lastInputWord && lastBaseWord && 
-          lastBaseWord.startsWith(lastInputWord) && 
-          lastInputWord.length < lastBaseWord.length && 
-          (lastBaseWord.length - lastInputWord.length) >= 2) {
-        return true
+function normalizeText(text: string): string {
+  return foldDiacritics(text.toLowerCase())
+    .replace(/[’‘ʼ`´]/g, "'")
+    .replace(/(^|[^a-z0-9])[ld]'(?=[a-z])/g, '$1')
+    .replace(/'/g, '')
+    .replace(/(\d)[,.](?=\d{3}(?!\d))/g, '$1')
+    .replace(/[&+]/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+type TokenKind = 'word' | 'number' | 'mixed'
+
+interface Token {
+  /** Canonical comparable text ("vii" -> "7", "versus" -> "vs"). */
+  text: string
+  /** Normalised source text, before canonicalisation. */
+  raw: string
+  kind: TokenKind
+  /** Article / preposition: never required, never foreign. */
+  stop: boolean
+  /** "part", "episode"...: optional on both sides. */
+  structural: boolean
+  /** Trailing edition suffix of its unit: optional on both sides. */
+  edition: boolean
+  /** Leading owner prefix of the base ("sid meiers"): optional. */
+  brand: boolean
+  /** A letter glued after a sequel number ("ff7r"): never required, never foreign. */
+  soft: boolean
+}
+
+function isNumberText(text: string): boolean {
+  return /^\d+$/.test(text)
+}
+
+function makeToken(raw: string, index: number, raws: string[]): Token {
+  let text = WORD_ALIASES[raw] ?? raw
+  const count = raws.length
+  const last = index === count - 1
+  const roman = ROMAN_TO_ARABIC[text]
+  const next = index < count - 1 ? raws[index + 1] : undefined
+  if (roman !== undefined) {
+    // Roman numerals become their value. A lone "i" is far more often the
+    // English pronoun ("I Am Setsuna") than a numeral, and a leading "X" or
+    // "V" before a word is a letter ("X-COM", "V Rising"); only a trailing
+    // or inner numeral ("Part I", "Final Fantasy X", "Mega Man X") counts.
+    const pronoun = text === 'i' && (!last || index === 0)
+    const leadingLetter = index === 0 && next !== undefined && !/\d/.test(next)
+    if (!pronoun && !leadingLetter) text = String(roman)
+  } else if (NUMBER_WORDS[text] !== undefined) {
+    text = String(NUMBER_WORDS[text])
+  } else if (/^0\d+$/.test(text)) {
+    // "007": a code, not a sequel number, and one players leave out.
+    return { text, raw, kind: 'mixed', stop: false, structural: true, edition: false, brand: false, soft: false }
+  } else if (isNumberText(text)) {
+    text = String(parseInt(text, 10))
+  }
+  const kind: TokenKind = isNumberText(text) ? 'number' : /\d/.test(text) ? 'mixed' : 'word'
+  return {
+    text,
+    raw,
+    kind,
+    stop: kind === 'word' && STOP_TOKENS.has(text),
+    structural: kind === 'word' && STRUCTURAL_TOKENS.has(text),
+    edition: false,
+    brand: false,
+    soft: false,
+  }
+}
+
+/**
+ * Split glued shorthand: "witcher3" -> "witcher 3", "ff7" -> "ff 7",
+ * "l4d2" -> "l4d 2", "ff7r" -> "ff 7 r" (the trailing letter is soft).
+ * A one-letter stem ("x4", "p5r") is left whole and handled as a token.
+ */
+function splitGlued(raw: string): { raw: string; soft: boolean }[] {
+  const sports = raw.match(/^([a-z]{2,})(\d+k\d*)$/)
+  if (sports) return [{ raw: sports[1]!, soft: false }, { raw: sports[2]!, soft: false }]
+  // "wwii" / "ffvii" / "dsiii": an acronym glued to a roman numeral. The stem
+  // must have no vowel so "hawaii" or "ascii" stay words.
+  const roman = raw.match(/^([b-df-hj-np-tv-z]{2,}?)(ii|iii|iv|vi|vii|viii|ix|xi|xii|xiii|xiv|xv|xvi)$/)
+  if (roman) return [{ raw: roman[1]!, soft: false }, { raw: roman[2]!, soft: false }]
+  const m = raw.match(/^([a-z]{2,}|[a-z]\d[a-z])(\d+)([a-z])?$/)
+  if (!m) return [{ raw, soft: false }]
+  const parts = [{ raw: m[1]!, soft: false }, { raw: m[2]!, soft: false }]
+  if (m[3]) parts.push({ raw: m[3], soft: true })
+  return parts
+}
+
+function tokenizeNormalized(normalized: string): Token[] {
+  const raws = normalized.split(' ').filter(Boolean).flatMap(splitGlued)
+  const texts = raws.map(r => r.raw)
+  return raws.map((r, i) => {
+    const tok = makeToken(r.raw, i, texts)
+    tok.soft = r.soft
+    return tok
+  })
+}
+
+/**
+ * Settle what tokenisation could not know before the edition suffix was
+ * found: a trailing "I" before "Remastered" is still the numeral 1, and
+ * "Bros." inside a long name ("Super Mario Bros. Wonder") is optional.
+ */
+function finalizeTokens(tokens: Token[]): void {
+  const live = tokens.filter(t => !t.edition)
+  const lastLive = live[live.length - 1]
+  if (lastLive && lastLive.raw === 'i' && live.length > 1 && lastLive.kind === 'word') {
+    lastLive.text = '1'
+    lastLive.kind = 'number'
+  }
+  if (tokens.filter(isRequired).length >= 3) {
+    for (const t of tokens) if (t.text === 'bros') t.structural = true
+  }
+  // "Dragon Quest XI S": a lone letter after the sequel number is a tag.
+  const before = live[live.length - 2]
+  if (
+    lastLive && before && !lastLive.soft &&
+    lastLive.kind === 'word' && lastLive.text.length === 1 && before.kind === 'number'
+  ) {
+    lastLive.structural = true
+  }
+}
+
+/** Mark a trailing edition suffix ("... Remastered", "... Complete Edition"). */
+function markTrailingEdition(tokens: Token[], allowEmpty = false): void {
+  let end = tokens.length
+  let changed = true
+  while (changed && end > 0) {
+    changed = false
+    for (const phrase of EDITION_PHRASES) {
+      if (phrase.length > end) continue
+      const slice = tokens.slice(end - phrase.length, end)
+      if (slice.every((t, i) => t.raw === phrase[i])) {
+        // Keep at least one meaningful token: "Remastered" alone or "The
+        // Collection" is the whole name, not a suffix.
+        if (!allowEmpty && end - phrase.length === 0) continue
+        for (const t of slice) t.edition = true
+        end -= phrase.length
+        changed = true
+        break
       }
     }
+    // Generic "<word> Edition" ("DUB Edition", "YoRHa Edition", "Champion
+    // Edition"); a lone trailing "Edition" goes too.
+    if (!changed && end >= 1 && tokens[end - 1]!.raw === 'edition') {
+      const span = end >= 2 && !tokens[end - 2]!.stop ? 2 : 1
+      for (let i = end - span; i < end; i++) tokens[i]!.edition = true
+      end -= span
+      changed = true
+    }
   }
-  
-  // Also check if input is significantly shorter (more than 15% shorter) and starts with baseName
-  // This catches cases where input might be incomplete even if not a strict prefix
-  const lengthRatio = normalizedInput.length / normalizedBaseName.length
-  if (lengthRatio < 0.85 && normalizedBaseName.startsWith(normalizedInput)) {
-    return true
+}
+
+/** Mark a leading owner prefix ("Marvel's", "Sid Meier's") as optional. */
+function markBrandPrefix(tokens: Token[]): void {
+  for (const prefix of BRAND_PREFIXES) {
+    if (tokens.length > prefix.length && prefix.every((p, i) => tokens[i]!.raw === p)) {
+      for (let i = 0; i < prefix.length; i++) tokens[i]!.brand = true
+      return
+    }
   }
-  
-  return false
+  // A leading "Super" is Nintendo branding when a real name follows
+  // ("Super Mario Odyssey" -> "mario odyssey"), but "Super Metroid" is its
+  // own game.
+  if (tokens[0]?.raw === 'super' && tokens.filter(t => isRequired(t)).length >= 3) {
+    tokens[0].brand = true
+  }
+}
+
+/** A token that must be covered for a form to be fully named. */
+function isRequired(t: Token): boolean {
+  return !t.stop && !t.structural && !t.edition && !t.brand && !t.soft
+}
+
+/** A word that could, on its own, identify a franchise (not a number, not generic). */
+function isDistinctiveWord(t: Token): boolean {
+  return isRequired(t) && t.kind === 'word' && t.text.length >= 3 && !GENERIC_TITLE_TOKENS.has(t.text)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Title parsing
+// ─────────────────────────────────────────────────────────────────────────────
+
+type UnitKind = 'base' | 'alt' | 'subtitle' | 'expansion' | 'paren' | 'year'
+
+interface Unit {
+  kind: UnitKind
+  tokens: Token[]
+}
+
+interface ParsedTarget {
+  /** Every unit, aliases included: the pool that explains input words. */
+  units: Unit[]
+  base: Unit
+  subtitles: Unit[]
+  expansions: Unit[]
+  /** Other variants of the base from "Pokémon X, Y" ("pokemon y"). */
+  alts: Unit[]
+  parens: Unit[]
+  /** Each alias parsed like a title: its subtitle is an entry name too. */
+  aliases: ParsedTarget[]
+  /** Sequel number closing the base ("The Witcher 3", "Final Fantasy VII"). */
+  seriesNumber: number | null
+  /** A "Part I" / trailing "I": the first entry, which players name without it. */
+  seriesNumberOmittable: boolean
+  /** The subtitle names a DLC / expansion of the base game. */
+  dlc: boolean
+  /** Canonical numbers carried by any unit or alias. */
+  numbers: Set<string>
+  /** The same without parenthesised years. */
+  sequelNumbers: Set<string>
+  /** The subtitle is "Episode N" / "Part N": an episode of the base game. */
+  episodeSubtitle: boolean
+}
+
+function unitOf(kind: UnitKind, text: string, allowEmpty = false): Unit {
+  const tokens = tokenizeNormalized(normalizeText(text))
+  // A subtitle that is only an edition ("Mass Effect: Legendary Edition")
+  // names nothing; a base that is ("Remastered") is the whole name.
+  markTrailingEdition(tokens, allowEmpty || kind === 'subtitle' || kind === 'expansion')
+  finalizeTokens(tokens)
+  return { kind, tokens }
 }
 
 /**
- * Check if input matches only the base name of a "Base: Subtitle" title
- * Used to reject matches like "Cuphead" for "Cuphead: The Delicious Last Course"
- * DLCs should not be matched by their base game name alone
- *
- * Exception: If input has a series number that matches target's, it's specific enough
- * (e.g., "Witcher 3" for "The Witcher 3: Wild Hunt" is allowed)
- * Exception: Main games with subtitles (like "Castlevania: Harmony of Dissonance") should allow base name matches
+ * "Pokémon X, Y" / "Pokémon Sword and Shield" / "Pokémon Omega Ruby, Alpha
+ * Sapphire": version names listed after a shared prefix. Returns the
+ * variants, or null when the text is not of that shape ("Mario & Luigi" and
+ * "Ori and the Blind Forest" are single names).
  */
-function isBaseNameOnlyMatch(input: string, targetParsed: ParsedGameTitle): boolean {
-  // Only applies to titles with both a base name and subtitle (format: "Base: Subtitle")
-  if (!targetParsed.baseName || !targetParsed.subtitle) return false
-
-  // If target has a series number, allow matching with the number
-  // (e.g., "Witcher 3" should match "The Witcher 3: Wild Hunt")
-  if (targetParsed.seriesNumber !== null) {
-    const inputParsed = parseGameTitle(input)
-    // If input also has the matching series number, it's specific enough
-    if (inputParsed.seriesNumber === targetParsed.seriesNumber) {
-      return false // Not a base-name-only match, allow it to continue
-    }
-  }
-
-  const normalizedInput = normalizeForFuzzy(input)
-  const normalizedBaseName = normalizeForFuzzy(targetParsed.baseName)
-
-  // Check if input closely matches the base name
-  const baseNameSimilarity = jaroWinkler(normalizedInput, normalizedBaseName)
-  if (baseNameSimilarity < 0.90) return false
-
-  // Check that input does NOT match the subtitle
-  const subtitleSimilarity = jaroWinkler(normalizedInput, normalizeForFuzzy(targetParsed.subtitle))
-  if (subtitleSimilarity >= SUBTITLE_THRESHOLD) return false
-
-  // Only reject if the subtitle suggests this is a DLC/expansion
-  // Main games with subtitles (like "Castlevania: Harmony of Dissonance") should allow base name matches
-  if (!isLikelyDLC(targetParsed.subtitle)) {
-    return false // Not a DLC, allow the match
-  }
-
-  // Input matches base name but not subtitle, and subtitle suggests DLC = reject
-  return true
+function commaAlternatives(text: string): string[] | null {
+  const slashed = text.split(/\s*\/\s*/)
+  const parts =
+    slashed.length >= 2 && slashed.every(p => /^[^\d]+$/.test(p))
+      ? slashed
+      : text.split(/\s*,\s+|\s+(?:&|and|et)\s+/i)
+  if (parts.length < 2) return null
+  const first = parts[0]!.split(/\s+/)
+  const rest = parts.slice(1).map(p => p.split(/\s+/))
+  const k = rest[0]!.length
+  if (k === 0 || k > 2 || rest.some(r => r.length !== k) || first.length <= k) return null
+  const prefix = first.slice(0, first.length - k).join(' ')
+  return [parts[0]!, ...rest.map(r => `${prefix} ${r.join(' ')}`)]
 }
 
-/**
- * Enhanced game title matching with structural awareness
- */
-function isMatchEnhanced(
-  input: string,
-  gameName: string,
-  aliases: string[] = [],
-  log: DomainLogger,
-  expandedRetry: boolean = false
-): boolean {
-  const normalizedInput = normalizeForFuzzy(input)
-  const normalizedTarget = normalizeForFuzzy(gameName)
+function isLikelyDLC(text: string): boolean {
+  const lowered = text.toLowerCase()
+  return DLC_KEYWORDS.some(keyword => lowered.includes(keyword))
+}
 
-  // 1. Quick exact match check (normalized)
-  if (normalizedInput === normalizedTarget) {
-    log.debug({ input, gameName }, 'exact match')
-    return true
+function lastRequiredIndex(tokens: Token[]): number {
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    if (isRequired(tokens[i]!)) return i
   }
+  return -1
+}
 
-  // 2. Check aliases with high threshold
-  for (const alias of aliases) {
-    const aliasSimilarity = jaroWinkler(normalizedInput, normalizeForFuzzy(alias))
-    if (aliasSimilarity >= ALIAS_THRESHOLD) {
-      log.debug({ input, alias, similarity: aliasSimilarity }, 'alias match')
-      return true
+function parseTarget(gameName: string, aliases: readonly string[], isAlias = false): ParsedTarget {
+  // Parenthesised chunks: a year "(2018)" or an alternate name "(Indigo Prophecy)".
+  const parens: Unit[] = []
+  const years: Unit[] = []
+  let rest = gameName.replace(/\(([^)]*)\)/g, (_m, inner: string) => {
+    const trimmed = inner.trim()
+    if (/^\d{4}$/.test(trimmed)) years.push(unitOf('year', trimmed))
+    else if (trimmed) parens.push(unitOf('paren', trimmed))
+    return ' '
+  })
+  rest = rest.replace(/\s+/g, ' ').trim()
+
+  // "Base: Subtitle - Expansion" / "Base + Expansion".
+  const dashParts = rest.split(/\s+[-–—+]\s+/).filter(Boolean)
+  const core = dashParts[0] ?? rest
+  const expansions = dashParts.slice(1).map(p => unitOf('expansion', p))
+  const colonParts = core.split(/\s*:\s*/).filter(Boolean)
+  const baseText = colonParts[0] ?? core
+  const subtitleTexts = colonParts.slice(1)
+
+  const baseVariants = commaAlternatives(baseText) ?? [baseText]
+  // An alias that is only an edition word ("HD", "Remake") names nothing.
+  const base = unitOf('base', baseVariants[0]!, isAlias)
+  markBrandPrefix(base.tokens)
+  const alts = baseVariants.slice(1).map(v => unitOf('alt', v))
+
+  const subtitles: Unit[] = []
+  for (const text of subtitleTexts) {
+    const variants = commaAlternatives(text) ?? [text]
+    for (const [i, v] of variants.entries()) {
+      subtitles.push(unitOf(i === 0 ? 'subtitle' : 'alt', v))
     }
   }
 
-  // 2.5. Hard rejection floor. When the overall similarity is very low and
-  // the input shares no meaningful token with the target or any alias,
-  // refuse to match before structural heuristics have a chance to over-
-  // generalise. This blocks pathological cases like
-  //   "garage band" → "Xenoblade Chronicles 3D"
-  // without disturbing legitimate fuzzy matches (which all sit far above
-  // the floor or have a real token in common).
-  const baselineSimilarity = jaroWinkler(normalizedInput, normalizedTarget)
-  if (baselineSimilarity < HARD_FLOOR_SIMILARITY) {
-    const candidates = [normalizedTarget, ...aliases.map(normalizeForFuzzy)]
-    if (!hasMeaningfulTokenOverlap(normalizedInput, candidates)) {
-      log.debug(
-        { input, gameName, similarity: baselineSimilarity },
-        'rejected - hard floor (no meaningful token overlap)'
-      )
-      return false
+  // Units that lost every token to edition stripping ("Mass Effect:
+  // Legendary Edition") name nothing on their own.
+  const live = (u: Unit): boolean => u.tokens.some(isRequired)
+
+  // Sequel number: the last required token of the base, when numeric and
+  // small; a trailing single letter ("Dragon Quest XI S") does not hide it.
+  let seriesNumber: number | null = null
+  let seriesNumberOmittable = false
+  let lastIdx = lastRequiredIndex(base.tokens)
+  if (lastIdx > 0 && base.tokens[lastIdx]!.text.length === 1 && base.tokens[lastIdx]!.kind === 'word') {
+    lastIdx = lastRequiredIndex(base.tokens.slice(0, lastIdx))
+  }
+  const lastTok = lastIdx >= 0 ? base.tokens[lastIdx]! : null
+  const beforeLast = lastIdx > 0 ? base.tokens[lastIdx - 1] : undefined
+  // "Final Fantasy X-2": two numbers side by side are one compound name.
+  const compoundTail = beforeLast !== undefined && beforeLast.kind === 'number'
+  if (lastTok && lastIdx > 0 && lastTok.kind === 'number' && !compoundTail) {
+    const value = parseInt(lastTok.text, 10)
+    if (value <= SEQUEL_NUMBER_MAX) {
+      seriesNumber = value
+      const prev = base.tokens[lastIdx - 1]
+      seriesNumberOmittable =
+        value === 1 && (lastTok.raw === 'i' || (prev !== undefined && prev.structural))
     }
   }
 
-  // 3. Structural matching
-  const inputParsed = parseGameTitle(input)
-  const targetParsed = parseGameTitle(gameName)
-
-  log.debug({ inputParsed, targetParsed }, 'parsed titles')
-
-  // 3.-1. Derived-acronym expansion. If the input begins with an initialism
-  // of the target's franchise name (e.g. "gta" for "Grand Theft Auto",
-  // "tes" for "The Elder Scrolls"), rewrite the input by swapping the
-  // acronym for the full franchise and retry once. Requires at least one
-  // disambiguating token after the acronym so a bare "gta" doesn't
-  // collapse onto any specific entry. Recursion is depth-1 via the
-  // expandedRetry flag.
-  if (!expandedRetry) {
-    const inputTokens = tokenize(normalizedInput)
-    if (inputTokens.length >= 2) {
-      const acronymSource = targetParsed.seriesName ?? targetParsed.baseName ?? gameName
-      const acronym = deriveAcronym(acronymSource)
-      if (acronym && inputTokens[0] === acronym) {
-        const expanded = [
-          normalizeForFuzzy(acronymSource),
-          ...inputTokens.slice(1),
-        ].join(' ')
-        log.debug({ input, expanded, acronym }, 'trying acronym-expanded input')
-        if (isMatchEnhanced(expanded, gameName, aliases, log, true)) {
-          return true
-        }
-      }
-    }
-  }
-
-  // 3.0. Early rejection: Base name only match for DLC titles
-  // Prevents "Cuphead" from matching "Cuphead: The Delicious Last Course"
-  // Check this FIRST before allowing base name matches
-  if (isBaseNameOnlyMatch(input, targetParsed)) {
-    log.debug(
-      { input, gameName, baseName: targetParsed.baseName },
-      'rejected - base name only match for title with subtitle (DLC)'
+  // Imported alternative names are noisy: an alias naming another sequel
+  // ("GTA 4" on Grand Theft Auto V) must not vouch for this entry.
+  const keptAliases = aliases
+    .map(a => parseTarget(a, [], true))
+    .filter(
+      a =>
+        live(a.base) &&
+        (a.seriesNumber === null || seriesNumber === null || a.seriesNumber === seriesNumber)
     )
-    return false
+  const units = [
+    base, ...alts, ...subtitles, ...expansions, ...parens, ...years,
+    ...keptAliases.flatMap(a => a.units),
+  ]
+
+  const numbers = new Set<string>()
+  for (const u of units) for (const t of u.tokens) if (t.kind === 'number') numbers.add(t.text)
+  // A "(1993)" year is not a number the title is known by.
+  const sequelNumbers = new Set<string>()
+  for (const u of units) {
+    if (u.kind === 'year') continue
+    for (const t of u.tokens) if (t.kind === 'number') sequelNumbers.add(t.text)
   }
+  // "Half-Life 2: Episode One": the subtitle only numbers an episode of the
+  // base game, so the base game's own name is not this entry.
+  const episodeSubtitle = subtitles.some(
+    u => live(u) && !u.tokens.some(t => isRequired(t) && t.kind === 'word') && u.tokens.some(t => t.kind === 'number')
+  )
 
-  // 3.1. Check if input matches the base name (series name) of a "Base: Subtitle" title
-  // Allow "Paper Mario" to match "Paper Mario: The Thousand-Year Door"
-  // Allow "Castlevania" to match "Castlevania: Harmony of Dissonance"
-  // Allow "Cut the Rope" to match "Cut the Rope: Magic"
-  // Allow "Teenage Mutant Ninja Turtles" to match "Teenage Mutant Ninja Turtles: Shredder's Revenge"
-  // Allow "Half-Life 2" to match "Half-Life 2: Episode Two"
-  // Reject "Half-Life" (missing number) for "Half-Life 2: Episode Two"
-  //   — caught by isIncompleteBaseName below, since "halflife" is a prefix of "halflife 2"
-  // Allow "Planetscape" (typo) to match "Planescape: Torment"
-  // Reject "A Space for the Unb" (incomplete) for "A Space for the Unbound"
-  // Only check this if it's NOT a DLC (checked above)
-  if (targetParsed.baseName && targetParsed.subtitle) {
-    const normalizedInput = normalizeForFuzzy(stripCommonPrefixes(input))
-    const normalizedBaseName = normalizeForFuzzy(stripCommonPrefixes(targetParsed.baseName))
+  const dlc = [...subtitleTexts, ...dashParts.slice(1)].some(isLikelyDLC)
 
-    // Reject incomplete/truncated inputs first so a subtitle path can't
-    // rescue them (e.g., "A Space for the Unb" for "A Space for the Unbound").
-    if (isIncompleteBaseName(input, targetParsed.baseName)) {
-      log.debug(
-        { input, gameName, baseName: targetParsed.baseName },
-        'rejected - incomplete base name'
-      )
-      return false
-    }
+  return {
+    units,
+    base,
+    subtitles: subtitles.filter(live),
+    expansions: expansions.filter(live),
+    alts: alts.filter(live),
+    parens: parens.filter(live),
+    aliases: keptAliases,
+    seriesNumber,
+    seriesNumberOmittable,
+    dlc,
+    numbers,
+    sequelNumbers,
+    episodeSubtitle,
+  }
+}
 
-    // Only enforce the series-number guard when the input actually looks
-    // like a base-name match. Otherwise we'd reject perfectly valid
-    // subtitle-only guesses such as "Skyrim" → "The Elder Scrolls V: Skyrim",
-    // where the input has no number simply because it isn't trying to
-    // restate the base name.
-    const baseNameSimilarity =
-      normalizedInput === normalizedBaseName
-        ? 1
-        : jaroWinkler(normalizedInput, normalizedBaseName)
-    const requiredSimilarity = 0.90
+function parseInput(input: string): Token[] {
+  const tokens = tokenizeNormalized(normalizeText(input.slice(0, MAX_INPUT_LENGTH)))
+  // A guess that is only an edition word ("remake", "complete edition")
+  // names nothing.
+  markTrailingEdition(tokens, true)
+  finalizeTokens(tokens)
+  return tokens
+}
 
-    if (baseNameSimilarity >= requiredSimilarity) {
-      if (
-        targetParsed.seriesNumber !== null &&
-        inputParsed.seriesNumber === null
-      ) {
-        log.debug(
-          { input, gameName, targetNumber: targetParsed.seriesNumber },
-          'rejected - base-name match but missing required series number'
-        )
-        return false
+// ─────────────────────────────────────────────────────────────────────────────
+// Word comparison
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Optimal-string-alignment edit distance (insert, delete, substitute, swap). */
+function editDistance(a: string, b: string): number {
+  const la = a.length
+  const lb = b.length
+  if (la === 0) return lb
+  if (lb === 0) return la
+  const d: number[][] = []
+  for (let i = 0; i <= la; i++) {
+    d.push(new Array<number>(lb + 1).fill(0))
+    d[i]![0] = i
+  }
+  for (let j = 0; j <= lb; j++) d[0]![j] = j
+  for (let i = 1; i <= la; i++) {
+    for (let j = 1; j <= lb; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      let best = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost)
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        best = Math.min(best, d[i - 2]![j - 2]! + 1)
       }
-      if (hasWrongSeriesNumber(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
-        log.debug(
-          {
-            input,
-            gameName,
-            inputNumber: inputParsed.seriesNumber,
-            targetNumber: targetParsed.seriesNumber,
-          },
-          'rejected - base-name match but wrong series number'
-        )
-        return false
-      }
-      // A numbered input against a subtitled-but-unnumbered target is
-      // naming a different entry in the franchise. "grand thief auto 3"
-      // for "Grand Theft Auto: Vice City" must reject — the input asserts
-      // a 3, Vice City is the named entry with no number. Bypass only
-      // when the input also looks like the subtitle (player wrote both).
-      if (
-        targetParsed.seriesNumber === null &&
-        targetParsed.subtitle !== null &&
-        inputParsed.seriesNumber !== null
-      ) {
-        const subtitleSim = jaroWinkler(
-          normalizedInput,
-          normalizeForFuzzy(targetParsed.subtitle)
-        )
-        if (subtitleSim < SUBTITLE_THRESHOLD) {
-          log.debug(
-            { input, gameName, inputNumber: inputParsed.seriesNumber },
-            'rejected - numbered input on subtitled-unnumbered target'
-          )
-          return false
-        }
-      }
-      log.debug(
-        { input, gameName, baseName: targetParsed.baseName, similarity: baseNameSimilarity },
-        'base name match (series with subtitle)'
-      )
-      return true
+      d[i]![j] = best
     }
   }
-
-  // 3a. Subtitle-only match (e.g., "Skyrim" for "The Elder Scrolls V: Skyrim")
-  if (isSubtitleOnly(inputParsed) && targetParsed.subtitle) {
-    const inputSubtitleNorm = normalizeForFuzzy(inputParsed.subtitle!)
-    const targetSubtitleNorm = normalizeForFuzzy(targetParsed.subtitle)
-    const subtitleMatch = jaroWinkler(inputSubtitleNorm, targetSubtitleNorm)
-    // Numbers must agree: "black ops" is not "Call of Duty: Black Ops II".
-    if (
-      subtitleMatch >= SUBTITLE_THRESHOLD &&
-      sameNumberTokens(inputSubtitleNorm, targetSubtitleNorm)
-    ) {
-      log.debug({ input, subtitle: targetParsed.subtitle, similarity: subtitleMatch }, 'subtitle match')
-      return true
-    }
-  }
-
-  // 3a'. Whole-input subtitle match. 3a only fires when the input parses as
-  // "subtitle-only", which a 3+ word guess never does — so "breath of the
-  // wild" was refused for "The Legend of Zelda: Breath of the Wild" while the
-  // one-word "skyrim" was accepted. Compare the whole input against the
-  // subtitle instead, with the numbers on both sides required to agree so
-  // "black ops" can't take "Call of Duty: Black Ops II".
-  if (targetParsed.baseName && targetParsed.subtitle) {
-    const inputNorm = normalizeForFuzzy(stripCommonPrefixes(input))
-    const subtitleNorm = normalizeForFuzzy(stripCommonPrefixes(targetParsed.subtitle))
-    if (
-      inputNorm &&
-      sameNumberTokens(inputNorm, subtitleNorm) &&
-      jaroWinkler(inputNorm, subtitleNorm) >= SUBTITLE_THRESHOLD
-    ) {
-      log.debug({ input, subtitle: targetParsed.subtitle }, 'full subtitle match')
-      return true
-    }
-  }
-
-  // 3b. Series + number matching
-  if (inputParsed.seriesName && targetParsed.seriesName) {
-    // Compare series names with common prefix stripped (e.g., "Witcher" vs "The Witcher")
-    const inputSeriesNorm = normalizeForFuzzy(stripCommonPrefixes(inputParsed.seriesName))
-    const targetSeriesNorm = normalizeForFuzzy(stripCommonPrefixes(targetParsed.seriesName))
-    const seriesMatch = jaroWinkler(inputSeriesNorm, targetSeriesNorm)
-
-    // Check for wrong series number first (reject immediately)
-    if (hasWrongSeriesNumber(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
-      log.debug(
-        {
-          input,
-          gameName,
-          inputNumber: inputParsed.seriesNumber,
-          targetNumber: targetParsed.seriesNumber,
-        },
-        'wrong series number - rejected'
-      )
-      return false
-    }
-
-    // Series name must match well
-    if (seriesMatch >= SERIES_NAME_THRESHOLD) {
-      // Number must match if input specifies one
-      if (seriesNumbersMatch(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
-        // Optional: check subtitle for additional confidence
-        if (inputParsed.subtitle && targetParsed.subtitle) {
-          const subtitleMatch = jaroWinkler(
-            normalizeForFuzzy(inputParsed.subtitle),
-            normalizeForFuzzy(targetParsed.subtitle)
-          )
-          if (subtitleMatch >= 0.7) {
-            log.debug(
-              { input, gameName, seriesMatch, subtitleMatch },
-              'series + number + subtitle match'
-            )
-            return true
-          }
-        } else if (
-          inputParsed.seriesNumber === null &&
-          targetParsed.seriesNumber !== null &&
-          !targetParsed.subtitle
-        ) {
-          // Input lacks a number, target carries one with no subtitle:
-          // "Grand Theft Auto" → "Grand Theft Auto V" or
-          // "grand theft auto vice city" → "Grand Theft Auto V" (acronym-
-          // expansion artifact). Mirror the full-fuzzy guard at line ~689
-          // and skip this branch — let path 4's reject fire instead of
-          // accepting here.
-          log.debug(
-            { input, gameName, seriesMatch },
-            'series match without number — deferring to full-fuzzy guard'
-          )
-        } else {
-          // No subtitle in input, series + number is enough
-          log.debug({ input, gameName, seriesMatch }, 'series + number match')
-          return true
-        }
-      }
-    }
-  }
-
-  // 3c. Token-sort match. When the input contains the same words as the
-  // target (or alias) in a different order, accept it. Players naturally
-  // reorder ("total war rome" ↔ "ROME: Total War"), and JW alone is too
-  // sensitive to position to catch this.
-  //
-  // The same number-mismatch guards as the full-fuzzy fallback apply, so
-  // "witcher 2 wild hunt" can't sneak into "The Witcher 3: Wild Hunt".
-  const tokenSortCandidates = [normalizedTarget, ...aliases.map(normalizeForFuzzy)]
-  for (const candidate of tokenSortCandidates) {
-    const tokenSortScore = tokenSortSimilarity(normalizedInput, candidate)
-    if (tokenSortScore < TOKEN_SORT_THRESHOLD) continue
-
-    if (hasWrongSeriesNumber(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
-      log.debug(
-        { input, gameName, score: tokenSortScore },
-        'token-sort match rejected - wrong series number'
-      )
-      return false
-    }
-    if (
-      inputParsed.seriesNumber === null &&
-      targetParsed.seriesNumber !== null &&
-      !targetParsed.subtitle
-    ) {
-      log.debug(
-        { input, gameName, score: tokenSortScore },
-        'token-sort match rejected - target has number, input does not'
-      )
-      return false
-    }
-    log.debug({ input, gameName, candidate, score: tokenSortScore }, 'token-sort match')
-    return true
-  }
-
-  // 4. Fallback: Full fuzzy with higher threshold
-  const fullSimilarity = jaroWinkler(normalizedInput, normalizedTarget)
-  if (fullSimilarity >= FULL_MATCH_THRESHOLD) {
-    // Reject if input specifies wrong series number
-    if (hasWrongSeriesNumber(inputParsed.seriesNumber, targetParsed.seriesNumber)) {
-      log.debug({ input, gameName, similarity: fullSimilarity }, 'high similarity but wrong number')
-      return false
-    }
-
-    // Reject if target has a series number but input doesn't
-    // This prevents "Portal" from matching "Portal 2"
-    // Exception: if there's a good subtitle match, allow it
-    if (inputParsed.seriesNumber === null && targetParsed.seriesNumber !== null) {
-      // Only allow if there's no subtitle in target (meaning it's just "Game N" format)
-      // or if the input matches the subtitle well
-      if (!targetParsed.subtitle) {
-        log.debug(
-          { input, gameName, similarity: fullSimilarity },
-          'high similarity but target has number and input doesnt'
-        )
-        return false
-      }
-    }
-
-    log.debug({ input, gameName, similarity: fullSimilarity }, 'full fuzzy match')
-    return true
-  }
-
-  log.debug({ input, gameName, similarity: fullSimilarity }, 'no match')
-  return false
+  return d[la]![lb]!
 }
 
 /**
- * Precision of an accepted guess:
- *  - `exact`   — the full title was identified (series + correct number +
- *                subtitle as applicable, or any path the strict matcher
- *                already accepts at full confidence).
- *  - `partial` — the franchise was identified but the sequel number / full
- *                subtitle was OMITTED (not wrong). Solves the position at a
- *                reduced score.
- *  - `none`    — not a match.
+ * Same word up to a typo. Tolerance scales with length so a short title
+ * cannot drift onto a neighbour ("rime" is not "rome", "fe" is not "fez")
+ * while "assasins" is "assassins" and "farenheit" is "fahrenheit". A
+ * four-letter word tolerates one edit only when the guess carries other
+ * words too ("hslo 3", "elden rign"), never on its own. Anything with a
+ * digit must be spelled exactly ("2k22" is not "2k23").
  */
+function wordsEquivalent(guess: string, word: string, lenient = false): boolean {
+  if (guess === word) return true
+  if (/\d/.test(guess) || /\d/.test(word)) return false
+  const length = Math.max(guess.length, word.length)
+  if (length < 4 || (length === 4 && !lenient)) return false
+  const limit = length <= 8 ? 1 : 2
+  if (Math.abs(guess.length - word.length) > limit) return false
+  return editDistance(guess, word) <= limit
+}
+
+/**
+ * A guess that is a strict prefix of the word is a truncation, not a typo:
+ * the player has not finished naming the game. With other words around it
+ * a plural "s" is forgiven ("plant vs zombies"), as is a long word missing
+ * its last letter ("porta 2"); a lone "hade" or "minecraf" is not.
+ */
+function isTruncation(guess: string, word: string, inputWords: number): boolean {
+  if (!word.startsWith(guess) || guess === word) return false
+  if (inputWords < 2) return true
+  const missing = word.slice(guess.length)
+  if (missing === 's' || missing === 'es') return false
+  return word.length < 6
+}
+
+/** A short token with at most one vowel reads as shorthand ("botw", "lol"), not a word. */
+function isShorthand(text: string): boolean {
+  return text.length <= 4 && (text.match(/[aeiouy]/g) ?? []).length <= 1
+}
+
+/**
+ * "ffviii" is not a typo of "ffvii": when two words differ only in a
+ * trailing roman-numeral segment, they name different entries.
+ */
+function romanTailDiffers(a: string, b: string): boolean {
+  let i = 0
+  while (i < a.length && i < b.length && a[i] === b[i]) i++
+  const tailA = a.slice(i)
+  const tailB = b.slice(i)
+  return (tailA !== '' || tailB !== '') && /^[ivx]*$/.test(tailA) && /^[ivx]*$/.test(tailB)
+}
+
+/**
+ * Jaro-Winkler similarity, 0..1. Kept for `calculateSimilarity` /
+ * `getBestMatchScore` (ranking, logging) and for the one place the matcher
+ * still needs a graded "how close" answer: forgiving a heavily misspelled
+ * franchise word when the entry's own name is right.
+ */
+function jaroWinkler(s1: string, s2: string): number {
+  if (s1 === s2) return 1.0
+  if (s1.length === 0 || s2.length === 0) return 0.0
+
+  const matchWindow = Math.max(0, Math.floor(Math.max(s1.length, s2.length) / 2) - 1)
+  const s1Matches = new Array<boolean>(s1.length).fill(false)
+  const s2Matches = new Array<boolean>(s2.length).fill(false)
+
+  let matches = 0
+  for (let i = 0; i < s1.length; i++) {
+    const start = Math.max(0, i - matchWindow)
+    const end = Math.min(i + matchWindow + 1, s2.length)
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j] || s1[i] !== s2[j]) continue
+      s1Matches[i] = true
+      s2Matches[j] = true
+      matches++
+      break
+    }
+  }
+  if (matches === 0) return 0.0
+
+  let transpositions = 0
+  let k = 0
+  for (let i = 0; i < s1.length; i++) {
+    if (!s1Matches[i]) continue
+    while (!s2Matches[k]) k++
+    if (s1[i] !== s2[k]) transpositions++
+    k++
+  }
+
+  const jaro =
+    (matches / s1.length + matches / s2.length + (matches - transpositions / 2) / matches) / 3
+
+  let prefix = 0
+  for (let i = 0; i < Math.min(4, s1.length, s2.length); i++) {
+    if (s1[i] === s2[i]) prefix++
+    else break
+  }
+  return jaro + prefix * 0.1 * (1 - jaro)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alignment: explaining every word of the guess with the title
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Placed {
+  unit: Unit
+  index: number
+  token: Token
+  /** From an alias rather than the title itself. */
+  alias: boolean
+}
+
+interface Alignment {
+  /** Target tokens the guess accounts for. */
+  covered: Set<Token>
+  /** Guess words the title cannot explain. */
+  foreign: Token[]
+  /** Guess numbers the title does not carry. */
+  wrongNumbers: Token[]
+  /** Numbers the guess states (canonical). */
+  inputNumbers: Set<string>
+  /** Distinctive guess words the title explains. */
+  distinctive: Token[]
+  /** The whole guess is one two-letter acronym ("ds", "re"): too ambiguous for full credit. */
+  shortAcronymOnly: boolean
+  /** The guess relies on a two-letter acronym somewhere. */
+  shortAcronyms: boolean
+}
+
+/**
+ * Initials of a run: roman numerals and number words keep their letters in
+ * the raw variant ("ffvii", "hzd" for Horizon Zero Dawn) and numbers are
+ * digits in the canonical one ("l4d", "ff7"); compound franchises add their
+ * two-letter initials ("bf1").
+ */
+function runInitials(run: Token[]): string[] {
+  let raw = ''
+  let canonical = ''
+  let compoundRaw = ''
+  let compoundCanonical = ''
+  for (const t of run) {
+    if (t.kind === 'number') {
+      const letters = /^[a-z]+$/.test(t.raw)
+        ? ROMAN_TO_ARABIC[t.raw] !== undefined ? t.raw : t.raw[0]!
+        : t.text
+      raw += letters
+      canonical += t.text
+      compoundRaw += letters
+      compoundCanonical += t.text
+    } else {
+      const initial = t.text[0] ?? ''
+      const compound = COMPOUND_INITIALS[t.text] ?? initial
+      raw += initial
+      canonical += initial
+      compoundRaw += compound
+      compoundCanonical += compound
+    }
+  }
+  return [raw, canonical, compoundRaw, compoundCanonical]
+}
+
+/**
+ * Runs of a unit that an acronym may stand for: from its start, or from its
+ * first real word, spanning at least two real words ("go" is not "God of").
+ * Numbers and single letters are not words here: the letter-reveal hint
+ * shows the first letter of a word and every digit for free, so "h3" must
+ * never read as "Halo 3" nor "vr" as "V Rising".
+ */
+function acronymRuns(unit: Unit): { run: Token[]; compoundOnly: boolean }[] {
+  const starts = new Set<number>([0])
+  const firstReal = unit.tokens.findIndex(t => !t.stop && !t.brand)
+  if (firstReal > 0) starts.add(firstReal)
+  const runs: { run: Token[]; compoundOnly: boolean }[] = []
+  const isWord = (t: Token): boolean => !t.stop && t.kind === 'word' && t.text.length >= 2
+  for (const start of starts) {
+    const single = unit.tokens[start]
+    if (single && COMPOUND_INITIALS[single.text] !== undefined) {
+      runs.push({ run: [single], compoundOnly: true })
+    }
+    for (let end = start + 2; end <= unit.tokens.length; end++) {
+      const run = unit.tokens.slice(start, end)
+      if (run.some(t => t.edition || t.soft)) break
+      const words = run.filter(isWord).length
+      // "Battlefield V" counts as two words, but only as "bfv", never "bv".
+      const compounds = run.filter(t => isWord(t) && COMPOUND_INITIALS[t.text] !== undefined).length
+      if (words + compounds < 2) continue
+      runs.push({ run, compoundOnly: words < 2 })
+    }
+  }
+  return runs
+}
+
+function align(input: Token[], target: ParsedTarget): Alignment {
+  const placed: Placed[] = []
+  const aliasUnits = new Set(target.aliases.flatMap(a => a.units))
+  for (const unit of target.units) {
+    const alias = aliasUnits.has(unit)
+    unit.tokens.forEach((token, index) => placed.push({ unit, index, token, alias }))
+  }
+  // Acronyms are derived from the title's own units (an alias that is
+  // already shorthand must not be shortened again: "r4" is not "RE4"), and
+  // may also span the base and its subtitle ("csgo", "codmw2").
+  const ownUnits: Unit[] = [
+    target.base, ...target.alts, ...target.subtitles, ...target.expansions, ...target.parens,
+  ]
+  const core: Unit = {
+    kind: 'base',
+    tokens: [...target.base.tokens, ...target.subtitles.flatMap(u => u.tokens)],
+  }
+  const acronymUnits = target.subtitles.length > 0 ? [...ownUnits, core] : ownUnits
+
+  const covered = new Set<Token>()
+  const foreign: Token[] = []
+  const wrongNumbers: Token[] = []
+  const inputNumbers = new Set<string>()
+  const distinctive: Token[] = []
+  let shortAcronyms = 0
+  const realInput = input.filter(t => !t.stop && !t.structural && !t.edition && !t.soft)
+  // With a second word or a number alongside, a four-letter word may carry
+  // a typo; alone it must be spelled out.
+  const lenient = realInput.length >= 2
+
+  // Coverage is by text so the same word in an alias is covered too.
+  const coverEqual = (text: string): boolean => {
+    let hit = false
+    for (const p of placed) {
+      if (p.token.text === text) {
+        covered.add(p.token)
+        hit = true
+      }
+    }
+    return hit
+  }
+  // A number in the guess answers for one number of the title: "half life
+  // 2 episode 2" is not "Half-Life 2: Episode One" (one "2" in the title),
+  // while "the second runner" covers both "2"s of "Zone of the Enders 2:
+  // The Second Runner".
+  const numberBudget = new Map<string, number>()
+  for (const p of placed) {
+    if (p.token.kind !== 'number') continue
+    if (p.alias) numberBudget.set(p.token.text, Math.max(numberBudget.get(p.token.text) ?? 0, 1))
+    else numberBudget.set(p.token.text, (numberBudget.get(p.token.text) ?? 0) + (p.unit.kind === 'alt' ? 0 : 1))
+  }
+  const coverNumber = (text: string): boolean => {
+    const budget = numberBudget.get(text) ?? 0
+    if (budget <= 0) return false
+    numberBudget.set(text, budget - 1)
+    return coverEqual(text)
+  }
+  const findAcronymRun = (text: string): Token[] | null => {
+    if (NEVER_ACRONYMS.has(text)) return null
+    for (const unit of acronymUnits) {
+      for (const { run, compoundOnly } of acronymRuns(unit)) {
+        const variants = runInitials(run)
+        if ((compoundOnly ? variants.slice(2) : variants).includes(text)) return run
+      }
+    }
+    return null
+  }
+  // A letter glued after the number ("fe3h", "p5r") stands for the next
+  // word of the title that starts with it.
+  const coverInitial = (letter: string): void => {
+    const hit = placed.find(
+      p => !p.alias && p.token.kind === 'word' && isRequired(p.token) && !covered.has(p.token) && p.token.text.startsWith(letter)
+    )
+    if (hit) coverEqual(hit.token.text)
+  }
+  const coverRun = (run: Token[]): void => {
+    for (const t of run) {
+      if (t.kind === 'number') {
+        covered.add(t)
+        inputNumbers.add(t.text)
+      } else {
+        coverEqual(t.text)
+      }
+    }
+  }
+  // A run of two or more title words written as one ("halflife", "fzero",
+  // "stalker" for S.T.A.L.K.E.R.), exactly or up to a typo.
+  const findGluedRun = (text: string, tolerant: boolean): Token[] | null => {
+    for (const unit of target.units) {
+      for (let start = 0; start < unit.tokens.length; start++) {
+        let joined = ''
+        for (let end = start; end < unit.tokens.length; end++) {
+          const t = unit.tokens[end]!
+          if (!/^[a-z]+$/.test(t.raw)) break
+          joined += t.raw
+          if (joined.length > text.length + 2) break
+          if (joined.length < 4) continue
+          if (end > start && (tolerant ? wordsEquivalent(text, joined, lenient) : joined === text)) {
+            return unit.tokens.slice(start, end + 1)
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // Plain numbers are placed once the words are, in the unit the words
+  // landed in: "half life 2" numbers the base of "Half-Life 2: Episode Two",
+  // "the second runner" its subtitle.
+  const deferredNumbers: Token[] = []
+
+  for (let i = 0; i < input.length; i++) {
+    const tok = input[i]!
+    if (tok.soft) {
+      coverInitial(tok.text)
+      continue
+    }
+    if (tok.stop || tok.structural || tok.edition) {
+      coverEqual(tok.text)
+      continue
+    }
+    if (tok.kind === 'number') {
+      // "mega man x 4": a lone letter and a number spelling a mixed token ("x4").
+      const next = input[i + 1]
+      if (tok.raw.length === 1 && next?.kind === 'number' && coverEqual(tok.raw + next.text)) {
+        i++
+        continue
+      }
+      deferredNumbers.push(tok)
+      continue
+    }
+    if (coverEqual(tok.text)) {
+      if (isDistinctiveWord(tok) || tok.kind === 'mixed') distinctive.push(tok)
+      // A short word equal to an alias token may still be an acronym of the
+      // title ("ds" next to the alias "DS1" is Dark Souls).
+      if (tok.kind === 'word' && tok.text.length <= 4) {
+        const run = findAcronymRun(tok.text)
+        if (run) {
+          coverRun(run)
+          distinctive.push(tok)
+          if (tok.text.length === 2) shortAcronyms++
+        }
+      }
+      continue
+    }
+    if (tok.kind === 'mixed') {
+      // "l4d" for "Left 4 Dead": an acronym with a number inside.
+      const mixedRun = findAcronymRun(tok.text)
+      if (mixedRun) {
+        coverRun(mixedRun)
+        distinctive.push(tok)
+        continue
+      }
+      // "r6 siege": one letter standing for the franchise's first word,
+      // only when the title spells its number in letters ("Rainbow Six")
+      // and another word of the title comes with it. With a digit in the
+      // title ("Portal 2") that letter + digit is exactly what the
+      // letter-reveal hint shows ("P_____ 2"), so "p2" / "p5r" earn
+      // nothing, and a lone "g5" names nothing; players have "persona 5",
+      // "gta 5" and "re4".
+      const m = tok.text.match(/^([a-z])(\d+)([a-z])?$/)
+      if (m && lenient) {
+        const value = String(parseInt(m[2]!, 10))
+        const first = target.base.tokens.find(t => isRequired(t) && t.kind === 'word')
+        const spelledNumber = target.base.tokens.some(
+          t => t.kind === 'number' && t.text === value && /^[a-z]+$/.test(t.raw)
+        )
+        const trailingKnown =
+          !m[3] || placed.some(p => !p.alias && p.token.kind === 'word' && p.token.text.startsWith(m[3]!))
+        if (first && spelledNumber && first.text.startsWith(m[1]!) && trailingKnown) {
+          coverEqual(first.text)
+          coverNumber(value)
+          inputNumbers.add(value)
+          distinctive.push(tok)
+          if (m[3]) coverInitial(m[3])
+          continue
+        }
+      }
+      // "2k" for "NBA 2K23": the sports-series code without its year names
+      // the series, not the entry.
+      if (/^\d+k$/.test(tok.text) && placed.some(p => p.token.kind === 'mixed' && p.token.text.startsWith(tok.text))) {
+        distinctive.push(tok)
+        continue
+      }
+      // "x2" for "Final Fantasy X-2": a roman numeral glued to a number.
+      const r = tok.text.match(/^([ivx]+)(\d+)$/)
+      const romanValue = r ? ROMAN_TO_ARABIC[r[1]!] : undefined
+      if (r && romanValue !== undefined) {
+        const parts = [String(romanValue), String(parseInt(r[2]!, 10))]
+        if (parts.every(p => target.numbers.has(p))) {
+          for (const p of parts) {
+            coverNumber(p)
+            inputNumbers.add(p)
+          }
+          continue
+        }
+      }
+      foreign.push(tok)
+      continue
+    }
+
+    // A single letter only ever matches itself ("Pokémon Y").
+    if (tok.text.length === 1) {
+      foreign.push(tok)
+      continue
+    }
+
+    // A guess that is exactly two or more title words glued together
+    // ("xmen", "halflife") is those words, before any typo reading.
+    const exactGlue = findGluedRun(tok.text, false)
+    if (exactGlue) {
+      for (const t of exactGlue) coverEqual(t.text)
+      distinctive.push(tok)
+      continue
+    }
+
+    // Typo-tolerant word match, closest first.
+    let best: Placed | null = null
+    let bestDistance = Infinity
+    for (const p of placed) {
+      if (p.token.kind !== 'word' || p.token.text.length === 1) continue
+      if (p.token.stop || p.token.structural || p.token.edition) continue
+      // Alias shorthand ("BotW", "TW3") must be spelled exactly; a short
+      // real word in an alias ("Épée") still tolerates a typo.
+      if (p.alias && isShorthand(p.token.text)) continue
+      if (!wordsEquivalent(tok.text, p.token.text, lenient)) continue
+      if (isTruncation(tok.text, p.token.text, realInput.length)) continue
+      if (romanTailDiffers(tok.text, p.token.text)) continue
+      const distance = editDistance(tok.text, p.token.text)
+      if (distance < bestDistance) {
+        best = p
+        bestDistance = distance
+      }
+    }
+    if (best) {
+      coverEqual(best.token.text)
+      if (isDistinctiveWord(best.token)) distinctive.push(tok)
+      continue
+    }
+
+    // Acronym of a run ("gta", "botw", "tlou", "l4d", "ffvii", "csgo").
+    const acronymRun = findAcronymRun(tok.text)
+    if (acronymRun) {
+      coverRun(acronymRun)
+      distinctive.push(tok)
+      if (tok.text.length === 2) shortAcronyms++
+      continue
+    }
+
+    // Glued words up to a typo ("eldenrign", "halflfe").
+    const concatRun = findGluedRun(tok.text, true)
+    if (concatRun) {
+      for (const t of concatRun) coverEqual(t.text)
+      // Writing the name as one word is naming it ("fzero", "ninokuni").
+      if (concatRun.some(t => isDistinctiveWord(t)) || concatRun.filter(isRequired).length >= 2) {
+        distinctive.push(tok)
+      }
+      continue
+    }
+
+    // Split word ("star craft" for "StarCraft", "spider man 2" for "Spider-Man 2").
+    let consumed = 0
+    for (let span = 2; span <= 3 && i + span <= input.length; span++) {
+      const slice = input.slice(i, i + span)
+      if (slice.some(t => t.kind !== 'word' || t.stop)) break
+      const joined = slice.map(t => t.text).join('')
+      const hit = placed.find(p => p.token.kind === 'word' && wordsEquivalent(joined, p.token.text, lenient))
+      if (hit) {
+        coverEqual(hit.token.text)
+        if (isDistinctiveWord(hit.token)) distinctive.push(tok)
+        consumed = span - 1
+        break
+      }
+    }
+    if (consumed > 0) {
+      i += consumed
+      continue
+    }
+
+    foreign.push(tok)
+  }
+
+  const coveredIn = (unit: Unit): number => unit.tokens.filter(t => covered.has(t)).length
+  for (const tok of deferredNumbers) {
+    inputNumbers.add(tok.text)
+    const budget = numberBudget.get(tok.text) ?? 0
+    const candidates = placed.filter(
+      p => p.token.kind === 'number' && p.token.text === tok.text && !covered.has(p.token)
+    )
+    if (budget <= 0 || candidates.length === 0) {
+      // "half-life 1" for "Half-Life": the first entry has no number.
+      if (tok.text === '1' && target.sequelNumbers.size === 0) continue
+      wrongNumbers.push(tok)
+      continue
+    }
+    numberBudget.set(tok.text, budget - 1)
+    candidates.sort((a, b) => Number(a.alias) - Number(b.alias) || coveredIn(b.unit) - coveredIn(a.unit))
+    covered.add(candidates[0]!.token)
+    // An alias repeating the title's number is covered along with it.
+    for (const p of placed) {
+      if (p.alias && p.token.kind === 'number' && p.token.text === tok.text) covered.add(p.token)
+    }
+  }
+
+  // Two generic words that stand side by side in the title form a name of
+  // their own ("red dead", "star wars"), even though neither does alone.
+  if (distinctive.length === 0) {
+    for (const unit of target.units) {
+      for (let i = 1; i < unit.tokens.length; i++) {
+        const a = unit.tokens[i - 1]!
+        const b = unit.tokens[i]!
+        if (covered.has(a) && covered.has(b) && isGenericWord(a) && isGenericWord(b)) {
+          distinctive.push(a, b)
+        }
+      }
+    }
+  }
+
+  const shortAcronymOnly = shortAcronyms === 1 && realInput.length === 1
+
+  return { covered, foreign, wrongNumbers, inputNumbers, distinctive, shortAcronymOnly, shortAcronyms: shortAcronyms > 0 }
+}
+
+function isGenericWord(t: Token): boolean {
+  return isRequired(t) && t.kind === 'word' && GENERIC_TITLE_TOKENS.has(t.text)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Grading
+// ─────────────────────────────────────────────────────────────────────────────
+
 export type MatchPrecision = 'exact' | 'partial' | 'none'
 
 export interface MatchResult {
@@ -926,270 +1167,272 @@ export interface MatchResult {
   precision: MatchPrecision
 }
 
-/**
- * Strict acceptance — the historical `isMatch` semantics. A guess is accepted
- * only when it names the full title (series + correct number + subtitle as
- * applicable). Kept as the single source of truth for `isMatch` (and therefore
- * the letter-reveal leak gate), with the parenthesised-alias and
- * expansion-suffix retries that `isMatch` has always applied.
- */
-function strictMatch(
-  input: string,
-  gameName: string,
-  aliases: string[],
-  log: DomainLogger
-): boolean {
-  if (isMatchEnhanced(input, gameName, aliases, log)) {
-    return true
-  }
-  // Parenthesised alternate name (e.g. "Fahrenheit (Indigo Prophecy)"):
-  // retry against the base name with the parenthesised text promoted to an
-  // alias.
-  const paren = extractParenthesizedAliases(gameName)
-  if (
-    paren.aliases.length > 0 &&
-    isMatchEnhanced(input, paren.base, [...aliases, ...paren.aliases], log)
-  ) {
-    return true
-  }
-  // Retry against the base title with any " - Expansion" suffix removed.
-  const core = stripExpansionSuffix(gameName)
-  if (core !== gameName && isMatchEnhanced(input, core, aliases, log)) {
-    return true
-  }
-  return false
+interface Form {
+  kind: 'full' | 'own-name' | 'base'
+  tokens: Token[]
 }
 
-/**
- * Franchise-level partial match. Returns true ONLY when the strict matcher has
- * already rejected the guess AND the input clearly identifies the franchise but
- * merely OMITTED the sequel number (e.g. "metal gear solid" → "Metal Gear
- * Solid 2: Sons of Liberty", "final fantasy" → "Final Fantasy XII", "pokemon"
- * → "Pokémon X, Y").
- *
- * Deliberately narrow so it can never resurrect a rejection the matcher makes
- * on purpose:
- *   - target must carry a sequel NUMBER (so there is something to omit);
- *     subtitled-but-unnumbered base names are already full-credit via the
- *     strict matcher, and a DLC base-name must stay a miss;
- *   - a WRONG number names a different entry → never partial;
- *   - every meaningful input token must be COVERED by a target token, so a
- *     foreign specifier ("pokemon diamond" for "Pokémon X, Y") stays a miss;
- *   - DLC base-name matches stay rejected.
- */
-function franchisePartialMatch(
-  input: string,
-  gameName: string,
-  log: DomainLogger
-): boolean {
-  const inputParsed = parseGameTitle(input)
-  const targetParsed = parseGameTitle(gameName)
+/** The forms a player may name in full. */
+function targetForms(target: ParsedTarget): Form[] {
+  const forms: Form[] = []
+  const coreTokens = [...target.base.tokens, ...target.subtitles.flatMap(u => u.tokens)]
+  if (target.expansions.length > 0) {
+    // "Dark Souls - Artorias of the Abyss": the core is the base game, a
+    // different entry from its expansion.
+    forms.push({ kind: 'base', tokens: coreTokens })
+    forms.push({ kind: 'full', tokens: [...coreTokens, ...target.expansions.flatMap(u => u.tokens)] })
+  } else {
+    forms.push({ kind: 'full', tokens: coreTokens })
+  }
+  for (const alt of target.alts) forms.push({ kind: 'full', tokens: alt.tokens })
+  for (const u of [...target.subtitles, ...target.expansions]) {
+    // The entry's own name must be a real name: a phrase, one word that is
+    // not generic ("Reach" yes, "Origins" alone no, "Episode Two" no), or a
+    // code with its number ("WWII").
+    const words = u.tokens.filter(t => isRequired(t) && t.kind === 'word')
+    const hasNumber = u.tokens.some(t => isRequired(t) && t.kind === 'number')
+    const distinctive =
+      words.length >= 2 || words.some(isDistinctiveWord) || (words.length === 1 && hasNumber)
+    if (distinctive) forms.push({ kind: 'own-name', tokens: u.tokens })
+  }
+  for (const u of target.parens) {
+    if (u.tokens.some(t => isRequired(t) && t.kind !== 'number')) {
+      forms.push({ kind: 'own-name', tokens: u.tokens })
+    }
+  }
+  // An alias is the entry's own name only when it adds identity of its own:
+  // "Pokémon Épée", "GTA 5", "TW3". One that merely repeats part of the base
+  // ("Les Sims" on The Sims 4, "Portal" on Portal 2, "Cuphead" on its DLC)
+  // is the franchise, and is graded through the base rules. An alias's
+  // dash expansion ("… – Blood and Wine" listed on the base game) is a
+  // different entry, so only the alias core counts.
+  const baseRequired = new Set(target.base.tokens.filter(isRequired).map(t => t.text))
+  for (const alias of target.aliases) {
+    const core = [...alias.base.tokens, ...alias.subtitles.flatMap(u => u.tokens)]
+    const required = core.filter(isRequired)
+    const addsIdentity = required.some(t => !baseRequired.has(t.text))
+    if (!addsIdentity || !required.some(t => t.kind !== 'number')) continue
+    forms.push({ kind: 'own-name', tokens: core })
+    // A translated subtitle ("Les Sables du Temps") is the entry's own name
+    // when the title has a subtitle to translate; a subtitle the title does
+    // not have ("Les Sims 4: Chiens et Chats" listed on The Sims 4) is an
+    // expansion listed on the base game.
+    for (const alt of alias.alts) forms.push({ kind: 'own-name', tokens: alt.tokens })
+    const titleHasEntryName = target.subtitles.length > 0 || target.expansions.length > 0
+    if (!titleHasEntryName) continue
+    for (const u of alias.subtitles) {
+      const words = u.tokens.filter(t => isRequired(t) && t.kind === 'word')
+      if (words.length >= 2 || words.some(isDistinctiveWord)) {
+        forms.push({ kind: 'own-name', tokens: u.tokens })
+      }
+    }
+  }
+  if (target.subtitles.length > 0) {
+    forms.push({ kind: 'base', tokens: target.base.tokens })
+  }
+  return forms
+}
 
-  // Nothing to be "partial" about unless the target has a sequel number the
-  // player could have left off.
-  if (targetParsed.seriesNumber === null) return false
+function requiredTokens(form: Form, target: ParsedTarget): Token[] {
+  return form.tokens.filter(t => {
+    if (!isRequired(t)) return false
+    // "The Last of Us Part I" is named without its "I".
+    if (
+      target.seriesNumberOmittable &&
+      t.kind === 'number' &&
+      target.base.tokens.includes(t) &&
+      t.text === String(target.seriesNumber)
+    ) {
+      return false
+    }
+    return true
+  })
+}
 
-  // A wrong number is a different game, not a less-precise answer.
-  if (
-    inputParsed.seriesNumber !== null &&
-    inputParsed.seriesNumber !== targetParsed.seriesNumber
-  ) {
-    return false
+function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context: object): MatchPrecision {
+  const alignment = align(input, target)
+  const { covered, inputNumbers } = alignment
+  let { foreign } = alignment
+
+  if (alignment.wrongNumbers.length > 0) {
+    log.debug({ ...context, numbers: alignment.wrongNumbers.map(t => t.text) }, 'none: number not in title')
+    return 'none'
   }
 
-  // Never reopen the deliberate DLC base-name rejection.
-  if (isBaseNameOnlyMatch(input, targetParsed)) return false
+  const forms = targetForms(target)
+  const fullyCovered = (form: Form): boolean => {
+    const required = requiredTokens(form, target)
+    return required.length > 0 && required.every(t => covered.has(t))
+  }
+  const ownNameCovered = forms.some(f => f.kind === 'own-name' && fullyCovered(f))
 
-  // The franchise root is the target's series name with the number stripped.
-  const franchiseRoot = targetParsed.seriesName ?? targetParsed.baseName
-  if (!franchiseRoot) return false
-
-  const inputNorm = normalizeForFuzzy(stripCommonPrefixes(input))
-  const rootNorm = normalizeForFuzzy(stripCommonPrefixes(franchiseRoot))
-  if (!inputNorm || !rootNorm) return false
-
-  // The franchise must be clearly identified — plain JW for the in-order case,
-  // token-sort for natural word reorders. Either clears the bar.
-  const sim = Math.max(
-    jaroWinkler(inputNorm, rootNorm),
-    tokenSortSimilarity(inputNorm, rootNorm)
-  )
-  if (sim < SERIES_NAME_THRESHOLD) return false
-
-  // Subset guard: every meaningful input token must appear in the FULL target
-  // title. This is what separates "named the franchise" (a subset of the
-  // title's words) from "named a different entry" (adds a foreign token).
-  const targetTokens = tokenize(normalizeForFuzzy(gameName))
-  const inputTokens = tokenize(inputNorm).filter(
-    t => t.length >= MEANINGFUL_TOKEN_MIN_LENGTH && !STOP_TOKENS.has(t)
-  )
-  const allCovered = inputTokens.every(it =>
-    targetTokens.some(
-      tt =>
-        tt === it ||
-        (tt.length >= MEANINGFUL_TOKEN_MIN_LENGTH &&
-          (tt.includes(it) || it.includes(tt) || jaroWinkler(it, tt) >= 0.9))
+  // One heavily misspelled franchise word is forgiven when the entry's own
+  // name is right ("grand thieves auto san andreas"): the player clearly
+  // identified the game.
+  if (foreign.length === 1 && ownNameCovered) {
+    const stray = foreign[0]!
+    const near = target.units.some(u =>
+      u.tokens.some(
+        t =>
+          t.kind === 'word' &&
+          !covered.has(t) &&
+          t.text[0] === stray.text[0] &&
+          jaroWinkler(stray.text, t.text) >= 0.7
+      )
     )
-  )
-  if (!allCovered) return false
-  // "dark" alone must not take "Dark Souls III".
-  if (inputTokens.every(t => GENERIC_TITLE_TOKENS.has(t))) return false
-
-  log.debug({ input, gameName, franchiseRoot, sim }, 'franchise partial match')
-  return true
-}
-
-// Words so common across game titles that naming only them identifies
-// nothing ("super" fits hundreds of games). A fragment guess needs at least
-// one token outside this list to earn partial credit.
-const GENERIC_TITLE_TOKENS = new Set([
-  'super', 'new', 'game', 'games', 'world', 'worlds', 'war', 'wars', 'battle',
-  'legend', 'legends', 'city', 'dark', 'age', 'star', 'stars', 'online',
-  'story', 'adventure', 'adventures', 'tales', 'quest', 'hero', 'heroes',
-  'king', 'kingdom', 'space', 'evil', 'life', 'ultimate', 'origins',
-  'chronicles', 'saga', 'return', 'rise', 'night', 'dead', 'last', 'lost',
-  'black', 'red', 'blue', 'island', 'racing', 'party', 'mega', 'escape',
-  'tactics', 'arena', 'collection', 'simulator', 'edition', 'part',
-])
-
-/**
- * Forms of the target a player may legitimately name in full: the title, its
- * parenthesised base ("Fahrenheit" for "Fahrenheit (Indigo Prophecy)") and
- * its pre-dash core ("Dawn of War" for "Dawn of War - Dark Crusade").
- */
-function fullTitleForms(gameName: string): string[] {
-  const forms = new Set<string>([gameName])
-  const paren = extractParenthesizedAliases(gameName)
-  forms.add(paren.base)
-  forms.add(stripExpansionSuffix(gameName))
-  forms.add(stripExpansionSuffix(paren.base))
-  return [...forms]
-}
-
-/**
- * True when the input names only the LEADING part of the title — the
- * franchise — and stops before the part that tells entries apart: "call of
- * duty" for "Call of Duty: Black Ops", "far cry" for "Far Cry Primal",
- * "pokemon" for "Pokémon Sword".
- *
- * The strict matcher accepts some of these (a long franchise scores high on
- * Jaro-Winkler, "Base: Subtitle" base names are let through on purpose) and
- * refuses others, which made the rule look random to players: "far cry" was
- * partial on Far Cry 5 but full credit on Far Cry Primal. Grading every
- * franchise-only answer as `partial` makes it one rule.
- *
- * Not franchise-only (stays `exact`): the input carries the target's number
- * ("witcher 3"), equals a full form or an alias, or names the subtitle.
- */
-function isFranchiseOnly(input: string, gameName: string, aliases: string[]): boolean {
-  const inputTokens = titleTokens(input)
-  if (inputTokens.length === 0) return false
-
-  const inputNorm = normalizeForFuzzy(input)
-  for (const alias of aliases) {
-    if (jaroWinkler(inputNorm, normalizeForFuzzy(alias)) >= ALIAS_THRESHOLD) return false
+    if (near) foreign = []
+  }
+  if (foreign.length > 0) {
+    log.debug({ ...context, foreign: foreign.map(t => t.raw) }, 'none: word not in title')
+    return 'none'
   }
 
-  const targetNumber = parseGameTitle(gameName).seriesNumber
-  if (targetNumber !== null && inputTokens.includes(String(targetNumber))) return false
+  if (forms.some(f => f.kind !== 'base' && fullyCovered(f))) {
+    if (alignment.shortAcronymOnly) {
+      log.debug(context, 'partial: two-letter acronym alone')
+      return 'partial'
+    }
+    log.debug(context, 'exact: full form named')
+    return 'exact'
+  }
 
-  const forms = fullTitleForms(gameName).map(titleTokens)
-  if (forms.some(f => f.join(' ') === inputTokens.join(' '))) return false
+  // A number the guess states after the franchise belongs to the franchise:
+  // "call of duty 2" is not "Call of Duty: Modern Warfare 2".
+  const baseWords = target.base.tokens.filter(t => isRequired(t) && t.kind !== 'number')
+  const hasSeriesNumber = target.seriesNumber !== null && inputNumbers.has(String(target.seriesNumber))
+  if (target.seriesNumber === null && inputNumbers.size > 0 && target.subtitles.length > 0) {
+    const subtitleWordNamed = target.subtitles.some(u =>
+      u.tokens.some(t => isRequired(t) && t.kind === 'word' && covered.has(t))
+    )
+    const baseNumbered = target.base.tokens.some(t => t.kind === 'number' && covered.has(t))
+    const subtitleLeadsWithNumber = target.subtitles.some(
+      u => u.tokens.find(isRequired)?.kind === 'number'
+    )
+    if (!subtitleWordNamed && !baseNumbered && !subtitleLeadsWithNumber && target.sequelNumbers.size > 0) {
+      log.debug(context, 'none: number claimed for the franchise belongs to the subtitle')
+      return 'none'
+    }
+  }
 
-  // Leading prefix of the full title, with something distinctive left over.
-  const full = forms[0]!
-  if (inputTokens.length >= full.length) return false
-  const isPrefix = inputTokens.every((t, i) => tokensEquivalent(t, full[i]!))
-  if (!isPrefix) return false
-  return full.slice(inputTokens.length).some(isMeaningfulToken)
+  // The franchise with its sequel number names the entry ("witcher 3",
+  // "metal gear solid 2"); every word of the franchise is needed, so that
+  // "sonic 2" is not Sonic Adventure 2. Without the number, or when the
+  // subtitle only numbers an episode of the base game, the player named
+  // the franchise.
+  if (forms.some(f => f.kind === 'base' && fullyCovered(f))) {
+    if (hasSeriesNumber && !target.episodeSubtitle) {
+      log.debug(context, 'exact: franchise + sequel number')
+      return 'exact'
+    }
+    if (target.dlc) {
+      // The base game is a different entry from its DLC ("cuphead" for
+      // "Cuphead: The Delicious Last Course").
+      log.debug(context, 'none: base game named for a DLC')
+      return 'none'
+    }
+    log.debug(context, 'partial: franchise named, entry omitted')
+    return 'partial'
+  }
+
+  // Every word of the base, number omitted ("the last of us" for "The Last
+  // of Us Part II", "left 4 dead" for "Left 4 Dead 2"): the franchise is
+  // named even when its words are generic on their own.
+  if (
+    baseWords.length > 0 &&
+    baseWords.every(t => covered.has(t)) &&
+    // A single revealed letter ("F" of "F-Zero") is not the franchise.
+    baseWords.some(t => t.text.length >= 2)
+  ) {
+    log.debug(context, 'partial: franchise named, number omitted')
+    return 'partial'
+  }
+
+  if (alignment.distinctive.length > 0) {
+    log.debug({ ...context, words: alignment.distinctive.map(t => t.raw) }, 'partial: words of the title')
+    return 'partial'
+  }
+  log.debug(context, 'none: nothing distinctive named')
+  return 'none'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Structural parse exposed to other services
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ParsedGameTitle {
+  /** Franchise root: the base without its sequel number ("The Witcher"). */
+  seriesName: string | null
+  seriesNumber: number | null
+  subtitle: string | null
+  /** Part before the colon, when the title has one. */
+  baseName: string | null
+  original: string
+  normalized: string
 }
 
 /**
- * Partial credit for a guess made of words from the title that isn't a
- * leading prefix, e.g. "zelda" for "The Legend of Zelda: Breath of the
- * Wild", "tomb raider" for "Rise of the Tomb Raider", "valhalla" for
- * "Assassin's Creed Valhalla", or a franchise acronym ("gta" for "Grand
- * Theft Auto: Vice City"). Such guesses were flatly refused while a
- * franchise that happened to start the title earned credit.
+ * Parse a game title into structured components.
  *
- * Guards, so a cheap or wrong guess never scores:
- *   - every meaningful input token is a token of the title (or of one alias),
- *     typo-tolerant but not truncation-tolerant;
- *   - at least one of them is not a generic title word ("super", "war"...);
- *   - any number in the input is the target's number (a wrong or foreign
- *     number names another entry);
- *   - the deliberate DLC base-name rejection stands.
+ * - "The Witcher 3: Wild Hunt" -> { seriesName: "the witcher", seriesNumber: 3, subtitle: "Wild Hunt", baseName: "The Witcher 3" }
+ * - "Dark Souls III" -> { seriesName: "dark souls", seriesNumber: 3, subtitle: null, baseName: null }
+ * - "Warhammer 40,000" -> { seriesName: "warhammer 40000", seriesNumber: null, ... }
  */
-function titleFragmentPartialMatch(
-  input: string,
-  gameName: string,
-  aliases: string[],
-  log: DomainLogger
-): boolean {
-  const targetParsed = parseGameTitle(gameName)
-  if (isBaseNameOnlyMatch(input, targetParsed)) return false
-
-  let inputTokens = titleTokens(input)
-
-  // Expand a franchise acronym ("gta" -> "grand theft auto").
-  const acronymSource = targetParsed.seriesName ?? targetParsed.baseName ?? gameName
-  const acronym = deriveAcronym(acronymSource)
-  if (acronym && inputTokens.includes(acronym)) {
-    inputTokens = inputTokens.flatMap(t => (t === acronym ? titleTokens(acronymSource) : [t]))
+function parseGameTitle(title: string): ParsedGameTitle {
+  const target = parseTarget(title, [])
+  const rootTokens = target.base.tokens.filter(t => isRequired(t) || t.stop)
+  const last = rootTokens[rootTokens.length - 1]
+  if (last && target.seriesNumber !== null && last.text === String(target.seriesNumber)) {
+    rootTokens.pop()
   }
-
-  const numbers = inputTokens.filter(isNumberToken)
-  if (numbers.some(n => targetParsed.seriesNumber === null || n !== String(targetParsed.seriesNumber))) {
-    return false
+  const seriesName = rootTokens.map(t => t.text).join(' ').trim() || null
+  const rawCore = title.replace(/\(([^)]*)\)/g, ' ').split(/\s+[-–—+]\s+/)[0] ?? title
+  const colon = rawCore.search(/:\s*/)
+  return {
+    seriesName,
+    seriesNumber: target.seriesNumber,
+    subtitle: colon > 0 ? rawCore.slice(colon + 1).trim() || null : null,
+    baseName: colon > 0 ? rawCore.slice(0, colon).trim() : null,
+    original: title,
+    normalized: normalizeText(title),
   }
-
-  const meaningful = inputTokens.filter(t => !isNumberToken(t) && isMeaningfulToken(t))
-  if (meaningful.length === 0) return false
-  if (meaningful.every(t => GENERIC_TITLE_TOKENS.has(t))) return false
-
-  const candidates = [...fullTitleForms(gameName), ...aliases].map(titleTokens)
-  const covered = candidates.some(candidate =>
-    meaningful.every(t => candidate.some(ct => tokensEquivalent(t, ct)))
-  )
-  if (!covered) return false
-
-  log.debug({ input, gameName }, 'title fragment partial match')
-  return true
 }
+
+/**
+ * Check if two series numbers are compatible: an input without a number is
+ * not restrictive; an input with one must match.
+ */
+function seriesNumbersMatch(inputNum: number | null, targetNum: number | null): boolean {
+  if (inputNum === null) return true
+  if (targetNum === null) return false
+  return inputNum === targetNum
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Service
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface FuzzyMatchService {
-  /**
-   * Calculate similarity between two strings
-   */
+  /** Jaro-Winkler similarity of the normalised strings (ranking / logging only). */
   calculateSimilarity(input: string, target: string): number
   /**
-   * Check if input matches the game name or any alias (STRICT / full-title
-   * semantics). Unchanged contract — used by the letter-reveal leak gate, so
-   * it must never loosen. For graded scoring use `evaluateMatch`.
+   * Strict acceptance: the guess names the full title (`exact`). Used where a
+   * franchise-only answer must not count, e.g. resolving which catalogue game
+   * a player named. For graded scoring use `evaluateMatch`.
    */
   isMatch(input: string, gameName: string, aliases?: string[]): boolean
   /**
-   * Graded match: returns whether the guess is accepted and at what precision
-   * (`exact` full title vs `partial` franchise-only). A wrong number or an
-   * unrelated guess returns `none`. Consumed by the scorer to award reduced
-   * points for a franchise-level identification.
+   * Graded match: `exact` (full title, the entry's own name, or franchise +
+   * sequel number), `partial` (franchise or words of the title only) or
+   * `none` (wrong number, foreign word, unrelated guess).
    */
   evaluateMatch(input: string, gameName: string, aliases?: string[]): MatchResult
-  /**
-   * Get the best match score for debugging/logging
-   */
+  /** Best Jaro-Winkler score against the title or an alias, for logging. */
   getBestMatchScore(
     input: string,
     gameName: string,
     aliases?: string[]
   ): { bestScore: number; matchedOn: string }
-  /**
-   * Parse a game title into structured components (exposed for testing)
-   */
   parseGameTitle: typeof parseGameTitle
-  /**
-   * Check if two series numbers match (exposed for testing)
-   */
   seriesNumbersMatch: typeof seriesNumbersMatch
 }
 
@@ -1197,63 +1440,45 @@ export interface FuzzyMatchServiceDeps {
   logger: DomainLogger
 }
 
-/**
- * Create a FuzzyMatchService with injected dependencies.
- * The logger is used for debug-level tracing inside the matching algorithm.
- */
 export function createFuzzyMatchService(deps: FuzzyMatchServiceDeps): FuzzyMatchService {
   const log = deps.logger.child({ service: 'fuzzy-match' })
 
+  const evaluateMatch = (input: string, gameName: string, aliases: string[] = []): MatchResult => {
+    const inputTokens = parseInput(input)
+    if (!inputTokens.some(t => !t.stop && !t.structural && !t.edition && !t.soft)) {
+      return { matched: false, precision: 'none' }
+    }
+    const target = parseTarget(gameName, aliases)
+    const precision = grade(inputTokens, target, log, { input, gameName })
+    return { matched: precision !== 'none', precision }
+  }
+
   return {
     calculateSimilarity(input: string, target: string): number {
-      const normalizedInput = normalizeForFuzzy(input)
-      const normalizedTarget = normalizeForFuzzy(target)
-      return jaroWinkler(normalizedInput, normalizedTarget)
+      return jaroWinkler(normalizeText(input), normalizeText(target))
     },
 
     isMatch(input: string, gameName: string, aliases: string[] = []): boolean {
-      return strictMatch(input, gameName, aliases, log)
+      return evaluateMatch(input, gameName, aliases).precision === 'exact'
     },
 
-    evaluateMatch(input: string, gameName: string, aliases: string[] = []): MatchResult {
-      // One rule, whatever the shape of the title:
-      //   - the full title, the entry's own name (subtitle) or the franchise
-      //     plus the right number -> `exact`;
-      //   - only the franchise, or only some words of the title -> `partial`;
-      //   - a wrong number, a foreign word or an unrelated guess -> `none`.
-      if (strictMatch(input, gameName, aliases, log)) {
-        if (isFranchiseOnly(input, gameName, aliases)) {
-          log.debug({ input, gameName }, 'franchise-only answer graded partial')
-          return { matched: true, precision: 'partial' }
-        }
-        return { matched: true, precision: 'exact' }
-      }
-      if (
-        franchisePartialMatch(input, gameName, log) ||
-        titleFragmentPartialMatch(input, gameName, aliases, log)
-      ) {
-        return { matched: true, precision: 'partial' }
-      }
-      return { matched: false, precision: 'none' }
-    },
+    evaluateMatch,
 
     getBestMatchScore(
       input: string,
       gameName: string,
       aliases: string[] = []
     ): { bestScore: number; matchedOn: string } {
-      const normalizedInput = normalizeForFuzzy(input)
-      let bestScore = jaroWinkler(normalizedInput, normalizeForFuzzy(gameName))
+      const normalizedInput = normalizeText(input)
+      let bestScore = jaroWinkler(normalizedInput, normalizeText(gameName))
       let matchedOn = gameName
-
       for (const alias of aliases) {
-        const score = jaroWinkler(normalizedInput, normalizeForFuzzy(alias))
+        const score = jaroWinkler(normalizedInput, normalizeText(alias))
         if (score > bestScore) {
           bestScore = score
           matchedOn = alias
         }
       }
-
       return { bestScore, matchedOn }
     },
 
