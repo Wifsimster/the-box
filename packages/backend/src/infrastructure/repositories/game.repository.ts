@@ -254,7 +254,9 @@ export const gameRepository = {
 
   /**
    * Update a game with data from RAWG API.
-   * Only updates metadata fields, not slug or aliases (user-curated).
+   * Updates metadata fields, never the slug. Aliases are written only when
+   * passed, and the caller passes the curated list plus any new RAWG
+   * alternative names (see mergeGameAliases) — nothing is ever removed.
    */
   async updateFromRawg(id: number, data: {
     name?: string
@@ -266,6 +268,8 @@ export const gameRepository = {
     coverImageUrl?: string
     metacritic?: number
     rawgId?: number
+    /** Full alias list to store — callers merge, never drop curated ones. */
+    aliases?: string[]
     lastSyncedAt?: Date
   }): Promise<Game | null> {
     log.info({ gameId: id, fields: Object.keys(data) }, 'updateFromRawg')
@@ -279,6 +283,7 @@ export const gameRepository = {
     if (data.coverImageUrl !== undefined) updateData['cover_image_url'] = data.coverImageUrl
     if (data.metacritic !== undefined) updateData['metacritic'] = data.metacritic
     if (data.rawgId !== undefined) updateData['rawg_id'] = data.rawgId
+    if (data.aliases !== undefined) updateData['aliases'] = data.aliases
     if (data.lastSyncedAt !== undefined) updateData['last_synced_at'] = data.lastSyncedAt
 
     if (Object.keys(updateData).length === 0) {

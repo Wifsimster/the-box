@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url'
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { gameRepository } from '../../repositories/index.js'
+import { mergeGameAliases } from '../../../domain/services/game-aliases.service.js'
 
 const log = queueLogger
 
@@ -61,6 +62,7 @@ interface RAWGGame {
   platforms: RAWGPlatform[]
   screenshots_count?: number
   metacritic?: number
+  alternative_names?: string[]
 }
 
 interface RAWGScreenshot {
@@ -271,7 +273,7 @@ export async function fetchGamesFromRAWG(
         rawg_id: rawGame.id,
         name: rawGame.name,
         slug: rawGame.slug,
-        aliases: [],
+        aliases: mergeGameAliases(rawGame.name, [], details.alternative_names ?? []),
         release_year: rawGame.released ? parseInt(rawGame.released.slice(0, 4)) : null,
         developer: details.developers?.[0]?.name ?? null,
         publisher: details.publishers?.[0]?.name ?? null,

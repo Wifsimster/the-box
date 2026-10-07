@@ -20,6 +20,7 @@ import { importStateRepository } from '../../repositories/import-state.repositor
 import { importQueue } from '../queues.js'
 import { broadcastBatchImportProgress } from '../../socket/socket.js'
 import type { ImportState, JobData } from '@the-box/types'
+import { mergeGameAliases } from '../../../domain/services/game-aliases.service.js'
 
 const log = queueLogger.child({ module: 'batch-import' })
 
@@ -95,6 +96,7 @@ interface RAWGGame {
   platforms: RAWGPlatform[]
   screenshots_count?: number
   metacritic?: number
+  alternative_names?: string[]
 }
 
 interface RAWGScreenshot {
@@ -460,7 +462,7 @@ export async function processBatch(
         const game = await gameRepository.create({
           name: rawGame.name,
           slug: rawGame.slug,
-          aliases: [],
+          aliases: mergeGameAliases(rawGame.name, [], details.alternative_names ?? []),
           releaseYear: rawGame.released ? parseInt(rawGame.released.slice(0, 4)) : undefined,
           developer: details.developers?.[0]?.name,
           publisher: details.publishers?.[0]?.name,
