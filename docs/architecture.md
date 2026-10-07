@@ -125,6 +125,7 @@ L'application s'appuie sur BullMQ et Redis pour les traitements asynchrones.
 | `import-screenshots` | Récupérer des captures pour les jeux | À la demande |
 | `create-daily-challenge` | Générer le défi quotidien | Tous les jours à 00:00 UTC |
 | `sync-all-games` | Synchroniser les données RAWG | Hebdomadaire (dim. 02:00 UTC) |
+| `refresh-game-aliases` | Ajouter les titres alternatifs RAWG (`alternative_names`) aux alias des jeux existants, par lots de 100 enchaînés | À la demande |
 | `geo-*-import` | Importer des données géo (Wikidata, Steam, Fandom, etc.) | À la demande |
 | `streak-risk-email` | Envoyer un rappel aux joueurs en risque de perdre leur série | Programmé |
 | `referral-announcement-email` | Annonce d'arrivée d'un filleul | Sur événement |

@@ -17,6 +17,7 @@ import {
   Users,
   Trash2,
   MapPin,
+  Languages,
 } from 'lucide-react'
 
 function formatRelativeTime(dateString: string, language: string): string {
@@ -61,6 +62,7 @@ function getJobTranslationKey(jobName: string): string {
     'send-tournament-reminders': 'admin.jobs.sendTournamentReminders',
     'recalculate-scores': 'admin.jobs.recalculateScores',
     'clear-daily-data': 'admin.jobs.clearDailyData',
+    'refresh-game-aliases': 'admin.jobs.refreshGameAliases',
     'streak-risk-email': 'admin.jobs.streakRiskEmail',
     'relance-email': 'admin.jobs.relanceEmail',
     'inactive-user-reminder': 'admin.jobs.inactiveUserReminder',
@@ -81,6 +83,7 @@ function getJobRunningTranslationKey(jobName: string): string {
     'send-tournament-reminders': 'admin.jobs.sendTournamentRemindersRunning',
     'recalculate-scores': 'admin.jobs.recalculateScoresRunning',
     'clear-daily-data': 'admin.jobs.clearDailyDataRunning',
+    'refresh-game-aliases': 'admin.jobs.refreshGameAliasesRunning',
     'streak-risk-email': 'admin.jobs.streakRiskEmailRunning',
     'relance-email': 'admin.jobs.relanceEmailRunning',
     'inactive-user-reminder': 'admin.jobs.inactiveUserReminderRunning',
@@ -146,6 +149,11 @@ function getJobMetadata(jobName: string, t: (key: string) => string) {
     'clear-daily-data': {
       description: t('admin.jobs.descriptions.clearDailyData'),
       icon: <Trash2 className="size-4" />,
+      category: 'Maintenance',
+    },
+    'refresh-game-aliases': {
+      description: t('admin.jobs.descriptions.refreshGameAliases'),
+      icon: <Languages className="size-4" />,
       category: 'Maintenance',
     },
     'streak-risk-email': {

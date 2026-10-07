@@ -100,7 +100,7 @@ Une seule règle, quelle que soit la forme du titre (numéroté, `Série : Sous-
 | Mauvais numéro, mot étranger au titre, mot générique seul, réponse sans rapport | `none` | « witcher 2 », « black ops 3 » pour Black Ops II, « pokemon diamond » pour Pokémon X/Y, « dark », « super » |
 
 - Accents repliés (« pokemon » = « Pokémon »), article de tête français équivalent à « The » (« les sims 4 » = « The Sims 4 »).
-- Les **alias** (titres alternatifs, dont les titres français) valent le titre complet. Les imports RAWG et la synchro remplissent les alias depuis `alternative_names` (alphabet latin uniquement, alias curés conservés, plafond 20 — `game-aliases.service.ts`). Un admin peut en ajouter à la main.
+- Les **alias** (titres alternatifs, dont les titres français) valent le titre complet. Les imports RAWG et la synchro remplissent les alias depuis `alternative_names` (alphabet latin uniquement, alias curés conservés, plafond 20 — `game-aliases.service.ts`). Pour les jeux déjà en base, le job admin **Mettre à jour les alias** (`refresh-game-aliases`) parcourt tout le catalogue par identifiant/slug RAWG sans rien importer d'autre. Un admin peut aussi en ajouter à la main.
 - `isMatch` (contrat strict utilisé par le garde-fou anti-fuite des lettres) n'est pas affecté par la notation `partial`.
 
 ### Score maximal

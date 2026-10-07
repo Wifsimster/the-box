@@ -12,6 +12,8 @@ import { sendGeoGamersDailyPush } from './geogamers-daily-push-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
+import { refreshGameAliases } from './refresh-game-aliases-logic.js'
+import { importQueue } from '../queues.js'
 import { sendStreakRiskEmails } from './streak-risk-email-logic.js'
 import { sendEveningNudges } from './evening-nudge-logic.js'
 import { sendRelanceEmails } from './relance-email-logic.js'
@@ -341,6 +343,31 @@ export const importWorker = new Worker<JobData, JobResult>(
         }
 
         log.info({ jobId: id, result: jobResult }, 'clear-daily-data job completed')
+        return jobResult
+      }
+
+      if (name === 'refresh-game-aliases') {
+        const result = await refreshGameAliases(data.offset ?? 0, (current, total) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 100
+          job.updateProgress(progress)
+        })
+
+        const jobResult: JobResult = {
+          gamesProcessed: result.gamesProcessed,
+          gamesUpdated: result.gamesUpdated,
+          aliasesAdded: result.aliasesAdded,
+          failedCount: result.failedCount,
+          message: result.message,
+        }
+
+        if (result.nextOffset !== null) {
+          await importQueue.add('refresh-game-aliases', { offset: result.nextOffset }, {
+            jobId: `refresh-game-aliases-${Date.now()}`,
+            priority: 1000, // Lowest priority - yields to all other tasks (as sync-all)
+          })
+        }
+
+        log.info({ jobId: id, result: jobResult }, 'refresh-game-aliases job completed')
         return jobResult
       }
 
