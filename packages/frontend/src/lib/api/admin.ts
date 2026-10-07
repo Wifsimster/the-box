@@ -197,6 +197,21 @@ export const adminApi = {
   },
 
   /**
+   * Start refresh-game-aliases job (manual trigger): RAWG alternative names
+   * into aliases for existing games, imports nothing.
+   */
+  async triggerRefreshGameAliases(): Promise<{ job: Job }> {
+    const response = await fetch('/api/admin/jobs/refresh-game-aliases', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return handleResponse<{ job: Job }>(response)
+  },
+
+  /**
    * Start clear-daily-data job (manual trigger)
    */
   async triggerClearDailyData(): Promise<{ job: Job }> {

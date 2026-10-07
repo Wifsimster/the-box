@@ -98,6 +98,7 @@ interface AdminState {
   cancelActiveSyncAll: () => Promise<void>
   triggerCleanupAnonymousUsersJob: () => Promise<void>
   triggerClearDailyDataJob: () => Promise<void>
+  triggerRefreshGameAliasesJob: () => Promise<void>
   triggerImportGames: (targetGames?: number, screenshotsPerGame?: number) => Promise<void>
   triggerImportScreenshots: () => Promise<void>
   createImportGamesJob: (targetGames?: number, screenshotsPerGame?: number, minMetacritic?: number) => Promise<Job>
@@ -309,6 +310,17 @@ export const useAdminStore = create<AdminState>()(
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger clear daily data job:', err)
+          throw err
+        }
+      },
+
+      triggerRefreshGameAliasesJob: async () => {
+        try {
+          await adminApi.triggerRefreshGameAliases()
+          // Refresh job list after triggering
+          get().fetchJobs()
+        } catch (err) {
+          console.error('Failed to trigger refresh game aliases job:', err)
           throw err
         }
       },

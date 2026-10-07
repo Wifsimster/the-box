@@ -225,6 +225,21 @@ router.post('/jobs/cleanup-anonymous-users', async (_req, res, next) => {
   }
 })
 
+// Shortcut: Start refresh-game-aliases job (RAWG alternative names -> aliases,
+// existing games only — imports nothing)
+router.post('/jobs/refresh-game-aliases', async (_req, res, next) => {
+  try {
+    const job = await jobService.createJob('refresh-game-aliases', {})
+
+    res.status(201).json({
+      success: true,
+      data: { job },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // Shortcut: Start clear-daily-data job
 router.post('/jobs/clear-daily-data', async (_req, res, next) => {
   try {

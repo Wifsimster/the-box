@@ -291,6 +291,7 @@ POST   /api/admin/jobs/full-import        # Import complet (pause/resume)
 POST   /api/admin/jobs/full-import/pause
 POST   /api/admin/jobs/full-import/resume
 POST   /api/admin/jobs/sync-all
+POST   /api/admin/jobs/refresh-game-aliases # Alias RAWG des jeux existants (n'importe rien)
 DELETE /api/admin/jobs/:id                # Annuler
 DELETE /api/admin/jobs/completed          # Purger les tâches terminées
 ```

@@ -17,6 +17,15 @@ const CONFIRM_BEFORE_RUN: Record<string, string> = {
 // at module scope for a single stable allocation rather than rebuilding each render.
 const MANUAL_JOBS = [
   {
+    id: 'manual-refresh-game-aliases',
+    name: 'refresh-game-aliases',
+    pattern: null,
+    every: null,
+    nextRun: null,
+    isActive: false,
+    isManual: true,
+  },
+  {
     id: 'manual-clear-daily-data',
     name: 'clear-daily-data',
     pattern: null,
@@ -37,6 +46,7 @@ export function JobList() {
     cancelActiveSyncAll,
     triggerCleanupAnonymousUsersJob,
     triggerClearDailyDataJob,
+    triggerRefreshGameAliasesJob,
     startRecalculateScores,
   } = useAdminStore()
 
@@ -76,6 +86,8 @@ export function JobList() {
         await startRecalculateScores({ batchSize: 100, dryRun: false })
       } else if (jobName === 'clear-daily-data') {
         await triggerClearDailyDataJob()
+      } else if (jobName === 'refresh-game-aliases') {
+        await triggerRefreshGameAliasesJob()
       }
     } catch (err) {
       // Handle conflict error for sync-all jobs
