@@ -32,7 +32,7 @@ export interface ProximityAnswer {
 
 /** Just the parts of the fuzzy-match service this computation depends on. */
 export interface ProximityFuzzyMatcher {
-  isMatch(input: string, gameName: string, aliases?: string[]): boolean
+  evaluateMatch(input: string, gameName: string, aliases?: string[]): { matched: boolean }
   parseGameTitle(title: string): { seriesName: string | null; baseName: string | null }
 }
 
@@ -95,12 +95,14 @@ export function computeGuessProximityHint(
   const { guessText, answer, candidates, fuzzyMatch } = input
   if (!guessText.trim() || candidates.length === 0) return null
 
-  // Find the catalogue game the player most plausibly meant. Never resolve to
-  // the answer's own row — that would let a near-miss confirm the title.
+  // Find the catalogue game the player most plausibly meant. A franchise-only
+  // guess ("zelda") still names a franchise, so partial credit resolves too.
+  // Never resolve to the answer's own row — that would let a near-miss
+  // confirm the title.
   let matched: Game | undefined
   for (const candidate of candidates) {
     if (candidate.id === answer.id) continue
-    if (fuzzyMatch.isMatch(guessText, candidate.name, candidate.aliases ?? [])) {
+    if (fuzzyMatch.evaluateMatch(guessText, candidate.name, candidate.aliases ?? []).matched) {
       matched = candidate
       break
     }

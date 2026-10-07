@@ -91,17 +91,26 @@ Plus la réponse est rapide, plus le score est élevé.
 
 ### Réponses acceptées (`fuzzy-match.service.ts`)
 
-Une seule règle, quelle que soit la forme du titre (numéroté, `Série : Sous-titre`, ou suffixe nu comme « Far Cry Primal ») :
+Le vérificateur raisonne **mot à mot** (et non plus sur une similarité globale de chaîne) : chaque mot de la réponse doit être expliqué par le titre, et la réponse doit couvrir une des *formes* complètes du titre pour valoir le score plein. Une seule règle, quelle que soit la forme du titre (numéroté, `Série : Sous-titre`, suffixe nu comme « Far Cry Primal », extension après un tiret) :
 
 | Réponse | Précision | Exemples |
 |---------|-----------|----------|
-| Titre complet, nom propre de l'épisode (sous-titre) ou licence + bon numéro | `exact` (score plein) | « breath of the wild », « skyrim », « witcher 3 », « gta 5 », « far cry primal » |
-| Licence seule, ou des mots du titre sans ce qui distingue l'épisode | `partial` (× 0,4) | « far cry » (Far Cry 5 **et** Far Cry Primal), « halo », « zelda », « tomb raider », « gta » |
-| Mauvais numéro, mot étranger au titre, mot générique seul, réponse sans rapport | `none` | « witcher 2 », « black ops 3 » pour Black Ops II, « pokemon diamond » pour Pokémon X/Y, « dark », « super » |
+| Titre complet, nom propre de l'épisode (sous-titre, extension, nom alternatif entre parenthèses, alias), ou licence + bon numéro | `exact` (score plein) | « breath of the wild », « skyrim », « witcher 3 », « gta 5 », « far cry primal », « assassins creed black flag », « blood and wine », « ff7 », « zelda botw », « tlou2 », « csgo » |
+| Licence seule, ou des mots du titre sans ce qui distingue l'épisode | `partial` (× 0,4) | « far cry » (Far Cry 5 **et** Far Cry Primal), « halo », « zelda », « tomb raider », « gta », « witcher », « the last of us » pour Part II, « red dead », « star wars », un acronyme de deux lettres seul (« re », « ds ») |
+| Mauvais numéro, mot étranger au titre, mot générique seul, chiffres seuls, réponse sans rapport | `none` | « witcher 2 », « portal 2 » pour Portal, « black ops 3 » pour Black Ops II, « pokemon red » pour Pokémon Blue, « dead space » pour Dead Cells, « pokemon diamond » pour Pokémon X/Y, « dark », « super », « 2018 » |
 
-- Accents repliés (« pokemon » = « Pokémon »), article de tête français équivalent à « The » (« les sims 4 » = « The Sims 4 »).
+Ce que le vérificateur comprend :
+
+- **Normalisation** : accents repliés (« pokemon » = « Pokémon »), apostrophes et ponctuation ignorées (« assassins creed », « half life », « nier automata »), `&`/`+`/« et » = « and », « vs »/« versus », majuscules indifférentes, article de tête (the/le/la/les/l') et élision française optionnels (« les sims 4 » = « The Sims 4 », « l'ombre du mordor »).
+- **Numéros** : chiffres romains (I–XX), mots-nombres et ordinaux (« episode two », « the 2nd runner ») sont équivalents aux chiffres ; « x » vaut aussi 10 (« final fantasy x » = « Final Fantasy 10 »). Un numéro absent du titre est un autre jeu (`none`) ; « 1 » est accepté pour un premier épisode sans numéro (« half life 1 »). Un « Part I »/« I » final peut être omis (« the last of us » = « The Last of Us Part I »).
+- **Raccourcis** : acronymes dérivés de la licence, du sous-titre ou du titre entier (« gta », « cod », « mgs », « tlou », « botw », « totk », « csgo », « l4d »), y compris collés à un numéro (« ff7 », « re4 », « kh2 », « mk11 », « p5r », « ffx-2 »), mots collés ou coupés (« halflife », « eldenring », « star craft »), « civ » pour Civilization. Un acronyme de deux lettres seul vaut au plus `partial`.
+- **Fautes de frappe** : une édition (ajout, suppression, substitution, inversion) par mot de 5 à 8 lettres, deux au-delà ; les mots de 4 lettres ou moins et tout ce qui contient un chiffre doivent être exacts (« rime » ≠ « rome », « 2k22 » ≠ « 2k23 »). Une troncature n'est jamais une faute de frappe (« unb » ≠ « unbound »).
+- **Éditions et préfixes** : les suffixes d'édition en fin d'unité sont optionnels des deux côtés (« remastered », « remake », « definitive edition », « HD », « 3D », « royal », « deluxe », « final mix », « trilogy », « collection »…), ainsi que les préfixes de marque (« Marvel's », « Sid Meier's », « Tom Clancy's », « Super » devant un vrai nom). Un « 3D » au milieu du titre reste requis (« super mario world » ≠ « Super Mario 3D World »).
+- **Versions jumelées** : « Pokémon X, Y » accepte « pokemon x » et « pokemon y ».
+- **DLC** : le jeu de base seul pour une extension au sous-titre explicite (« cuphead » pour « Cuphead: The Delicious Last Course ») reste `none` ; avec son numéro (« witcher 3 » pour « … – Blood and Wine ») il vaut `exact`.
 - Les **alias** (titres alternatifs, dont les titres français) valent le titre complet. Les imports RAWG et la synchro remplissent les alias depuis `alternative_names` (alphabet latin uniquement, alias curés conservés, plafond 20 — `game-aliases.service.ts`). Pour les jeux déjà en base, le job admin **Mettre à jour les alias** (`refresh-game-aliases`) parcourt tout le catalogue par identifiant/slug RAWG sans rien importer d'autre. Un admin peut aussi en ajouter à la main.
-- `isMatch` (contrat strict utilisé par le garde-fou anti-fuite des lettres) n'est pas affecté par la notation `partial`.
+- `isMatch` (contrat strict) équivaut désormais à `precision === 'exact'`. Le garde-fou anti-fuite des lettres (`effectiveMaxReveals`) est vérifié contre **tout crédit** (`evaluateMatch(...).matched`, `partial` compris) : aucun fragment révélé ne peut rapporter de points.
+- Le texte de la réponse est borné à 200 caractères (schéma Zod de `POST /api/game/guess`).
 
 ### Score maximal
 
@@ -137,7 +146,7 @@ Le titre reste **entièrement caché** avant la première révélation payante :
 |---|---|
 | Côté serveur | `POST /api/game/reveal-letter` est la seule source du masque — le titre complet ne quitte jamais le backend avant résolution. Le masque est une fonction pure de `(gameName, letters_revealed)` (table `position_letter_reveals`), donc idempotent au refresh. |
 | Porte d'entrée | La première lettre payante exige **au moins une mauvaise réponse** sur la position (avant cela, même le squelette reste caché). |
-| Plafond anti-fuite | `min(2, ceil(lettres_masquables × 0.3))`, **vérifié dynamiquement contre le fuzzy matcher** (`effectiveMaxReveals`) : aucun fragment révélé ne peut être accepté comme réponse gagnante. Test unitaire bloquant (`letter-reveal.service.test.ts`). Certains titres courts ou à article (ex. « La Mulana ») peuvent n'autoriser aucune lettre. |
+| Plafond anti-fuite | `min(2, ceil(lettres_masquables × 0.3))`, **vérifié dynamiquement contre le fuzzy matcher** (`effectiveMaxReveals`, tout crédit `partial` compris) : aucun fragment révélé ne peut rapporter de points. Test unitaire bloquant (`letter-reveal.service.test.ts`). Un titre dont deux lettres plus le chiffre libre forment un acronyme (« Re 4 » pour Resident Evil 4) ne révèle qu'une lettre. |
 | Coût | Convexe : -15 % puis -20 % (cumul -35 %) du score de la position, verrouillé au moment de la révélation, appliqué après le plafond de 200 et **avant** le plancher `second_chance`. Le coût en score s'applique **même si l'objet vient de l'inventaire**. |
 | Défi du jour (classé) | Chaque révélation **consomme un item `hint_letter`** ; sans inventaire → 402 `NO_INVENTORY` (upsell). |
 | Catch-up | Pas d'inventaire requis (hors classement). Premium : révélations **gratuites** (pénalité 0) en catch-up uniquement — jamais sur le défi du jour. |

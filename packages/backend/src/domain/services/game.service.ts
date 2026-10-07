@@ -697,8 +697,10 @@ export function createGameService(deps: GameServiceDeps): GameService {
     )
     if (screenshotWithGame) {
       const revealRow = await positionLetterRevealRepository.find(latestTier.id, position)
+      // Any credit counts as a leak: a fragment that would earn even a
+      // partial match must never be revealed.
       const maxLetters = effectiveMaxReveals(screenshotWithGame.gameName, (input, name) =>
-        fuzzyMatchService.isMatch(input, name, screenshotWithGame.aliases)
+        fuzzyMatchService.evaluateMatch(input, name, screenshotWithGame.aliases).matched
       )
       letterReveal = buildLetterRevealState(screenshotWithGame.gameName, maxLetters, revealRow)
     }
@@ -1222,9 +1224,10 @@ export function createGameService(deps: GameServiceDeps): GameService {
       const { gameName, aliases } = screenshotWithGame
 
       // Matcher-verified cap: never reveal a fragment the fuzzy matcher
-      // would accept as a winning guess (the no-leak ship gate).
+      // would accept as a winning guess, partial credit included (the
+      // no-leak ship gate).
       const maxLetters = effectiveMaxReveals(gameName, (input, name) =>
-        fuzzyMatchService.isMatch(input, name, aliases)
+        fuzzyMatchService.evaluateMatch(input, name, aliases).matched
       )
       const existing = await positionLetterRevealRepository.find(tierSessionId, position)
       const current = existing?.letters_revealed ?? 0

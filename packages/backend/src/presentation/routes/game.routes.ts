@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import type { Request } from 'express'
+import { z } from 'zod'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import {
@@ -14,6 +15,7 @@ import {
 import { challengeRepository, gameRepository, screenshotRepository } from '../../infrastructure/repositories/index.js'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
+import { validateBody } from '../middleware/validation.middleware.js'
 import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
 import { resolveUploadRelativePath, sendUploadFile } from './upload-file.js'
 
@@ -301,10 +303,25 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
 // Submit a guess.
 // Note: stale clients may still send `powerUpUsed` (legacy metadata hints,
 // retired 2026-06). It is accepted and IGNORED — never 400 a guess over a
-// retired optional field.
-router.post('/guess', authMiddleware, guessLimiter, async (req, res, next) => {
+// retired optional field (zod strips unknown keys).
+//
+// `guessText` is bounded: the matcher aligns every word of the guess with
+// every word of the title and its aliases, so an unbounded string would be
+// a cheap way to burn CPU, and a non-string used to crash the handler.
+const MAX_GUESS_LENGTH = 200
+const guessBody = z.object({
+  tierSessionId: z.string().min(1).max(100),
+  screenshotId: z.number().int(),
+  position: z.number().int().nonnegative(),
+  gameId: z.number().int().nullable().optional().default(null),
+  guessText: z.string().max(MAX_GUESS_LENGTH),
+  roundTimeTakenMs: z.number().nonnegative().optional().default(0),
+})
+
+router.post('/guess', authMiddleware, guessLimiter, validateBody(guessBody), async (req, res, next) => {
   try {
-    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs } = req.body
+    const { tierSessionId, screenshotId, position, gameId, guessText, roundTimeTakenMs } =
+      req.body as z.infer<typeof guessBody>
 
     const data = await gameService.submitGuess({
       tierSessionId,
@@ -312,7 +329,7 @@ router.post('/guess', authMiddleware, guessLimiter, async (req, res, next) => {
       position,
       gameId,
       guessText,
-      roundTimeTakenMs: roundTimeTakenMs || 0, // Fallback for backward compatibility
+      roundTimeTakenMs,
       userId: req.userId!,
     })
 

@@ -92,7 +92,9 @@ describe('letter-reveal masking', () => {
 // ---------------------------------------------------------------------------
 describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
   const fuzzy = createFuzzyMatchService({ logger: silentLogger })
-  const isMatch = (input: string, name: string) => fuzzy.isMatch(input, name)
+  // Any credit is a leak: a revealed fragment worth even a partial match
+  // would solve the position at 40%.
+  const isMatch = (input: string, name: string) => fuzzy.evaluateMatch(input, name).matched
 
   // Representative shapes: short, long, articled, numbered, subtitled,
   // diacritics, colon-joined, expansion-suffixed, single-word, digit-only.
@@ -118,36 +120,51 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
     '2048',
   ]
 
-  it('every fragment up to the effective cap never matches its own title', () => {
+  it('every fragment up to the effective cap never earns any credit on its own title', () => {
     for (const title of corpus) {
       const max = effectiveMaxReveals(title, isMatch)
       for (let n = 0; n <= max; n++) {
         const fragment = revealedFragment(title, n)
         if (fragment === '') continue
         assert.equal(
-          fuzzy.isMatch(fragment, title),
-          false,
+          fuzzy.evaluateMatch(fragment, title).precision,
+          'none',
           `leak: "${fragment}" (reveals=${n}) must NOT match "${title}"`
         )
       }
     }
   })
 
+  it('the free skeleton (digits, years, punctuation) earns nothing', () => {
+    // Digits and years ship for free with the first paid reveal, so a
+    // number alone can never be worth even partial credit.
+    for (const title of ['God of War (2018)', 'Battlefield 1942', 'Portal 2', 'Kingdom Hearts 358/2 Days']) {
+      const skeleton = revealedFragment(title, 0)
+      assert.equal(
+        fuzzy.evaluateMatch(skeleton, title).precision,
+        'none',
+        `leak: skeleton "${skeleton}" must NOT match "${title}"`
+      )
+    }
+  })
+
   it('shrinks the cap where the static formula would leak', () => {
-    // "Do" fuzzy-matches "Doom" (subtitle threshold 0.85): static says 2,
-    // the matcher-verified cap must stop at 1.
-    assert.equal(maxRevealableLetters('Doom'), 2)
-    assert.equal(effectiveMaxReveals('Doom', isMatch), 1)
-    // The free article hands JW a long shared prefix: "La M" already
-    // matches "La Mulana", so this title can't safely reveal ANY letter —
-    // the player still gets the free skeleton.
-    assert.equal(effectiveMaxReveals('La Mulana', isMatch), 0)
+    // Two letters plus the free digit spell the acronym "Re 4", which the
+    // matcher reads as "Resident Evil 4": static says 2, the matcher-
+    // verified cap must stop at 1.
+    assert.equal(maxRevealableLetters('Resident Evil 4'), 2)
+    assert.equal(effectiveMaxReveals('Resident Evil 4', isMatch), 1)
+    // "Bi" is the acronym of "BioShock Infinite" (partial credit).
+    assert.equal(effectiveMaxReveals('BioShock Infinite', isMatch), 1)
+    // Word-level matching no longer lets a two-letter prefix match a short
+    // title ("Do" is not "Doom", "La M" is not "La Mulana"), so these keep
+    // their full static cap.
+    assert.equal(effectiveMaxReveals('Doom', isMatch), 2)
+    assert.equal(effectiveMaxReveals('La Mulana', isMatch), 2)
   })
 
   it('still grants at least one letter on typical titles (helpfulness)', () => {
-    // "La Mulana" is the known article-hazard exception (cap 0, above).
-    const expectAtLeastOne = corpus.filter((t) => t !== 'La Mulana')
-    for (const title of expectAtLeastOne) {
+    for (const title of corpus) {
       assert.ok(
         effectiveMaxReveals(title, isMatch) >= 1,
         `"${title}" should allow at least one reveal`
@@ -155,13 +172,13 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
     }
   })
 
-  it('the masked string itself (underscores included) never matches', () => {
+  it('the masked string itself (underscores included) never earns any credit', () => {
     for (const title of corpus) {
       const max = effectiveMaxReveals(title, isMatch)
       const masked = buildMaskedTitle(title, max)
       assert.equal(
-        fuzzy.isMatch(masked, title),
-        false,
+        fuzzy.evaluateMatch(masked, title).precision,
+        'none',
         `leak: masked "${masked}" must NOT match "${title}"`
       )
     }

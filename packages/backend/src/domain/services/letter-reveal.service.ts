@@ -10,10 +10,11 @@
 //     recompute the string on every call — idempotent and replay-safe by
 //     construction. The full title never reaches the client.
 //   - `maxRevealableLetters` caps the leak at min(2, ceil(maskable × 0.3))
-//     so the revealed prefix can NEVER satisfy the lenient fuzzy matcher
-//     on its own (prefix paths, acronyms, 0.85 length-ratio). The unit
-//     test pinning this against the real fuzzy-match service is the ship
-//     gate for the feature — see letter-reveal.service.test.ts.
+//     and `effectiveMaxReveals` lowers it further wherever the fuzzy
+//     matcher would give the revealed prefix any credit, partial included
+//     (acronyms such as "Re 4"). The unit test pinning this against the
+//     real fuzzy-match service is the ship gate for the feature — see
+//     letter-reveal.service.test.ts.
 //
 // Masking rules (player-facing contract, mirrored in docs/game-flow.md):
 //   - Nothing ships before the first paid reveal: even the skeleton ("word
@@ -151,12 +152,13 @@ export function nextPenaltyPct(maxLetters: number, lettersRevealed: number): num
 
 /**
  * Effective reveal cap for a title, verified against the SAME matcher that
- * scores guesses. The static formula alone is not safe: "Do" already
- * fuzzy-matches "Doom" (subtitle threshold 0.85) and the free article in
- * "La Mu___" hands Jaro-Winkler a long shared prefix against "La Mulana".
+ * scores guesses. The static formula alone is not safe: "Re 4" (two letters
+ * plus the free digit) already reads as the acronym of "Resident Evil 4".
  * Walking up from zero and stopping before the first fragment the matcher
  * would accept makes the no-leak property hold BY CONSTRUCTION — a future
- * matcher tweak can shrink a title's cap but can never open a leak.
+ * matcher tweak can shrink a title's cap but can never open a leak. Callers
+ * pass "any credit at all" (`evaluateMatch(...).matched`), so a fragment
+ * worth partial credit is a leak too.
  */
 export function effectiveMaxReveals(
   gameName: string,
