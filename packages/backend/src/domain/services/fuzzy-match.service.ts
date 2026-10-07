@@ -55,7 +55,32 @@ const NUMBER_WORDS: Record<string, number> = {
   eighth: 8, ninth: 9, tenth: 10,
   '1st': 1, '2nd': 2, '3rd': 3, '4th': 4, '5th': 5, '6th': 6, '7th': 7,
   '8th': 8, '9th': 9, '10th': 10,
+  // French players: "gta cinq", "witcher trois" ("un"/"une" stay articles).
+  deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10,
 }
+
+/**
+ * Initials of compound one-word franchises players abbreviate ("bf1" for
+ * Battlefield 1, "sc2" for StarCraft II). One initial per word cannot
+ * derive these.
+ */
+const COMPOUND_INITIALS: Record<string, string> = {
+  battlefield: 'bf',
+  borderlands: 'bl',
+  starcraft: 'sc',
+  warcraft: 'wc',
+  overwatch: 'ow',
+  minecraft: 'mc',
+  battlefront: 'bf',
+  bioshock: 'bs',
+  deathloop: 'dl',
+  dishonored: 'dh',
+  titanfall: 'tf',
+  frostpunk: 'fp',
+}
+
+/** Real words that happen to be initials of a run ("dlc" is never "Delicious Last Course"). */
+const NEVER_ACRONYMS = new Set(['dlc', 'goty', 'hd'])
 
 /** Shorthand players and catalogues both use; mapped on both sides. */
 const WORD_ALIASES: Record<string, string> = {
@@ -63,6 +88,9 @@ const WORD_ALIASES: Record<string, string> = {
   brothers: 'bros',
   civ: 'civilization',
   pkmn: 'pokemon',
+  ep: 'episode',
+  pt: 'part',
+  ch: 'chapter',
   '&': 'and',
   et: 'and',
 }
@@ -661,33 +689,60 @@ interface Alignment {
   shortAcronymOnly: boolean
 }
 
-/** Initials of a run, with roman numerals kept as letters ("ffvii") and numbers as digits ("l4d"). */
-function runInitials(run: Token[]): { raw: string; canonical: string } {
+/**
+ * Initials of a run: roman numerals and number words keep their letters in
+ * the raw variant ("ffvii", "hzd" for Horizon Zero Dawn) and numbers are
+ * digits in the canonical one ("l4d", "ff7"); compound franchises add their
+ * two-letter initials ("bf1").
+ */
+function runInitials(run: Token[]): string[] {
   let raw = ''
   let canonical = ''
+  let compoundRaw = ''
+  let compoundCanonical = ''
   for (const t of run) {
     if (t.kind === 'number') {
-      raw += ROMAN_TO_ARABIC[t.raw] !== undefined ? t.raw : t.text
+      const letters = /^[a-z]+$/.test(t.raw)
+        ? ROMAN_TO_ARABIC[t.raw] !== undefined ? t.raw : t.raw[0]!
+        : t.text
+      raw += letters
       canonical += t.text
+      compoundRaw += letters
+      compoundCanonical += t.text
     } else {
-      raw += t.text[0] ?? ''
-      canonical += t.text[0] ?? ''
+      const initial = t.text[0] ?? ''
+      const compound = COMPOUND_INITIALS[t.text] ?? initial
+      raw += initial
+      canonical += initial
+      compoundRaw += compound
+      compoundCanonical += compound
     }
   }
-  return { raw, canonical }
+  return [raw, canonical, compoundRaw, compoundCanonical]
 }
 
-/** Runs of a unit that an acronym may stand for: from its start, or from its first real word. */
-function acronymRuns(unit: Unit): Token[][] {
+/**
+ * Runs of a unit that an acronym may stand for: from its start, or from its
+ * first real word, spanning at least two real words ("go" is not "God of").
+ * "The Witcher" / "The Sims" count as a run only when the guess also carries
+ * a number ("tw3", "ts4"), so a bare two-letter guess cannot ride an article.
+ */
+function acronymRuns(unit: Unit, inputNumbers: Set<string>): Token[][] {
   const starts = new Set<number>([0])
   const firstReal = unit.tokens.findIndex(t => !t.stop && !t.brand)
   if (firstReal > 0) starts.add(firstReal)
   const runs: Token[][] = []
   for (const start of starts) {
+    const single = unit.tokens[start]
+    if (single && COMPOUND_INITIALS[single.text] !== undefined) runs.push([single])
     for (let end = start + 2; end <= unit.tokens.length; end++) {
       const run = unit.tokens.slice(start, end)
       if (run.some(t => t.edition || t.soft)) break
-      if (run.filter(t => !t.stop).length < 2) continue
+      const real = run.filter(t => !t.stop).length
+      if (real < 2) {
+        const articled = run.length === 2 && run[0]!.stop && real === 1 && inputNumbers.size > 0
+        if (!articled) continue
+      }
       runs.push(run)
     }
   }
@@ -713,17 +768,26 @@ function align(input: Token[], target: ParsedTarget): Alignment {
   }
   const acronymUnits = target.subtitles.length > 0 ? [...ownUnits, core] : ownUnits
   const findAcronymRun = (text: string): Token[] | null => {
+    if (NEVER_ACRONYMS.has(text)) return null
     for (const unit of acronymUnits) {
-      for (const run of acronymRuns(unit)) {
-        const { raw, canonical } = runInitials(run)
-        if (raw === text || canonical === text) return run
+      for (const run of acronymRuns(unit, inputNumbers)) {
+        if (runInitials(run).includes(text)) return run
       }
     }
     return null
   }
+  // A letter glued after the number ("fe3h", "p5r") stands for the next
+  // word of the title that starts with it.
+  const coverInitial = (letter: string): void => {
+    const hit = placed.find(
+      p => !p.alias && p.token.kind === 'word' && isRequired(p.token) && !covered.has(p.token) && p.token.text.startsWith(letter)
+    )
+    if (hit) coverEqual(hit.token.text)
+  }
+  // Coverage is by text so the same word in an alias is covered too.
   const coverRun = (run: Token[]): void => {
     for (const t of run) {
-      covered.add(t)
+      coverEqual(t.text)
       if (t.kind === 'number') inputNumbers.add(t.text)
     }
   }
@@ -737,6 +801,7 @@ function align(input: Token[], target: ParsedTarget): Alignment {
   // With a second word or a number alongside, a four-letter word may carry
   // a typo; alone it must be spelled out.
   const lenient = realInput.length >= 2
+  for (const t of input) if (t.kind === 'number') inputNumbers.add(t.text)
 
   const coverEqual = (text: string): boolean => {
     let hit = false
@@ -757,10 +822,22 @@ function align(input: Token[], target: ParsedTarget): Alignment {
     }
     if (tok.kind === 'number') {
       inputNumbers.add(tok.text)
+      // "mega man x 4": a lone letter and a number spelling a mixed token ("x4").
+      const next = input[i + 1]
+      if (tok.raw.length === 1 && next?.kind === 'number' && coverEqual(tok.raw + next.text)) {
+        inputNumbers.delete(tok.text)
+        inputNumbers.delete(next.text)
+        i++
+        continue
+      }
       if (coverEqual(tok.text)) continue
       // "half-life 1" for "Half-Life": the first entry has no number.
       if (tok.text === '1' && target.numbers.size === 0) continue
       wrongNumbers.push(tok)
+      continue
+    }
+    if (tok.soft) {
+      coverInitial(tok.text)
       continue
     }
     if (coverEqual(tok.text)) {
@@ -777,8 +854,6 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       }
       continue
     }
-    if (tok.soft) continue
-
     if (tok.kind === 'mixed') {
       // "l4d" for "Left 4 Dead": an acronym with a number inside.
       const mixedRun = findAcronymRun(tok.text)
@@ -788,13 +863,17 @@ function align(input: Token[], target: ParsedTarget): Alignment {
         continue
       }
       // "p5r" / "r6": one letter standing for the franchise's first word.
+      // It names the franchise only when the franchise is that one word
+      // ("p5" is Persona 5; "r4" is not quite Resident Evil 4).
       const m = tok.text.match(/^([a-z])(\d+)([a-z])?$/)
-      const first = target.base.tokens.find(t => isRequired(t) && t.kind === 'word')
+      const baseWords = target.base.tokens.filter(t => isRequired(t) && t.kind === 'word')
+      const first = baseWords[0]
       if (m && first && first.text.startsWith(m[1]!) && target.numbers.has(String(parseInt(m[2]!, 10)))) {
-        covered.add(first)
+        if (baseWords.length === 1) coverEqual(first.text)
         coverEqual(String(parseInt(m[2]!, 10)))
         inputNumbers.add(String(parseInt(m[2]!, 10)))
         distinctive.push(tok)
+        if (m[3]) coverInitial(m[3])
         continue
       }
       // "x2" for "Final Fantasy X-2": a roman numeral glued to a number.
@@ -871,7 +950,7 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       if (concatRun) break
     }
     if (concatRun) {
-      for (const t of concatRun) covered.add(t)
+      for (const t of concatRun) coverEqual(t.text)
       if (concatRun.some(t => isDistinctiveWord(t))) distinctive.push(tok)
       continue
     }
@@ -884,7 +963,7 @@ function align(input: Token[], target: ParsedTarget): Alignment {
       const joined = slice.map(t => t.text).join('')
       const hit = placed.find(p => p.token.kind === 'word' && wordsEquivalent(joined, p.token.text, lenient))
       if (hit) {
-        covered.add(hit.token)
+        coverEqual(hit.token.text)
         if (isDistinctiveWord(hit.token)) distinctive.push(tok)
         consumed = span - 1
         break
@@ -1046,18 +1125,31 @@ function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context:
     return 'exact'
   }
 
-  // The franchise alone, for a title whose entry is told apart by a
-  // subtitle or an expansion. With its sequel number it names the entry
-  // ("witcher 3" for "The Witcher 3: Wild Hunt"), since the base carries
-  // that number; without it, the player only named the franchise.
+  // The franchise with its sequel number names the entry ("witcher 3",
+  // "sonic 2", "red dead 2"): the leading word of the base (a distinctive
+  // one, or two words together) and at least half of the base must be
+  // there with the number. Without the number, the player only named the
+  // franchise.
+  const baseWords = target.base.tokens.filter(t => isRequired(t) && t.kind !== 'number')
+  const coveredBaseWords = baseWords.filter(t => covered.has(t))
+  const hasSeriesNumber = target.seriesNumber !== null && inputNumbers.has(String(target.seriesNumber))
+  const leading = baseWords[0]
+  const namesFranchise =
+    leading !== undefined &&
+    covered.has(leading) &&
+    (isDistinctiveWord(leading) || coveredBaseWords.length >= 2) &&
+    coveredBaseWords.length * 2 >= baseWords.length
+  if (hasSeriesNumber && namesFranchise) {
+    log.debug(context, 'exact: franchise + sequel number')
+    return 'exact'
+  }
+
   const baseForm = forms.find(f => f.kind === 'base')
   if (baseForm && fullyCovered(baseForm)) {
-    const hasSeriesNumber = target.seriesNumber !== null && inputNumbers.has(String(target.seriesNumber))
     // "halo 1" for "Halo: Combat Evolved": on a title that carries no
     // number at all, a "1" names the first entry.
-    const namesFirstEntry = target.numbers.size === 0 && inputNumbers.has('1')
-    if (hasSeriesNumber || namesFirstEntry) {
-      log.debug(context, 'exact: franchise + sequel number')
+    if (target.numbers.size === 0 && inputNumbers.has('1')) {
+      log.debug(context, 'exact: franchise + first entry')
       return 'exact'
     }
     if (target.dlc) {
@@ -1073,7 +1165,6 @@ function grade(input: Token[], target: ParsedTarget, log: DomainLogger, context:
   // Every word of the base, number omitted ("the last of us" for "The Last
   // of Us Part II", "left 4 dead" for "Left 4 Dead 2"): the franchise is
   // named even when its words are generic on their own.
-  const baseWords = target.base.tokens.filter(t => isRequired(t) && t.kind !== 'number')
   if (baseWords.length > 0 && baseWords.every(t => covered.has(t))) {
     log.debug(context, 'partial: franchise named, number omitted')
     return 'partial'
