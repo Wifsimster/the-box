@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -80,37 +80,49 @@ export function EmailLogPanel() {
   const [total, setTotal] = useState(0)
   const [query, dispatch] = useReducer(queryReducer, INITIAL_QUERY)
   const { page, status, type, search, debouncedSearch } = query
-  const [loading, setLoading] = useState(true)
+  // Bumped by the refresh button to re-run the fetch effect for the same query.
+  const [reloadNonce, setReloadNonce] = useState(0)
+  // `loading` is derived: the list is loading until the request for the
+  // current query (and refresh nonce) has settled.
+  const requestKey = JSON.stringify([page, status, type, debouncedSearch, reloadNonce])
+  const [settledKey, setSettledKey] = useState<string | null>(null)
+  const loading = settledKey !== requestKey
 
   useEffect(() => {
     const handle = setTimeout(() => dispatch({ type: 'commitSearch', value: search }), 300)
     return () => clearTimeout(handle)
   }, [search])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await adminApi.listEmailLog({
+  useEffect(() => {
+    let cancelled = false
+    adminApi
+      .listEmailLog({
         page,
         limit: PAGE_SIZE,
         status: status || undefined,
         type: type || undefined,
         search: debouncedSearch || undefined,
       })
-      setEntries(result.entries)
-      setTotal(result.total)
-    } catch (err) {
-      toast.error(String(err instanceof Error ? err.message : err))
-      setEntries([])
-      setTotal(0)
-    } finally {
-      setLoading(false)
+      .then(
+        (result) => {
+          if (cancelled) return
+          setEntries(result.entries)
+          setTotal(result.total)
+        },
+        (err) => {
+          if (cancelled) return
+          toast.error(String(err instanceof Error ? err.message : err))
+          setEntries([])
+          setTotal(0)
+        },
+      )
+      .finally(() => {
+        if (!cancelled) setSettledKey(requestKey)
+      })
+    return () => {
+      cancelled = true
     }
-  }, [page, status, type, debouncedSearch])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  }, [page, status, type, debouncedSearch, requestKey])
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total])
 
@@ -127,7 +139,7 @@ export function EmailLogPanel() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => void load()}
+          onClick={() => setReloadNonce((n) => n + 1)}
           disabled={loading}
           aria-label={t('admin.jobs.refresh')}
           title={t('admin.jobs.refresh')}

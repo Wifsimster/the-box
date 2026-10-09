@@ -75,6 +75,9 @@ export interface UseLetterRevealResult {
 export function useLetterReveal(): UseLetterRevealResult {
   const [isRevealing, setIsRevealing] = useState(false)
   const [lastRevealedLetter, setLastRevealedLetter] = useState<string | null>(null)
+  // Mirror of the server's catch-up rule needs today's date; read the clock
+  // once per mount (lazy initializer) rather than on every render.
+  const [todayStr] = useState(() => new Date().toISOString().split('T')[0])
 
   const { session } = useAuth()
   const { inventory, fetchInventory } = useDailyLoginStore()
@@ -101,10 +104,14 @@ export function useLetterReveal(): UseLetterRevealResult {
 
   // A reveal announcement belongs to the position it happened on; clear it
   // when the player navigates away so the live region never replays stale
-  // content against another mask.
-  useEffect(() => {
+  // content against another mask. Adjusted during render (previous-value
+  // pattern) instead of in an effect, which would render the stale letter
+  // once before clearing it.
+  const [announcedPosition, setAnnouncedPosition] = useState(currentPosition)
+  if (announcedPosition !== currentPosition) {
+    setAnnouncedPosition(currentPosition)
     setLastRevealedLetter(null)
-  }, [currentPosition])
+  }
 
   const positionState = positionStates[currentPosition]
   // Position-state copy wins (updated after each reveal); the screenshot
@@ -125,7 +132,6 @@ export function useLetterReveal(): UseLetterRevealResult {
 
   // Mirror of the server's catch-up rule: only today's challenge is the
   // ranked daily, and only the ranked daily is inventory-gated.
-  const todayStr = new Date().toISOString().split('T')[0]
   const isRankedDaily = challengeDate === todayStr
   const missingInventory = isRankedDaily && inventoryCount === 0
 
