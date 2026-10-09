@@ -40,7 +40,7 @@ Règles concrètes :
 
 ### 2.2 Tokens d'abord, jamais de valeurs brutes
 
-Oxygen considère les tokens comme l'unique canal légitime pour les décisions de design. Nous l'imposons via `docs/ui-tokens.md` et la règle ESLint locale `design-tokens/no-raw-design-tokens`. Principe à retenir :
+Oxygen considère les tokens comme l'unique canal légitime pour les décisions de design. Nous l'imposons via `docs/ui-tokens.md` et la règle de lint locale `design-tokens/no-raw-design-tokens`. Principe à retenir :
 
 > **Un token est une décision de design. Une valeur brute est une fuite.**
 
@@ -92,7 +92,7 @@ Tout design system a ses exceptions. Règle d'Oxygen : une exception documentée
 
 Chez nous :
 
-- Les composants dans `src/components/backgrounds/` ont légitimement besoin d'hex bruts (matériaux Three.js). La règle ESLint les exclut — cette exclusion est la documentation.
+- Les composants dans `src/components/backgrounds/` ont légitimement besoin d'hex bruts (matériaux Three.js). La règle de lint les exclut — cette exclusion est la documentation.
 - Les inputs de recherche sans label visible sont autorisés quand (a) une icône loupe rend l'intention évidente, (b) `aria-label` est défini, (c) le composant est réutilisé via un pattern documenté.
 - Toute autre déviation doit être justifiée dans la description de la PR.
 
@@ -163,7 +163,7 @@ Arbre de décision rapide :
 
 **Tokens**
 
-- [ ] Aucun `#hex`, `rgb()`, `rgba()`, `oklch()`, `hsl()` brut en JSX (ESLint l'attrape ; ne pas désactiver la règle)
+- [ ] Aucun `#hex`, `rgb()`, `rgba()`, `oklch()`, `hsl()` brut en JSX (Oxlint l'attrape ; ne pas désactiver la règle)
 - [ ] Aucun utilitaire de palette Tailwind (`bg-red-500`, etc.) hors couche de tokens
 - [ ] Aucun `style={{ … }}` pour des espacements / couleurs qui pourraient être des classes utilitaires
 

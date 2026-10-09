@@ -238,7 +238,7 @@ Une règle ESLint locale, `design-tokens/no-raw-design-tokens` (source : `packag
 - **Utilitaires de palette Tailwind** — `bg-red-500`, `text-amber-400`, `border-cyan-600`, `from-green-500` (toutes les échelles de teintes brutes hors couche de tokens).
 - **Valeurs Tailwind arbitraires avec couleurs brutes** — `shadow-[0_0_20px_rgba(...)]`, `bg-[#a855f7]`. Les valeurs arbitraires référençant une variable CSS (`shadow-[var(--glow-md)]`) restent autorisées.
 
-**Sévérité par périmètre** dans `packages/frontend/eslint.config.js` :
+**Sévérité par périmètre** dans `packages/frontend/.oxlintrc.json` (la règle `eslint-local/no-raw-design-tokens.js` tourne comme plugin JS Oxlint) :
 
 | Périmètre | Sévérité |
 |-----------|----------|
