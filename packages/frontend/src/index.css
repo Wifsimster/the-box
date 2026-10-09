@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark \*));
-
 :root {
   color-scheme: dark;
   --radius: 0.625rem;
@@ -51,7 +49,9 @@
   --accent: oklch(0.279 0.041 283.713);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
+  /* Dark text on the light red: 6.19:1 (white was 2.76:1). Same value as
+     --primary-foreground. */
+  --destructive-foreground: oklch(0.208 0.042 283.713);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   /* Brighter focus ring so keyboard users see it against the dark theme. */
@@ -180,6 +180,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   /* Brand colors — theme-immune, see `--brand-*` above */
   --color-brand-purple: var(--brand-purple);
@@ -232,6 +237,11 @@
      for a diffuse card halo. */
   --glow-pink-sm: 0 0 12px oklch(0.72 0.2 350 / 0.4);
   --glow-pink-lg: 0 0 40px -12px oklch(0.72 0.2 350 / 0.45);
+
+  /* Neutral elevation for shadcn surfaces (Card, Button). Same values as
+     Tailwind's shadow-sm / shadow-lg, named so components reference a token. */
+  --shadow-raised: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-cta: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
   /* Neon text-shadow stack for hero titles */
   --text-shadow-neon:
@@ -328,19 +338,6 @@ html {
   background: var(--color-muted-foreground);
 }
 
-/* Glow effects for gaming aesthetic */
-.glow-purple {
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-}
-
-.glow-pink {
-  box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
-}
-
-.glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-}
-
 /* Text glow */
 .text-glow {
   text-shadow: 0 0 10px currentColor;
@@ -419,7 +416,7 @@ html {
 .card-interactive:focus-visible {
   outline: none;
   border-color: var(--color-ring);
-  box-shadow: 0 0 0 3px oklch(0.78 0.18 320 / 0.6), var(--glow-md);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 60%, transparent), var(--glow-md);
 }
 
 /* Neon grid backdrop (TierIntro, hero backdrops) */
