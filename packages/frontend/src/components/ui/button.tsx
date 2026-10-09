@@ -9,19 +9,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98]",
+          "bg-primary text-primary-foreground shadow-raised hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98]",
         destructive:
-          "bg-error text-white shadow-sm hover:bg-error/90 hover:scale-[1.02] active:scale-[0.98]",
+          "bg-destructive text-destructive-foreground shadow-raised hover:bg-destructive/90 hover:scale-[1.02] active:scale-[0.98]",
         outline:
           "border border-border bg-transparent hover:bg-muted hover:text-foreground hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98]",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 hover:scale-[1.02] active:scale-[0.98]",
+          "bg-secondary text-secondary-foreground shadow-raised hover:bg-secondary/80 hover:scale-[1.02] active:scale-[0.98]",
         ghost:
           "hover:bg-muted hover:text-foreground active:scale-[0.98]",
         link:
           "text-primary underline-offset-4 hover:underline",
         gaming:
-          "bg-linear-to-r from-neon-purple to-neon-pink text-white shadow-lg hover:shadow-[var(--glow-lg)] hover:scale-[1.03] active:scale-[0.98]",
+          "bg-linear-to-r from-neon-purple to-neon-pink text-white shadow-cta hover:shadow-[var(--glow-lg)] hover:scale-[1.03] active:scale-[0.98]",
         warning:
           "text-warning bg-warning/10 border border-warning/30 hover:bg-warning/20 hover:scale-[1.02] active:scale-[0.98]",
         hintUsed:

@@ -56,7 +56,7 @@ Voir `docs/brand.md` §4.
 | Token | Value | Tailwind class | When to use |
 |---|---|---|---|
 | Neon Purple | `--neon-purple` = `#a855f7` | `text-neon-purple` / `bg-neon-purple` | Primary gaming accent, tier reveals, scoring highlights |
-| Neon Pink | `--neon-pink` = `#ec4899` | `text-neon-pink` / `bg-neon-pink` | Paired with purple in gradients; alt primary accent |
+| Neon Pink | `--neon-pink` = `#f472b6` | `text-neon-pink` / `bg-neon-pink` | Paired with purple in gradients; alt primary accent |
 | Neon Blue | `--neon-blue` = `#3b82f6` | `text-neon-blue` / `bg-neon-blue` | Informational, hints, tutorial callouts |
 | Neon Cyan | `--neon-cyan` = `#06b6d4` | `text-neon-cyan` / `bg-neon-cyan` | Cold-tone accents, stats, counters |
 
@@ -135,10 +135,11 @@ Toute valeur `box-shadow` dans un composant doit référencer un de ces tokens.
 | `--glow-pink-sm` | `0 0 12px oklch(0.72 0.2 350 / 0.4)` | Pink selection ring (selected map tile) |
 | `--glow-pink-lg` | `0 0 40px -12px oklch(0.72 0.2 350 / 0.45)` | Diffuse pink card halo (highlighted pricing card) |
 | `--text-shadow-neon` | stacked neon text shadow | Hero titles (TierIntro, landing heroes) |
+| `--shadow-raised` | Tailwind `shadow-sm` values | Neutral elevation of shadcn surfaces (Card, Button) — `shadow-raised` |
+| `--shadow-cta` | Tailwind `shadow-lg` values | Resting shadow of the `gaming` Button — `shadow-cta` |
 
 **Classes utilitaires déjà câblées :**
 
-- `.glow-purple` / `.glow-pink` / `.glow-blue` — halos hérités à teinte fixe. **Obsolètes** au profit des tokens `--glow-*` ; ne pas utiliser dans du nouveau code.
 - `.text-glow` — ombre de texte à `currentColor`. Utilisable.
 - `.text-shadow-neon` — ombre de texte néon empilée pour les titres de héros.
 - `.glow-hover` — anime vers `--glow-md` au survol, respecte `--ease-smooth`.
@@ -154,8 +155,8 @@ Toute valeur `box-shadow` dans un composant doit référencer un de ces tokens.
 
 | Token | Value | Tailwind class |
 |---|---|---|
-| `--radius-sm` | `calc(--radius - 4px)` → `0.25rem` | `rounded-sm` |
-| `--radius-md` | `calc(--radius - 2px)` → `0.375rem` | `rounded-md` |
+| `--radius-sm` | `calc(--radius - 4px)` → `0.375rem` (6 px) | `rounded-sm` |
+| `--radius-md` | `calc(--radius - 2px)` → `0.5rem` (8 px) | `rounded-md` |
 | `--radius-lg` | `--radius` → `0.625rem` | `rounded-lg` |
 | `--radius-xl` | `calc(--radius + 4px)` → `0.875rem` | `rounded-xl` |
 

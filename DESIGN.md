@@ -19,7 +19,7 @@ colors:
     accent: "oklch(0.279 0.041 283.713)"
     accent-foreground: "oklch(0.984 0.003 247.858)"
     destructive: "oklch(0.704 0.191 22.216)"
-    destructive-foreground: "oklch(0.984 0.003 247.858)"
+    destructive-foreground: "oklch(0.208 0.042 283.713)"
     border: "oklch(1 0 0 / 10%)"
     input: "oklch(1 0 0 / 15%)"
     ring: "oklch(0.78 0.18 320)"
@@ -109,7 +109,7 @@ l. 163–242). Tailwind v4, aucun `tailwind.config`.
 | `--secondary` / `--muted` / `--accent` | `oklch(0.279 0.041 283.713)` | Surfaces secondaires, survol de menu |
 | `--muted-foreground` | `oklch(0.78 0.035 283.713)` | Texte secondaire (relevé de 0.704 pour l'AA) |
 | `--destructive` | `oklch(0.704 0.191 22.216)` | Erreurs shadcn |
-| `--destructive-foreground` | `oklch(0.984 0.003 247.858)` | Texte sur destructive |
+| `--destructive-foreground` | `oklch(0.208 0.042 283.713)` | Texte sur destructive (6,19:1) |
 | `--border` | `oklch(1 0 0 / 10%)` | Bordure par défaut (`*` l. 244) |
 | `--input` | `oklch(1 0 0 / 15%)` | Bordure de champ |
 | `--ring` | `oklch(0.78 0.18 320)` | Focus |
@@ -185,12 +185,14 @@ plus clair que `background`) et par les **halos**.
 | `--glow-pink-sm` | `0 0 12px oklch(0.72 0.2 350 / 0.4)` | Tuile de carte sélectionnée |
 | `--glow-pink-lg` | `0 0 40px -12px oklch(0.72 0.2 350 / 0.45)` | Carte tarifaire mise en avant |
 | `--shadow-lift` | `0 10px 30px oklch(0 0 0 / 0.3)` | Presets Framer Motion (`src/lib/animations.ts`) |
+| `--shadow-raised` | valeurs de `shadow-sm` Tailwind | Card, Button (`shadow-raised`) |
+| `--shadow-cta` | valeurs de `shadow-lg` Tailwind | Button `gaming` au repos (`shadow-cta`) |
 | `--text-shadow-neon` | 4 couches `oklch(0.65 0.2 293 / 0.8→0.2)`, 10→40 px | Titres de héros |
 
 Utilitaires : `.glow-sm|md|lg`, `.glow-hover` (vers `--glow-md`),
 `.card-interactive` (bordure `--border-interactive` + `--glow-md` au survol),
-`.bg-grid-neon` (grille 50 × 50). Card et Button utilisent aussi `shadow-sm` /
-`shadow-lg` de Tailwind.
+`.bg-grid-neon` (grille 50 × 50). L'anneau de focus de `.card-interactive`
+suit `--ring` (donc le thème Premium actif).
 
 ## Shapes
 
@@ -227,7 +229,7 @@ shadcn `new-york`, primitives Radix, icônes `lucide-react`, animation
 
 | Composant | Variantes propres | Source |
 | --- | --- | --- |
-| `Button` | `default`, `destructive` (`bg-error`), `outline`, `secondary`, `ghost`, `link`, `gaming` (dégradé neon-purple → neon-pink + `--glow-lg`), `warning`, `hintUsed`, `hintFree`, `ban`, `unban`, `dangerGhost`, `overlay` ; tailles `default` (`--control-h`), `sm` (h-8), `lg` (h-12), `xl` (h-14), `icon` | `ui/button.tsx` |
+| `Button` | `default`, `destructive` (`bg-destructive`), `outline`, `secondary`, `ghost`, `link`, `gaming` (dégradé neon-purple → neon-pink + `--glow-lg`), `warning`, `hintUsed`, `hintFree`, `ban`, `unban`, `dangerGhost`, `overlay` ; tailles `default` (`--control-h`), `sm` (h-8), `lg` (h-12), `xl` (h-14), `icon` | `ui/button.tsx` |
 | `Card` | `default`, `neon`, `success`, `warning`, `error` (bordure teintée) ; prop `interactive` | `ui/card.tsx` |
 | `Alert` | `default`, `destructive`, `warning`, `success`, `info`, `neon` | `ui/alert.tsx` |
 | `Input` | `bg-card`, `border-border`, hauteur `--control-h` | `ui/input.tsx` |
@@ -254,7 +256,6 @@ Focus : `:focus-visible { outline: 2px solid var(--color-ring); outline-offset:
 - Hex, `rgb()`, `oklch()` ou `shadow-[…]` bruts dans un composant (sauf `src/components/backgrounds/**`, Three.js).
 - Redéfinir `--brand-*` ou `--theme-swatch-*` dans un bloc `[data-theme]`.
 - Utiliser `score-*` pour un podium ou `medal-*` pour une qualité.
-- Les classes `.glow-purple|pink|blue` (obsolètes).
 - Une autre police que Inter / JetBrains Mono.
 
 ## Responsive
@@ -268,12 +269,4 @@ pour la hauteur des contrôles. Unités `dvh`, insets `env(safe-area-inset-*)`,
 
 Écarts constatés dans le code, non corrigés ici.
 
-1. **`--neon-pink`** vaut `#f472b6` dans `index.css` (l. 78), mais `#ec4899` dans `docs/ui-tokens.md`.
-2. **Rayons dans `docs/ui-tokens.md`** : `sm` annoncé à `0.25rem` et `md` à `0.375rem`, alors que `calc(0.625rem - 4px)` = 6 px (`0.375rem`) et `calc(0.625rem - 2px)` = 8 px (`0.5rem`).
-3. **Polices jamais chargées** : ni `@font-face`, ni Fontsource, ni Google Fonts pour Inter et JetBrains Mono. Le rendu tombe sur `system-ui` / la mono système sauf si la police est installée localement.
-4. **`--chart-1…5`** définis dans `:root` mais absents de `@theme inline` : pas de classes `bg-chart-*`.
-5. **Deux rouges d'erreur** : `--destructive` `oklch(0.704 0.191 22.216)` et `--error` `#ef4444`. Le Button `destructive` peint `bg-error`, alors que `docs/ui-tokens.md` réserve `error` aux surfaces de jeu ; `dangerGhost` utilise `destructive`.
-6. **`.glow-purple|pink|blue`** (l. 332–342) codent `rgba()` en dur ; `.glow-pink` utilise l'ancien rose `#ec4899`, pas `--neon-pink`.
-7. **`.card-interactive:focus-visible`** code `oklch(0.78 0.18 320 / 0.6)` au lieu de `--ring` : l'anneau reste rose sous les thèmes Premium.
-8. **`@custom-variant dark`** déclaré sans bloc `.dark` : variante inerte (app sombre uniquement).
-9. **Ombres Tailwind** `shadow-sm` / `shadow-lg` sur Card et Button, alors que `docs/ui-tokens.md` exige que toute ombre référence un token.
+1. **Polices jamais chargées** : ni `@font-face`, ni Fontsource, ni Google Fonts pour Inter et JetBrains Mono. Le rendu tombe sur `system-ui` / la mono système sauf si la police est installée localement.
