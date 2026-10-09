@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -21,7 +22,8 @@ export function Footer() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const openChangelog = useOpenChangelog()
-  const currentYear = new Date().getFullYear()
+  // Read the clock once per mount (lazy initializer) rather than on every render.
+  const [currentYear] = useState(() => new Date().getFullYear())
 
   // Format build time for display
   const formattedBuildTime = buildTime

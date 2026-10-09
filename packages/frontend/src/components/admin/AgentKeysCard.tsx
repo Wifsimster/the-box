@@ -43,15 +43,22 @@ export function AgentKeysCard() {
     const [revokeBusy, setRevokeBusy] = useState(false)
     const mounted = useRef(true)
 
-    async function load() {
-        try {
-            const data = await fetchAdminJson<ApiKeySummary[]>('/api/admin/agent-keys')
-            if (mounted.current) setKeys(data)
-        } catch (e) {
-            if (mounted.current) setError(String(e))
-        } finally {
-            if (mounted.current) setLoading(false)
-        }
+    // Promise callbacks rather than `await` so the state writes are visibly
+    // asynchronous to the effect that calls this on mount (React Compiler's
+    // set-state-in-effect treats writes after `await` as synchronous).
+    function load() {
+        return fetchAdminJson<ApiKeySummary[]>('/api/admin/agent-keys')
+            .then(
+                (data) => {
+                    if (mounted.current) setKeys(data)
+                },
+                (e) => {
+                    if (mounted.current) setError(String(e))
+                },
+            )
+            .finally(() => {
+                if (mounted.current) setLoading(false)
+            })
     }
 
     useEffect(() => {

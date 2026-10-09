@@ -39,18 +39,25 @@ export function GeoGamersHealthCard() {
     // Guards against setState after unmount (the fetches outlive a quick tab switch).
     const mounted = useRef(true)
 
-    async function load() {
-        try {
-            const d = await fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health')
-            if (mounted.current) {
-                setHealth(d)
-                setError(null)
-            }
-        } catch (e) {
-            if (mounted.current) setError(String(e))
-        } finally {
-            if (mounted.current) setLoading(false)
-        }
+    // Promise callbacks rather than `await` so the state writes are visibly
+    // asynchronous to the effect that calls this on mount (React Compiler's
+    // set-state-in-effect treats writes after `await` as synchronous).
+    function load() {
+        return fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health')
+            .then(
+                (d) => {
+                    if (mounted.current) {
+                        setHealth(d)
+                        setError(null)
+                    }
+                },
+                (e) => {
+                    if (mounted.current) setError(String(e))
+                },
+            )
+            .finally(() => {
+                if (mounted.current) setLoading(false)
+            })
     }
 
     useEffect(() => {

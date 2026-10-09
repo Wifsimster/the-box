@@ -80,7 +80,11 @@ async function readExistingSubscription(): Promise<PushSubscription | null> {
 export function useWebPush(): UseWebPushState {
   const isSupported = detectSupport()
   const requiresPwaInstall = isIos() && !isStandalonePwa()
-  const [isServerConfigured, setIsServerConfigured] = useState<boolean | null>(null)
+  // Unsupported browsers can never subscribe, so they start (and stay) at
+  // "not configured" without a server probe.
+  const [isServerConfigured, setIsServerConfigured] = useState<boolean | null>(
+    isSupported ? null : false,
+  )
   const [permission, setPermission] = useState<PushPermissionStatus>(
     typeof Notification !== 'undefined'
       ? (Notification.permission as PushPermissionStatus)
@@ -105,10 +109,7 @@ export function useWebPush(): UseWebPushState {
   // Probe both the server config and the current subscription state on mount.
   // Failures are non-fatal — the UI just stays in "not subscribed".
   useEffect(() => {
-    if (!isSupported) {
-      setIsServerConfigured(false)
-      return
-    }
+    if (!isSupported) return
     let cancelled = false
     void (async () => {
       try {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { fetchAdminJson as fetchJson } from '@/lib/api/admin'
 import { getApiErrorMessage } from '@/lib/api-errors'
@@ -120,45 +120,67 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     // accurate regardless of which filter is active. The non-curated list
     // returns a leaner shape (no hasMap / mapCount), which is fine — those
     // columns are only meaningful for curated rows.
-    const reload = useCallback(async () => {
-        setData((d) => ({ ...d, loading: true }))
-        try {
-            const [c, k] = await Promise.all([
+    //
+    // fetchCatalog / fetchSources only write state once the request settles;
+    // the loading flags are raised by whoever starts the fetch (initial state,
+    // reload/reloadSources from handlers, the run-settled render adjustment
+    // below), so the effects that fetch never write state synchronously.
+    const fetchCatalog = useCallback(
+        () =>
+            Promise.all([
                 fetchJson<{ games: CuratedGame[] }>(
                     '/api/admin/geo/games?curated=true&limit=200',
                 ),
                 fetchJson<{ games: Omit<CatalogRow, 'curated'>[] }>(
                     '/api/admin/geo/games?curated=false&limit=200',
                 ),
-            ])
-            setData((d) => ({
-                ...d,
-                curated: c.games,
-                candidates: k.games.map((g) => ({ ...g, curated: false })),
-                loading: false,
-            }))
-        } catch (e) {
-            setError(getApiErrorMessage(e))
-            setData((d) => ({ ...d, loading: false }))
-        }
-    }, [setError])
+            ]).then(
+                ([c, k]) => {
+                    setData((d) => ({
+                        ...d,
+                        curated: c.games,
+                        candidates: k.games.map((g) => ({ ...g, curated: false })),
+                        loading: false,
+                    }))
+                },
+                (e) => {
+                    setError(getApiErrorMessage(e))
+                    setData((d) => ({ ...d, loading: false }))
+                },
+            ),
+        [setError],
+    )
 
-    const reloadSources = useCallback(async (gameId: number) => {
-        setPanel((p) => ({ ...p, sourcesLoading: true }))
-        try {
-            const sourcesData = await fetchJson<SourcesResponse>(
-                `/api/admin/geo/games/${gameId}/sources`,
-            )
-            setPanel((p) => ({ ...p, sources: sourcesData, sourcesLoading: false }))
-        } catch (e) {
-            setError(getApiErrorMessage(e))
-            setPanel((p) => ({ ...p, sources: null, sourcesLoading: false }))
-        }
-    }, [setError])
+    const fetchSources = useCallback(
+        (gameId: number) =>
+            fetchJson<SourcesResponse>(`/api/admin/geo/games/${gameId}/sources`).then(
+                (sourcesData) => {
+                    setPanel((p) => ({ ...p, sources: sourcesData, sourcesLoading: false }))
+                },
+                (e) => {
+                    setError(getApiErrorMessage(e))
+                    setPanel((p) => ({ ...p, sources: null, sourcesLoading: false }))
+                },
+            ),
+        [setError],
+    )
+
+    const reload = useCallback(() => {
+        setData((d) => ({ ...d, loading: true }))
+        return fetchCatalog()
+    }, [fetchCatalog])
+
+    const reloadSources = useCallback(
+        (gameId: number) => {
+            setPanel((p) => ({ ...p, sourcesLoading: true }))
+            return fetchSources(gameId)
+        },
+        [fetchSources],
+    )
 
     useEffect(() => {
-        void reload()
-    }, [reload])
+        void fetchCatalog()
+    }, [fetchCatalog])
 
     // Select (or deselect) a catalog row's side panel. Clearing `sources`
     // synchronously avoids flashing the previous game's preview while the next
@@ -216,17 +238,27 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     // `runState` (from useGeoRunPolling) flips active → idle, refetch so a game
     // moving 'pending' → 'resolved' or gaining `hasMap` becomes visible. There is
     // no in-component event to hang this on — the run completes asynchronously in
-    // a hook this file doesn't own — so an effect is the correct React tool here
-    // ("Synchronizing with an external system").
-    const wasActiveRef = useRef(false)
-    useEffect(() => {
-        const active = runState?.isActive ?? false
-        if (wasActiveRef.current && !active) {
-            void reload()
-            if (selectedId !== null) void reloadSources(selectedId)
+    // a hook this file doesn't own. The transition is detected during render
+    // (previous-value pattern), which raises the loading flags and bumps
+    // `runSettledCount`; the effect then only performs the fetches.
+    const runActive = runState?.isActive ?? false
+    const [prevRunActive, setPrevRunActive] = useState(runActive)
+    const [runSettledCount, setRunSettledCount] = useState(0)
+    if (prevRunActive !== runActive) {
+        setPrevRunActive(runActive)
+        if (prevRunActive && !runActive) {
+            setData((d) => ({ ...d, loading: true }))
+            if (selectedId !== null) setPanel((p) => ({ ...p, sourcesLoading: true }))
+            setRunSettledCount((n) => n + 1)
         }
-        wasActiveRef.current = active
-    }, [runState?.isActive, reload, reloadSources, selectedId])
+    }
+    const refetchAfterRun = useEffectEvent(() => {
+        void fetchCatalog()
+        if (selectedId !== null) void fetchSources(selectedId)
+    })
+    useEffect(() => {
+        if (runSettledCount > 0) refetchAfterRun()
+    }, [runSettledCount])
 
     const handleRetryTier = async (gameId: number, tier: string) => {
         dispatchOps({ type: 'retryingTier', value: tier })

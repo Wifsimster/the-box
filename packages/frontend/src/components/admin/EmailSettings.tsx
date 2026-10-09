@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,10 +28,12 @@ export function EmailSettings() {
   // (resolves or rejects). No separate loading state needed.
   const loading = !settled
 
-  // Hold the latest translator in a ref so the mount-only fetch effect can run
-  // with an empty dependency array without re-firing on every language switch.
-  const tRef = useRef(t)
-  tRef.current = t
+  // Effect Event: reads the latest translator without making the mount-only
+  // fetch effect re-fire on every language switch.
+  const reportFetchError = useEffectEvent((error: unknown) => {
+    toast.error(t('admin.email.fetchError'))
+    console.error('Failed to fetch email config:', error)
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -41,9 +43,7 @@ export function EmailSettings() {
         if (!cancelled) setConfig(emailConfig)
       })
       .catch((error) => {
-        if (cancelled) return
-        toast.error(tRef.current('admin.email.fetchError'))
-        console.error('Failed to fetch email config:', error)
+        if (!cancelled) reportFetchError(error)
       })
       .finally(() => {
         if (!cancelled) setSettled(true)

@@ -150,8 +150,13 @@ export default function LeaderboardPage() {
   )
   const { selectedPlayer, playerSession, sessionLoading, sessionError } = sessionDialog
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // Midnight today, read once per mount (lazy initializer) so the clock stays
+  // out of the render path and `today` keeps a stable identity across renders.
+  const [today] = useState(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
 
   // Parse date from URL query param if present
   const getInitialDate = (): Date => {

@@ -54,22 +54,28 @@ export function ReportsModerationPanel() {
     const [loading, setLoading] = useState(true)
     const [pendingKey, setPendingKey] = useState<string | null>(null)
 
-    const load = useCallback(async () => {
+    // The spinner flag is raised by whatever starts a fetch: the initial state
+    // on mount, the filter toggle, or load() for refresh/reactivate. The
+    // filter-driven effect only writes state once the request settles.
+    const fetchAndApply = useCallback(
+        () =>
+            fetchReports(onlyDeactivated)
+                .then(setReports, (err) => {
+                    toast.error(String(err instanceof Error ? err.message : err))
+                    setReports([])
+                })
+                .finally(() => setLoading(false)),
+        [onlyDeactivated],
+    )
+
+    const load = useCallback(() => {
         setLoading(true)
-        try {
-            const data = await fetchReports(onlyDeactivated)
-            setReports(data)
-        } catch (err) {
-            toast.error(String(err instanceof Error ? err.message : err))
-            setReports([])
-        } finally {
-            setLoading(false)
-        }
-    }, [onlyDeactivated])
+        return fetchAndApply()
+    }, [fetchAndApply])
 
     useEffect(() => {
-        void load()
-    }, [load])
+        void fetchAndApply()
+    }, [fetchAndApply])
 
     const handleReactivate = async (row: ReportSummary) => {
         const key = rowKey(row)
@@ -103,7 +109,12 @@ export function ReportsModerationPanel() {
                     <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
                         <Checkbox
                             checked={onlyDeactivated}
-                            onCheckedChange={(v) => setOnlyDeactivated(v === true)}
+                            onCheckedChange={(v) => {
+                                const next = v === true
+                                if (next === onlyDeactivated) return
+                                setOnlyDeactivated(next)
+                                setLoading(true)
+                            }}
                         />
                         {t('admin.reports.onlyDeactivated')}
                     </label>

@@ -37,10 +37,10 @@ export function useDailyGame() {
   const { isKeyboardOpen, keyboardHeight } = useKeyboardHeight()
   const timeRemaining = useNextDailyCountdown()
 
-  // Today's date (yyyy-mm-dd) computed once per mount rather than inline in
-  // JSX — keeps `new Date()` out of the render path so it can't render
-  // differently between commits.
-  const todayDateString = useMemo(() => new Date().toISOString().split('T')[0]!, [])
+  // Today's date (yyyy-mm-dd) computed once per mount (lazy initializer)
+  // rather than inline in JSX — keeps `new Date()` out of the render path so
+  // it can't render differently between commits.
+  const [todayDateString] = useState(() => new Date().toISOString().split('T')[0]!)
 
   // Get date from query params if provided
   const challengeDateParam = searchParams.get('date')
@@ -69,11 +69,7 @@ export function useDailyGame() {
   const leaderboardService = useMemo(() => createLeaderboardService(), [])
 
   // Determine if this is a catch-up session (playing a previous day's challenge)
-  const isCatchUp = useMemo(() => {
-    if (!challengeDate) return false
-    const today = new Date().toISOString().split('T')[0]
-    return challengeDate !== today
-  }, [challengeDate])
+  const isCatchUp = !!challengeDate && challengeDate !== todayDateString
 
   // Fetch world total score when challenge is complete
   const { worldScore } = useWorldScore(
@@ -234,22 +230,30 @@ export function useDailyGame() {
   }, [_hasHydrated, gamePhase, challengeDateParam, setGamePhase, setChallengeId, setSessionId, setScreenshotData, setLoading, restoreSessionState, prefetchAllScreenshots, t])
 
   // Fetch screenshot when position changes or game starts
-  const fetchScreenshot = useCallback(async (sid: string, position: number) => {
-    try {
-      setLoading(true)
-      const data = await gameApi.getScreenshot(sid, position)
-      // Drop out-of-order responses: after a quick 2 → 3 navigation, a late
-      // reply for 2 would otherwise yank currentPosition back to 2 (and bill
-      // its time to the wrong position). The effect below re-fetches the
-      // position the player is actually on.
-      if (useGameStore.getState().currentPosition !== position) return
-      setScreenshotData(data)
-    } catch (err) {
-      console.error('Failed to fetch screenshot:', err)
-      setError(t('game.errorLoadingScreenshot'))
-    } finally {
-      setLoading(false)
-    }
+  // Promise callbacks rather than `await`: the position effect below calls
+  // this, and React Compiler's set-state-in-effect treats a setError after
+  // `await` as a synchronous write in that effect.
+  const fetchScreenshot = useCallback((sid: string, position: number) => {
+    setLoading(true)
+    return gameApi
+      .getScreenshot(sid, position)
+      .then(
+        (data) => {
+          // Drop out-of-order responses: after a quick 2 → 3 navigation, a late
+          // reply for 2 would otherwise yank currentPosition back to 2 (and bill
+          // its time to the wrong position). The effect below re-fetches the
+          // position the player is actually on.
+          if (useGameStore.getState().currentPosition !== position) return
+          setScreenshotData(data)
+        },
+        (err) => {
+          console.error('Failed to fetch screenshot:', err)
+          setError(t('game.errorLoadingScreenshot'))
+        },
+      )
+      .finally(() => {
+        setLoading(false)
+      })
   }, [setScreenshotData, setLoading, t])
 
   // Pre-fetch adjacent screenshots for smooth swiping
