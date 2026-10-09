@@ -216,7 +216,7 @@ npm run build:backend
 npm run build:frontend
 
 # Quality
-npm run lint            # Frontend ESLint
+npm run lint            # Frontend Oxlint
 npm test                # All package tests
 ```
 
@@ -308,7 +308,7 @@ npm run render:video    # Render the promo composition
 - **i18n** : tout texte UI passe par `useTranslation()`. Les traductions vivent dans `packages/frontend/public/locales/{en,fr}/`.
 - **TypeScript**: strict mode everywhere. Pas de `any` implicite.
 - **React**: functional components with hooks
-- **Lint**: ESLint (flat config) on frontend
+- **Lint**: Oxlint on frontend (`packages/frontend/.oxlintrc.json`; React Compiler rules + the local design-token rule as a JS plugin)
 - **Commits**: Conventional Commits, enforced by commitlint + husky `commit-msg` hook
 
 ## Workflow
@@ -334,7 +334,7 @@ Le hook husky `commit-msg` rejette tout commit non conforme.
 ### Pre-Commit Checklist
 
 1. `npm run build` – typecheck all packages
-2. `npm run lint` – ESLint on frontend
+2. `npm run lint` – Oxlint on frontend
 3. `npm test` – unit tests
 4. For UI changes: `npm run test:e2e` (dev servers up + `npm run e2e:seed`)
 5. Commit via Conventional Commits (husky enforces this)
