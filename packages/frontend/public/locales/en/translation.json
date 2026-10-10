@@ -658,7 +658,23 @@
     },
     "you": "You",
     "yourRank": "You're #{{rank}} of {{total}}",
-    "seeMyRow": "Show"
+    "seeMyRow": "Show",
+    "countries": {
+      "viewLabel": "Rank the month by",
+      "viewPlayers": "Players",
+      "viewCountries": "Countries",
+      "explainer": "Each country's average player score this month. A country joins the ranking at {{min}} players.",
+      "empty": "No country has {{min}} players this month yet.",
+      "unavailable": "The country ranking isn't responding.",
+      "players_one": "{{count}} player",
+      "players_other": "{{count}} players",
+      "average": "pts average",
+      "yours": "Your country",
+      "yourCountryRanked": "{{country}} is #{{rank}} this month.",
+      "yourCountryPending": "{{country}}: {{count}}/{{min}} players this month.",
+      "noCountry": "Pick your country and play for it.",
+      "setCountry": "Set my country"
+    }
   },
   "history": {
     "title": "Game History",
@@ -2227,7 +2243,11 @@
     "error": "Couldn't update your profile. Please try again.",
     "usernameTaken": "That username is already taken.",
     "invalidUsername": "Username must be 3–20 characters: letters, numbers and underscores only.",
-    "invalidDisplayName": "Please choose a different display name."
+    "invalidDisplayName": "Please choose a different display name.",
+    "countryLabel": "Country",
+    "countryNone": "Not set",
+    "countryHint": "Optional. Used only for the monthly country ranking. We never infer it from your IP address.",
+    "invalidCountry": "Pick a country from the list."
   },
   "emailConsent": {
     "title": "Email Preferences",

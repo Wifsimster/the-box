@@ -1,5 +1,5 @@
 import { db } from '../database/connection.js'
-import type { User } from '@the-box/types'
+import { isCountryCode, type CountryCode, type User } from '@the-box/types'
 import { repoLogger } from '../logger/logger.js'
 import type {
   ReferralIdentity,
@@ -36,6 +36,7 @@ export interface UserRow {
   email_marketing_consent: boolean
   email_consent_updated_at: Date | null
   selected_theme: string | null
+  country: string | null
 }
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
@@ -58,6 +59,7 @@ function mapRowToUser(row: UserRow): User {
     emailMarketingConsent: row.email_marketing_consent ?? false,
     emailConsentUpdatedAt: row.email_consent_updated_at?.toISOString(),
     selectedTheme: row.selected_theme ?? 'default',
+    ...(isCountryCode(row.country) ? { country: row.country } : {}),
   }
 }
 
@@ -339,7 +341,7 @@ export const userRepository = {
   // Better Auth username plugin and our public-profile lookups agree.
   async updateProfile(
     userId: string,
-    fields: { displayName?: string; username?: string }
+    fields: { displayName?: string; username?: string; country?: CountryCode | null }
   ): Promise<User | null> {
     log.info({ userId, fields }, 'updateProfile')
     const update: Record<string, unknown> = { updatedAt: new Date() }
@@ -349,6 +351,9 @@ export const userRepository = {
     if (fields.username !== undefined) {
       update.username = fields.username
       update.display_username = fields.username
+    }
+    if (fields.country !== undefined) {
+      update.country = fields.country
     }
     await db('user').where('id', userId).update(update)
     return this.findById(userId)

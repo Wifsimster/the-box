@@ -4,6 +4,7 @@ import { createLeaderboardService } from './leaderboard.service.js'
 import type { DomainLogger } from '../ports/logger.js'
 import type { DailyChallengeLookup, LeaderboardRepository } from '../ports/index.js'
 import type { LeaderboardEntry } from '@the-box/types'
+import type { CountryPlayerMonthStats } from './country-leaderboard.js'
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
@@ -17,6 +18,7 @@ function makeService(opts: {
   challengeForDate?: { id: number } | null
   entries?: LeaderboardEntry[]
   playerCount?: number
+  countryPlayers?: CountryPlayerMonthStats[]
 }) {
   // No cast: `DailyChallengeLookup` is the two-method slice the service
   // actually uses, so an honest fake satisfies it.
@@ -40,6 +42,7 @@ function makeService(opts: {
     },
     countPlayersByChallenge: async () => opts.playerCount ?? 0,
     findByMonth: async () => [],
+    findCountryPlayerStatsByMonth: async () => opts.countryPlayers ?? [],
     getPercentileForScore: async () => ({ percentile: 0, totalPlayers: 0, rank: 0 }),
   }
 
@@ -97,5 +100,45 @@ describe('leaderboardService.getTodayPlayerCount', () => {
     const { service } = makeService({ challengeForDate: { id: 7 }, playerCount: 128 })
     const result = await service.getTodayPlayerCount()
     assert.equal(result.count, 128)
+  })
+})
+
+describe('leaderboard.service — getMonthlyCountryLeaderboard', () => {
+  const fivePlayers = (country: 'FR' | 'BE', avg: number, count = 5): CountryPlayerMonthStats[] =>
+    Array.from({ length: count }, (_, i) => ({
+      userId: `${country}-${i}`,
+      countryCode: country,
+      gamesPlayed: 2,
+      totalScore: avg * 2,
+    }))
+
+  it('ranks countries above the threshold and reports it', async () => {
+    const { service } = makeService({
+      countryPlayers: [...fivePlayers('FR', 1200), ...fivePlayers('BE', 1800, 3)],
+    })
+    const res = await service.getMonthlyCountryLeaderboard(2026, 1)
+    assert.equal(res.minPlayers, 5)
+    assert.deepEqual(res.entries, [{ rank: 1, countryCode: 'FR', averageScore: 1200, playerCount: 5 }])
+    assert.equal(res.viewer, undefined)
+  })
+
+  it('reports the viewer country progress, even below the threshold', async () => {
+    const { service } = makeService({
+      countryPlayers: [...fivePlayers('FR', 1200), ...fivePlayers('BE', 1800, 3)],
+    })
+    const res = await service.getMonthlyCountryLeaderboard(2026, 1, { countryCode: 'BE' })
+    assert.deepEqual(res.viewer, { countryCode: 'BE', playerCount: 3 })
+  })
+
+  it('reports a viewer without a country', async () => {
+    const { service } = makeService({ countryPlayers: [] })
+    const res = await service.getMonthlyCountryLeaderboard(2026, 1, { countryCode: null })
+    assert.deepEqual(res.viewer, { countryCode: null, playerCount: 0 })
+  })
+
+  it('refuses future months and invalid months', async () => {
+    const { service } = makeService({})
+    await assert.rejects(service.getMonthlyCountryLeaderboard(2999, 1), /future months/)
+    await assert.rejects(service.getMonthlyCountryLeaderboard(2026, 13), /Invalid month/)
   })
 })

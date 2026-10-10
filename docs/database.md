@@ -46,6 +46,7 @@ erDiagram
         integer current_streak
         integer longest_streak
         timestamp last_played_at
+        varchar country
         timestamp created_at
         timestamp updated_at
     }
@@ -200,6 +201,7 @@ Comptes des joueurs et statistiques associées.
 | current_streak | INTEGER | Current daily streak |
 | longest_streak | INTEGER | Best streak |
 | last_played_at | TIMESTAMP | Last game played |
+| country | VARCHAR(2) | Self-declared country, ISO 3166-1 alpha-2, nullable. Set by the player on their profile, never inferred from the IP. Feeds the monthly country ranking |
 | created_at | TIMESTAMP | Account creation |
 | updated_at | TIMESTAMP | Last update |
 
