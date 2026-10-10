@@ -17,6 +17,11 @@
  *   4. letter penalty     the percentage locked in at reveal time, deducted
  *                         once, on the correct guess
  *   5. second-chance floor  raises the result to SECOND_CHANCE_FLOOR
+ *   6. streak bonus       flat points when this answer completes 3, 5 or 10
+ *                         consecutive screenshots solved on the first try
+ *                         (see calculateStreakBonus). Added LAST, outside
+ *                         the 200 cap: a fast player already sits at the
+ *                         cap, so a bonus inside it would reward nobody.
  *
  * Order matters at every step. The factor applies AFTER the cap (else a
  * partial could reach 200 x 0.4 from a higher pre-cap number), and the floor
@@ -50,6 +55,61 @@ export const PARTIAL_MATCH_FACTOR = 0.4
 export const SECOND_CHANCE_FLOOR = 70
 
 /**
+ * In-game streak tiers: run length -> flat bonus, paid once on the answer
+ * that reaches the length. A run of 10 therefore pays 25 + 50 + 100 = 175
+ * over the challenge. Highest per-screenshot score becomes 200 + 100 = 300
+ * (the 10th screenshot of a perfect run); highest challenge score becomes
+ * 2,000 + 175 = 2,175.
+ */
+export const STREAK_BONUS_TIERS: ReadonlyArray<{ streak: number; bonus: number }> = [
+  { streak: 3, bonus: 25 },
+  { streak: 5, bonus: 50 },
+  { streak: 10, bonus: 100 },
+]
+
+export interface StreakBonusInputs {
+  /** Position being solved by this guess. */
+  position: number
+  /** True when no wrong guess was made on this position before this one. */
+  firstTry: boolean
+  /**
+   * Positions of this tier session ALREADY solved on the first try (the
+   * current guess excluded).
+   */
+  firstTrySolvedPositions: ReadonlyArray<number>
+}
+
+export interface StreakBonusResult {
+  /** Length of the first-try run ending at `position` (0 when not first try). */
+  streak: number
+  /** Bonus points for that run length (0 when no tier is reached). */
+  streakBonus: number
+}
+
+/**
+ * The streak is a run of CONSECUTIVE POSITIONS solved on the first try,
+ * counted backwards from the position being solved. Positional (not
+ * chronological) on purpose: the server never sees a skip or a time-out
+ * (both are client-side), but it does see that the previous position is not
+ * solved, so skipping a hard screenshot breaks the run instead of hiding a
+ * miss. Counting backwards only means solving out of order can never pay
+ * more than solving in order.
+ *
+ * A wrong guess on the position breaks the run (the answer is no longer
+ * "first try"); a partial (franchise) answer solves the position and counts.
+ */
+export function calculateStreakBonus(inputs: StreakBonusInputs): StreakBonusResult {
+  if (!inputs.firstTry) return { streak: 0, streakBonus: 0 }
+
+  const solved = new Set(inputs.firstTrySolvedPositions)
+  let streak = 1
+  while (solved.has(inputs.position - streak)) streak++
+
+  const tier = STREAK_BONUS_TIERS.find((t) => t.streak === streak)
+  return { streak, streakBonus: tier?.bonus ?? 0 }
+}
+
+/**
  * Speed multiplier by time-to-answer. Step function rather than a curve so
  * the tiers are legible to players ("under 3 seconds = double points").
  */
@@ -81,6 +141,11 @@ export interface GuessScoreInputs {
   letterPenaltyPct: number
   /** Whether a second-chance activation is pending for this position. */
   secondChanceActive: boolean
+  /**
+   * Flat streak bonus from calculateStreakBonus, or 0. The caller passes 0
+   * for sessions started before the bonus shipped (no retroactive change).
+   */
+  streakBonus?: number
 }
 
 export interface GuessScoreBreakdown {
@@ -95,6 +160,8 @@ export interface GuessScoreBreakdown {
   secondChanceFloorBoost: number | undefined
   /** The multiplier that was applied, for logging and telemetry. */
   speedMultiplier: number
+  /** Streak bonus included in scoreEarned (0 when none). */
+  streakBonus: number
 }
 
 /**
@@ -106,6 +173,7 @@ export interface GuessScoreBreakdown {
  */
 export function calculateGuessScore(inputs: GuessScoreInputs): GuessScoreBreakdown {
   const { precision, effectiveTimeTakenMs, letterPenaltyPct, secondChanceActive } = inputs
+  const streakBonus = inputs.streakBonus ?? 0
 
   const speedMultiplier = calculateSpeedMultiplier(effectiveTimeTakenMs)
 
@@ -115,6 +183,7 @@ export function calculateGuessScore(inputs: GuessScoreInputs): GuessScoreBreakdo
       letterPenalty: 0,
       secondChanceFloorBoost: undefined,
       speedMultiplier,
+      streakBonus: 0,
     }
   }
 
@@ -141,5 +210,8 @@ export function calculateGuessScore(inputs: GuessScoreInputs): GuessScoreBreakdo
     scoreEarned = SECOND_CHANCE_FLOOR
   }
 
-  return { scoreEarned, letterPenalty, secondChanceFloorBoost, speedMultiplier }
+  // 6: streak bonus. Last and outside the cap, so no other modifier scales it.
+  scoreEarned += streakBonus
+
+  return { scoreEarned, letterPenalty, secondChanceFloorBoost, speedMultiplier, streakBonus }
 }

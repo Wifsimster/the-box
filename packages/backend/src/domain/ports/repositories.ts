@@ -231,6 +231,8 @@ export interface GameSessionRecord {
   current_tier: number
   current_position: number
   total_score: number
+  /** Streak bonus points included in total_score (0 on pre-bonus sessions). */
+  streak_bonus_total: number
   is_completed: boolean
   is_catch_up: boolean
   started_at: Date
@@ -262,6 +264,13 @@ export interface TierSessionWithContextRecord extends TierSessionRecord {
   is_catch_up: boolean
   /** game_sessions.is_completed — true once the run finished or was forfeited. */
   game_is_completed: boolean
+  /**
+   * game_sessions.streak_bonus_enabled — false on every session started
+   * before the in-game streak bonus shipped, so their scores never change.
+   */
+  streak_bonus_enabled: boolean
+  /** game_sessions.streak_bonus_total before this guess. */
+  game_streak_bonus_total: number
   tier_number: number
   time_limit_seconds: number
 }
@@ -359,7 +368,13 @@ export interface GameSessionStore extends GameSessionLookup {
   ): Promise<void>
   updateGameSession(
     gameSessionId: string,
-    data: { totalScore: number; currentPosition: number; isCompleted: boolean }
+    data: {
+      totalScore: number
+      currentPosition: number
+      isCompleted: boolean
+      /** New game_sessions.streak_bonus_total; omitted = unchanged. */
+      streakBonusTotal?: number
+    }
   ): Promise<void>
   /**
    * Flip an active game session to completed with its final score. Returns
@@ -382,8 +397,15 @@ export interface GameSessionStore extends GameSessionLookup {
     hintFromInventory: boolean
     /** Letter-reveal cost (points) already deducted from scoreEarned. */
     letterPenalty: number
+    /** Streak bonus (points) already included in scoreEarned. */
+    streakBonus: number
   }): Promise<void>
   getCorrectAnswersCount(tierSessionId: string): Promise<number>
+  /**
+   * Positions of the tier session solved with no wrong guess before the
+   * correct one — the input of the in-game streak bonus.
+   */
+  getFirstTrySolvedPositions(tierSessionId: string): Promise<number[]>
   hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
   // Letter-reveal gate: the first paid reveal requires at least one honest
   // (wrong) attempt on the position — same spirit as the metadata hints'

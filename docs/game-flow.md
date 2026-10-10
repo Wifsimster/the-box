@@ -83,6 +83,32 @@ Plus la réponse est rapide, plus le score est élevé.
 > scoreEarned = Math.min(200, Math.round(100 * calculateSpeedMultiplier(timeTakenMs)))
 > ```
 
+### Bonus de série dans la partie
+
+Répondre juste du premier coup sur plusieurs captures **consécutives** rapporte des points en plus, au-dessus du multiplicateur de vitesse.
+
+| Série atteinte | Bonus (une fois, sur la réponse qui atteint la série) |
+|----------------|-------------------------------------------------------|
+| 3 bonnes réponses d'affilée | +25 points |
+| 5 bonnes réponses d'affilée | +50 points |
+| 10 bonnes réponses d'affilée | +100 points |
+
+Une partie parfaite rapporte donc 25 + 50 + 100 = **175 points de bonus**. Après une série cassée, le compteur repart de 1 et les paliers peuvent être atteints à nouveau.
+
+Ce qui compte dans la série :
+
+- **Captures consécutives par position.** La série est la suite de positions résolues du premier coup qui se termine sur la capture résolue, en remontant (positions 5, 4, 3…). Le serveur ne voit ni les sauts ni les temps écoulés (côté client), mais il voit qu'une position précédente n'est pas résolue : sauter une capture casse donc la série au lieu de cacher un échec. Comme le calcul ne remonte que vers l'arrière, répondre dans le désordre ne rapporte jamais plus que répondre dans l'ordre.
+- **Du premier coup.** Une mauvaise réponse sur la capture casse la série (la capture résolue ensuite vaut 0 dans la série).
+- **Réponse partielle.** Une réponse `partial` (licence seule) résout la capture et compte dans la série.
+
+> **Détail technique.** Calcul côté serveur uniquement (anti-triche), dans `calculateStreakBonus` (`domain/services/guess-scoring.service.ts`), à partir des positions résolues sans mauvaise réponse (`sessionRepository.getFirstTrySolvedPositions`). Le client ne transmet aucune donnée de série ; la réponse de `POST /api/game/guess` expose `streak` (longueur de la série) et `streakBonus` (points ajoutés) pour l'affichage. Le bonus est inclus dans `scoreEarned` et stocké à part dans `guesses.streak_bonus`.
+>
+> **Plafond.** Le plafond de 200 points s'applique toujours au score de vitesse. Le bonus de série s'ajoute **après** le plafond, la pénalité de lettres et le plancher `second_chance`, sans être réduit par eux (étape 6 du pipeline). Un bonus sous le plafond ne récompenserait personne parmi les joueurs rapides, déjà à 200. Nouveau maximum : **300 points par capture** (la 10ᵉ d'une partie parfaite) et **2 175 points par défi**.
+>
+> **Pas d'effet rétroactif.** `game_sessions.streak_bonus_enabled` vaut `false` pour toutes les parties existantes au moment de la migration `20261010_add_streak_bonus` (y compris celles en cours) et `true` pour les nouvelles. Aucun score publié n'est recalculé. Le job admin de recalcul des scores réajoute `guesses.streak_bonus` tel quel (0 sur les anciennes lignes).
+>
+> **Partie parfaite.** Une partie parfaite totalise désormais de 2 000 à 2 175 points selon ses séries. Le succès `perfect_score`, le compteur `perfect_score_count` et la statistique « parties parfaites » du profil se basent donc sur le score de vitesse : `total_score - streak_bonus_total = 2000` (`game_sessions.streak_bonus_total` cumule les bonus de la partie).
+
 ### Pénalités
 
 - **Mauvaise réponse :** aucune pénalité — les essais multiples sont autorisés
@@ -114,8 +140,8 @@ Ce que le vérificateur comprend :
 
 ### Score maximal
 
-- 200 points par capture (vitesse parfaite, sans indice)
-- 2 000 points pour un défi de 10 captures (théorique)
+- 200 points par capture au titre de la vitesse (vitesse parfaite, sans indice), jusqu'à 300 avec le bonus de série
+- 2 175 points pour un défi de 10 captures (théorique : 2 000 de vitesse + 175 de série)
 
 ## Bonus et indices
 
@@ -183,7 +209,7 @@ graph TD
     C --> D[Suggestions auto-complétées]
     D --> E[Soumission de la réponse]
     E --> F{Correct ?}
-    F -->|Oui| G[Calcul du score, indice appliqué si utilisé]
+    F -->|Oui| G[Calcul du score, indice appliqué si utilisé, bonus de série]
     F -->|Non| H[Aucune pénalité, nouvel essai possible]
     B --> T{Temps écoulé ?}
     T -->|Oui| U[Capture manquée définitivement timed_out]
@@ -271,8 +297,10 @@ Réponse correcte :
   "isCorrect": true,
   "correctGame": { "id": 42, "name": "The Witcher 3: Wild Hunt" },
   "scoreEarned": 175,
-  "totalScore": 175,
-  "nextPosition": 2,
+  "totalScore": 475,
+  "streak": 3,
+  "streakBonus": 25,
+  "nextPosition": 4,
   "isCompleted": false
 }
 ```
