@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -6,6 +6,7 @@ import { Share2, Twitter, MessageSquare, Copy, Check, Smartphone, MessageCircle 
 import type { GuessResult } from '@/types'
 import { toast } from '@/lib/toast'
 import { useSession } from '@/lib/auth-client'
+import { dailyCardFileName, dailyCardUrl, shareWithOptionalImage } from '@/lib/shareImage'
 
 interface ShareCardProps {
     score: number
@@ -35,6 +36,8 @@ export function ShareCard({
     const [copied, setCopied] = useState(false)
     const [open, setOpen] = useState(false)
     const referralCode = session?.user?.id
+    const [todayIso] = useState(() => new Date().toISOString().split('T')[0]!)
+    const shareDate = challengeDate || todayIso
 
     // Generate emoji grid (Wordle-style)
     const generateEmojiGrid = (): string => {
@@ -72,7 +75,7 @@ export function ShareCard({
     // "points"), so it is now localised and carries the box sentence from
     // docs/brand.md §5 — date, score, verb, no emoji in the base line.
     const generateShareText = (channel: ShareChannel): string => {
-        const date = challengeDate || new Date().toISOString().split('T')[0]
+        const date = shareDate
         const emojiGrid = generateEmojiGrid()
         const readableDate = new Intl.DateTimeFormat(i18n.language, {
             day: 'numeric',
@@ -139,19 +142,33 @@ export function ShareCard({
     const canUseNativeShare =
         typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
+    // The card is fetched ahead of the tap: iOS Safari drops the user
+    // activation if `navigator.share` waits on a network request, so the
+    // file must already be in memory when the button is pressed.
+    const cardFileRef = useRef<File | null>(null)
+    const cardLang = i18n.language
+    useEffect(() => {
+        cardFileRef.current = null
+        if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') return
+        const controller = new AbortController()
+        fetch(dailyCardUrl(shareDate, cardLang), { signal: controller.signal })
+            .then((res) => (res.ok ? res.blob() : null))
+            .then((blob) => {
+                if (!blob || !blob.type.startsWith('image/')) return
+                cardFileRef.current = new File([blob], dailyCardFileName(shareDate), { type: blob.type })
+            })
+            .catch(() => {
+                // No card: the share falls back to text only.
+            })
+        return () => controller.abort()
+    }, [shareDate, cardLang])
+
     const handleNativeShare = async (): Promise<boolean> => {
         const text = generateShareText('native')
-        try {
-            await navigator.share({ title: 'The Box', text })
-            return true
-        } catch (err) {
-            // AbortError = user cancelled — swallow silently
-            if ((err as { name?: string })?.name !== 'AbortError') {
-                console.error('Native share failed:', err)
-                return false
-            }
-            return true
-        }
+        const outcome = await shareWithOptionalImage(navigator, text, cardFileRef.current)
+        if (outcome === 'failed') console.error('Native share failed')
+        // A cancel counts as handled: the player closed the sheet on purpose.
+        return outcome !== 'failed'
     }
 
     // On phones the OS share sheet already lists every app the player uses,
