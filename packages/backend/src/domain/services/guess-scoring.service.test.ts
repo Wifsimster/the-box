@@ -5,8 +5,10 @@ import {
   MAX_SCREENSHOT_SCORE,
   PARTIAL_MATCH_FACTOR,
   SECOND_CHANCE_FLOOR,
+  STREAK_BONUS_TIERS,
   calculateGuessScore,
   calculateSpeedMultiplier,
+  calculateStreakBonus,
 } from './guess-scoring.service.js'
 
 /** Default inputs: an instant exact answer with no modifiers pending. */
@@ -160,5 +162,126 @@ describe('calculateGuessScore', () => {
       1.75,
       'still reported for a miss, for telemetry'
     )
+  })
+})
+
+describe('calculateStreakBonus', () => {
+  /** Solve positions 1..n in order, all on the first try; return each bonus. */
+  const runInOrder = (n: number) => {
+    const solved: number[] = []
+    const bonuses: number[] = []
+    for (let position = 1; position <= n; position++) {
+      bonuses.push(
+        calculateStreakBonus({ position, firstTry: true, firstTrySolvedPositions: solved })
+          .streakBonus
+      )
+      solved.push(position)
+    }
+    return bonuses
+  }
+
+  it('publishes the 3 / 5 / 10 tiers', () => {
+    assert.deepEqual(STREAK_BONUS_TIERS, [
+      { streak: 3, bonus: 25 },
+      { streak: 5, bonus: 50 },
+      { streak: 10, bonus: 100 },
+    ])
+  })
+
+  it('pays each tier once, on the answer that reaches it', () => {
+    assert.deepEqual(runInOrder(10), [0, 0, 25, 0, 50, 0, 0, 0, 0, 100])
+  })
+
+  it('caps a perfect challenge at 175 bonus points', () => {
+    assert.equal(runInOrder(10).reduce((a, b) => a + b, 0), 175)
+  })
+
+  it('reports the run length', () => {
+    const r = calculateStreakBonus({ position: 4, firstTry: true, firstTrySolvedPositions: [1, 2, 3] })
+    assert.deepEqual(r, { streak: 4, streakBonus: 0 })
+  })
+
+  it('pays nothing when the answer is not the first try, and the run resets', () => {
+    assert.deepEqual(
+      calculateStreakBonus({ position: 3, firstTry: false, firstTrySolvedPositions: [1, 2] }),
+      { streak: 0, streakBonus: 0 }
+    )
+    // Position 3 was solved after a miss, so it is not in the first-try set:
+    // the run restarts at 4.
+    assert.equal(
+      calculateStreakBonus({ position: 4, firstTry: true, firstTrySolvedPositions: [1, 2] }).streak,
+      1
+    )
+  })
+
+  it('breaks the run on a skipped (unsolved) position', () => {
+    // Player skipped 3 and answered 4 and 5: the run is 2 long, not 4 or 5.
+    assert.equal(
+      calculateStreakBonus({ position: 5, firstTry: true, firstTrySolvedPositions: [1, 2, 4] })
+        .streakBonus,
+      0
+    )
+  })
+
+  it('counts backwards only, so solving out of order never pays more', () => {
+    // Solve 4, 5 first, then 1, 2, 3. Filling the gap at 3 makes 1..5 a
+    // run, but the answer at 3 only sees 1..3 behind it.
+    const order = [4, 5, 1, 2, 3]
+    const solved: number[] = []
+    let total = 0
+    for (const position of order) {
+      total += calculateStreakBonus({ position, firstTry: true, firstTrySolvedPositions: solved })
+        .streakBonus
+      solved.push(position)
+    }
+    assert.equal(total, 25)
+    assert.ok(total <= runInOrder(5).reduce((a, b) => a + b, 0))
+  })
+})
+
+describe('calculateGuessScore — streak bonus and cap', () => {
+  it('adds the bonus after the 200 cap', () => {
+    const r = calculateGuessScore({ ...base, streakBonus: 100 })
+    assert.equal(r.scoreEarned, MAX_SCREENSHOT_SCORE + 100)
+    assert.equal(r.streakBonus, 100)
+  })
+
+  it('never exceeds 300 per screenshot (200 cap + largest tier)', () => {
+    const maxTier = Math.max(...STREAK_BONUS_TIERS.map((t) => t.bonus))
+    const r = calculateGuessScore({ ...base, streakBonus: maxTier })
+    assert.equal(r.scoreEarned, 300)
+  })
+
+  it('is not scaled by the partial factor or the letter penalty', () => {
+    // 0 ms -> 200, partial -> 80, 50 % letter cost -> 40, + 25 bonus = 65.
+    const r = calculateGuessScore({
+      ...base,
+      precision: 'partial',
+      letterPenaltyPct: 50,
+      streakBonus: 25,
+    })
+    assert.equal(r.scoreEarned, 65)
+  })
+
+  it('applies after the second-chance floor', () => {
+    // 20 s -> 100, partial -> 40, floored to 70, + 25 = 95.
+    const r = calculateGuessScore({
+      ...base,
+      precision: 'partial',
+      effectiveTimeTakenMs: 20_000,
+      secondChanceActive: true,
+      streakBonus: 25,
+    })
+    assert.equal(r.scoreEarned, SECOND_CHANCE_FLOOR + 25)
+  })
+
+  it('is ignored on a wrong guess', () => {
+    const r = calculateGuessScore({ ...base, precision: 'none', streakBonus: 100 })
+    assert.equal(r.scoreEarned, 0)
+    assert.equal(r.streakBonus, 0)
+  })
+
+  it('defaults to no bonus when the caller omits it', () => {
+    assert.equal(calculateGuessScore(base).scoreEarned, MAX_SCREENSHOT_SCORE)
   })
 })

@@ -306,6 +306,10 @@ export interface GuessResult {
   /** Points deducted for letters of the title revealed on this position. */
   letterPenalty?: number
   wrongGuessPenalty?: number
+  /** In-game streak bonus included in scoreEarned (absent when none). */
+  streakBonus?: number
+  /** Length of the first-try run this answer extended (absent when none). */
+  streak?: number
   /**
    * `partial` when the player named the franchise but omitted the sequel
    * number / full subtitle — the screenshot is solved at a reduced score.
@@ -552,6 +556,18 @@ export interface GuessResponse {
    * active activation.
    */
   secondChanceFloorBoost?: number
+  /**
+   * In-game streak bonus: flat points included in `scoreEarned` when this
+   * answer completes a run of 3, 5 or 10 consecutive screenshots solved on
+   * the first try. Absent when no tier was reached, and always absent on
+   * sessions started before the bonus shipped.
+   */
+  streakBonus?: number
+  /**
+   * Length of the first-try run ending at this screenshot (1 = run started).
+   * Absent on a wrong guess, a non-first-try answer, or a pre-bonus session.
+   */
+  streak?: number
   /**
    * Precision of a correct guess. `exact` = the full title was identified;
    * `partial` = only the franchise was named (sequel number / full subtitle

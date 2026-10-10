@@ -10,6 +10,7 @@ export interface GameSessionRow {
   current_tier: number
   current_position: number
   total_score: number
+  streak_bonus_total: number
   is_completed: boolean
   is_catch_up: boolean
   started_at: Date
@@ -48,6 +49,8 @@ export interface TierSessionWithContext extends TierSessionRow {
   daily_challenge_id: number
   is_catch_up: boolean
   game_is_completed: boolean
+  streak_bonus_enabled: boolean
+  game_streak_bonus_total: number
   tier_number: number
   time_limit_seconds: number
 }
@@ -206,6 +209,8 @@ export const sessionRepository = {
         'game_sessions.daily_challenge_id',
         'game_sessions.is_catch_up',
         'game_sessions.is_completed as game_is_completed',
+        'game_sessions.streak_bonus_enabled',
+        'game_sessions.streak_bonus_total as game_streak_bonus_total',
         'tiers.tier_number',
         'tiers.time_limit_seconds'
       )
@@ -236,6 +241,7 @@ export const sessionRepository = {
     totalScore: number
     currentPosition: number
     isCompleted: boolean
+    streakBonusTotal?: number
   }): Promise<void> {
     log.info(
       { sessionId: gameSessionId, totalScore: data.totalScore, position: data.currentPosition, completed: data.isCompleted },
@@ -248,6 +254,7 @@ export const sessionRepository = {
         current_position: data.currentPosition,
         is_completed: data.isCompleted,
         completed_at: data.isCompleted ? new Date() : undefined,
+        streak_bonus_total: data.streakBonusTotal,
       })
   },
 
@@ -283,6 +290,7 @@ export const sessionRepository = {
     powerUpUsed: string | null
     hintFromInventory: boolean
     letterPenalty: number
+    streakBonus: number
   }): Promise<void> {
     log.info(
       {
@@ -307,6 +315,7 @@ export const sessionRepository = {
       power_up_used: data.powerUpUsed,
       hint_from_inventory: data.hintFromInventory,
       letter_penalty: data.letterPenalty,
+      streak_bonus: data.streakBonus,
     })
   },
 
@@ -333,6 +342,17 @@ export const sessionRepository = {
   // guess, so a client that simply re-POSTs the same answer for an
   // already-solved slot would otherwise re-bank score and insert another
   // correct row.
+  // Solved positions with no wrong guess on them. A solved position accepts
+  // no further guess (anti-replay), so any wrong row predates the correct one.
+  async getFirstTrySolvedPositions(tierSessionId: string): Promise<number[]> {
+    const rows = await db('guesses')
+      .where('tier_session_id', tierSessionId)
+      .groupBy('position')
+      .havingRaw('bool_and(is_correct) and bool_or(is_correct)')
+      .select<Array<{ position: number }>>('position')
+    return rows.map((r) => r.position)
+  },
+
   async hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean> {
     const row = await db('guesses')
       .where('tier_session_id', tierSessionId)
