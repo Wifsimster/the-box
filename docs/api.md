@@ -207,6 +207,34 @@ Authorization: Bearer <token>
 }
 ```
 
+### Classement mensuel par pays
+
+```http
+GET /api/leaderboard/monthly/:year/:month/countries
+```
+
+Public, session facultative. Le pays est déclaré par le joueur sur son profil (`user.country`, ISO 3166-1 alpha-2) ; il n'est jamais déduit de l'IP ni de la locale.
+
+- Score d'un pays : moyenne, sur ses joueurs, du score moyen par partie de chacun dans le mois (parties terminées, hors rattrapage, comptes non anonymes). Chaque joueur pèse autant, quel que soit son nombre de parties.
+- Un pays n'apparaît qu'à partir de `minPlayers` joueurs distincts dans le mois (`MIN_PLAYERS_PER_COUNTRY = 5`, `domain/services/country-leaderboard.ts`).
+- Rang dense : deux pays au même score arrondi partagent le rang.
+- `viewer` n'est présent que pour un joueur connecté (pas un invité) : son pays (`null` s'il n'en a pas) et le nombre de joueurs de ce pays dans le mois, même sous le seuil.
+
+```json
+{
+  "success": true,
+  "data": {
+    "year": 2026,
+    "month": 10,
+    "minPlayers": 5,
+    "entries": [{ "rank": 1, "countryCode": "FR", "averageScore": 1420, "playerCount": 12 }],
+    "viewer": { "countryCode": "BE", "playerCount": 3 }
+  }
+}
+```
+
+Erreurs : `400 INVALID_YEAR`, `400 INVALID_MONTH`, `400 FUTURE_MONTH`.
+
 ## Endpoints User
 
 ### Historique de parties

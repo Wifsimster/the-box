@@ -203,6 +203,7 @@ export function ProfileTabs({
               <EditProfileCard
                 displayName={userProfile.displayName}
                 username={userProfile.username}
+                country={userProfile.country}
                 onUpdated={onProfileUpdated}
               />
             </ProfileSection>

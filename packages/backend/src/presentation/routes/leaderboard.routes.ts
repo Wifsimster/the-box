@@ -4,6 +4,8 @@ import {
   userService,
 } from '../../composition/services.js'
 import { optionalAuthMiddleware } from '../middleware/auth.middleware.js'
+import { userRepository } from '../../infrastructure/repositories/user.repository.js'
+import { createCountryLeaderboardHandler } from './country-leaderboard.handler.js'
 
 const router = Router()
 
@@ -103,6 +105,17 @@ router.get('/today/percentile', async (req, res, next) => {
     next(error)
   }
 })
+
+// Monthly country ranking (self-declared countries, min. players per country)
+router.get(
+  '/monthly/:year/:month/countries',
+  optionalAuthMiddleware,
+  createCountryLeaderboardHandler({
+    getMonthlyCountryLeaderboard: (year, month, viewer) =>
+      leaderboardService.getMonthlyCountryLeaderboard(year, month, viewer),
+    findViewerCountry: async (userId) => (await userRepository.findById(userId))?.country ?? null,
+  })
+)
 
 // Get monthly leaderboard - MUST be before /:date to prevent pattern conflict
 router.get('/monthly/:year/:month', async (req, res, next) => {

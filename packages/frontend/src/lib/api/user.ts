@@ -110,7 +110,12 @@ export const userApi = {
    * Update editable profile fields (display name / username). Returns the
    * updated User so callers can refresh local state.
    */
-  async updateProfile(input: { displayName?: string; username?: string }): Promise<User> {
+  async updateProfile(input: {
+    displayName?: string
+    username?: string
+    /** ISO 3166-1 alpha-2 code, or null to clear. */
+    country?: string | null
+  }): Promise<User> {
     const response = await fetch('/api/user/profile', {
       method: 'PUT',
       credentials: 'include',

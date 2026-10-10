@@ -9,6 +9,8 @@ import { requirePremium } from '../middleware/require-premium.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { gdprRepository } from '../../infrastructure/repositories/gdpr.repository.js'
 import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
+import type { CountryCode } from '@the-box/types'
+import { parseCountryInput } from './country-input.js'
 import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
@@ -268,14 +270,15 @@ router.put('/theme', authMiddleware, async (req, res, next) => {
 
 // ===== RGPD Art. 16: right to rectification =====
 //
-// Lets the caller correct their own display name and/or username. At least
-// one field must be present. Validation mirrors registration: display names
+// Lets the caller correct their own display name and/or username, and set or
+// clear their country (optional, self-declared). At least one field must be
+// present. Validation mirrors registration: display names
 // pass the safety gate, usernames are alnum/underscore 3–20 and globally
 // unique. `display_username` is kept in sync by the repository.
 router.put('/profile', authMiddleware, async (req, res, next) => {
   try {
-    const body = (req.body ?? {}) as { displayName?: unknown; username?: unknown }
-    const fields: { displayName?: string; username?: string } = {}
+    const body = (req.body ?? {}) as { displayName?: unknown; username?: unknown; country?: unknown }
+    const fields: { displayName?: string; username?: string; country?: CountryCode | null } = {}
 
     if (body.displayName !== undefined) {
       if (typeof body.displayName !== 'string') {
@@ -312,7 +315,18 @@ router.put('/profile', authMiddleware, async (req, res, next) => {
       fields.username = body.username
     }
 
-    if (fields.displayName === undefined && fields.username === undefined) {
+    if (body.country !== undefined) {
+      const parsed = parseCountryInput(body.country)
+      if (!parsed.ok) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_COUNTRY', message: 'country must be an ISO 3166-1 alpha-2 code or null' },
+        })
+      }
+      fields.country = parsed.country
+    }
+
+    if (fields.displayName === undefined && fields.username === undefined && fields.country === undefined) {
       return res.status(400).json({
         success: false,
         error: { code: 'NO_FIELDS', message: 'At least one field is required' },

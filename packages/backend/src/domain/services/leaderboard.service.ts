@@ -1,9 +1,16 @@
-import type { LeaderboardResponse, PercentileResponse, MonthlyLeaderboardResponse } from '@the-box/types'
+import type {
+  CountryCode,
+  CountryLeaderboardResponse,
+  LeaderboardResponse,
+  PercentileResponse,
+  MonthlyLeaderboardResponse,
+} from '@the-box/types'
 import type {
   DomainLogger,
   DailyChallengeLookup,
   LeaderboardRepository,
 } from '../ports/index.js'
+import { MIN_PLAYERS_PER_COUNTRY, countCountryPlayers, rankCountries } from './country-leaderboard.js'
 
 /** Minimal projection of today's rank-1 player for outbound nudges. */
 export interface TodayLeader {
@@ -17,6 +24,16 @@ export interface LeaderboardService {
   getLeaderboardByDate(date: string): Promise<LeaderboardResponse>
   getTodayPercentile(score: number): Promise<PercentileResponse>
   getMonthlyLeaderboard(year: number, month: number): Promise<MonthlyLeaderboardResponse>
+  /**
+   * Monthly country ranking (see `rankCountries`). `viewer` is the signed-in
+   * player's declared country (`null` when they have none); omit it for an
+   * anonymous request.
+   */
+  getMonthlyCountryLeaderboard(
+    year: number,
+    month: number,
+    viewer?: { countryCode: CountryCode | null },
+  ): Promise<CountryLeaderboardResponse>
   /**
    * Today's title holder (rank 1), or null when there is no challenge or
    * nobody has completed a ranked session yet. Cheap — fetches a single row.
@@ -137,19 +154,7 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
     },
 
     async getMonthlyLeaderboard(year: number, month: number): Promise<MonthlyLeaderboardResponse> {
-      // Validate month (1-12)
-      if (month < 1 || month > 12) {
-        throw new Error('Invalid month. Must be between 1 and 12')
-      }
-
-      // Prevent future months
-      const now = new Date()
-      const currentYear = now.getFullYear()
-      const currentMonth = now.getMonth() + 1 // getMonth() returns 0-11
-
-      if (year > currentYear || (year === currentYear && month > currentMonth)) {
-        throw new Error('Cannot request leaderboard for future months')
-      }
+      assertPastOrCurrentMonth(year, month)
 
       const entries = await leaderboardRepository.findByMonth(year, month)
 
@@ -159,5 +164,44 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
         entries,
       }
     },
+
+    async getMonthlyCountryLeaderboard(
+      year: number,
+      month: number,
+      viewer?: { countryCode: CountryCode | null },
+    ): Promise<CountryLeaderboardResponse> {
+      assertPastOrCurrentMonth(year, month)
+
+      const players = await leaderboardRepository.findCountryPlayerStatsByMonth(year, month)
+      const response: CountryLeaderboardResponse = {
+        year,
+        month,
+        minPlayers: MIN_PLAYERS_PER_COUNTRY,
+        entries: rankCountries(players, MIN_PLAYERS_PER_COUNTRY),
+      }
+      if (viewer) {
+        response.viewer = {
+          countryCode: viewer.countryCode,
+          playerCount: viewer.countryCode ? countCountryPlayers(players, viewer.countryCode) : 0,
+        }
+      }
+      return response
+    },
+  }
+}
+
+function assertPastOrCurrentMonth(year: number, month: number): void {
+  // Validate month (1-12)
+  if (month < 1 || month > 12) {
+    throw new Error('Invalid month. Must be between 1 and 12')
+  }
+
+  // Prevent future months
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // getMonth() returns 0-11
+
+  if (year > currentYear || (year === currentYear && month > currentMonth)) {
+    throw new Error('Cannot request leaderboard for future months')
   }
 }

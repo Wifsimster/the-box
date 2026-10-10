@@ -493,6 +493,8 @@ export interface ScreenshotRepository {
   ): Promise<Screenshot[]>
 }
 
+import type { CountryPlayerMonthStats } from '../services/country-leaderboard.js'
+
 // ---------- Achievement ----------
 
 import type {
@@ -696,6 +698,11 @@ export interface LeaderboardRepository {
   /** Total ranked players (completed, non-catch-up, non-anonymous) for a challenge. */
   countPlayersByChallenge(challengeId: number): Promise<number>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>
+  /**
+   * Per-player ranked totals for a month, for players who declared a
+   * country. Same session filter as `findByMonth`.
+   */
+  findCountryPlayerStatsByMonth(year: number, month: number): Promise<CountryPlayerMonthStats[]>
 }
 
 // ---------- Rewards ----------

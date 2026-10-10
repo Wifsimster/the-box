@@ -1,5 +1,6 @@
 import { db } from '../database/connection.js'
-import type { LeaderboardEntry, PercentileResponse, MonthlyLeaderboardEntry } from '@the-box/types'
+import { isCountryCode, type LeaderboardEntry, type PercentileResponse, type MonthlyLeaderboardEntry } from '@the-box/types'
+import type { CountryPlayerMonthStats } from '../../domain/services/country-leaderboard.js'
 
 interface LeaderboardRow {
   user_id: string
@@ -212,6 +213,38 @@ export const leaderboardRepository = {
           ? Math.round(Number(row.avg_capture_time_ms))
           : undefined,
     }))
+  },
+
+  async findCountryPlayerStatsByMonth(year: number, month: number): Promise<CountryPlayerMonthStats[]> {
+    const rows = await db('game_sessions')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .join('daily_challenges', 'game_sessions.daily_challenge_id', 'daily_challenges.id')
+      .where('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false)
+      .whereRaw('"user"."isAnonymous" = ?', [false])
+      .whereNotNull('user.country')
+      .whereRaw('EXTRACT(YEAR FROM daily_challenges.challenge_date) = ?', [year])
+      .whereRaw('EXTRACT(MONTH FROM daily_challenges.challenge_date) = ?', [month])
+      .groupBy('game_sessions.user_id', 'user.country')
+      .select<{ user_id: string; country: string; games_played: string; total_score: string }[]>(
+        'game_sessions.user_id',
+        'user.country',
+        db.raw('COUNT(game_sessions.id) as games_played'),
+        db.raw('SUM(game_sessions.total_score) as total_score')
+      )
+
+    return rows.flatMap((row) =>
+      isCountryCode(row.country)
+        ? [
+            {
+              userId: row.user_id,
+              countryCode: row.country,
+              gamesPlayed: Number(row.games_played),
+              totalScore: Number(row.total_score),
+            },
+          ]
+        : []
+    )
   },
 }
 

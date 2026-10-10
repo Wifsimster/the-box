@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trophy, Crown, Calendar, CalendarDays, Crosshair, Play } from 'lucide-react'
+import { Trophy, Crown, Calendar, CalendarDays, Crosshair, Play, Users, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { GeoGamersSeasonPanel } from '@/components/leaderboard/GeoGamersSeasonPanel'
+import { CountryLeaderboardPanel } from '@/components/leaderboard/CountryLeaderboardPanel'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { PageHero } from '@/components/layout/PageHero'
 import {
   DailyLeaderboardPanel,
@@ -27,6 +29,12 @@ const TABS = ['daily', 'monthly', 'achievements', 'geogamers'] as const
 type LeaderboardTab = (typeof TABS)[number]
 const parseTab = (value: string | null): LeaderboardTab =>
   (TABS as ReadonlyArray<string>).includes(value ?? '') ? (value as LeaderboardTab) : 'daily'
+
+// The monthly tab ranks players or countries; `?view=countries` keeps the
+// country view linkable (shares, marketing posts).
+type MonthlyView = 'players' | 'countries'
+const parseMonthlyView = (value: string | null): MonthlyView =>
+  value === 'countries' ? 'countries' : 'players'
 
 interface BoardsState {
   daily: LeaderboardEntry[]
@@ -129,6 +137,23 @@ export default function LeaderboardPage() {
     achievementLoading,
   } = boards
   const activeTab = parseTab(searchParams.get('tab'))
+  const monthlyView = parseMonthlyView(searchParams.get('view'))
+  const setMonthlyView = useCallback(
+    (value: string) => {
+      if (!value) return
+      const next = parseMonthlyView(value)
+      setSearchParams(
+        (prev) => {
+          const sp = new URLSearchParams(prev)
+          if (next === 'players') sp.delete('view')
+          else sp.set('view', next)
+          return sp
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
   const setActiveTab = useCallback(
     (value: string) => {
       const next = parseTab(value)
@@ -137,6 +162,7 @@ export default function LeaderboardPage() {
           const sp = new URLSearchParams(prev)
           if (next === 'daily') sp.delete('tab')
           else sp.set('tab', next)
+          if (next !== 'monthly') sp.delete('view')
           return sp
         },
         { replace: true },
@@ -222,7 +248,7 @@ export default function LeaderboardPage() {
   // Fetch monthly leaderboard when monthly tab is active or month changes
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
-    if (activeTab !== 'monthly') return
+    if (activeTab !== 'monthly' || monthlyView !== 'players') return
 
     dispatchBoards({ type: 'monthlyStart' })
     const year = selectedMonth.getFullYear()
@@ -239,7 +265,7 @@ export default function LeaderboardPage() {
       .catch(() => {
         dispatchBoards({ type: 'monthlyLoaded', entries: [] })
       })
-  }, [activeTab, selectedMonth])
+  }, [activeTab, monthlyView, selectedMonth])
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
@@ -342,16 +368,43 @@ export default function LeaderboardPage() {
           </TabsContent>
 
           <TabsContent value="monthly">
-            <MonthlyLeaderboardPanel
-              entries={monthlyLeaderboard}
-              loading={monthlyLoading}
-              selectedMonth={selectedMonth}
-              maxDate={today}
-              locale={getDateLocale()}
-              cardTitle={getMonthlyCardTitle()}
-              currentUserId={currentUserId}
-              onMonthChange={handleMonthChange}
-            />
+            <div className="flex justify-center mb-4">
+              <ToggleGroup
+                type="single"
+                value={monthlyView}
+                onValueChange={setMonthlyView}
+                aria-label={t('leaderboard.countries.viewLabel')}
+              >
+                <ToggleGroupItem value="players">
+                  <Users className="size-4" aria-hidden="true" />
+                  {t('leaderboard.countries.viewPlayers')}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="countries">
+                  <Globe className="size-4" aria-hidden="true" />
+                  {t('leaderboard.countries.viewCountries')}
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            {monthlyView === 'players' ? (
+              <MonthlyLeaderboardPanel
+                entries={monthlyLeaderboard}
+                loading={monthlyLoading}
+                selectedMonth={selectedMonth}
+                maxDate={today}
+                locale={getDateLocale()}
+                cardTitle={getMonthlyCardTitle()}
+                currentUserId={currentUserId}
+                onMonthChange={handleMonthChange}
+              />
+            ) : (
+              <CountryLeaderboardPanel
+                selectedMonth={selectedMonth}
+                maxDate={today}
+                locale={getDateLocale()}
+                cardTitle={getMonthlyCardTitle()}
+                onMonthChange={handleMonthChange}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="achievements">
