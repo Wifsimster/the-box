@@ -78,7 +78,7 @@ async function pollSnapshot(userId: string): Promise<PollSnapshot | null> {
   // ride the leaderboard when completed_at is set, never before. Uses the
   // same repository method the REST surface does, so the overlay and the
   // /streamers endpoint can never report different ranks for one session.
-  const rank: number | null = session.is_completed && !session.ip_capped
+  const rank: number | null = session.is_completed
     ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
     : null
 

@@ -29,8 +29,6 @@ export interface PublicDailySessionRecord {
   total_score: number
   current_tier: number
   is_completed: boolean
-  /** Over the per-connection leaderboard cap: no rank to report. */
-  ip_capped: boolean
   started_at: Date
   completed_at: Date | null
 }

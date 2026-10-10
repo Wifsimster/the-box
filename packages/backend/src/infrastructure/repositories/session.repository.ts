@@ -12,7 +12,6 @@ export interface GameSessionRow {
   total_score: number
   is_completed: boolean
   is_catch_up: boolean
-  ip_capped: boolean
   started_at: Date
   completed_at: Date | null
 }
@@ -48,7 +47,6 @@ export interface TierSessionWithContext extends TierSessionRow {
   game_session_id: string
   daily_challenge_id: number
   is_catch_up: boolean
-  ip_capped: boolean
   game_is_completed: boolean
   tier_number: number
   time_limit_seconds: number
@@ -99,16 +97,14 @@ export const sessionRepository = {
     userId: string
     dailyChallengeId: number
     isCatchUp?: boolean
-    ipCapped?: boolean
   }): Promise<GameSessionRow> {
-    log.info({ userId: data.userId, challengeId: data.dailyChallengeId, isCatchUp: data.isCatchUp, ipCapped: data.ipCapped }, 'createGameSession')
+    log.info({ userId: data.userId, challengeId: data.dailyChallengeId, isCatchUp: data.isCatchUp }, 'createGameSession')
     const [row] = await db('game_sessions')
       .insert({
         user_id: data.userId,
         daily_challenge_id: data.dailyChallengeId,
         current_tier: 1,
         is_catch_up: data.isCatchUp ?? false,
-        ip_capped: data.ipCapped ?? false,
       })
       .returning<GameSessionRow[]>('*')
     log.info({ sessionId: row!.id, userId: data.userId, isCatchUp: row!.is_catch_up }, 'game session created')
@@ -209,7 +205,6 @@ export const sessionRepository = {
         'game_sessions.id as game_session_id',
         'game_sessions.daily_challenge_id',
         'game_sessions.is_catch_up',
-        'game_sessions.ip_capped',
         'game_sessions.is_completed as game_is_completed',
         'tiers.tier_number',
         'tiers.time_limit_seconds'

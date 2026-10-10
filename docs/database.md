@@ -291,23 +291,8 @@ Tentatives des joueurs sur un défi.
 | initial_score | INTEGER | Starting countdown score (default 1000) |
 | decay_rate | INTEGER | Points lost per second (default 2) |
 | is_completed | BOOLEAN | Finished flag |
-| is_catch_up | BOOLEAN | Catch-up session (never ranked) |
-| ip_capped | BOOLEAN | Ranked daily started over the per-connection cap: scored, never on the leaderboard (see `leaderboard_ip_slots`) |
 | started_at | TIMESTAMP | Start time |
 | completed_at | TIMESTAMP | Completion time |
-
-### leaderboard_ip_slots
-
-Places au classement par connexion et par jour (plafond `LEADERBOARD_IP_CAP` = 5, défini dans `@the-box/types`). Une ligne par joueur ayant obtenu une place ; les joueurs au-delà du plafond n'ont pas de ligne.
-
-| Column | Type | Description |
-| ------ | ---- | ----------- |
-| slot_date | DATE | Jour UTC du défi (PK) |
-| ip_hash | VARCHAR(64) | HMAC-SHA256 de l'IP normalisée (IPv6 réduite au /64), clé dérivée de `BETTER_AUTH_SECRET` par HKDF puis par jour (PK). Aucune IP brute stockée |
-| user_id | TEXT | FK to user, `ON DELETE CASCADE` (PK) |
-| created_at | TIMESTAMPTZ | Création |
-
-Rétention : les lignes des jours passés sont supprimées à la première réclamation du jour suivant et par le job quotidien `cleanup-anonymous-users` (01:00 UTC), soit 25 h au plus.
 
 ### tier_sessions
 

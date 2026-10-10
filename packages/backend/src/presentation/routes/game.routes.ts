@@ -242,10 +242,7 @@ router.post('/start/:challengeId', authMiddleware, async (req, res, next) => {
     // returns 402 PREMIUM_REQUIRED_FOR_OLD_CATCHUP instead of a generic
     // 400 so the frontend can surface the upsell instead of a dead end.
     const isPremium = await billingService.isPremium(req.userId!)
-    // Guests never reach the leaderboard, so they don't take a slot of the
-    // per-connection cap. `req.ip` honours `trust proxy` (set in index.ts).
-    const clientIp = req.isGuest ? undefined : req.ip
-    const data = await gameService.startChallenge(challengeId, req.userId!, isPremium, clientIp)
+    const data = await gameService.startChallenge(challengeId, req.userId!, isPremium)
 
     res.json({
       success: true,

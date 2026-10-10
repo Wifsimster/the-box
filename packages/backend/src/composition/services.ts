@@ -25,8 +25,6 @@ import { createDailyLoginService } from '../domain/services/daily-login.service.
 import { createRewardsService } from '../domain/services/rewards.service.js'
 import { createJobService } from '../domain/services/job.service.js'
 import { createLeaderboardService } from '../domain/services/leaderboard.service.js'
-import { createLeaderboardIpCapGuard } from '../domain/services/leaderboard-ip-cap.service.js'
-import { hashClientIpForDay } from '../infrastructure/crypto/ip-hash.js'
 import { createAdminService } from '../domain/services/admin.service.js'
 import { createAdminAnalyticsService } from '../domain/services/admin-analytics.service.js'
 import { createUserService } from '../domain/services/user.service.js'
@@ -58,7 +56,6 @@ import {
   gameRepository,
   inventoryRepository,
   leaderboardRepository,
-  leaderboardIpSlotRepository,
   positionSecondChanceRepository,
   positionLetterRevealRepository,
   rewardRepository,
@@ -130,12 +127,6 @@ export const leaderboardService = createLeaderboardService({
   logger: serviceLogger,
   challengeRepository,
   leaderboardRepository,
-})
-
-export const leaderboardIpCapGuard = createLeaderboardIpCapGuard({
-  logger: serviceLogger,
-  store: leaderboardIpSlotRepository,
-  hashIp: hashClientIpForDay,
 })
 
 export const adminService = createAdminService({
@@ -214,7 +205,6 @@ async function onAfterSessionCompleted(params: {
   screenshotsFound: number
   reason: 'all_found' | 'forfeit'
   isCatchUp: boolean
-  ipCapped: boolean
 }): Promise<void> {
   // Resolve slug + public flag. If the user hasn't opted in, there's nothing
   // to dispatch — bail before fetching subs.
@@ -225,10 +215,9 @@ async function onAfterSessionCompleted(params: {
   if (!challenge) return
 
   // Final rank — shared with the public profile endpoint via the repository.
-  // Catch-up sessions and sessions over the per-connection cap are excluded
-  // from the leaderboard so `rank` is null in those paths.
-  const countsForLeaderboard = !params.isCatchUp && !params.ipCapped
-  const rank: number | null = !countsForLeaderboard
+  // Catch-up sessions are explicitly excluded from the leaderboard so
+  // `rank` is null in that path.
+  const rank: number | null = params.isCatchUp
     ? null
     : await leaderboardRepository.rankForScore(params.challengeId, params.finalScore)
 
@@ -241,12 +230,12 @@ async function onAfterSessionCompleted(params: {
     screenshotsFound: params.screenshotsFound,
     totalScreenshots: 10,
     rank,
-    countsForLeaderboard,
+    countsForLeaderboard: !params.isCatchUp,
   })
 
   // rank.changed — rank-only companion event, completing-streamer-only.
-  // Skipped for unranked sessions (no leaderboard rank to report).
-  if (countsForLeaderboard && rank !== null) {
+  // Skipped for catch-up sessions (no leaderboard rank to report).
+  if (!params.isCatchUp && rank !== null) {
     await webhookDispatch.rankChanged({
       userId: params.userId,
       slug: profile.publicSlug,
@@ -268,7 +257,6 @@ async function onAfterSessionStarted(params: {
   challengeId: number
   challengeDate: string
   isCatchUp: boolean
-  ipCapped: boolean
 }): Promise<void> {
   const profile = await userRepository.getPublicProfileRef(params.userId)
   if (!profile?.publicProfileEnabled || !profile.publicSlug) return
@@ -278,7 +266,7 @@ async function onAfterSessionStarted(params: {
     slug: profile.publicSlug,
     sessionId: params.sessionId,
     challengeDate: params.challengeDate,
-    countsForLeaderboard: !params.isCatchUp && !params.ipCapped,
+    countsForLeaderboard: !params.isCatchUp,
   })
 }
 
@@ -295,7 +283,6 @@ export const gameService = createGameService({
   funnelEventRepository,
   positionSecondChanceRepository,
   positionLetterRevealRepository,
-  leaderboardIpCapGuard,
   onAfterGuessSubmitted,
   onAfterSessionCompleted,
   onAfterSessionStarted,
