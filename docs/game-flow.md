@@ -160,6 +160,10 @@ Le titre reste **entièrement caché** avant la première révélation payante :
 - **`second_chance` est un PLANCHER, pas un plafond.** Le PRD initial évoquait littéralement « score plafonné à 70 % », mais cette interprétation rendrait le power-up punitif dans le modèle actuel (les essais multiples sont déjà permis, l'objet ne peut donc pas accorder une chance qui n'existe pas déjà). Implémenté comme : une activation pour une position garantit `max(scoreEarned, 70)` sur la prochaine bonne réponse à cette position. C'est la seule lecture qui rend le power-up à valeur positive pour le joueur. Toute évolution future de cette sémantique doit être discutée dans une réunion design avant d'être codée.
 - **Activation `second_chance` réactive (modale)** déclenchée après une mauvaise réponse, dismissable. Refuser ne consomme pas l'inventaire. Une activation au plus par couple `(tier_session, position)`.
 
+### Plafond de joueurs classés par connexion
+
+Au démarrage d'une session classée du jour, le serveur réserve une place dans `leaderboard_ip_slots` pour le couple (jour UTC, empreinte de l'IP). Au-delà de `LEADERBOARD_IP_CAP` (5) joueurs distincts sur la même connexion, la session est créée avec `ip_capped = true` : la partie, le score, la série et l'inventaire fonctionnent normalement, mais la session est exclue des classements quotidien et mensuel, du rang des webhooks (`countsForLeaderboard: false`) et donc du payout mensuel. La décision est figée à la création de la session ; les classements déjà publiés ne bougent pas. Le client affiche `game.sharedConnectionNotice`. Les invités et les sessions de rattrapage ne prennent pas de place. En cas d'erreur de stockage ou d'IP absente, le contrôle laisse passer (fail open).
+
 ### Payout mensuel du classement
 
 Le worker BullMQ `leaderboard-payout-monthly` s'exécute le 1er de chaque mois à 00:30 UTC et accorde un cadre cosmétique au top 100 du **mois précédent**.

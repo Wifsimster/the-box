@@ -25,6 +25,7 @@ import type {
 } from '../ports/repositories.js'
 import type { FuzzyMatchService } from './fuzzy-match.service.js'
 import type { AchievementService } from './achievement.service.js'
+import type { LeaderboardIpCapGuard } from './leaderboard-ip-cap.service.js'
 import {
   buildMaskedTitle,
   effectiveMaxReveals,
@@ -116,6 +117,11 @@ export interface GameServiceDeps {
   positionSecondChanceRepository: PositionSecondChanceRepository
   positionLetterRevealRepository: PositionLetterRevealRepository
   /**
+   * Per-connection leaderboard cap. Optional so tests and tools that don't
+   * care can omit it; without it every ranked session is eligible.
+   */
+  leaderboardIpCapGuard?: LeaderboardIpCapGuard
+  /**
    * Optional fire-and-forget hook called after a guess is persisted.
    * Wired by the composition root to unlock any pending rewards that
    * gate on a user action (currently: reactivation chest unlocks on
@@ -140,6 +146,7 @@ export interface GameServiceDeps {
     screenshotsFound: number
     reason: 'all_found' | 'forfeit'
     isCatchUp: boolean
+    ipCapped: boolean
   }) => Promise<void>
   /**
    * Optional fire-and-forget hook called once when a NEW game session is
@@ -153,12 +160,19 @@ export interface GameServiceDeps {
     challengeId: number
     challengeDate: string
     isCatchUp: boolean
+    ipCapped: boolean
   }) => Promise<void>
 }
 
 export interface GameService {
   getTodayChallenge(userId?: string, date?: string): Promise<TodayChallengeResponse>
-  startChallenge(challengeId: number, userId: string, isPremium?: boolean): Promise<StartChallengeResponse>
+  startChallenge(
+    challengeId: number,
+    userId: string,
+    isPremium?: boolean,
+    /** Client IP for the per-connection leaderboard cap; omit for guests. */
+    clientIp?: string,
+  ): Promise<StartChallengeResponse>
   getScreenshot(
     sessionId: string,
     position: number,
@@ -369,6 +383,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
           screenshotsFound: totalScreenshotsFound,
           reason: 'all_found',
           isCatchUp: tierSession.is_catch_up,
+          ipCapped: tierSession.ip_capped,
         })
         .catch((error) => {
           log.warn(
@@ -463,6 +478,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
             screenshotsFound: correctPositions.length,
             sessionStartedAt: session.started_at.toISOString(),
             isCatchUp: session.is_catch_up,
+            sharedConnectionCapped: session.ip_capped,
           }
           log.debug({ userId, challengeId: challenge.id, tierSessionId: tierSession.id, hasPlayed: true, correctPositions }, 'user has existing session')
         }
@@ -505,6 +521,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
     challengeId: number,
     userId: string,
     isPremium: boolean = false,
+    clientIp?: string,
   ): Promise<StartChallengeResponse> {
     log.info({ challengeId, userId }, 'startChallenge')
 
@@ -574,12 +591,20 @@ export function createGameService(deps: GameServiceDeps): GameService {
     let gameSession = await sessionRepository.findGameSession(userId, challengeId)
 
     if (!gameSession) {
+      // The per-connection cap is decided once, when a ranked daily session
+      // is created, and frozen on the row: a capped player keeps playing
+      // and scoring, only the leaderboard queries skip the session.
+      // Catch-up sessions are never ranked, so they never take a slot.
+      const ipCapped = !isCatchUp && deps.leaderboardIpCapGuard
+        ? !(await deps.leaderboardIpCapGuard.claim({ userId, clientIp, day: new Date().toISOString().slice(0, 10) }))
+        : false
       gameSession = await sessionRepository.createGameSession({
         userId,
         dailyChallengeId: challengeId,
         isCatchUp,
+        ipCapped,
       })
-      log.info({ sessionId: gameSession.id, challengeId, userId, isCatchUp }, 'new game session started')
+      log.info({ sessionId: gameSession.id, challengeId, userId, isCatchUp, ipCapped }, 'new game session started')
       void funnelEventRepository.record({
         eventName: 'session_started',
         userId,
@@ -599,6 +624,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
           // `string | undefined` that index-access on split() would give.
           challengeDate: challengeDateStr ?? challengeDate.toISOString().slice(0, 10),
           isCatchUp,
+          ipCapped: gameSession.ip_capped,
         }).catch((error) => {
           log.warn(
             { userId, error: String(error) },
@@ -630,6 +656,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       tierSessionId: tierSession.id,
       totalScreenshots: TOTAL_SCREENSHOTS,
       sessionStartedAt: gameSession.started_at.toISOString(),
+      sharedConnectionCapped: gameSession.ip_capped,
     }
   },
 
@@ -1460,6 +1487,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         screenshotsFound,
         reason: 'forfeit',
         isCatchUp: session.is_catch_up,
+        ipCapped: session.ip_capped,
       }).catch((error) => {
         log.warn(
           { userId, error: String(error) },

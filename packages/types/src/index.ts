@@ -410,6 +410,8 @@ export interface TodayChallengeResponse {
     sessionStartedAt: string
     /** Whether this is a catch-up session (previous day play) */
     isCatchUp?: boolean
+    /** Ranked daily over the per-connection leaderboard cap (see StartChallengeResponse) */
+    sharedConnectionCapped?: boolean
   } | null
   /** Yesterday's challenge info if available and not yet played */
   yesterdayChallenge?: {
@@ -421,11 +423,30 @@ export interface TodayChallengeResponse {
   } | null
 }
 
+/**
+ * How many distinct players may enter the daily leaderboard from one
+ * connection (one public IPv4, or one IPv6 /64) per UTC day.
+ *
+ * Why 5: a household (2–4 players on the same box) never hits it, while a
+ * single person farming alt accounts to fill the podium is capped at 5 rows.
+ * Schools, offices and carrier-grade NAT put far more than 5 real players
+ * behind one address; they are the accepted cost. Those players still play
+ * and keep their score, streak and rewards; only the leaderboard skips them,
+ * and the game tells them why.
+ */
+export const LEADERBOARD_IP_CAP = 5
+
 export interface StartChallengeResponse {
   sessionId: string
   tierSessionId: string
   totalScreenshots: number
   sessionStartedAt: string
+  /**
+   * True when this ranked daily was started over the per-connection
+   * leaderboard cap (too many players on the same network today): the run
+   * is scored normally but stays off the leaderboard. The UI explains why.
+   */
+  sharedConnectionCapped?: boolean
 }
 
 // Backwards compatibility alias

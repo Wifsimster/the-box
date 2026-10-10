@@ -10,6 +10,7 @@ import { createGeoGamersChallenge } from './geogamers-challenge-logic.js'
 import { grantGeoGamersSeasonPayout } from './geogamers-season-payout-logic.js'
 import { sendGeoGamersDailyPush } from './geogamers-daily-push-logic.js'
 import { cleanupAnonymousUsers } from './cleanup-anonymous-logic.js'
+import { leaderboardIpSlotRepository } from '../../repositories/leaderboard-ip-slot.repository.js'
 import { processRecalculateScoresJob } from './recalculate-scores-logic.js'
 import { clearDailyData } from './clear-daily-data-logic.js'
 import { refreshGameAliases } from './refresh-game-aliases-logic.js'
@@ -254,6 +255,14 @@ export const importWorker = new Worker<JobData, JobResult>(
           const progress = Math.round((current / total) * 100)
           job.updateProgress(progress)
         })
+
+        // Same daily sweep drops the hashed-IP slots of the leaderboard
+        // per-connection cap once their UTC day is over (privacy: hashes
+        // live about a day, never past 48 h). The cap guard also purges on
+        // the first claim of each day; this covers days with no play.
+        const today = new Date().toISOString().slice(0, 10)
+        const ipSlotsDeleted = await leaderboardIpSlotRepository.purgeBefore(today)
+        log.info({ jobId: id, ipSlotsDeleted }, 'purged expired leaderboard ip slots')
 
         const jobResult: JobResult = {
           usersDeleted: result.usersDeleted,
