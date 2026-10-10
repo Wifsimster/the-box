@@ -233,6 +233,8 @@ export interface GameSessionRecord {
   total_score: number
   is_completed: boolean
   is_catch_up: boolean
+  /** Ranked daily played over the per-connection cap: scored, never on the leaderboard. */
+  ip_capped: boolean
   started_at: Date
   completed_at: Date | null
 }
@@ -260,6 +262,7 @@ export interface TierSessionWithContextRecord extends TierSessionRecord {
   game_session_id: string
   daily_challenge_id: number
   is_catch_up: boolean
+  ip_capped: boolean
   /** game_sessions.is_completed — true once the run finished or was forfeited. */
   game_is_completed: boolean
   tier_number: number
@@ -335,6 +338,7 @@ export interface GameSessionStore extends GameSessionLookup {
     userId: string
     dailyChallengeId: number
     isCatchUp?: boolean
+    ipCapped?: boolean
   }): Promise<GameSessionRecord>
   createTierSession(data: { gameSessionId: string; tierId: number }): Promise<TierSessionRecord>
   // Atomic insert that is a no-op if the parent game session has already
@@ -693,9 +697,19 @@ export interface DailyLoginRepository {
 export interface LeaderboardRepository {
   findByChallenge(challengeId: number, limit?: number): Promise<LeaderboardEntry[]>
   getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse>
-  /** Total ranked players (completed, non-catch-up, non-anonymous) for a challenge. */
+  /** Total ranked players (completed, non-catch-up, not IP-capped, non-anonymous) for a challenge. */
   countPlayersByChallenge(challengeId: number): Promise<number>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>
+}
+
+/**
+ * Slots of the leaderboard per-connection cap, keyed by UTC day and a keyed
+ * hash of the client IP (never the raw IP). Used by `leaderboard-ip-cap`.
+ */
+export interface LeaderboardIpSlotStore {
+  /** True when `userId` holds (or just got) one of the `cap` slots. */
+  claimSlot(day: string, ipHash: string, userId: string, cap: number): Promise<boolean>
+  purgeBefore(today: string): Promise<number>
 }
 
 // ---------- Rewards ----------

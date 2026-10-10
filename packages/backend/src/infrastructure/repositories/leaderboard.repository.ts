@@ -51,6 +51,7 @@ export const leaderboardRepository = {
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from leaderboard
+      .andWhere('game_sessions.ip_capped', false) // Over the per-connection cap: played, not ranked
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .orderBy([
         { column: 'game_sessions.total_score', order: 'desc' },
@@ -96,13 +97,14 @@ export const leaderboardRepository = {
 
   async countPlayersByChallenge(challengeId: number): Promise<number> {
     // Mirrors the totalPlayers query in getPercentileForScore: ranked
-    // sessions only (completed, not catch-up, not anonymous). Used by the
+    // sessions only (completed, not catch-up, not IP-capped, not anonymous). Used by the
     // public "players today" social-proof badge on the home page.
     const result = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false)
+      .andWhere('game_sessions.ip_capped', false) // Over the per-connection cap: played, not ranked
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .count('game_sessions.id as count')
       .first()
@@ -116,6 +118,7 @@ export const leaderboardRepository = {
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions
+      .andWhere('game_sessions.ip_capped', false) // Over the per-connection cap: played, not ranked
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .count('game_sessions.id as count')
       .first()
@@ -132,6 +135,7 @@ export const leaderboardRepository = {
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions
+      .andWhere('game_sessions.ip_capped', false) // Over the per-connection cap: played, not ranked
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .andWhere('game_sessions.total_score', '>', score)
       .count('game_sessions.id as count')
@@ -158,6 +162,7 @@ export const leaderboardRepository = {
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false)
+      .andWhere('game_sessions.ip_capped', false) // Over the per-connection cap: played, not ranked
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .andWhere('game_sessions.total_score', '>', score)
       .count<{ count: string }[]>('game_sessions.id as count')
@@ -172,6 +177,7 @@ export const leaderboardRepository = {
       .leftJoin(correctGuessStatsSubquery(), 'guess_stats.game_session_id', 'game_sessions.id')
       .where('game_sessions.is_completed', true)
       .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from monthly leaderboard
+      .andWhere('game_sessions.ip_capped', false) // Over the per-connection cap: played, not ranked
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .whereRaw('EXTRACT(YEAR FROM daily_challenges.challenge_date) = ?', [year])
       .whereRaw('EXTRACT(MONTH FROM daily_challenges.challenge_date) = ?', [month])

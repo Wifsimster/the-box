@@ -141,7 +141,7 @@ async function buildStreamerProfile(row: PublicStreamerRecord): Promise<PublicSt
     if (session) {
       // Rank is only meaningful when the session is finished — partial
       // scores ride the leaderboard once completed_at is set, never before.
-      const rank: number | null = session.is_completed
+      const rank: number | null = session.is_completed && !session.ip_capped
         ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
         : null
       today = {
@@ -268,7 +268,7 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
     const correctAnswers = await publicProfileRepository.countCorrectAnswers(session.id)
     const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(correctAnswers))
 
-    const rank: number | null = session.is_completed
+    const rank: number | null = session.is_completed && !session.ip_capped
       ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
       : null
 
