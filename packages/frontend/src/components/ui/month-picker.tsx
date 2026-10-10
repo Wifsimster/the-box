@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { format, type Locale } from "date-fns"
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "./button"
@@ -39,6 +40,7 @@ export function MonthPicker({
   className,
   disabled = false,
 }: MonthPickerProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [viewYear, setViewYear] = useState(() => value.getFullYear())
 
@@ -108,7 +110,7 @@ export function MonthPicker({
         className="size-11 sm:size-9"
       >
         <ChevronLeft className="size-4" />
-        <span className="sr-only">Previous month</span>
+        <span className="sr-only">{t("common.previousMonth")}</span>
       </Button>
 
       <Popover open={open} onOpenChange={setOpen}>
@@ -125,7 +127,7 @@ export function MonthPicker({
             )}
           >
             <CalendarDays className="size-4 text-neon-purple" />
-            {value ? format(value, "MMMM yyyy", { locale }) : <span>Pick a month</span>}
+            {value ? format(value, "MMMM yyyy", { locale }) : <span>{t("common.pickMonth")}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-3" align="center">
@@ -191,7 +193,7 @@ export function MonthPicker({
         className="size-11 sm:size-9"
       >
         <ChevronRight className="size-4" />
-        <span className="sr-only">Next month</span>
+        <span className="sr-only">{t("common.nextMonth")}</span>
       </Button>
     </div>
   )
