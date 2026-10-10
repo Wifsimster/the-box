@@ -55,7 +55,6 @@ export const publicProfileRepository: PublicProfileRepository = {
         'total_score',
         'current_tier',
         'is_completed',
-        'ip_capped',
         'started_at',
         'completed_at',
       )

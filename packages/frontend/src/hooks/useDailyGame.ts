@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import { toast } from 'sonner'
 import { useGameStore } from '@/stores/gameStore'
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
@@ -11,7 +10,6 @@ import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { useWorldScore } from '@/hooks/useWorldScore'
 import { createLeaderboardService } from '@/services'
 import { gameApi } from '@/lib/api'
-import { LEADERBOARD_IP_CAP } from '@/lib/leaderboardIpCap'
 import { authClient, useSession } from '@/lib/auth-client'
 
 const GUEST_OPT_IN_KEY = 'theBox.guestOptIn'
@@ -21,16 +19,6 @@ const GUEST_OPT_IN_KEY = 'theBox.guestOptIn'
  * prefetching, start/reset handlers and the guest-gate flow. Extracted from
  * GamePage so that component is a thin presentational shell over this hook.
  */
-// Ranked daily started over the per-connection leaderboard cap: the run
-// plays and scores normally but stays off the leaderboard. Say so up front,
-// long enough to read; the fixed id keeps a resume from stacking toasts.
-function notifySharedConnectionCap(t: TFunction): void {
-  toast.info(t('game.sharedConnectionNotice', { cap: LEADERBOARD_IP_CAP }), {
-    id: 'shared-connection-cap',
-    duration: 12_000,
-  })
-}
-
 export function useDailyGame() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -196,7 +184,6 @@ export function useDailyGame() {
 
           // Resume incomplete session
           setSessionId(data.userSession.sessionId, data.userSession.tierSessionId)
-          if (data.userSession.sharedConnectionCapped) notifySharedConnectionCap(t)
 
           // Restore full session state from backend (merges with persisted local state)
           restoreSessionState({
@@ -392,7 +379,6 @@ export function useDailyGame() {
       // Start the challenge session
       const startData = await gameApi.startChallenge(challengeId)
       setSessionId(startData.sessionId, startData.tierSessionId)
-      if (startData.sharedConnectionCapped) notifySharedConnectionCap(t)
       useGameStore.setState({ totalScreenshots: startData.totalScreenshots })
 
       // Initialize position states for navigation tracking

@@ -14,11 +14,6 @@
 export { AuthError } from './auth.service.js'
 export { createGameService, type GameService, GameError } from './game.service.js'
 export { createLeaderboardService, type LeaderboardService } from './leaderboard.service.js'
-export {
-  createLeaderboardIpCapGuard,
-  LEADERBOARD_IP_CAP,
-  type LeaderboardIpCapGuard,
-} from './leaderboard-ip-cap.service.js'
 export { createAdminService, type AdminService } from './admin.service.js'
 export {
   createAdminAnalyticsService,
