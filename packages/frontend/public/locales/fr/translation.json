@@ -55,7 +55,10 @@
     "menuDescription": "Navigation du site et liens du compte",
     "geogamers": "Panorama",
     "new": "Nouveau",
-    "goToItem": "Aller à l'élément {{index}}"
+    "goToItem": "Aller à l'élément {{index}}",
+    "previousMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "pickMonth": "Choisir un mois"
   },
   "nav": {
     "primary": "Navigation principale",

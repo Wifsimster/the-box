@@ -144,7 +144,7 @@ Le partage est la principale surface d'exposition de la marque : la plupart des 
 
 - **Carte OG quotidienne** (`og.routes.ts`) : la capture du jour, floutée, en fond ; wordmark ; `SITE_TAGLINE` ; CTA. Jamais une carte purement textuelle quand une capture est disponible.
 - **Texte de partage** : `J'ai ouvert la boîte du {date} — {score} pts, {n}/10.` Une date, un score, un verbe. Pas d'emoji dans la phrase de base.
-- **UTM obligatoires** sur tout lien `/share/*` sortant, sans quoi la boucle n'est pas mesurable : `?utm_source={canal}&utm_medium=share&utm_campaign=daily`.
+- **UTM obligatoires** sur tout lien `/share/*` sortant, sans quoi la boucle n'est pas mesurable : `?utm_source={canal}&utm_medium=share_card&utm_campaign=daily_challenge` (valeurs envoyées par `ShareCard.tsx` depuis l'origine ; ne pas les changer, sinon les statistiques de partage ne sont plus comparables).
 
 ---
 
