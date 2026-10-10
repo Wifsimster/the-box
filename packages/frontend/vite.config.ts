@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import { readFileSync } from 'fs'
+import { scopeKoeCss } from './src/lib/koeCssScope'
 
 // Read version from root package.json (single source of truth)
 // Fallback to environment variable for Docker builds, then local package.json
@@ -33,6 +34,16 @@ if (process.env.NODE_ENV === 'production' && process.env.VITE_USE_MOCK_API === '
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    // Koe's stylesheet ships an unlayered global `*` reset that wipes the
+    // app's focus rings and shadows; confine it to the widget (see koeCssScope).
+    {
+      name: 'the-box:scope-koe-css',
+      enforce: 'pre',
+      transform(code, id) {
+        if (!/[\\/]@wifsimster[\\/]koe[\\/]dist[\\/]style\.css(\?|$)/.test(id)) return null
+        return { code: scopeKoeCss(code), map: null }
+      },
+    },
     react(),
     tailwindcss(),
     VitePWA({
