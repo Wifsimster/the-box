@@ -4,7 +4,8 @@ import { m } from 'framer-motion'
 import type { Locale } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Trophy, Medal, Award, Images, Timer, ChevronRight, Users, type LucideIcon } from 'lucide-react'
+import { Trophy, Medal, Award, Images, Timer, ChevronRight, Users, RefreshCw, type LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { MonthPicker } from '@/components/ui/month-picker'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -167,8 +168,10 @@ function LeaderboardList({
                   </span>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground truncate">
-                <span>@{row.username}</span>
+              {/* Wraps instead of truncating: the stats are inline-flex runs,
+                  so `truncate` clipped them mid-value with no ellipsis at 390px. */}
+              <div className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+                <span className="min-w-0 truncate">@{row.username}</span>
                 {row.meta}
               </div>
             </div>
@@ -259,7 +262,8 @@ function Podium({ entries }: { entries: PodiumData[] }) {
               PODIUM_COLORS[displayIndex],
             )}
           >
-            <span className="text-xl sm:text-2xl font-bold text-white">{entry.rank}</span>
+            {/* Dark numeral: white on the gold / silver medal fill was 1.7:1 / 2.6:1. */}
+            <span className="text-xl sm:text-2xl font-bold text-background">{entry.rank}</span>
           </div>
         </m.div>
       ))}
@@ -293,6 +297,23 @@ function EmptyState({ icon: Icon = Users, message, action }: { icon?: LucideIcon
       <Icon className="size-10 text-muted-foreground" aria-hidden="true" />
       <p className="text-sm sm:text-base text-muted-foreground max-w-xs">{message}</p>
       {action}
+    </div>
+  )
+}
+
+// Same treatment as the country / Panorama panels' failed state.
+function FailedState({ icon: Icon, onRetry }: { icon: LucideIcon; onRetry: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+      <Icon className="size-10 text-muted-foreground" aria-hidden="true" />
+      <p className="text-sm sm:text-base text-muted-foreground max-w-xs">
+        {t('leaderboard.boardUnavailable')}
+      </p>
+      <Button variant="outline" onClick={onRetry}>
+        <RefreshCw aria-hidden="true" />
+        {t('common.retry')}
+      </Button>
     </div>
   )
 }
@@ -342,7 +363,7 @@ function Board({
       {me && <YourRank rank={me.rank} total={rows.length} userId={me.userId} />}
       <Card className="bg-card/50">
         <CardHeader>
-          <CardTitle>{title}</CardTitle>
+          <CardTitle as="h2">{title}</CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-(--card-padding)">
           <LeaderboardList
@@ -365,6 +386,8 @@ export function DailyLeaderboardPanel({
   cardTitle,
   emptyMessage,
   emptyAction,
+  failed = false,
+  onRetry,
   currentUserId,
   onDateChange,
   onPlayerClick,
@@ -377,6 +400,8 @@ export function DailyLeaderboardPanel({
   cardTitle: string
   emptyMessage: string
   emptyAction?: ReactNode
+  failed?: boolean
+  onRetry: () => void
   currentUserId?: string | null
   onDateChange: (date: Date) => void
   onPlayerClick: (entry: LeaderboardEntry) => void
@@ -408,7 +433,9 @@ export function DailyLeaderboardPanel({
 
       {loading && <ListSkeleton />}
 
-      {!loading && entries.length === 0 && (
+      {!loading && failed && <FailedState icon={Trophy} onRetry={onRetry} />}
+
+      {!loading && !failed && entries.length === 0 && (
         <EmptyState icon={Trophy} message={emptyMessage} action={emptyAction} />
       )}
 
@@ -438,6 +465,8 @@ export function MonthlyLeaderboardPanel({
   maxDate,
   locale,
   cardTitle,
+  failed = false,
+  onRetry,
   currentUserId,
   onMonthChange,
 }: {
@@ -447,6 +476,8 @@ export function MonthlyLeaderboardPanel({
   maxDate: Date
   locale: Locale
   cardTitle: string
+  failed?: boolean
+  onRetry: () => void
   currentUserId?: string | null
   onMonthChange: (date: Date) => void
 }) {
@@ -475,7 +506,9 @@ export function MonthlyLeaderboardPanel({
 
       {loading && <ListSkeleton />}
 
-      {!loading && entries.length === 0 && (
+      {!loading && failed && <FailedState icon={Trophy} onRetry={onRetry} />}
+
+      {!loading && !failed && entries.length === 0 && (
         <EmptyState icon={Trophy} message={t('leaderboard.noMonthlyData')} />
       )}
 
@@ -500,10 +533,14 @@ export function MonthlyLeaderboardPanel({
 export function AchievementLeaderboardPanel({
   entries,
   loading,
+  failed = false,
+  onRetry,
   currentUserId,
 }: {
   entries: AchievementLeaderboardEntry[]
   loading: boolean
+  failed?: boolean
+  onRetry: () => void
   currentUserId?: string | null
 }) {
   const { t } = useTranslation()
@@ -527,7 +564,9 @@ export function AchievementLeaderboardPanel({
     <>
       {loading && <ListSkeleton />}
 
-      {!loading && entries.length === 0 && (
+      {!loading && failed && <FailedState icon={Award} onRetry={onRetry} />}
+
+      {!loading && !failed && entries.length === 0 && (
         <EmptyState icon={Award} message={t('leaderboard.noAchievementData')} />
       )}
 
