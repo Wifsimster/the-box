@@ -14,6 +14,7 @@ export { positionLetterRevealRepository } from './position-letter-reveal.reposit
 export { funnelEventRepository } from './funnel-event.repository.js'
 export {
   describeGuessRepository,
+  describeCatalogue,
   type DescribeGuessAdminRow,
 } from './describe-guess.repository.js'
 export {

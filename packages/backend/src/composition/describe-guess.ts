@@ -1,6 +1,10 @@
 /**
  * Composition root for "describe the game" (shadow mode).
  *
+ * There is no player UI: wrong guesses that look like descriptions are
+ * captured by the guess route (composition/describe-capture.ts) and judged
+ * in the describe-guess BullMQ worker, which calls getDescribeGuessService().
+ *
  * Configuration comes from the app-settings store (Admin → Paramètres or the
  * settings MCP tools): describeGuess.enabled, .anthropicApiKey, .model,
  * .threshold. The feature is live only when enabled AND a key is set; nothing
@@ -21,18 +25,14 @@ import type { DescribeJudge } from '../domain/ports/describe-judge.js'
 import { createAnthropicDescribeJudge } from '../infrastructure/llm/anthropic-describe-judge.js'
 import { createStubDescribeJudge } from '../infrastructure/llm/stub-describe-judge.js'
 import { serviceLogger } from '../infrastructure/logger/logger.js'
-import {
-  challengeRepository,
-  describeGuessRepository,
-  sessionRepository,
-} from '../infrastructure/repositories/index.js'
+import { describeCatalogue, describeGuessRepository } from '../infrastructure/repositories/index.js'
 import { appSettingsService } from './app-settings.js'
 
 export function readDescribeGuessSettings(): Promise<DescribeGuessConfig> {
   return readDescribeGuessConfig((key) => appSettingsService.getValue(key))
 }
 
-/** Same rule as the route gate, for /api/features. */
+/** Feature live: enabled AND a stored key. For /api/features and the capture gate. */
 export async function isDescribeGuessLive(): Promise<boolean> {
   return isDescribeGuessActive(await readDescribeGuessSettings())
 }
@@ -42,7 +42,7 @@ function createJudge(config: DescribeGuessConfig & { apiKey: string }): Describe
   // production so a stray env var can never disable the real judge there.
   if (env.DESCRIBE_GUESS_JUDGE === 'stub' && env.NODE_ENV !== 'production') {
     serviceLogger.warn('describe-guess: using the STUB judge (DESCRIBE_GUESS_JUDGE=stub)')
-    return createStubDescribeJudge()
+    return createStubDescribeJudge({ delayMs: env.DESCRIBE_GUESS_STUB_DELAY_MS })
   }
   return createAnthropicDescribeJudge({ apiKey: config.apiKey, model: config.model })
 }
@@ -64,9 +64,8 @@ export async function getDescribeGuessService(): Promise<DescribeGuessService | 
       service: createDescribeGuessService({
         judge: createJudge({ ...config, apiKey: config.apiKey }),
         fuzzy,
-        sessions: sessionRepository,
-        challenges: challengeRepository,
         attempts: describeGuessRepository,
+        catalogue: describeCatalogue,
         logger: serviceLogger,
         threshold: config.threshold,
       }),

@@ -1,16 +1,18 @@
 /**
- * "Describe the game" — shadow mode.
+ * "Describe the game" — shadow mode, with NO player-facing UI.
  *
- * A player who can't find the title may describe the game once per
- * screenshot. A judge model picks the game among the target and ~10
- * catalogue distractors and gives a probability. In shadow mode NOTHING is
- * scored: the description and the verdict are stored so the acceptance
+ * The player keeps the single guess input. A guess is matched against the
+ * title exactly as before; when it is wrong AND looks like a description
+ * (see `hasDescriptionShape` / `matchesCatalogueTitle`), it is captured off
+ * the request path (BullMQ) and a judge model picks the game among the
+ * target and ~10 catalogue distractors. NOTHING changes for the player and
+ * nothing is scored: the guess and the verdict are stored so the acceptance
  * threshold and a partial-points scale can be fixed on real data later.
  *
- * This service owns the three pure decisions (candidate selection, the title
- * pre-filter, the verdict) plus the submission rules. The model call goes
- * through the `DescribeJudge` port; it is bounded by a timeout and can never
- * fail the request: on timeout or error the row is stored with no verdict.
+ * This service owns the pure decisions (trigger heuristic, candidate
+ * selection, the title pre-filter, the verdict) and the capture flow. The
+ * model call goes through the `DescribeJudge` port, bounded by a timeout; on
+ * timeout or error the row is stored with no verdict.
  *
  * Offline spike behind the numbers below: branch `spike/describe-guess`,
  * `spikes/describe-guess/REPORT.md` (Claude Haiku 5.5 at 0.8: 0 false
@@ -37,8 +39,14 @@ import type { FuzzyMatchService } from './fuzzy-match.service.js'
  */
 export const DESCRIBE_ACCEPT_THRESHOLD = 0.8
 export const DESCRIBE_DEFAULT_MODEL = 'claude-haiku-5-5'
+/** Trigger: a description has at least this many characters after normalisation… */
 export const DESCRIBE_MIN_LENGTH = 15
+/** …and at least this many words. A single token, however long, is a title attempt. */
+export const DESCRIBE_MIN_WORDS = 2
+/** Same cap as the guess input (POST /api/game/guess `guessText`). */
 export const DESCRIBE_MAX_LENGTH = 200
+/** Per-account captures per hour (each is a paid model call). */
+export const DESCRIBE_CAPTURES_PER_HOUR = 20
 /** Distractors shown next to the target. */
 export const DESCRIBE_DISTRACTOR_COUNT = 10
 /** At most this many distractors from the target's series… */
@@ -295,55 +303,130 @@ export interface DescribeEvaluation {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Submission
+// Trigger heuristic: does a wrong guess look like a description?
 // ─────────────────────────────────────────────────────────────────────────────
 
-export class DescribeGuessError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly statusCode: number
-  ) {
-    super(message)
-    this.name = 'DescribeGuessError'
+/** Trim and collapse whitespace — the form stored and sent to the judge. */
+export function normalizeGuess(text: string): string {
+  return text.trim().replace(/\s+/g, ' ')
+}
+
+/** Words with at least one letter or digit ("-", "?" alone don't count). */
+function wordsOf(text: string): string[] {
+  return text.split(/[\s'’]+/).filter((w) => /[\p{L}\p{N}]/u.test(w))
+}
+
+/**
+ * Cheap, synchronous shape check run on the guess request path before
+ * anything is enqueued: at least DESCRIBE_MIN_LENGTH characters and
+ * DESCRIBE_MIN_WORDS words, at most DESCRIBE_MAX_LENGTH characters.
+ *
+ * Short wrong titles ("zelda", "mario kart", "dark souls", "half life 2")
+ * fail the length; a single long token fails the word count. Longer wrong
+ * titles ("call of duty black ops") pass the shape and are caught by
+ * `matchesCatalogueTitle` in the worker.
+ */
+export function hasDescriptionShape(text: string): boolean {
+  const normalized = normalizeGuess(text)
+  if (normalized.length < DESCRIBE_MIN_LENGTH || normalized.length > DESCRIBE_MAX_LENGTH) return false
+  return wordsOf(normalized).length >= DESCRIBE_MIN_WORDS
+}
+
+export interface CatalogueTitle {
+  id: number
+  name: string
+  aliases: string[]
+}
+
+/**
+ * True when the guess names some catalogue game: the fuzzy matcher (the same
+ * one that grades title guesses, aliases included) finds an `exact` or
+ * `partial` match. Such a guess is a wrong title, not a description.
+ *
+ * A token pre-filter keeps this cheap on a large catalogue: a title can only
+ * match when one of its words (or an alias word) of 3+ characters, or its
+ * initials, appears among the guess words.
+ */
+export function matchesCatalogueTitle(
+  text: string,
+  catalogue: readonly CatalogueTitle[],
+  fuzzy: Pick<FuzzyMatchService, 'evaluateMatch'>
+): boolean {
+  const tokens = new Set(wordsOf(normalizeGuess(text)).map(tokenKey))
+  for (const game of catalogue) {
+    if (!sharesToken(game, tokens)) continue
+    if (fuzzy.evaluateMatch(text, game.name, game.aliases).matched) return true
+  }
+  return false
+}
+
+function tokenKey(word: string): string {
+  return word
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+function sharesToken(game: CatalogueTitle, tokens: Set<string>): boolean {
+  for (const form of [game.name, ...game.aliases]) {
+    const words = wordsOf(form).map(tokenKey).filter(Boolean)
+    if (words.some((w) => w.length >= 3 && tokens.has(w))) return true
+    const initials = words.map((w) => w[0]).join('')
+    if (initials.length >= 2 && tokens.has(initials)) return true
+  }
+  return false
+}
+
+/**
+ * Fixed-window counter keyed by account. In memory: one backend instance
+ * today; a restart only resets the windows.
+ */
+export function createWindowLimiter(opts: { max: number; windowMs: number; now?: () => number }) {
+  const now = opts.now ?? Date.now
+  const buckets = new Map<string, { count: number; resetAt: number }>()
+  return {
+    tryTake(key: string): boolean {
+      const t = now()
+      const bucket = buckets.get(key)
+      if (!bucket || bucket.resetAt <= t) {
+        if (buckets.size > 10_000) {
+          for (const [k, b] of buckets) if (b.resetAt <= t) buckets.delete(k)
+        }
+        buckets.set(key, { count: 1, resetAt: t + opts.windowMs })
+        return true
+      }
+      if (bucket.count >= opts.max) return false
+      bucket.count++
+      return true
+    },
   }
 }
 
-/** Narrow session view the submission rules need. */
-export interface DescribeTierSession {
-  user_id: string
-  game_session_id: string
-  daily_challenge_id: number
-  game_is_completed: boolean
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Capture (runs in the BullMQ worker, never on the guess request path)
+// ─────────────────────────────────────────────────────────────────────────────
 
-export interface DescribeSessionPort {
-  findTierSessionWithContext(tierSessionId: string): Promise<DescribeTierSession | null>
-  hasWrongGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
-  hasCorrectGuessForPosition(tierSessionId: string, position: number): Promise<boolean>
-  /**
-   * Push `round_started_at` forward by `ms` when `position` is still the
-   * stamped round, so judgement latency never counts as answer time.
-   */
-  shiftRoundStart(tierSessionId: string, position: number, ms: number): Promise<void>
-}
-
-export interface DescribeChallengePort {
-  findTiersByChallenge(challengeId: number): Promise<Array<{ id: number }>>
-  findScreenshotAtPosition(
-    tierId: number,
-    position: number
-  ): Promise<{ screenshot_id: number } | null | undefined>
+/** A wrong guess handed to the worker. Built by the guess route. */
+export interface DescriptionCaptureJob {
+  userId: string
+  isGuest: boolean
+  tierSessionId: string
+  position: number
+  screenshotId: number
+  guessText: string
+  locale: DescribeLocale
 }
 
 export interface DescribeClaim {
   userId: string
   isGuest: boolean
-  gameSessionId: string
+  /** The game session is derived from the tier session by the repository. */
   tierSessionId: string
   position: number
   screenshotId: number
   targetGameId: number
+  guessText: string
   description: string
   locale: DescribeLocale
   model: string
@@ -355,18 +438,22 @@ export interface DescribeAttemptPort {
   findCandidatePools(target: DescribeGameSheet, seriesName: string | null): Promise<CandidatePools>
   /**
    * Insert the attempt row with `error = 'pending'`. Returns its id, or null
-   * when this (tier session, position) already has a description.
+   * when this (tier session, position) already has a captured description.
    */
   claim(claim: DescribeClaim): Promise<number | null>
   complete(id: number, evaluation: DescribeEvaluation): Promise<void>
 }
 
+export interface CataloguePort {
+  /** Every catalogue title with its aliases (cached by the adapter). */
+  listTitles(): Promise<CatalogueTitle[]>
+}
+
 export interface DescribeGuessServiceDeps {
   judge: DescribeJudge
-  fuzzy: Pick<FuzzyMatchService, 'isMatch' | 'parseGameTitle'>
-  sessions: DescribeSessionPort
-  challenges: DescribeChallengePort
+  fuzzy: Pick<FuzzyMatchService, 'isMatch' | 'evaluateMatch' | 'parseGameTitle'>
   attempts: DescribeAttemptPort
+  catalogue: CataloguePort
   logger: DomainLogger
   rng?: Rng
   now?: () => number
@@ -375,15 +462,9 @@ export interface DescribeGuessServiceDeps {
   threshold?: number
 }
 
-export interface SubmitDescriptionInput {
-  userId: string
-  isGuest: boolean
-  tierSessionId: string
-  screenshotId: number
-  position: number
-  description: string
-  locale: DescribeLocale
-}
+export type CaptureOutcome =
+  | { status: 'skipped'; reason: 'shape' | 'title_like' | 'no_target' | 'already_captured' }
+  | { status: 'recorded'; attemptId: number; evaluation: DescribeEvaluation }
 
 export interface DescribeGuessService {
   /**
@@ -397,12 +478,10 @@ export interface DescribeGuessService {
     candidates: DescribeGameSheet[]
   }): Promise<DescribeEvaluation>
   /**
-   * Validate the request, store the description, judge it, store the
-   * verdict. Throws `DescribeGuessError` for a rule violation only.
-   * The returned evaluation is for logging and tests; the route never sends
-   * it to the client (it would leak the answer).
+   * Re-check the trigger, claim the screenshot (one capture per screenshot
+   * per session), judge and store. Never throws for a judge failure.
    */
-  submit(input: SubmitDescriptionInput): Promise<DescribeEvaluation>
+  capture(job: DescriptionCaptureJob): Promise<CaptureOutcome>
 }
 
 export function createDescribeGuessService(deps: DescribeGuessServiceDeps): DescribeGuessService {
@@ -475,84 +554,39 @@ export function createDescribeGuessService(deps: DescribeGuessServiceDeps): Desc
     return base
   }
 
-  async function submit(input: SubmitDescriptionInput): Promise<DescribeEvaluation> {
-    const description = input.description.trim().replace(/\s+/g, ' ')
-    if (description.length < DESCRIBE_MIN_LENGTH || description.length > DESCRIBE_MAX_LENGTH) {
-      throw new DescribeGuessError(
-        'INVALID_DESCRIPTION',
-        `Description must be ${DESCRIBE_MIN_LENGTH}-${DESCRIBE_MAX_LENGTH} characters`,
-        400
-      )
+  async function capture(job: DescriptionCaptureJob): Promise<CaptureOutcome> {
+    const description = normalizeGuess(job.guessText)
+    if (!hasDescriptionShape(description)) return { status: 'skipped', reason: 'shape' }
+
+    if (matchesCatalogueTitle(description, await deps.catalogue.listTitles(), deps.fuzzy)) {
+      return { status: 'skipped', reason: 'title_like' }
     }
 
-    const session = await deps.sessions.findTierSessionWithContext(input.tierSessionId)
-    if (!session || session.user_id !== input.userId) {
-      throw new DescribeGuessError('SESSION_NOT_FOUND', 'Session not found', 404)
-    }
-    if (session.game_is_completed) {
-      throw new DescribeGuessError('SESSION_ALREADY_COMPLETED', 'Session already completed', 409)
-    }
-
-    const tiers = await deps.challenges.findTiersByChallenge(session.daily_challenge_id)
-    const tier = tiers[0]
-    const served = tier
-      ? await deps.challenges.findScreenshotAtPosition(tier.id, input.position)
-      : null
-    if (!served || served.screenshot_id !== input.screenshotId) {
-      throw new DescribeGuessError(
-        'SCREENSHOT_POSITION_MISMATCH',
-        'Screenshot does not match this position',
-        400
-      )
-    }
-
-    const [solved, triedTitle] = await Promise.all([
-      deps.sessions.hasCorrectGuessForPosition(input.tierSessionId, input.position),
-      deps.sessions.hasWrongGuessForPosition(input.tierSessionId, input.position),
-    ])
-    if (solved) {
-      throw new DescribeGuessError('POSITION_ALREADY_SOLVED', 'This screenshot is already solved', 409)
-    }
-    // There is no per-screenshot give-up in the game: the only way to have
-    // "tried and failed" on a screenshot is a wrong title attempt.
-    if (!triedTitle) {
-      throw new DescribeGuessError(
-        'DESCRIBE_NOT_ALLOWED_YET',
-        'Try a title first',
-        409
-      )
-    }
-
-    const target = await deps.attempts.findTargetSheet(input.screenshotId)
-    if (!target) {
-      throw new DescribeGuessError('SCREENSHOT_NOT_FOUND', 'Screenshot not found', 404)
-    }
+    const target = await deps.attempts.findTargetSheet(job.screenshotId)
+    if (!target) return { status: 'skipped', reason: 'no_target' }
 
     const attemptId = await deps.attempts.claim({
-      userId: input.userId,
-      isGuest: input.isGuest,
-      gameSessionId: session.game_session_id,
-      tierSessionId: input.tierSessionId,
-      position: input.position,
-      screenshotId: input.screenshotId,
+      userId: job.userId,
+      isGuest: job.isGuest,
+      tierSessionId: job.tierSessionId,
+      position: job.position,
+      screenshotId: job.screenshotId,
       targetGameId: target.id,
+      guessText: job.guessText.slice(0, DESCRIBE_MAX_LENGTH),
       description,
-      locale: input.locale,
+      locale: job.locale,
       model: deps.judge.model,
     })
-    if (attemptId === null) {
-      throw new DescribeGuessError('ALREADY_DESCRIBED', 'This screenshot already has a description', 409)
-    }
+    if (attemptId === null) return { status: 'skipped', reason: 'already_captured' }
 
-    const started = now()
     let evaluation: DescribeEvaluation
+    const started = now()
     try {
       const seriesName = deps.fuzzy.parseGameTitle(target.name).seriesName
       const pools = await deps.attempts.findCandidatePools(target, seriesName)
       const candidates = selectCandidates(target, pools, rng)
-      evaluation = await evaluate({ description, locale: input.locale, target, candidates })
+      evaluation = await evaluate({ description, locale: job.locale, target, candidates })
     } catch (error) {
-      // Candidate lookup failed (DB blip). Still never break the game.
       log.error({ err: error instanceof Error ? error.message : String(error) }, 'describe-guess failed before judging')
       evaluation = {
         candidateGameIds: [target.id],
@@ -569,32 +603,50 @@ export function createDescribeGuessService(deps: DescribeGuessServiceDeps): Desc
       }
     }
 
-    // Judgement latency is free for the player: the server-side round clock
-    // (speed multiplier of a later correct guess) moves forward by the time
-    // spent here. The client pauses its countdown over the same request.
-    const elapsed = Math.max(0, Math.round(now() - started))
-    await Promise.all([
-      deps.attempts.complete(attemptId, evaluation),
-      deps.sessions.shiftRoundStart(input.tierSessionId, input.position, elapsed),
-    ]).catch((error: unknown) => {
-      log.error({ err: error instanceof Error ? error.message : String(error), attemptId }, 'describe-guess failed to store verdict')
-    })
-
+    await deps.attempts.complete(attemptId, evaluation)
     log.info(
       {
         attemptId,
-        userId: input.userId,
-        position: input.position,
+        userId: job.userId,
+        position: job.position,
         accepted: evaluation.accepted,
         probability: evaluation.probability,
         titlePrefilterHit: evaluation.titlePrefilterHit,
         latencyMs: evaluation.latencyMs,
         error: evaluation.error,
       },
-      'describe-guess recorded (shadow mode, no points)'
+      'describe-guess captured (shadow mode, no points)'
     )
-    return evaluation
+    return { status: 'recorded', attemptId, evaluation }
   }
 
-  return { evaluate, submit }
+  return { evaluate, capture }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Capture gate (runs on the guess request path; must stay cheap)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type CaptureGateResult = 'enqueued' | 'skipped:shape' | 'skipped:off' | 'skipped:rate'
+
+export interface CaptureGateDeps {
+  /** describeGuess.enabled AND a stored key (cached settings read). */
+  isActive: () => Promise<boolean>
+  enqueue: (job: DescriptionCaptureJob) => Promise<void>
+  limiter: { tryTake(key: string): boolean }
+}
+
+/**
+ * Decide, after a WRONG guess has been answered, whether to hand it to the
+ * worker. Order: shape (free) → feature on (cached) → per-account cap. Only
+ * then is anything enqueued. The caller never awaits this before responding.
+ */
+export function createCaptureGate(deps: CaptureGateDeps) {
+  return async function maybeCapture(job: DescriptionCaptureJob): Promise<CaptureGateResult> {
+    if (!hasDescriptionShape(job.guessText)) return 'skipped:shape'
+    if (!(await deps.isActive())) return 'skipped:off'
+    if (!deps.limiter.tryTake(job.userId)) return 'skipped:rate'
+    await deps.enqueue(job)
+    return 'enqueued'
+  }
 }

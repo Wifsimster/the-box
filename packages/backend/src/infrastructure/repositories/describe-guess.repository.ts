@@ -4,6 +4,8 @@ import { repoLogger } from '../logger/logger.js'
 import type { DescribeGameSheet } from '../../domain/ports/describe-judge.js'
 import type {
   CandidatePools,
+  CatalogueTitle,
+  CataloguePort,
   DescribeAttemptPort,
   DescribeClaim,
   DescribeEvaluation,
@@ -113,11 +115,12 @@ export const describeGuessRepository: DescribeAttemptPort & {
       .insert({
         user_id: claim.userId,
         is_guest: claim.isGuest,
-        game_session_id: claim.gameSessionId,
+        game_session_id: db('tier_sessions').select('game_session_id').where('id', claim.tierSessionId),
         tier_session_id: claim.tierSessionId,
         position: claim.position,
         screenshot_id: claim.screenshotId,
         target_game_id: claim.targetGameId,
+        guess_text: claim.guessText,
         description: claim.description,
         locale: claim.locale,
         candidate_game_ids: [],
@@ -161,6 +164,7 @@ export const describeGuessRepository: DescribeAttemptPort & {
         .select(
           'd.id',
           'd.created_at',
+          'd.guess_text',
           'd.description',
           'd.locale',
           'd.is_guest',
@@ -182,6 +186,7 @@ export const describeGuessRepository: DescribeAttemptPort & {
       entries: rows.map((r: Record<string, unknown>) => ({
         id: r['id'] as number,
         createdAt: new Date(r['created_at'] as string | Date).toISOString(),
+        guessText: r['guess_text'] as string,
         description: r['description'] as string,
         locale: r['locale'] as string,
         isGuest: r['is_guest'] as boolean,
@@ -197,5 +202,19 @@ export const describeGuessRepository: DescribeAttemptPort & {
         error: (r['error'] as string | null) ?? null,
       })),
     }
+  },
+}
+
+/** Catalogue titles for the trigger's "is this a title?" check, cached 10 min. */
+const CATALOGUE_TTL_MS = 10 * 60_000
+let catalogueCache: { titles: CatalogueTitle[]; loadedAt: number } | null = null
+
+export const describeCatalogue: CataloguePort = {
+  async listTitles(): Promise<CatalogueTitle[]> {
+    if (catalogueCache && Date.now() - catalogueCache.loadedAt < CATALOGUE_TTL_MS) return catalogueCache.titles
+    const rows = await db('games').select<Array<{ id: number; name: string; aliases: string[] | null }>>('id', 'name', 'aliases')
+    const titles = rows.map((r) => ({ id: r.id, name: r.name, aliases: r.aliases ?? [] }))
+    catalogueCache = { titles, loadedAt: Date.now() }
+    return titles
   },
 }

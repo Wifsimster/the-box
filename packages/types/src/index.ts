@@ -352,11 +352,6 @@ export interface PositionState {
    */
   timeSpentMs?: number
   /**
-   * "Describe the game" (shadow mode): the player already sent their one
-   * description for this screenshot, so the entry stays hidden.
-   */
-  describeSubmitted?: boolean
-  /**
    * Latest "warmer" hint for this position, set after a wrong guess that we
    * could relate to the answer (same franchise / developer / publisher).
    * Rendered under the guess input; kept across navigation so revisiting the
@@ -521,26 +516,13 @@ export interface GuessProximityHint {
   value: string
 }
 
-/**
- * POST /api/game/describe ("describe the game", shadow mode). Identical for
- * every verdict on purpose: the client never learns the model's guess.
- */
-export interface DescribeGuessResponse {
-  recorded: true
-}
-
-export interface DescribeGuessRequest {
-  tierSessionId: string
-  screenshotId: number
-  position: number
-  description: string
-  locale: 'fr' | 'en'
-}
-
 /** Admin labelling list row (GET /api/admin/describe-guesses). */
 export interface DescribeGuessAdminEntry {
   id: number
   createdAt: string
+  /** The wrong guess exactly as typed in the normal guess input. */
+  guessText: string
+  /** Normalised text sent to the judge. */
   description: string
   locale: string
   isGuest: boolean

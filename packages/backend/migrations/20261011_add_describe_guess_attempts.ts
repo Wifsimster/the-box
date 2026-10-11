@@ -1,17 +1,19 @@
 import type { Knex } from 'knex'
 
 /**
- * "Describe the game" in shadow mode (DESCRIBE_GUESS_ENABLED).
+ * "Describe the game" in shadow mode (app settings describeGuess.*).
  *
- * When a player can't find the title, they may describe the game in their own
- * words once per screenshot. A model picks the game among the target and ~10
- * catalogue distractors and gives a probability. Nothing is scored: this table
- * only collects real descriptions and verdicts, so the acceptance threshold and
- * a partial-points scale can be set on real data later.
+ * There is no separate player UI: when a wrong guess typed in the normal guess
+ * input looks like a description rather than a title, it is captured off the
+ * request path and a model picks the game among the target and ~10 catalogue
+ * distractors. Nothing is scored and nothing changes for the player: this
+ * table only collects real descriptions and verdicts, so the acceptance
+ * threshold and a partial-points scale can be set on real data later.
  *
- * One row per (tier_session_id, position). The row is claimed before the model
- * is called (`error = 'pending'`) so two concurrent submits can't both reach
- * the paid API; the verdict columns are filled in afterwards.
+ * One row per (tier_session_id, position): the first qualifying wrong guess on
+ * a screenshot. The row is claimed before the model is called
+ * (`error = 'pending'`) so two concurrent captures can't both reach the paid
+ * API; the verdict columns are filled in afterwards.
  *
  * Personal data: `description` is free text written by the player. Rows follow
  * the account (ON DELETE CASCADE on user, like every other game table) and are
@@ -55,6 +57,9 @@ export async function up(knex: Knex): Promise<void> {
     // not silently drop labelled rows, so the ids are kept as plain integers.
     table.integer('target_game_id').notNullable()
 
+    // The guess exactly as the player typed it, and the normalised text sent
+    // to the judge (whitespace collapsed).
+    table.string('guess_text', 200).notNullable()
     table.string('description', 200).notNullable()
     table.string('locale', 8).notNullable()
 

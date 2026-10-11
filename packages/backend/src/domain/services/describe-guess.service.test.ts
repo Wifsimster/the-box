@@ -4,9 +4,12 @@ import {
   DESCRIBE_DISTRACTOR_COUNT,
   DESCRIBE_RELATED_MAX,
   DESCRIBE_SAME_SERIES_MAX,
-  DescribeGuessError,
   candidateLabel,
+  createCaptureGate,
   createDescribeGuessService,
+  createWindowLimiter,
+  hasDescriptionShape,
+  matchesCatalogueTitle,
   isAccepted,
   parseVerdict,
   selectCandidates,
@@ -14,9 +17,9 @@ import {
   type CandidatePools,
   type DescribeAttemptPort,
   type DescribeClaim,
+  type CatalogueTitle,
   type DescribeEvaluation,
-  type DescribeSessionPort,
-  type DescribeTierSession,
+  type DescriptionCaptureJob,
 } from './describe-guess.service.js'
 import { createFuzzyMatchService } from './fuzzy-match.service.js'
 import {
@@ -239,41 +242,24 @@ function judgeChoosing(gameId: number, p: number): DescribeJudge {
 interface Harness {
   claims: DescribeClaim[]
   completed: Array<{ id: number; evaluation: DescribeEvaluation }>
-  shifts: Array<{ tierSessionId: string; position: number; ms: number }>
   judgeCalls: number
 }
 
+const CATALOGUE: CatalogueTitle[] = [
+  { id: 1, name: 'Super Mario Galaxy', aliases: [] },
+  { id: 2, name: 'Call of Duty: Black Ops', aliases: ['COD Black Ops'] },
+  { id: 3, name: 'The Legend of Zelda: Breath of the Wild', aliases: ['Zelda BOTW'] },
+  { id: 4, name: 'Grand Theft Auto V', aliases: ['GTA 5'] },
+  { id: 5, name: 'Hollow Knight', aliases: [] },
+]
+
 function makeService(
   judge: DescribeJudge,
-  overrides: {
-    session?: Partial<DescribeTierSession> | null
-    wrong?: boolean
-    solved?: boolean
-    claimResult?: number | null
-    timeoutMs?: number
-  } = {}
+  overrides: { claimResult?: number | null; timeoutMs?: number; target?: DescribeGameSheet | null } = {}
 ) {
-  const h: Harness = { claims: [], completed: [], shifts: [], judgeCalls: 0 }
-  const session: DescribeTierSession | null =
-    overrides.session === null
-      ? null
-      : {
-          user_id: 'u1',
-          game_session_id: 'gs1',
-          daily_challenge_id: 9,
-          game_is_completed: false,
-          ...overrides.session,
-        }
-  const sessions: DescribeSessionPort = {
-    findTierSessionWithContext: async () => session,
-    hasWrongGuessForPosition: async () => overrides.wrong ?? true,
-    hasCorrectGuessForPosition: async () => overrides.solved ?? false,
-    shiftRoundStart: async (tierSessionId, position, ms) => {
-      h.shifts.push({ tierSessionId, position, ms })
-    },
-  }
+  const h: Harness = { claims: [], completed: [], judgeCalls: 0 }
   const attempts: DescribeAttemptPort = {
-    findTargetSheet: async () => TARGET,
+    findTargetSheet: async () => (overrides.target === undefined ? TARGET : overrides.target),
     findCandidatePools: async () => bigPools(),
     claim: async (claim) => {
       h.claims.push(claim)
@@ -294,12 +280,8 @@ function makeService(
   const service = createDescribeGuessService({
     judge: countingJudge,
     fuzzy,
-    sessions,
-    challenges: {
-      findTiersByChallenge: async () => [{ id: 5 }],
-      findScreenshotAtPosition: async (_tier, position) => (position === 3 ? { screenshot_id: 77 } : null),
-    },
     attempts,
+    catalogue: { listTitles: async () => CATALOGUE },
     logger: silentLogger,
     rng: seeded(11),
     now: () => (clock += 250),
@@ -308,21 +290,21 @@ function makeService(
   return { service, h }
 }
 
-const VALID = {
+const JOB: DescriptionCaptureJob = {
   userId: 'u1',
   isGuest: false,
   tierSessionId: 'ts1',
   screenshotId: 77,
   position: 3,
-  description: 'un plombier qui saute de planete en planete pour sauver la princesse',
-  locale: 'fr' as const,
+  guessText: 'un plombier qui saute de planete en planete pour sauver la princesse',
+  locale: 'fr',
 }
 
 describe('describe-guess evaluate', () => {
   it('records an accepted verdict when the judge picks the target at >= 0.8', async () => {
     const { service } = makeService(judgeChoosing(TARGET.id, 0.92))
     const candidates = selectCandidates(TARGET, bigPools(), seeded(2))
-    const ev = await service.evaluate({ description: VALID.description, locale: 'fr', target: TARGET, candidates })
+    const ev = await service.evaluate({ description: JOB.guessText, locale: 'fr', target: TARGET, candidates })
     assert.equal(ev.error, null)
     assert.equal(ev.chosenGameId, TARGET.id)
     assert.ok(Math.abs(ev.probability! - 0.92) < 1e-9)
@@ -335,7 +317,7 @@ describe('describe-guess evaluate', () => {
   it('records a rejected verdict when the judge picks another game', async () => {
     const { service } = makeService(judgeChoosing(300, 0.95))
     const candidates = [TARGET, sheet(300, 'Random 0'), sheet(301, 'Random 1')]
-    const ev = await service.evaluate({ description: VALID.description, locale: 'fr', target: TARGET, candidates })
+    const ev = await service.evaluate({ description: JOB.guessText, locale: 'fr', target: TARGET, candidates })
     assert.equal(ev.chosenGameId, 300)
     assert.equal(ev.accepted, false)
   })
@@ -349,7 +331,7 @@ describe('describe-guess evaluate', () => {
       })
     )
     const candidates = [TARGET, sheet(300, 'Random 0')]
-    await service.evaluate({ description: VALID.description, locale: 'fr', target: TARGET, candidates })
+    await service.evaluate({ description: JOB.guessText, locale: 'fr', target: TARGET, candidates })
     assert.deepEqual(seen!.candidates.map((c) => c.label), [candidateLabel(0), candidateLabel(1)])
   })
 
@@ -368,7 +350,7 @@ describe('describe-guess evaluate', () => {
       { timeoutMs: 30 }
     )
     const ev = await service.evaluate({
-      description: VALID.description,
+      description: JOB.guessText,
       locale: 'fr',
       target: TARGET,
       candidates: [TARGET, sheet(300, 'Random 0')],
@@ -387,7 +369,7 @@ describe('describe-guess evaluate', () => {
       })
     )
     const ev = await service.evaluate({
-      description: VALID.description,
+      description: JOB.guessText,
       locale: 'fr',
       target: TARGET,
       candidates: [TARGET, sheet(300, 'Random 0')],
@@ -403,7 +385,7 @@ describe('describe-guess evaluate', () => {
       })
     )
     const ev = await service.evaluate({
-      description: VALID.description,
+      description: JOB.guessText,
       locale: 'fr',
       target: TARGET,
       candidates: [TARGET, sheet(300, 'Random 0')],
@@ -414,7 +396,7 @@ describe('describe-guess evaluate', () => {
   it('maps malformed output to "invalid_output"', async () => {
     const { service } = makeService(judgeReturning(async () => ({ nope: true })))
     const ev = await service.evaluate({
-      description: VALID.description,
+      description: JOB.guessText,
       locale: 'fr',
       target: TARGET,
       candidates: [TARGET, sheet(300, 'Random 0')],
@@ -436,53 +418,156 @@ describe('describe-guess evaluate', () => {
   })
 })
 
-describe('describe-guess submit', () => {
-  it('claims, judges, stores the verdict and shifts the round clock', async () => {
+describe('trigger: hasDescriptionShape', () => {
+  for (const text of [
+    'un plombier qui saute de planete en planete',
+    'plombier moustachu',
+    'jeu de ferme en pixel',
+    '  souls   avec un cheval  ',
+    "c'est le jeu avec le chevalier insecte",
+  ]) {
+    it(`description-like: ${JSON.stringify(text)}`, () => assert.equal(hasDescriptionShape(text), true))
+  }
+  for (const text of [
+    'zelda',
+    'mario kart',
+    'dark souls',
+    'half life 2',
+    'gta 5 pc',
+    'god of war',
+    'supercalifragilisticexpialidocious',
+    '- - - - - - - - - -',
+    '   ',
+    'x'.repeat(250) + ' y',
+  ]) {
+    it(`not description-like: ${JSON.stringify(text.slice(0, 30))}`, () => assert.equal(hasDescriptionShape(text), false))
+  }
+})
+
+describe('trigger: matchesCatalogueTitle', () => {
+  it('flags long wrong titles that name a catalogue game', () => {
+    assert.equal(matchesCatalogueTitle('call of duty black ops', CATALOGUE, fuzzy), true)
+    assert.equal(matchesCatalogueTitle('zelda breath of the wild', CATALOGUE, fuzzy), true)
+    assert.equal(matchesCatalogueTitle('grand theft auto five', CATALOGUE, fuzzy), true)
+    assert.equal(matchesCatalogueTitle('super mario galaxy', CATALOGUE, fuzzy), true)
+  })
+  it('does not flag descriptions', () => {
+    assert.equal(matchesCatalogueTitle('un plombier qui saute de planete en planete', CATALOGUE, fuzzy), false)
+    assert.equal(matchesCatalogueTitle('mario mais dans l espace avec des etoiles', CATALOGUE, fuzzy), false)
+    assert.equal(matchesCatalogueTitle('petit chevalier insecte dans un royaume souterrain', CATALOGUE, fuzzy), false)
+  })
+  it('stays fast on a large catalogue', () => {
+    const big: CatalogueTitle[] = Array.from({ length: 5000 }, (_, i) => ({ id: i, name: `Some Game Title ${i}`, aliases: [] }))
+    const t0 = performance.now()
+    matchesCatalogueTitle('un plombier qui saute de planete en planete pour sauver', big, fuzzy)
+    assert.ok(performance.now() - t0 < 300)
+  })
+})
+
+describe('capture gate (guess request path)', () => {
+  function gate(opts: { active?: boolean; max?: number } = {}) {
+    const enqueued: DescriptionCaptureJob[] = []
+    const maybe = createCaptureGate({
+      isActive: async () => opts.active ?? true,
+      limiter: createWindowLimiter({ max: opts.max ?? 20, windowMs: 3_600_000, now: () => 0 }),
+      enqueue: async (job) => void enqueued.push(job),
+    })
+    return { maybe, enqueued }
+  }
+
+  it('enqueues a description-like wrong guess when the feature is on', async () => {
+    const { maybe, enqueued } = gate()
+    assert.equal(await maybe(JOB), 'enqueued')
+    assert.equal(enqueued.length, 1)
+  })
+  it('never enqueues a short wrong title', async () => {
+    const { maybe, enqueued } = gate()
+    assert.equal(await maybe({ ...JOB, guessText: 'mario kart' }), 'skipped:shape')
+    assert.equal(enqueued.length, 0)
+  })
+  it('never enqueues when the feature is off (disabled or no key)', async () => {
+    const { maybe, enqueued } = gate({ active: false })
+    assert.equal(await maybe(JOB), 'skipped:off')
+    assert.equal(enqueued.length, 0)
+  })
+  it('checks the shape before reading settings', async () => {
+    let reads = 0
+    const maybe = createCaptureGate({
+      isActive: async () => (reads++, true),
+      limiter: createWindowLimiter({ max: 5, windowMs: 1000 }),
+      enqueue: async () => {},
+    })
+    await maybe({ ...JOB, guessText: 'zelda' })
+    assert.equal(reads, 0)
+  })
+  it('caps captures per account', async () => {
+    const { maybe, enqueued } = gate({ max: 2 })
+    assert.equal(await maybe(JOB), 'enqueued')
+    assert.equal(await maybe({ ...JOB, position: 4 }), 'enqueued')
+    assert.equal(await maybe({ ...JOB, position: 5 }), 'skipped:rate')
+    assert.equal(await maybe({ ...JOB, userId: 'u2' }), 'enqueued', 'per account')
+    assert.equal(enqueued.length, 3)
+  })
+  it('the limiter window resets', () => {
+    let t = 0
+    const limiter = createWindowLimiter({ max: 1, windowMs: 1000, now: () => t })
+    assert.equal(limiter.tryTake('u'), true)
+    assert.equal(limiter.tryTake('u'), false)
+    t = 1001
+    assert.equal(limiter.tryTake('u'), true)
+  })
+})
+
+describe('describe-guess capture (worker)', () => {
+  it('claims, judges and stores the verdict with the original guess', async () => {
     const { service, h } = makeService(judgeChoosing(TARGET.id, 0.9))
-    const ev = await service.submit({ ...VALID, description: `  ${VALID.description}  ` })
+    const raw = '  un plombier   qui saute de planete en planete pour sauver la princesse '
+    const out = await service.capture({ ...JOB, guessText: raw })
+    assert.equal(out.status, 'recorded')
     assert.equal(h.claims.length, 1)
-    assert.equal(h.claims[0]!.description, VALID.description, 'trimmed')
+    assert.equal(h.claims[0]!.guessText, raw, 'original text kept')
+    assert.equal(h.claims[0]!.description, JOB.guessText, 'normalised text judged')
     assert.equal(h.claims[0]!.targetGameId, TARGET.id)
-    assert.equal(h.claims[0]!.gameSessionId, 'gs1')
+    assert.equal(h.judgeCalls, 1)
     assert.equal(h.completed.length, 1)
-    assert.equal(h.completed[0]!.id, 42)
-    assert.equal(h.completed[0]!.evaluation, ev)
-    assert.equal(ev.candidateGameIds.length, DESCRIBE_DISTRACTOR_COUNT + 1)
-    assert.equal(h.shifts.length, 1)
-    assert.ok(h.shifts[0]!.ms > 0)
+    assert.equal(h.completed[0]!.evaluation.accepted, true)
+    assert.equal(h.completed[0]!.evaluation.candidateGameIds.length, DESCRIBE_DISTRACTOR_COUNT + 1)
   })
 
-  it('still stores the row when the judge fails', async () => {
+  it('one capture per screenshot per session: a second one is skipped without a model call', async () => {
+    const { service, h } = makeService(judgeChoosing(TARGET.id, 0.9), { claimResult: null })
+    assert.deepEqual(await service.capture(JOB), { status: 'skipped', reason: 'already_captured' })
+    assert.equal(h.judgeCalls, 0)
+  })
+
+  it('skips a title-like guess without claiming or calling the model', async () => {
+    const { service, h } = makeService(judgeChoosing(TARGET.id, 0.9))
+    assert.deepEqual(await service.capture({ ...JOB, guessText: 'call of duty black ops' }), { status: 'skipped', reason: 'title_like' })
+    assert.equal(h.claims.length, 0)
+    assert.equal(h.judgeCalls, 0)
+  })
+
+  it('re-checks the shape (a job is never trusted blindly)', async () => {
+    const { service, h } = makeService(judgeChoosing(TARGET.id, 0.9))
+    assert.deepEqual(await service.capture({ ...JOB, guessText: 'zelda' }), { status: 'skipped', reason: 'shape' })
+    assert.equal(h.judgeCalls, 0)
+  })
+
+  it('stores the row with no verdict when the judge fails', async () => {
     const { service, h } = makeService(
       judgeReturning(async () => {
         throw new DescribeJudgeError('connection')
       })
     )
-    const ev = await service.submit(VALID)
-    assert.equal(ev.error, 'connection')
-    assert.equal(h.completed.length, 1)
+    const out = await service.capture(JOB)
+    assert.equal(out.status, 'recorded')
+    assert.equal(h.completed[0]!.evaluation.error, 'connection')
+    assert.equal(h.completed[0]!.evaluation.accepted, null)
   })
 
-  const rejects: Array<[string, Parameters<typeof makeService>[1], Partial<typeof VALID>, string, number]> = [
-    ['too short', {}, { description: 'trop court' }, 'INVALID_DESCRIPTION', 400],
-    ['too long', {}, { description: 'x'.repeat(201) }, 'INVALID_DESCRIPTION', 400],
-    ['unknown session', { session: null }, {}, 'SESSION_NOT_FOUND', 404],
-    ["another player's session", { session: { user_id: 'someone-else' } }, {}, 'SESSION_NOT_FOUND', 404],
-    ['finished session', { session: { game_is_completed: true } }, {}, 'SESSION_ALREADY_COMPLETED', 409],
-    ['screenshot not at that position', {}, { position: 4 }, 'SCREENSHOT_POSITION_MISMATCH', 400],
-    ['already solved', { solved: true }, {}, 'POSITION_ALREADY_SOLVED', 409],
-    ['no wrong title attempt yet', { wrong: false }, {}, 'DESCRIBE_NOT_ALLOWED_YET', 409],
-    ['second description for the screenshot', { claimResult: null }, {}, 'ALREADY_DESCRIBED', 409],
-  ]
-  for (const [name, setup, input, code, status] of rejects) {
-    it(`rejects: ${name}`, async () => {
-      const { service, h } = makeService(judgeChoosing(TARGET.id, 0.9), setup)
-      await assert.rejects(
-        () => service.submit({ ...VALID, ...input }),
-        (e: unknown) => e instanceof DescribeGuessError && e.code === code && e.statusCode === status
-      )
-      assert.equal(h.judgeCalls, 0, 'no model call on a rejected request')
-      assert.equal(h.completed.length, 0)
-    })
-  }
+  it('skips when the screenshot has no game', async () => {
+    const { service, h } = makeService(judgeChoosing(TARGET.id, 0.9), { target: null })
+    assert.deepEqual(await service.capture(JOB), { status: 'skipped', reason: 'no_target' })
+    assert.equal(h.claims.length, 0)
+  })
 })
