@@ -33,6 +33,11 @@ const WEBHOOK_DELIVERIES_RETENTION_DAYS = 30
 // so dropping older rows can't cause a duplicate event to be re-applied.
 const STRIPE_EVENT_LOG_RETENTION_DAYS = 365
 
+// "Describe the game" shadow-mode rows: 180 days. They hold free text written
+// by players and exist only to set the acceptance threshold and the partial-
+// points scale; six months of real descriptions is enough for that.
+export const DESCRIBE_GUESS_RETENTION_DAYS = 180
+
 export interface DataRetentionDeps {
   db: Knex
   logger: Logger
@@ -43,6 +48,7 @@ export interface DataRetentionResult {
   adminAuditLogDeleted: number
   webhookDeliveriesDeleted: number
   stripeEventLogDeleted: number
+  describeGuessAttemptsDeleted: number
   message: string
 }
 
@@ -97,17 +103,26 @@ export async function runDataRetention(
     STRIPE_EVENT_LOG_RETENTION_DAYS
   )
 
+  const describeGuessAttemptsDeleted = await pruneOlderThan(
+    db,
+    'describe_guess_attempts',
+    'created_at',
+    DESCRIBE_GUESS_RETENTION_DAYS
+  )
+
   const message =
     `data retention complete: email_log=${emailLogDeleted} (>${EMAIL_LOG_RETENTION_DAYS}d), ` +
     `admin_audit_log=${adminAuditLogDeleted} (>${ADMIN_AUDIT_LOG_RETENTION_DAYS}d), ` +
     `webhook_deliveries=${webhookDeliveriesDeleted} (>${WEBHOOK_DELIVERIES_RETENTION_DAYS}d), ` +
-    `stripe_event_log=${stripeEventLogDeleted} (>${STRIPE_EVENT_LOG_RETENTION_DAYS}d)`
+    `stripe_event_log=${stripeEventLogDeleted} (>${STRIPE_EVENT_LOG_RETENTION_DAYS}d), ` +
+    `describe_guess_attempts=${describeGuessAttemptsDeleted} (>${DESCRIBE_GUESS_RETENTION_DAYS}d)`
 
   const result: DataRetentionResult = {
     emailLogDeleted,
     adminAuditLogDeleted,
     webhookDeliveriesDeleted,
     stripeEventLogDeleted,
+    describeGuessAttemptsDeleted,
     message,
   }
 

@@ -13,6 +13,10 @@ export { positionSecondChanceRepository } from './position-second-chance.reposit
 export { positionLetterRevealRepository } from './position-letter-reveal.repository.js'
 export { funnelEventRepository } from './funnel-event.repository.js'
 export {
+  describeGuessRepository,
+  type DescribeGuessAdminRow,
+} from './describe-guess.repository.js'
+export {
   emailLogRepository,
   type EmailType,
   type EmailStatus,

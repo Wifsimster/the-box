@@ -23,6 +23,13 @@ export const TRANSFER_STATEMENTS: readonly string[] = [
        AND NOT EXISTS (
          SELECT 1 FROM game_sessions t
           WHERE t.user_id = $2 AND t.daily_challenge_id = g.daily_challenge_id)`,
+  // Descriptions follow the game session they belong to (moved just above);
+  // the rest stay on the guest and disappear with it.
+  `UPDATE describe_guess_attempts AS d SET user_id = $2
+     WHERE d.user_id = $1
+       AND EXISTS (
+         SELECT 1 FROM game_sessions g
+          WHERE g.id = d.game_session_id AND g.user_id = $2)`,
   `UPDATE live_event_participants AS p SET user_id = $2
      WHERE p.user_id = $1
        AND NOT EXISTS (

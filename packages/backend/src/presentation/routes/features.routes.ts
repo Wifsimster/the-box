@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { env } from '../../config/env.js'
+import { env, isDescribeGuessEnabled } from '../../config/env.js'
 
 const router = Router()
 
@@ -19,6 +19,8 @@ router.get('/', (_req, res) => {
         data: {
             geoCommunity: env.GEO_COMMUNITY_ENABLED === 'true',
             geogamers: env.GEOGAMERS_ENABLED === 'true',
+            // True only when DESCRIBE_GUESS_ENABLED=true AND ANTHROPIC_API_KEY is set.
+            describeGuess: isDescribeGuessEnabled(),
         },
     })
 })

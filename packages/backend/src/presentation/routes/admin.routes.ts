@@ -29,6 +29,7 @@ import jobsRoutes from './admin/jobs.routes.js'
 import moderationRoutes from './admin/moderation.routes.js'
 import scrapingRoutes from './admin/scraping.routes.js'
 import screenshotsRoutes from './admin/screenshots.routes.js'
+import describeGuessRoutes from './admin/describe-guess.routes.js'
 
 const router = Router()
 
@@ -50,6 +51,7 @@ router.use(analyticsRoutes)
 router.use(moderationRoutes)
 router.use(billingRoutes)
 router.use(scrapingRoutes)
+router.use(describeGuessRoutes)
 
 // Geo mode
 router.use(geoReviewRoutes)

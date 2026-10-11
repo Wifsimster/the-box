@@ -167,6 +167,23 @@ export const sessionRepository = {
       })
   },
 
+  // Describe-the-game (shadow mode): the player waits on the judge, so move
+  // the round start forward by that wait. A later correct guess on this
+  // position is then scored as if the judgement took no time. No-op when the
+  // stamped round is another position (the player navigated away meanwhile).
+  async shiftRoundStart(tierSessionId: string, position: number, ms: number): Promise<void> {
+    if (!(ms > 0)) return
+    await db('tier_sessions')
+      .where('id', tierSessionId)
+      .andWhere('round_position', position)
+      .whereNotNull('round_started_at')
+      .update({
+        round_started_at: db.raw("LEAST(round_started_at + (? * INTERVAL '1 millisecond'), NOW())", [
+          Math.round(ms),
+        ]),
+      })
+  },
+
   // Atomic variant used by startChallenge: only inserts when the parent game
   // session is still in-progress. Returns null if a concurrent guess submit
   // flipped `is_completed=true` between the service-layer check and this

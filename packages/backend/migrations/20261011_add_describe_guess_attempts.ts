@@ -1,0 +1,89 @@
+import type { Knex } from 'knex'
+
+/**
+ * "Describe the game" in shadow mode (DESCRIBE_GUESS_ENABLED).
+ *
+ * When a player can't find the title, they may describe the game in their own
+ * words once per screenshot. A model picks the game among the target and ~10
+ * catalogue distractors and gives a probability. Nothing is scored: this table
+ * only collects real descriptions and verdicts, so the acceptance threshold and
+ * a partial-points scale can be set on real data later.
+ *
+ * One row per (tier_session_id, position). The row is claimed before the model
+ * is called (`error = 'pending'`) so two concurrent submits can't both reach
+ * the paid API; the verdict columns are filled in afterwards.
+ *
+ * Personal data: `description` is free text written by the player. Rows follow
+ * the account (ON DELETE CASCADE on user, like every other game table) and are
+ * purged after 180 days by the data-retention job.
+ */
+export async function up(knex: Knex): Promise<void> {
+  const exists = await knex.schema.hasTable('describe_guess_attempts')
+  if (exists) return
+
+  await knex.schema.createTable('describe_guess_attempts', (table) => {
+    table.increments('id').primary()
+    table
+      .text('user_id')
+      .notNullable()
+      .references('id')
+      .inTable('user')
+      .onDelete('CASCADE')
+    // Snapshot of `user.isAnonymous` at write time: guests are a separate
+    // population worth telling apart when labelling.
+    table.boolean('is_guest').notNullable().defaultTo(false)
+    table
+      .uuid('game_session_id')
+      .notNullable()
+      .references('id')
+      .inTable('game_sessions')
+      .onDelete('CASCADE')
+    table
+      .uuid('tier_session_id')
+      .notNullable()
+      .references('id')
+      .inTable('tier_sessions')
+      .onDelete('CASCADE')
+    table.integer('position').notNullable()
+    table
+      .integer('screenshot_id')
+      .notNullable()
+      .references('id')
+      .inTable('screenshots')
+      .onDelete('CASCADE')
+    // The answer. No FK cascade on the catalogue side: deleting a game must
+    // not silently drop labelled rows, so the ids are kept as plain integers.
+    table.integer('target_game_id').notNullable()
+
+    table.string('description', 200).notNullable()
+    table.string('locale', 8).notNullable()
+
+    // Candidate set shown to the model (target included), in prompt order.
+    table.specificType('candidate_game_ids', 'integer[]').notNullable()
+    table.integer('chosen_game_id').nullable()
+    table.double('probability').nullable()
+    // Model verdict at the 0.8 threshold: chose the target with p >= 0.8.
+    // Null when there is no verdict (timeout, API error, invalid output).
+    table.boolean('accepted').nullable()
+    // The description names a candidate's title or alias (fuzzy matcher).
+    table.boolean('title_prefilter_hit').notNullable().defaultTo(false)
+
+    table.string('model', 64).notNullable()
+    table.integer('latency_ms').nullable()
+    table.integer('input_tokens').nullable()
+    table.integer('output_tokens').nullable()
+    // 'pending' while the model runs; null on success; a short code otherwise
+    // ('timeout', 'rate_limited', 'refusal', 'invalid_output', ...).
+    table.string('error', 64).nullable()
+
+    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
+
+    table.unique(['tier_session_id', 'position'])
+    table.index('created_at')
+    table.index('user_id')
+  })
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.dropTableIfExists('describe_guess_attempts')
+}

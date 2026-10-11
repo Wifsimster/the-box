@@ -18,6 +18,9 @@ import { createRateLimiter } from '../middleware/rate-limit.middleware.js'
 import { validateBody } from '../middleware/validation.middleware.js'
 import { emitAchievementUnlocked } from '../../infrastructure/socket/socket.js'
 import { resolveUploadRelativePath, sendUploadFile } from './upload-file.js'
+import { createDescribeGuessHandler, describeGuessGate } from './describe-guess.handler.js'
+import { getDescribeGuessService } from '../../composition/describe-guess.js'
+import { isDescribeGuessEnabled } from '../../config/env.js'
 
 // Public preview is cheap to compute but the image endpoint streams
 // raw files — tighter cap for the image route, more forgiving for the
@@ -453,6 +456,29 @@ router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, r
     next(error)
   }
 })
+
+// "Describe the game" — shadow mode (DESCRIBE_GUESS_ENABLED + ANTHROPIC_API_KEY).
+// After a wrong title attempt the player may describe the game once per
+// screenshot; the judge runs synchronously (5 s cap) and the verdict is
+// stored, never scored. Each call can cost a paid model request, so it is
+// throttled per account (guests included: they are anonymous accounts) and,
+// because a guest account is free to create, per IP as well.
+const describeUserMinuteLimiter = createRateLimiter({ windowMs: 60_000, max: 5, key: guessUserKey })
+const describeUserHourLimiter = createRateLimiter({ windowMs: 3_600_000, max: 20, key: guessUserKey })
+const describeIpHourLimiter = createRateLimiter({
+  windowMs: 3_600_000,
+  max: 60,
+  key: (req) => `describe-ip:${req.ip ?? 'unknown'}`,
+})
+router.post(
+  '/describe',
+  describeGuessGate(isDescribeGuessEnabled),
+  authMiddleware,
+  describeIpHourLimiter,
+  describeUserMinuteLimiter,
+  describeUserHourLimiter,
+  createDescribeGuessHandler(getDescribeGuessService)
+)
 
 // End game early (forfeit)
 router.post('/end', authMiddleware, async (req, res, next) => {
