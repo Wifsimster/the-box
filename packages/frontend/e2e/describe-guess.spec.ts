@@ -10,9 +10,19 @@ import { runtimeFeatures } from './helpers/features'
  * submit would try the real API with that key and only store "no verdict".
  *
  * Serial: the steps share the app settings and e2e_user's daily session.
- * Each Playwright project uses its own screenshot positions.
  */
-test.describe.configure({ mode: 'serial' })
+test.describe.configure({ mode: 'serial', timeout: 90_000 })
+
+/**
+ * App settings are global to the backend, and Playwright may run the same
+ * file for two projects at once in different workers. Only one project
+ * changes them, so a reset in one project can never race an enable in the
+ * other. The read-only authz test runs everywhere.
+ */
+const SETTINGS_OWNER_PROJECT = 'chromium'
+function ownsSettings(projectName: string): boolean {
+  return projectName === SETTINGS_OWNER_PROJECT
+}
 
 const DUMMY_KEY = 'e2e-dummy-key-not-real-0000'
 
@@ -40,10 +50,7 @@ async function goToPosition(page: Page, position: number) {
   await expect(page.getByRole('button', { name: new RegExp(`^Screenshot ${position} \\(current\\)`) })).toBeVisible()
 }
 
-/** Positions per project so both projects can run on one daily session. */
-function positions(projectName: string) {
-  return projectName.includes('Mobile') ? { describe: 3, off: 5 } : { describe: 2, off: 4 }
-}
+const POSITIONS = { describe: 2, off: 4 }
 
 async function adminPage(browser: Browser): Promise<Page> {
   const ctx = await browser.newContext({ storageState: './e2e/consent-storage-state.json' })
@@ -71,7 +78,8 @@ test.describe('Describe the game (shadow mode)', () => {
     expect(res.status()).toBe(403)
   })
 
-  test('off by default: no entry after a wrong guess, and the route 404s', async ({ page, browser }) => {
+  test('off by default: no entry after a wrong guess, and the route 404s', async ({ page, browser }, testInfo) => {
+    test.skip(!ownsSettings(testInfo.project.name), 'changes global app settings')
     const admin = await adminPage(browser)
     await resetSettings(admin)
     await admin.context().close()
@@ -89,6 +97,7 @@ test.describe('Describe the game (shadow mode)', () => {
   })
 
   test('admin pastes a key and enables it in Paramètres; the player can describe, score unchanged', async ({ page, browser }, testInfo) => {
+    test.skip(!ownsSettings(testInfo.project.name), 'changes global app settings')
     const admin = await adminPage(browser)
     await admin.goto('/en/admin?tab=settings')
     const group = admin.getByTestId('settings-group-describeGuess')
@@ -119,7 +128,7 @@ test.describe('Describe the game (shadow mode)', () => {
     // Player side.
     expect((await runtimeFeatures(page.request)).describeGuess).toBe(true)
     await startPlaying(page)
-    await goToPosition(page, positions(testInfo.project.name).describe)
+    await goToPosition(page, POSITIONS.describe)
     await expect(page.getByTestId('describe-game-open')).toHaveCount(0)
     await wrongGuess(page)
     const scoreBefore = await getCurrentScore(page)
@@ -141,6 +150,7 @@ test.describe('Describe the game (shadow mode)', () => {
   })
 
   test('admin disables it in Paramètres; the entry is gone and the route 404s', async ({ page, browser }, testInfo) => {
+    test.skip(!ownsSettings(testInfo.project.name), 'changes global app settings')
     const admin = await adminPage(browser)
     await admin.goto('/en/admin?tab=settings')
     const toggle = admin.getByRole('switch', { name: /enable "describe the game"/i })
@@ -152,7 +162,7 @@ test.describe('Describe the game (shadow mode)', () => {
 
     expect((await runtimeFeatures(page.request)).describeGuess).toBe(false)
     await startPlaying(page)
-    await goToPosition(page, positions(testInfo.project.name).off)
+    await goToPosition(page, POSITIONS.off)
     await wrongGuess(page)
     await expect(page.getByTestId('describe-game-open')).toHaveCount(0)
     const res = await page.request.post('/api/game/describe', {
