@@ -28,9 +28,9 @@ export function AnimatedTabs({
       role="tablist"
       className={cn(
         'flex gap-1 p-1 rounded-xl overflow-x-auto scrollbar-hide',
-        variant === 'default' && 'bg-muted/50 border border-white/10',
+        variant === 'default' && 'bg-muted/50 border border-border',
         variant === 'pills' && 'bg-transparent gap-2',
-        variant === 'underline' && 'bg-transparent border-b border-white/10 rounded-none p-0 gap-0',
+        variant === 'underline' && 'bg-transparent border-b border-border rounded-none p-0 gap-0',
         className
       )}
     >

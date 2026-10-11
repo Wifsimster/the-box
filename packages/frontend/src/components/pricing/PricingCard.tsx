@@ -89,7 +89,7 @@ export function PricingCard({
               {t(`${tierKey}.highlight`, '')}
             </Badge>
           )}
-          <CardTitle className="text-xl">{t(`${tierKey}.name`)}</CardTitle>
+          <CardTitle as="h2" className="text-xl">{t(`${tierKey}.name`)}</CardTitle>
           <p className="text-sm text-muted-foreground">{t(`${tierKey}.description`)}</p>
         </CardHeader>
 

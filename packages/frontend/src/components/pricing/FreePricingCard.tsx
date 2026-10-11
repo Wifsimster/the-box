@@ -29,7 +29,7 @@ export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePri
     >
       <Card className={cn('h-full flex flex-col', isCurrentPlan && 'border-success/50')}>
         <CardHeader>
-          <CardTitle className="text-xl">{t('pricing.tiers.free.name')}</CardTitle>
+          <CardTitle as="h2" className="text-xl">{t('pricing.tiers.free.name')}</CardTitle>
           <p className="text-sm text-muted-foreground">{t('pricing.tiers.free.description')}</p>
         </CardHeader>
 

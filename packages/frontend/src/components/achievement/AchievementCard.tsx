@@ -63,7 +63,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
                 className={cn(
                     'relative flex items-center gap-3 rounded-lg border p-3 transition-all',
                     isComplete
-                        ? 'border-primary/40 bg-primary/10 shadow-sm'
+                        ? 'border-primary/40 bg-primary/10 shadow-raised'
                         : 'border-border/60 bg-muted/10',
                     className
                 )}
@@ -107,7 +107,7 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
             className={cn(
                 'relative overflow-hidden transition-all',
                 isComplete
-                    ? 'border-primary/40 bg-primary/10 hover:border-primary/60 shadow-sm'
+                    ? 'border-primary/40 bg-primary/10 hover:border-primary/60 shadow-raised'
                     : 'border-border/60 bg-muted/10',
                 className
             )}

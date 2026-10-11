@@ -89,7 +89,15 @@ export function Footer() {
             >
               v{appVersion}
             </button>
-            {formattedBuildTime && ` • ${formattedBuildTime}`}
+            {/* On phones the line wrapped mid-timestamp (date on one line,
+                time on the next). Below `sm` the build time gets its own line
+                and drops the separator that would otherwise dangle. */}
+            {formattedBuildTime && (
+              <>
+                <span className="max-sm:hidden">{' • '}</span>
+                <span className="whitespace-nowrap max-sm:block">{formattedBuildTime}</span>
+              </>
+            )}
           </>
         )}
       </p>

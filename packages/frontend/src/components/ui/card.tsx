@@ -80,15 +80,22 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, children, ...props }: React.ComponentProps<"h3">) {
+// `h3` by default. A card that sits directly under the page `h1` (no section
+// `h2` above it) passes `as="h2"` so the outline doesn't skip a level.
+function CardTitle({
+  as: Heading = "h3",
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"h3"> & { as?: "h2" | "h3" | "h4" }) {
   return (
-    <h3
+    <Heading
       data-slot="card-title"
       className={cn("text-lg font-semibold leading-none tracking-tight", className)}
       {...props}
     >
       {children}
-    </h3>
+    </Heading>
   )
 }
 

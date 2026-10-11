@@ -318,7 +318,7 @@ export default function HomePage() {
             {t('home.headline')}
           </h1>
 
-          <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg lg:text-xl text-muted-foreground text-balance max-w-2xl mx-auto">
             {t('home.subtitle')}
           </p>
 

@@ -29,7 +29,8 @@ export function BrandLockup({ onNavigate, className }: BrandLockupProps) {
       onClick={onNavigate}
       aria-label={SITE_NAME}
       className={cn(
-        'inline-flex shrink-0 items-center gap-2 rounded-md px-1 py-1 transition-opacity hover:opacity-80',
+        // min-h/min-w 11: the mark alone (below `sm`) was a 36px tap target.
+        'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-md px-1 py-1 transition-opacity hover:opacity-80',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}

@@ -71,7 +71,7 @@ export function EndGameButton() {
               h-(--control-h) px-3
               bg-linear-to-r from-primary to-neon-purple
               text-white text-sm font-semibold
-              rounded-b-xl border border-t-0 border-white/10
+              rounded-b-xl border border-t-0 border-border
               shadow-lg
               hover:brightness-110
               active:scale-[0.98]

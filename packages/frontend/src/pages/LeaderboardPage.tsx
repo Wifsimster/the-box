@@ -43,6 +43,11 @@ interface BoardsState {
   dailyLoading: boolean
   monthlyLoading: boolean
   achievementLoading: boolean
+  // A failed request is not an empty board: the panel shows a retry instead
+  // of "No results yet" + a play CTA (which read as "nobody played today").
+  dailyFailed: boolean
+  monthlyFailed: boolean
+  achievementFailed: boolean
 }
 
 type BoardsAction =
@@ -51,6 +56,8 @@ type BoardsAction =
   | { type: 'monthlyStart' }
   | { type: 'monthlyLoaded'; entries: MonthlyLeaderboardEntry[] }
   | { type: 'achievementsLoaded'; entries: AchievementLeaderboardEntry[] }
+  | { type: 'achievementsStart' }
+  | { type: 'failed'; board: 'daily' | 'monthly' | 'achievements' }
 
 const initialBoards: BoardsState = {
   daily: [],
@@ -59,20 +66,37 @@ const initialBoards: BoardsState = {
   dailyLoading: true,
   monthlyLoading: false,
   achievementLoading: true,
+  dailyFailed: false,
+  monthlyFailed: false,
+  achievementFailed: false,
 }
+
+// HTTP errors reject like network errors, so both land in the panel's
+// retry state rather than being read as an empty board.
+const fetchBoard = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+  })
 
 function boardsReducer(state: BoardsState, action: BoardsAction): BoardsState {
   switch (action.type) {
     case 'dailyStart':
-      return { ...state, dailyLoading: true }
+      return { ...state, dailyLoading: true, dailyFailed: false }
     case 'dailyLoaded':
       return { ...state, daily: action.entries, dailyLoading: false }
     case 'monthlyStart':
-      return { ...state, monthlyLoading: true }
+      return { ...state, monthlyLoading: true, monthlyFailed: false }
     case 'monthlyLoaded':
       return { ...state, monthly: action.entries, monthlyLoading: false }
+    case 'achievementsStart':
+      return { ...state, achievementLoading: true, achievementFailed: false }
     case 'achievementsLoaded':
       return { ...state, achievements: action.entries, achievementLoading: false }
+    case 'failed':
+      if (action.board === 'daily') return { ...state, daily: [], dailyLoading: false, dailyFailed: true }
+      if (action.board === 'monthly') return { ...state, monthly: [], monthlyLoading: false, monthlyFailed: true }
+      return { ...state, achievements: [], achievementLoading: false, achievementFailed: true }
     default:
       return state
   }
@@ -135,7 +159,18 @@ export default function LeaderboardPage() {
     dailyLoading: loading,
     monthlyLoading,
     achievementLoading,
+    dailyFailed,
+    monthlyFailed,
+    achievementFailed,
   } = boards
+  // Bumped by a panel's Retry button to re-run that board's fetch effect.
+  const [reload, setReload] = useState({ daily: 0, monthly: 0, achievements: 0 })
+  const retryDaily = useCallback(() => setReload((r) => ({ ...r, daily: r.daily + 1 })), [])
+  const retryMonthly = useCallback(() => setReload((r) => ({ ...r, monthly: r.monthly + 1 })), [])
+  const retryAchievements = useCallback(
+    () => setReload((r) => ({ ...r, achievements: r.achievements + 1 })),
+    [],
+  )
   const activeTab = parseTab(searchParams.get('tab'))
   const monthlyView = parseMonthlyView(searchParams.get('view'))
   const setMonthlyView = useCallback(
@@ -215,8 +250,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     dispatchBoards({ type: 'dailyStart' })
     const dateStr = formatDateForApi(selectedDate)
-    fetch(`/api/leaderboard/${dateStr}`)
-      .then(res => res.json())
+    fetchBoard(`/api/leaderboard/${dateStr}`)
       .then(data => {
         dispatchBoards({
           type: 'dailyLoaded',
@@ -224,16 +258,16 @@ export default function LeaderboardPage() {
         })
       })
       .catch(() => {
-        dispatchBoards({ type: 'dailyLoaded', entries: [] })
+        dispatchBoards({ type: 'failed', board: 'daily' })
       })
-  }, [selectedDate])
+  }, [selectedDate, reload.daily])
 
   // Fetch achievement leaderboard (once, not date-dependent). The loading
   // flag starts `true` in the reducer, so no setState-on-mount is needed.
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
-    fetch('/api/achievements/leaderboard')
-      .then(res => res.json())
+    if (reload.achievements > 0) dispatchBoards({ type: 'achievementsStart' })
+    fetchBoard('/api/achievements/leaderboard')
       .then(data => {
         dispatchBoards({
           type: 'achievementsLoaded',
@@ -241,9 +275,9 @@ export default function LeaderboardPage() {
         })
       })
       .catch(() => {
-        dispatchBoards({ type: 'achievementsLoaded', entries: [] })
+        dispatchBoards({ type: 'failed', board: 'achievements' })
       })
-  }, [])
+  }, [reload.achievements])
 
   // Fetch monthly leaderboard when monthly tab is active or month changes
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
@@ -254,8 +288,7 @@ export default function LeaderboardPage() {
     const year = selectedMonth.getFullYear()
     const month = selectedMonth.getMonth() + 1 // getMonth() returns 0-11, API expects 1-12
 
-    fetch(`/api/leaderboard/monthly/${year}/${month}`)
-      .then(res => res.json())
+    fetchBoard(`/api/leaderboard/monthly/${year}/${month}`)
       .then(data => {
         dispatchBoards({
           type: 'monthlyLoaded',
@@ -263,9 +296,9 @@ export default function LeaderboardPage() {
         })
       })
       .catch(() => {
-        dispatchBoards({ type: 'monthlyLoaded', entries: [] })
+        dispatchBoards({ type: 'failed', board: 'monthly' })
       })
-  }, [activeTab, monthlyView, selectedMonth])
+  }, [activeTab, monthlyView, selectedMonth, reload.monthly])
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
@@ -361,6 +394,8 @@ export default function LeaderboardPage() {
                   </Button>
                 ) : undefined
               }
+              failed={dailyFailed}
+              onRetry={retryDaily}
               currentUserId={currentUserId}
               onDateChange={handleDateChange}
               onPlayerClick={handlePlayerClick}
@@ -393,6 +428,8 @@ export default function LeaderboardPage() {
                 maxDate={today}
                 locale={getDateLocale()}
                 cardTitle={getMonthlyCardTitle()}
+                failed={monthlyFailed}
+                onRetry={retryMonthly}
                 currentUserId={currentUserId}
                 onMonthChange={handleMonthChange}
               />
@@ -411,6 +448,8 @@ export default function LeaderboardPage() {
             <AchievementLeaderboardPanel
               entries={achievementLeaderboard}
               loading={achievementLoading}
+              failed={achievementFailed}
+              onRetry={retryAchievements}
               currentUserId={currentUserId}
             />
           </TabsContent>
