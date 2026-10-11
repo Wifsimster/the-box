@@ -413,13 +413,15 @@ export interface TodayChallengeResponse {
     /** Whether this is a catch-up session (previous day play) */
     isCatchUp?: boolean
   } | null
-  /** Yesterday's challenge info if available and not yet played */
+  /** Yesterday's challenge info (only for today's challenge, signed-in players) */
   yesterdayChallenge?: {
     challengeId: number
     date: string
     hasPlayed: boolean
     /** If played, whether it was completed */
     isCompleted?: boolean
+    /** If played, the player's session (links to their answers) */
+    sessionId?: string | null
   } | null
 }
 

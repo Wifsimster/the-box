@@ -12,12 +12,15 @@ import { createLeaderboardService } from '@/services'
 import { gameApi } from '@/lib/api'
 import { authClient, useSession } from '@/lib/auth-client'
 
-const GUEST_OPT_IN_KEY = 'theBox.guestOptIn'
-
 /**
  * Orchestrates the daily-game loop: challenge fetch + resume, screenshot
- * prefetching, start/reset handlers and the guest-gate flow. Extracted from
- * GamePage so that component is a thin presentational shell over this hook.
+ * prefetching and the start/reset handlers. Shared by the daily-first home
+ * (`TodayPage`, route `/`) and `GamePage` (`/play`, catch-up `?date=`), which
+ * are thin presentational shells over this hook.
+ *
+ * There is no account gate before the game (decision D2): an anonymous
+ * visitor gets a guest session on "Open today's box" and is asked to keep
+ * their score once the box is done (`GuestSaveCard` on `/results` and `/`).
  */
 export function useDailyGame() {
   const { t } = useTranslation()
@@ -27,7 +30,10 @@ export function useDailyGame() {
   const { data: session, isPending: isSessionPending } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
-  const [guestGateOpen, setGuestGateOpen] = useState(false)
+  // True when today's box is already finished for this player. Lets the
+  // daily-first home render its "come back tomorrow" loop instead of the
+  // generic error state.
+  const [alreadyCompleted, setAlreadyCompleted] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
 
   // iOS Safari fallback: when the keyboard overlays the layout viewport we lift
@@ -177,6 +183,7 @@ export function useDailyGame() {
           // Check if it's already completed
           if (data.userSession.isCompleted) {
             setGamePhase('daily_intro')
+            setAlreadyCompleted(true)
             setError(t('game.alreadyCompleted'))
             setLoading(false)
             return
@@ -352,17 +359,10 @@ export function useDailyGame() {
         screenshotsFound: 0,
       })
 
-      // Unauthenticated? Show the Create-Account gate unless the user already
-      // opted into guest play in this tab. This replaces the previous silent
-      // anonymous sign-in, which was killing signup conversion.
+      // Unauthenticated: play as a guest right away. The account ask comes
+      // after the game (D2) — the guest's session is carried over on signup
+      // by the backend's onLinkAccount hook.
       if (!session && !isSessionPending) {
-        const optedIn = sessionStorage.getItem(GUEST_OPT_IN_KEY) === '1'
-        if (!optedIn) {
-          setGuestGateOpen(true)
-          setLoading(false)
-          return
-        }
-
         const signInResult = await authClient.signIn.anonymous()
         if (signInResult.error) {
           console.error('Failed to sign in as guest:', signInResult.error)
@@ -399,6 +399,7 @@ export function useDailyGame() {
       // Check if it's the "already completed" error via the structured code
       const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
       if (code === 'CHALLENGE_ALREADY_COMPLETED' || code === 'SESSION_ALREADY_COMPLETED') {
+        setAlreadyCompleted(true)
         setError(t('game.alreadyCompleted'))
       } else if (code === 'PREMIUM_REQUIRED_FOR_OLD_CATCHUP') {
         // Free user clicked an archived challenge they can't access. Send
@@ -458,21 +459,10 @@ export function useDailyGame() {
   // Get the current image URL from screenshot data
   const currentImageUrl = currentScreenshotData?.imageUrl || null
 
-  const handleGuestContinue = useCallback(() => {
-    sessionStorage.setItem(GUEST_OPT_IN_KEY, '1')
-    setGuestGateOpen(false)
-    // Re-run start now that opt-in is recorded
-    void handleStartGame()
-  }, [handleStartGame])
-
-  const handleGuestCreateAccount = useCallback(() => {
-    setGuestGateOpen(false)
-    navigate(localizedPath('/register'))
-  }, [navigate, localizedPath])
-
   return {
     // status
     error,
+    alreadyCompleted,
     isResetting,
     isLoading,
     _hasHydrated,
@@ -494,12 +484,8 @@ export function useDailyGame() {
     currentImageUrl,
     worldScore,
     isCatchUp,
-    // guest gate
-    guestGateOpen,
     // handlers
     handleStartGame,
     handleResetSession,
-    handleGuestContinue,
-    handleGuestCreateAccount,
   }
 }

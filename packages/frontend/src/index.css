@@ -419,7 +419,7 @@ html {
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 60%, transparent), var(--glow-md);
 }
 
-/* Neon grid backdrop (TierIntro, hero backdrops) */
+/* Neon grid backdrop (hero backdrops) */
 .bg-grid-neon {
   background-image:
     linear-gradient(oklch(0.65 0.2 293 / 0.1) 1px, transparent 1px),
@@ -461,8 +461,10 @@ html {
     scroll-behavior: auto !important;
   }
 
-  /* Disable blur animations for users with motion sensitivity */
-  img[class*="blur"] {
+  /* Disable blur animations for users with motion sensitivity. The blurred
+     daily teaser opts out (data-keep-blur): its blur is not an animation, it
+     hides screenshot 1 until the clock starts (daily-first, D1). */
+  img[class*="blur"]:not([data-keep-blur]) {
     filter: blur(0) !important;
   }
 }

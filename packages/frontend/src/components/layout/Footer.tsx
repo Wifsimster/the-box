@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useOpenChangelog } from '@/components/pwa'
+import { useFeatures } from '@/hooks/useFeatures'
 import { STUDIO } from '@/lib/studio'
 import { format } from 'date-fns'
 
@@ -22,6 +23,7 @@ export function Footer() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const openChangelog = useOpenChangelog()
+  const features = useFeatures()
   // Read the clock once per mount (lazy initializer) rather than on every render.
   const [currentYear] = useState(() => new Date().getFullYear())
 
@@ -74,6 +76,18 @@ export function Footer() {
           className={footerLinkClass}
         >
           {t('footer.contact')}
+        </Link>
+        {/* Secondary surfaces demoted out of the primary nav (daily-first). */}
+        {features.geogamers && (
+          <Link to={localizedPath('/panorama')} className={footerLinkClass}>
+            {t('common.geogamers')}
+          </Link>
+        )}
+        <Link to={localizedPath('/premium')} className={footerLinkClass}>
+          {t('common.premium')}
+        </Link>
+        <Link to={localizedPath('/about')} className={footerLinkClass}>
+          {t('common.about')}
         </Link>
       </nav>
       <p className="mt-2 text-xs text-muted-foreground">

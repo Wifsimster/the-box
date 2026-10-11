@@ -7,9 +7,6 @@ import { useSession } from '@/lib/auth-client'
 import { gameApi } from '@/lib/api/game'
 import { useNextDailyCountdown } from '@/hooks/useNextDailyCountdown'
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal'
-import { TourGuide } from '@/components/onboarding/TourGuide'
-import { consumeTourPending, hasCompletedTour, TOUR_REPLAY_EVENT } from '@/components/onboarding/tour-storage'
-import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
 import { StreakRiskBanner } from '@/components/daily-login/StreakRiskBanner'
 import { HomeAchievementTeaser } from '@/components/home/HomeAchievementTeaser'
 import { HomeDailyCta } from '@/components/home/HomeDailyCta'
@@ -17,9 +14,6 @@ import { HomeModesShowcase } from '@/components/home/HomeModesShowcase'
 import { HomePremiumTeaser } from '@/components/home/HomePremiumTeaser'
 import { HomeSocialProof } from '@/components/home/HomeSocialProof'
 import { useBillingStore } from '@/stores/billingStore'
-import { useConsentStore } from '@/stores/consentStore'
-import { useDailyLoginStore } from '@/stores/dailyLoginStore'
-import { useChangelogStore } from '@/stores/changelogStore'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
 // CubeBackground pulls in Three.js + react-three-fiber, so split it into
@@ -174,39 +168,6 @@ export default function HomePage() {
   const [liteBackground] = useState(prefersLiteBackground)
   const showCubeBackground = useIdleReady(!reducedMotion && !liteBackground)
 
-  // Home tour: opens once the page has settled. WelcomeModal flips the
-  // "pending" flag on close; otherwise we open it for any visitor who
-  // hasn't completed (or dismissed) it yet. Skipping or finishing marks
-  // it complete via the TourGuide itself.
-  // The tour waits for the cookie banner to be answered: both compete for
-  // the same first-visit attention and the banner covers the bottom of the
-  // page the tour spotlights.
-  // It also waits for every auto-opening dialog (welcome, daily reward,
-  // changelog) so the spotlight never lands on top of a modal.
-  const consentDecided = useConsentStore((s) => s.decided)
-  const welcomeActive = useWelcomeActive()
-  const rewardModalOpen = useDailyLoginStore((s) => s.isModalOpen)
-  const changelogOpen = useChangelogStore((s) => s.open)
-  const tourBlocked = !consentDecided || welcomeActive || rewardModalOpen || changelogOpen
-  const [tourOpen, setTourOpen] = useState(false)
-  useEffect(() => {
-    if (tourBlocked) return
-    const id = window.setTimeout(() => {
-      if (consumeTourPending() || !hasCompletedTour()) {
-        setTourOpen(true)
-      }
-    }, 600)
-    return () => window.clearTimeout(id)
-  }, [tourBlocked])
-
-  // Replay from the user menu while already on this page — the mount-time
-  // effect above won't re-run, so listen for the explicit replay event.
-  useEffect(() => {
-    const handler = () => setTourOpen(true)
-    window.addEventListener(TOUR_REPLAY_EVENT, handler)
-    return () => window.removeEventListener(TOUR_REPLAY_EVENT, handler)
-  }, [])
-
   // Helper: drop `initial`/`animate`/`transition` when reduced motion is
   // preferred so motion components render statically without changing layout.
   const motionProps = (props: MotionProps): MotionProps => (reducedMotion ? {} : props)
@@ -285,8 +246,9 @@ export default function HomePage() {
         // Plain themed backdrop — no Canvas, no chunk fetch.
         <div className="fixed inset-0 z-0 bg-background" aria-hidden="true" />
       )}
+      {/* D8: the guided tour is gone; the first-run welcome dialog is only
+          mounted on this page (/about), the former landing. */}
       <WelcomeModal />
-      <TourGuide open={tourOpen && !tourBlocked} onClose={() => setTourOpen(false)} />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12 relative z-10 space-y-8 md:space-y-12">
         {/* Hero Section */}
         <m.div

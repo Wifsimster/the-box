@@ -3,6 +3,7 @@ import { useConsentStore } from '@/stores/consentStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useChangelogStore } from '@/stores/changelogStore'
 import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
+import { isTodayPath } from '@/lib/dailyFirst'
 
 export const IN_GAME_PATH = /\/(play|geo)\/?$/
 
@@ -20,6 +21,9 @@ export function useBottomPromptSlotFree(): boolean {
   return (
     consentDecided &&
     !IN_GAME_PATH.test(pathname) &&
+    // The bare language root is today's box in the daily-first IA: no install
+    // banner over the screenshot either.
+    !isTodayPath(pathname) &&
     !rewardModalOpen &&
     !changelogOpen &&
     !welcomeActive
