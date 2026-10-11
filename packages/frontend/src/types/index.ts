@@ -37,6 +37,8 @@ export type {
   DescribeGuessResponse,
   DescribeGuessAdminEntry,
   DescribeGuessAdminPage,
+  AppSettingView,
+  AppSettingType,
   LetterRevealState,
   RevealLetterResponse,
   EndGameResponse,

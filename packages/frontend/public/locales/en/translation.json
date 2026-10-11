@@ -899,7 +899,8 @@
       "geoFetch": "Maps",
       "reports": "Reports",
       "moderation": "Moderation",
-      "describeGuess": "Descriptions"
+      "describeGuess": "Descriptions",
+      "settings": "Settings"
     },
     "geoFetch": {
       "title": "Game maps",
@@ -1912,7 +1913,7 @@
     },
     "agentKeys": {
       "title": "Geo agent keys",
-      "description": "API keys for the agent sourcing surface (/api/agent/v1/geo). Admin-only, geo-agent:* scopes only. The plaintext is shown only once. Requires GEO_AGENT_API_ENABLED=true on the backend.",
+      "description": "API keys for agents: the geo sourcing surface (/api/agent/v1/geo, requires GEO_AGENT_API_ENABLED=true) and app settings over MCP (settings scope). Admin-only. The plaintext is shown only once.",
       "label": "Label",
       "labelPlaceholder": "e.g. claude-exploration",
       "mode": "Mode",
@@ -1922,7 +1923,8 @@
         "ingest": "trigger the pipeline (phase 3)",
         "propose": "propose pins (phase 4)",
         "curate": "enrol games, candidate maps (phase 5)",
-        "promote": "confirm/promote a consensus pin (phase 7)"
+        "promote": "confirm/promote a consensus pin (phase 7)",
+        "settings": "read and change app settings (MCP *_setting tools)"
       },
       "create": "Create key",
       "copyNow": "Copy this key now — it won't be shown again.",
@@ -1960,6 +1962,53 @@
       },
       "previous": "Previous page",
       "next": "Next page"
+    },
+    "appSettings": {
+      "title": "App settings",
+      "intro": "Changes apply without a redeploy (within a minute). Also available over MCP with an agent key that has the \"settings\" scope (Geo tab › Agent keys).",
+      "loadError": "Could not load the settings.",
+      "saved": "Setting saved.",
+      "saveError": "Save failed: {{message}}",
+      "save": "Save",
+      "reset": "Reset to default",
+      "defaultValue": "Default: {{value}}",
+      "on": "On",
+      "off": "Off",
+      "updated": "Changed on {{date}}",
+      "secret": {
+        "set": "Key stored: {{mask}}",
+        "unset": "No key stored.",
+        "placeholder": "Paste the new key",
+        "replace": "Replace key",
+        "clear": "Remove key",
+        "writeOnly": "The key is encrypted and never shown again. To change it, paste a new one."
+      },
+      "groups": {
+        "describeGuess": {
+          "title": "Describe the game (beta, shadow mode)",
+          "description": "After a wrong guess, the player can describe the game. A Claude model judges it and everything is logged, with no points. Live only when the option is on AND an Anthropic API key is stored.",
+          "active": "Live: players see the \"Describe the game\" entry.",
+          "inactive": "Off: turn the option on and store a key."
+        }
+      },
+      "items": {
+        "describeGuess.enabled": {
+          "label": "Enable \"Describe the game\"",
+          "help": "Without a stored key, players see nothing."
+        },
+        "describeGuess.anthropicApiKey": {
+          "label": "Anthropic API key",
+          "help": "Used only to judge descriptions. Tip: a dedicated key with a spend limit."
+        },
+        "describeGuess.model": {
+          "label": "Model",
+          "help": "Claude model id. Defaults to claude-haiku-5-5, the one evaluated in the spike."
+        },
+        "describeGuess.threshold": {
+          "label": "Acceptance threshold",
+          "help": "Minimum probability for a description to be marked \"accepted\" (0.5 to 1). No effect on scores in shadow mode."
+        }
+      }
     }
   },
   "pricing": {

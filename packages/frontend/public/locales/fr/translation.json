@@ -899,7 +899,8 @@
       "geoFetch": "Cartes",
       "reports": "Signalements",
       "moderation": "Modération",
-      "describeGuess": "Descriptions"
+      "describeGuess": "Descriptions",
+      "settings": "Paramètres"
     },
     "geoFetch": {
       "title": "Cartes des jeux",
@@ -1912,7 +1913,7 @@
     },
     "agentKeys": {
       "title": "Clés agent Géo",
-      "description": "Clés d'API pour la surface de sourcing agent (/api/agent/v1/geo). Réservées admin, portée geo-agent:* uniquement. Le texte en clair n'est affiché qu'une seule fois. Nécessite GEO_AGENT_API_ENABLED=true côté backend.",
+      "description": "Clés d'API pour les agents : surface de sourcing géo (/api/agent/v1/geo, nécessite GEO_AGENT_API_ENABLED=true) et paramètres de l'application via MCP (portée settings). Réservées admin. Le texte en clair n'est affiché qu'une seule fois.",
       "label": "Libellé",
       "labelPlaceholder": "ex. exploration-claude",
       "mode": "Mode",
@@ -1922,7 +1923,8 @@
         "ingest": "déclencher le pipeline (phase 3)",
         "propose": "proposer des pins (phase 4)",
         "curate": "inscrire des jeux, cartes candidates (phase 5)",
-        "promote": "confirmer/promouvoir un pin de consensus (phase 7)"
+        "promote": "confirmer/promouvoir un pin de consensus (phase 7)",
+        "settings": "lire et modifier les paramètres (outils MCP *_setting)"
       },
       "create": "Créer la clé",
       "copyNow": "Copie cette clé maintenant — elle ne sera plus affichée.",
@@ -1960,6 +1962,53 @@
       },
       "previous": "Page précédente",
       "next": "Page suivante"
+    },
+    "appSettings": {
+      "title": "Paramètres de l'application",
+      "intro": "Modifiés ici, ils s'appliquent sans redéploiement (moins d'une minute). Aussi accessibles par MCP avec une clé agent qui a la portée « settings » (onglet Géo › Clés agent).",
+      "loadError": "Impossible de charger les paramètres.",
+      "saved": "Paramètre enregistré.",
+      "saveError": "Échec de l'enregistrement : {{message}}",
+      "save": "Enregistrer",
+      "reset": "Valeur par défaut",
+      "defaultValue": "Par défaut : {{value}}",
+      "on": "Activé",
+      "off": "Désactivé",
+      "updated": "Modifié le {{date}}",
+      "secret": {
+        "set": "Clé enregistrée : {{mask}}",
+        "unset": "Aucune clé enregistrée.",
+        "placeholder": "Collez la nouvelle clé",
+        "replace": "Remplacer la clé",
+        "clear": "Supprimer la clé",
+        "writeOnly": "La clé est chiffrée et n'est jamais réaffichée. Pour la changer, collez-en une nouvelle."
+      },
+      "groups": {
+        "describeGuess": {
+          "title": "Décris le jeu (bêta, mode ombre)",
+          "description": "Après une mauvaise réponse, le joueur peut décrire le jeu. Un modèle Claude le juge et tout est enregistré, sans points. Actif seulement si l'option est activée ET qu'une clé API Anthropic est enregistrée.",
+          "active": "Actif : l'entrée « Décris le jeu » est visible des joueurs.",
+          "inactive": "Inactif : il faut activer l'option et enregistrer une clé."
+        }
+      },
+      "items": {
+        "describeGuess.enabled": {
+          "label": "Activer « Décris le jeu »",
+          "help": "Sans clé enregistrée, rien n'apparaît aux joueurs."
+        },
+        "describeGuess.anthropicApiKey": {
+          "label": "Clé API Anthropic",
+          "help": "Utilisée uniquement pour juger les descriptions. Conseil : une clé dédiée avec une limite de dépense."
+        },
+        "describeGuess.model": {
+          "label": "Modèle",
+          "help": "Identifiant de modèle Claude. Par défaut claude-haiku-5-5, celui évalué dans le spike."
+        },
+        "describeGuess.threshold": {
+          "label": "Seuil d'acceptation",
+          "help": "Probabilité minimale pour qu'une description soit notée « acceptée » (0,5 à 1). Sans effet sur les scores en mode ombre."
+        }
+      }
     }
   },
   "pricing": {
