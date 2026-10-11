@@ -87,7 +87,8 @@
       "genre": "Genre",
       "score": "Score",
       "streak": "Streak",
-      "mastery": "Mastery"
+      "mastery": "Mastery",
+      "geogamers": "Panorama"
     },
     "difficulty": {
       "easy": "Easy",
@@ -300,6 +301,46 @@
       "increvable": {
         "name": "Unstoppable",
         "description": "Rack up 1,000 wrong guesses in total"
+      },
+      "mille_fois": {
+        "name": "A Thousand Times",
+        "description": "Submit 1,000 guesses in total"
+      },
+      "encyclopedie_vivante_ii": {
+        "name": "Walking Encyclopedia II",
+        "description": "Correctly identify 250 games"
+      },
+      "maitre_des_jeux": {
+        "name": "Game Master",
+        "description": "Correctly identify 500 games"
+      },
+      "deux_cents_defis": {
+        "name": "Two Hundred Challenges",
+        "description": "Complete 200 daily challenges"
+      },
+      "annee_de_defis": {
+        "name": "A Year of Challenges",
+        "description": "Complete 365 daily challenges, a full year of boxes"
+      },
+      "sphinx": {
+        "name": "Sphinx",
+        "description": "Finish 50 sessions with a perfect 2,000-point score"
+      },
+      "un_an_avec_nous": {
+        "name": "One Year With Us",
+        "description": "A full year since you signed up"
+      },
+      "deux_ans_avec_nous": {
+        "name": "Two Years With Us",
+        "description": "Two full years since you signed up"
+      },
+      "geogamers_first_run": {
+        "name": "Panorama: First Run",
+        "description": "Finish your first Panorama run"
+      },
+      "geogamers_perfect_day": {
+        "name": "Panorama: Flawless",
+        "description": "Score 200 points on a Panorama run"
       }
     }
   },
@@ -564,7 +605,8 @@
     "achievements": {
       "heading": "Achievements waiting to be unlocked",
       "subheading": "Three trophies you don't have yet. Yet.",
-      "cta": "See all achievements"
+      "cta": "See all achievements",
+      "carouselLabel": "Achievements to unlock, swipe to browse"
     },
     "modes": {
       "heading": "Explore the other game modes",
@@ -677,7 +719,8 @@
       "yourCountryPending": "{{country}}: {{count}}/{{min}} players this month.",
       "noCountry": "Pick your country and play for it.",
       "setCountry": "Set my country"
-    }
+    },
+    "boardUnavailable": "The leaderboard isn't responding."
   },
   "history": {
     "title": "Game History",
@@ -2077,8 +2120,8 @@
   },
   "errors": {
     "boundary": {
-      "title": "Oops! Something went wrong",
-      "message": "We're sorry for the inconvenience. The application encountered an unexpected error.",
+      "title": "Something went wrong",
+      "message": "The app hit an unexpected error.",
       "tryAgain": "Try Again",
       "goHome": "Go Home",
       "contactSupport": "If this problem persists, please contact support."
