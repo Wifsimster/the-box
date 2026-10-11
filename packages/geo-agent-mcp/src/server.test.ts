@@ -274,3 +274,78 @@ describe('handleRpc', () => {
     assert.equal(res.error.code, -32601)
   })
 })
+
+describe('settings tools', () => {
+  it('lists the three settings tools', () => {
+    const names = TOOLS.map((t) => t.name)
+    for (const n of ['list_settings', 'get_setting', 'set_setting']) assert.ok(names.includes(n), n)
+  })
+
+  it('maps list_settings and get_setting to GETs', () => {
+    assert.deepEqual(resolveToolPath('list_settings', {}), { path: '/api/agent/v1/settings' })
+    assert.deepEqual(resolveToolPath('get_setting', { key: 'describeGuess.threshold' }), {
+      path: '/api/agent/v1/settings/describeGuess.threshold',
+    })
+  })
+
+  it('maps set_setting to a POST with { value }, including null to clear', () => {
+    assert.deepEqual(resolveToolPath('set_setting', { key: 'describeGuess.enabled', value: true }), {
+      path: '/api/agent/v1/settings/describeGuess.enabled',
+      method: 'POST',
+      body: { value: true },
+    })
+    assert.deepEqual(resolveToolPath('set_setting', { key: 'describeGuess.anthropicApiKey', value: null }), {
+      path: '/api/agent/v1/settings/describeGuess.anthropicApiKey',
+      method: 'POST',
+      body: { value: null },
+    })
+  })
+
+  it('rejects bad keys and values before any request', () => {
+    for (const args of [
+      {},
+      { key: '../admin' },
+      { key: 'a/b', value: 1 },
+      { key: 'describeGuess.enabled' },
+      { key: 'describeGuess.enabled', value: { nested: true } },
+    ]) {
+      assert.ok('error' in resolveToolPath(args.key === undefined ? 'get_setting' : 'set_setting', args), JSON.stringify(args))
+    }
+  })
+
+  it('surfaces an unauthorized key as an error tool result', async () => {
+    const res = (await handleRpc(
+      {
+        jsonrpc: '2.0',
+        id: 9,
+        method: 'tools/call',
+        params: { name: 'set_setting', arguments: { key: 'describeGuess.enabled', value: true } },
+      },
+      {
+        callApi: async () => {
+          throw new Error('INSUFFICIENT_SCOPE')
+        },
+      },
+    )) as { result: { isError: boolean; content: Array<{ text: string }> } }
+    assert.equal(res.result.isError, true)
+    assert.match(res.result.content[0]!.text, /INSUFFICIENT_SCOPE/)
+  })
+
+  it('returns what the API returns for a secret (mask only), never the written value', async () => {
+    const secret = 'sk-ant-api03-not-a-real-key-000000000000-abcd'
+    const res = (await handleRpc(
+      {
+        jsonrpc: '2.0',
+        id: 10,
+        method: 'tools/call',
+        params: { name: 'set_setting', arguments: { key: 'describeGuess.anthropicApiKey', value: secret } },
+      },
+      {
+        callApi: async () => ({ key: 'describeGuess.anthropicApiKey', value: null, secret: { set: true, mask: 'sk-ant-…abcd' } }),
+      },
+    )) as { result: { isError: boolean; content: Array<{ text: string }> } }
+    assert.equal(res.result.isError, false)
+    assert.ok(!res.result.content[0]!.text.includes(secret))
+    assert.match(res.result.content[0]!.text, /sk-ant-…abcd/)
+  })
+})

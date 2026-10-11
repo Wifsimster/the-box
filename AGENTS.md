@@ -155,6 +155,8 @@ Dépendances :
 - **Per-Screenshot Countdown Timer** – 45s per screenshot (`tiers.time_limit_seconds`, exposed via `ScreenshotResponse.timeLimitSeconds`); running out is a permanent miss (`timed_out`). Time is a per-position active-time budget (`PositionState.timeSpentMs`) that pauses on navigation and resumes on return, so skipping away and back can't reset it
 - **Catch-Up Mode** – play missed challenges from the last 7 days (doesn't count for leaderboard)
 - **Hints / Power-ups** – reveal release year, developer, publisher; timer extensions
+- **Describe the game (shadow mode, configured in Admin → Paramètres)** – no player UI: a wrong guess typed in the normal input that looks like a description (≥15 chars, ≥2 words, not a catalogue title) is judged off the request path (BullMQ `describe-guess` queue + worker) by Claude Haiku 5.5 among the target and 10 distractors. At most one per screenshot per session. Logged in `describe_guess_attempts` (180-day retention), never scored, nothing shown to the player. Live only when `describeGuess.enabled` is on AND an Anthropic key is stored
+- **App settings** – generic runtime settings store (`app_settings`, `domain/services/app-settings.service.ts` registry, 30 s cache invalidated on write). Edited in Admin → Paramètres or over MCP (`list_settings` / `get_setting` / `set_setting` in `geo-agent-mcp`, agent key with scope `admin:settings`). Secrets are AES-256-GCM encrypted (key derived from `BETTER_AUTH_SECRET`), write-only and masked; every write goes to `admin_audit_log`
 - **Achievements** (including beginner-tier and mastery/account-age milestones)
 - **Daily Login Rewards** with streaks (UTC boundaries, streak-freeze) and calendar display
 - **Reward grants / chests** – day-7 chest and other reward grants (`rewards` store + routes)
@@ -179,7 +181,7 @@ Dépendances :
 
 **Platform**
 - **User Profiles** – stats, game history, achievements; public shareable profiles + OG images
-- **Admin Panel** – games, users, job queue, challenges, geo ingestion, screenshot reports, audit log
+- **Admin Panel** – games, users, job queue, challenges, geo ingestion, screenshot reports, audit log, app settings (Paramètres)
 - **i18n** – French default, English supported, translations under `public/locales/`
 
 ## Clean Architecture (Backend)
@@ -379,6 +381,7 @@ Le hook husky `commit-msg` rejette tout commit non conforme.
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (VAPID) keys |
 | `KOE_IDENTITY_SECRET` | Optional – HMAC secret for the Koe feedback widget |
 | `RAWG_API_KEY` | Optional – screenshot-fetcher + admin game imports |
+| `DESCRIBE_GUESS_JUDGE` / `DESCRIBE_GUESS_STUB_DELAY_MS` | Local/e2e only – `stub` swaps the describe-guess judge for a deterministic stub, optionally slowed down (ignored in production). The feature itself is configured in Admin → Paramètres |
 | `VITE_API_URL` | Frontend API base URL |
 | `VITE_USE_MOCK_API` | `true` → frontend uses mock services |
 | `VITE_KOE_PROJECT_KEY` / `VITE_KOE_API_URL` | Koe feedback widget config |

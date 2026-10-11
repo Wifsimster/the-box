@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse, BillingEntitlement } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse, BillingEntitlement, DescribeGuessAdminPage, AppSettingView } from '@/types'
 
 /**
  * Thin wrapper around `fetch` for admin endpoints. Defaults to
@@ -875,6 +875,32 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<EmailLogResponse>(response)
+  },
+
+  /** App settings (Admin → Paramètres). Secrets come back masked, never in clear. */
+  async listSettings(): Promise<AppSettingView[]> {
+    const response = await fetch('/api/admin/settings', { credentials: 'include' })
+    return handleResponse<AppSettingView[]>(response)
+  },
+
+  /** `value: null` resets to the default (or clears a secret). */
+  async updateSetting(key: string, value: boolean | number | string | null): Promise<AppSettingView> {
+    const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value }),
+    })
+    return handleResponse<AppSettingView>(response)
+  },
+
+  /** "Describe the game" shadow-mode rows, newest first (read-only). */
+  async listDescribeGuesses(params: { page: number; limit: number }): Promise<DescribeGuessAdminPage> {
+    const qs = new URLSearchParams({ page: String(params.page), limit: String(params.limit) })
+    const response = await fetch(`/api/admin/describe-guesses?${qs.toString()}`, {
+      credentials: 'include',
+    })
+    return handleResponse<DescribeGuessAdminPage>(response)
   },
 }
 

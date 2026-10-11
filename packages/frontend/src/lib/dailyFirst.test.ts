@@ -29,12 +29,12 @@ describe('filterByFeatures', () => {
   ]
 
   it('hides Panorama when GEOGAMERS_ENABLED is off (D5)', () => {
-    const keys = filterByFeatures(items, { geoCommunity: true, geogamers: false }).map((i) => i.key)
+    const keys = filterByFeatures(items, { geoCommunity: true, geogamers: false, describeGuess: false }).map((i) => i.key)
     assert.deepEqual(keys, ['rules', 'geo'])
   })
 
   it('keeps ungated entries and enabled features', () => {
-    const keys = filterByFeatures(items, { geoCommunity: false, geogamers: true }).map((i) => i.key)
+    const keys = filterByFeatures(items, { geoCommunity: false, geogamers: true, describeGuess: false }).map((i) => i.key)
     assert.deepEqual(keys, ['rules', 'panorama'])
   })
 })

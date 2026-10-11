@@ -173,3 +173,29 @@ export const webhookQueue = new Queue<WebhookDeliveryJobData>('webhook-delivery'
 export const webhookQueueEvents = new QueueEvents('webhook-delivery', {
   connection: redisConnectionOptions,
 })
+
+// "Describe the game" shadow capture (app settings describeGuess.*). One job
+// per wrong guess that looks like a description; the worker judges it with
+// Claude and stores the verdict, never touching the guess response or score.
+// The payload carries player-typed text, so jobs are dropped as soon as they
+// finish (no retention in Redis) and never retried: a failed judgement is
+// stored as "no verdict" by the worker itself.
+export type DescribeGuessJobData = {
+  kind: 'capture'
+  userId: string
+  isGuest: boolean
+  tierSessionId: string
+  position: number
+  screenshotId: number
+  guessText: string
+  locale: 'fr' | 'en'
+}
+
+export const describeGuessQueue = new Queue<DescribeGuessJobData>('describe-guess', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: {
+    attempts: 1,
+    removeOnComplete: true,
+    removeOnFail: true,
+  },
+})

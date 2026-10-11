@@ -17,6 +17,7 @@ import type { APIRequestContext, Page } from '@playwright/test'
 interface RuntimeFeatures {
   geoCommunity: boolean
   geogamers: boolean
+  describeGuess: boolean
 }
 
 export async function runtimeFeatures(
@@ -27,12 +28,13 @@ export async function runtimeFeatures(
     // An older backend has no /api/features. Treat both surfaces as off:
     // skipping is the safe answer, since running would assert against
     // endpoints we have no evidence exist.
-    return { geoCommunity: false, geogamers: false }
+    return { geoCommunity: false, geogamers: false, describeGuess: false }
   }
   const body = (await response.json()) as { data?: Partial<RuntimeFeatures> }
   return {
     geoCommunity: body.data?.geoCommunity === true,
     geogamers: body.data?.geogamers === true,
+    describeGuess: body.data?.describeGuess === true,
   }
 }
 

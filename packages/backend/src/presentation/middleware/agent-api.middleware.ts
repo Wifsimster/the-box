@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from 'express'
 import type { ApiKeyScope } from '@the-box/types'
-import { isGeoAgentScope } from '@the-box/types'
+import { isAgentScope } from '@the-box/types'
 import { env } from '../../config/env.js'
 import { createRateLimiter } from './rate-limit.middleware.js'
+import { userRepository } from '../../infrastructure/repositories/index.js'
 
 // Middleware for the agent content-sourcing surface (/api/agent/v1/geo,
 // issue #331). Composes on top of the shared `requireApiKey` from
@@ -96,8 +97,8 @@ export function requireAgentPromoteOverrideEnabled(
 
 /**
  * Require a specific scope on the authenticated key. Also rejects any key that
- * carries a non-geo-agent scope reaching this surface — a streamer key can
- * never call the agent API even if it somehow held a geo-agent scope, and the
+ * carries a non-agent scope (anything but geo-agent:* / admin:*) — a streamer
+ * key can never call the agent API even if it somehow held an agent scope, and the
  * mint-time mutual-exclusion guarantee is re-checked here as defense in depth.
  * Must run after `requireApiKey` (needs `req.apiKey`).
  */
@@ -105,7 +106,7 @@ export function requireScope(scope: ApiKeyScope) {
   return function (req: Request, res: Response, next: NextFunction): void {
     const scopes = req.apiKey?.scopes
     const authorized =
-      Array.isArray(scopes) && scopes.includes(scope) && scopes.every(isGeoAgentScope)
+      Array.isArray(scopes) && scopes.includes(scope) && scopes.every(isAgentScope)
     if (!authorized) {
       res.status(403).json({
         success: false,
@@ -126,3 +127,31 @@ export const agentApiRateLimit = createRateLimiter({
   max: 60,
   key: (req) => (req.apiKey ? `agent-key:${req.apiKey.id}` : `agent-ip:${req.ip ?? 'unknown'}`),
 })
+
+/**
+ * For admin:* routes: the key's owner must STILL be an admin. Agent keys are
+ * minted by an admin and carry their id; if that person is later demoted,
+ * their keys stop working on admin surfaces without waiting for a revoke.
+ * Must run after `requireApiKey`.
+ */
+export function createRequireKeyOwnerAdmin(
+  findUser: (id: string) => Promise<{ isAdmin: boolean } | null>
+) {
+  return async function requireKeyOwnerAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const owner = req.apiKey ? await findUser(req.apiKey.user_id) : null
+      if (!owner?.isAdmin) {
+        res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'The key owner is not an admin' },
+        })
+        return
+      }
+      next()
+    } catch (error) {
+      next(error)
+    }
+  }
+}
+
+export const requireKeyOwnerAdmin = createRequireKeyOwnerAdmin((id) => userRepository.findById(id))

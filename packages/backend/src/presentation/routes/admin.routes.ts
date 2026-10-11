@@ -29,6 +29,10 @@ import jobsRoutes from './admin/jobs.routes.js'
 import moderationRoutes from './admin/moderation.routes.js'
 import scrapingRoutes from './admin/scraping.routes.js'
 import screenshotsRoutes from './admin/screenshots.routes.js'
+import describeGuessRoutes from './admin/describe-guess.routes.js'
+import { createSettingsRouter } from './settings.router.js'
+import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
+import { appSettingsService } from '../../composition/app-settings.js'
 
 const router = Router()
 
@@ -50,6 +54,10 @@ router.use(analyticsRoutes)
 router.use(moderationRoutes)
 router.use(billingRoutes)
 router.use(scrapingRoutes)
+router.use(describeGuessRoutes)
+
+// App settings (Admin → Paramètres). Same router as the settings MCP tools.
+router.use('/settings', createSettingsRouter({ settings: appSettingsService, audit: recordAdminGeoAudit, channel: 'admin-ui' }))
 
 // Geo mode
 router.use(geoReviewRoutes)

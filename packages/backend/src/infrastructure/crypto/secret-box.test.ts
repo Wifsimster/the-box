@@ -49,3 +49,25 @@ describe('secret-box (AES-256-GCM)', () => {
     assert.equal(decryptSecret([ivA, tagB, ctA].join('.')), null)
   })
 })
+
+describe('createSecretBox (app settings)', () => {
+  it('round-trips through the app-settings box', async () => {
+    const { appSettingSecretBox } = await import('./secret-box.js')
+    const key = 'sk-ant-api03-test-value-not-real-0000'
+    const enc = appSettingSecretBox.encrypt(key)
+    assert.ok(!enc.includes(key))
+    assert.equal(appSettingSecretBox.decrypt(enc), key)
+  })
+
+  it('separates domains: a webhook box cannot read an app-setting value', async () => {
+    const { appSettingSecretBox, decryptSecret } = await import('./secret-box.js')
+    assert.equal(decryptSecret(appSettingSecretBox.encrypt('cross-domain')), null)
+  })
+
+  it('a rotated server secret cannot decrypt old values (reads as null)', async () => {
+    const { createSecretBox } = await import('./secret-box.js')
+    const before = createSecretBox('the-box/app-setting/v1', 'old-secret-old-secret-old-secret-00')
+    const after = createSecretBox('the-box/app-setting/v1', 'new-secret-new-secret-new-secret-00')
+    assert.equal(after.decrypt(before.encrypt('value')), null)
+  })
+})

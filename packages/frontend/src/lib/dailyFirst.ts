@@ -15,6 +15,8 @@ export function isTodayPath(pathname: string): boolean {
 export interface FeatureFlags {
   geoCommunity: boolean
   geogamers: boolean
+  /** "Describe the game" shadow capture is live (app settings). Privacy page only. */
+  describeGuess: boolean
 }
 
 /** Anything gated by an optional runtime flag (nav entries, mode cards…). */

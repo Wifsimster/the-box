@@ -139,6 +139,10 @@ Réponse incorrecte :
 }
 ```
 
+### « Décris le jeu » (mode ombre, sans route dédiée)
+
+Aucune route ni interface joueur. Quand `POST /api/game/guess` répond une réponse fausse, et seulement **après** la réponse, le texte est transmis en arrière-plan (file BullMQ `describe-guess`) s'il ressemble à une description : au moins 15 caractères et 2 mots, au plus 200 (la limite de `guessText`), et pas un titre ou alias du catalogue selon le même rapprochement flou que les réponses. Conditions : paramètres `describeGuess.enabled` activé **et** `describeGuess.anthropicApiKey` enregistrée ; au plus 20 captures par heure et par compte ; au plus une par capture d'écran et par partie. La réponse de `/guess`, le score et le minuteur ne changent pas.
+
 ### Auto-complétion de jeux
 
 ```http
@@ -328,6 +332,37 @@ Création d'un défi :
   ]
 }
 ```
+
+### Paramètres de l'application
+
+Session admin. Les mêmes routes existent pour les agents sous `/api/agent/v1/settings` (clé agent avec la portée `admin:settings`, dont le propriétaire est toujours admin) ; ce sont elles qu'appellent les outils MCP `list_settings`, `get_setting` et `set_setting`.
+
+```http
+GET /api/admin/settings
+GET /api/admin/settings/:key
+PUT /api/admin/settings/:key        (POST accepté aussi)
+Content-Type: application/json
+
+{ "value": true }
+```
+
+`value` vaut un booléen, un nombre ou une chaîne selon le type ; `null` remet la valeur par défaut (ou efface un secret). Un secret n'est jamais renvoyé :
+
+```json
+{
+  "key": "describeGuess.anthropicApiKey",
+  "type": "secret",
+  "group": "describeGuess",
+  "value": null,
+  "defaultValue": null,
+  "isSet": true,
+  "secret": { "set": true, "mask": "sk-ant-…abcd" },
+  "updatedAt": "2026-10-12T10:00:00.000Z",
+  "updatedBy": "user-id"
+}
+```
+
+Erreurs : `400 INVALID_VALUE`, `400 VALIDATION_ERROR`, `404 UNKNOWN_SETTING`. Chaque écriture est journalisée dans `admin_audit_log` (`app_setting.update` : auteur, date, ancienne et nouvelle valeur, ou seulement `set: true|false` pour un secret).
 
 ### Tâches en arrière-plan
 

@@ -247,6 +247,17 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
+    // "Describe the game" (shadow mode): the player's own descriptions. The
+    // model verdict is left out: it would reveal answers the player never saw.
+    const describeGuesses = await ifTable(
+      'describe_guess_attempts',
+      () =>
+        db('describe_guess_attempts')
+          .where('user_id', userId)
+          .select('id', 'game_session_id', 'position', 'description', 'locale', 'created_at'),
+      [] as unknown[]
+    )
+
     // Achievements, joined to their definitions so the export is readable.
     const achievements = await ifTable(
       'user_achievements',
@@ -286,6 +297,7 @@ export const gdprRepository = {
       apiKeys,
       webhooks,
       emailLog,
+      describeGuesses,
       achievements,
     }
   },

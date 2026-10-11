@@ -79,7 +79,8 @@ async function main(): Promise<void> {
       try {
         msg = JSON.parse(line) as JsonRpcMessage
       } catch {
-        log(`skipping unparseable line: ${line.slice(0, 120)}`)
+        // Never echo the line: a set_setting call can carry a secret.
+        log(`skipping unparseable line (${line.length} chars)`)
         continue
       }
       void handleRpc(msg, { callApi, serverInfo })

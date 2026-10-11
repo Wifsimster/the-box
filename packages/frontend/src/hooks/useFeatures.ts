@@ -10,6 +10,8 @@ import type { FeatureFlags } from '@/lib/dailyFirst'
  * - geoCommunity: community geo surface (free play + contribution) —
  *   GEO_COMMUNITY_ENABLED.
  * - geogamers: GeoGamers ("Panorama") daily mode — GEOGAMERS_ENABLED.
+ * - describeGuess: "describe the game" shadow capture is live (Admin →
+ *   Paramètres). No player UI; only the privacy page reads it.
  */
 export type RuntimeFeatures = FeatureFlags
 
@@ -17,7 +19,7 @@ export type RuntimeFeatures = FeatureFlags
 // failed fetch keeps its entries rather than blanking navigation). Panorama
 // starts hidden (D5): its "NEW" entry must not flash on a deployment where
 // GEOGAMERS_ENABLED is off, which is the backend default.
-const DEFAULT_FEATURES: RuntimeFeatures = { geoCommunity: true, geogamers: false }
+const DEFAULT_FEATURES: RuntimeFeatures = { geoCommunity: true, geogamers: false, describeGuess: false }
 
 let snapshot: RuntimeFeatures = DEFAULT_FEATURES
 let fetchStarted = false
@@ -44,6 +46,7 @@ async function fetchFeatures(): Promise<void> {
     snapshot = {
       geoCommunity: json.data.geoCommunity ?? DEFAULT_FEATURES.geoCommunity,
       geogamers: json.data.geogamers ?? DEFAULT_FEATURES.geogamers,
+      describeGuess: json.data.describeGuess === true,
     }
     listeners.forEach((l) => l())
   } catch {

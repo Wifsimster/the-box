@@ -882,7 +882,9 @@
       "geo": "Géo",
       "geoFetch": "Cartes",
       "reports": "Signalements",
-      "moderation": "Modération"
+      "moderation": "Modération",
+      "describeGuess": "Descriptions",
+      "settings": "Paramètres"
     },
     "geoFetch": {
       "title": "Cartes des jeux",
@@ -1895,7 +1897,7 @@
     },
     "agentKeys": {
       "title": "Clés agent Géo",
-      "description": "Clés d'API pour la surface de sourcing agent (/api/agent/v1/geo). Réservées admin, portée geo-agent:* uniquement. Le texte en clair n'est affiché qu'une seule fois. Nécessite GEO_AGENT_API_ENABLED=true côté backend.",
+      "description": "Clés d'API pour les agents : surface de sourcing géo (/api/agent/v1/geo, nécessite GEO_AGENT_API_ENABLED=true) et paramètres de l'application via MCP (portée settings). Réservées admin. Le texte en clair n'est affiché qu'une seule fois.",
       "label": "Libellé",
       "labelPlaceholder": "ex. exploration-claude",
       "mode": "Mode",
@@ -1905,7 +1907,8 @@
         "ingest": "déclencher le pipeline (phase 3)",
         "propose": "proposer des pins (phase 4)",
         "curate": "inscrire des jeux, cartes candidates (phase 5)",
-        "promote": "confirmer/promouvoir un pin de consensus (phase 7)"
+        "promote": "confirmer/promouvoir un pin de consensus (phase 7)",
+        "settings": "lire et modifier les paramètres (outils MCP *_setting)"
       },
       "create": "Créer la clé",
       "copyNow": "Copie cette clé maintenant — elle ne sera plus affichée.",
@@ -1919,6 +1922,76 @@
       "revokeConfirm": {
         "title": "Révoquer cette clé ?",
         "description": "La clé « {{label}} » cessera immédiatement de fonctionner. Cette action est irréversible."
+      }
+    },
+    "describeGuess": {
+      "title": "Descriptions libres (mode ombre)",
+      "intro": "Réponses fausses tapées dans le champ de jeu qui ressemblent à une description, capturées automatiquement (au plus une par capture d'écran) avec le verdict du modèle. Aucun effet sur les scores. Pour l'étiquetage.",
+      "totalCount_one": "{{count}} description",
+      "totalCount_other": "{{count}} descriptions",
+      "empty": "Aucune description pour l'instant.",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "accepted": "Acceptée",
+      "rejected": "Refusée",
+      "noVerdict": "Sans verdict",
+      "titleHit": "Titre cité",
+      "guest": "Invité",
+      "table": {
+        "date": "Date",
+        "description": "Réponse tapée",
+        "target": "Jeu attendu",
+        "chosen": "Choix du modèle",
+        "probability": "p",
+        "verdict": "Verdict"
+      },
+      "previous": "Page précédente",
+      "next": "Page suivante"
+    },
+    "appSettings": {
+      "title": "Paramètres de l'application",
+      "intro": "Modifiés ici, ils s'appliquent sans redéploiement (moins d'une minute). Aussi accessibles par MCP avec une clé agent qui a la portée « settings » (onglet Géo › Clés agent).",
+      "loadError": "Impossible de charger les paramètres.",
+      "saved": "Paramètre enregistré.",
+      "saveError": "Échec de l'enregistrement : {{message}}",
+      "save": "Enregistrer",
+      "reset": "Valeur par défaut",
+      "defaultValue": "Par défaut : {{value}}",
+      "on": "Activé",
+      "off": "Désactivé",
+      "updated": "Modifié le {{date}}",
+      "secret": {
+        "set": "Clé enregistrée : {{mask}}",
+        "unset": "Aucune clé enregistrée.",
+        "placeholder": "Collez la nouvelle clé",
+        "replace": "Remplacer la clé",
+        "clear": "Supprimer la clé",
+        "writeOnly": "La clé est chiffrée et n'est jamais réaffichée. Pour la changer, collez-en une nouvelle."
+      },
+      "groups": {
+        "describeGuess": {
+          "title": "Décris le jeu (mode ombre, invisible pour les joueurs)",
+          "description": "Quand une réponse fausse ressemble à une description (au moins 15 caractères et 2 mots, et pas un titre du catalogue), elle est jugée en arrière-plan par un modèle Claude et enregistrée, sans points ni changement à l'écran. Actif seulement si l'option est activée ET qu'une clé API Anthropic est enregistrée.",
+          "active": "Actif : les réponses qui ressemblent à une description sont jugées en arrière-plan.",
+          "inactive": "Inactif : il faut activer l'option et enregistrer une clé."
+        }
+      },
+      "items": {
+        "describeGuess.enabled": {
+          "label": "Activer « Décris le jeu »",
+          "help": "Sans clé enregistrée, rien n'est capturé."
+        },
+        "describeGuess.anthropicApiKey": {
+          "label": "Clé API Anthropic",
+          "help": "Utilisée uniquement pour juger les descriptions. Conseil : une clé dédiée avec une limite de dépense."
+        },
+        "describeGuess.model": {
+          "label": "Modèle",
+          "help": "Identifiant de modèle Claude. Par défaut claude-haiku-5-5, celui évalué dans le spike."
+        },
+        "describeGuess.threshold": {
+          "label": "Seuil d'acceptation",
+          "help": "Probabilité minimale pour qu'une description soit notée « acceptée » (0,5 à 1). Sans effet sur les scores en mode ombre."
+        }
       }
     }
   },
@@ -2154,7 +2227,9 @@
     "contactCopyEmail": "Copier l'adresse",
     "contactBugAction": "Décrire le bug par email",
     "contactBugSubject": "Signalement de bug",
-    "contactBugBody": "Que s'est-il passé ?\n\n\nÉtapes pour reproduire le problème :\n\n\nAppareil / navigateur : {{device}}"
+    "contactBugBody": "Que s'est-il passé ?\n\n\nÉtapes pour reproduire le problème :\n\n\nAppareil / navigateur : {{device}}",
+    "privacyDescribeGuessTitle": "Analyse de vos réponses par une IA (Anthropic)",
+    "privacyDescribeGuess": "Quand une réponse que vous tapez dans le champ de jeu est fausse et ressemble à une description plutôt qu'à un titre, son texte est transmis à Anthropic (anthropic.com), qui l'analyse avec un modèle d'IA pour estimer de quel jeu il s'agit. Aucun message ne l'indique pendant la partie, et cela ne change ni le résultat affiché ni votre score. Au plus une réponse par capture d'écran est transmise. Nous enregistrons ce texte, sa langue, la capture concernée et le résultat de l'analyse pendant 180 jours, puis les supprimons. Ces données sont effacées avec votre compte."
   },
   "errors": {
     "boundary": {

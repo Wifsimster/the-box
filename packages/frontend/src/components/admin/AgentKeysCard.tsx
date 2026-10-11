@@ -23,6 +23,8 @@ const SCOPE_OPTIONS: Array<{ scope: ApiKeyScope; label: string }> = [
     { scope: 'geo-agent:propose', label: 'propose' },
     { scope: 'geo-agent:curate', label: 'curate' },
     { scope: 'geo-agent:promote', label: 'promote' },
+    // App settings over MCP (list_settings / get_setting / set_setting).
+    { scope: 'admin:settings', label: 'settings' },
 ]
 
 const SELECT_CLASS =

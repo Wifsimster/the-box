@@ -330,6 +330,47 @@ Réponses individuelles des joueurs.
 | score_earned | INTEGER | Points earned |
 | power_up_used | VARCHAR(50) | Power-up if used |
 
+### describe_guess_attempts
+
+« Décris le jeu » en mode ombre (paramètres `describeGuess.*`) : réponses fausses qui ressemblent à une description, capturées automatiquement depuis le champ de réponse habituel. Une ligne par (tier_session_id, position). Aucun effet sur les scores. Purgée après 180 jours par la tâche `data-retention` ; supprimée avec le compte (cascade sur `user`).
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| id | SERIAL | Primary key |
+| user_id | TEXT | FK to user (cascade) |
+| is_guest | BOOLEAN | Invité au moment de l'envoi |
+| game_session_id | UUID | FK to game_sessions (cascade) |
+| tier_session_id | UUID | FK to tier_sessions (cascade) ; unique avec `position` |
+| position | INTEGER | Position de la capture |
+| screenshot_id | INTEGER | FK to screenshots (cascade) |
+| target_game_id | INTEGER | Jeu attendu (sans FK) |
+| guess_text | VARCHAR(200) | Réponse telle que tapée |
+| description | VARCHAR(200) | Texte normalisé envoyé au juge |
+| locale | VARCHAR(8) | `fr` ou `en` |
+| candidate_game_ids | INTEGER[] | Candidats montrés au modèle, dans l'ordre |
+| chosen_game_id | INTEGER | Choix du modèle (null sans verdict) |
+| probability | DOUBLE | Probabilité normalisée du choix |
+| accepted | BOOLEAN | Cible choisie avec p ≥ `threshold` (null sans verdict) |
+| threshold | DOUBLE | Seuil appliqué (paramètre `describeGuess.threshold`, 0.8 par défaut) |
+| title_prefilter_hit | BOOLEAN | La description cite le titre ou un alias d'un candidat |
+| model | VARCHAR(64) | Identifiant du modèle |
+| latency_ms | INTEGER | Durée du jugement |
+| input_tokens / output_tokens | INTEGER | Consommation |
+| error | VARCHAR(64) | `pending` pendant le jugement, null si OK, sinon un code (`timeout`, `rate_limited`, `refusal`…) |
+| created_at | TIMESTAMPTZ | Date d'envoi |
+
+### app_settings
+
+Paramètres d'exécution modifiables sans redéploiement (Admin → Paramètres, outils MCP). Une ligne par paramètre différent de sa valeur par défaut ; la liste des clés, leurs types et leurs contrôles vivent dans `domain/services/app-settings.service.ts`.
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| key | VARCHAR(100) | Primary key, ex. `describeGuess.enabled` |
+| value | JSONB | Valeur non secrète (booléen, nombre, chaîne) |
+| secret_ciphertext | TEXT | Secret chiffré AES-256-GCM (`iv.tag.ciphertext`, clé dérivée de `BETTER_AUTH_SECRET`) ; jamais de clair |
+| updated_by | TEXT | FK to user (set null), auteur du dernier changement |
+| updated_at | TIMESTAMPTZ | Date du dernier changement |
+
 ### power_ups
 
 Bonus disponibles pour les joueurs.

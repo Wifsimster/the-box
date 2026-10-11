@@ -128,6 +128,14 @@ export const env = {
   GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY:
     process.env['GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY'] || '5',
 
+  // "Describe the game" is configured in the app-settings store (Admin →
+  // Paramètres or the settings MCP tools), not here. This is only a test/dev
+  // hook: 'stub' swaps the Anthropic judge for a deterministic stub (no
+  // network). Ignored when NODE_ENV is 'production'.
+  DESCRIBE_GUESS_JUDGE: process.env['DESCRIBE_GUESS_JUDGE'] || '',
+  // Test hook: make the stub judge slow (ms) to prove the guess response never waits on it.
+  DESCRIBE_GUESS_STUB_DELAY_MS: parseInt(process.env['DESCRIBE_GUESS_STUB_DELAY_MS'] || '0', 10) || 0,
+
   // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
 

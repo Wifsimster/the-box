@@ -1,5 +1,5 @@
-// Zero-dependency MCP server core for The Box geo content-sourcing tools
-// (issue #331, phase 2). Pure JSON-RPC dispatch — no stdio, no network — so it
+// Zero-dependency MCP server core for The Box agent tools: geo content
+// sourcing (issue #331) and app settings (scope admin:settings). Pure JSON-RPC dispatch — no stdio, no network — so it
 // is fully unit-testable. `index.ts` wires this to a newline-delimited stdio
 // transport and a real HTTP client.
 
@@ -249,11 +249,46 @@ export const TOOLS: ToolDef[] = [
       additionalProperties: false,
     },
   },
+  // ── App settings (scope admin:settings) ─────────────────────────────────
+  {
+    name: 'list_settings',
+    description:
+      'List The Box app settings (Admin → Paramètres) with their current value, default and constraints. Secrets are write-only: they show { set, mask } only, never the value. Needs an admin:settings key whose owner is an admin.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'get_setting',
+    description: 'Read one app setting by key (e.g. describeGuess.enabled). Secrets return { set, mask } only.',
+    inputSchema: {
+      type: 'object',
+      properties: { key: { type: 'string', description: 'Setting key, e.g. describeGuess.threshold' } },
+      required: ['key'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'set_setting',
+    description:
+      'Write one app setting. value: boolean, number or string matching the setting type; null resets to the default (or clears a secret). Secrets are encrypted at rest and never echoed back. Audited (who/when, never the secret).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: { type: 'string', description: 'Setting key, e.g. describeGuess.enabled' },
+        value: { type: ['boolean', 'number', 'string', 'null'], description: 'New value; null resets/clears' },
+      },
+      required: ['key', 'value'],
+      additionalProperties: false,
+    },
+  },
 ]
 
 function asPositiveInt(value: unknown): number | null {
   const n = Number(value)
   return Number.isInteger(n) && n > 0 ? n : null
+}
+
+function asSettingKey(v: unknown): string | null {
+  return typeof v === 'string' && /^[A-Za-z0-9._-]{1,100}$/.test(v) ? v : null
 }
 
 export interface ApiRequest {
@@ -420,6 +455,23 @@ export function resolveToolPath(
         method: 'POST',
         body: {},
       }
+    }
+    case 'list_settings':
+      return { path: '/api/agent/v1/settings' }
+    case 'get_setting': {
+      const key = asSettingKey(a['key'])
+      if (key === null) return { error: 'key is required (letters, digits, dot, dash, underscore)' }
+      return { path: `/api/agent/v1/settings/${encodeURIComponent(key)}` }
+    }
+    case 'set_setting': {
+      const key = asSettingKey(a['key'])
+      if (key === null) return { error: 'key is required (letters, digits, dot, dash, underscore)' }
+      if (!('value' in a)) return { error: 'value is required (use null to reset or clear)' }
+      const value = a['value']
+      if (value !== null && !['boolean', 'number', 'string'].includes(typeof value)) {
+        return { error: 'value must be a boolean, number, string or null' }
+      }
+      return { path: `/api/agent/v1/settings/${encodeURIComponent(key)}`, method: 'POST', body: { value } }
     }
     default:
       return { error: `unknown tool: ${name}` }
