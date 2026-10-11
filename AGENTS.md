@@ -155,6 +155,7 @@ Dépendances :
 - **Per-Screenshot Countdown Timer** – 45s per screenshot (`tiers.time_limit_seconds`, exposed via `ScreenshotResponse.timeLimitSeconds`); running out is a permanent miss (`timed_out`). Time is a per-position active-time budget (`PositionState.timeSpentMs`) that pauses on navigation and resumes on return, so skipping away and back can't reset it
 - **Catch-Up Mode** – play missed challenges from the last 7 days (doesn't count for leaderboard)
 - **Hints / Power-ups** – reveal release year, developer, publisher; timer extensions
+- **Describe the game (shadow mode, behind `DESCRIBE_GUESS_ENABLED` + `ANTHROPIC_API_KEY`)** – after a wrong title attempt, the player may describe the game once per screenshot; Claude Haiku 5.5 picks among the target and 10 distractors. Logged in `describe_guess_attempts` (180-day retention), never scored
 - **Achievements** (including beginner-tier and mastery/account-age milestones)
 - **Daily Login Rewards** with streaks (UTC boundaries, streak-freeze) and calendar display
 - **Reward grants / chests** – day-7 chest and other reward grants (`rewards` store + routes)
@@ -379,6 +380,7 @@ Le hook husky `commit-msg` rejette tout commit non conforme.
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (VAPID) keys |
 | `KOE_IDENTITY_SECRET` | Optional – HMAC secret for the Koe feedback widget |
 | `RAWG_API_KEY` | Optional – screenshot-fetcher + admin game imports |
+| `DESCRIBE_GUESS_ENABLED` / `ANTHROPIC_API_KEY` | Optional – "describe the game" shadow mode; live only when the flag is `true` AND the key is set |
 | `VITE_API_URL` | Frontend API base URL |
 | `VITE_USE_MOCK_API` | `true` → frontend uses mock services |
 | `VITE_KOE_PROJECT_KEY` / `VITE_KOE_API_URL` | Koe feedback widget config |
