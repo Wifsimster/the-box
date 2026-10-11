@@ -141,7 +141,7 @@ Réponse incorrecte :
 
 ### Décrire le jeu (mode ombre)
 
-Actif seulement si `DESCRIBE_GUESS_ENABLED=true` **et** `ANTHROPIC_API_KEY` est défini ; sinon la route répond `404 NOT_FOUND` avant toute authentification. Aucun point n'est attribué.
+Actif seulement si le paramètre `describeGuess.enabled` est activé **et** qu'une clé `describeGuess.anthropicApiKey` est enregistrée (Admin → Paramètres) ; sinon la route répond `404 NOT_FOUND` avant toute authentification. Aucun point n'est attribué.
 
 ```http
 POST /api/game/describe
@@ -160,7 +160,7 @@ Content-Type: application/json
 
 Règles : partie en cours ; au moins une réponse fausse sur cette capture ; capture non trouvée ; une seule description par capture ; 15 à 200 caractères après nettoyage des espaces. Limites : 5/min et 20/h par compte (invités compris), 60/h par IP.
 
-Le juge (Claude Haiku 5.5) tourne pendant la requête, 5 s au plus. La réponse est la même quel que soit le verdict, et même sans verdict (délai dépassé, erreur) :
+Le juge (modèle du paramètre `describeGuess.model`, par défaut Claude Haiku 5.5) tourne pendant la requête, 5 s au plus. La réponse est la même quel que soit le verdict, et même sans verdict (délai dépassé, erreur) :
 
 ```json
 { "success": true, "data": { "recorded": true } }
@@ -357,6 +357,37 @@ Création d'un défi :
   ]
 }
 ```
+
+### Paramètres de l'application
+
+Session admin. Les mêmes routes existent pour les agents sous `/api/agent/v1/settings` (clé agent avec la portée `admin:settings`, dont le propriétaire est toujours admin) ; ce sont elles qu'appellent les outils MCP `list_settings`, `get_setting` et `set_setting`.
+
+```http
+GET /api/admin/settings
+GET /api/admin/settings/:key
+PUT /api/admin/settings/:key        (POST accepté aussi)
+Content-Type: application/json
+
+{ "value": true }
+```
+
+`value` vaut un booléen, un nombre ou une chaîne selon le type ; `null` remet la valeur par défaut (ou efface un secret). Un secret n'est jamais renvoyé :
+
+```json
+{
+  "key": "describeGuess.anthropicApiKey",
+  "type": "secret",
+  "group": "describeGuess",
+  "value": null,
+  "defaultValue": null,
+  "isSet": true,
+  "secret": { "set": true, "mask": "sk-ant-…abcd" },
+  "updatedAt": "2026-10-12T10:00:00.000Z",
+  "updatedBy": "user-id"
+}
+```
+
+Erreurs : `400 INVALID_VALUE`, `400 VALIDATION_ERROR`, `404 UNKNOWN_SETTING`. Chaque écriture est journalisée dans `admin_audit_log` (`app_setting.update` : auteur, date, ancienne et nouvelle valeur, ou seulement `set: true|false` pour un secret).
 
 ### Tâches en arrière-plan
 

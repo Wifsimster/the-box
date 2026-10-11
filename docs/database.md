@@ -332,7 +332,7 @@ Réponses individuelles des joueurs.
 
 ### describe_guess_attempts
 
-« Décris le jeu » en mode ombre (`DESCRIBE_GUESS_ENABLED`). Une ligne par (tier_session_id, position). Aucun effet sur les scores. Purgée après 180 jours par la tâche `data-retention` ; supprimée avec le compte (cascade sur `user`).
+« Décris le jeu » en mode ombre (paramètres `describeGuess.*`). Une ligne par (tier_session_id, position). Aucun effet sur les scores. Purgée après 180 jours par la tâche `data-retention` ; supprimée avec le compte (cascade sur `user`).
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -349,13 +349,26 @@ Réponses individuelles des joueurs.
 | candidate_game_ids | INTEGER[] | Candidats montrés au modèle, dans l'ordre |
 | chosen_game_id | INTEGER | Choix du modèle (null sans verdict) |
 | probability | DOUBLE | Probabilité normalisée du choix |
-| accepted | BOOLEAN | Cible choisie avec p ≥ 0.8 (null sans verdict) |
+| accepted | BOOLEAN | Cible choisie avec p ≥ `threshold` (null sans verdict) |
+| threshold | DOUBLE | Seuil appliqué (paramètre `describeGuess.threshold`, 0.8 par défaut) |
 | title_prefilter_hit | BOOLEAN | La description cite le titre ou un alias d'un candidat |
 | model | VARCHAR(64) | Identifiant du modèle |
 | latency_ms | INTEGER | Durée du jugement |
 | input_tokens / output_tokens | INTEGER | Consommation |
 | error | VARCHAR(64) | `pending` pendant le jugement, null si OK, sinon un code (`timeout`, `rate_limited`, `refusal`…) |
 | created_at | TIMESTAMPTZ | Date d'envoi |
+
+### app_settings
+
+Paramètres d'exécution modifiables sans redéploiement (Admin → Paramètres, outils MCP). Une ligne par paramètre différent de sa valeur par défaut ; la liste des clés, leurs types et leurs contrôles vivent dans `domain/services/app-settings.service.ts`.
+
+| Column | Type | Description |
+| ------ | ---- | ----------- |
+| key | VARCHAR(100) | Primary key, ex. `describeGuess.enabled` |
+| value | JSONB | Valeur non secrète (booléen, nombre, chaîne) |
+| secret_ciphertext | TEXT | Secret chiffré AES-256-GCM (`iv.tag.ciphertext`, clé dérivée de `BETTER_AUTH_SECRET`) ; jamais de clair |
+| updated_by | TEXT | FK to user (set null), auteur du dernier changement |
+| updated_at | TIMESTAMPTZ | Date du dernier changement |
 
 ### power_ups
 
