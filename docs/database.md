@@ -332,7 +332,7 @@ Réponses individuelles des joueurs.
 
 ### describe_guess_attempts
 
-« Décris le jeu » en mode ombre (paramètres `describeGuess.*`). Une ligne par (tier_session_id, position). Aucun effet sur les scores. Purgée après 180 jours par la tâche `data-retention` ; supprimée avec le compte (cascade sur `user`).
+« Décris le jeu » en mode ombre (paramètres `describeGuess.*`) : réponses fausses qui ressemblent à une description, capturées automatiquement depuis le champ de réponse habituel. Une ligne par (tier_session_id, position). Aucun effet sur les scores. Purgée après 180 jours par la tâche `data-retention` ; supprimée avec le compte (cascade sur `user`).
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
@@ -344,7 +344,8 @@ Réponses individuelles des joueurs.
 | position | INTEGER | Position de la capture |
 | screenshot_id | INTEGER | FK to screenshots (cascade) |
 | target_game_id | INTEGER | Jeu attendu (sans FK) |
-| description | VARCHAR(200) | Texte du joueur |
+| guess_text | VARCHAR(200) | Réponse telle que tapée |
+| description | VARCHAR(200) | Texte normalisé envoyé au juge |
 | locale | VARCHAR(8) | `fr` ou `en` |
 | candidate_game_ids | INTEGER[] | Candidats montrés au modèle, dans l'ordre |
 | chosen_game_id | INTEGER | Choix du modèle (null sans verdict) |

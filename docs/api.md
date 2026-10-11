@@ -139,34 +139,9 @@ Réponse incorrecte :
 }
 ```
 
-### Décrire le jeu (mode ombre)
+### « Décris le jeu » (mode ombre, sans route dédiée)
 
-Actif seulement si le paramètre `describeGuess.enabled` est activé **et** qu'une clé `describeGuess.anthropicApiKey` est enregistrée (Admin → Paramètres) ; sinon la route répond `404 NOT_FOUND` avant toute authentification. Aucun point n'est attribué.
-
-```http
-POST /api/game/describe
-Content-Type: application/json
-```
-
-```json
-{
-  "tierSessionId": "550e8400-e29b-41d4-a716-446655440001",
-  "screenshotId": 1,
-  "position": 1,
-  "description": "un sorceleur aux cheveux blancs qui chasse des monstres",
-  "locale": "fr"
-}
-```
-
-Règles : partie en cours ; au moins une réponse fausse sur cette capture ; capture non trouvée ; une seule description par capture ; 15 à 200 caractères après nettoyage des espaces. Limites : 5/min et 20/h par compte (invités compris), 60/h par IP.
-
-Le juge (modèle du paramètre `describeGuess.model`, par défaut Claude Haiku 5.5) tourne pendant la requête, 5 s au plus. La réponse est la même quel que soit le verdict, et même sans verdict (délai dépassé, erreur) :
-
-```json
-{ "success": true, "data": { "recorded": true } }
-```
-
-Erreurs : `400 INVALID_DESCRIPTION`, `400 SCREENSHOT_POSITION_MISMATCH`, `404 SESSION_NOT_FOUND`, `409 SESSION_ALREADY_COMPLETED`, `409 POSITION_ALREADY_SOLVED`, `409 DESCRIBE_NOT_ALLOWED_YET`, `409 ALREADY_DESCRIBED`, `429 RATE_LIMITED`.
+Aucune route ni interface joueur. Quand `POST /api/game/guess` répond une réponse fausse, et seulement **après** la réponse, le texte est transmis en arrière-plan (file BullMQ `describe-guess`) s'il ressemble à une description : au moins 15 caractères et 2 mots, au plus 200 (la limite de `guessText`), et pas un titre ou alias du catalogue selon le même rapprochement flou que les réponses. Conditions : paramètres `describeGuess.enabled` activé **et** `describeGuess.anthropicApiKey` enregistrée ; au plus 20 captures par heure et par compte ; au plus une par capture d'écran et par partie. La réponse de `/guess`, le score et le minuteur ne changent pas.
 
 ### Auto-complétion de jeux
 
