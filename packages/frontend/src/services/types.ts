@@ -1,3 +1,5 @@
+import type { SessionStandingResponse } from '@the-box/types'
+
 /**
  * Leaderboard entry interface
  */
@@ -23,4 +25,6 @@ export interface LeaderboardService {
   getTodayLeaderboard(): Promise<LeaderboardEntry[]>
   getWorldTotalScore(): Promise<number>
   getPercentile(score: number): Promise<PercentileResult>
+  /** Authoritative standing of the caller's own session; throws on failure. */
+  getSessionStanding(sessionId: string): Promise<SessionStandingResponse>
 }

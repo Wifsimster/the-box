@@ -193,17 +193,40 @@ GET /api/leaderboard/:date
 
 Format : `YYYY-MM-DD`.
 
-### Centile du joueur courant
+### Centile d'un score
 
 ```http
-GET /api/leaderboard/today/percentile
-Authorization: Bearer <token>
+GET /api/leaderboard/today/percentile?score=<n>
 ```
+
+Public. Place un score quelconque sur le défi du jour. Un score inférieur à toutes les parties classées ne peut pas en faire partie : il est placé hypothétiquement et compté une fois dans `totalPlayers`. `rank <= totalPlayers` est toujours vrai.
 
 ```json
 {
   "success": true,
   "data": { "percentile": 85, "rank": 15, "totalPlayers": 100 }
+}
+```
+
+### Classement d'une partie du joueur
+
+```http
+GET /api/leaderboard/session/:sessionId/standing
+```
+
+Session requise, propriétaire de la partie uniquement (`404` sinon). Utilisé par la page de résultats. Le score, le rang et le total sont lus en une seule requête SQL à partir du score stocké de la partie, sur le défi de cette partie. Un score mis en cache sur un autre appareil n'intervient donc jamais. Une partie non classée (non terminée, rattrapage, invité) est placée hypothétiquement et comptée une fois dans `totalPlayers` (`ranked: false`).
+
+```json
+{
+  "success": true,
+  "data": {
+    "sessionId": "3309fd63-…",
+    "totalScore": 1925,
+    "ranked": true,
+    "percentile": 100,
+    "rank": 1,
+    "totalPlayers": 1
+  }
 }
 ```
 

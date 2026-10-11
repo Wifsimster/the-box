@@ -9,7 +9,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
 import { SessionDetails } from '@/components/game/SessionDetails'
-import { mergeSessionResults } from '@/lib/sessionResults'
+import { mergeSessionResults, resolveResultsSummary } from '@/lib/sessionResults'
 import { useEffect, useState, useMemo } from 'react'
 import { gameApi } from '@/lib/api/game'
 import type { GuessResult, GameSessionDetailsResponse } from '@/types'
@@ -19,11 +19,12 @@ export default function ResultsPage() {
   const { localizedPath } = useLocalizedPath()
   const reducedMotion = useReducedMotionSafe()
   const {
-    totalScore: backendTotalScore,
-    totalScreenshots,
+    totalScore: storeTotalScore,
+    totalScreenshots: storeTotalScreenshots,
     guessResults,
-    challengeDate,
+    challengeDate: storeChallengeDate,
     sessionId,
+    updateScore,
     updatePersonalBests
   } = useGameStore()
 
@@ -45,42 +46,64 @@ export default function ResultsPage() {
     unseenNotifications.forEach(n => markNotificationAsSeen(n.achievement.key))
   }, [unseenNotifications, markNotificationAsSeen])
 
-  // The per-position attempt chips are sourced from the backend session
-  // record — the authoritative log of every guess — rather than the
-  // client-side store, whose positionAttempts map can carry guesses across
-  // sessions. Falls back to the store's guessResults if the fetch fails
-  // (e.g. mock API mode).
+  // The server's session record is the source of truth for the score, the
+  // per-position attempt chips and the rank. The persisted store is only an
+  // optimistic placeholder: a session finished on another device leaves this
+  // device's localStorage at the partial score it last saw. Falls back to the
+  // store if the fetch fails (e.g. mock API mode).
   const [sessionDetails, setSessionDetails] = useState<GameSessionDetailsResponse | null>(null)
+  const [detailsFailed, setDetailsFailed] = useState(false)
 
   useEffect(() => {
     if (!sessionId) return
     let cancelled = false
     gameApi.getGameSessionDetails(sessionId)
       .then(data => { if (!cancelled) setSessionDetails(data) })
-      .catch(() => { /* keep store fallback */ })
+      .catch(() => { if (!cancelled) setDetailsFailed(true) })
     return () => { cancelled = true }
   }, [sessionId])
 
+  const summary = resolveResultsSummary(
+    {
+      sessionId,
+      totalScore: storeTotalScore,
+      totalScreenshots: storeTotalScreenshots,
+      challengeDate: storeChallengeDate,
+    },
+    sessionDetails,
+  )
+  const displayTotalScore = summary.totalScore
+
   const results = useMemo<GuessResult[]>(
-    () => (sessionDetails ? mergeSessionResults(sessionDetails) : guessResults),
-    [sessionDetails, guessResults],
+    () => (summary.authoritative && sessionDetails ? mergeSessionResults(sessionDetails) : guessResults),
+    [summary.authoritative, sessionDetails, guessResults],
   )
 
-  // Use backend score directly (source of truth - includes wrong guess penalties)
-  const displayTotalScore = backendTotalScore
-
-  // Fetch percentile ranking (use backend score for ranking)
-  const { percentile, rank, totalPlayers, isLoading: isLoadingPercentile } = usePercentileRank(
-    displayTotalScore,
-    displayTotalScore > 0
-  )
-
-  // Update personal bests when results are loaded
+  // Reconcile the persisted store with the server so other screens (and the
+  // next visit) stop showing the stale local score.
   useEffect(() => {
-    if (displayTotalScore > 0 && percentile !== undefined && percentile !== null) {
+    if (summary.authoritative && storeTotalScore !== summary.totalScore) {
+      updateScore(summary.totalScore)
+    }
+  }, [summary.authoritative, summary.totalScore, storeTotalScore, updateScore])
+
+  // Rank comes from the stored session on the server (same statement as the
+  // total), not from the displayed score, so it cannot drift from it. A
+  // zero score shows no rank, as before.
+  const { percentile, rank, totalPlayers, isLoading: isLoadingPercentile } = usePercentileRank({
+    sessionId,
+    score: displayTotalScore,
+    enabled: displayTotalScore > 0,
+  })
+
+  // Update personal bests once the score is settled: authoritative, or the
+  // server could not be reached and the store is all we have.
+  const scoreSettled = summary.authoritative || detailsFailed || !sessionId
+  useEffect(() => {
+    if (scoreSettled && displayTotalScore > 0 && percentile !== undefined && percentile !== null) {
       updatePersonalBests(displayTotalScore, percentile)
     }
-  }, [displayTotalScore, percentile, updatePersonalBests])
+  }, [scoreSettled, displayTotalScore, percentile, updatePersonalBests])
 
   // Clear achievement notifications when leaving page
   useEffect(() => {
@@ -114,9 +137,9 @@ export default function ResultsPage() {
       <SessionDetails
         results={results}
         totalScore={displayTotalScore}
-        totalScreenshots={totalScreenshots}
-        challengeDate={challengeDate || undefined}
-        isPersonalBest={sessionDetails?.isPersonalBest ?? false}
+        totalScreenshots={summary.totalScreenshots}
+        challengeDate={summary.challengeDate || undefined}
+        isPersonalBest={summary.authoritative && (sessionDetails?.isPersonalBest ?? false)}
         heroTitle={t('game.tierComplete')}
         percentile={percentile}
         rank={rank}

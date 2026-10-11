@@ -9,6 +9,7 @@ import { PercentileBanner } from '@/components/game/PercentileBanner'
 import { ShareCard } from '@/components/game/ShareCard'
 import { SessionResultsList } from '@/components/game/SessionResultsList'
 import { countCorrect, computeAccuracy } from '@/lib/sessionResults'
+import { displayableStanding } from '@/lib/standing'
 import { formatDiscoveryTime } from '@/lib/utils'
 import type { GuessResult } from '@/types'
 
@@ -71,9 +72,9 @@ export function SessionDetails({
   isPersonalBest = false,
   heroTitle,
   zeroScore,
-  percentile = null,
-  rank = null,
-  totalPlayers = null,
+  percentile: rawPercentile = null,
+  rank: rawRank = null,
+  totalPlayers: rawTotalPlayers = null,
   isLoadingPercentile = false,
   shareEnabled = false,
   actions,
@@ -82,6 +83,13 @@ export function SessionDetails({
   reducedMotion = false,
 }: SessionDetailsProps) {
   const { t } = useTranslation()
+  // Invariant guard: an incoherent standing ("Rank #2 of 1") is hidden from
+  // both the banner and the share text rather than displayed.
+  const { percentile, rank, totalPlayers } = displayableStanding({
+    percentile: rawPercentile,
+    rank: rawRank,
+    totalPlayers: rawTotalPlayers,
+  })
   const correctAnswers = countCorrect(results)
   const accuracy = computeAccuracy(correctAnswers, totalScreenshots)
   const isZero = totalScore === 0

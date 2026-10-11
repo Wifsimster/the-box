@@ -3,7 +3,7 @@ import {
   leaderboardService,
   userService,
 } from '../../composition/services.js'
-import { optionalAuthMiddleware } from '../middleware/auth.middleware.js'
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware.js'
 import { userRepository } from '../../infrastructure/repositories/user.repository.js'
 import { createCountryLeaderboardHandler } from './country-leaderboard.handler.js'
 
@@ -49,6 +49,38 @@ router.get('/session/:sessionId', optionalAuthMiddleware, async (req, res, next)
       })
       return
     }
+    next(error)
+  }
+})
+
+const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Authoritative standing of the caller's own session (results page). Rank,
+// total and score all come from the stored session in one statement, so a
+// device holding a stale local score still gets the real standing.
+router.get('/session/:sessionId/standing', authMiddleware, async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store')
+  try {
+    const { sessionId } = req.params
+    if (typeof sessionId !== 'string' || !SESSION_ID_RE.test(sessionId)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_SESSION_ID', message: 'Session ID must be a UUID' },
+      })
+      return
+    }
+
+    const data = await leaderboardService.getSessionStanding(sessionId, req.userId!)
+    if (!data) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'SESSION_NOT_FOUND', message: 'Session not found' },
+      })
+      return
+    }
+
+    res.json({ success: true, data })
+  } catch (error) {
     next(error)
   }
 })
