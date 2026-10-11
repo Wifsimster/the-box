@@ -1,11 +1,13 @@
 import crypto from 'node:crypto'
 import { db } from '../database/connection.js'
-import { GEO_AGENT_SCOPES, type ApiKeyMode, type ApiKeyScope, type ApiKeySummary } from '@the-box/types'
+import { AGENT_KEY_SCOPES, type ApiKeyMode, type ApiKeyScope, type ApiKeySummary } from '@the-box/types'
 
 // Postgres text[] literal of the geo-agent scopes, e.g. `{geo-agent:read,…}`.
 // Used with the array-overlap operator (`&&`) to find/act on agent keys
 // regardless of which admin minted them.
-const GEO_AGENT_SCOPES_PG_ARRAY = `{${GEO_AGENT_SCOPES.join(',')}}`
+// Every admin-minted agent scope (geo-agent:* and admin:*). The governance
+// list and revoke cover all agent keys, never a streamer's personal key.
+const GEO_AGENT_SCOPES_PG_ARRAY = `{${AGENT_KEY_SCOPES.join(',')}}`
 
 // Single source of truth for the plaintext format. Keys look like
 //   tb_pk_live_<43-char-base64url>

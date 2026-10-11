@@ -1830,6 +1830,7 @@ export type ApiKeyScope =
   | 'geo-agent:curate' // enroll games, top up captures, manage candidate maps (phase 5)
   | 'geo-agent:promote' // confirm & promote a capture's qualifying consensus pin (phase 7)
   | 'geo-agent:promote-override' // override-promote a capture at agent-supplied coords, bypassing consensus (phase 8)
+  | 'admin:settings' // read/write app settings (/api/agent/v1/settings, settings MCP tools); secrets stay write-only
 
 // The geo-agent scopes, in privilege order. A read-only key carries only the
 // first; ingest/propose/curate/promote/promote-override are granted per key as
@@ -1846,6 +1847,47 @@ export const GEO_AGENT_SCOPES = [
 
 export function isGeoAgentScope(scope: ApiKeyScope): boolean {
   return scope.startsWith('geo-agent:')
+}
+
+// Admin-minted agent scopes outside the geo family. Same minting surface
+// (Admin → agent keys), same mutual exclusion with the streamer scopes.
+export const ADMIN_AGENT_SCOPES = ['admin:settings'] as const satisfies readonly ApiKeyScope[]
+
+/** Every scope an admin may put on an agent key (geo-agent:* and admin:*). */
+export const AGENT_KEY_SCOPES = [
+  ...GEO_AGENT_SCOPES,
+  ...ADMIN_AGENT_SCOPES,
+] as const satisfies readonly ApiKeyScope[]
+
+/** True for admin-minted agent scopes; false for the streamer self-service ones. */
+export function isAgentScope(scope: ApiKeyScope): boolean {
+  return scope.startsWith('geo-agent:') || scope.startsWith('admin:')
+}
+
+// ============================================
+// App settings (admin → Paramètres, settings MCP tools)
+// ============================================
+
+export type AppSettingType = 'boolean' | 'string' | 'number' | 'secret'
+
+/**
+ * One setting as the API and the MCP tools show it. A secret NEVER carries its
+ * value: `value` is null and `secret` reports whether one is set plus a mask.
+ */
+export interface AppSettingView {
+  key: string
+  type: AppSettingType
+  group: string
+  /** Current value; null for secrets (write-only) and unset values without default. */
+  value: boolean | string | number | null
+  defaultValue: boolean | string | number | null
+  /** True when the stored value differs from the default (always false for an unset secret). */
+  isSet: boolean
+  secret?: { set: boolean; mask: string | null }
+  /** Constraints the UI and MCP clients can show. */
+  constraints?: { min?: number; max?: number; pattern?: string; maxLength?: number }
+  updatedAt: string | null
+  updatedBy: string | null
 }
 
 export type ApiKeyMode = 'live' | 'test'

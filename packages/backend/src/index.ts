@@ -36,6 +36,7 @@ import koeRoutes from './presentation/routes/koe.routes.js'
 import publicV1Routes from './presentation/routes/public.routes.js'
 import streamerKeysRoutes from './presentation/routes/streamer-keys.routes.js'
 import agentGeoRoutes from './presentation/routes/agent-geo.routes.js'
+import agentSettingsRoutes from './presentation/routes/agent-settings.routes.js'
 import adminAgentKeysRoutes from './presentation/routes/admin-agent-keys.routes.js'
 import { testRedisConnection } from './infrastructure/queue/connection.js'
 import {
@@ -249,6 +250,8 @@ app.use('/api/streamer-keys', streamerKeysRoutes)
 // per-request by GEO_AGENT_API_ENABLED (returns 503 AGENT_API_DISABLED when
 // off) so it can be killed by env flip + redeploy without a code change.
 app.use('/api/agent/v1/geo', agentGeoRoutes)
+// Settings MCP tools (admin:settings agent keys). Not behind the geo kill switch.
+app.use('/api/agent/v1/settings', agentSettingsRoutes)
 
 // Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')

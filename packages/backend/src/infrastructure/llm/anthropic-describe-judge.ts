@@ -7,6 +7,11 @@
  * label. Parsing into a verdict happens in the domain
  * (describe-guess.service.ts).
  *
+ * The API key and the model come from the app-settings store
+ * (describeGuess.anthropicApiKey, describeGuess.model); the key is never
+ * logged. The request below was written for the default, Claude Haiku 5.5:
+ * another model id set by an admin must accept the same parameters.
+ *
  * Request settings, per the Haiku 5.5 docs:
  * - thinking is adaptive (on by default; `budget_tokens` returns a 400), and
  *   `output_config.effort: 'low'` keeps it short for this latency-bound
@@ -29,6 +34,7 @@ import {
   type DescribeJudgeOutput,
 } from '../../domain/ports/describe-judge.js'
 
+/** Default model; the `describeGuess.model` setting overrides it. */
 export const DESCRIBE_JUDGE_MODEL = 'claude-haiku-5-5'
 const TIMEOUT_MS = 5000
 const MAX_TOKENS = 2048
@@ -115,14 +121,16 @@ export function toJudgeError(error: unknown): DescribeJudgeError {
 
 export function createAnthropicDescribeJudge(options: {
   apiKey: string
+  model?: string
   client?: Anthropic
 }): DescribeJudge {
+  const model = options.model ?? DESCRIBE_JUDGE_MODEL
   const client =
     options.client ??
     new Anthropic({ apiKey: options.apiKey, timeout: TIMEOUT_MS, maxRetries: 0 })
 
   return {
-    model: DESCRIBE_JUDGE_MODEL,
+    model,
 
     async judge(input: DescribeJudgeInput, signal: AbortSignal): Promise<DescribeJudgeOutput> {
       const labels = input.candidates.map((c) => c.label)
@@ -130,7 +138,7 @@ export function createAnthropicDescribeJudge(options: {
       try {
         response = await client.messages.create(
           {
-            model: DESCRIBE_JUDGE_MODEL,
+            model,
             max_tokens: MAX_TOKENS,
             system: DESCRIBE_JUDGE_SYSTEM,
             thinking: { type: 'adaptive' },

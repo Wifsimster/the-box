@@ -62,12 +62,15 @@ export async function up(knex: Knex): Promise<void> {
     table.specificType('candidate_game_ids', 'integer[]').notNullable()
     table.integer('chosen_game_id').nullable()
     table.double('probability').nullable()
-    // Model verdict at the 0.8 threshold: chose the target with p >= 0.8.
-    // Null when there is no verdict (timeout, API error, invalid output).
+    // Model verdict at `threshold` (setting describeGuess.threshold, default
+    // 0.8): chose the target with p >= threshold. Null when there is no
+    // verdict (timeout, API error, invalid output).
     table.boolean('accepted').nullable()
+    table.double('threshold').nullable()
     // The description names a candidate's title or alias (fuzzy matcher).
     table.boolean('title_prefilter_hit').notNullable().defaultTo(false)
 
+    // Model id from the describeGuess.model setting at judgement time.
     table.string('model', 64).notNullable()
     table.integer('latency_ms').nullable()
     table.integer('input_tokens').nullable()

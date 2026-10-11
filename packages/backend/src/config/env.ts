@@ -128,15 +128,10 @@ export const env = {
   GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY:
     process.env['GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY'] || '5',
 
-  // "Describe the game" in shadow mode: after a wrong title attempt the
-  // player may describe the game once per screenshot; Claude Haiku 5.5 judges
-  // it and the verdict is logged, never scored. Off by default. The feature
-  // only turns on when BOTH this flag is 'true' AND ANTHROPIC_API_KEY is set;
-  // with either missing there is no UI and POST /api/game/describe 404s.
-  DESCRIBE_GUESS_ENABLED: process.env['DESCRIBE_GUESS_ENABLED'] || 'false',
-  ANTHROPIC_API_KEY: process.env['ANTHROPIC_API_KEY'] || '',
-  // Test/dev only: 'stub' swaps the Anthropic judge for a deterministic stub
-  // (no network). Ignored when NODE_ENV is 'production'.
+  // "Describe the game" is configured in the app-settings store (Admin →
+  // Paramètres or the settings MCP tools), not here. This is only a test/dev
+  // hook: 'stub' swaps the Anthropic judge for a deterministic stub (no
+  // network). Ignored when NODE_ENV is 'production'.
   DESCRIBE_GUESS_JUDGE: process.env['DESCRIBE_GUESS_JUDGE'] || '',
 
   // RAWG API (for fetching game screenshots)
@@ -174,16 +169,6 @@ export const env = {
   VAPID_PUBLIC_KEY: process.env['VAPID_PUBLIC_KEY'] || '',
   VAPID_PRIVATE_KEY: process.env['VAPID_PRIVATE_KEY'] || '',
   VAPID_SUBJECT: process.env['VAPID_SUBJECT'] || '',
-}
-
-/**
- * Describe-the-game is live only when the flag is on AND an Anthropic key is
- * configured. Pure so the flag-off behaviour is unit-tested.
- */
-export function isDescribeGuessEnabled(
-  config: Pick<typeof env, 'DESCRIBE_GUESS_ENABLED' | 'ANTHROPIC_API_KEY'> = env
-): boolean {
-  return config.DESCRIBE_GUESS_ENABLED === 'true' && config.ANTHROPIC_API_KEY.trim() !== ''
 }
 
 const DEV_AUTH_SECRET = 'dev-secret-change-in-production-min-32-chars'

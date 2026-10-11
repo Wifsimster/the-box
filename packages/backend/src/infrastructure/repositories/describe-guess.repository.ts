@@ -139,6 +139,7 @@ export const describeGuessRepository: DescribeAttemptPort & {
         chosen_game_id: evaluation.chosenGameId,
         probability: evaluation.probability,
         accepted: evaluation.accepted,
+        threshold: evaluation.threshold,
         title_prefilter_hit: evaluation.titlePrefilterHit,
         model: evaluation.model,
         latency_ms: evaluation.latencyMs,

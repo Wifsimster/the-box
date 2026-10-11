@@ -1,13 +1,19 @@
 /**
  * Composition root for "describe the game" (shadow mode).
  *
- * Kept out of `services.ts` so the route can import it without pulling the
- * BullMQ queues, and so nothing Anthropic-related is constructed unless the
- * feature is enabled (DESCRIBE_GUESS_ENABLED=true AND ANTHROPIC_API_KEY set).
+ * Configuration comes from the app-settings store (Admin → Paramètres or the
+ * settings MCP tools): describeGuess.enabled, .anthropicApiKey, .model,
+ * .threshold. The feature is live only when enabled AND a key is set; nothing
+ * Anthropic-related is constructed otherwise. The service is rebuilt whenever
+ * the key, model or threshold changes (settings reads are cached, so this is
+ * cheap per request).
  */
-import { env, isDescribeGuessEnabled } from '../config/env.js'
+import { env } from '../config/env.js'
 import {
   createDescribeGuessService,
+  isDescribeGuessActive,
+  readDescribeGuessConfig,
+  type DescribeGuessConfig,
   type DescribeGuessService,
 } from '../domain/services/describe-guess.service.js'
 import { createFuzzyMatchService } from '../domain/services/fuzzy-match.service.js'
@@ -20,29 +26,51 @@ import {
   describeGuessRepository,
   sessionRepository,
 } from '../infrastructure/repositories/index.js'
+import { appSettingsService } from './app-settings.js'
 
-function createJudge(): DescribeJudge {
+export function readDescribeGuessSettings(): Promise<DescribeGuessConfig> {
+  return readDescribeGuessConfig((key) => appSettingsService.getValue(key))
+}
+
+/** Same rule as the route gate, for /api/features. */
+export async function isDescribeGuessLive(): Promise<boolean> {
+  return isDescribeGuessActive(await readDescribeGuessSettings())
+}
+
+function createJudge(config: DescribeGuessConfig & { apiKey: string }): DescribeJudge {
+  // Test/dev hook: a deterministic judge with no network call. Refused in
+  // production so a stray env var can never disable the real judge there.
   if (env.DESCRIBE_GUESS_JUDGE === 'stub' && env.NODE_ENV !== 'production') {
     serviceLogger.warn('describe-guess: using the STUB judge (DESCRIBE_GUESS_JUDGE=stub)')
     return createStubDescribeJudge()
   }
-  return createAnthropicDescribeJudge({ apiKey: env.ANTHROPIC_API_KEY })
+  return createAnthropicDescribeJudge({ apiKey: config.apiKey, model: config.model })
 }
 
-let service: DescribeGuessService | null = null
+const fuzzy = createFuzzyMatchService({ logger: serviceLogger })
+let built: { config: DescribeGuessConfig; service: DescribeGuessService } | null = null
 
-/** The service, or null when the feature is off. Built on first use. */
-export function getDescribeGuessService(): DescribeGuessService | null {
-  if (!isDescribeGuessEnabled()) return null
-  if (!service) {
-    service = createDescribeGuessService({
-      judge: createJudge(),
-      fuzzy: createFuzzyMatchService({ logger: serviceLogger }),
-      sessions: sessionRepository,
-      challenges: challengeRepository,
-      attempts: describeGuessRepository,
-      logger: serviceLogger,
-    })
+function sameConfig(a: DescribeGuessConfig, b: DescribeGuessConfig): boolean {
+  return a.apiKey === b.apiKey && a.model === b.model && a.threshold === b.threshold
+}
+
+/** The service for the current settings, or null when the feature is off. */
+export async function getDescribeGuessService(): Promise<DescribeGuessService | null> {
+  const config = await readDescribeGuessSettings()
+  if (!isDescribeGuessActive(config) || config.apiKey === null) return null
+  if (!built || !sameConfig(built.config, config)) {
+    built = {
+      config,
+      service: createDescribeGuessService({
+        judge: createJudge({ ...config, apiKey: config.apiKey }),
+        fuzzy,
+        sessions: sessionRepository,
+        challenges: challengeRepository,
+        attempts: describeGuessRepository,
+        logger: serviceLogger,
+        threshold: config.threshold,
+      }),
+    }
   }
-  return service
+  return built.service
 }

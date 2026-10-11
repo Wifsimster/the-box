@@ -10,13 +10,18 @@ import {
   type DescribeGuessService,
   type SubmitDescriptionInput,
 } from '../../domain/services/describe-guess.service.js'
-import { isDescribeGuessEnabled } from '../../config/env.js'
+import {
+  isDescribeGuessActive,
+  readDescribeGuessConfig,
+  type SettingReader,
+} from '../../domain/services/describe-guess.service.js'
 
 const EVALUATION: DescribeEvaluation = {
   candidateGameIds: [1, 2, 3],
   chosenGameId: 1,
   probability: 0.97,
   accepted: true,
+  threshold: 0.8,
   titlePrefilterHit: false,
   model: 'claude-haiku-5-5',
   latencyMs: 1200,
@@ -33,14 +38,32 @@ const BODY = {
   locale: 'fr',
 }
 
-describe('isDescribeGuessEnabled', () => {
-  it('needs both the flag and an API key', () => {
-    assert.equal(isDescribeGuessEnabled({ DESCRIBE_GUESS_ENABLED: 'false', ANTHROPIC_API_KEY: '' }), false)
-    assert.equal(isDescribeGuessEnabled({ DESCRIBE_GUESS_ENABLED: 'true', ANTHROPIC_API_KEY: '' }), false)
-    assert.equal(isDescribeGuessEnabled({ DESCRIBE_GUESS_ENABLED: 'true', ANTHROPIC_API_KEY: '   ' }), false)
-    assert.equal(isDescribeGuessEnabled({ DESCRIBE_GUESS_ENABLED: 'false', ANTHROPIC_API_KEY: 'k' }), false)
-    assert.equal(isDescribeGuessEnabled({ DESCRIBE_GUESS_ENABLED: '1', ANTHROPIC_API_KEY: 'k' }), false)
-    assert.equal(isDescribeGuessEnabled({ DESCRIBE_GUESS_ENABLED: 'true', ANTHROPIC_API_KEY: 'k' }), true)
+describe('describe-guess gating from settings', () => {
+  const reader = (values: Record<string, boolean | string | number | null>): SettingReader =>
+    async (key) => (key in values ? values[key]! : null)
+
+  it('needs both enabled and an API key', async () => {
+    const cases: Array<[Record<string, boolean | string | null>, boolean]> = [
+      [{}, false],
+      [{ 'describeGuess.enabled': true }, false],
+      [{ 'describeGuess.enabled': true, 'describeGuess.anthropicApiKey': '   ' }, false],
+      [{ 'describeGuess.enabled': false, 'describeGuess.anthropicApiKey': 'sk-ant-xxxxxxxxxxxx' }, false],
+      [{ 'describeGuess.enabled': true, 'describeGuess.anthropicApiKey': 'sk-ant-xxxxxxxxxxxx' }, true],
+    ]
+    for (const [values, expected] of cases) {
+      assert.equal(isDescribeGuessActive(await readDescribeGuessConfig(reader(values))), expected, JSON.stringify(values))
+    }
+  })
+
+  it('reads model and threshold, with defaults', async () => {
+    const defaults = await readDescribeGuessConfig(reader({}))
+    assert.equal(defaults.model, 'claude-haiku-5-5')
+    assert.equal(defaults.threshold, 0.8)
+    const custom = await readDescribeGuessConfig(
+      reader({ 'describeGuess.model': 'claude-haiku-4-5', 'describeGuess.threshold': 0.9 })
+    )
+    assert.equal(custom.model, 'claude-haiku-4-5')
+    assert.equal(custom.threshold, 0.9)
   })
 })
 
@@ -48,6 +71,7 @@ describe('POST /describe', () => {
   let server: Server
   let baseUrl: string
   let enabled = false
+  let gateThrows = false
   let service: DescribeGuessService | null = null
   let authCalls = 0
   const submits: SubmitDescriptionInput[] = []
@@ -57,7 +81,10 @@ describe('POST /describe', () => {
     app.use(express.json())
     app.post(
       '/describe',
-      describeGuessGate(() => enabled),
+      describeGuessGate(async () => {
+        if (gateThrows) throw new Error('settings store down')
+        return enabled
+      }),
       // Stand-in for authMiddleware: counts calls so the test proves the gate
       // answers before any session lookup.
       (req, _res, next) => {
@@ -66,7 +93,7 @@ describe('POST /describe', () => {
         req.isGuest = req.header('x-guest') === '1'
         next()
       },
-      createDescribeGuessHandler(() => service)
+      createDescribeGuessHandler(async () => service)
     )
     await new Promise<void>((resolve) => {
       server = app.listen(0, '127.0.0.1', () => resolve())
@@ -97,6 +124,16 @@ describe('POST /describe', () => {
     const res = await post(BODY)
     assert.equal(res.status, 404)
     assert.equal(((await res.json()) as { error: { code: string } }).error.code, 'NOT_FOUND')
+    assert.equal(authCalls, 0)
+  })
+
+  it('fails closed (404) when the settings cannot be read', async () => {
+    enabled = true
+    gateThrows = true
+    authCalls = 0
+    const res = await post(BODY)
+    gateThrows = false
+    assert.equal(res.status, 404)
     assert.equal(authCalls, 0)
   })
 

@@ -30,8 +30,13 @@ import type { FuzzyMatchService } from './fuzzy-match.service.js'
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** The model "accepts" when it picks the target with at least this probability. */
+/**
+ * Default acceptance threshold: the model "accepts" when it picks the target
+ * with at least this probability. Overridden by the `describeGuess.threshold`
+ * setting.
+ */
 export const DESCRIBE_ACCEPT_THRESHOLD = 0.8
+export const DESCRIBE_DEFAULT_MODEL = 'claude-haiku-5-5'
 export const DESCRIBE_MIN_LENGTH = 15
 export const DESCRIBE_MAX_LENGTH = 200
 /** Distractors shown next to the target. */
@@ -223,10 +228,47 @@ export function parseVerdict(raw: unknown, labels: readonly string[]): ParsedVer
 export function isAccepted(
   chosenGameId: number | null,
   probability: number | null,
-  targetGameId: number
+  targetGameId: number,
+  threshold: number = DESCRIBE_ACCEPT_THRESHOLD
 ): boolean | null {
   if (chosenGameId === null || probability === null) return null
-  return chosenGameId === targetGameId && probability >= DESCRIBE_ACCEPT_THRESHOLD
+  return chosenGameId === targetGameId && probability >= threshold
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Configuration (from the app-settings store)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DescribeGuessConfig {
+  enabled: boolean
+  apiKey: string | null
+  model: string
+  threshold: number
+}
+
+/** Typed reader over the settings store (AppSettingsService.getValue). */
+export type SettingReader = (
+  key: 'describeGuess.enabled' | 'describeGuess.anthropicApiKey' | 'describeGuess.model' | 'describeGuess.threshold'
+) => Promise<boolean | string | number | null>
+
+export async function readDescribeGuessConfig(read: SettingReader): Promise<DescribeGuessConfig> {
+  const [enabled, apiKey, model, threshold] = await Promise.all([
+    read('describeGuess.enabled'),
+    read('describeGuess.anthropicApiKey'),
+    read('describeGuess.model'),
+    read('describeGuess.threshold'),
+  ])
+  return {
+    enabled: enabled === true,
+    apiKey: typeof apiKey === 'string' && apiKey.trim() !== '' ? apiKey : null,
+    model: typeof model === 'string' && model !== '' ? model : DESCRIBE_DEFAULT_MODEL,
+    threshold: typeof threshold === 'number' ? threshold : DESCRIBE_ACCEPT_THRESHOLD,
+  }
+}
+
+/** Live only when enabled AND an API key is set. Otherwise: no UI, route 404s. */
+export function isDescribeGuessActive(config: Pick<DescribeGuessConfig, 'enabled' | 'apiKey'>): boolean {
+  return config.enabled && config.apiKey !== null
 }
 
 export function candidateLabel(index: number): string {
@@ -242,6 +284,8 @@ export interface DescribeEvaluation {
   chosenGameId: number | null
   probability: number | null
   accepted: boolean | null
+  /** Threshold `accepted` was computed at. */
+  threshold: number
   titlePrefilterHit: boolean
   model: string
   latencyMs: number
@@ -327,6 +371,8 @@ export interface DescribeGuessServiceDeps {
   rng?: Rng
   now?: () => number
   timeoutMs?: number
+  /** Acceptance threshold (setting `describeGuess.threshold`). */
+  threshold?: number
 }
 
 export interface SubmitDescriptionInput {
@@ -364,6 +410,7 @@ export function createDescribeGuessService(deps: DescribeGuessServiceDeps): Desc
   const rng = deps.rng ?? Math.random
   const now = deps.now ?? Date.now
   const timeoutMs = deps.timeoutMs ?? DESCRIBE_JUDGE_TIMEOUT_MS
+  const threshold = deps.threshold ?? DESCRIBE_ACCEPT_THRESHOLD
 
   async function evaluate(input: {
     description: string
@@ -384,6 +431,7 @@ export function createDescribeGuessService(deps: DescribeGuessServiceDeps): Desc
       chosenGameId: null,
       probability: null,
       accepted: null,
+      threshold,
       titlePrefilterHit: prefilter,
       model: deps.judge.model,
       latencyMs: 0,
@@ -413,7 +461,7 @@ export function createDescribeGuessService(deps: DescribeGuessServiceDeps): Desc
       const chosen = labelled.find((c) => c.label === verdict.chosenLabel)!
       base.chosenGameId = chosen.sheet.id
       base.probability = verdict.probability
-      base.accepted = isAccepted(chosen.sheet.id, verdict.probability, target.id)
+      base.accepted = isAccepted(chosen.sheet.id, verdict.probability, target.id, threshold)
     } catch (error) {
       base.error = error instanceof DescribeJudgeError ? error.code : 'unknown'
       log.warn(
@@ -511,6 +559,7 @@ export function createDescribeGuessService(deps: DescribeGuessServiceDeps): Desc
         chosenGameId: null,
         probability: null,
         accepted: null,
+        threshold,
         titlePrefilterHit: false,
         model: deps.judge.model,
         latencyMs: Math.max(0, Math.round(now() - started)),

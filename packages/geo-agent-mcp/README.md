@@ -30,6 +30,35 @@ the key can't, and the key is read-only in this phase.
 | `geo_promote_candidate` | `POST /candidates/:id/promote` | `candidateId` | `geo-agent:promote` |
 | `geo_promote_override` | `POST /candidates/:id/promote-override` | `candidateId`, `canonicalX`, `canonicalY` | `geo-agent:promote-override` |
 
+### App settings tools
+
+The same server also exposes the app settings (Admin → Paramètres). They map to
+`/api/agent/v1/settings`, not to the geo surface, so `GEO_AGENT_API_ENABLED` does
+not apply to them.
+
+| Tool | Maps to | Args | Scope |
+|------|---------|------|-------|
+| `list_settings` | `GET /api/agent/v1/settings` | — | `admin:settings` |
+| `get_setting` | `GET /api/agent/v1/settings/:key` | `key` | `admin:settings` |
+| `set_setting` | `POST /api/agent/v1/settings/:key` | `key`, `value` (`null` resets / clears) | `admin:settings` |
+
+- The key's owner must still be an admin when the call is made; a demoted
+  admin's keys get `403 FORBIDDEN`.
+- Secrets (for example `describeGuess.anthropicApiKey`) are write-only. Reads
+  return `{ set, mask }` such as `sk-ant-…abcd`, never the value. The value is
+  encrypted at rest (AES-256-GCM).
+- Every write lands in `admin_audit_log` (`app_setting.update`, actor = key
+  owner, key id). The audit entry never contains a secret.
+- To mint a key for these tools: Admin → Géo → *Clés agent* → tick
+  `settings`. A key may combine geo scopes and `admin:settings`.
+
+Example: turn on "describe the game" after pasting the key once:
+
+```text
+set_setting { "key": "describeGuess.anthropicApiKey", "value": "sk-ant-…" }
+set_setting { "key": "describeGuess.enabled", "value": true }
+```
+
 ## Setup
 
 1. **Mint a key.** Admin → Géo → *Clés agent Géo* → create a key with the

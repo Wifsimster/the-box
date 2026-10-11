@@ -10,15 +10,22 @@ import {
 
 /**
  * Feature gate for POST /api/game/describe. Mounted before auth so that,
- * with the feature off, the route is indistinguishable from a missing one.
+ * with the feature off (setting disabled or no API key), the route is
+ * indistinguishable from a missing one.
  */
-export function describeGuessGate(isEnabled: () => boolean): RequestHandler {
-  return (_req, res, next) => {
-    if (!isEnabled()) {
-      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Not found' } })
-      return
+export function describeGuessGate(isEnabled: () => Promise<boolean>): RequestHandler {
+  return async (_req, res, next) => {
+    try {
+      // Fail closed: if the settings can't be read, the feature is off.
+      const enabled = await isEnabled().catch(() => false)
+      if (!enabled) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Not found' } })
+        return
+      }
+      next()
+    } catch (error) {
+      next(error)
     }
-    next()
   }
 }
 
@@ -40,11 +47,11 @@ export const describeBody = z.object({
  * reveals the model's guess, the candidates or the answer.
  */
 export function createDescribeGuessHandler(
-  getService: () => DescribeGuessService | null
+  getService: () => Promise<DescribeGuessService | null>
 ): RequestHandler {
   return async (req, res, next) => {
     try {
-      const service = getService()
+      const service = await getService()
       if (!service) {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Not found' } })
         return

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { GEO_AGENT_SCOPES, type ApiKeyCreated, type ApiKeySummary } from '@the-box/types'
+import { AGENT_KEY_SCOPES, type ApiKeyCreated, type ApiKeySummary } from '@the-box/types'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 import { validateBody, validateParams } from '../middleware/validation.middleware.js'
 import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
@@ -26,11 +26,12 @@ const log = logger.child({ router: 'admin-agent-keys' })
 // A mint may request any non-empty subset of the geo-agent scopes. Default to
 // read-only: ingest/propose are granted deliberately per key as phases 3–4
 // ship, so a freshly minted key can never write until an admin opts it in.
-const scopeEnum = z.enum(GEO_AGENT_SCOPES)
+// admin:settings (settings MCP tools) is minted from the same panel.
+const scopeEnum = z.enum(AGENT_KEY_SCOPES)
 const createSchema = z.object({
   label: z.string().trim().min(1).max(64),
   mode: z.enum(['live', 'test']).default('live'),
-  scopes: z.array(scopeEnum).nonempty().max(GEO_AGENT_SCOPES.length).optional(),
+  scopes: z.array(scopeEnum).nonempty().max(AGENT_KEY_SCOPES.length).optional(),
 })
 
 // Cap active agent keys so a mistake or a compromised admin session can't mint
