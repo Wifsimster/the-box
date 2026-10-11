@@ -644,7 +644,11 @@ async function openPlay(page, flags) {
   await page.goto(`${BASE}/en/play`, { waitUntil: 'networkidle' })
   if (page.url().includes('/login')) fail('Not logged in: /en/play redirected to login.', 'Run `control-thebox login` first.')
   await dismissModals(page)
-  const start = page.getByRole('button', { name: /^(start|play|commencer|jouer)/i }).first()
+  // The closed box ("Open today's box") carries a stable test id; the role
+  // fallback covers older checkouts that still had the intro's Start button.
+  const start = page.getByTestId('today-open-box')
+    .or(page.getByRole('button', { name: /^(start|commencer)/i }))
+    .first()
   if (await start.isVisible().catch(() => false)) {
     if (flags['dry-run']) return { dryRun: { ok: true, dryRun: true, wouldClickStart: true, position: 1, answer: pickAnswer(flags, 1) } }
     await start.click()

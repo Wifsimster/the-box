@@ -3,6 +3,18 @@ import { E2E_USER_EMAIL, E2E_USER_PASSWORD } from './helpers/game-helpers'
 import { assertDialogFits } from './helpers/dialog-assertions'
 
 /**
+ * The reward modal no longer opens on its own (daily-first, D3): a player
+ * opens it from the header gift badge. Best-effort, like the checks below.
+ */
+async function openRewardFromBadge(page: import('@playwright/test').Page) {
+  const badge = page.locator('[data-testid="daily-reward-badge"]:visible').first()
+  if (await badge.isVisible().catch(() => false)) {
+    await badge.click().catch(() => {})
+    await page.waitForTimeout(500)
+  }
+}
+
+/**
  * E2E Tests for Daily Login Rewards
  *
  * Prerequisites:
@@ -12,37 +24,24 @@ import { assertDialogFits } from './helpers/dialog-assertions'
  */
 
 test.describe('Daily Login Rewards', () => {
-  test('daily reward modal appears after fresh login (use new session or cleared cookies)', async ({ page }) => {
-    // Clear cookies to ensure fresh session
+  test('no reward modal opens on its own; the gift badge opens it (D3)', async ({ page }) => {
     await page.context().clearCookies()
 
-    // Login fresh
     await page.goto('/en/login')
     await page.waitForSelector('form')
+    await page.getByPlaceholder(/you@example.com|email/i).fill(E2E_USER_EMAIL)
+    await page.locator('input[type="password"]').first().fill(E2E_USER_PASSWORD)
+    await page.getByRole('button', { name: /^(log ?in|sign in)$/i }).click()
 
-    const emailInput = page.getByPlaceholder(/you@example.com|email/i)
-    await emailInput.fill(E2E_USER_EMAIL)
+    // Daily-first: the home route is today's box, and nothing covers it.
+    const badge = page.locator('[data-testid="daily-reward-badge"]:visible').first()
+    await expect(badge).toBeVisible({ timeout: 10_000 })
+    await page.waitForTimeout(1500)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
 
-    const passwordInput = page.locator('input[type="password"]').first()
-    await passwordInput.fill(E2E_USER_PASSWORD)
-
-    const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
-    await loginButton.click()
-
-    // Wait for login and modal
-    await page.waitForTimeout(3000)
-
-    // Check for daily reward modal
-    const modal = page.locator('[role="dialog"], [class*="modal"], [class*="dialog"]').first()
-    const hasModal = await modal.isVisible().catch(() => false)
-
-    // Look for daily reward specific content
-    const dailyRewardContent = page.locator('text=/daily.*reward|reward|streak|jour|récompense/i').first()
-    const hasDailyReward = await dailyRewardContent.isVisible().catch(() => false)
-
-    // Modal should appear (unless already claimed today)
-    // Note: if the seed script ran today and claim was already made, modal won't appear
-    expect(hasModal || hasDailyReward || true).toBeTruthy()
+    // The reward still waits one tap away.
+    await badge.click()
+    await expect(page.getByRole('dialog')).toBeVisible()
   })
 
   test('modal displays current streak information', async ({ page }) => {
@@ -62,6 +61,7 @@ test.describe('Daily Login Rewards', () => {
     await loginButton.click()
 
     await page.waitForTimeout(3000)
+    await openRewardFromBadge(page)
 
     // Look for streak information in modal
     const streakInfo = page.locator('text=/streak|day.*\\d+|jour.*\\d+|consecutive/i').first()
@@ -92,6 +92,7 @@ test.describe('Daily Login Rewards', () => {
     await loginButton.click()
 
     await page.waitForTimeout(3000)
+    await openRewardFromBadge(page)
 
     // Look for claim button
     const claimButton = page.getByRole('button', { name: /claim|collect|récupérer|obtenir/i })
@@ -132,6 +133,7 @@ test.describe('Daily Login Rewards', () => {
     await loginButton.click()
 
     await page.waitForTimeout(3000)
+    await openRewardFromBadge(page)
 
     // Look for close button (X button or explicit close)
     const closeButton = page.locator('[role="dialog"] button[aria-label*="close"], [role="dialog"] button:has(svg), button:has-text("×")').first()
@@ -169,6 +171,7 @@ test.describe('Daily Login Rewards', () => {
     await loginButton.click()
 
     await page.waitForTimeout(3000)
+    await openRewardFromBadge(page)
 
     // Try to claim if modal appears
     const claimButton = page.getByRole('button', { name: /claim|collect|récupérer|obtenir/i })
@@ -217,10 +220,12 @@ test.describe('Daily Reward Modal - Mobile viewport (375px)', () => {
     const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
     await loginButton.click()
 
-    // Give the app a moment to land on the home page and (if eligible) open
-    // the daily reward modal. If the seed already claimed today's reward the
-    // modal will not appear — that's fine, the assertion helper no-ops.
-    await page.waitForTimeout(3000)
+    // The modal no longer opens on its own (daily-first, D3): open it from
+    // the header gift badge, as a player would.
+    const badge = page.locator('[data-testid="daily-reward-badge"]:visible').first()
+    await expect(badge).toBeVisible({ timeout: 10_000 })
+    await badge.click()
+    await expect(page.getByRole('dialog')).toBeVisible()
 
     await assertDialogFits(page, 375)
   })

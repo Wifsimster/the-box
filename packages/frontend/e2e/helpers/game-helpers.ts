@@ -186,13 +186,15 @@ export async function waitForGameLoad(page: Page) {
 }
 
 /**
- * Start the daily game if on intro screen
+ * Open the daily box if it is still closed (one tap, no account gate)
  */
 export async function startDailyGame(page: Page) {
   // First close any modals
   await closeDailyRewardModal(page)
 
-  const startButton = page.getByRole('button', { name: /start|commencer|play/i })
+  // The closed box ("Open today's box", decision D1) replaced the intro's
+  // Start button; it carries a stable test id.
+  const startButton = page.getByTestId('today-open-box')
   const hasStartButton = await startButton.isVisible().catch(() => false)
 
   if (hasStartButton) {

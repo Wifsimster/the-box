@@ -60,7 +60,7 @@ Use roles and accessible names, which come from `packages/frontend/public/locale
 
 | Goal | Command |
 |---|---|
-| Log in through `/en/login` (fills the form, dismisses the daily-reward modal) | `$C login [--as user\|admin]` |
+| Log in through `/en/login` (fills the form, dismisses any dialog) | `$C login [--as user\|admin]` |
 | Navigate | `$C goto /en/leaderboard` |
 | One guess through the real input (`textbox "Game name..."`, `button "Submit guess"`) | `$C play guess --correct` / `--wrong` / `--answer "<text>"` |
 | Play every remaining position to completion | `$C play finish` |
@@ -74,7 +74,7 @@ Use roles and accessible names, which come from `packages/frontend/public/locale
 | HTTP and WebSocket log | `$C network-log --filter /api/game --status-min 400` / `--filter socket.io` |
 | Recorded run, credentials, evidence dir | `$C info` |
 
-Commands with side effects accept `--dry-run`: `launch`, `teardown`, `login`, `click`, `play` and `passkey add|signin`. `play --dry-run` reports the position and the answer it would type. It never clicks Start, because Start inserts a `game_sessions` row, as confirmed by observing the DB during the pilot.
+Commands with side effects accept `--dry-run`: `launch`, `teardown`, `login`, `click`, `play` and `passkey add|signin`. `play --dry-run` reports the position and the answer it would type. It never clicks "Open today's box", because opening the box inserts a `game_sessions` row, as confirmed by observing the DB during the pilot.
 
 `--correct` reads the right answer for the current position from the throwaway DB. It is a test oracle only: the guess itself is typed and submitted through the UI.
 
@@ -117,6 +117,6 @@ Run it after every failed iteration too, so a broken attempt does not leave proc
 - **The 45 s timer per screenshot keeps running while you are idle on `/en/play`.** Leave the page between steps, or a position times out and the input stays disabled (`play` waits up to 15 s for the input, then fails with a hint).
 - **A correct guess opens a result card** ("Next Round (4s)"). `play finish` clicks it. If you drive by hand, press `Enter` or click `Next Round` before the countdown ends: letting it reach 0 currently crashes the page (product bug [#394](https://github.com/Wifsimster/the-box/issues/394)). `$C goto /en/play` recovers.
 - **The leaderboard only lists completed, non-catch-up sessions.** Run `play finish` before `leaderboard`.
-- **A "Daily Reward" modal appears after login and on later navigations.** `login`, `play` and `leaderboard` claim or close it. A claim is a real side effect on the fake user's inventory.
+- **The "Daily Reward" modal no longer opens on its own** (it waits behind the header gift badge). `login`, `play` and `leaderboard` still claim or close any open dialog. A claim is a real side effect on the fake user's inventory.
 - **The UTC day matters.** The seed creates the challenge for the current UTC date. If the date rolls over mid-run, `doctor` fails `todayChallenge`: relaunch.
 - **Ports are fixed** (see Isolation). Do not edit the Vite proxy to work around a busy port. Find who owns the port instead.
