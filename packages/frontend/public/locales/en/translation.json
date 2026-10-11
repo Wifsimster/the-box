@@ -569,23 +569,7 @@
       "unexpected": "Something went wrong. Please try again.",
       "sessionNotInitialized": "The game session isn't ready yet. Please reload the page."
     },
-    "offlineGuess": "You're offline — your guess can't be sent.",
-    "describe": {
-      "entry": "Can't find the title? Describe the game",
-      "beta": "beta",
-      "formLabel": "Describe the game",
-      "label": "Describe the game in your own words",
-      "placeholder": "Characters, places, what you do in it…",
-      "hint": "Worth no points for now. An AI (Anthropic) reads your description, and we keep it 180 days to improve the game. Leave out anything personal.",
-      "tooShort_one": "{{count}} more character",
-      "tooShort_other": "{{count}} more characters",
-      "counter": "{{count}}/{{max}}",
-      "cancel": "Cancel",
-      "submit": "Send",
-      "sending": "Sending…",
-      "ack": "Got it, thanks. Your description doesn't change your score.",
-      "error": "Description not sent. Try again in a moment."
-    }
+    "offlineGuess": "You're offline — your guess can't be sent."
   },
   "home": {
     "headline": "One screenshot. One guess.",
@@ -1942,7 +1926,7 @@
     },
     "describeGuess": {
       "title": "Free descriptions (shadow mode)",
-      "intro": "Player descriptions and the model verdict, with no effect on scores. For labelling.",
+      "intro": "Wrong answers typed in the game field that read like a description, captured automatically (at most one per screenshot) with the model verdict. No effect on scores. For labelling.",
       "totalCount_one": "{{count}} description",
       "totalCount_other": "{{count}} descriptions",
       "empty": "No descriptions yet.",
@@ -1954,7 +1938,7 @@
       "guest": "Guest",
       "table": {
         "date": "Date",
-        "description": "Description",
+        "description": "Typed answer",
         "target": "Expected game",
         "chosen": "Model choice",
         "probability": "p",
@@ -1985,16 +1969,16 @@
       },
       "groups": {
         "describeGuess": {
-          "title": "Describe the game (beta, shadow mode)",
-          "description": "After a wrong guess, the player can describe the game. A Claude model judges it and everything is logged, with no points. Live only when the option is on AND an Anthropic API key is stored.",
-          "active": "Live: players see the \"Describe the game\" entry.",
+          "title": "Describe the game (shadow mode, invisible to players)",
+          "description": "When a wrong answer reads like a description (at least 15 characters and 2 words, and not a catalogue title), a Claude model judges it in the background and it is stored, with no points and no change on screen. Live only when the option is on AND an Anthropic API key is stored.",
+          "active": "Live: answers that read like a description are judged in the background.",
           "inactive": "Off: turn the option on and store a key."
         }
       },
       "items": {
         "describeGuess.enabled": {
           "label": "Enable \"Describe the game\"",
-          "help": "Without a stored key, players see nothing."
+          "help": "Without a stored key, nothing is captured."
         },
         "describeGuess.anthropicApiKey": {
           "label": "Anthropic API key",
@@ -2244,8 +2228,8 @@
     "contactBugAction": "Describe the bug by email",
     "contactBugSubject": "Bug report",
     "contactBugBody": "What happened?\n\n\nSteps to reproduce the problem:\n\n\nDevice / browser: {{device}}",
-    "privacyDescribeGuessTitle": "Describing a game in your own words (beta)",
-    "privacyDescribeGuess": "If you use the \"Describe the game\" feature, we store the text you write, its language, the screenshot it is about and the result of the analysis. The text is sent to Anthropic (anthropic.com), which analyses it with an AI model to estimate which game it describes. This data is kept for 180 days and then deleted. It is erased with your account."
+    "privacyDescribeGuessTitle": "AI analysis of your answers (Anthropic)",
+    "privacyDescribeGuess": "When an answer you type in the game field is wrong and reads like a description rather than a title, its text is sent to Anthropic (anthropic.com), which analyses it with an AI model to estimate which game it describes. Nothing in the game indicates this, and it changes neither the result shown nor your score. At most one answer per screenshot is sent. We store this text, its language, the screenshot it is about and the result of the analysis for 180 days, then delete them. This data is erased with your account."
   },
   "errors": {
     "boundary": {

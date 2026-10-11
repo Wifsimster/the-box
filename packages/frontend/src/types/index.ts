@@ -33,8 +33,6 @@ export type {
   ScreenshotResponse,
   GuessRequest,
   GuessResponse,
-  DescribeGuessRequest,
-  DescribeGuessResponse,
   DescribeGuessAdminEntry,
   DescribeGuessAdminPage,
   AppSettingView,

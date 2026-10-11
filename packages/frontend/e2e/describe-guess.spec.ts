@@ -1,40 +1,50 @@
-import { test, expect, type Browser, type Page } from '@playwright/test'
-import { loginAsUser, loginAsAdmin, waitForGameLoad, startDailyGame, getCurrentScore } from './helpers/game-helpers'
+import { test, expect, type Browser, type Page, type Response } from '@playwright/test'
+import { loginAsUser, loginAsAdmin, waitForGameLoad, startDailyGame } from './helpers/game-helpers'
 import { runtimeFeatures } from './helpers/features'
 
 /**
- * "Describe the game" — shadow mode, configured in Admin → Paramètres.
+ * "Describe the game" — shadow capture with NO player UI.
  *
- * The backend should run with DESCRIBE_GUESS_JUDGE=stub (deterministic judge,
- * no network call): an admin pastes a dummy key here, so without the stub a
- * submit would try the real API with that key and only store "no verdict".
+ * A wrong guess typed in the normal input that looks like a description is
+ * judged in the background (BullMQ worker) when the feature is on in Admin →
+ * Paramètres. The player sees exactly today's wrong-guess feedback.
  *
- * Serial: the steps share the app settings and e2e_user's daily session.
+ * Run the backend with DESCRIBE_GUESS_JUDGE=stub (deterministic judge, no
+ * network): the admin pastes a dummy key here. With
+ * DESCRIBE_GUESS_STUB_DELAY_MS=3000 the timing check also shows that a slow
+ * judge never slows the guess response.
+ *
+ * App settings are global and Playwright may run this file for two projects
+ * at once, so only the chromium project changes them; the read-only authz
+ * test runs everywhere. Serial: the steps share settings and e2e_user's
+ * daily session (one position per step).
  */
-test.describe.configure({ mode: 'serial', timeout: 90_000 })
+test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
-/**
- * App settings are global to the backend, and Playwright may run the same
- * file for two projects at once in different workers. Only one project
- * changes them, so a reset in one project can never race an enable in the
- * other. The read-only authz test runs everywhere.
- */
 const SETTINGS_OWNER_PROJECT = 'chromium'
-function ownsSettings(projectName: string): boolean {
-  return projectName === SETTINGS_OWNER_PROJECT
+const DUMMY_KEY = 'e2e-dummy-key-not-real-0000'
+const DESCRIPTION = 'un jeu avec un gros carre colore sur un fond violet'
+const SEED_TITLES = ['E2E Test Game 1', 'E2E Test Game 2', 'E2E Test Game 3']
+
+async function adminPage(browser: Browser): Promise<Page> {
+  const ctx = await browser.newContext({ storageState: './e2e/consent-storage-state.json' })
+  const page = await ctx.newPage()
+  await loginAsAdmin(page)
+  return page
 }
 
-const DUMMY_KEY = 'e2e-dummy-key-not-real-0000'
+async function capturedRows(admin: Page): Promise<Array<{ guessText: string; description: string; model: string; error: string | null }>> {
+  const res = await admin.request.get('/api/admin/describe-guesses?limit=100')
+  expect(res.ok()).toBe(true)
+  return (await res.json()).data.entries
+}
 
-/** One wrong title attempt through the real input; waits for the API answer. */
-async function wrongGuess(page: Page) {
-  const input = page.getByRole('textbox', { name: /game name/i })
-  await expect(input).toBeVisible()
-  await input.fill('Definitely Not A Game')
-  const answered = page.waitForResponse((r) => r.url().endsWith('/api/game/guess'))
-  await page.getByRole('button', { name: /submit guess/i }).click()
-  const res = await answered
-  expect((await res.json()).data.isCorrect).toBe(false)
+async function setFeature(admin: Page, on: boolean) {
+  await admin.goto('/en/admin?tab=settings')
+  const toggle = admin.getByRole('switch', { name: /enable "describe the game"/i })
+  await expect(toggle).toBeVisible()
+  if ((await toggle.getAttribute('aria-checked')) !== String(on)) await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', String(on))
 }
 
 async function startPlaying(page: Page) {
@@ -50,24 +60,20 @@ async function goToPosition(page: Page, position: number) {
   await expect(page.getByRole('button', { name: new RegExp(`^Screenshot ${position} \\(current\\)`) })).toBeVisible()
 }
 
-const POSITIONS = { describe: 2, off: 4 }
-
-async function adminPage(browser: Browser): Promise<Page> {
-  const ctx = await browser.newContext({ storageState: './e2e/consent-storage-state.json' })
-  const page = await ctx.newPage()
-  await loginAsAdmin(page)
-  return page
+/** Type in the ONE existing guess input and submit; returns the API response and its duration. */
+async function guess(page: Page, text: string): Promise<{ res: Response; ms: number; body: { data: Record<string, unknown> } }> {
+  const input = page.getByRole('textbox', { name: /game name/i })
+  await expect(input).toBeVisible()
+  await input.fill(text)
+  const answered = page.waitForResponse((r) => r.url().endsWith('/api/game/guess'))
+  const t0 = Date.now()
+  await page.getByRole('button', { name: /submit guess/i }).click()
+  const res = await answered
+  const ms = Date.now() - t0
+  return { res, ms, body: await res.json() }
 }
 
-/** Reset through the admin API (setup only; the UI path is tested below). */
-async function resetSettings(page: Page) {
-  for (const key of ['describeGuess.enabled', 'describeGuess.anthropicApiKey']) {
-    const res = await page.request.put(`/api/admin/settings/${key}`, { data: { value: null } })
-    expect(res.ok()).toBe(true)
-  }
-}
-
-test.describe('Describe the game (shadow mode)', () => {
+test.describe('Describe the game (shadow capture, no player UI)', () => {
   test('admin settings API: 401 anonymous, 403 for a non-admin', async ({ page, request }) => {
     expect((await request.get('/api/admin/settings', { failOnStatusCode: false })).status()).toBe(401)
     await loginAsUser(page)
@@ -78,97 +84,105 @@ test.describe('Describe the game (shadow mode)', () => {
     expect(res.status()).toBe(403)
   })
 
-  test('off by default: no entry after a wrong guess, and the route 404s', async ({ page, browser }, testInfo) => {
-    test.skip(!ownsSettings(testInfo.project.name), 'changes global app settings')
+  test('off: a wrong description gets the normal wrong feedback and nothing is stored', async ({ page, browser }, testInfo) => {
+    test.skip(testInfo.project.name !== SETTINGS_OWNER_PROJECT, 'changes global app settings')
     const admin = await adminPage(browser)
-    await resetSettings(admin)
-    await admin.context().close()
+    for (const key of ['describeGuess.enabled', 'describeGuess.anthropicApiKey']) {
+      expect((await admin.request.put(`/api/admin/settings/${key}`, { data: { value: null } })).ok()).toBe(true)
+    }
+    const before = (await capturedRows(admin)).length
 
     expect((await runtimeFeatures(page.request)).describeGuess).toBe(false)
     await startPlaying(page)
-    await wrongGuess(page)
+    await goToPosition(page, 2)
+    const { body } = await guess(page, DESCRIPTION)
+    expect(body.data.isCorrect).toBe(false)
+    await expect(page.getByText('Incorrect guess. Try again.').first()).toBeVisible()
 
-    await expect(page.getByTestId('describe-game-open')).toHaveCount(0)
-    const res = await page.request.post('/api/game/describe', {
-      data: { tierSessionId: 'x', screenshotId: 1, position: 1, description: 'a long enough description', locale: 'en' },
-      failOnStatusCode: false,
-    })
-    expect(res.status()).toBe(404)
+    await page.waitForTimeout(3000) // give a (wrongly) enqueued job time to land
+    expect((await capturedRows(admin)).length).toBe(before)
+    // The old describe route is gone.
+    expect((await page.request.post('/api/game/describe', { data: {}, failOnStatusCode: false })).status()).toBe(404)
+    await admin.context().close()
   })
 
-  test('admin pastes a key and enables it in Paramètres; the player can describe, score unchanged', async ({ page, browser }, testInfo) => {
-    test.skip(!ownsSettings(testInfo.project.name), 'changes global app settings')
+  test('on: a wrong description gets the normal feedback, as fast as a wrong title, and a row is stored', async ({ page, browser }, testInfo) => {
+    test.skip(testInfo.project.name !== SETTINGS_OWNER_PROJECT, 'changes global app settings')
     const admin = await adminPage(browser)
     await admin.goto('/en/admin?tab=settings')
-    const group = admin.getByTestId('settings-group-describeGuess')
-    await expect(group).toBeVisible()
-    await expect(admin.getByTestId('settings-status-describeGuess')).toContainText(/off/i)
-
-    // Paste the key: stored, masked, never echoed.
     await admin.getByTestId('secret-input-describeGuess.anthropicApiKey').fill(DUMMY_KEY)
-    const saved = admin.waitForResponse((r) => r.url().includes('/api/admin/settings/describeGuess.anthropicApiKey'))
     await admin.getByTestId('secret-save-describeGuess.anthropicApiKey').click()
-    const savedRes = await saved
-    expect(savedRes.status()).toBe(200)
-    expect(await savedRes.text()).not.toContain(DUMMY_KEY)
     await expect(admin.getByTestId('secret-status-describeGuess.anthropicApiKey')).toContainText('e2e…0000')
-    await expect(admin.getByTestId('secret-input-describeGuess.anthropicApiKey')).toHaveValue('')
-    // A key alone does not turn it on.
-    await expect(admin.getByTestId('settings-status-describeGuess')).toContainText(/off/i)
+    await setFeature(admin, true)
+    const before = (await capturedRows(admin)).length
 
-    const toggle = admin.getByRole('switch', { name: /enable "describe the game"/i })
-    await expect(toggle).toHaveAttribute('aria-checked', 'false')
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-checked', 'true')
-    await expect(admin.getByTestId('settings-status-describeGuess')).toContainText(/live/i)
-    const listText = await (await admin.request.get('/api/admin/settings')).text()
-    expect(listText).not.toContain(DUMMY_KEY)
-    await admin.context().close()
-
-    // Player side.
-    expect((await runtimeFeatures(page.request)).describeGuess).toBe(true)
     await startPlaying(page)
-    await goToPosition(page, POSITIONS.describe)
-    await expect(page.getByTestId('describe-game-open')).toHaveCount(0)
-    await wrongGuess(page)
-    const scoreBefore = await getCurrentScore(page)
+    // No new UI anywhere on the game screen.
+    await expect(page.getByText(/describe the game/i)).toHaveCount(0)
 
-    const entry = page.getByTestId('describe-game-open')
-    await expect(entry).toBeVisible()
-    await expect(entry).toContainText(/describe the game/i)
-    await entry.click()
-    const form = page.getByTestId('describe-game-form')
-    await expect(form.getByRole('textbox')).toBeFocused()
-    await form.getByRole('textbox').fill('a test game with a placeholder screenshot and nothing else to see')
-    const responsePromise = page.waitForResponse((r) => r.url().endsWith('/api/game/describe'))
-    await page.getByTestId('describe-game-submit').click()
-    const response = await responsePromise
-    expect(response.status()).toBe(200)
-    expect(await response.json()).toEqual({ success: true, data: { recorded: true } })
-    await expect(page.getByTestId('describe-game-ack')).toBeVisible()
-    expect(await getCurrentScore(page)).toBe(scoreBefore)
+    await goToPosition(page, 3)
+    const titleGuess = await guess(page, 'zelda') // short wrong title: never sent to the judge
+    await goToPosition(page, 4)
+    const descGuess = await guess(page, DESCRIPTION)
+
+    // Same wrong-guess answer shape and feedback as a short wrong title.
+    expect(descGuess.body.data.isCorrect).toBe(false)
+    expect(Object.keys(descGuess.body.data).sort()).toEqual(Object.keys(titleGuess.body.data).sort())
+    await expect(page.getByText('Incorrect guess. Try again.').first()).toBeVisible()
+    await expect(page.getByText(/describe the game/i)).toHaveCount(0)
+    testInfo.annotations.push({ type: 'timing', description: `wrong title ${Math.round(titleGuess.ms)} ms, description ${Math.round(descGuess.ms)} ms` })
+    // Comparable to a wrong title, and far below a slow judge's latency.
+    expect(descGuess.ms).toBeLessThan(Math.max(1500, titleGuess.ms * 3))
+
+    // Captured off the request path: the row is claimed ('pending') then
+    // completed by the worker. Poll the admin list until the verdict lands.
+    await expect.poll(async () => (await capturedRows(admin)).length, { timeout: 15_000 }).toBe(before + 1)
+    await expect.poll(async () => (await capturedRows(admin))[0]!.error, { timeout: 15_000 }).toBeNull()
+    const row = (await capturedRows(admin))[0]!
+    expect(row.guessText).toBe(DESCRIPTION)
+    expect(row.description).toBe(DESCRIPTION)
+    expect(row.model).toBe('stub')
+    expect(row.error).toBeNull()
+    await admin.context().close()
   })
 
-  test('admin disables it in Paramètres; the entry is gone and the route 404s', async ({ page, browser }, testInfo) => {
-    test.skip(!ownsSettings(testInfo.project.name), 'changes global app settings')
+  test('on: a correct title, and wrong catalogue titles, are never judged', async ({ page, browser }, testInfo) => {
+    test.skip(testInfo.project.name !== SETTINGS_OWNER_PROJECT, 'changes global app settings')
     const admin = await adminPage(browser)
-    await admin.goto('/en/admin?tab=settings')
-    const toggle = admin.getByRole('switch', { name: /enable "describe the game"/i })
-    await expect(toggle).toHaveAttribute('aria-checked', 'true')
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-checked', 'false')
-    await expect(admin.getByTestId('settings-status-describeGuess')).toContainText(/off/i)
-    await admin.context().close()
+    const before = (await capturedRows(admin)).length
+    expect((await runtimeFeatures(page.request)).describeGuess).toBe(true)
 
-    expect((await runtimeFeatures(page.request)).describeGuess).toBe(false)
     await startPlaying(page)
-    await goToPosition(page, POSITIONS.off)
-    await wrongGuess(page)
-    await expect(page.getByTestId('describe-game-open')).toHaveCount(0)
-    const res = await page.request.post('/api/game/describe', {
-      data: { tierSessionId: 'x', screenshotId: 1, position: 1, description: 'a long enough description', locale: 'en' },
-      failOnStatusCode: false,
-    })
-    expect(res.status()).toBe(404)
+    await goToPosition(page, 5)
+    // The seed titles are ≥15 chars and 4 words (description-shaped), but they
+    // are catalogue titles: the wrong ones are skipped by the worker, the
+    // right one never leaves the guess route.
+    let solved = false
+    for (const title of SEED_TITLES) {
+      const { body } = await guess(page, title)
+      if (body.data.isCorrect) {
+        solved = true
+        break
+      }
+    }
+    expect(solved).toBe(true)
+    await page.waitForTimeout(3000)
+    expect((await capturedRows(admin)).length).toBe(before)
+    await admin.context().close()
+  })
+
+  test('off again from Paramètres: no capture', async ({ page, browser }, testInfo) => {
+    test.skip(testInfo.project.name !== SETTINGS_OWNER_PROJECT, 'changes global app settings')
+    const admin = await adminPage(browser)
+    await setFeature(admin, false)
+    const before = (await capturedRows(admin)).length
+
+    await startPlaying(page)
+    await goToPosition(page, 6)
+    const { body } = await guess(page, DESCRIPTION)
+    expect(body.data.isCorrect).toBe(false)
+    await page.waitForTimeout(3000)
+    expect((await capturedRows(admin)).length).toBe(before)
+    await admin.context().close()
   })
 })

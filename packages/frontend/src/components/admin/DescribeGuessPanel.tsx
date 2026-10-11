@@ -109,7 +109,7 @@ export function DescribeGuessPanel() {
           <ul className="space-y-2" data-testid="describe-guess-admin-list">
             {entries.map((row) => (
               <li key={row.id} className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
-                <p className="text-sm break-words">{row.description}</p>
+                <p className="text-sm break-words">{row.guessText}</p>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                   <dt className="text-muted-foreground">{t('admin.describeGuess.table.target')}</dt>
                   <dd className="break-words">{row.targetName ?? `#${row.targetGameId}`}</dd>

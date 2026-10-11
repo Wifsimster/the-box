@@ -10,8 +10,8 @@ import type { FeatureFlags } from '@/lib/dailyFirst'
  * - geoCommunity: community geo surface (free play + contribution) —
  *   GEO_COMMUNITY_ENABLED.
  * - geogamers: GeoGamers ("Panorama") daily mode — GEOGAMERS_ENABLED.
- * - describeGuess: "describe the game" shadow mode — DESCRIBE_GUESS_ENABLED
- *   and ANTHROPIC_API_KEY both set. Hidden until the server says otherwise.
+ * - describeGuess: "describe the game" shadow capture is live (Admin →
+ *   Paramètres). No player UI; only the privacy page reads it.
  */
 export type RuntimeFeatures = FeatureFlags
 
