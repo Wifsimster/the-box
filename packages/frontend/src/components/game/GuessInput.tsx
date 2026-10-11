@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useGameStore } from '@/stores/gameStore'
-import { SkipForward, SkipBack, Send } from 'lucide-react'
+import { SkipForward, SkipBack, Send, XCircle } from 'lucide-react'
 import { ThinkingOrb } from '@/components/ui/thinking-orb'
 import { createGuessSubmissionService } from '@/services'
 import { LetterRevealBar } from '@/components/game/LetterRevealBar'
@@ -48,6 +48,15 @@ export function GuessInput() {
   // Kept SEPARATE from `isShaking` (the shake animation) so reduced-motion
   // users — who never get `isShaking` — still hear the miss.
   const [announceIncorrect, setAnnounceIncorrect] = useState(false)
+  // Visible "wrong guess" line. The red border flash lasts 1s and is the
+  // only visual cue under reduced motion (no shake), i.e. colour alone —
+  // docs/oxygen-design-system.md §2.1. Stays until the player edits the
+  // guess or 2.5s pass.
+  const [showMiss, setShowMiss] = useState(false)
+  const missTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (missTimer.current) clearTimeout(missTimer.current)
+  }, [])
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Services (dependency injection via factory functions)
@@ -111,6 +120,9 @@ export function GuessInput() {
           // preference (the shake below is the visual-only channel).
           setAnnounceIncorrect(true)
           setTimeout(() => setAnnounceIncorrect(false), 1000)
+          setShowMiss(true)
+          if (missTimer.current) clearTimeout(missTimer.current)
+          missTimer.current = setTimeout(() => setShowMiss(false), 2500)
           // Skip the shake for users who prefer reduced motion; the colour
           // change on the border still signals the error.
           if (!prefersReducedMotion) {
@@ -248,7 +260,10 @@ export function GuessInput() {
               <Input
                 ref={inputRef}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  if (showMiss) setShowMiss(false)
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder={t('game.guessPlaceholder')}
                 enterKeyHint="send"
@@ -318,6 +333,14 @@ export function GuessInput() {
       {gamePhase === 'playing' && !isOnline && (
         <p role="status" className="mt-2 text-center text-xs text-warning">
           {t('game.offlineGuess')}
+        </p>
+      )}
+
+      {gamePhase === 'playing' && showMiss && !proximityHint && (
+        // aria-hidden: the assertive live region above already announces it.
+        <p aria-hidden="true" className="mt-2 flex items-center justify-center gap-1.5 text-xs text-error">
+          <XCircle className="size-3.5 shrink-0" />
+          {t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
         </p>
       )}
 

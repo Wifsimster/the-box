@@ -164,6 +164,10 @@ export function ProfileTabs({
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6 mt-6">
+        {/* Each panel opens with an h2 (visually hidden, the tab already shows
+            the label) so the cards' h3 titles don't skip a level under the
+            profile h1. Security keeps its visible h2. */}
+        <h2 className="sr-only">{t('profile.tabs.overview')}</h2>
         <ProfileSection>
           <Card>
             <CardHeader>
@@ -197,6 +201,7 @@ export function ProfileTabs({
       </TabsContent>
 
       <TabsContent value="account" className="space-y-6 mt-6">
+        <h2 className="sr-only">{t('profile.tabs.account')}</h2>
         {userProfile && !userProfile.isGuest && (
           <>
             <ProfileSection>
@@ -241,6 +246,7 @@ export function ProfileTabs({
       </TabsContent>
 
       <TabsContent value="activity" className="space-y-6 mt-6">
+        <h2 className="sr-only">{t('profile.tabs.activity')}</h2>
         <ProfileSection>
           <Suspense fallback={<LazyPanelFallback />}>
             <ActivityPanel />
@@ -249,6 +255,7 @@ export function ProfileTabs({
       </TabsContent>
 
       <TabsContent value="subscription" className="space-y-6 mt-6">
+        <h2 className="sr-only">{t('profile.tabs.subscription')}</h2>
         {userProfile && !userProfile.isGuest && (
           <ProfileSection>
             <Suspense fallback={<LazyPanelFallback />}>
@@ -259,6 +266,7 @@ export function ProfileTabs({
       </TabsContent>
 
       <TabsContent value="creator" className="space-y-6 mt-6">
+        <h2 className="sr-only">{t('profile.tabs.creator')}</h2>
         {userProfile && !userProfile.isGuest && (
           <Suspense fallback={<LazyPanelFallback />}>
             <ProfileSection>
@@ -277,6 +285,7 @@ export function ProfileTabs({
       </TabsContent>
 
       <TabsContent value="customize" className="space-y-6 mt-6">
+        <h2 className="sr-only">{t('profile.tabs.customize')}</h2>
         {userProfile && !userProfile.isGuest && (
           <Suspense fallback={<LazyPanelFallback />}>
             {isPremium && (
@@ -295,7 +304,7 @@ export function ProfileTabs({
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="size-5 text-neon-purple" />
+                    <Sparkles className="size-5 text-neon-purple" aria-hidden="true" />
                     {t('tour.replayTitle')}
                   </CardTitle>
                   <CardDescription>{t('tour.replayDescription')}</CardDescription>

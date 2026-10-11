@@ -166,7 +166,8 @@ export default function PublicProfilePage() {
             <header className="flex items-center gap-4">
               <Avatar className="size-20 sm:size-24 shrink-0 border-2 border-primary/40">
                 <AvatarImage src={profile.avatarUrl} alt="" />
-                <AvatarFallback className="text-2xl bg-card">
+                {/* Same fallback as the owner's profile avatar (AvatarUpload). */}
+                <AvatarFallback className="text-2xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
                   {profile.displayName.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>

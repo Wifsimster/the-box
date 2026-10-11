@@ -86,7 +86,7 @@ function TeaserCard({ achievement, lockedLabel }: TeaserCardProps) {
         </p>
         <Badge
           variant="outline"
-          className="border-neon-purple/40 bg-neon-purple/10 text-xs uppercase tracking-wide text-neon-purple"
+          className="border-primary/40 bg-primary/10 text-xs uppercase tracking-wide text-primary"
         >
           {achievement.points} pts
         </Badge>
@@ -250,7 +250,7 @@ export function HomeAchievementTeaser() {
         <Carousel
           opts={{ align: 'start', loop: false }}
           className="w-full"
-          aria-label={t('home.achievements.heading')}
+          aria-label={t('home.achievements.carouselLabel')}
         >
           <CarouselContent className="-ml-3">
             {items.map((item) => (

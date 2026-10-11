@@ -96,7 +96,8 @@ export default function ResultsPage() {
           <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden="true">
             <Inbox className="size-7" />
           </div>
-          <p className="text-sm sm:text-base text-muted-foreground">{t('game.noResults')}</p>
+          {/* The empty state is the whole page, so its message is the h1. */}
+          <h1 className="text-sm sm:text-base font-normal text-muted-foreground">{t('game.noResults')}</h1>
           <Button variant="gaming" size="lg" asChild className="w-full sm:w-auto">
             <Link to={localizedPath('/play')}>
               <Play className="size-4" aria-hidden="true" />
