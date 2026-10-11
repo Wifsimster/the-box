@@ -58,7 +58,12 @@
     "goToItem": "Aller à l'élément {{index}}",
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "pickMonth": "Choisir un mois"
+    "pickMonth": "Choisir un mois",
+    "today": "Aujourd’hui",
+    "results": "Résultats",
+    "about": "Découvrir The Box",
+    "otherModes": "Plus",
+    "rules": "Règles du jeu"
   },
   "nav": {
     "primary": "Navigation principale",
@@ -69,7 +74,9 @@
       "home": "Accueil",
       "play": "Jouer",
       "leaderboard": "Classement",
-      "profile": "Profil"
+      "profile": "Profil",
+      "today": "Aujourd’hui",
+      "results": "Résultats"
     }
   },
   "achievements": {
@@ -652,6 +659,31 @@
         "Même les ninjas du screenshot tombent parfois. À demain. 💀"
       ]
     }
+  },
+  "today": {
+    "boxOf": "La boîte du {{date}}",
+    "rules": "{{count}} captures · 45 s chacune · plus tu es rapide, plus tu marques",
+    "startHint": "Le chrono démarre quand tu ouvres la boîte.",
+    "guestHint": "Pas besoin de compte pour jouer. Tu pourras garder ton score à la fin.",
+    "streak_one": "{{count}} boîte d’affilée",
+    "streak_other": "{{count}} boîtes d’affilée",
+    "doneTitle": "Boîte ouverte",
+    "doneScore": "{{score}} pts · {{found}}/{{total}} captures",
+    "nextIn": "Prochaine boîte dans",
+    "seeResults": "Voir mes réponses",
+    "seeRanking": "Voir le classement",
+    "yesterdayTitle": "La boîte d’hier",
+    "yesterdayPlayed": "Revois tes réponses d’hier",
+    "yesterdayMissed": "Tu l’as manquée. Rattrape-la, hors classement.",
+    "yesterdayCta": "Ouvrir la boîte d’hier",
+    "rewardReady": "Ta récompense du jour t’attend.",
+    "rewardCta": "Récupérer",
+    "guestSaveTitle": "Garde ton score",
+    "guestSaveBody": "Crée ton compte en 10 s : ta boîte du jour, ta série et ta place au classement sont conservées.",
+    "guestSaveCta": "Créer mon compte",
+    "moreTitle": "Encore envie de jouer ?",
+    "panoramaLine": "Panorama : devine le jeu caché, puis place la scène sur sa carte.",
+    "premiumLine": "Premium : toutes les boîtes passées, sans limite de 7 jours."
   },
   "leaderboard": {
     "title": "Classement",

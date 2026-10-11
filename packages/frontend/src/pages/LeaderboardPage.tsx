@@ -361,14 +361,22 @@ export default function LeaderboardPage() {
               <CalendarDays className="hidden size-4 sm:block" aria-hidden="true" />
               {t('leaderboard.monthly')}
             </TabsTrigger>
-            <TabsTrigger value="achievements" className="gap-2">
-              <Crown className="hidden size-4 sm:block" aria-hidden="true" />
-              {t('profile.achievements')}
-            </TabsTrigger>
-            <TabsTrigger value="geogamers" className="gap-2">
-              <Crosshair className="hidden size-4 sm:block" aria-hidden="true" />
-              {t('leaderboard.geogamers.tab')}
-            </TabsTrigger>
+            {/* Daily-first proposal: the results tab ranks today's box and the
+                month. The achievements and Panorama boards stay deep-linkable
+                (?tab=achievements / ?tab=geogamers) but leave the tab bar —
+                achievements live in the profile, Panorama has its own page. */}
+            {activeTab === 'achievements' && (
+              <TabsTrigger value="achievements" className="gap-2">
+                <Crown className="hidden size-4 sm:block" aria-hidden="true" />
+                {t('profile.achievements')}
+              </TabsTrigger>
+            )}
+            {activeTab === 'geogamers' && (
+              <TabsTrigger value="geogamers" className="gap-2">
+                <Crosshair className="hidden size-4 sm:block" aria-hidden="true" />
+                {t('leaderboard.geogamers.tab')}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="daily">

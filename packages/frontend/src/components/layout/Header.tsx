@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, User, ChevronDown, LogOut, Settings, Sparkles, LifeBuoy, Compass } from 'lucide-react'
-import { PRIMARY_NAV, type NavLinkItem } from '@/components/layout/nav-items'
+import { Menu, User, ChevronDown, LogOut, Settings, Sparkles, LifeBuoy } from 'lucide-react'
+import { PRIMARY_NAV, SECONDARY_NAV, type NavLinkItem } from '@/components/layout/nav-items'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAuth } from '@/hooks/useAuth'
 import { useFeatures } from '@/hooks/useFeatures'
@@ -31,7 +31,6 @@ import { useBillingStore } from '@/stores/billingStore'
 import { KoeSupportWidget } from '@/components/layout/KoeSupportWidget'
 import { InstallPromptButton } from '@/components/pwa'
 import { BrandLockup } from '@/components/layout/BrandLockup'
-import { requestTourReplay } from '@/components/onboarding/tour-storage'
 import { cn } from '@/lib/utils'
 
 // The premium link is an upsell rendered conditionally, so it lives outside the
@@ -131,7 +130,6 @@ function AccountMenu({
   isAdmin,
   isPremium,
   onNavigate,
-  onReplayTour,
   onSignOut,
 }: {
   variant: 'drawer' | 'dropdown'
@@ -139,7 +137,6 @@ function AccountMenu({
   isPremium: boolean
   /** Drawer only — closes the Sheet after a selection. */
   onNavigate?: () => void
-  onReplayTour: () => void
   onSignOut: () => void
 }) {
   const { t } = useTranslation()
@@ -171,7 +168,6 @@ function AccountMenu({
       ? [{ type: 'link', key: 'admin', icon: Settings, label: t('common.admin'), to: localizedPath('/admin') } as AccountEntry]
       : []),
     { type: 'separator', key: 'sep' },
-    { type: 'action', key: 'tour', icon: Compass, label: t('tour.replayCta'), onSelect: onReplayTour },
     { type: 'action', key: 'logout', icon: LogOut, label: t('common.logout'), onSelect: onSignOut },
   ]
 
@@ -274,12 +270,14 @@ const AUTH_PATH_RE = /\/(login|register|forgot-password|reset-password|two-facto
 export function Header() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
-  const navigate = useNavigate()
   const { session, isPending, signOut } = useAuth()
   const features = useFeatures()
   // Drop nav entries whose runtime feature flag is off (e.g. the Geo entry on
   // a deployment that sunset the community geo surface).
   const primaryNav = PRIMARY_NAV.filter(
+    (item) => !item.feature || features[item.feature],
+  )
+  const secondaryNav = SECONDARY_NAV.filter(
     (item) => !item.feature || features[item.feature],
   )
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -289,10 +287,6 @@ export function Header() {
     getScrolledServerSnapshot,
   )
 
-  const handleReplayTour = () => {
-    requestTourReplay()
-    navigate(localizedPath('/'))
-  }
   const isRewardModalOpen = useDailyLoginStore((state) => state.isModalOpen)
   const closeRewardModal = useDailyLoginStore((state) => state.closeModal)
   const billingEntitlement = useBillingStore((state) => state.entitlement)
@@ -377,7 +371,20 @@ export function Header() {
                       onNavigate={() => setMobileMenuOpen(false)}
                     />
                   ))}
-                  {showPremiumUpsell && (
+                  <p className="mt-4 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t('common.otherModes')}
+                  </p>
+                  {secondaryNav.map((item) => (
+                    <NavItemLink
+                      key={item.key}
+                      item={item}
+                      variant="drawer"
+                      onNavigate={() => setMobileMenuOpen(false)}
+                    />
+                  ))}
+                  {/* Signed-in free players already get "Passer Premium" in the
+                      account block below; list it once. */}
+                  {showPremiumUpsell && !isSignedIn && (
                     <NavItemLink
                       item={PREMIUM_NAV_ITEM}
                       variant="drawer"
@@ -412,7 +419,6 @@ export function Header() {
                         isAdmin={isAdmin}
                         isPremium={isPremium}
                         onNavigate={() => setMobileMenuOpen(false)}
-                        onReplayTour={handleReplayTour}
                         onSignOut={signOut}
                       />
                     )
@@ -426,10 +432,11 @@ export function Header() {
 
           {/* Desktop primary navigation — shown at md and up */}
           <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 md:flex lg:gap-2">
+            {/* Daily-first: only today's box and the results. Panorama and
+                Premium are secondary (account menu, post-game loop, footer). */}
             {primaryNav.map((item) => (
               <NavItemLink key={item.key} item={item} variant="desktop" />
             ))}
-            {showPremiumUpsell && <NavItemLink item={PREMIUM_NAV_ITEM} variant="desktop" accent />}
           </nav>
         </div>
 
@@ -494,7 +501,6 @@ export function Header() {
                     variant="dropdown"
                     isAdmin={isAdmin}
                     isPremium={isPremium}
-                    onReplayTour={handleReplayTour}
                     onSignOut={signOut}
                   />
                 </DropdownMenuContent>

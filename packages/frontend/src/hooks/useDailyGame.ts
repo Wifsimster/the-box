@@ -19,7 +19,16 @@ const GUEST_OPT_IN_KEY = 'theBox.guestOptIn'
  * prefetching, start/reset handlers and the guest-gate flow. Extracted from
  * GamePage so that component is a thin presentational shell over this hook.
  */
-export function useDailyGame() {
+export interface UseDailyGameOptions {
+  /**
+   * Show the create-account gate before an anonymous visitor's first game.
+   * The daily-first home (`TodayPage`) turns it off: guests start playing at
+   * once and are asked to save their score on the results screen instead.
+   */
+  guestGate?: boolean
+}
+
+export function useDailyGame({ guestGate = true }: UseDailyGameOptions = {}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { localizedPath } = useLocalizedPath()
@@ -28,6 +37,10 @@ export function useDailyGame() {
   const [error, setError] = useState<string | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const [guestGateOpen, setGuestGateOpen] = useState(false)
+  // True when today's box is already finished for this player. Lets the
+  // daily-first home render its "come back tomorrow" loop instead of the
+  // generic error state.
+  const [alreadyCompleted, setAlreadyCompleted] = useState(false)
   const isAdmin = session?.user?.role === 'admin'
 
   // iOS Safari fallback: when the keyboard overlays the layout viewport we lift
@@ -177,6 +190,7 @@ export function useDailyGame() {
           // Check if it's already completed
           if (data.userSession.isCompleted) {
             setGamePhase('daily_intro')
+            setAlreadyCompleted(true)
             setError(t('game.alreadyCompleted'))
             setLoading(false)
             return
@@ -356,7 +370,7 @@ export function useDailyGame() {
       // opted into guest play in this tab. This replaces the previous silent
       // anonymous sign-in, which was killing signup conversion.
       if (!session && !isSessionPending) {
-        const optedIn = sessionStorage.getItem(GUEST_OPT_IN_KEY) === '1'
+        const optedIn = !guestGate || sessionStorage.getItem(GUEST_OPT_IN_KEY) === '1'
         if (!optedIn) {
           setGuestGateOpen(true)
           setLoading(false)
@@ -399,6 +413,7 @@ export function useDailyGame() {
       // Check if it's the "already completed" error via the structured code
       const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
       if (code === 'CHALLENGE_ALREADY_COMPLETED' || code === 'SESSION_ALREADY_COMPLETED') {
+        setAlreadyCompleted(true)
         setError(t('game.alreadyCompleted'))
       } else if (code === 'PREMIUM_REQUIRED_FOR_OLD_CATCHUP') {
         // Free user clicked an archived challenge they can't access. Send
@@ -413,7 +428,7 @@ export function useDailyGame() {
       }
       setLoading(false)
     }
-  }, [challengeId, session, isSessionPending, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, prefetchAllScreenshots, t, navigate, localizedPath])
+  }, [challengeId, session, isSessionPending, guestGate, setSessionId, initializePositionStates, fetchScreenshot, setGamePhase, setLoading, prefetchAllScreenshots, t, navigate, localizedPath])
 
   // Fetch screenshot when position changes (after navigation)
   useEffect(() => {
@@ -473,6 +488,7 @@ export function useDailyGame() {
   return {
     // status
     error,
+    alreadyCompleted,
     isResetting,
     isLoading,
     _hasHydrated,

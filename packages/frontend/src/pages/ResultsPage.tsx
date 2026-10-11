@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
-import { Home, Award, Play, Inbox } from 'lucide-react'
+import { CalendarCheck, Award, Play, Inbox, UserPlus } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { useSession } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { usePercentileRank } from '@/hooks/usePercentileRank'
@@ -18,6 +20,8 @@ export default function ResultsPage() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
   const reducedMotion = useReducedMotionSafe()
+  const { data: authSession } = useSession()
+  const isGuest = Boolean((authSession?.user as { isAnonymous?: boolean } | undefined)?.isAnonymous)
   const {
     totalScore: backendTotalScore,
     totalScreenshots,
@@ -111,6 +115,23 @@ export default function ResultsPage() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 md:py-12 lg:px-8">
+      {/* Daily-first proposal: the account ask moved from before the first
+          screenshot to here, once the guest has a score worth keeping. The
+          backend carries the guest's box over on signup (onLinkAccount). */}
+      {isGuest && (
+        <Card variant="warning" className="mb-6">
+          <CardContent className="flex flex-col gap-3 pt-(--card-padding) sm:flex-row sm:items-center">
+            <UserPlus className="size-6 shrink-0 text-warning" aria-hidden="true" />
+            <div className="flex-1 space-y-1">
+              <h2 className="font-semibold text-foreground">{t('today.guestSaveTitle')}</h2>
+              <p className="text-sm text-muted-foreground">{t('today.guestSaveBody')}</p>
+            </div>
+            <Button variant="gaming" asChild>
+              <Link to={localizedPath('/register')}>{t('today.guestSaveCta')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <SessionDetails
         results={results}
         totalScore={displayTotalScore}
@@ -134,8 +155,8 @@ export default function ResultsPage() {
             </Button>
             <Button variant="outline" size="lg" asChild className="w-full px-4 sm:w-auto sm:px-8">
               <Link to={localizedPath('/')}>
-                <Home className="size-4" aria-hidden="true" />
-                {t('common.home')}
+                <CalendarCheck className="size-4" aria-hidden="true" />
+                {t('common.today')}
               </Link>
             </Button>
           </div>

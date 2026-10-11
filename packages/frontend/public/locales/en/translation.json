@@ -58,7 +58,12 @@
     "goToItem": "Go to item {{index}}",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
-    "pickMonth": "Pick a month"
+    "pickMonth": "Pick a month",
+    "today": "Today",
+    "results": "Results",
+    "about": "About The Box",
+    "otherModes": "More",
+    "rules": "How to play"
   },
   "nav": {
     "primary": "Primary navigation",
@@ -69,7 +74,9 @@
       "home": "Home",
       "play": "Play",
       "leaderboard": "Ranking",
-      "profile": "Profile"
+      "profile": "Profile",
+      "today": "Today",
+      "results": "Results"
     }
   },
   "achievements": {
@@ -652,6 +659,31 @@
         "Even screenshot ninjas fall sometimes. See you tomorrow. 💀"
       ]
     }
+  },
+  "today": {
+    "boxOf": "The {{date}} box",
+    "rules": "{{count}} screenshots · 45 s each · the faster you are, the more you score",
+    "startHint": "The clock starts when you open the box.",
+    "guestHint": "No account needed to play. You can keep your score at the end.",
+    "streak_one": "{{count}} box in a row",
+    "streak_other": "{{count}} boxes in a row",
+    "doneTitle": "Box opened",
+    "doneScore": "{{score}} pts · {{found}}/{{total}} screenshots",
+    "nextIn": "Next box in",
+    "seeResults": "See my answers",
+    "seeRanking": "See the ranking",
+    "yesterdayTitle": "Yesterday’s box",
+    "yesterdayPlayed": "Review yesterday’s answers",
+    "yesterdayMissed": "You missed it. Catch up, off the ranking.",
+    "yesterdayCta": "Open yesterday’s box",
+    "rewardReady": "Your daily reward is waiting.",
+    "rewardCta": "Claim",
+    "guestSaveTitle": "Keep your score",
+    "guestSaveBody": "Create your account in 10 s: today’s box, your streak and your rank are kept.",
+    "guestSaveCta": "Create my account",
+    "moreTitle": "Still want to play?",
+    "panoramaLine": "Panorama: guess the hidden game, then pin the scene on its map.",
+    "premiumLine": "Premium: every past box, no 7-day limit."
   },
   "leaderboard": {
     "title": "Leaderboard",

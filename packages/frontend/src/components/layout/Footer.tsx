@@ -75,6 +75,16 @@ export function Footer() {
         >
           {t('footer.contact')}
         </Link>
+        {/* Secondary surfaces demoted out of the primary nav. */}
+        <Link to={localizedPath('/panorama')} className={footerLinkClass}>
+          {t('common.geogamers')}
+        </Link>
+        <Link to={localizedPath('/premium')} className={footerLinkClass}>
+          {t('common.premium')}
+        </Link>
+        <Link to={localizedPath('/about')} className={footerLinkClass}>
+          {t('common.about')}
+        </Link>
       </nav>
       <p className="mt-2 text-xs text-muted-foreground">
         &copy; {currentYear} The Box. {t('footer.allRightsReserved')}
