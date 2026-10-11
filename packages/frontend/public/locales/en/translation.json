@@ -569,7 +569,23 @@
       "unexpected": "Something went wrong. Please try again.",
       "sessionNotInitialized": "The game session isn't ready yet. Please reload the page."
     },
-    "offlineGuess": "You're offline — your guess can't be sent."
+    "offlineGuess": "You're offline — your guess can't be sent.",
+    "describe": {
+      "entry": "Can't find the title? Describe the game",
+      "beta": "beta",
+      "formLabel": "Describe the game",
+      "label": "Describe the game in your own words",
+      "placeholder": "Characters, places, what you do in it…",
+      "hint": "Worth no points for now. An AI (Anthropic) reads your description, and we keep it 180 days to improve the game. Leave out anything personal.",
+      "tooShort_one": "{{count}} more character",
+      "tooShort_other": "{{count}} more characters",
+      "counter": "{{count}}/{{max}}",
+      "cancel": "Cancel",
+      "submit": "Send",
+      "sending": "Sending…",
+      "ack": "Got it, thanks. Your description doesn't change your score.",
+      "error": "Description not sent. Try again in a moment."
+    }
   },
   "home": {
     "headline": "One screenshot. One guess.",
@@ -882,7 +898,8 @@
       "geo": "Geo",
       "geoFetch": "Maps",
       "reports": "Reports",
-      "moderation": "Moderation"
+      "moderation": "Moderation",
+      "describeGuess": "Descriptions"
     },
     "geoFetch": {
       "title": "Game maps",
@@ -1920,6 +1937,29 @@
         "title": "Revoke this key?",
         "description": "The key \"{{label}}\" will stop working immediately. This can't be undone."
       }
+    },
+    "describeGuess": {
+      "title": "Free descriptions (shadow mode)",
+      "intro": "Player descriptions and the model verdict, with no effect on scores. For labelling.",
+      "totalCount_one": "{{count}} description",
+      "totalCount_other": "{{count}} descriptions",
+      "empty": "No descriptions yet.",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "noVerdict": "No verdict",
+      "titleHit": "Title named",
+      "guest": "Guest",
+      "table": {
+        "date": "Date",
+        "description": "Description",
+        "target": "Expected game",
+        "chosen": "Model choice",
+        "probability": "p",
+        "verdict": "Verdict"
+      },
+      "previous": "Previous page",
+      "next": "Next page"
     }
   },
   "pricing": {
@@ -2154,7 +2194,9 @@
     "contactCopyEmail": "Copy address",
     "contactBugAction": "Describe the bug by email",
     "contactBugSubject": "Bug report",
-    "contactBugBody": "What happened?\n\n\nSteps to reproduce the problem:\n\n\nDevice / browser: {{device}}"
+    "contactBugBody": "What happened?\n\n\nSteps to reproduce the problem:\n\n\nDevice / browser: {{device}}",
+    "privacyDescribeGuessTitle": "Describing a game in your own words (beta)",
+    "privacyDescribeGuess": "If you use the \"Describe the game\" feature, we store the text you write, its language, the screenshot it is about and the result of the analysis. The text is sent to Anthropic (anthropic.com), which analyses it with an AI model to estimate which game it describes. This data is kept for 180 days and then deleted. It is erased with your account."
   },
   "errors": {
     "boundary": {

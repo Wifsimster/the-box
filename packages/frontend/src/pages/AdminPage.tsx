@@ -16,18 +16,19 @@ import { AgentKeysCard } from '@/components/admin/AgentKeysCard'
 import { JobQueuePanel } from '@/components/admin/JobQueuePanel'
 import { GeoReviewPanel } from '@/components/admin/GeoReviewPanel'
 import { EmailLogPanel } from '@/components/admin/EmailLogPanel'
+import { DescribeGuessPanel } from '@/components/admin/DescribeGuessPanel'
 import { UserAnalyticsPanel } from '@/components/admin/UserAnalyticsPanel'
 import { AnimatedTabs } from '@/components/ui/animated-tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
-import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, Compass, BarChart3 } from 'lucide-react'
+import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, Compass, BarChart3, MessageSquareText } from 'lucide-react'
 
 // Two old tabs were folded into the unified `geo` hub:
 //   - `reports`  → sub-tab `reports`
 //   - `geoFetch` → sub-tab `acquisition` (the standalone "Cartes" surface
 //                  duplicated triggers exposed under Géo › Catalogue)
 // Bookmarks for either land on the right sub-tab via REDIRECT_TABS.
-const VALID_TABS = ['jobs', 'games', 'users', 'analytics', 'email', 'emailLog', 'growth', 'geo']
+const VALID_TABS = ['jobs', 'games', 'users', 'analytics', 'email', 'emailLog', 'growth', 'geo', 'describeGuess']
 const REDIRECT_TABS: Record<string, { tab: string; sub?: string }> = {
   reports: { tab: 'geo', sub: 'reports' },
   geoFetch: { tab: 'geo', sub: 'acquisition' },
@@ -61,6 +62,7 @@ export default function AdminPage() {
     { id: 'emailLog', label: t('admin.tabs.emailLog'), icon: <MailCheck className="size-4" /> },
     { id: 'growth', label: t('admin.tabs.growth'), icon: <TrendingUp className="size-4" /> },
     { id: 'geo', label: t('admin.tabs.geo', 'Géo'), icon: <Compass className="size-4" /> },
+    { id: 'describeGuess', label: t('admin.tabs.describeGuess'), icon: <MessageSquareText className="size-4" /> },
   ]
 
   // Get active tab from URL, default to 'jobs' if not present or invalid
@@ -188,6 +190,7 @@ export default function AdminPage() {
               {activeTab === 'email' && <EmailSettings />}
               {activeTab === 'emailLog' && <EmailLogPanel />}
               {activeTab === 'growth' && <GrowthStats />}
+              {activeTab === 'describeGuess' && <DescribeGuessPanel />}
               {activeTab === 'geo' && (
                 <div className="space-y-6">
                   <GeoGamersHealthCard />

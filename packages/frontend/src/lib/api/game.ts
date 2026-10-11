@@ -8,6 +8,8 @@ import type {
   GameSearchResult,
   GameHistoryResponse,
   GameSessionDetailsResponse,
+  DescribeGuessRequest,
+  DescribeGuessResponse,
 } from '@/types'
 
 interface ApiResponse<T> {
@@ -113,6 +115,22 @@ export const gameApi = {
       body: JSON.stringify(params),
     })
     return handleResponse<GuessResponse>(response)
+  },
+
+  /**
+   * "Describe the game" (shadow mode). The answer is the same whatever the
+   * verdict: the client never learns the model's guess.
+   */
+  async describeGame(params: DescribeGuessRequest): Promise<DescribeGuessResponse> {
+    const response = await fetch('/api/game/describe', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    })
+    return handleResponse<DescribeGuessResponse>(response)
   },
 
   /**

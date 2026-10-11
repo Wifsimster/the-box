@@ -569,7 +569,23 @@
       "unexpected": "Une erreur est survenue. Réessaie.",
       "sessionNotInitialized": "La partie n'est pas encore prête. Recharge la page."
     },
-    "offlineGuess": "Tu es hors ligne — ta réponse ne peut pas être envoyée."
+    "offlineGuess": "Tu es hors ligne — ta réponse ne peut pas être envoyée.",
+    "describe": {
+      "entry": "Tu ne trouves pas le titre ? Décris le jeu",
+      "beta": "bêta",
+      "formLabel": "Décrire le jeu",
+      "label": "Décris le jeu avec tes mots",
+      "placeholder": "Personnages, lieux, ce qu'on y fait…",
+      "hint": "Ne rapporte aucun point pour l'instant. Une IA (Anthropic) analyse ta description, et on la garde 180 jours pour améliorer le jeu. N'y mets rien de personnel.",
+      "tooShort_one": "Encore {{count}} caractère",
+      "tooShort_other": "Encore {{count}} caractères",
+      "counter": "{{count}}/{{max}}",
+      "cancel": "Annuler",
+      "submit": "Envoyer",
+      "sending": "Envoi…",
+      "ack": "C'est noté, merci. Ta description ne change pas ton score.",
+      "error": "Description non envoyée. Réessaie dans un moment."
+    }
   },
   "home": {
     "headline": "Une capture. Un jeu à deviner.",
@@ -882,7 +898,8 @@
       "geo": "Géo",
       "geoFetch": "Cartes",
       "reports": "Signalements",
-      "moderation": "Modération"
+      "moderation": "Modération",
+      "describeGuess": "Descriptions"
     },
     "geoFetch": {
       "title": "Cartes des jeux",
@@ -1920,6 +1937,29 @@
         "title": "Révoquer cette clé ?",
         "description": "La clé « {{label}} » cessera immédiatement de fonctionner. Cette action est irréversible."
       }
+    },
+    "describeGuess": {
+      "title": "Descriptions libres (mode ombre)",
+      "intro": "Descriptions envoyées par les joueurs et verdict du modèle, sans effet sur les scores. Pour l'étiquetage.",
+      "totalCount_one": "{{count}} description",
+      "totalCount_other": "{{count}} descriptions",
+      "empty": "Aucune description pour l'instant.",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "accepted": "Acceptée",
+      "rejected": "Refusée",
+      "noVerdict": "Sans verdict",
+      "titleHit": "Titre cité",
+      "guest": "Invité",
+      "table": {
+        "date": "Date",
+        "description": "Description",
+        "target": "Jeu attendu",
+        "chosen": "Choix du modèle",
+        "probability": "p",
+        "verdict": "Verdict"
+      },
+      "previous": "Page précédente",
+      "next": "Page suivante"
     }
   },
   "pricing": {
@@ -2154,7 +2194,9 @@
     "contactCopyEmail": "Copier l'adresse",
     "contactBugAction": "Décrire le bug par email",
     "contactBugSubject": "Signalement de bug",
-    "contactBugBody": "Que s'est-il passé ?\n\n\nÉtapes pour reproduire le problème :\n\n\nAppareil / navigateur : {{device}}"
+    "contactBugBody": "Que s'est-il passé ?\n\n\nÉtapes pour reproduire le problème :\n\n\nAppareil / navigateur : {{device}}",
+    "privacyDescribeGuessTitle": "Description libre d'un jeu (bêta)",
+    "privacyDescribeGuess": "Si vous utilisez la fonction « Décris le jeu », nous enregistrons le texte que vous écrivez, sa langue, la capture concernée et le résultat de l'analyse. Ce texte est transmis à Anthropic (anthropic.com), qui l'analyse avec un modèle d'IA pour estimer de quel jeu il s'agit. Ces données sont conservées 180 jours, puis supprimées. Elles sont effacées avec votre compte."
   },
   "errors": {
     "boundary": {

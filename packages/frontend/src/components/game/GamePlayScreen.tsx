@@ -8,6 +8,7 @@ import { ResultCard } from '@/components/game/ResultCard'
 import { CompletionChoiceModal } from '@/components/game/CompletionChoiceModal'
 import { ProgressDots } from '@/components/game/ProgressDots'
 import { EndGameButton } from '@/components/game/EndGameButton'
+import { DescribeGameEntry } from '@/components/game/DescribeGameEntry'
 import { CountdownTimer } from '@/components/game/CountdownTimer'
 import { useRoundTimer } from '@/hooks/useCountdownTimer'
 import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
@@ -119,6 +120,7 @@ export function GamePlayScreen({
             </div>
           )}
           <GuessInput />
+          <DescribeGameEntry />
         </div>
         <SecondChanceModal />
       </div>

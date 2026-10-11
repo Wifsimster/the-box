@@ -111,6 +111,16 @@ interface GameState {
   findNextUnfinished: (fromPosition: number) => number | null
   canNavigateTo: (position: number) => boolean
 
+  /**
+   * Pause / resume the current screenshot's countdown. Pausing banks the
+   * running segment into `timeSpentMs` and clears `roundStartedAt`, which
+   * makes the timer inactive; resuming re-stamps it. Used while the
+   * "describe the game" judge runs, so its latency costs the player nothing.
+   */
+  pauseRoundTimer: () => void
+  resumeRoundTimer: () => void
+  markDescribeSubmitted: (position: number) => void
+
   // Hint actions
   markIncorrectGuess: (position: number) => void
   /**
@@ -659,6 +669,41 @@ export const useGameStore = create<GameState>()(
             }
           }
           return null
+        },
+
+        pauseRoundTimer: () => {
+          set((state) => {
+            if (state.roundStartedAt == null) return {}
+            const pos = state.currentPosition
+            const current = state.positionStates[pos]
+            const segment = Math.max(0, Date.now() - state.roundStartedAt)
+            return {
+              roundStartedAt: null,
+              positionStates: current
+                ? {
+                    ...state.positionStates,
+                    [pos]: { ...current, timeSpentMs: (current.timeSpentMs ?? 0) + segment },
+                  }
+                : state.positionStates,
+            }
+          })
+        },
+
+        resumeRoundTimer: () => {
+          // Only when still paused: a navigation meanwhile already re-stamped.
+          if (get().roundStartedAt == null) set({ roundStartedAt: Date.now() })
+        },
+
+        markDescribeSubmitted: (position) => {
+          set((state) => ({
+            positionStates: {
+              ...state.positionStates,
+              [position]: {
+                ...state.positionStates[position],
+                describeSubmitted: true,
+              },
+            },
+          }))
         },
 
         // Hint actions

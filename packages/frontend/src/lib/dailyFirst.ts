@@ -15,6 +15,8 @@ export function isTodayPath(pathname: string): boolean {
 export interface FeatureFlags {
   geoCommunity: boolean
   geogamers: boolean
+  /** "Describe the game" in shadow mode (DESCRIBE_GUESS_ENABLED + ANTHROPIC_API_KEY). */
+  describeGuess: boolean
 }
 
 /** Anything gated by an optional runtime flag (nav entries, mode cards…). */

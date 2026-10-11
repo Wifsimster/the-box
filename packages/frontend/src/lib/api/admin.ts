@@ -1,4 +1,4 @@
-import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse, BillingEntitlement } from '@/types'
+import type { Job, JobType, JobData, JobListResponse, Game, RecurringJob, Screenshot, ImportState, User, EmailLogQuery, EmailLogResponse, BillingEntitlement, DescribeGuessAdminPage } from '@/types'
 
 /**
  * Thin wrapper around `fetch` for admin endpoints. Defaults to
@@ -875,6 +875,15 @@ export const adminApi = {
       credentials: 'include',
     })
     return handleResponse<EmailLogResponse>(response)
+  },
+
+  /** "Describe the game" shadow-mode rows, newest first (read-only). */
+  async listDescribeGuesses(params: { page: number; limit: number }): Promise<DescribeGuessAdminPage> {
+    const qs = new URLSearchParams({ page: String(params.page), limit: String(params.limit) })
+    const response = await fetch(`/api/admin/describe-guesses?${qs.toString()}`, {
+      credentials: 'include',
+    })
+    return handleResponse<DescribeGuessAdminPage>(response)
   },
 }
 
