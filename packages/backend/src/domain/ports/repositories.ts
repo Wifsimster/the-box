@@ -17,7 +17,6 @@ import type {
   ImportStatus,
   LeaderboardEntry,
   MonthlyLeaderboardEntry,
-  PercentileResponse,
   RewardGrant,
   RewardGrantPayload,
   Screenshot,
@@ -494,6 +493,7 @@ export interface ScreenshotRepository {
 }
 
 import type { CountryPlayerMonthStats } from '../services/country-leaderboard.js'
+import type { SessionStandingCounts, StandingCounts } from '../services/leaderboard-standing.js'
 
 // ---------- Achievement ----------
 
@@ -694,7 +694,17 @@ export interface DailyLoginRepository {
 
 export interface LeaderboardRepository {
   findByChallenge(challengeId: number, limit?: number): Promise<LeaderboardEntry[]>
-  getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse>
+  /**
+   * Ranked-session count and how many of them beat `score`, read in one
+   * statement so both numbers come from the same snapshot.
+   */
+  countStandingForScore(challengeId: number, score: number): Promise<StandingCounts>
+  /**
+   * Standing counts for one of `userId`'s sessions, placed on its own
+   * challenge's board by its stored score, in one statement. `null` when the
+   * session does not exist or belongs to someone else.
+   */
+  findSessionStandingCounts(sessionId: string, userId: string): Promise<SessionStandingCounts | null>
   /** Total ranked players (completed, non-catch-up, non-anonymous) for a challenge. */
   countPlayersByChallenge(challengeId: number): Promise<number>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>

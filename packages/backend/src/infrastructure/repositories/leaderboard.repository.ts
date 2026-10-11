@@ -1,6 +1,7 @@
 import { db } from '../database/connection.js'
-import { isCountryCode, type LeaderboardEntry, type PercentileResponse, type MonthlyLeaderboardEntry } from '@the-box/types'
+import { isCountryCode, type LeaderboardEntry, type MonthlyLeaderboardEntry } from '@the-box/types'
 import type { CountryPlayerMonthStats } from '../../domain/services/country-leaderboard.js'
+import type { SessionStandingCounts, StandingCounts } from '../../domain/services/leaderboard-standing.js'
 
 interface LeaderboardRow {
   user_id: string
@@ -96,7 +97,7 @@ export const leaderboardRepository = {
   },
 
   async countPlayersByChallenge(challengeId: number): Promise<number> {
-    // Mirrors the totalPlayers query in getPercentileForScore: ranked
+    // Mirrors the ranked-session filter in countStandingForScore: ranked
     // sessions only (completed, not catch-up, not anonymous). Used by the
     // public "players today" social-proof badge on the home page.
     const result = await db('game_sessions')
@@ -110,42 +111,67 @@ export const leaderboardRepository = {
     return Number(result?.count ?? 0)
   },
 
-  async getPercentileForScore(challengeId: number, score: number): Promise<PercentileResponse> {
-    // Count total completed sessions for this challenge (excluding anonymous users and catch-up sessions)
-    const totalResult = await db('game_sessions')
-      .join('user', 'game_sessions.user_id', 'user.id')
-      .where('game_sessions.daily_challenge_id', challengeId)
-      .andWhere('game_sessions.is_completed', true)
-      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions
-      .whereRaw('"user"."isAnonymous" = ?', [false])
-      .count('game_sessions.id as count')
-      .first()
-
-    const totalPlayers = Number(totalResult?.count ?? 0)
-
-    if (totalPlayers === 0) {
-      return { percentile: 100, totalPlayers: 0, rank: 1 }
+  async countStandingForScore(challengeId: number, score: number): Promise<StandingCounts> {
+    // One statement for both counts (ranked sessions: completed, not
+    // catch-up, not anonymous), so rank and total come from the same
+    // snapshot. Two separate COUNTs let a session completing in between
+    // push the rank past the total.
+    const { rows } = await db.raw<{ rows: Array<{ ranked_players: string; players_above: string }> }>(
+      `select count(*) as ranked_players,
+              count(*) filter (where gs.total_score > ?) as players_above
+         from game_sessions gs
+         join "user" u on u.id = gs.user_id
+        where gs.daily_challenge_id = ?
+          and gs.is_completed = true
+          and gs.is_catch_up = false
+          and u."isAnonymous" = false`,
+      [score, challengeId]
+    )
+    return {
+      rankedPlayers: Number(rows[0]?.ranked_players ?? 0),
+      playersAbove: Number(rows[0]?.players_above ?? 0),
     }
+  },
 
-    // Count players with score higher than the given score (to determine rank)
-    const higherScoreResult = await db('game_sessions')
-      .join('user', 'game_sessions.user_id', 'user.id')
-      .where('game_sessions.daily_challenge_id', challengeId)
-      .andWhere('game_sessions.is_completed', true)
-      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions
-      .whereRaw('"user"."isAnonymous" = ?', [false])
-      .andWhere('game_sessions.total_score', '>', score)
-      .count('game_sessions.id as count')
-      .first()
-
-    const playersAbove = Number(higherScoreResult?.count ?? 0)
-    const rank = playersAbove + 1
-
-    // Calculate top percentile: what top percentage the player is in
-    // Top 1% = best player, Top 100% = worst player
-    const topPercentile = Math.max(1, Math.round((rank / totalPlayers) * 100))
-
-    return { percentile: topPercentile, totalPlayers, rank }
+  async findSessionStandingCounts(sessionId: string, userId: string): Promise<SessionStandingCounts | null> {
+    // Places the session by its *stored* score on its own challenge, in one
+    // statement: the score, the ranked total, the players above and whether
+    // the session itself is among the ranked rows all read from one snapshot.
+    // A client-supplied score (possibly stale on another device) never enters.
+    const { rows } = await db.raw<{
+      rows: Array<{ id: string; total_score: number; ranked_players: string; players_above: string; self_counted: boolean | null }>
+    }>(
+      `with me as (
+         select id, daily_challenge_id, total_score
+           from game_sessions
+          where id = ? and user_id = ?
+       )
+       select me.id,
+              me.total_score,
+              count(r.id) as ranked_players,
+              count(r.id) filter (where r.total_score > me.total_score) as players_above,
+              coalesce(bool_or(r.id = me.id), false) as self_counted
+         from me
+         left join (
+           select gs.id, gs.daily_challenge_id, gs.total_score
+             from game_sessions gs
+             join "user" u on u.id = gs.user_id
+            where gs.is_completed = true
+              and gs.is_catch_up = false
+              and u."isAnonymous" = false
+         ) r on r.daily_challenge_id = me.daily_challenge_id
+        group by me.id, me.total_score`,
+      [sessionId, userId]
+    )
+    const row = rows[0]
+    if (!row) return null
+    return {
+      sessionId: row.id,
+      totalScore: Number(row.total_score),
+      rankedPlayers: Number(row.ranked_players),
+      playersAbove: Number(row.players_above),
+      selfCounted: row.self_counted === true,
+    }
   },
 
   // Final leaderboard rank for a score on a challenge: 1 + the number of

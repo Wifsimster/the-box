@@ -49,3 +49,39 @@ export function countCorrect(results: GuessResult[]): number {
 export function computeAccuracy(correctAnswers: number, totalScreenshots: number): number {
   return totalScreenshots > 0 ? Math.round((correctAnswers / totalScreenshots) * 100) : 0
 }
+
+/** What the results page shows for the score hero. */
+export interface ResultsSummary {
+  totalScore: number
+  totalScreenshots: number
+  challengeDate: string | null
+  /** True once the numbers come from the server's session record. */
+  authoritative: boolean
+}
+
+/**
+ * Pick the results page's score, preferring the server's session record over
+ * the persisted local store. The store can be stale: a session finished on
+ * another device leaves this device's localStorage at the partial score it
+ * last saw. The store is only an optimistic placeholder until the session
+ * record for the same session id arrives, or the fallback if it never does.
+ */
+export function resolveResultsSummary(
+  store: { sessionId: string | null; totalScore: number; totalScreenshots: number; challengeDate: string | null },
+  session: Pick<GameSessionDetailsResponse, 'sessionId' | 'totalScore' | 'totalScreenshots' | 'challengeDate'> | null,
+): ResultsSummary {
+  if (session && (store.sessionId === null || session.sessionId === store.sessionId)) {
+    return {
+      totalScore: session.totalScore,
+      totalScreenshots: session.totalScreenshots,
+      challengeDate: session.challengeDate,
+      authoritative: true,
+    }
+  }
+  return {
+    totalScore: store.totalScore,
+    totalScreenshots: store.totalScreenshots,
+    challengeDate: store.challengeDate,
+    authoritative: false,
+  }
+}

@@ -602,6 +602,22 @@ export interface PercentileResponse {
   rank: number            // actual rank position
 }
 
+/**
+ * Authoritative standing of one game session on its own challenge's board
+ * (`GET /api/leaderboard/session/:sessionId/standing`, owner only). Rank and
+ * total come from one SQL statement over the stored session score, so
+ * `rank <= totalPlayers` always holds. A session that is not itself ranked
+ * (unfinished, catch-up or guest) is placed hypothetically and counted once
+ * in `totalPlayers`.
+ */
+export interface SessionStandingResponse extends PercentileResponse {
+  sessionId: string
+  /** The session's stored total score, the one the rank was computed from. */
+  totalScore: number
+  /** True when the session itself appears on the leaderboard. */
+  ranked: boolean
+}
+
 export interface MonthlyLeaderboardEntry {
   rank: number
   userId: string

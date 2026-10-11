@@ -4,12 +4,14 @@ import type {
   LeaderboardResponse,
   PercentileResponse,
   MonthlyLeaderboardResponse,
+  SessionStandingResponse,
 } from '@the-box/types'
 import type {
   DomainLogger,
   DailyChallengeLookup,
   LeaderboardRepository,
 } from '../ports/index.js'
+import { computeStanding } from './leaderboard-standing.js'
 import { MIN_PLAYERS_PER_COUNTRY, countCountryPlayers, rankCountries } from './country-leaderboard.js'
 
 /** Minimal projection of today's rank-1 player for outbound nudges. */
@@ -23,6 +25,11 @@ export interface LeaderboardService {
   getTodayLeaderboard(): Promise<LeaderboardResponse>
   getLeaderboardByDate(date: string): Promise<LeaderboardResponse>
   getTodayPercentile(score: number): Promise<PercentileResponse>
+  /**
+   * Standing of one of `userId`'s sessions on its own challenge, from the
+   * stored session score. `null` when the session is not theirs or missing.
+   */
+  getSessionStanding(sessionId: string, userId: string): Promise<SessionStandingResponse | null>
   getMonthlyLeaderboard(year: number, month: number): Promise<MonthlyLeaderboardResponse>
   /**
    * Monthly country ranking (see `rankCountries`). `viewer` is the signed-in
@@ -150,7 +157,19 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
         return { percentile: 100, totalPlayers: 0, rank: 1 }
       }
 
-      return leaderboardRepository.getPercentileForScore(challenge.id, score)
+      const counts = await leaderboardRepository.countStandingForScore(challenge.id, score)
+      return computeStanding(counts)
+    },
+
+    async getSessionStanding(sessionId: string, userId: string): Promise<SessionStandingResponse | null> {
+      const counts = await leaderboardRepository.findSessionStandingCounts(sessionId, userId)
+      if (!counts) return null
+      return {
+        sessionId: counts.sessionId,
+        totalScore: counts.totalScore,
+        ranked: counts.selfCounted,
+        ...computeStanding(counts),
+      }
     },
 
     async getMonthlyLeaderboard(year: number, month: number): Promise<MonthlyLeaderboardResponse> {

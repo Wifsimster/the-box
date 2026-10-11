@@ -5,6 +5,7 @@ import type { DomainLogger } from '../ports/logger.js'
 import type { DailyChallengeLookup, LeaderboardRepository } from '../ports/index.js'
 import type { LeaderboardEntry } from '@the-box/types'
 import type { CountryPlayerMonthStats } from './country-leaderboard.js'
+import type { SessionStandingCounts, StandingCounts } from './leaderboard-standing.js'
 
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
@@ -19,6 +20,8 @@ function makeService(opts: {
   entries?: LeaderboardEntry[]
   playerCount?: number
   countryPlayers?: CountryPlayerMonthStats[]
+  scoreCounts?: StandingCounts
+  sessionCounts?: SessionStandingCounts | null
 }) {
   // No cast: `DailyChallengeLookup` is the two-method slice the service
   // actually uses, so an honest fake satisfies it.
@@ -43,7 +46,8 @@ function makeService(opts: {
     countPlayersByChallenge: async () => opts.playerCount ?? 0,
     findByMonth: async () => [],
     findCountryPlayerStatsByMonth: async () => opts.countryPlayers ?? [],
-    getPercentileForScore: async () => ({ percentile: 0, totalPlayers: 0, rank: 0 }),
+    countStandingForScore: async () => opts.scoreCounts ?? { rankedPlayers: 0, playersAbove: 0 },
+    findSessionStandingCounts: async () => opts.sessionCounts ?? null,
   }
 
   const service = createLeaderboardService({
@@ -140,5 +144,60 @@ describe('leaderboard.service — getMonthlyCountryLeaderboard', () => {
     const { service } = makeService({})
     await assert.rejects(service.getMonthlyCountryLeaderboard(2999, 1), /future months/)
     await assert.rejects(service.getMonthlyCountryLeaderboard(2026, 13), /Invalid month/)
+  })
+})
+
+describe('leaderboardService.getTodayPercentile', () => {
+  it('never ranks a bare score past the total (stale score from another device)', async () => {
+    // The player's own finished session (1925 pts) is the only ranked row.
+    // Device A asks for its stale local score (200): one session is above
+    // it and the board holds one session. The old pass-through answered
+    // "Rank #2 of 1 players, top 200%".
+    const { service } = makeService({
+      challengeForDate: { id: 7 },
+      scoreCounts: { rankedPlayers: 1, playersAbove: 1 },
+    })
+    const standing = await service.getTodayPercentile(200)
+    assert.ok(standing.rank <= standing.totalPlayers, `rank ${standing.rank} > total ${standing.totalPlayers}`)
+    assert.deepEqual(standing, { rank: 2, totalPlayers: 2, percentile: 100 })
+  })
+
+  it('ranks a score held by a ranked session among the existing total', async () => {
+    const { service } = makeService({
+      challengeForDate: { id: 7 },
+      scoreCounts: { rankedPlayers: 4, playersAbove: 1 },
+    })
+    assert.deepEqual(await service.getTodayPercentile(900), { rank: 2, totalPlayers: 4, percentile: 50 })
+  })
+})
+
+describe('leaderboardService.getSessionStanding', () => {
+  it('returns null when the session is missing or not the caller\'s', async () => {
+    const { service } = makeService({ sessionCounts: null })
+    assert.equal(await service.getSessionStanding('s-1', 'u-1'), null)
+  })
+
+  it('ranks a finished session by its stored score among the ranked total', async () => {
+    const { service } = makeService({
+      sessionCounts: { sessionId: 's-1', totalScore: 1925, rankedPlayers: 1, playersAbove: 0, selfCounted: true },
+    })
+    assert.deepEqual(await service.getSessionStanding('s-1', 'u-1'), {
+      sessionId: 's-1',
+      totalScore: 1925,
+      ranked: true,
+      rank: 1,
+      totalPlayers: 1,
+      percentile: 100,
+    })
+  })
+
+  it('counts an unranked session (catch-up, guest, unfinished) once in the total', async () => {
+    const { service } = makeService({
+      sessionCounts: { sessionId: 's-2', totalScore: 300, rankedPlayers: 3, playersAbove: 3, selfCounted: false },
+    })
+    const standing = await service.getSessionStanding('s-2', 'u-2')
+    assert.equal(standing?.ranked, false)
+    assert.equal(standing?.rank, 4)
+    assert.equal(standing?.totalPlayers, 4)
   })
 })

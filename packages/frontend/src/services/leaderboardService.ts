@@ -1,3 +1,4 @@
+import type { SessionStandingResponse } from '@the-box/types'
 import type { LeaderboardService, LeaderboardEntry, PercentileResult } from './types'
 import { fetchWithRetry, parseApiError, logError } from '@/lib/errors'
 
@@ -72,6 +73,26 @@ class ApiLeaderboardService implements LeaderboardService {
       // Return default values on error
       return { percentile: 0, totalPlayers: 0, rank: 0 }
     }
+  }
+
+  async getSessionStanding(sessionId: string): Promise<SessionStandingResponse> {
+    const response = await fetchWithRetry(
+      `${this.baseUrl}/leaderboard/session/${encodeURIComponent(sessionId)}/standing`,
+      { credentials: 'include' },
+      { maxRetries: 2, delayMs: 500 }
+    )
+
+    if (!response.ok) {
+      throw await parseApiError(response)
+    }
+
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(data.error?.message || 'Failed to fetch session standing')
+    }
+
+    return data.data
   }
 }
 
